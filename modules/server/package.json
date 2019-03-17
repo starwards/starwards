@@ -1,9 +1,8 @@
 {
   "name": "@starwards/server",
   "version": "0.0.0",
-  "main": "index.js",
-  "license": "MIT",
   "main": "target/index.js",
+  "license": "MIT",
   "types": "target/index.d.ts",
   "scripts": {
     "clean": "rimraf ./target",
@@ -13,10 +12,15 @@
     "lint:src": "tslint -p src",
     "lint:test": "tslint -p test",
     "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
-    "start": "nodemon -r @ts-tools/node/r ./src/index.ts",
+    "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
     "prepack": "yarn build"
   },
   "files": [
     "target"
-  ]
+  ],
+  "dependencies": {
+    "apollo-server-express": "^2.4.8",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4"
+  }
 }
