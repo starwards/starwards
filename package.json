@@ -1,0 +1,32 @@
+{
+  "name": "starwards",
+  "workspaces": [
+    "modules/*"
+  ],
+  "scripts": {
+    "clean": "lerna run clean --stream --parallel",
+    "build": "lerna run build --stream --parallel",
+    "lint": "lerna run lint --stream --parallel",
+    "pretest": "yarn lint",
+    "test": "lerna run test --stream --parallel"
+    },
+  "devDependencies": {
+    "@ts-tools/build": "^0.1.10",
+    "@ts-tools/node": "^0.9.3",
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.6",
+    "@types/node": "10",
+    "chai": "^4.2.0",
+    "lerna": "^3.13.1",
+    "mocha": "^6.0.2",
+    "nodemon": "^1.18.10",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^2.6.3",
+    "tslint": "^5.14.0",
+    "typescript": "~3.3.3333"
+  },
+  "repository": "git@github.com:amir-arad/starwards.git",
+  "author": "amir-arad <greenshade@gmail.com>",
+  "license": "MIT",
+  "private": true
+}

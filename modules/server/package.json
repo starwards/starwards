@@ -1,0 +1,22 @@
+{
+  "name": "@starwards/server",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "main": "target/index.js",
+  "types": "target/index.d.ts",
+  "scripts": {
+    "clean": "rimraf ./target",
+    "prebuild": "yarn clean",
+    "build": "ts-build ./src --cjs",
+    "lint": "run-p lint:src lint:test",
+    "lint:src": "tslint -p src",
+    "lint:test": "tslint -p test",
+    "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
+    "start": "nodemon -r @ts-tools/node/r ./src/index.ts",
+    "prepack": "yarn build"
+  },
+  "files": [
+    "target"
+  ]
+}
