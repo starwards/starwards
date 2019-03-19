@@ -11,26 +11,28 @@ import { expect } from 'chai';
 // a nice structure for test cases
 // found at https://hackernoon.com/extensive-graphql-testing-57e8760f1c25
 const helloTestCase = {
-    id: 'All Movies and Related Directors Test Case',
+    id: 'All SpaceObjects (on empty)',
     query: `
       query {
-        hello
+        allObjects {
+          id
+        }
       }
     `,
     variables: { },
 
-    // injecting the mock movie service with canned responses
+    // injecting the mock data service with canned responses
     context: { /* movieService: mockMovieService */ },
 
     // expected result
     expected: {
         data: {
-          hello: 'Hello world!'
+          allObjects: []
         }
       }
 };
 
-describe('My Test Cases', () => {
+describe('API calls', () => {
     // array of all test cases, just 1 for now
     const cases = [helloTestCase];
     // reading the actual schema

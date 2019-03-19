@@ -1,6 +1,7 @@
 
 export const resolvers = {
     Query: {
-      hello: () => 'Hello world!',
+      allObjects: () => [],
+      objectsInRadius: (position: any, radius: number) => []
     },
   };
