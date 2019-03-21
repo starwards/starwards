@@ -1,11 +1,11 @@
-import { Vector } from './model/vector';
-import { SpaceObject } from './model/space-object';
+import { SpaceObject } from '../model/space-object';
 import { SpaceObjectsManager } from './space-objects-manager';
+import { vec2 } from '@starwards/tsm/src';
 
 export class PositionManager {
   constructor(private objects: SpaceObjectsManager) {}
 
-  public queryArea(lowerBound: Vector, upperBound: Vector): SpaceObject[] {
+  public queryArea(lowerBound: vec2, upperBound: vec2): SpaceObject[] {
     return this.objects.filter(
       o =>
         o.position.x > lowerBound.x &&

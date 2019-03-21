@@ -1,4 +1,4 @@
-import { SpaceObject } from './model/space-object';
+import { SpaceObject } from '../model/space-object';
 
 export class SpaceObjectsManager {
     constructor(private objects: SpaceObject[]) {}

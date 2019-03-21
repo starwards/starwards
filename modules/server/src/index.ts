@@ -1,2 +1,2 @@
 
-export {resolvers} from './resolvers';
+export {resolvers} from './controllers/resolvers';

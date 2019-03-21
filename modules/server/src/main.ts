@@ -1,7 +1,7 @@
 
 import express from 'express';
 import { ApolloServer, gql } from 'apollo-server-express';
-import { resolvers } from './resolvers';
+import { resolvers } from './controllers/resolvers';
 import { readSchema } from '../schema/reader';
 // import bodyParser from 'body-parser';
 // import schema from './src/schema';

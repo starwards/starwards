@@ -1,0 +1,18 @@
+{
+  "name": "@starwards/tsm",
+  "version": "0.8.0",
+  "description": "A TypeScript vector and matrix math library",
+  "author": "Matthias Ferch",
+  "main": "src/index.ts",
+  "scripts": {
+    "clean": "rimraf ./target",
+    "prebuild": "yarn clean",
+    "build": "ts-build ./src --cjs",
+    "lint": "run-p lint:src lint:test",
+    "lint:src": "tslint -p src",
+    "lint:test": "tslint -p test",
+    "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
+    "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
+    "prepack": "yarn build"
+  }
+}

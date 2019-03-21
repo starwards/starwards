@@ -3,15 +3,14 @@ import { graphql } from 'graphql';
 // import mockMovieService from './mocks/mockMovieService';
 import { expect } from 'chai';
 import { schema } from './tools/resolvers';
-import { Asteroid } from '../src/BL/model/asteroid';
-import { Vector } from '../src/BL/model/vector';
-
+import { Asteroid } from '../src/model/asteroid';
+import { vec2 } from '@starwards/tsm';
 // a nice structure for test cases
 // found at https://hackernoon.com/extensive-graphql-testing-57e8760f1c25
 
 const objectsManager = [
-  new Asteroid('foo', new Vector(10, -10)),
-  new Asteroid('bar', new Vector(100, 100))
+  new Asteroid('foo', vec2.zero),
+  new Asteroid('bar', vec2.one)
 ];
 const context = {
   objectsManager
@@ -21,7 +20,8 @@ describe('resolvers', () => {
     const query = `
       query {
         allObjects {
-          id
+          id,
+          position
         }
       }
     `;
@@ -29,19 +29,25 @@ describe('resolvers', () => {
     const result = await graphql(schema, query, null, context, {});
     return expect(result).to.eql({
       data: {
-        allObjects: [{ id: 'foo' }, { id: 'bar' }]
+        allObjects: [
+          { id: 'foo', position: [0, 0] },
+          { id: 'bar', position: [1, 1] }
+        ]
       }
     });
   });
   it(`objectsInRadius`, async () => {
     const query = `
-      query Test($position : VectorInput!, $radius: Float!) {
+      query Test($position : Vector!, $radius: Float!) {
         objectsInRadius(position: $position, radius: $radius) {
           id
         }
       }
     `;
-    const result = await graphql(schema, query, null, context, {position : {x: 0, y: 0}, radius : 50});
+    const result = await graphql(schema, query, null, context, {
+      position: vec2.zero.xy,
+      radius: 50
+    });
     return expect(result).to.eql({
       data: {
         objectsInRadius: [{ id: 'bar' }]

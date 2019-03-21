@@ -1,7 +1,4 @@
-type Vector {
-  x: Float!
-  y: Float!
-}
+scalar Vector
 
 interface SpaceObject {
   id: ID!
@@ -13,12 +10,7 @@ type Asteroid implements SpaceObject {
   position: Vector!
 }
 
-input VectorInput {
-  x: Float!
-  y: Float!
-}
-
 type Query {
   allObjects: [SpaceObject!]!
-  objectsInRadius(position: VectorInput!, radius: Float!): [SpaceObject!]!
+  objectsInRadius(position: Vector!, radius: Float!): [SpaceObject!]!
 }
