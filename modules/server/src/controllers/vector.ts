@@ -1,13 +1,31 @@
-import {Kind, ValueNode, IntValueNode, FloatValueNode} from 'graphql/language';
-import {GraphQLScalarType} from 'graphql';
+import {
+  Kind,
+  ValueNode,
+  IntValueNode,
+  FloatValueNode
+} from 'graphql/language';
+import { GraphQLScalarType } from 'graphql';
 import { vec2 } from '@starwards/tsm';
 
 function serialize(value: vec2 | null) {
-    return value && value.xy;
-  }
+  return value && value.xy;
+}
 
-function parseValue(value: [number, number] | null) {
-  return value && new vec2(value);
+function isVectorTuple(values: any): values is [number, number] {
+  return (
+    Array.isArray(values) &&
+    values.length === 2 &&
+    typeof values[0] === 'number' &&
+    typeof values[1] === 'number'
+  );
+}
+
+function parseValue(values: any) {
+  if (isVectorTuple(values)) {
+    return new vec2(values);
+  } else {
+    throw new Error(`illegal vector`);
+  }
 }
 
 function isNumberAst(n: ValueNode | null): n is IntValueNode | FloatValueNode {
@@ -28,5 +46,7 @@ function parseLiteral(ast: ValueNode) {
 export default new GraphQLScalarType({
   name: 'Vector',
   description: 'Vector',
-  serialize, parseValue, parseLiteral
+  serialize,
+  parseValue,
+  parseLiteral
 });

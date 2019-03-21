@@ -12,10 +12,10 @@ export const resolvers = {
   Query: {
     allObjects: (_obj: any, _args: any, ctx: Context) =>
       ctx.objectsManager.filter(_ => true),
-    objectsInRadius: (_obj: any, args: { position: vec2; radius: number }, ctx: Context) => {
-      // ctx.positionManager.queryArea
-      return [];
-    }
+    objectsInRadius: (_obj: any, args: { position: vec2; radius: number }, ctx: Context) =>
+      ctx.objectsManager.filter(o =>
+        vec2.distance(args.position, o.position) <= args.radius
+        )
   },
   Vector
 };

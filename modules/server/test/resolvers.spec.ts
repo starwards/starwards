@@ -46,11 +46,11 @@ describe('resolvers', () => {
     `;
     const result = await graphql(schema, query, null, context, {
       position: vec2.zero.xy,
-      radius: 50
+      radius: 0.5
     });
     return expect(result).to.eql({
       data: {
-        objectsInRadius: [{ id: 'bar' }]
+        objectsInRadius: [{ id: 'foo' }]
       }
     });
   });
