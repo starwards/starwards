@@ -1,3 +1,24 @@
-  type Query {
-    hello: String
-  }
+type Vector {
+  x: Float!
+  y: Float!
+}
+
+interface SpaceObject {
+  id: ID!
+  position: Vector!
+}
+
+type Asteroid implements SpaceObject {
+  id: ID!
+  position: Vector!
+}
+
+input VectorInput {
+  x: Float!
+  y: Float!
+}
+
+type Query {
+  allObjects: [SpaceObject!]!
+  objectsInRadius(position: VectorInput!, radius: Float!): [SpaceObject!]!
+}
