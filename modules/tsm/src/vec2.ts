@@ -5,7 +5,7 @@ import vec3 from './vec3'
 import { epsilon } from './constants'
 
 export default class vec2 {
-    
+
     get x(): number {
         return this.values[0]
     }
