@@ -16,6 +16,7 @@
             "single",
             "jsx-double"
         ],
+        "interface-name": false,
         "trailing-comma": false,
         "variable-name": [
             true,

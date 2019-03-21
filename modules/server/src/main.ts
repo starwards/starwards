@@ -2,14 +2,13 @@
 import express from 'express';
 import { ApolloServer, gql } from 'apollo-server-express';
 import { resolvers } from './resolvers';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readSchema } from '../schema/reader';
 // import bodyParser from 'body-parser';
 // import schema from './src/schema';
 // import movieService from './src/dataSource/movieService';
 
 // Construct a schema, using GraphQL schema language
-const typeDefs = gql(readFileSync(join(__dirname, '../schema/api.graphql'), 'utf8'));
+const typeDefs = gql(readSchema('api'));
 
 const server = new ApolloServer({ typeDefs, resolvers });
 
