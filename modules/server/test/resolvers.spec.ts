@@ -5,13 +5,15 @@ import { expect } from 'chai';
 import { schema } from './tools/resolvers';
 import { Asteroid } from '../src/model/asteroid';
 import { vec2 } from '@starwards/tsm';
+import { SpaceObjectsManager } from '../src/BL/space-objects-manager';
 // a nice structure for test cases
 // found at https://hackernoon.com/extensive-graphql-testing-57e8760f1c25
 
-const objectsManager = [
+const objects = [
   new Asteroid('foo', vec2.zero),
   new Asteroid('bar', vec2.one)
 ];
+const objectsManager = new SpaceObjectsManager(objects);
 const context = {
   objectsManager
 };
@@ -45,12 +47,28 @@ describe('resolvers', () => {
       }
     `;
     const result = await graphql(schema, query, null, context, {
-      position: vec2.zero.xy,
+      position: [0, 0],
       radius: 0.5
     });
     return expect(result).to.eql({
       data: {
         objectsInRadius: [{ id: 'foo' }]
+      }
+    });
+  });
+  it(`moveObject`, async () => {
+    const query = `
+      query Test($id: ID!, $move : Vector!) {
+        moveObject(id: $id, move: $move)
+      }
+    `;
+    const result = await graphql(schema, query, null, context, {
+      id: 'bar',
+      move: [1, 23]
+    });
+    return expect(result).to.eql({
+      data: {
+        moveObject: [2, 24]
       }
     });
   });

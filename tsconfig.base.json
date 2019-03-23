@@ -54,7 +54,7 @@
     // "preserveSymlinks": true,              /* Do not resolve the real path of symlinks. */
     // "forceConsistentCasingInFileNames": true, /* Forces imports with correct casing, so they work on case-sensitive OSs. */
     "newLine": "LF",                          /* Ensures files containing shebang (e.g. cli entry) work on any terminal. */
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
     /* Source Map Options */
     // "sourceRoot": "",                      /* Specify the location where debugger should locate TypeScript files instead of source locations. */
     // "mapRoot": "",                         /* Specify the location where debugger should locate map files instead of generated locations. */
