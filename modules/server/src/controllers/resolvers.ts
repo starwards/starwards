@@ -12,10 +12,12 @@ export const resolvers = {
       ctx.objectsManager.filter(_ => true),
     objectsInRadius: (_obj: any, args: { position: vec2; radius: number }, ctx: Context) =>
       ctx.objectsManager.filter(o => vec2.distance(args.position, o.position) <= args.radius),
+  },
+  Mutation : {
     moveObject: (_obj: any, args: { id: string; move: vec2 }, ctx: Context) => {
       const object = ctx.objectsManager.get(args.id);
       return object && object.position.add(args.move);
-    }
+    },
   },
   Vector
 };

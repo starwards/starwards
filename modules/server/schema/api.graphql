@@ -13,5 +13,8 @@ type Asteroid implements SpaceObject {
 type Query {
   allObjects: [SpaceObject!]!
   objectsInRadius(position: Vector!, radius: Float!): [SpaceObject!]!
+}
+
+type Mutation {
   moveObject(id: ID, move: Vector!): Vector!
 }

@@ -58,7 +58,7 @@ describe('resolvers', () => {
   });
   it(`moveObject`, async () => {
     const query = `
-      query Test($id: ID!, $move : Vector!) {
+      mutation Test($id: ID!, $move : Vector!) {
         moveObject(id: $id, move: $move)
       }
     `;
