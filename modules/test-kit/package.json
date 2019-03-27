@@ -1,0 +1,26 @@
+{
+  "name": "@starwards/test-kit",
+  "version": "0.0.0",
+  "main": "target/index.js",
+  "license": "MIT",
+  "types": "target/index.d.ts",
+  "scripts": {
+    "clean": "rimraf ./target",
+    "prebuild": "yarn clean",
+    "build": "ts-build ./src --cjs",
+    "lint": "tslint -p ./",
+    "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
+    "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
+    "prepack": "yarn build"
+  },
+  "files": [
+    "target"
+  ],
+  "peerDependencies": {
+    "tslib": "~1.9.3",
+    "chai": "~4.2.0"
+  },
+  "dependencies": {
+    "sinon": "~7.3.1"
+  }
+}

@@ -5,6 +5,7 @@
     ],
     "jsRules": {},
     "rules": {
+        "only-arrow-functions" : false,
         "arrow-parens": [
             true,
             "ban-single-arg-parens"

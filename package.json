@@ -11,6 +11,7 @@
     "test": "lerna run test --stream --parallel"
   },
   "devDependencies": {
+    "@types/sinon": "~7.0.10",
     "@ts-tools/build": "^0.1.10",
     "@ts-tools/node": "^0.9.3",
     "@types/chai": "^4.1.7",
