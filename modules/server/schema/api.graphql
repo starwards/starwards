@@ -18,3 +18,7 @@ type Query {
 type Mutation {
   moveObject(id: ID, move: Vector!): Vector!
 }
+
+type Subscription {
+  objectsAround(id: ID!, radius: Float!): [SpaceObject!]!
+}
