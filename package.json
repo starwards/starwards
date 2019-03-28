@@ -7,7 +7,6 @@
     "clean": "lerna run clean --stream --parallel",
     "build": "lerna run build --stream --parallel",
     "lint": "lerna run lint --stream --parallel",
-    "pretest": "yarn lint",
     "test": "lerna run test --stream --parallel"
   },
   "devDependencies": {
