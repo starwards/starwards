@@ -1,35 +1,48 @@
-workflow "Build, Lint and Test" {
-  on = "push"
-  resolves = ["Check_all"]
-}
 
-action "Install" {
-  uses = "amir-arad/actions-yarn@master"
-  args = "install"
-}
+    workflow "Build, Lint and Test" {
+        on = "push"
+        resolves = ["Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
+    }
 
-action "Lint" {
-  needs = "Install"
-  uses = "amir-arad/actions-yarn@master"
-  args = "lint"
-}
+    action "Install" {
+        uses = "amir-arad/actions-yarn@master"
+        args = "install"
+    }
+    
+    action "Lint_server" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/server lint"
+    }
 
-action "Test" {
-  needs = "Install"
-  uses = "amir-arad/actions-yarn@master"
-  args = "test"
-}
+    action "Test_server" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/server test"
+    }
+    
+    action "Lint_test-kit" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/test-kit lint"
+    }
 
-action "Check_all" {
-  needs = ["Test", "Lint"]
-  uses = "actions/action-builder/shell@master"
-  runs = "echo"
-  args = "Done!"
-}
+    action "Test_test-kit" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/test-kit test"
+    }
+    
+    action "Lint_tsm" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/tsm lint"
+    }
 
-action "Publish" {
-  needs = "Test"
-  uses = "amir-arad/actions-yarn@master"
-  args = "publish --access public"
-  secrets = ["NPM_AUTH_TOKEN"]
-}
+    action "Test_tsm" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/tsm test"
+    }
+    
+    
