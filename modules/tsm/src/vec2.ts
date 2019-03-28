@@ -6,10 +6,7 @@ import { epsilon } from './constants'
 
 export default class vec2 {
 
-    get x(): number {
-        return this.values[0]
-    }
-
+  
     get y(): number {
         return this.values[1]
     }
