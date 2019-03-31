@@ -70,7 +70,7 @@ function internalDescribeQL(describeFn: Mocha.ExclusiveSuiteFunction | Mocha.Pen
       });
 
       beforeEach(() => {
-          context.objectsManager = new SpaceObjectsManager([]);
+          context.objectsManager = new SpaceObjectsManager();
       });
 
       after(() => {

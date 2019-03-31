@@ -18,7 +18,7 @@
     "@ts-tools/build": "^0.1.10",
     "@ts-tools/node": "^0.9.3",
     "@types/chai": "^4.1.7",
-    "@types/graphql": "^14.0.7",
+    "@types/graphql": "^14.2.0",
     "@types/mocha": "^5.2.6",
     "@types/node": "10",
     "@types/sinon": "~7.0.10",

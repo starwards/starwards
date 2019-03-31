@@ -19,5 +19,10 @@ export const resolvers = {
       return object && object.position.add(args.move);
     },
   },
+  Subscription: {
+    objectsAround: (_obj: any, args: { id: string; radius: number }, ctx: Context) => {
+      return ctx.objectsManager.streamObjectsAround(args.id, args.radius);
+    },
+  },
   Vector
 };
