@@ -10,6 +10,7 @@ import { Context } from 'modules/server/src/controllers/resolvers';
 import { SpaceObjectsManager } from 'modules/server/src/BL/space-objects-manager';
 import gql from 'graphql-tag';
 import { PubSub } from 'apollo-server';
+import { Ticker } from 'modules/server/src/BL/ticker';
 
 type VarsType = undefined | { [key: string]: any };
 function utils(schema: () => GraphQLSchema, context: Context) {
@@ -35,7 +36,7 @@ function internalDescribeQL(describeFn: Mocha.ExclusiveSuiteFunction | Mocha.Pen
       // context
       let schema: GraphQLSchema;
       const context = {
-        ticker : new PubSub()
+        ticker : new Ticker()
       } as Context;
 
       before(async () => {
