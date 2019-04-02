@@ -3,6 +3,7 @@ import 'mocha'
 
 import mat2 from '../src/mat2'
 
+describe('tsm', () => {
 describe('mat2', () => {
 
   it('transposes', () => {
@@ -32,5 +33,7 @@ describe('mat2', () => {
     expect(matrix.at(2)).to.equal(1.5)
     expect(matrix.at(3)).to.equal(-0.5)
   })
+
+})
 
 })

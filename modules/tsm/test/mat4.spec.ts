@@ -5,6 +5,7 @@ import mat4 from '../src/mat4'
 
 import { epsilon } from '../src/constants'
 
+describe('tsm', () => {
 describe('mat4', () => {
 
   it('transposes', () => {
@@ -88,5 +89,7 @@ describe('mat4', () => {
     expect(matrix.at(15)).to.equal(1.0)
 
   })
+
+})
 
 })

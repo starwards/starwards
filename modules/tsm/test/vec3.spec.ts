@@ -5,6 +5,7 @@ import vec3 from './../src/vec3'
 
 import { epsilon } from '../src/constants'
 
+describe('tsm', () => {
 describe('vec3', () => {
 
   it('resets', () => {
@@ -108,5 +109,7 @@ describe('vec3', () => {
     expect(vector.y).to.be.approximately(0.53452, epsilon)
     expect(vector.z).to.be.approximately(0.80178, epsilon)
   })
+
+})
 
 })

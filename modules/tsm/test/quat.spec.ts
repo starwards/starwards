@@ -5,6 +5,7 @@ import quat from './../src/quat'
 
 import { epsilon } from '../src/constants'
 
+describe('tsm', () => {
 describe('quat', () => {
 
   it('resets', () => {
@@ -70,5 +71,7 @@ describe('quat', () => {
     expect(quaternion.z).to.be.approximately(0.54772, epsilon)
     expect(quaternion.w).to.be.approximately(0.73029, epsilon)
   })
+
+})
 
 })
