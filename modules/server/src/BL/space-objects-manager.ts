@@ -1,4 +1,5 @@
 import { SpaceObject } from '../model/space-object';
+
 export class SpaceObjectsManager {
   private objects: SpaceObject[] = [];
   public addObject(object: SpaceObject) {
@@ -10,7 +11,7 @@ export class SpaceObjectsManager {
   public filter(callbackfn: (value: SpaceObject, index: number) => any) {
     return this.objects.filter(callbackfn);
   }
-  public async* streamObjectsAround(id: string, radius: number): AsyncIterator<SpaceObject[]> {
-    while (true) { yield []; }
+  public getObjectsAround(_id: string, _radius: number): SpaceObject[] {
+    return this.objects;
   }
 }

@@ -1111,6 +1111,14 @@ apollo-link-dedup@^1.0.0:
     apollo-link "^1.2.11"
     tslib "^1.9.3"
 
+apollo-link-schema@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/apollo-link-schema/-/apollo-link-schema-1.2.2.tgz#9938340c8044f6f5de4c6957f2dab75ed361b35a"
+  integrity sha512-tOXhs3w15qSM9I/kqijiB+9kzJndbszhF+uXmiJ88P6H0ptncrr/9+3EYlnuYoqdEtiVWNj61K83E+7jc8xcYQ==
+  dependencies:
+    apollo-link "^1.2.11"
+    tslib "^1.9.3"
+
 apollo-link-ws@^1.0.17:
   version "1.0.17"
   resolved "https://registry.yarnpkg.com/apollo-link-ws/-/apollo-link-ws-1.0.17.tgz#a7ec3f90d2651b77d6be9bb6e63deff2efac56d4"

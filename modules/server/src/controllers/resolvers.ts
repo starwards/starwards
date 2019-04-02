@@ -1,8 +1,11 @@
 import { SpaceObjectsManager } from '../BL/space-objects-manager';
 import { vec2 } from '@starwards/tsm';
 import Vector from './vector';
+import { PubSub } from 'apollo-server';
 
+export const STAGE_POST_MOVE = 'STAGE_POST_MOVE';
 export interface Context {
+  ticker: PubSub;
   objectsManager: SpaceObjectsManager;
 }
 
@@ -20,8 +23,11 @@ export const resolvers = {
     },
   },
   Subscription: {
-    objectsAround: (_obj: any, args: { id: string; radius: number }, ctx: Context) => {
-      return ctx.objectsManager.streamObjectsAround(args.id, args.radius);
+    objectsAround:  {
+      resolve: (_obj: any, args: { id: string; radius: number }, ctx: Context) =>
+        ctx.objectsManager.getObjectsAround(args.id, args.radius),
+      subscribe: (_obj: any, _args: any, ctx: Context) =>
+        ctx.ticker.asyncIterator(STAGE_POST_MOVE)
     },
   },
   Vector
