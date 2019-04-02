@@ -74,7 +74,7 @@ describe(`server`, () => {
 
     it(`end stops iteration for new iterators`, plan(0, async () => {
         uut.end();
-        for await (const item of uut.listen()) {
+        for await (const _ of uut.listen()) {
             // tslint:disable-next-line:no-unused-expression
             expect.fail;
         }
