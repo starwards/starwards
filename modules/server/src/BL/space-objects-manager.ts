@@ -11,7 +11,12 @@ export class SpaceObjectsManager {
   public filter(callbackfn: (value: SpaceObject, index: number) => any) {
     return this.objects.filter(callbackfn);
   }
-  public getObjectsAround(_id: string, _radius: number): SpaceObject[] {
-    return this.objects;
+  public getObjectsAround(id: string, radius: number): SpaceObject[] {
+    const subject = this.get(id);
+    if (subject) {
+      return this.objects.filter(o => o.position.copy().subtract(subject.position).length() < radius);
+    } else {
+      return [];
+    }
   }
 }

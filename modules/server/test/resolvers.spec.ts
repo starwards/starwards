@@ -1,14 +1,12 @@
 import { Asteroid } from '../src/model/asteroid';
 import { vec2 } from '@starwards/tsm';
-import { describeGQL } from './tools/gql';
+import { describeGQL, DataResult } from './tools/gql';
 import { expect, plan } from '@starwards/test-kit';
-import { isAsyncIterable } from 'iterall';
-import { ExecutionResult } from 'graphql';
 describe(`server`, () => {
-  describeGQL('resolvers', ({ expectQueryResult, context, subscribeGraphQL }) => {
-    beforeEach('setup objects in mongo', () => {
-      context.objectsManager.addObject(new Asteroid('foo', vec2.zero));
-      context.objectsManager.addObject(new Asteroid('bar', vec2.one));
+  describeGQL('resolvers', ({ expectQueryResult, context, subscribeResult, execGraphQL }) => {
+    beforeEach('setup objectsManager state', () => {
+      context.objectsManager.addObject(new Asteroid('foo', vec2.zero.copy()));
+      context.objectsManager.addObject(new Asteroid('bar', vec2.one.copy()));
     });
 
     it(`allObjects`, async () => {
@@ -49,7 +47,7 @@ describe(`server`, () => {
       );
     });
 
-    it(`moveObject`, async () => {
+    it(`moveObject`, plan(0, async () => {
       await expectQueryResult(
         `
         mutation Test($id: ID!, $move : Vector!) {
@@ -64,41 +62,60 @@ describe(`server`, () => {
           move: [1, 23]
         }
       );
-    });
-
-    function isAsyncIterator(obj: any): obj is AsyncIterator<any> {
-      return obj && typeof obj.next === 'function' && isAsyncIterable(obj);
-    }
+    }));
 
     describe(`objectsAround`, () => {
       interface Result {
-        data: {objectsAround: any[]};
+        objectsAround: any[];
       }
-      let result: AsyncIterator<ExecutionResult<Result>> & AsyncIterable<ExecutionResult<Result>>;
+      let objectsNearBar: AsyncIterableIterator<DataResult<Result>>;
       beforeEach(async () => {
-        const response = await subscribeGraphQL<Result>(`
-        subscription Test {
-        objectsAround(id: "bar", radius: 0.5) {
+        objectsNearBar = await subscribeResult<Result>(`
+        subscription {
+        objectsAround(id: "bar", radius: 2) {
             id,
           }
         }
         `);
-        if (isAsyncIterator(response)) {
-          result = response as any;
-        } else if (response.errors) {
-          throw new Error(`unexpected: ${response.errors}`);
-        }
       });
 
-      it (`result is finite when ticker ends`, plan(1, async () => {
+      it(`finite when ticker ends`, plan(1, async () => {
         context.ticker.tick();
-        for await (const item of result) {
+        for await (const item of objectsNearBar) {
           expect(item).to.eql({data: {objectsAround: [
             { id: 'foo' },
             { id: 'bar' }
           ]}});
           context.ticker.end();
         }
+      }));
+
+      it (`shows only objects in range`, plan(3, async () => {
+        context.ticker.tick();
+        expect((await objectsNearBar.next()).value.data.objectsAround).to.eql([
+          { id: 'foo' },
+          { id: 'bar' }
+        ]);
+        await execGraphQL( `
+          mutation {
+            moveObject(id: "bar", move: [${vec2.one.xy}])
+          }
+        `);
+        context.ticker.tick();
+        expect((await objectsNearBar.next()).value.data.objectsAround).to.eql([
+          { id: 'bar' }
+        ]);
+        await execGraphQL( `
+          mutation {
+            moveObject(id: "foo", move: [${vec2.one.xy}])
+          }
+        `);
+        context.ticker.tick();
+        expect((await objectsNearBar.next()).value.data.objectsAround).to.eql([
+          { id: 'foo' },
+          { id: 'bar' }
+        ]);
+        context.ticker.end();
       }));
     });
   });
