@@ -11,7 +11,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "node .github/make-workflow.js"
+      "pre-commit": "node scripts/pre-commit.js"
     }
   },
   "devDependencies": {
