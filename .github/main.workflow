@@ -1,12 +1,36 @@
 
     workflow "Build, Lint and Test" {
         on = "push"
-        resolves = ["Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
+        resolves = ["Lint_colyseus-server", "Test_colyseus-server","Lint_colysus-browser", "Test_colysus-browser","Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
     }
 
     action "Install" {
         uses = "amir-arad/actions-yarn@master"
         args = "install"
+    }
+    
+    action "Lint_colyseus-server" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/colyseus-server lint"
+    }
+
+    action "Test_colyseus-server" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/colyseus-server test"
+    }
+    
+    action "Lint_colysus-browser" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/colysus-browser lint"
+    }
+
+    action "Test_colysus-browser" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/colysus-browser test"
     }
     
     action "Lint_server" {

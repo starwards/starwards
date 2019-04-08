@@ -1,0 +1,23 @@
+{
+  "name": "@sample-monorepo/colyseus-browser",
+  "version": "1.0.0",
+  "main": "cjs/index.js",
+  "module": "esm/index.js",
+  "types": "esm/index.d.ts",
+  "license": "MIT",
+  "scripts": {
+    "clean": "rimraf ./cjs ./esm",
+    "prebuild": "yarn clean",
+    "build": "webpack",
+    "lint": "run-p lint:src lint:test",
+    "lint:src": "tslint -p src",
+    "lint:test": "tslint -p test",
+    "test": "mocha -r @ts-tools/node/r \"test/**/*.spec.ts?(x)\" --watch-extensions ts,tsx --colors",
+    "prepack": "yarn build"
+  },
+  "dependencies": {
+    "colyseus.js": "^0.9.16",
+    "pixi-viewport": "^3.17.0",
+    "pixi.js": "^5.0.0-rc"
+  }
+}
