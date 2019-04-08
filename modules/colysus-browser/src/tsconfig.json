@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "es2017"
+    ]
+  },                    
+  "jsx": "react",  
+}
