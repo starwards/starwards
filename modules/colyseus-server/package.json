@@ -23,9 +23,9 @@
     "prepack": "yarn build"
   },
   "dependencies": {
-    "@colyseus/monitor": "^0.1.10",
-    "@colyseus/schema": "^0.1.5",
-    "colyseus": "^0.9.26",
+    "@colyseus/monitor": "^0.10.0",
+    "@colyseus/schema": "^0.4.23",
+    "colyseus": "^0.10.4",
     "express": "^4.16.4",
     "express-basic-auth": "^1.1.6"
   }

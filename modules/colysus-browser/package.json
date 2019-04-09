@@ -16,7 +16,7 @@
     "prepack": "yarn build"
   },
   "dependencies": {
-    "colyseus.js": "^0.9.16",
+    "colyseus.js": "^0.10.4",
     "pixi-viewport": "^3.17.0",
     "pixi.js": "^5.0.0-rc"
   }
