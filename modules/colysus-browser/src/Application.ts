@@ -2,7 +2,6 @@ import * as PIXI from 'pixi.js';
 import Viewport from 'pixi-viewport';
 import { Client } from 'colyseus.js';
 import { State, Entity } from '@starwards/colyseus-server';
-import { MapSchema } from '@colyseus/schema';
 
 const ENDPOINT =
   process.env.NODE_ENV === 'development'
@@ -18,7 +17,6 @@ type GraphicEntity = PIXI.Graphics & {
 };
 
 export class Application extends PIXI.Application {
-
   public entities: { [id: string]: GraphicEntity } = {};
   public currentPlayerEntity: GraphicEntity | null = null;
 
@@ -28,7 +26,7 @@ export class Application extends PIXI.Application {
   public viewport: Viewport;
 
   public _axisListener: any;
-  public _interpolation: boolean = false;
+  public interpolation: boolean = false;
 
   constructor() {
     super({
@@ -52,7 +50,6 @@ export class Application extends PIXI.Application {
 
     // add viewport to stage
     this.stage.addChild(this.viewport);
-    this.interpolation = false;
 
     this.room.onJoin.add(this.initialize.bind(this));
 
@@ -62,96 +59,69 @@ export class Application extends PIXI.Application {
         this.room.send(['mouse', { x: point.x, y: point.y }]);
       }
     });
-  }
-
-  set interpolation(bool: boolean) {
-    this._interpolation = bool;
-
-    if (this._interpolation) {
-    //   this.room.removeListener(this._axisListener);
-      this.loop();
-    } else {
-    //   // update entities position directly when they arrive
-    //   this._axisListener = this.room.listen(
-    //     'entities/:id/:axis',
-    //     (change: DataChange) => {
-    //       this.entities[change.path.id][change.path.axis] = change.value;
-    //     },
-    //     true
-    //   );
-    }
+    this.loop();
   }
 
   public loop() {
-    for (const id of Object.getOwnPropertyNames(this.entities)) {
-      this.entities[id].x = lerp(
-        this.entities[id].x,
-        this.room.state.entities[id].x,
-        0.2
-      );
-      this.entities[id].y = lerp(
-        this.entities[id].y,
-        this.room.state.entities[id].y,
-        0.2
-      );
+    if (this.interpolation) {
+      for (const id of Object.getOwnPropertyNames(this.entities)) {
+        this.entities[id].x = lerp(
+          this.entities[id].x,
+          this.room.state.entities[id].x,
+          0.2
+        );
+        this.entities[id].y = lerp(
+          this.entities[id].y,
+          this.room.state.entities[id].y,
+          0.2
+        );
+      }
     }
+    // continue looping
+    requestAnimationFrame(this.loop.bind(this));
+  }
 
-    // continue looping if interpolation is still enabled.
-    if (this._interpolation) {
-      requestAnimationFrame(this.loop.bind(this));
-    }
+  private updateRadius(graphics: PIXI.Graphics, entity: Entity) {
+    const newColor = entity.radius < 4 ? 0xff0000 : 0xffff0b;
+    graphics.clear();
+    graphics.lineStyle(0);
+    graphics.beginFill(newColor, 0.5);
+    graphics.drawCircle(0, 0, entity.radius);
+    graphics.endFill();
+  }
+
+  private updatePosition(graphics: PIXI.Graphics, entity: Entity) {
+    graphics.x = entity.x;
+    graphics.y = entity.y;
   }
 
   private initialize() {
     this.room.state.entities.onAdd = (entity, key) => {
-        const color = entity.radius < 4 ? 0xff0000 : 0xffff0b;
-
-        const graphics = new PIXI.Graphics();
-        graphics.lineStyle(0);
-        graphics.beginFill(color, 0.5);
-        graphics.drawCircle(0, 0, entity.radius);
-        graphics.endFill();
-
-        graphics.x = entity.x;
-        graphics.y = entity.y;
-        this.viewport.addChild(graphics);
-
-        this.entities[key] = graphics;
-
-        // detecting current user
-        if (key === this.room.sessionId) {
-          this.currentPlayerEntity = graphics;
-          this.viewport.follow(this.currentPlayerEntity);
-        }
-        entity.onChange = changes => {
-          changes.forEach(change => {
-              if (change.field === 'radius') {
-                const newColor = entity.radius < 4 ? 0xff0000 : 0xffff0b;
-
-                graphics.clear();
-                graphics.lineStyle(0);
-                graphics.beginFill(newColor, 0.5);
-                graphics.drawCircle(0, 0, entity.radius);
-                graphics.endFill();
-
-                // if (this.currentPlayerEntity) {
-                //     // console.log(this.currentPlayerEntity.width);
-                //     // console.log(this.currentPlayerEntity.width / 20);
-                //     this.viewport.scale.x = lerp(this.viewport.scale.x, this.currentPlayerEntity.width / 20, 0.2)
-                //     this.viewport.scale.y = lerp(this.viewport.scale.y, this.currentPlayerEntity.width / 20, 0.2)
-                // }
-              } else if (!this._interpolation) {
-                graphics.x = entity.x;
-                graphics.y = entity.y;
-              }
-          });
-        };
+      const graphics = new PIXI.Graphics();
+      this.updateRadius(graphics, entity);
+      this.updatePosition(graphics, entity);
+      this.viewport.addChild(graphics);
+      this.entities[key] = graphics;
+      // detecting current user
+      if (key === this.room.sessionId) {
+        this.currentPlayerEntity = graphics;
+        this.viewport.follow(graphics);
+      }
+      entity.onChange = changes => {
+        changes.forEach(change => {
+          if (change.field === 'radius') {
+            this.updateRadius(graphics, entity);
+          } else if (!this.interpolation) {
+            this.updatePosition(graphics, entity);
+          }
+        });
       };
+    };
 
     this.room.state.entities.onRemove = (_, key) => {
-          this.viewport.removeChild(this.entities[key]);
-          this.entities[key].destroy();
-          delete this.entities[key];
-      };
+      this.viewport.removeChild(this.entities[key]);
+      this.entities[key].destroy();
+      delete this.entities[key];
+    };
   }
 }
