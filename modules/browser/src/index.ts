@@ -1,6 +1,6 @@
-import { Application } from './Application';
+import { Radar } from './radar';
 
-const app = new Application();
+const app = new Radar();
 app.interpolation = true;
 document.body.appendChild(app.view);
 

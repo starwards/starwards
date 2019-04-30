@@ -1,36 +1,53 @@
+// tslint:disable-next-line:no-reference
+/// <reference path="../../../custom-typings/index.d.ts" />
+/*
+ * embed webpack-dev-server
+ */
 
-import express from 'express';
-import { ApolloServer, gql } from 'apollo-server-express';
-import { resolvers } from './controllers/resolvers';
-import { readSchema } from '../schema/reader';
-// import bodyParser from 'body-parser';
-// import schema from './src/schema';
-// import movieService from './src/dataSource/movieService';
+import * as colyseus from 'colyseus';
+import * as http from 'http';
+import express = require('express');
+import * as path from 'path';
+import basicAuth = require('express-basic-auth');
+import { monitor } from '@colyseus/monitor';
 
-// Construct a schema, using GraphQL schema language
-const typeDefs = gql(readSchema('api'));
+import { ArenaRoom } from './rooms/ArenaRoom';
+import { SpaceRoom } from './space/room';
 
-const server = new ApolloServer({ typeDefs, resolvers });
+import webpack = require('webpack');
+import webpackDevMiddleware = require('webpack-dev-middleware');
+import webpackConfig = require('../../browser/webpack.config');
+import webpackHotMiddleware = require('webpack-hot-middleware');
+
+export const port = Number(process.env.PORT || 8080);
+export const endpoint = 'localhost';
+
+export let STATIC_DIR: string;
 
 const app = express();
-server.applyMiddleware({ app });
+const gameServer = new colyseus.Server({ server: http.createServer(app) });
 
-app.listen({ port: 4000 }, () =>
-  // tslint:disable-next-line:no-console
-  console.log(`🚀 Server ready at http://localhost:4000${server.graphqlPath}`)
-);
+gameServer.register('arena', ArenaRoom);
+gameServer.register('space', SpaceRoom);
 
-// const GRAPHQL_PORT = 3000;
+if (process.env.NODE_ENV === 'production') {
+    // on production, use ./public as static root
+    STATIC_DIR = path.resolve(__dirname, 'public');
+} else {
+    const webpackCompiler = webpack(webpackConfig());
+    app.use(webpackDevMiddleware(webpackCompiler));
+    app.use(webpackHotMiddleware(webpackCompiler));
 
-// const graphQLServer = express();
+    // on development, use "../../" as static root
+    STATIC_DIR = path.resolve(__dirname, '..', '..', '..', 'static');
+}
 
-// // by setting the context here, the Service is now available for Resolvers as context.movieService
-// graphQLServer.use('/graphql', bodyParser.json(), graphqlExpress({ schema, context: { movieService } }));
-// graphQLServer.use('/graphiql', graphiqlExpress({ endpointURL: '/graphql' }));
+app.use('/', express.static(STATIC_DIR));
 
-// graphQLServer.listen(GRAPHQL_PORT, () =>
-//     // tslint:disable-next-line:no-console
-//     console.log(
-//         `GraphiQL is now running on http://localhost:${GRAPHQL_PORT}/graphiql`
-//     )
-// );
+// add colyseus monitor
+const auth = basicAuth({ users: { admin: 'admin' }, challenge: true });
+app.use('/colyseus', auth, monitor(gameServer));
+
+gameServer.listen(port);
+// tslint:disable-next-line:no-console
+console.log(`Listening on http://${endpoint}:${port}`);

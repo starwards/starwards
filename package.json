@@ -7,7 +7,8 @@
     "clean": "lerna run clean --stream --parallel",
     "build": "lerna run build --stream --parallel",
     "lint": "lerna run lint --stream --parallel",
-    "test": "lerna run test --stream --parallel"
+    "test": "lerna run test --stream --parallel",
+    "start": "yarn workspace @starwards/server start"
   },
   "husky": {
     "hooks": {

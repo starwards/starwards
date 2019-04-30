@@ -56,7 +56,7 @@ function launchJson(moduleNames) {
             "cwd": "${workspaceFolder}/modules/"+moduleName,
             "args": [
                 "-r",
-                "@ts-tools/node/r",
+                "@ts-tools/node/warn",
                 "--timeout",
                 "999999",
                 "--colors",
@@ -70,13 +70,24 @@ function launchJson(moduleNames) {
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "args": [
                 "-r",
-                "@ts-tools/node/r",
+                "@ts-tools/node/warn",
                 "--timeout",
                 "999999",
                 "--colors",
                 "${file}"
             ],
             "internalConsoleOptions": "openOnSessionStart"
-        }])
+        }, {
+            "type": "node",
+            "request": "launch",
+            "name": "run server",
+            "cwd": "${workspaceFolder}/modules/server",
+            "args": [
+              "-r",
+              "@ts-tools/node/warn",
+              "${workspaceFolder}/modules/server/src/main.ts"
+            ],
+            "internalConsoleOptions": "openOnSessionStart"
+          },])
     }, null, 2)
 }

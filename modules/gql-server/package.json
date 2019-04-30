@@ -1,16 +1,9 @@
 {
-  "name": "@starwards/colyseus-server",
-  "_main": "index.js",
+  "name": "@starwards/gql-server",
   "version": "0.0.0",
   "main": "target/index.js",
   "license": "MIT",
   "types": "target/index.d.ts",
-  "_scripts": {
-    "heroku-postbuild": "tsc && webpack",
-    "start": "node ./target/index.js",
-    "dev": "nodemon",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "scripts": {
     "clean": "rimraf ./target",
     "prebuild": "yarn clean",
@@ -19,14 +12,16 @@
     "lint:src": "tslint -p src",
     "lint:test": "tslint -p test",
     "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
-    "start": "nodemon -r @ts-tools/node/warn ./src/main.ts",
+    "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
     "prepack": "yarn build"
   },
+  "files": [
+    "target"
+  ],
   "dependencies": {
-    "@colyseus/monitor": "^0.10.0",
-    "@colyseus/schema": "^0.4.23",
-    "colyseus": "^0.10.4",
-    "express": "^4.16.4",
-    "express-basic-auth": "^1.1.6"
+    "apollo-server": "^2.4.8",
+    "apollo-server-express": "^2.4.8",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4"
   }
 }
