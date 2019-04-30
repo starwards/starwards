@@ -7,12 +7,12 @@ const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
-type GraphicEntity = PIXI.Graphics & {
+type DisplayEntity = PIXI.DisplayObject & {
   [k: string]: any;
 };
 
 export class Radar extends PIXI.Application {
-  public entities: { [id: string]: GraphicEntity } = {};
+  public displayEntities: { [id: string]: DisplayEntity } = {};
 
   public client = new Client(ENDPOINT);
   public room = this.client.join<SpaceState>('space');
@@ -57,17 +57,19 @@ export class Radar extends PIXI.Application {
 
   public loop() {
     if (this.interpolation) {
-      for (const id of Object.getOwnPropertyNames(this.entities)) {
+      for (const id of Object.getOwnPropertyNames(this.displayEntities)) {
         const state = this.room.state.get(id);
         if (state) {
-          this.entities[id].x = lerp(
-            this.entities[id].x,
-            state.position.x,
+          const graphics = this.displayEntities[id];
+          const screenPos = this.viewport.toScreen(state.position.x, state.position.y);
+          graphics.x = lerp(
+            graphics.x,
+            screenPos.x,
             0.2 // TODO use object's speed instead of constant
           );
-          this.entities[id].y = lerp(
-            this.entities[id].y,
-            state.position.y,
+          graphics.y = lerp(
+            graphics.y,
+            screenPos.y,
             0.2 // TODO use object's speed instead of constant
           );
         }
@@ -77,13 +79,18 @@ export class Radar extends PIXI.Application {
     requestAnimationFrame(this.loop.bind(this));
   }
 
-  // TODO extract to static
-  private setPosition(graphics: PIXI.Graphics, entity: SpaceObject) {
-    graphics.x = entity.position.x;
-    graphics.y = entity.position.y;
+  private setPosition(graphics: PIXI.DisplayObject, state: SpaceObject) {
+    graphics.x = state.position.x;
+    graphics.y = state.position.y;
   }
 
-  private setViewCenter(graphics: PIXI.Graphics) {
+  private setScreenPosition(graphics: PIXI.DisplayObject, state: SpaceObject) {
+    const screenPos = this.viewport.toScreen(state.position.x, state.position.y);
+    graphics.x = screenPos.x;
+    graphics.y = screenPos.y;
+  }
+
+  private setViewCenter(graphics: PIXI.DisplayObject) {
     this.viewCenter.x = graphics.x;
     this.viewCenter.y = graphics.y;
     this.viewport.moveCenter(this.viewCenter);
@@ -92,19 +99,32 @@ export class Radar extends PIXI.Application {
   private initialize() {
     SpaceState.clientInit(this.room.state);
     this.room.state.asteroids.onAdd = (entity, key) => {
+      const display = new PIXI.Container();
+      this.setScreenPosition(display, entity);
+      this.stage.addChild(display);
+      this.viewport.on('zoomed', () => {
+        this.setScreenPosition(display, entity);
+      });
+      this.viewport.on('moved', () => {
+        this.setScreenPosition(display, entity);
+      });
+      this.displayEntities[key] = display;
       const graphics = new PIXI.Graphics();
-      this.setPosition(graphics, entity);
-      this.viewport.addChild(graphics);
-      this.entities[key] = graphics;
+      display.addChild(graphics);
       graphics.clear();
       graphics.lineStyle(0);
       graphics.beginFill(0xffff0b, 0.5);
       graphics.drawCircle(0, 0, 10);
       graphics.endFill();
+      const text = new PIXI.Text(entity.id + '\nAsteroid',
+        {fontFamily : 'Arial', fontSize: 12, fill : 0xffff0b, align : 'center'});
+      text.y = 10;
+      text.x = -text.getLocalBounds(new PIXI.Rectangle()).width / 2;
+      display.addChild(text);
       entity.onChange = changes => {
         changes.forEach(_ => {
           if (!this.interpolation) {
-            this.setPosition(graphics, entity);
+            this.setScreenPosition(display, entity);
           }
         });
       };
@@ -114,8 +134,9 @@ export class Radar extends PIXI.Application {
     this.room.state.spaceships.onAdd = (entity, key) => {
       const graphics = new PIXI.Graphics();
       this.setPosition(graphics, entity);
-      this.viewport.addChild(graphics);
-      this.entities[key] = graphics;
+      this.setViewCenter(graphics);
+      this.stage.addChild(graphics);
+      this.displayEntities[key] = graphics;
       graphics.clear();
       graphics.lineStyle(0);
       graphics.beginFill(0xff0000, 1);
@@ -129,13 +150,12 @@ export class Radar extends PIXI.Application {
           }
         });
       };
-      this.setViewCenter(graphics);
     };
 
     this.room.state.registerOnRemove((_, key) => {
-      this.viewport.removeChild(this.entities[key]);
-      this.entities[key].destroy();
-      delete this.entities[key];
+      this.viewport.removeChild(this.displayEntities[key]);
+      this.displayEntities[key].destroy();
+      delete this.displayEntities[key];
     });
   }
 }
