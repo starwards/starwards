@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import Viewport from 'pixi-viewport';
 import { Client } from 'colyseus.js';
 import { SpaceState, SpaceObject } from '@starwards/model';
+import EventEmitter from 'eventemitter3';
 
 const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
 
@@ -12,6 +13,8 @@ type DisplayEntity = PIXI.DisplayObject & {
 };
 
 export class Radar extends PIXI.Application {
+  public events = new EventEmitter();
+
   public displayEntities: { [id: string]: DisplayEntity } = {};
 
   public client = new Client(ENDPOINT);
@@ -79,9 +82,10 @@ export class Radar extends PIXI.Application {
     requestAnimationFrame(this.loop.bind(this));
   }
 
-  private setPosition(graphics: PIXI.DisplayObject, state: SpaceObject) {
-    graphics.x = state.position.x;
-    graphics.y = state.position.y;
+  public resizeWindow(width: number, height: number) {
+    this.viewport.resize(width, height);
+    this.renderer.resize(width, height);
+    this.events.emit('resize');
   }
 
   private setScreenPosition(graphics: PIXI.DisplayObject, state: SpaceObject) {
@@ -90,9 +94,9 @@ export class Radar extends PIXI.Application {
     graphics.y = screenPos.y;
   }
 
-  private setViewCenter(graphics: PIXI.DisplayObject) {
-    this.viewCenter.x = graphics.x;
-    this.viewCenter.y = graphics.y;
+  private setViewCenter(state: SpaceObject) {
+    this.viewCenter.x = state.position.x;
+    this.viewCenter.y = state.position.y;
     this.viewport.moveCenter(this.viewCenter);
   }
 
@@ -106,6 +110,9 @@ export class Radar extends PIXI.Application {
         this.setScreenPosition(display, entity);
       });
       this.viewport.on('moved', () => {
+        this.setScreenPosition(display, entity);
+      });
+      this.events.on('moved', () => {
         this.setScreenPosition(display, entity);
       });
       this.displayEntities[key] = display;
@@ -133,8 +140,13 @@ export class Radar extends PIXI.Application {
     // assume single spaceship
     this.room.state.spaceships.onAdd = (entity, key) => {
       const graphics = new PIXI.Graphics();
-      this.setPosition(graphics, entity);
-      this.setViewCenter(graphics);
+      this.setViewCenter(entity);
+      this.setScreenPosition(graphics, entity);
+      this.events.on('resize', () => {
+        this.setScreenPosition(graphics, entity);
+        this.setViewCenter(entity);
+        this.events.emit('moved');
+      });
       this.stage.addChild(graphics);
       this.displayEntities[key] = graphics;
       graphics.clear();
@@ -145,8 +157,8 @@ export class Radar extends PIXI.Application {
       entity.onChange = changes => {
         changes.forEach(_ => {
           if (!this.interpolation) {
-            this.setPosition(graphics, entity);
-            this.setViewCenter(graphics);
+            this.setScreenPosition(graphics, entity);
+            this.setViewCenter(entity);
           }
         });
       };
