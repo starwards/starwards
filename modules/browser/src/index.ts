@@ -1,13 +1,15 @@
 import { Radar } from './radar';
 
-const app = new Radar();
-app.interpolation = true;
-document.body.appendChild(app.view);
+const radar = new Radar();
+radar.interpolation = true;
+document.body.appendChild(radar.view);
 
 // allow to resize viewport and renderer
 window.onresize = () => {
-    app.viewport.resize(window.innerWidth, window.innerHeight);
-    app.renderer.resize(window.innerWidth, window.innerHeight);
+    radar.resizeWindow(window.innerWidth, window.innerHeight);
+
+    // radar.viewport.resize(window.innerWidth, window.innerHeight);
+    // radar.renderer.resize(window.innerWidth, window.innerHeight);
 };
 
 // toggle interpolation
@@ -15,6 +17,6 @@ document.addEventListener('click', e => {
     const input = e.target as HTMLInputElement;
 
     if (input.id === 'interpolation') {
-        app.interpolation = input.checked;
+        radar.interpolation = input.checked;
     }
 });
