@@ -1,7 +1,7 @@
 
     workflow "Build, Lint and Test" {
         on = "push"
-        resolves = ["Lint_colyseus-server", "Test_colyseus-server","Lint_colysus-browser", "Test_colysus-browser","Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
+        resolves = ["Lint_browser", "Test_browser","Lint_gql-server", "Test_gql-server","Lint_model", "Test_model","Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
     }
 
     action "Install" {
@@ -9,28 +9,40 @@
         args = "install"
     }
     
-    action "Lint_colyseus-server" {
+    action "Lint_browser" {
         needs = "Install"
         uses = "amir-arad/actions-yarn@master"
-        args = "workspace @starwards/colyseus-server lint"
+        args = "workspace @starwards/browser lint"
     }
 
-    action "Test_colyseus-server" {
+    action "Test_browser" {
         needs = "Install"
         uses = "amir-arad/actions-yarn@master"
-        args = "workspace @starwards/colyseus-server test"
+        args = "workspace @starwards/browser test"
     }
     
-    action "Lint_colysus-browser" {
+    action "Lint_gql-server" {
         needs = "Install"
         uses = "amir-arad/actions-yarn@master"
-        args = "workspace @starwards/colysus-browser lint"
+        args = "workspace @starwards/gql-server lint"
     }
 
-    action "Test_colysus-browser" {
+    action "Test_gql-server" {
         needs = "Install"
         uses = "amir-arad/actions-yarn@master"
-        args = "workspace @starwards/colysus-browser test"
+        args = "workspace @starwards/gql-server test"
+    }
+    
+    action "Lint_model" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/model lint"
+    }
+
+    action "Test_model" {
+        needs = "Install"
+        uses = "amir-arad/actions-yarn@master"
+        args = "workspace @starwards/model test"
     }
     
     action "Lint_server" {

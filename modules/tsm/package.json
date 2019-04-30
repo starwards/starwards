@@ -14,5 +14,8 @@
     "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
     "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
     "prepack": "yarn build"
+  },
+  "dependencies": {
+    "@colyseus/schema": "^0.4.23"
   }
 }
