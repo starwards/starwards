@@ -1,7 +1,7 @@
 
     workflow "Build, Lint and Test" {
         on = "push"
-        resolves = ["Lint_browser", "Test_browser","Lint_gql-server", "Test_gql-server","Lint_model", "Test_model","Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
+        resolves = ["Lint_browser", "Test_browser","Lint_model", "Test_model","Lint_server", "Test_server","Lint_test-kit", "Test_test-kit","Lint_tsm", "Test_tsm"]
     }
 
     action "Install" {
@@ -19,18 +19,6 @@
         needs = "Install"
         uses = "amir-arad/actions-yarn@master"
         args = "workspace @starwards/browser test"
-    }
-    
-    action "Lint_gql-server" {
-        needs = "Install"
-        uses = "amir-arad/actions-yarn@master"
-        args = "workspace @starwards/gql-server lint"
-    }
-
-    action "Test_gql-server" {
-        needs = "Install"
-        uses = "amir-arad/actions-yarn@master"
-        args = "workspace @starwards/gql-server test"
     }
     
     action "Lint_model" {
