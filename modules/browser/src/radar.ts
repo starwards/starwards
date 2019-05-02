@@ -149,23 +149,37 @@ export class Radar extends PIXI.Application {
 
   private initialize() {
     SpaceState.clientInit(this.room.state);
+    const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
     this.room.state.asteroids.onAdd = (entity, key) => {
       const root = new PIXI.Container();
       this.setGraphicsPosition(root, entity);
       this.displayEntities[key] = root;
-      const graphics = new PIXI.Graphics();
-      root.addChild(graphics);
-      graphics.clear();
-      graphics.lineStyle(1, 0xffff0b);
-      graphics.drawCircle(0, 0, 4);
-      graphics.endFill();
+      // const graphics = new PIXI.Graphics();
+      // root.addChild(graphics);
+      // graphics.clear();
+      // graphics.beginFill(0xffff0b, 1);
+      // // graphics.lineStyle(1, 0xffff0b);
+      // // graphics.drawCircle(0, 0, 4);
+      // graphics.drawRect(
+      //   -radarBlipTexture.width / 2,
+      //   -radarBlipTexture.height / 2,
+      //   radarBlipTexture.width,
+      //   radarBlipTexture.height);
+      // graphics.endFill();
+
+      const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
+      radarBlipSprite.x = -radarBlipTexture.width / 4;
+      radarBlipSprite.y = -radarBlipTexture.height / 4;
+      radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
+      radarBlipSprite.tint = 0xffff0b;
+      root.addChild(radarBlipSprite);
       const text = new PIXI.Text(`Asteroid\nradius: ${entity.radius.toFixed()}`, new PIXI.TextStyle({
         fontFamily: 'Bebas',
         fontSize: 14,
         fill: 0xffff0b,
         align: 'left'
       }));
-      text.y = 10;
+      text.y = radarBlipSprite.height;
       text.x = -text.getLocalBounds(new PIXI.Rectangle()).width / 2;
       root.addChild(text);
       entity.onChange = changes => {
