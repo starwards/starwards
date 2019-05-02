@@ -1,3 +1,0 @@
-projects:
-  starwards:
-    schemaPath: modules/server/schema/api.graphql
