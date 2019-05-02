@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { Client } from 'colyseus.js';
-import { SpaceState, SpaceObject, XY, getSectorName, sectorSize } from '@starwards/model';
+import { SpaceState, SpaceObject, getSectorName, sectorSize } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { TextsPool } from './texts-pool';
 import { PontOfView } from './point-of-view';
