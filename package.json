@@ -26,6 +26,7 @@
     "@types/nanoid": "^1.2.1",
     "@types/node": "10",
     "@types/sinon": "~7.0.10",
+    "@types/webfontloader": "^1.6.29",
     "@types/webpack": "^4.4.27",
     "@types/webpack-dev-middleware": "^2.0.2",
     "@types/webpack-hot-middleware": "^2.16.5",

@@ -1,25 +1,38 @@
 import { Radar } from './radar';
+import WebFont from 'webfontloader';
 
-const radar = new Radar(window.innerWidth - 300, window.innerHeight);
+WebFont.load({
+  custom: {
+    families: ['Bebas']
+  }
+});
+const radar = new Radar(window.innerWidth, window.innerHeight);
 radar.interpolation = true;
-document.body.appendChild(radar.view);
-
-radar.events.on('screenChanged', () => document.getElementById('zoom')!.innerHTML = `zoom ` + radar.pov.zoom);
+radar.events.on(
+  'screenChanged',
+  () =>
+    (document.getElementById('zoom')!.innerHTML = `zoom ` + radar.pov.zoom)
+);
 // allow to resize viewport and renderer
 window.onresize = () => {
-    radar.resizeWindow(window.innerWidth - 300, window.innerHeight);
+  radar.resizeWindow(window.innerWidth, window.innerHeight);
 };
-window.addEventListener('wheel', e => {
+window.addEventListener(
+  'wheel',
+  e => {
     e.stopPropagation();
     e.preventDefault();
     radar.changeZoom(-e.deltaY);
-}, {passive : false});
-
+  },
+  { passive: false }
+);
 // toggle interpolation
 document.addEventListener('click', e => {
-    const input = e.target as HTMLInputElement;
+  const input = e.target as HTMLInputElement;
 
-    if (input.id === 'interpolation') {
-        radar.interpolation = input.checked;
-    }
+  if (input.id === 'interpolation') {
+    radar.interpolation = input.checked;
+  }
 });
+
+document.body.appendChild(radar.view);
