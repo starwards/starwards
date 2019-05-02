@@ -6,12 +6,15 @@ export class SpaceObject extends Schema {
   public id: string;
   @type(Vec2)
   public position: Vec2;
+  @type('uint16')
+  public radius: number;
   @type(Vec2)
   public speed: Vec2 = new Vec2(0, 0);
 
-  constructor(id: string, position: Vec2) {
+  constructor(id: string, position: Vec2, radius: number) {
     super();
     this.id = id;
     this.position = position;
+    this.radius = radius;
   }
 }
