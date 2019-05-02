@@ -17,11 +17,12 @@ class TextsPoolIterator {
     if (this.nextElement < this.instances.length) {
       return { value: this.instances[this.nextElement++] };
     } else {
-      const value = new PIXI.Text('', {
-        fontFamily: 'Arial',
-        fontSize: 24,
+      // ctx.font = "24px bebas_neue_regularregular, Impact, Arial, sans-serif";
+      const value = new PIXI.Text('', new PIXI.TextStyle({
+        fontFamily: 'Bebas',
+        fontSize: 18,
         align: 'center'
-      });
+      }));
       this.instances.push(value);
       this.parent.addChild(value);
       this.nextElement++;

@@ -15,24 +15,24 @@ type DisplayEntity = PIXI.DisplayObject & {
 export class Radar extends PIXI.Application {
   private static readonly minZoom = 0.00005;
   private static readonly maxZoom = 1;
-  private static readonly gridColors = [0x0000FF, 0xF4FA58, 0x00FF00, 0xFF0000];
+  private static readonly gridColors = [0x6666FF, 0xF4FA77, 0x55FF55, 0xFF3333];
 
   public interpolation: boolean = false;
 
   public events = new EventEmitter();
+  /**
+   * a point in the world that the radar is watching, and a zoom level
+   */
+  public pov = new PontOfView(() => this.events.emit('screenChanged'));
 
   private displayEntities: { [id: string]: DisplayEntity } = {};
   private client = new Client(ENDPOINT);
   private room = this.client.join<SpaceState>('space');
-  /**
-   * a point in the world that the radar is watching, and a zoom level
-   */
-  private pov = new PontOfView(() => this.events.emit('screenChanged'));
   private readonly gridLines = new PIXI.Graphics();
   private readonly sectorNames = new TextsPool(this.stage);
 
   constructor(width: number, height: number) {
-    super({ width, height, backgroundColor: 0x0c0c0c });
+    super({ width, height, backgroundColor: 0x0f0f0f });
     this.events.on('screenChanged', () => this.drawSectorGrid());
     this.room.onJoin.add(this.initialize.bind(this));
     this.stage.addChild(this.gridLines);
@@ -82,7 +82,7 @@ export class Radar extends PIXI.Application {
 
   private drawSectorGrid() {
     this.gridLines.clear();
-    const minMagnitude = Math.max(0, Math.floor(Math.abs(Math.log10(this.pov.zoom / 3.5)) - 2));
+    const minMagnitude = Math.max(0, Math.floor(Math.abs(Math.log10(this.pov.zoom / 2.5)) - 2));
     const minGridCellSize = sectorSize * Math.pow(8, minMagnitude);
     const topLeft = this.pov.screenToWorld(this.renderer.screen, 0, 0);
     const bottomRight = this.pov.screenToWorld(
@@ -115,7 +115,6 @@ export class Radar extends PIXI.Application {
       }
     }
     const textsIterator = this.sectorNames[Symbol.iterator]();
-      // ctx.font = "24px bebas_neue_regularregular, Impact, Arial, sans-serif";
     for (const horizontal of horizontals) {
         for (const vertical of verticals) {
           const text = textsIterator.next().value;
@@ -151,35 +150,36 @@ export class Radar extends PIXI.Application {
   private initialize() {
     SpaceState.clientInit(this.room.state);
     this.room.state.asteroids.onAdd = (entity, key) => {
-      const display = new PIXI.Container();
-      this.setGraphicsPosition(display, entity);
-      this.stage.addChild(display);
-      this.events.on('screenChanged', () => {
-        this.setGraphicsPosition(display, entity);
-      });
-      this.displayEntities[key] = display;
+      const root = new PIXI.Container();
+      this.setGraphicsPosition(root, entity);
+      this.displayEntities[key] = root;
       const graphics = new PIXI.Graphics();
-      display.addChild(graphics);
+      root.addChild(graphics);
       graphics.clear();
       graphics.lineStyle(1, 0xffff0b);
       graphics.drawCircle(0, 0, 4);
       graphics.endFill();
-      const text = new PIXI.Text(entity.id + '\nAsteroid', {
-        fontFamily: 'Arial',
-        fontSize: 12,
+      const text = new PIXI.Text(`Asteroid\nradius: ${entity.radius.toFixed()}`, new PIXI.TextStyle({
+        fontFamily: 'Bebas',
+        fontSize: 14,
         fill: 0xffff0b,
-        align: 'center'
-      });
+        align: 'left'
+      }));
       text.y = 10;
       text.x = -text.getLocalBounds(new PIXI.Rectangle()).width / 2;
-      display.addChild(text);
+      root.addChild(text);
       entity.onChange = changes => {
         changes.forEach(_ => {
           if (!this.interpolation) {
-            this.setGraphicsPosition(display, entity);
+            this.setGraphicsPosition(root, entity);
           }
         });
       };
+
+      this.events.on('screenChanged', () => {
+        this.setGraphicsPosition(root, entity);
+      });
+      this.stage.addChild(root);
     };
 
     // assume single spaceship, this is the center of the radar
