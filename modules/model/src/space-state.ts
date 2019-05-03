@@ -39,13 +39,26 @@ export class SpaceState extends Schema {
     }
 
     public getAll(): SpaceObject[] {
-      return ([] as SpaceObject[]).concat(
-        Object.getOwnPropertyNames(this.asteroids).map(id => this.asteroids[id]),
-        Object.getOwnPropertyNames(this.spaceships).map(id => this.spaceships[id])
-      );
+      return [...this];
     }
+
     public registerOnRemove(callback: (so: SpaceObject, id: string) => void) {
       this.asteroids.onRemove = callback;
       this.spaceships.onRemove = callback;
     }
+
+    public *[Symbol.iterator](): IterableIterator<SpaceObject> {
+      yield* mapSchemaValues(this.asteroids);
+      yield* mapSchemaValues(this.spaceships);
+    }
+}
+
+const mapSchemaClassProps = Object.getOwnPropertyNames(new MapSchema());
+
+export function *mapSchemaValues<T>(map: MapSchema<T>): IterableIterator<T> {
+  for (const id of Object.getOwnPropertyNames(map)) {
+    if (!mapSchemaClassProps.includes(id)) {
+      yield map[id];
+    }
+  }
 }

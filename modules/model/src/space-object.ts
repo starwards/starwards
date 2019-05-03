@@ -2,6 +2,9 @@ import { Schema, type } from '@colyseus/schema';
 import { Vec2 } from './vec2';
 
 export class SpaceObject extends Schema {
+  public static compare(a: SpaceObject, b: SpaceObject): number {
+    return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
+  }
   @type('string')
   public id: string;
   @type(Vec2)
