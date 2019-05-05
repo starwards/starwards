@@ -4,14 +4,13 @@ import { Asteroid } from './asteroid';
 import { Spaceship } from './spaceship';
 
 export class SpaceState extends Schema {
-
     /**
      * monkey-patch to enable methods on remote copies of SpaceState.
      * need to be called explicitly from the appliction.
      * @param clientState client side state object (replication)
      */
     public static clientInit(clientState: SpaceState) {
-    (['get', 'set', 'getAll', 'registerOnRemove'] as Array<keyof SpaceState>)
+    (['get', 'getAll', 'registerOnRemove', Symbol.iterator] as Array<keyof SpaceState>)
         .forEach(p => (clientState[p] as any) = this.prototype[p]);
     }
 
@@ -21,9 +20,8 @@ export class SpaceState extends Schema {
     @type({ map: Spaceship })
     public spaceships = new MapSchema<Spaceship>();
 
-    constructor(map: SpaceObject[] = []) {
+    constructor() {
         super();
-        map.forEach(o => this.set(o.clone()));
       }
 
     public get(id: string): SpaceObject | undefined {

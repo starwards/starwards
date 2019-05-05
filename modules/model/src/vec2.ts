@@ -28,6 +28,12 @@
 import { Schema, type} from '@colyseus/schema';
 import {vec3} from '@starwards/tsm';
 
+// tslint:disable-next-line:no-namespace
+export namespace XY {
+    export function negate(vector: XY): XY {
+        return {x: -vector.x, y : -vector.y};
+    }
+}
 export interface XY {
     readonly x: number;
     readonly y: number;
@@ -173,15 +179,6 @@ export class Vec2 extends Schema implements XY {
 
         dest.x = this.x;
         dest.y = this.y;
-
-        return dest;
-    }
-
-    public negate(dest?: Vec2): Vec2 {
-        if (!dest) { dest = this; }
-
-        dest.x = -this.x;
-        dest.y = -this.y;
 
         return dest;
     }

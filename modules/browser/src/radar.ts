@@ -157,14 +157,8 @@ export class Radar extends PIXI.Application {
       // const graphics = new PIXI.Graphics();
       // root.addChild(graphics);
       // graphics.clear();
-      // graphics.beginFill(0xffff0b, 1);
-      // // graphics.lineStyle(1, 0xffff0b);
-      // // graphics.drawCircle(0, 0, 4);
-      // graphics.drawRect(
-      //   -radarBlipTexture.width / 2,
-      //   -radarBlipTexture.height / 2,
-      //   radarBlipTexture.width,
-      //   radarBlipTexture.height);
+      // graphics.lineStyle(1, 0xffff0b);
+      // graphics.drawCircle(0, 0, entity.radius * this.pov.zoom);
       // graphics.endFill();
 
       const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
