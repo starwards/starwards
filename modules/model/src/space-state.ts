@@ -36,6 +36,14 @@ export class SpaceState extends Schema {
       }
     }
 
+    public delete(obj: SpaceObject) {
+      if (obj instanceof Asteroid) {
+        delete this.asteroids[obj.id];
+      } else if (obj instanceof Spaceship) {
+        delete this.spaceships[obj.id];
+      }
+    }
+
     public getAll(): SpaceObject[] {
       return [...this];
     }

@@ -11,26 +11,34 @@ export class SpaceRoom extends Room<SpaceState> {
     public onInit() {
         this.setState(new SpaceState());
         this.setSimulationInterval(deltaTime => this.update(deltaTime));
-        map.forEach(o => this.set(o.clone()));
+        map.forEach(o => this.insert(o.clone()));
     }
 
     public onMessage(_client: Client, _data: any): void {
         throw new Error('Method not implemented.');
     }
 
-    public set(object: SpaceObject) {
+    public insert(object: SpaceObject) {
         this.state.set(object);
         const body = this.collisions.createCircle(object.position.x, object.position.y, object.radius);
         this.collisionToState.set(body, object);
         this.stateToCollision.set(object, body);
     }
 
+    public delete(object: SpaceObject) {
+        this.state.delete(object);
+        const body = this.stateToCollision.get(object)!;
+        this.stateToCollision.delete(object);
+        this.collisionToState.delete(body);
+        this.collisions.remove(body);
+    }
+
     /**
      * change position in both state and collision body
      */
-    private moveObject(object: SpaceObject, velocity: XY, deltaTime: number = 1){
-        let body = this.stateToCollision.get(object);
-        if (body){
+    private moveObject(object: SpaceObject, velocity: XY, deltaTime: number = 1) {
+        const body = this.stateToCollision.get(object);
+        if (body) {
             body.x = object.position.x += velocity.x * deltaTime;
             body.y = object.position.y += velocity.y * deltaTime;
         } else {
@@ -41,8 +49,8 @@ export class SpaceRoom extends Room<SpaceState> {
     private update(deltaTime: number) {
 
         // loop over objects and apply velocity
-        for(const object of this.state) {
-            if (object.velocity.x || object.velocity.y){
+        for (const object of this.state) {
+            if (object.velocity.x || object.velocity.y) {
                 this.moveObject(object, object.velocity, deltaTime);
             }
         }
@@ -51,14 +59,14 @@ export class SpaceRoom extends Room<SpaceState> {
         this.collisions.update();
 
         const result = new Result();
-        // for every moving object 
-        for(const object of this.state) {
-            if (object.velocity.x || object.velocity.y){
+        // for every moving object
+        for (const object of this.state) {
+            if (object.velocity.x || object.velocity.y) {
                 const body = this.stateToCollision.get(object);
-                if (body){
-                    // Get any potential collisions 
-                    for (const potential of body.potentials()){
-                        if(body.collides(potential, result)) {
+                if (body) {
+                    // Get any potential collisions
+                    for (const potential of body.potentials()) {
+                        if (body.collides(potential, result)) {
                             const otherObjext = this.collisionToState.get(potential)!;
                             const collisionVector = {
                                 x : result.overlap * result.overlap_x / 2,
