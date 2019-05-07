@@ -1,7 +1,8 @@
 import * as PIXI from 'pixi.js';
 import Viewport from 'pixi-viewport';
 import { Client } from 'colyseus.js';
-import { State, Entity } from '@starwards/server';
+import { Entity } from '@starwards/server/src/_reference/Entity';
+import { State } from '@starwards/server/src/_reference/State';
 
 const ENDPOINT =
   process.env.NODE_ENV === 'development'

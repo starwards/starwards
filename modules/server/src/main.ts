@@ -11,7 +11,6 @@ import * as path from 'path';
 import basicAuth = require('express-basic-auth');
 import { monitor } from '@colyseus/monitor';
 
-import { ArenaRoom } from './rooms/ArenaRoom';
 import { SpaceRoom } from './space/room';
 
 import webpack = require('webpack');
@@ -27,7 +26,6 @@ export let STATIC_DIR: string;
 const app = express();
 const gameServer = new colyseus.Server({ server: http.createServer(app) });
 
-gameServer.register('arena', ArenaRoom);
 gameServer.register('space', SpaceRoom);
 
 if (process.env.NODE_ENV === 'production') {
