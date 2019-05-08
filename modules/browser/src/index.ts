@@ -1,44 +1,30 @@
-import { Radar } from './radar';
-import * as PIXI from 'pixi.js';
-import WebFont from 'webfontloader';
+import GoldenLayout from 'golden-layout';
+import { component as radar } from './radar/component';
+import { Client } from 'colyseus.js';
 
-WebFont.load({
-  custom: {
-    families: ['Bebas']
-  }
-});
+const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
+const client = new Client(ENDPOINT);
 
-PIXI.Loader.shared
-  .add('images/RadarBlip.png')
-  .load(() => {
-    const radar = new Radar(window.innerWidth, window.innerHeight);
-    radar.interpolation = true;
-    radar.events.on(
-      'screenChanged',
-      () =>
-        (document.getElementById('zoom')!.innerHTML = `zoom ` + radar.pov.zoom)
-    );
-    // allow to resize viewport and renderer
-    window.onresize = () => {
-      radar.resizeWindow(window.innerWidth, window.innerHeight);
-    };
-    window.addEventListener(
-      'wheel',
-      e => {
-        e.stopPropagation();
-        e.preventDefault();
-        radar.changeZoom(-e.deltaY);
+const config = {
+  content: [{
+    type: 'row',
+    content: [
+      {
+        type: 'component',
+        componentName: 'radar',
+        componentState: { client }
       },
-      { passive: false }
-    );
-    // toggle interpolation
-    document.addEventListener('click', e => {
-      const input = e.target as HTMLInputElement;
-
-      if (input.id === 'interpolation') {
-        radar.interpolation = input.checked;
+      {
+        type: 'component',
+        componentName: 'radar',
+        componentState: { client }
       }
-    });
+    ]
+  }]
+};
 
-    document.body.appendChild(radar.view);
-  });
+const myLayout = new GoldenLayout( config );
+
+myLayout.registerComponent( 'radar', radar);
+
+myLayout.init();
