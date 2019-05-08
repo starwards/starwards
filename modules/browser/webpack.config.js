@@ -1,11 +1,11 @@
 const webpack = require("webpack");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const ExtractTextPlugin = require("extract-text-webpack-plugin");
 
 module.exports = function(_) {
+  const mode = process.env.NODE_ENV || "development"
   return {
-    mode: process.env.NODE_ENV || "development",
+    mode,
     entry: [
       "webpack-hot-middleware/client?reload=true",
       path.resolve(__dirname, "src", "index.ts")
@@ -30,10 +30,7 @@ module.exports = function(_) {
 
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, "src", "index.html")
-      }),
-
-      // extract styles from bundle into a separate file
-      new ExtractTextPlugin("index.css")
+      })
     ],
     resolve: {
       extensions: [".tsx", ".ts", ".js"]
