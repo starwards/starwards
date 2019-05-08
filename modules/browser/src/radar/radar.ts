@@ -1,11 +1,9 @@
 import * as PIXI from 'pixi.js';
-import { Client } from 'colyseus.js';
+import { Room } from 'colyseus.js';
 import { SpaceState, SpaceObject, getSectorName, sectorSize } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { TextsPool } from './texts-pool';
 import { PontOfView } from './point-of-view';
-
-const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
@@ -26,12 +24,11 @@ export class Radar extends PIXI.Application {
   public pov = new PontOfView(() => this.events.emit('screenChanged'));
 
   private displayEntities: { [id: string]: DisplayEntity } = {};
-  private client = new Client(ENDPOINT);
-  private room = this.client.join<SpaceState>('space');
+  // private room = this.client.join<SpaceState>('space');
   private readonly gridLines = new PIXI.Graphics();
   private readonly sectorNames = new TextsPool(this.stage);
 
-  constructor(width: number, height: number) {
+  constructor(width: number, height: number, private room: Room<SpaceState>) {
     super({ width, height, backgroundColor: 0x0f0f0f });
     this.events.on('screenChanged', () => this.drawSectorGrid());
     this.room.onJoin.add(this.initialize.bind(this));
