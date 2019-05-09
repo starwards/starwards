@@ -16,7 +16,8 @@
     "lint:test": "tslint -p test",
     "test": ";",
     "start": "nodemon -r @ts-tools/node/warn ./src/main.ts",
-    "prepack": "yarn build"
+    "prepack": "yarn build",
+    "loadtest" : "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"
   },
   "dependencies": {
     "@colyseus/monitor": "^0.10.0",

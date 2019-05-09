@@ -1,5 +1,5 @@
 import GoldenLayout from 'golden-layout';
-import { component as radar } from './radar/component';
+import { radarComponent as radar } from './radar/radar-component';
 import { Client } from 'colyseus.js';
 
 const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
@@ -9,11 +9,6 @@ const config = {
   content: [{
     type: 'row',
     content: [
-      {
-        type: 'component',
-        componentName: 'radar',
-        componentState: { client }
-      },
       {
         type: 'component',
         componentName: 'radar',

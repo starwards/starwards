@@ -15,13 +15,12 @@ PIXI.Loader.shared.add('images/RadarBlip.png');
 
 let room: Room<SpaceState> | null = null;
 
-export function component( container: Container, state: Props ) {
+export function radarComponent( container: Container, state: RadarProps ) {
   PIXI.Loader.shared.load(() => {
     if (!room) {
       room = state.client.join<SpaceState>('space');
     }
     const radar = new Radar(container.width, container.height, room);
-    radar.interpolation = false;
     container.on('resize', () => {
       radar.resizeWindow(container.width, container.height);
     });
@@ -35,6 +34,6 @@ export function component( container: Container, state: Props ) {
   });
   }
 
-export interface Props {
+export interface RadarProps {
   client: Client;
 }

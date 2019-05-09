@@ -49,3 +49,11 @@ app.use('/colyseus', auth, monitor(gameServer));
 gameServer.listen(port);
 // tslint:disable-next-line:no-console
 console.log(`Listening on http://${endpoint}:${port}`);
+
+process.on('uncaughtException', function(err) {
+    // tslint:disable-next-line:no-console
+    console.error(new Date().toUTCString() + ' uncaughtException:', err.message);
+    // tslint:disable-next-line:no-console
+    console.error(err.stack);
+    process.exit(1);
+});
