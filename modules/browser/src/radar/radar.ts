@@ -4,6 +4,7 @@ import { SpaceState, SpaceObject, getSectorName, sectorSize } from '@starwards/m
 import EventEmitter from 'eventemitter3';
 import { TextsPool } from './texts-pool';
 import { PontOfView } from './point-of-view';
+import { PixiFps } from './pixi-fps';
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
@@ -15,13 +16,14 @@ export class Radar extends PIXI.Application {
   private static readonly maxZoom = 1;
   private static readonly gridColors = [0x6666FF, 0xF4FA77, 0x55FF55, 0xFF3333];
 
-  public interpolation: boolean = false;
+  // public interpolation: boolean = false;
 
   public events = new EventEmitter();
   /**
    * a point in the world that the radar is watching, and a zoom level
    */
   public pov = new PontOfView(() => this.events.emit('screenChanged'));
+  private fpsCounter = new PixiFps();
 
   private displayEntities: { [id: string]: DisplayEntity } = {};
   // private room = this.client.join<SpaceState>('space');
@@ -33,36 +35,38 @@ export class Radar extends PIXI.Application {
     this.events.on('screenChanged', () => this.drawSectorGrid());
     this.room.onJoin.add(this.initialize.bind(this));
     this.stage.addChild(this.gridLines);
+    this.stage.addChild(this.fpsCounter);
+
     this.drawSectorGrid();
-    this.loop();
+    // this.loop();
   }
 
-  public loop() {
-    if (this.interpolation) {
-      for (const id of Object.getOwnPropertyNames(this.displayEntities)) {
-        const state = this.room.state.get(id);
-        if (state) {
-          const graphics = this.displayEntities[id];
-          const screen = this.pov.worldToScreen(this.renderer.screen,
-            state.position.x,
-            state.position.y
-          );
-          graphics.x = lerp(
-            graphics.x,
-            screen.x,
-            0.2 // TODO use object's speed instead of constant
-          );
-          graphics.y = lerp(
-            graphics.y,
-            screen.y,
-            0.2 // TODO use object's speed instead of constant
-          );
-        }
-      }
-    }
-    // continue looping
-    requestAnimationFrame(this.loop.bind(this));
-  }
+  // private loop() {
+  //   if (this.interpolation) {
+  //     for (const id of Object.getOwnPropertyNames(this.displayEntities)) {
+  //       const state = this.room.state.get(id);
+  //       if (state) {
+  //         const graphics = this.displayEntities[id];
+  //         const screen = this.pov.worldToScreen(this.renderer.screen,
+  //           state.position.x,
+  //           state.position.y
+  //         );
+  //         graphics.x = lerp(
+  //           graphics.x,
+  //           screen.x,
+  //           0.2 // TODO use object's speed instead of constant
+  //         );
+  //         graphics.y = lerp(
+  //           graphics.y,
+  //           screen.y,
+  //           0.2 // TODO use object's speed instead of constant
+  //         );
+  //       }
+  //     }
+  //   }
+  //   // continue looping
+  //   requestAnimationFrame(this.loop.bind(this));
+  // }
 
   public resizeWindow(width: number, height: number) {
     this.renderer.resize(width, height);
@@ -175,10 +179,11 @@ export class Radar extends PIXI.Application {
       root.addChild(text);
       entity.onChange = changes => {
         changes.forEach(_ => {
-          if (!this.interpolation) {
+          // if (!this.interpolation) {
             this.setGraphicsPosition(root, entity);
-          }
+          // }
         });
+        // console.log('change');
       };
 
       this.events.on('screenChanged', () => {
@@ -204,10 +209,10 @@ export class Radar extends PIXI.Application {
       graphics.endFill();
       entity.onChange = changes => {
         changes.forEach(_ => {
-          if (!this.interpolation) {
+          // if (!this.interpolation) {
             this.setGraphicsPosition(graphics, entity);
             this.pov.set(entity.position.x, entity.position.y);
-          }
+          // }
         });
       };
     };
