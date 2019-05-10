@@ -7,11 +7,35 @@ export class SpaceRoom extends Room<SpaceState> {
     public collisions = new Collisions();
     private collisionToState = new WeakMap<Body, SpaceObject>();
     private stateToCollision = new WeakMap<SpaceObject, Body>();
+    private myLoopInterval: NodeJS.Timeout | undefined;
+
+    constructor() {
+        super();
+        this.autoDispose = false;
+    }
+    public async onLeave(client: Client, consented: boolean) {
+        if (!consented) {
+            await this.allowReconnection(client, 30);
+        }
+    }
 
     public onInit() {
         this.setState(new SpaceState());
-        this.setSimulationInterval(deltaTime => this.update(deltaTime));
+        this.setPatchRate(0);
+        // take control over patch and simulation loops
+        this.myLoopInterval = setInterval(() => {
+            this.broadcastPatch();
+            this.broadcastAfterPatch();
+            this.update(this.clock.deltaTime);
+        }, 1000 / 20);
         map.forEach(o => this.insert(o.clone()));
+    }
+
+    public onDispose() {
+        if (this.myLoopInterval) {
+            clearInterval(this.myLoopInterval);
+            this.myLoopInterval = undefined;
+        }
     }
 
     public onMessage(_client: Client, _data: any): void {
