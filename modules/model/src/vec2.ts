@@ -41,6 +41,20 @@ export interface XY {
 
 export class Vec2 extends Schema implements XY {
 
+    public static Rotate(vector: XY, degrees: number, dest?: Vec2) {
+        return Vec2.RotateRadians(vector, degrees * Vec2.DegToRad, dest);
+    }
+
+    public static RotateRadians(vector: XY, radians: number, dest?: Vec2) {
+        if (!dest) { dest = new Vec2(); }
+
+        const ca = Math.cos(radians);
+        const sa = Math.sin(radians);
+        dest.x = ca * vector.x - sa * vector.y;
+        dest.y = sa * vector.x - ca * vector.y;
+        return dest;
+    }
+
     public static cross(vector: XY, vector2: XY, dest?: vec3): vec3 {
         if (!dest) { dest = new vec3(); }
 
@@ -147,6 +161,8 @@ export class Vec2 extends Schema implements XY {
 
         return dest;
     }
+
+    private static const DegToRad = Math.PI / 180;
 
     @type('float32')
     public x: number = 0;
