@@ -2,9 +2,9 @@ import { Radar } from './radar';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
-import { Client } from 'colyseus.js';
 import { SpaceState } from '@starwards/model';
 import { getRoom } from '../client';
+import { preloadList } from './draw-entity';
 
 WebFont.load({
   custom: {
@@ -12,7 +12,7 @@ WebFont.load({
   }
 });
 
-PIXI.Loader.shared.add('images/RadarBlip.png');
+PIXI.Loader.shared.add(preloadList);
 
 const room = getRoom<SpaceState>('space');
 
