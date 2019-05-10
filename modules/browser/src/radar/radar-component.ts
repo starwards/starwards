@@ -2,8 +2,9 @@ import { Radar } from './radar';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
-import { Client, Room} from 'colyseus.js';
+import { Client } from 'colyseus.js';
 import { SpaceState } from '@starwards/model';
+import { getRoom } from '../client';
 
 WebFont.load({
   custom: {
@@ -13,13 +14,10 @@ WebFont.load({
 
 PIXI.Loader.shared.add('images/RadarBlip.png');
 
-let room: Room<SpaceState> | null = null;
+const room = getRoom<SpaceState>('space');
 
-export function radarComponent( container: Container, state: RadarProps ) {
+export function radarComponent( container: Container ) {
   PIXI.Loader.shared.load(() => {
-    if (!room) {
-      room = state.client.join<SpaceState>('space');
-    }
     const radar = new Radar(container.width, container.height, room);
     container.on('resize', () => {
       radar.resizeWindow(container.width, container.height);
@@ -33,7 +31,3 @@ export function radarComponent( container: Container, state: RadarProps ) {
     container.getElement().append(radar.view);
   });
   }
-
-export interface RadarProps {
-  client: Client;
-}
