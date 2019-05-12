@@ -85,13 +85,19 @@ export class Radar extends PIXI.Application {
     this.renderer.resize(width, height);
     this.events.emit('screenChanged');
   }
-
+  
+  public setZoom(zoom: number) {
+    zoom = Math.max(Radar.minZoom, Math.min(Radar.maxZoom, zoom));
+    if (this.pov.zoom !== zoom) {
+      this.pov.zoom = zoom;
+      this.events.emit('zoomChanged');
+    }
+  }
   /**
    * change radar zoom
    */
   public changeZoom(delta: number) {
-    const zoom = this.pov.zoom * (1.0 + delta / 1000.0);
-    this.pov.zoom = Math.max(Radar.minZoom, Math.min(Radar.maxZoom, zoom));
+    this.setZoom(this.pov.zoom * (1.0 + delta / 1000.0));
   }
 
   private drawSectorGrid() {
