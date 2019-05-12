@@ -1,5 +1,5 @@
 import { Room, Client } from 'colyseus';
-import { SpaceState, SpaceObject, XY } from '@starwards/model';
+import { SpaceState, XY, SpaceObject } from '@starwards/model';
 import { map } from './map';
 import {Result, Collisions, Body} from 'detect-collisions';
 

@@ -1,7 +1,13 @@
-import { SpaceObject } from './space-object';
+import { SpaceObjectBase } from './space-object-base';
 import { type } from '@colyseus/schema';
 
-export class Spaceship extends SpaceObject {
+export class Spaceship extends SpaceObjectBase {
+    public static isInstance(o: SpaceObjectBase): o is Spaceship {
+        return o.type === 'Spaceship';
+    }
+
+    public readonly type = 'Spaceship';
+
     /*!
      *The direction of the ship. (in degrees, 0 is right, 90 is up)
      */

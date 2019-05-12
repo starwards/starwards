@@ -8,8 +8,70 @@
     <link rel="stylesheet" href="styles/index.css">
     <link type="text/css" rel="stylesheet" href="styles/goldenlayout-dark-theme.css" />
     <link type="text/css" rel="stylesheet" href="styles/goldenlayout-base.css" />
+    <style>
+    h2{
+  font: 14px Arial, sans-serif;
+  color:#fff;
+  padding: 10px;
+  text-align: center;
+}
+
+html, body{
+  height: 100%;
+}
+
+*{
+  margin: 0;
+  padding: 0;
+  list-style-type:none;
+}
+
+#wrapper{
+  height: 100%;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+#menuContainer{
+  width: 20%;
+  height: 100%;
+  position:absolute;
+  top: 0;
+  left: 0;
+  background: #222;
+}
+
+#menuContainer li{
+  cursor: move;
+  border-bottom: 1px solid #000;
+  border-top: 1px solid #333;
+  cursor: pointer;
+  padding: 10px 5px;
+  color: #BBB;
+  background: #1a1a1a;
+  font: 12px Arial, sans-serif;
+}
+
+#menuContainer li:hover{
+  background: #111;
+  color: #CCC;
+}
+
+#layoutContainer{
+  width: 80%;
+  height: 100%;
+  position:absolute;
+  top: 0;
+  left: 20%;
+  box-shadow: -3px 0px 9px 0px rgba( 0, 0, 0, 0.4 );
+}
+    </style>
 </head>
 <body>
-
+    <div id="wrapper">
+        <ul id="menuContainer"></ul>
+        <div id="layoutContainer"></div>
+    </div>
 </body>
 </html>

@@ -2,16 +2,18 @@ import * as PIXI from 'pixi.js';
 import { Room } from 'colyseus.js';
 import {
   SpaceState,
-  SpaceObject,
   getSectorName,
   sectorSize,
-  Entities
+  SpaceObjects,
+  Spaceship,
+  SpaceObject
 } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { TextsPool } from './texts-pool';
 import { PontOfView } from './point-of-view';
 import { PixiFps } from './pixi-fps';
 import { draw } from './draw-entity';
+import { DataChange } from '@colyseus/schema';
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
@@ -40,7 +42,11 @@ export class Radar extends PIXI.Application {
   constructor(width: number, height: number, private room: Room<SpaceState>) {
     super({ width, height, backgroundColor: 0x0f0f0f });
     this.events.on('screenChanged', () => this.drawSectorGrid());
-    this.room.onJoin.add(this.initialize.bind(this));
+    if (this.room.hasJoined) {
+      this.initialize();
+    } else {
+      this.room.onJoin.add(this.initialize.bind(this));
+    }
     this.stage.addChild(this.gridLines);
     this.stage.addChild(this.fpsCounter);
 
@@ -165,12 +171,13 @@ export class Radar extends PIXI.Application {
   }
 
   private initialize() {
-    SpaceState.clientInit(this.room.state);
-    this.room.state.asteroids.onAdd = entity => this.onNewEntity('Asteroid', entity);
     // assume single spaceship, this is the center of the radar
-    this.room.state.spaceships.onAdd = entity => this.onNewEntity('Spaceship', entity, true);
+    this.room.state.events.on('add', (entity: SpaceObject) => this.onNewEntity(entity));
+    this.room.state.events.on('remove', (entity: SpaceObject) => this.onRemoveEntity(entity.id));
 
-    this.room.state.registerOnRemove(entity => this.onRemoveEntity(entity.id));
+    for (const entity of this.room.state) {
+      this.onNewEntity(entity);
+    }
   }
 
   private setGraphicsPosition(
@@ -186,11 +193,9 @@ export class Radar extends PIXI.Application {
     graphics.y = screen.y;
   }
 
-  private onNewEntity<T extends keyof Entities>(
-    type: T,
-    entity: Entities[T],
-    follow = false
-  ) {
+  private onNewEntity(entity: SpaceObjects[keyof SpaceObjects]) {
+    const type = entity.type;
+    const follow = Spaceship.isInstance(entity);
     if (follow) {
       this.pov.set(entity.position.x, entity.position.y);
     }
@@ -202,9 +207,9 @@ export class Radar extends PIXI.Application {
     });
     this.stage.addChild(root);
 
-    let drawProps = draw[type](entity, root);
+    let drawProps = draw(type)(entity, root);
 
-    entity.onChange = changes => {
+    this.room.state.events.on(entity.id, (changes: DataChange[]) => {
       changes.forEach(change => {
         if (change.field === 'position') {
           this.setGraphicsPosition(root, entity);
@@ -213,10 +218,10 @@ export class Radar extends PIXI.Application {
           }
         } else if (drawProps.indexOf(change.field) !== -1) {
           root.removeChildren();
-          drawProps = draw[type](entity, root);
+          drawProps = draw(type)(entity, root);
         }
       });
-    };
+    });
   }
 
   private onRemoveEntity(id: string) {

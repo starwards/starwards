@@ -1,16 +1,19 @@
-import { Client, JoinOptions, Room } from 'colyseus.js';
+import { Client, Room } from 'colyseus.js';
+import { clientInitFunctions, Rooms } from '@starwards/model';
 
 const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
 export const client = new Client(ENDPOINT);
 client.onError.add((err: Error) => console.log('something wrong happened', err));
 
-const rooms = new Map<string, Room>();
-export function getRoom<T>(roomName: string): Room<T> {
-    let room = rooms.get(roomName) as Room<T> | undefined;
+const rooms: {[T in keyof Rooms]?: Room<Rooms[T]>} = {};
+
+export function getRoom<T extends keyof Rooms>(roomName: T): Room<Rooms[T]> {
+    let room: Room<Rooms[T]> | undefined = rooms[roomName];
     if (!room) {
-        const newRoom = client.join<T>(roomName);
+        const newRoom = client.join<Rooms[T]>(roomName);
         room = newRoom;
         newRoom.onJoin.add(() => {
+            clientInitFunctions[roomName](newRoom.state);
             const sessionId = newRoom.sessionId;
             console.log('sessionId', sessionId);
             client.onClose.add(() => {
@@ -18,7 +21,7 @@ export function getRoom<T>(roomName: string): Room<T> {
                 client.rejoin(roomName, {sessionId});
             });
         });
-        rooms.set(roomName, room);
-      }
+        rooms[roomName] = room;
+    }
     return room;
 }

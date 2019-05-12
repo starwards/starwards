@@ -1,10 +1,15 @@
 import { Schema, type } from '@colyseus/schema';
 import { Vec2 } from './vec2';
+import { SpaceObjects } from '.';
 
-export class SpaceObject extends Schema {
-  public static compare(a: SpaceObject, b: SpaceObject): number {
+export abstract class SpaceObjectBase extends Schema {
+  public static compare(a: SpaceObjectBase, b: SpaceObjectBase): number {
     return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
   }
+
+  @type('string')
+  public readonly abstract type: keyof SpaceObjects;
+
   @type('string')
   public id: string;
   @type(Vec2)
