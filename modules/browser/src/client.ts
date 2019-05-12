@@ -1,7 +1,8 @@
 import { Client, Room } from 'colyseus.js';
 import { clientInitFunctions, Rooms } from '@starwards/model';
 
-const ENDPOINT = 'ws://localhost:8080'; // todo: use window.location
+const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
+
 export const client = new Client(ENDPOINT);
 client.onError.add((err: Error) => console.log('something wrong happened', err));
 
