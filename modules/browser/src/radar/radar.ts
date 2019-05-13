@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js';
-import { Room } from 'colyseus.js';
 import {
   SpaceState,
   getSectorName,
@@ -12,14 +11,19 @@ import EventEmitter from 'eventemitter3';
 import { TextsPool } from './texts-pool';
 import { PontOfView } from './point-of-view';
 import { PixiFps } from './pixi-fps';
-import { draw } from './draw-entity';
+import { blipRenderer } from './blip-renderer';
 import { DataChange } from '@colyseus/schema';
+import { GameRoom } from '../client';
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
-type DisplayEntity = PIXI.DisplayObject & {
+type Blip = PIXI.DisplayObject & {
   [k: string]: any;
 };
+
+// sources of inspiration for future product improvements:
+// https://www.marineinsight.com/marine-navigation/using-radar-on-ships-15-important-points/
+// https://en.wikipedia.org/wiki/Radar_display
 export class Radar extends PIXI.Application {
   private static readonly minZoom = 0.00005;
   private static readonly maxZoom = 1;
@@ -34,58 +38,30 @@ export class Radar extends PIXI.Application {
   public pov = new PontOfView(() => this.events.emit('screenChanged'));
   private fpsCounter = new PixiFps();
 
-  private displayEntities: { [id: string]: DisplayEntity } = {};
+  private blips: { [id: string]: Blip } = {};
   // private room = this.client.join<SpaceState>('space');
   private readonly gridLines = new PIXI.Graphics();
   private readonly sectorNames = new TextsPool(this.stage);
 
-  constructor(width: number, height: number, private room: Room<SpaceState>) {
+  constructor(
+    width: number,
+    height: number,
+    private room: GameRoom<SpaceState>
+  ) {
     super({ width, height, backgroundColor: 0x0f0f0f });
     this.events.on('screenChanged', () => this.drawSectorGrid());
-    if (this.room.hasJoined) {
-      this.initialize();
-    } else {
-      this.room.onJoin.add(this.initialize.bind(this));
-    }
+    this.room.ready.then(this.initialize.bind(this));
     this.stage.addChild(this.gridLines);
     this.stage.addChild(this.fpsCounter);
-
     this.drawSectorGrid();
     // this.loop();
   }
-
-  // private loop() {
-  //   if (this.interpolation) {
-  //     for (const id of Object.getOwnPropertyNames(this.displayEntities)) {
-  //       const state = this.room.state.get(id);
-  //       if (state) {
-  //         const graphics = this.displayEntities[id];
-  //         const screen = this.pov.worldToScreen(this.renderer.screen,
-  //           state.position.x,
-  //           state.position.y
-  //         );
-  //         graphics.x = lerp(
-  //           graphics.x,
-  //           screen.x,
-  //           0.2 // TODO use object's speed instead of constant
-  //         );
-  //         graphics.y = lerp(
-  //           graphics.y,
-  //           screen.y,
-  //           0.2 // TODO use object's speed instead of constant
-  //         );
-  //       }
-  //     }
-  //   }
-  //   // continue looping
-  //   requestAnimationFrame(this.loop.bind(this));
-  // }
 
   public resizeWindow(width: number, height: number) {
     this.renderer.resize(width, height);
     this.events.emit('screenChanged');
   }
-  
+
   public setZoom(zoom: number) {
     zoom = Math.max(Radar.minZoom, Math.min(Radar.maxZoom, zoom));
     if (this.pov.zoom !== zoom) {
@@ -178,16 +154,20 @@ export class Radar extends PIXI.Application {
 
   private initialize() {
     // assume single spaceship, this is the center of the radar
-    this.room.state.events.on('add', (entity: SpaceObject) => this.onNewEntity(entity));
-    this.room.state.events.on('remove', (entity: SpaceObject) => this.onRemoveEntity(entity.id));
+    this.room.state.events.on('add', (spaceObject: SpaceObject) =>
+      this.onNewSpaceObject(spaceObject)
+    );
+    this.room.state.events.on('remove', (spaceObject: SpaceObject) =>
+      this.onRemoveSpaceObject(spaceObject.id)
+    );
 
-    for (const entity of this.room.state) {
-      this.onNewEntity(entity);
+    for (const spaceObject of this.room.state) {
+      this.onNewSpaceObject(spaceObject);
     }
   }
 
-  private setGraphicsPosition(
-    graphics: PIXI.DisplayObject,
+  private setBlipPosition(
+    blip: PIXI.DisplayObject,
     state: SpaceObject
   ) {
     const screen = this.pov.worldToScreen(
@@ -195,46 +175,79 @@ export class Radar extends PIXI.Application {
       state.position.x,
       state.position.y
     );
-    graphics.x = screen.x;
-    graphics.y = screen.y;
+    blip.x = screen.x;
+    blip.y = screen.y;
   }
 
-  private onNewEntity(entity: SpaceObjects[keyof SpaceObjects]) {
-    const type = entity.type;
-    const follow = Spaceship.isInstance(entity);
-    if (follow) {
-      this.pov.set(entity.position.x, entity.position.y);
-    }
-    const root = new PIXI.Container();
-    this.setGraphicsPosition(root, entity);
-    this.displayEntities[entity.id] = root;
-    this.events.on('screenChanged', () => {
-      this.setGraphicsPosition(root, entity);
-    });
-    this.stage.addChild(root);
+  private onNewSpaceObject(spaceObject: SpaceObjects[keyof SpaceObjects]) {
+    const follow = Spaceship.isInstance(spaceObject);
+    const blip = new PIXI.Container();
+    this.setBlipPosition(blip, spaceObject);
+    this.blips[spaceObject.id] = blip;
+    this.events.on('screenChanged', () =>
+      this.setBlipPosition(blip, spaceObject)
+    );
+    this.stage.addChild(blip);
 
-    let drawProps = draw(type)(entity, root);
+    let drawProps = blipRenderer(spaceObject, blip);
 
-    this.room.state.events.on(entity.id, (changes: DataChange[]) => {
+    this.room.state.events.on(spaceObject.id, (changes: DataChange[]) => {
+      let redrawNeeded = false;
       changes.forEach(change => {
         if (change.field === 'position') {
-          this.setGraphicsPosition(root, entity);
+          this.setBlipPosition(blip, spaceObject);
           if (follow) {
-            this.pov.set(entity.position.x, entity.position.y);
+            this.pov.set(spaceObject.position.x, spaceObject.position.y);
           }
-        } else if (drawProps.indexOf(change.field) !== -1) {
-          root.removeChildren();
-          drawProps = draw(type)(entity, root);
         }
+        redrawNeeded = redrawNeeded || drawProps.has(change.field);
       });
+
+      if (redrawNeeded) {
+        // re-draw blip
+        blip.removeChildren();
+        drawProps = blipRenderer(spaceObject, blip);
+      }
     });
+
+    if (follow) {
+      this.pov.set(spaceObject.position.x, spaceObject.position.y);
+    }
   }
 
-  private onRemoveEntity(id: string) {
-    const graphicEntity = this.displayEntities[id];
-    delete this.displayEntities[id];
-    graphicEntity.parent.removeChild(graphicEntity);
-    graphicEntity.destroy();
+  private onRemoveSpaceObject(id: string) {
+    const blip = this.blips[id];
+    delete this.blips[id];
+    blip.parent.removeChild(blip);
+    blip.destroy();
   }
 
+  /*
+  private loop() {
+    if (this.interpolation) {
+      for (const id of Object.getOwnPropertyNames(this.displayEntities)) {
+        const state = this.room.state.get(id);
+        if (state) {
+          const graphics = this.displayEntities[id];
+          const screen = this.pov.worldToScreen(this.renderer.screen,
+            state.position.x,
+            state.position.y
+          );
+          graphics.x = lerp(
+            graphics.x,
+            screen.x,
+            0.2 // TODO use object's speed instead of constant
+          );
+          graphics.y = lerp(
+            graphics.y,
+            screen.y,
+            0.2 // TODO use object's speed instead of constant
+          );
+        }
+      }
+    }
+    // continue looping
+    requestAnimationFrame(this.loop.bind(this));
+  }
+  */
 }

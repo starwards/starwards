@@ -1,11 +1,11 @@
 import { Radar } from './radar';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
-import { Container, ContentItem, Tab } from 'golden-layout';
+import { Container } from 'golden-layout';
 import { getRoom } from '../client';
-import { preloadList } from './draw-entity';
-import { Registrar } from '..';
+import { preloadList } from './blip-renderer';
 import $ from 'jquery';
+import { DashboardWidget } from '../dashboard';
 
 WebFont.load({
   custom: {
@@ -15,11 +15,9 @@ WebFont.load({
 
 PIXI.Loader.shared.add(preloadList);
 
-const room = getRoom('space');
-
 function radarComponent(container: Container, state: { zoom: number }) {
   PIXI.Loader.shared.load(() => {
-    const radar = new Radar(container.width, container.height, room);
+    const radar = new Radar(container.width, container.height, getRoom('space'));
     radar.setZoom(state.zoom);
     container.on('resize', () => {
       radar.resizeWindow(container.width, container.height);
@@ -43,28 +41,27 @@ function radarComponent(container: Container, state: { zoom: number }) {
   });
 }
 
-function setRadarHeaders(stack: ContentItem & Tab, contentItem: ContentItem) {
-  const zoomIn = $(
-    '<li class="custom_controls"><i class="lm_controls tiny material-icons">zoom_in</i></li>'
-  );
-  const zoomOut = $(
-    '<li class="custom_controls"><i class="lm_controls tiny material-icons">zoom_out</i></li>'
-  );
-  stack.header.controlsContainer.prepend(zoomIn, zoomOut);
+function makeRadarHeaders(container: Container): Array<JQuery<HTMLElement>> {
+  const zoomIn = $('<i class="lm_controls tiny material-icons">zoom_in</i>');
+  const zoomOut = $('<i class="lm_controls tiny material-icons">zoom_out</i>');
   zoomIn.mousedown(() => {
     const zoomInterval = setInterval(() => {
-      contentItem.container.emit('zoomIn');
+      container.emit('zoomIn');
     }, 100);
     $(document).mouseup(() => clearInterval(zoomInterval));
   });
   zoomOut.mousedown(() => {
     const zoomInterval = setInterval(() => {
-      contentItem.container.emit('zoomOut');
+      container.emit('zoomOut');
     }, 100);
     $(document).mouseup(() => clearInterval(zoomInterval));
   });
+  return [zoomIn, zoomOut];
 }
 
-export function loadRadarComponent(registerComponent: Registrar) {
-  registerComponent('radar', radarComponent, { zoom: 1 }, setRadarHeaders);
-}
+export const radarWidget: DashboardWidget<{ zoom: number }> = {
+  name: 'radar',
+  component: radarComponent,
+  initialState: { zoom: 1 },
+  makeHeaders: makeRadarHeaders
+};

@@ -3,24 +3,30 @@ import * as PIXI from 'pixi.js';
 
 export const preloadList = ['images/RadarBlip.png', 'images/radar_fighter.png'];
 
-export type DrawFunction<T extends keyof SpaceObjects> = (
-  entity: SpaceObjects[T],
+type DrawBlip<T extends keyof SpaceObjects> = (
+  spaceObject: SpaceObjects[T],
   root: PIXI.Container
-) => string[];
+) => Set<string>;
 
-const drawFunctions: { [T in keyof SpaceObjects]: DrawFunction<T> } = {
-  Spaceship(entity: SpaceObjects['Spaceship'], root: PIXI.Container): string[] {
+const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
+  Spaceship(
+    spaceObject: SpaceObjects['Spaceship'],
+    root: PIXI.Container
+  ): Set<string> {
     const radarBlipTexture =
       PIXI.Loader.shared.resources['images/radar_fighter.png'].texture;
     const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
     radarBlipSprite.x = -radarBlipSprite.width / 2;
     radarBlipSprite.y = -radarBlipSprite.height / 2;
     radarBlipSprite.tint = 0xff0000;
-    radarBlipSprite.angle = entity.angle % 360;
+    radarBlipSprite.angle = spaceObject.angle % 360;
     root.addChild(radarBlipSprite);
-    return ['angle'];
+    return new Set(['angle']);
   },
-  Asteroid(entity: SpaceObjects['Asteroid'], root: PIXI.Container): string[] {
+  Asteroid(
+    spaceObject: SpaceObjects['Asteroid'],
+    root: PIXI.Container
+  ): Set<string> {
     const radarBlipTexture =
       PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
     const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
@@ -30,7 +36,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawFunction<T> } = {
     radarBlipSprite.tint = 0xffff0b;
     root.addChild(radarBlipSprite);
     const text = new PIXI.Text(
-      `Asteroid\nradius: ${entity.radius.toFixed()}`,
+      `Asteroid\nradius: ${spaceObject.radius.toFixed()}`,
       new PIXI.TextStyle({
         fontFamily: 'Bebas',
         fontSize: 14,
@@ -41,10 +47,19 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawFunction<T> } = {
     text.y = radarBlipSprite.height;
     text.x = -text.getLocalBounds(new PIXI.Rectangle()).width / 2;
     root.addChild(text);
-    return ['radius'];
+    return new Set(['radius']);
   }
 };
 
-export function draw<T extends keyof SpaceObjects>(type: T): DrawFunction<T> {
-  return drawFunctions[type] as DrawFunction<T>;
+/**
+ * render a radar blip according to the space object
+ * @param spaceObject subject to render
+ * @param blip PIXI container to render into
+ * @returns a set of property names of `spaceObject` that were used for the render
+ */
+export function blipRenderer<T extends keyof SpaceObjects>(
+  spaceObject: SpaceObjects[T],
+  blip: PIXI.Container
+): Set<string> {
+  return (drawFunctions[spaceObject.type] as DrawBlip<T>)(spaceObject, blip);
 }
