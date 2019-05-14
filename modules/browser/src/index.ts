@@ -4,5 +4,5 @@ import { Dashboard } from './dashboard';
 
 const dashboard = new Dashboard({content : []}, $('#layoutContainer'));
 
-dashboard.init();
+dashboard.setup();
 dashboard.registerWidget(radarWidget);

@@ -13,7 +13,7 @@ export interface DashboardWidget<T extends object> {
 }
 
 export class Dashboard extends GoldenLayout {
-  public init(): void {
+  public setup(): void {
     this.on('stackCreated', (stack: ContentItem & Tab) => {
       stack.on('activeContentItemChanged', () =>
         // clean up any outdated widget headers
