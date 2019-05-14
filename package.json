@@ -25,6 +25,8 @@
     "@types/mocha": "^5.2.6",
     "@types/nanoid": "^1.2.1",
     "@types/node": "10",
+    "@types/react": "^16.8.17",
+    "@types/react-dom": "^16.8.4",
     "@types/sinon": "~7.0.10",
     "@types/webfontloader": "^1.6.29",
     "@types/webpack": "^4.4.27",

@@ -16,11 +16,16 @@
     "prepack": "yarn build"
   },
   "dependencies": {
+    "@material-ui/core": "^3.9.3",
+    "@material-ui/icons": "^3.0.2",
     "@types/jquery": "^3.3.29",
     "colyseus.js": "^0.10.4",
+    "contro": "^2.1.2",
     "eventemitter3": "^3.1.2",
     "golden-layout": "^1.5.9",
     "pixi.js": "^5.0.0-rc",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
     "webfontloader": "^1.6.28"
   }
 }

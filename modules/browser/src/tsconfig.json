@@ -4,7 +4,7 @@
     "lib": [
       "dom",
       "es2017"
-    ]
-  },                    
-  "jsx": "react",  
+    ],                    
+    "jsx": "react"
+  },  
 }
