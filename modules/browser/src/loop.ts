@@ -8,15 +8,16 @@ export class Loop {
   ) {}
 
   public start() {
-    this.stop();
-    this.t0 = Date.now();
-    this.timer = setInterval(this.iteration, this.interval);
+    if (this.timer === null) {
+      this.t0 = Date.now();
+      this.timer = setInterval(this.iteration, this.interval);
+    }
   }
 
   public stop() {
     if (this.timer !== null) {
-      this.iteration();
       clearInterval(this.timer);
+      this.timer = null;
     }
   }
 
