@@ -1,14 +1,13 @@
 {
   "name": "@starwards/server",
   "version": "0.0.0",
-  "main": "target/index.js",
-  "types": "target/index.d.ts",
+  "bin": "cjs/main.js",
   "files": [
-    "target"
+    "cjs"
   ],
   "license": "MIT",
   "scripts": {
-    "clean": "rimraf ./target",
+    "clean": "rimraf ./cjs",
     "prebuild": "yarn clean",
     "build": "ts-build ./src --cjs",
     "lint": "run-p lint:src lint:test",
@@ -26,5 +25,9 @@
     "colyseus": "^0.10.4",
     "express": "^4.16.4",
     "express-basic-auth": "^1.1.6"
+  },
+  "pkg": {
+    "scripts": "build/**/*.js",
+    "assets": "views/**/*"
   }
 }

@@ -1,14 +1,14 @@
 {
   "name": "@starwards/model",
   "version": "0.0.0",
-  "main": "target/index.js",
-  "types": "target/index.d.ts",
+  "main": "cjs/index.js",
+  "types": "cjs/index.d.ts",
   "files": [
-    "target"
+    "cjs"
   ],
   "license": "MIT",
   "scripts": {
-    "clean": "rimraf ./target",
+    "clean": "rimraf ./cjs",
     "prebuild": "yarn clean",
     "build": "ts-build ./src --cjs",
     "lint": "tslint -p src",

@@ -1,14 +1,12 @@
 {
   "name": "@starwards/browser",
   "version": "1.0.0",
-  "main": "cjs/index.js",
-  "module": "esm/index.js",
-  "types": "esm/index.d.ts",
+  "main": "dist/bundle.js",
   "license": "MIT",
   "scripts": {
-    "clean": "rimraf ./cjs ./esm",
+    "clean": "rimraf ./dist",
     "prebuild": "yarn clean",
-    "build": "webpack",
+    "build": "webpack --config webpack.prod.js",
     "lint": "run-p lint:src lint:test",
     "lint:src": "tslint -p src",
     "lint:test": "tslint -p test",
