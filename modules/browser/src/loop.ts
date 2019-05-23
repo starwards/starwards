@@ -9,7 +9,7 @@ export class Loop {
 
   public start() {
     this.stop();
-    this.t0 = this.t0 || Date.now();
+    this.t0 = Date.now();
     this.timer = setInterval(this.iteration, this.interval);
   }
 
