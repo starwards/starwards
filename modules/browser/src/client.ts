@@ -33,11 +33,11 @@ export function getRoom<T extends keyof Rooms>(roomName: T): NamedGameRoom<T> {
                 resolve();
             });
         });
-        const oldSend = newRoom.send;
-        newRoom.send = (data: any) => {
-            console.log(roomName, 'send', data);
-            oldSend.call(newRoom, data);
-        };
+        // const oldSend = newRoom.send;
+        // newRoom.send = (data: any) => {
+        //     console.log(roomName, 'send', data);
+        //     oldSend.call(newRoom, data);
+        // };
         rooms[roomName] = room;
     }
     return room!;
