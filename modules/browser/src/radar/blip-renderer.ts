@@ -34,7 +34,7 @@ turn speed: ${spaceObject.turnSpeed.toFixed()}`,
     text.y = radarBlipSprite.height;
     text.x = -text.getLocalBounds(new PIXI.Rectangle()).width / 2;
     root.addChild(text);
-    return new Set(['angle']);
+    return new Set(['angle', 'turnSpeed', 'velocity' ]);
   },
   Asteroid(
     spaceObject: SpaceObjects['Asteroid'],
