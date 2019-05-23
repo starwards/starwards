@@ -61,6 +61,7 @@ function makeRadarHeaders(container: Container): Array<JQuery<HTMLElement>> {
 
 export const radarWidget: DashboardWidget<{ zoom: number }> = {
   name: 'radar',
+  type: 'component',
   component: radarComponent,
   initialState: { zoom: 1 },
   makeHeaders: makeRadarHeaders

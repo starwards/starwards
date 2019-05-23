@@ -46,7 +46,7 @@ export class Radar extends PIXI.Application {
   constructor(
     width: number,
     height: number,
-    private room: GameRoom<SpaceState>
+    private room: GameRoom<SpaceState, any>
   ) {
     super({ width, height, backgroundColor: 0x0f0f0f });
     this.events.on('screenChanged', () => this.drawSectorGrid());
@@ -221,33 +221,4 @@ export class Radar extends PIXI.Application {
     blip.parent.removeChild(blip);
     blip.destroy();
   }
-
-  /*
-  private loop() {
-    if (this.interpolation) {
-      for (const id of Object.getOwnPropertyNames(this.displayEntities)) {
-        const state = this.room.state.get(id);
-        if (state) {
-          const graphics = this.displayEntities[id];
-          const screen = this.pov.worldToScreen(this.renderer.screen,
-            state.position.x,
-            state.position.y
-          );
-          graphics.x = lerp(
-            graphics.x,
-            screen.x,
-            0.2 // TODO use object's speed instead of constant
-          );
-          graphics.y = lerp(
-            graphics.y,
-            screen.y,
-            0.2 // TODO use object's speed instead of constant
-          );
-        }
-      }
-    }
-    // continue looping
-    requestAnimationFrame(this.loop.bind(this));
-  }
-  */
 }
