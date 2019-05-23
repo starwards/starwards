@@ -4,7 +4,8 @@ import {
   XY,
   SpaceObject,
   SpaceCommand,
-  isCommand
+  isCommand,
+  SpaceObjectBase
 } from '@starwards/model';
 import { map } from './map';
 import { Result, Collisions, Body } from 'detect-collisions';
@@ -83,48 +84,55 @@ export class SpaceRoom extends Room<SpaceState> {
     this.collisions.remove(body);
   }
 
-  /**
-   * change position in both state and collision body
-   */
-  private moveObject(
-    object: SpaceObject,
-    velocity: XY,
-    deltaSeconds: number = 1
-  ) {
+  private update(deltaMs: number) {
+    this.applyPhysics(deltaMs / 1000);
+    this.handleCollisions();
+  }
+
+  private updateObjectCollision(object: SpaceObject) {
     const body = this.stateToCollision.get(object);
     if (body) {
-      body.x = object.position.x += velocity.x * deltaSeconds;
-      body.y = object.position.y += velocity.y * deltaSeconds;
+      body.x = object.position.x;
+      body.y = object.position.y;
     } else {
       // tslint:disable-next-line:no-console
       console.error(`object leak! ${object.id} has no collision body`);
     }
   }
 
-  // TODO doc and extract to model along with moveObject
-  private rotateObject(
-    object: SpaceObject,
-    turnSpeed: number,
-    deltaSeconds: number = 1
-  ) {
-    object.angle = (object.angle + turnSpeed * deltaSeconds) % 360;
-  }
-
-  private update(deltaMs: number) {
-    const deltaSeconds = deltaMs / 1000;
+  private applyPhysics(deltaSeconds: number) {
     // loop over objects and apply velocity
     for (const object of this.state) {
       if (object.velocity.x || object.velocity.y) {
-        this.moveObject(object, object.velocity, deltaSeconds);
+        SpaceObjectBase.moveObject(object, object.velocity, deltaSeconds);
+        this.updateObjectCollision(object);
       }
       if (object.turnSpeed) {
-        this.rotateObject(object, object.turnSpeed, deltaSeconds);
+        SpaceObjectBase.rotateObject(object, object.turnSpeed, deltaSeconds);
       }
     }
+  }
 
+  // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
+  private resolveCollision(
+    object: SpaceObject,
+    otherObjext: SpaceObject,
+    result: Result
+  ) {
+    const collisionVector = {
+      x: (result.overlap * result.overlap_x) / 2,
+      y: (result.overlap * result.overlap_y) / 2
+    };
+    // each colliding side backs off
+    SpaceObjectBase.moveObject(object, XY.negate(collisionVector));
+    SpaceObjectBase.moveObject(otherObjext, collisionVector);
+    this.updateObjectCollision(object);
+    this.updateObjectCollision(otherObjext);
+  }
+
+  private handleCollisions() {
     // update collisions state
     this.collisions.update();
-
     const result = new Result();
     // for every moving object
     for (const object of this.state) {
@@ -135,14 +143,7 @@ export class SpaceRoom extends Room<SpaceState> {
           for (const potential of body.potentials()) {
             if (body.collides(potential, result)) {
               const otherObjext = this.collisionToState.get(potential)!;
-              const collisionVector = {
-                x: (result.overlap * result.overlap_x) / 2,
-                y: (result.overlap * result.overlap_y) / 2
-              };
-              // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
-              // each colliding side backs off
-              this.moveObject(otherObjext, collisionVector);
-              this.moveObject(object, XY.negate(collisionVector));
+              this.resolveCollision(object, otherObjext, result);
             }
           }
         } else {
