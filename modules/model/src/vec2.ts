@@ -173,7 +173,7 @@ export class Vec2 extends Schema implements XY {
         return (x * x + y * y);
     }
 
-    private static const DegToRad = Math.PI / 180;
+    private static readonly DegToRad = Math.PI / 180;
 
     @type('float32')
     public x: number = 0;

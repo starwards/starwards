@@ -4,10 +4,7 @@ import {
   XY,
   SpaceObject,
   SpaceCommand,
-  isChangeTurnSpeed,
-  isSetTurnSpeed,
-  isChangeVelocity,
-  isSetVelocity
+  isCommand
 } from '@starwards/model';
 import { map } from './map';
 import { Result, Collisions, Body } from 'detect-collisions';
@@ -51,14 +48,14 @@ export class SpaceRoom extends Room<SpaceState> {
   public onMessage(_client: Client, message: SpaceCommand): void {
     const subject = this.state.get(message.id);
     if (subject) {
-      if (isChangeTurnSpeed(message)) {
+      if (isCommand('ChangeTurnSpeed', message)) {
         subject.turnSpeed += message.delta;
-      } else if (isSetTurnSpeed(message)) {
+      } else if (isCommand('SetTurnSpeed', message)) {
         subject.turnSpeed = message.value;
-      } else if (isChangeVelocity(message)) {
+      } else if (isCommand('ChangeVelocity', message)) {
         subject.velocity.x += message.delta.x;
         subject.velocity.y += message.delta.y;
-      } else if (isSetVelocity(message)) {
+      } else if (isCommand('SetVelocity', message)) {
         subject.velocity.x = message.value.x;
         subject.velocity.y = message.value.y;
       } else {
