@@ -6,9 +6,9 @@ import { ButtonKey } from './keyboard-display';
 import { Loop } from '../loop';
 import { getRoom } from '../client';
 import { shipId } from '@starwards/server/src/space/map';
-import { Vec2 } from '@starwards/model';
+import { Vec2, SpaceObject } from '@starwards/model';
 
-const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39]);
+const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
 class KeyboardCommands extends React.Component<
   Mappings & ReactProps,
   { pressed: Set<ButtonKey> }
@@ -61,65 +61,69 @@ class KeyboardCommands extends React.Component<
       }
     });
   }
+  private handlePressed(
+    subject: SpaceObject,
+    key: ButtonKey,
+    presedTime: number
+  ) {
+    const boost = this.pressedTime.has(16) ? 3 : 1;
+    switch (key) {
+      case 32:
+        // stop turning
+        this.room.send({
+          id: shipId,
+          type: 'SetTurnSpeed',
+          value: subject.turnSpeed * 0.8
+        });
+        // stop moving
+        this.room.send({
+          id: shipId,
+          type: 'SetVelocity',
+          value: Vec2.scale(subject.velocity, 0.8)
+        });
+        break;
+      case 37:
+        // turn left
+        this.room.send({
+          id: shipId,
+          type: 'ChangeTurnSpeed',
+          delta: -presedTime * boost
+        });
+        break;
+      case 39:
+        // turn right
+        this.room.send({
+          id: shipId,
+          type: 'ChangeTurnSpeed',
+          delta: presedTime * boost
+        });
+        break;
+      case 38:
+        // accelerate forward
+        this.room.send({
+          id: shipId,
+          type: 'ChangeVelocity',
+          delta: Vec2.Rotate({ x: presedTime * boost, y: 0 }, subject.angle)
+        });
+        break;
+      case 40:
+        // accelerate forward
+        this.room.send({
+          id: shipId,
+          type: 'ChangeVelocity',
+          delta: Vec2.Rotate({ x: -presedTime * boost, y: 0 }, subject.angle)
+        });
+        break;
+    }
+  }
 
-  private whilePressed(delta: number) {
+  private whilePressed(deltaMs: number) {
+    const deltaSeconds = deltaMs / 1000;
+    const ship = this.room.state.get(shipId);
     for (const pressed of this.pressedTime) {
-      pressed[1] += delta;
-      this.pressedTime.set(pressed[0], pressed[1]);
-      const ship = this.room.state.get(shipId);
-      switch (pressed[0]) {
-        case 32:
-          if (ship) {
-            // stop turning
-            this.room.send({
-              id: shipId,
-              type: 'SetTurnSpeed',
-              value: ship.turnSpeed * 0.8
-            });
-            // stop moving
-            this.room.send({
-              id: shipId,
-              type: 'SetVelocity',
-              value: Vec2.scale(ship.velocity, 0.8)
-            });
-          }
-          break;
-        case 37:
-          // turn left
-          this.room.send({
-            id: shipId,
-            type: 'ChangeTurnSpeed',
-            delta: -pressed[1] / 1000
-          });
-          break;
-        case 39:
-          // turn right
-          this.room.send({
-            id: shipId,
-            type: 'ChangeTurnSpeed',
-            delta: pressed[1] / 1000
-          });
-          break;
-        case 38:
-          // accelerate forward
-          if (ship) {
-            this.room.send({
-              id: shipId,
-              type: 'ChangeVelocity',
-              delta: Vec2.Rotate({ x: pressed[1] / 1000, y: 0 }, ship.angle)
-            });
-          }
-          break;
-        case 40:
-          // accelerate forward
-          if (ship) {
-            this.room.send({
-              id: shipId,
-              type: 'ChangeVelocity',
-              delta: Vec2.Rotate({ x: -pressed[1] / 1000, y: 0 }, ship.angle)
-            });
-          }
-          break;
+      this.pressedTime.set(pressed[0], (pressed[1] += deltaSeconds));
+      if (ship) {
+        this.handlePressed(ship, pressed[0], pressed[1]);
       }
     }
   }
