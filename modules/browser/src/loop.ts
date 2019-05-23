@@ -15,6 +15,7 @@ export class Loop {
 
   public stop() {
     if (this.timer !== null) {
+      this.iteration();
       clearInterval(this.timer);
     }
   }

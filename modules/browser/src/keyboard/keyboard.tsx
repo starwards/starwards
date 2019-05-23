@@ -1,82 +1,99 @@
 import React from 'react';
-import KeyboardDisplay, {ButtonKey, isButtonKey} from './keyboard-display';
+import KeyboardDisplay, { ButtonKey, isButtonKey } from './keyboard-display';
 import hotkeys from 'hotkeys-js';
 import _ from 'lodash';
 
 export interface Props {
-  buttons: ButtonKey[];
-  keyHandler: (pressed: ButtonKey[]) => void;
+  buttons: Set<ButtonKey>;
+  pressed: Set<ButtonKey>;
+  onPressed: (keyCode: ButtonKey) => void;
+  onUnPressed: (keyCode: ButtonKey) => void;
 }
-export class Keyboard extends React.Component<Props, { pressed: ButtonKey[] }> {
+export class Keyboard extends React.Component<Props> {
+  private buttonPressed = new  Set<ButtonKey>();
+  private keyPressed = new  Set<ButtonKey>();
   constructor(p: Props) {
     super(p);
     this.state = {
-      pressed: []
+      pressed: new Set<ButtonKey>()
     };
     this.onKeyUpEvent = this.onKeyUpEvent.bind(this);
-    this.onHotKeys = this.onHotKeys.bind(this);
+    this.onKeyDownEvent = this.onKeyDownEvent.bind(this);
   }
   public render() {
     return (
       <KeyboardDisplay
         buttons={this.props.buttons}
-        pressed={this.state.pressed}
-        onButtonDown={keyCode => this.updatePressed(this.pkeys(this.state.pressed.slice(0), keyCode))}
-        onButtonUp={this.onKeyUpEvent}
+        pressed={this.props.pressed}
+        onButtonDown={key => {
+          this.buttonPressed.add(key);
+          this.updatePressed();
+        }}
+        onButtonUp={key => {
+          this.buttonPressed.delete(key);
+          this.updatePressed();
+        }}
       />
     );
   }
   public componentDidMount() {
     document.addEventListener('keyup', this.onKeyUpEvent);
-    hotkeys('*', this.onHotKeys);
+    document.addEventListener('keydown', this.onKeyDownEvent);
+    // hotkeys('*', this.onHotKeys);
     return false;
   }
 
   public componentWillUnmount() {
     document.removeEventListener('keyup', this.onKeyUpEvent);
-    hotkeys.unbind('*', this.onHotKeys);
+    document.removeEventListener('keydown', this.onKeyDownEvent);
+    // hotkeys.unbind('*', this.onHotKeys);
   }
 
-  private onHotKeys(evn: KeyboardEvent) {
+  private onKeyDownEvent(evn: KeyboardEvent) {
     evn.preventDefault();
-    const keys: ButtonKey[] = [];
-    if (hotkeys.shift) {
-      this.pkeys(keys, 16);
+    if (hotkeys.shift && this.props.buttons.has(16)) {
+      this.keyPressed.add(16);
     }
-    if (hotkeys.ctrl) {
-      this.pkeys(keys, 17);
+    if (hotkeys.ctrl && this.props.buttons.has(17)) {
+      this.keyPressed.add(17);
     }
-    if (hotkeys.alt) {
-      this.pkeys(keys, 18);
+    if (hotkeys.alt && this.props.buttons.has(18)) {
+      this.keyPressed.add(18);
     }
-    if (hotkeys.control) {
-      this.pkeys(keys, 17);
+    if (hotkeys.control && this.props.buttons.has(17)) {
+      this.keyPressed.add(17);
     }
-    if (hotkeys.command) {
-      this.pkeys(keys, 91);
+    if (hotkeys.command && this.props.buttons.has(91)) {
+      this.keyPressed.add(91);
     }
-    if (isButtonKey(evn.keyCode) && keys.indexOf(evn.keyCode) === -1) {
-      keys.push(evn.keyCode);
+    if (isButtonKey(evn.keyCode) && this.props.buttons.has(evn.keyCode)) {
+      this.keyPressed.add(evn.keyCode);
     }
-    this.updatePressed(keys);
+    this.updatePressed();
   }
 
-  private updatePressed(pressed: ButtonKey[]) {
-    pressed.sort();
-    if (! _.isEqual(pressed, this.state.pressed)) {
-      this.setState({ pressed });
-      this.props.keyHandler(this.state.pressed);
+  private onKeyUpEvent(evn: KeyboardEvent) {
+    if (isButtonKey(evn.keyCode)) {
+      this.keyPressed.delete(evn.keyCode);
+      this.updatePressed();
     }
   }
-  private pkeys(keys: ButtonKey[], key: ButtonKey) {
-    if (keys.indexOf(key) === -1) {
-      keys.push(key);
+
+  private updatePressed() {
+    for (const key of this.props.pressed) {
+      if (!this.keyPressed.has(key) && !this.buttonPressed.has(key)) {
+        this.props.onUnPressed(key);
+      }
     }
-    return keys;
-  }
-  private onKeyUpEvent() {
-    // TODO some buttons may still be pressed
-    this.setState({ pressed: [] });
-    this.props.keyHandler(this.state.pressed);
+    for (const key of this.keyPressed) {
+      if (!this.props.pressed.has(key)) {
+        this.props.onPressed(key);
+      }
+    }
+    for (const key of this.buttonPressed) {
+      if (!this.props.pressed.has(key) && !this.keyPressed.has(key)) {
+        this.props.onPressed(key);
+      }
+    }
   }
 }

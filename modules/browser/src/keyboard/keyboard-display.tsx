@@ -109,8 +109,8 @@ export function isButtonKey(keyCode: number | string): keyCode is ButtonKey {
   return (keys as any)[keyCode] !== undefined;
 }
 export interface Props {
-  buttons: ButtonKey[];
-  pressed: ButtonKey[];
+  buttons: Iterable<ButtonKey>;
+  pressed: Set<ButtonKey>;
   onButtonDown: (keyCode: ButtonKey) => void;
   onButtonUp: (keyCode: ButtonKey) => void;
 }
@@ -177,7 +177,7 @@ export default function KeyboardDisplay({
 }
 `}</style>
       <ul>
-        {buttons.map(buttonKey => {
+        {Array.from(buttons, buttonKey => {
           const item = keys[buttonKey];
           const name = item.name.map((iName, i) => (
             <span key={`${i}`} className={'lines' + item.name.length}>{iName}</span>
@@ -185,7 +185,7 @@ export default function KeyboardDisplay({
           return (
             <li
               key={buttonKey}
-              className={isButtonKey(item.keycode) && pressed.indexOf(item.keycode) > -1 ? 'pressed' : ''}
+              className={isButtonKey(item.keycode) && pressed.has(item.keycode) ? 'pressed' : ''}
               data-key={item.keycode}
               onMouseDown={onButtonDown.bind(null, buttonKey)}
               onMouseUp={onButtonUp.bind(null, buttonKey)}
