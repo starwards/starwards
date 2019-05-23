@@ -26,13 +26,14 @@ export let STATIC_DIR: string;
 const app = express();
 const gameServer = new colyseus.Server({ server: http.createServer(app) });
 
-gameServer.register('space', SpaceRoom).then(handler => {
-    handler.
-      on('create', room => console.log('room created:', room.roomId)).
-      on('dispose', room => console.log('room disposed:', room.roomId)).
-      on('join', (room, client) => console.log(client.sessionId, 'joined', room.roomId)).
-      on('leave', (room, client) => console.log(client.sessionId, 'left', room.roomId));
-  });
+gameServer.register('space', SpaceRoom);
+// .then(handler => {
+//     handler.
+//       on('create', room => console.log('room created:', room.roomId)).
+//       on('dispose', room => console.log('room disposed:', room.roomId)).
+//       on('join', (room, client) => console.log(client.sessionId, 'joined', room.roomId)).
+//       on('leave', (room, client) => console.log(client.sessionId, 'left', room.roomId));
+//   });
 
 if (process.env.NODE_ENV === 'production') {
     // on production, use ./public as static root

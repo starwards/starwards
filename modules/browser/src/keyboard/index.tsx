@@ -8,9 +8,8 @@ import { getRoom } from '../client';
 import { shipId } from '@starwards/server/src/space/map';
 import { Vec2 } from '@starwards/model';
 class KeyboardCommands extends React.Component<Mappings & ReactProps> {
-  private pressed: ButtonKey[] = [];
   private pressedTime = new Map<ButtonKey, number>();
-  private loop = new Loop(this.whilePressed.bind(this), 1000 / 5);
+  private loop = new Loop(this.whilePressed.bind(this), 1000 / 10);
   private room = getRoom('space');
 
   public render() {
@@ -28,19 +27,21 @@ class KeyboardCommands extends React.Component<Mappings & ReactProps> {
       const ship = this.room.state.get(shipId);
       switch (pressed[0]) {
         case 32:
-          // stop turning
-          this.room.send({
-            id: shipId,
-            type: 'SetTurnSpeed',
-            value: 0
-          });
-          // stop moving
-          this.room.send({
-            id: shipId,
-            type: 'SetVelocity',
-            value: { x: 0, y: 0 }
-          });
-          break;
+            if (ship) {
+              // stop turning
+              this.room.send({
+                id: shipId,
+                type: 'SetTurnSpeed',
+                value: ship.turnSpeed / 2
+              });
+              // stop moving
+              this.room.send({
+                id: shipId,
+                type: 'SetVelocity',
+                value: Vec2.scale(ship.velocity, 0.5)
+              });
+            }
+            break;
         case 37:
           // turn left
           this.room.send({
@@ -87,8 +88,6 @@ class KeyboardCommands extends React.Component<Mappings & ReactProps> {
         this.pressedTime.delete(oldPressedKey);
       }
     }
-    this.pressed = pressed;
-
     if (pressed.length) {
       for (const newPressedKey of pressed) {
         if (!this.pressedTime.has(newPressedKey)) {

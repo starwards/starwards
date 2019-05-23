@@ -111,6 +111,15 @@ export class Vec2 extends Schema implements XY {
         return dest;
     }
 
+    public static scale(vector: XY, value: number, dest?: Vec2): Vec2 {
+        if (!dest) { dest = new Vec2(); }
+
+        dest.x = vector.x * value;
+        dest.y = vector.y * value;
+
+        return dest;
+    }
+
     public static mix(vector: XY, vector2: XY, time: number, dest?: Vec2): Vec2 {
         if (!dest) { dest = new Vec2(); }
 
@@ -248,15 +257,6 @@ export class Vec2 extends Schema implements XY {
         this.y /= vector.y;
 
         return this;
-    }
-
-    public scale(value: number, dest?: Vec2): Vec2 {
-        if (!dest) { dest = this; }
-
-        dest.x *= value;
-        dest.y *= value;
-
-        return dest;
     }
 
     public normalize(dest?: Vec2): Vec2 {
