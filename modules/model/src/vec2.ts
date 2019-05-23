@@ -26,7 +26,6 @@
  // This module is an altered version of the original matthiasferch/tsm code.
 
 import { Schema, type} from '@colyseus/schema';
-import {vec3} from '@starwards/tsm';
 
 // tslint:disable-next-line:no-namespace
 export namespace XY {
@@ -55,23 +54,23 @@ export class Vec2 extends Schema implements XY {
         return dest;
     }
 
-    public static cross(vector: XY, vector2: XY, dest?: vec3): vec3 {
-        if (!dest) { dest = new vec3(); }
+    // public static cross(vector: XY, vector2: XY, dest?: vec3): vec3 {
+    //     if (!dest) { dest = new vec3(); }
 
-        const x = vector.x;
-        const y = vector.y;
+    //     const x = vector.x;
+    //     const y = vector.y;
 
-        const x2 = vector2.x;
-        const y2 = vector2.y;
+    //     const x2 = vector2.x;
+    //     const y2 = vector2.y;
 
-        const z = x * y2 - y * x2;
+    //     const z = x * y2 - y * x2;
 
-        dest.x = 0;
-        dest.y = 0;
-        dest.z = z;
+    //     dest.x = 0;
+    //     dest.y = 0;
+    //     dest.z = z;
 
-        return dest;
-    }
+    //     return dest;
+    // }
 
     public static dot(vector: XY, vector2: XY): number {
         return (vector.x * vector2.x + vector.y * vector2.y);

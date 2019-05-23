@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-
 var fs = require('fs');
 var path = require('path');
 var rootPath = path.resolve(__dirname, '..');
-
+try {
 const moduleNames = fs.readdirSync(path.resolve(rootPath, 'modules'), {withFileTypes:true}).filter(n => n.isDirectory()).map(n => n.name);
 
 fs.writeFileSync(path.join(rootPath, '.github', 'main.workflow'), mainWorkflow(moduleNames));
@@ -85,9 +84,13 @@ function launchJson(moduleNames) {
             "args": [
               "-r",
               "@ts-tools/node/warn",
-              "${workspaceFolder}/modules/server/src/main.ts"
+              "${workspaceFolder}/modules/server/src/dev.ts"
             ],
             "internalConsoleOptions": "openOnSessionStart"
           },])
     }, null, 2)
+}
+
+} catch(e) {
+    console.error(e);
 }

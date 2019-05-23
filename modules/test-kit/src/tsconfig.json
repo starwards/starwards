@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      // no "dom" for server package.
+      "es2017"
+    ]
+  }
+}
