@@ -162,6 +162,17 @@ export class Vec2 extends Schema implements XY {
         return dest;
     }
 
+    public static lengthOf(vector: XY): number {
+        return Math.sqrt(this.squaredLength(vector));
+    }
+
+    public static squaredLength(vector: XY): number {
+        const x = vector.x;
+        const y = vector.y;
+
+        return (x * x + y * y);
+    }
+
     private static const DegToRad = Math.PI / 180;
 
     @type('float32')
@@ -209,17 +220,6 @@ export class Vec2 extends Schema implements XY {
         }
 
         return true;
-    }
-
-    public length(): number {
-        return Math.sqrt(this.squaredLength());
-    }
-
-    public squaredLength(): number {
-        const x = this.x;
-        const y = this.y;
-
-        return (x * x + y * y);
     }
 
     public add(vector: XY): this {

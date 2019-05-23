@@ -1,13 +1,15 @@
 
-import { Asteroid } from '@starwards/model';
+import { Asteroid, SpaceObject } from '@starwards/model';
 import { Vec2 } from '@starwards/model';
 import nanoid from 'nanoid';
 import { Spaceship } from '@starwards/model';
 
 const fieldSize = 10000;
-const speedMax = 0.05;
+const speedMax = 50;
 const asteroidSize = 30;
-export const map = Array(1000).fill(null).map(() => new Asteroid(
+export const shipId = 'shippy mcshipface';
+
+export const map = Array(1000).fill(null).map<SpaceObject>(() => new Asteroid(
     nanoid(),
     new Vec2( Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2),
     Math.random() * asteroidSize
@@ -15,7 +17,7 @@ export const map = Array(1000).fill(null).map(() => new Asteroid(
 map.forEach(o =>
     o.velocity = new Vec2( (Math.random() * speedMax * 2) - speedMax, (Math.random() * speedMax * 2) - speedMax));
 const ship = new Spaceship(
-    nanoid(),
+    shipId,
     new Vec2( 0, 0),
     10
 );

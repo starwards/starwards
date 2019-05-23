@@ -1,32 +1,27 @@
-
 export class Loop {
-  public paused = true;
-  private onStep: Array<(delta: number) => void> = [];
   private t0: number = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  public add(r: (delta: number) => void) {
-      this.onStep.push(r);
-  }
+  constructor(
+    private body: (delta: number) => void,
+    private interval = 1000 / 60
+  ) {}
 
   public start() {
     this.stop();
     this.t0 = this.t0 || Date.now();
-    this.timer = setInterval(() => {
-      const t1 = Date.now();
-      if (!this.paused) {
-        const frameΔ = t1 - this.t0;
-        for (const resolver of this.onStep) {
-          resolver(frameΔ);
-        }
-      }
-      this.t0 = t1;
-    }, 1000 / 60);
+    this.timer = setInterval(this.iteration, this.interval);
   }
 
   public stop() {
-      if (this.timer !== null) {
-        clearInterval(this.timer);
-      }
+    if (this.timer !== null) {
+      clearInterval(this.timer);
+    }
+  }
+
+  private iteration = () => {
+    const t1 = Date.now();
+    this.body(t1 - this.t0);
+    this.t0 = t1;
   }
 }
