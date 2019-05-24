@@ -30,7 +30,8 @@ const codeDistPath = path.join(distPath, "code");
           name: "starwards",
           bin: "code/prod.js",
           pkg: {
-            assets: "static/**/*"
+            assets: "static/**/*",
+            targets: ["node12-win-x64"]
           }
         },
         null,
