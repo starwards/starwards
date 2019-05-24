@@ -14,7 +14,7 @@
     "prepack": "yarn build"
   },
   "dependencies": {
-    "@types/jquery": "^3.3.29",
+    "@starwards/model": "*",
     "colyseus.js": "^0.10.4",
     "eventemitter3": "^3.1.2",
     "golden-layout": "^1.5.9",
