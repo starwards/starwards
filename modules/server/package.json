@@ -22,7 +22,7 @@
     "@colyseus/monitor": "^0.10.0",
     "@colyseus/schema": "^0.4.23",
     "@starwards/model": "*",
-    "detect-collisions": "^2.4.3",
+    "detect-collisions": "https://github.com/amir-arad/detect-collisions.git#patch-1",
     "colyseus": "^0.10.4",
     "express": "^4.16.4",
     "express-basic-auth": "^1.1.6"

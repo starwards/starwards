@@ -3,14 +3,16 @@ const fs = require("fs");
 const util = require("util");
 const ncp = util.promisify(require("ncp").ncp);
 const rimraf = util.promisify(require("rimraf"));
-const { exec } = require("pkg");
+const pkg = require("pkg");
 const mkdir = util.promisify(fs.mkdir);
+const exec = util.promisify(require('child_process').exec);
+const writeFile = util.promisify(fs.writeFile);
 
 const rootPath = path.resolve(__dirname, "..");
 const distPath = path.join(rootPath, "dist");
 const staticDistPath = path.join(distPath, "static");
 const codeDistPath = path.join(distPath, "code");
-
+const serverModulePath = path.join(rootPath, "modules", "server");
 (async () => {
   try {
     await rimraf(distPath);
@@ -22,8 +24,13 @@ const codeDistPath = path.join(distPath, "code");
       path.join(rootPath, "modules", "browser", "dist"),
       staticDistPath
     );
-    await ncp(path.join(rootPath, "modules", "server", "cjs"), codeDistPath);
-    await util.promisify(fs.writeFile)(
+    await ncp(path.join(serverModulePath, "cjs"), codeDistPath);
+    const dependencies = require(path.join(serverModulePath, "package.json")).dependencies;
+
+    // todo: generify
+    dependencies['@starwards/model'] = path.join(rootPath, "modules", "model");
+
+    await writeFile(
       path.join(distPath, "package.json"),
       JSON.stringify(
         {
@@ -32,13 +39,17 @@ const codeDistPath = path.join(distPath, "code");
           pkg: {
             assets: "static/**/*",
             targets: ["node10-win-x64", "node10-linux-x64", "node10-osx-x64"]
-          }
+          },
+          dependencies
         },
         null,
         2
       )
     );
-    await exec([distPath, "--out-path", distPath]);
+    const { stdout, stderr } = await exec('yarn', {cwd : distPath});
+    console.error(stderr);
+    console.log(stdout);
+    await pkg.exec([distPath, "--out-path", distPath]);
     console.log("done!");
   } catch (e) {
     console.error(e);
