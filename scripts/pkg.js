@@ -31,7 +31,7 @@ const codeDistPath = path.join(distPath, "code");
           bin: "code/prod.js",
           pkg: {
             assets: "static/**/*",
-            targets: ["node12-win-x64", "node12-linux-x64", "node12-osx-x64"]
+            targets: ["node10-win-x64", "node10-linux-x64", "node10-osx-x64"]
           }
         },
         null,
