@@ -20,12 +20,12 @@
   },
   "dependencies": {
     "@colyseus/monitor": "^0.10.0",
-    "@colyseus/schema": "^0.4.23",
+    "@colyseus/schema": "^0.4.34",
     "@starwards/model": "*",
-    "detect-collisions": "https://github.com/amir-arad/detect-collisions.git#patch-1",
-    "colyseus": "^0.10.4",
-    "express": "^4.16.4",
-    "express-basic-auth": "^1.1.6"
+    "detect-collisions": "^2.4.4",
+    "colyseus": "^0.10.7",
+    "express": "^4.17.1",
+    "express-basic-auth": "^1.2.0"
   },
   "pkg": {
     "scripts": "build/**/*.js",

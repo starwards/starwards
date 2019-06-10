@@ -15,12 +15,12 @@
   },
   "dependencies": {
     "@starwards/model": "*",
-    "colyseus.js": "^0.10.4",
+    "colyseus.js": "^0.10.8",
     "eventemitter3": "^3.1.2",
     "golden-layout": "^1.5.9",
-    "hotkeys-js": "^3.6.10",
+    "hotkeys-js": "^3.6.11",
     "lodash": "^4.17.11",
-    "pixi.js": "^5.0.0-rc",
+    "pixi.js": "^5.0.4",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "webfontloader": "^1.6.28"

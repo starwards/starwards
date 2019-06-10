@@ -21,6 +21,6 @@
     "chai": "~4.2.0"
   },
   "dependencies": {
-    "sinon": "~7.3.1"
+    "sinon": "~7.3.2"
   }
 }
