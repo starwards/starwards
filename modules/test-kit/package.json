@@ -9,7 +9,7 @@
     "prebuild": "yarn clean",
     "build": "ts-build ./src --cjs",
     "lint": "tslint -p ./",
-    "test": "mocha -r @ts-tools/node/warn test/**/*.spec.ts --watch-extensions ts --colors",
+    "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors",
     "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
     "prepack": "yarn build"
   },
@@ -17,8 +17,8 @@
     "target"
   ],
   "peerDependencies": {
-    "tslib": "~1.9.3",
-    "chai": "~4.2.0"
+    "chai": "~4.2.0",
+    "tslib": "~1.9.3"
   },
   "dependencies": {
     "sinon": "~7.3.2"
