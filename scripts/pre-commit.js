@@ -32,6 +32,8 @@ jobs:
             - run: yarn workspace @starwards/${moduleName} lint
             - run: yarn workspace @starwards/${moduleName} test`
             ).join('')}
+            - run: yarn build
+            - run: yarn pkg
 
 workflows:
     build-and-test:

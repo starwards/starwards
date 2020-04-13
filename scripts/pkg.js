@@ -36,6 +36,9 @@ const serverModulePath = path.join(rootPath, "modules", "server");
         {
           name: "starwards",
           bin: "code/prod.js",
+          scripts:{
+            start: "node code/prod.js"
+          },
           pkg: {
             assets: "static/**/*",
             targets: ["node10-win-x64", "node10-linux-x64", "node10-osx-x64"]
