@@ -12,7 +12,7 @@
     "prebuild": "yarn clean",
     "build": "ts-build ./src --cjs",
     "lint": "tslint -p src",
-    "test": ";",
+    "test": "echo \"No tests\"",
     "prepack": "yarn build"
   },
   "dependencies": {

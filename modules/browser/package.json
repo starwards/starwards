@@ -8,7 +8,7 @@
     "prebuild": "yarn clean",
     "build": "webpack --config webpack.prod.js",
     "lint": "tslint -p src",
-    "test": ";",
+    "test": "echo \"No tests\"",
     "prepack": "yarn build"
   },
   "dependencies": {
