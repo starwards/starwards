@@ -31,7 +31,7 @@ jobs:
               (moduleName) => `
             - run: yarn workspace @starwards/${moduleName} lint
             - run: yarn workspace @starwards/${moduleName} test`
-            )}
+            ).join('')}
 
 workflows:
     build-and-test:

@@ -12,13 +12,13 @@ jobs:
           steps:
             - run: yarn install
             - run: yarn workspace @starwards/browser lint
-            - run: yarn workspace @starwards/browser test,
+            - run: yarn workspace @starwards/browser test
             - run: yarn workspace @starwards/model lint
-            - run: yarn workspace @starwards/model test,
+            - run: yarn workspace @starwards/model test
             - run: yarn workspace @starwards/server lint
-            - run: yarn workspace @starwards/server test,
+            - run: yarn workspace @starwards/server test
             - run: yarn workspace @starwards/test-kit lint
-            - run: yarn workspace @starwards/test-kit test,
+            - run: yarn workspace @starwards/test-kit test
             - run: yarn workspace @starwards/tsm lint
             - run: yarn workspace @starwards/tsm test
 
