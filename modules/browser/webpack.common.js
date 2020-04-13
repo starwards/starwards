@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
   entry: [path.resolve(__dirname, "src", "index.ts")],
@@ -7,10 +8,7 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        loader: "@ts-tools/webpack-loader",
-        options: {
-          warnOnly: true
-        }
+        loader: "@ts-tools/webpack-loader"
       },
       {
         test: /\.(png|woff|woff2|eot|ttf|svg)$/,
@@ -23,7 +21,8 @@ module.exports = {
       template: path.resolve(__dirname, "src", "index.html")
     })
   ],
-  resolve: {
-    extensions: [".tsx", ".ts", ".js"]
+  resolve:  {
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.json'],
+    plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./src/tsconfig.json') })],
   }
 };

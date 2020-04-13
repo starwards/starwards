@@ -1,5 +1,3 @@
-// tslint:disable-next-line:no-reference
-/// <reference path="../../../custom-typings/index.d.ts" />
 /*
  * embed webpack-dev-server
  */
