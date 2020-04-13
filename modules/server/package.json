@@ -13,7 +13,7 @@
     "lint": "run-p lint:src lint:test",
     "lint:src": "tslint -p src",
     "lint:test": "tslint -p test",
-    "test": ";",
+    "test": "echo \"No tests\"",
     "start": "nodemon -r @ts-tools/node/warn ./src/main.ts",
     "prepack": "yarn build",
     "loadtest" : "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"

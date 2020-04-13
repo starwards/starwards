@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
-import { SpaceState, SpaceObject } from '@starwards/model';
+import { SpaceState, SpaceObject, SpaceObjectBase } from '@starwards/model';
 import { Asteroid } from '@starwards/model';
 import { Vec2 } from '@starwards/model';
 import nanoid from 'nanoid';
@@ -10,7 +10,7 @@ const fieldSize = 80000;
 const asteroidSize = 25;
 const map = Array(100)
   .fill(null)
-  .map(
+  .map<SpaceObject>(
     () =>
       new Asteroid(
         nanoid(),
@@ -33,8 +33,8 @@ describe('model', () => {
     it('iterator has the same elements', () => {
       const uut = new SpaceState();
       map.forEach(o => uut.set(o));
-      expect([...uut].sort(SpaceObject.compare)).to.eql(
-        map.sort(SpaceObject.compare)
+      expect([...uut].sort(SpaceObjectBase.compare)).to.eql(
+        map.sort(SpaceObjectBase.compare)
       );
     });
   });
