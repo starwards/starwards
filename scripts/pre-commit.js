@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 var fs = require("fs");
 var path = require("path");
 var rootPath = path.resolve(__dirname, "..");
@@ -9,37 +7,37 @@ try {
     .filter((n) => n.isDirectory())
     .map((n) => n.name);
 
-  fs.writeFileSync(
-    path.join(rootPath, ".circleci", "config.yml"),
-    mainWorkflow(moduleNames)
-  );
+//   fs.writeFileSync(
+//     path.join(rootPath, ".circleci", "config.yml"),
+//     mainWorkflow(moduleNames)
+//   );
 
-  function mainWorkflow(moduleNames) {
-    return `
-version: 2.1
-orbs:
-  node: circleci/node@1.1.6
-jobs:
-  build-and-test:
-    executor:
-      name: node/default
-    steps:
-      - checkout
-      - node/with-cache:
-          steps:
-            - run: yarn install${moduleNames.map(
-              (moduleName) => `
-            - run: yarn workspace @starwards/${moduleName} lint
-            - run: yarn workspace @starwards/${moduleName} test`
-            ).join('')}
-            - run: yarn build
-            - run: yarn pkg
+//   function mainWorkflow(moduleNames) {
+//     return `
+// version: 2.1
+// orbs:
+//   node: circleci/node@1.1.6
+// jobs:
+//   build-and-test:
+//     executor:
+//       name: node/default
+//     steps:
+//       - checkout
+//       - node/with-cache:
+//           steps:
+//             - run: yarn install
+//             - run: yarn lint${moduleNames.map(
+//               (moduleName) => `
+//             - run: yarn workspace @starwards/${moduleName} test`
+//             ).join('')}
+//             - run: yarn build
+//             - run: yarn pkg
 
-workflows:
-    build-and-test:
-      jobs:
-        - build-and-test`;
-  }
+// workflows:
+//     build-and-test:
+//       jobs:
+//         - build-and-test`;
+//   }
 
   if (fs.existsSync(path.join(rootPath, ".vscode"))) {
     fs.writeFileSync(
@@ -60,7 +58,7 @@ workflows:
               cwd: "${workspaceFolder}/modules/" + moduleName,
               args: [
                 "-r",
-                "@ts-tools/node/warn",
+                "@ts-tools/node/r",
                 "--timeout",
                 "999999",
                 "--colors",
@@ -78,7 +76,7 @@ workflows:
                 program: "${workspaceFolder}/node_modules/mocha/bin/_mocha",
                 args: [
                   "-r",
-                  "@ts-tools/node/warn",
+                  "@ts-tools/node/r",
                   "--timeout",
                   "999999",
                   "--colors",
@@ -93,7 +91,7 @@ workflows:
                 cwd: "${workspaceFolder}/modules/server",
                 args: [
                   "-r",
-                  "@ts-tools/node/warn",
+                  "@ts-tools/node/r",
                   "${workspaceFolder}/modules/server/src/dev.ts",
                 ],
                 internalConsoleOptions: "openOnSessionStart",
