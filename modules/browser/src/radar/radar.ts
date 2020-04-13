@@ -42,15 +42,16 @@ export class Radar extends PIXI.Application {
   // private room = this.client.join<SpaceState>('space');
   private readonly gridLines = new PIXI.Graphics();
   private readonly sectorNames = new TextsPool(this.stage);
-
   constructor(
     width: number,
     height: number,
-    private room: GameRoom<SpaceState, any>
+    roomPromise: Promise<GameRoom<SpaceState, any>>
   ) {
     super({ width, height, backgroundColor: 0x0f0f0f });
     this.events.on('screenChanged', () => this.drawSectorGrid());
-    this.room.ready.then(this.initialize.bind(this));
+    roomPromise.then(room => {
+      this.initialize(room);
+    });
     this.stage.addChild(this.gridLines);
     this.stage.addChild(this.fpsCounter);
     this.drawSectorGrid();
@@ -152,17 +153,17 @@ export class Radar extends PIXI.Application {
     return null;
   }
 
-  private initialize() {
+  private initialize(room: GameRoom<SpaceState, any>) {
     // assume single spaceship, this is the center of the radar
-    this.room.state.events.on('add', (spaceObject: SpaceObject) =>
-      this.onNewSpaceObject(spaceObject)
+    room.state.events.on('add', (spaceObject: SpaceObject) =>
+      this.onNewSpaceObject(room, spaceObject)
     );
-    this.room.state.events.on('remove', (spaceObject: SpaceObject) =>
+    room.state.events.on('remove', (spaceObject: SpaceObject) =>
       this.onRemoveSpaceObject(spaceObject.id)
     );
 
-    for (const spaceObject of this.room.state) {
-      this.onNewSpaceObject(spaceObject);
+    for (const spaceObject of room.state) {
+      this.onNewSpaceObject(room, spaceObject);
     }
   }
 
@@ -179,7 +180,7 @@ export class Radar extends PIXI.Application {
     blip.y = screen.y;
   }
 
-  private onNewSpaceObject(spaceObject: SpaceObjects[keyof SpaceObjects]) {
+  private onNewSpaceObject(room: GameRoom<SpaceState, any>, spaceObject: SpaceObjects[keyof SpaceObjects]) {
     const follow = Spaceship.isInstance(spaceObject);
     const blip = new PIXI.Container();
     this.setBlipPosition(blip, spaceObject);
@@ -191,7 +192,7 @@ export class Radar extends PIXI.Application {
 
     let drawProps = blipRenderer(spaceObject, blip);
 
-    this.room.state.events.on(spaceObject.id, (changes: DataChange[]) => {
+    room.state.events.on(spaceObject.id, (changes: DataChange[]) => {
       let redrawNeeded = false;
       changes.forEach(change => {
         if (change.field === 'position') {
