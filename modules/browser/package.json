@@ -7,9 +7,7 @@
     "clean": "rimraf ./dist",
     "prebuild": "yarn clean",
     "build": "webpack --config webpack.prod.js",
-    "lint": "run-p lint:src lint:test",
-    "lint:src": "tslint -p src",
-    "lint:test": "tslint -p test",
+    "lint": "tslint -p src",
     "test": ";",
     "prepack": "yarn build"
   },
