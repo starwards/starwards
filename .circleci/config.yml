@@ -21,6 +21,8 @@ jobs:
             - run: yarn workspace @starwards/test-kit test
             - run: yarn workspace @starwards/tsm lint
             - run: yarn workspace @starwards/tsm test
+            - run: yarn build
+            - run: yarn pkg
 
 workflows:
     build-and-test:
