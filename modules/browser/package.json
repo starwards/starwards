@@ -1,7 +1,7 @@
 {
   "name": "@starwards/browser",
   "version": "1.0.0",
-  "main": "dist/bundle.js",
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
     "clean": "rimraf ./dist",

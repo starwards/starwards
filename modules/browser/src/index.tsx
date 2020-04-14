@@ -1,18 +1,18 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import React from 'react';
+import ReactDOM from 'react-dom';
 import {
   ThemeProvider,
   createTheme,
   Arwes,
   Button,
   Heading
-} from "arwes";
-import WebFont from "webfontloader";
-import {getRoom} from "./client";
+} from 'arwes';
+import WebFont from 'webfontloader';
+import {getRoom} from './client';
 
 WebFont.load({
   custom: {
-    families: ["Electrolize", "Titillium Web"],
+    families: ['Electrolize', 'Titillium Web'],
   },
 });
 const App = () => (
@@ -25,7 +25,7 @@ const App = () => (
     })}
   >
     <Arwes pattern="images/glow.png" style={{ padding: 20 }}>
-      <div style={{ padding: 20, textAlign: "center"}}>
+      <div style={{ padding: 20, textAlign: 'center'}}>
         <Heading animate>
           <p>Starwards</p>
         </Heading>
@@ -37,4 +37,4 @@ const App = () => (
   </ThemeProvider>
 );
 
-ReactDOM.render(<App />, document.querySelector("#wrapper"));
+ReactDOM.render(<App />, document.querySelector('#wrapper'));
