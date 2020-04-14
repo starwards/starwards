@@ -4,6 +4,16 @@
 }
 
 @font-face {
+  font-family: "Electrolize";
+  src: url(../fonts/Electrolize-Regular.ttf);
+}
+
+@font-face {
+  font-family: "Titillium Web";
+  src: url(../fonts/TitilliumWeb-Regular.ttf);
+}
+
+@font-face {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
