@@ -3,8 +3,10 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
-  entry: [path.resolve(__dirname, "src", "index.ts")],
-  module: {
+  entry: {
+    player: [path.resolve(__dirname, "src", "player.ts")],
+    index: [path.resolve(__dirname, "src", "index.tsx")],
+  },  module: {
     rules: [
       {
         test: /\.tsx?$/,
@@ -18,7 +20,14 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, "src", "index.html")
+      filename: "player.html",
+      template: path.resolve(__dirname, "src", "player.html"),
+      chunks: ['player']
+    }),
+    new HtmlWebpackPlugin({
+      filename: "index.html",
+      template: path.resolve(__dirname, "src", "index.html"),
+      chunks: ['index']
     })
   ],
   resolve:  {

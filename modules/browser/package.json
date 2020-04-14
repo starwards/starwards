@@ -1,7 +1,7 @@
 {
   "name": "@starwards/browser",
   "version": "1.0.0",
-  "main": "dist/bundle.js",
+  "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
     "clean": "rimraf ./dist",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@starwards/model": "*",
+    "arwes": "^1.0.0-alpha.5",
     "colyseus.js": "^0.12.2",
     "eventemitter3": "^3.1.2",
     "golden-layout": "^1.5.9",
