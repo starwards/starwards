@@ -15,8 +15,7 @@ export interface GameRoom<S, C> {
 export async function getRoom<T extends keyof Rooms>(roomName: T): Promise<NamedGameRoom<T>> {
     let room: NamedGameRoom<T> | undefined = rooms[roomName];
     if (!room) {
-        const newRoom = await client.joinOrCreate<Rooms[T]['state']>(roomName);
-        await new Promise(res => newRoom.onStateChange.once(res));
+        const newRoom = await client.join<Rooms[T]['state']>(roomName);
         clientInitFunctions[roomName](newRoom.state);
         rooms[roomName] = room = newRoom;
     }
