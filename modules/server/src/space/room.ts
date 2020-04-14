@@ -27,7 +27,7 @@ export class SpaceRoom extends Room<SpaceState> {
     }
   }
 
-  public onInit() {
+  public onCreate () {
     this.setState(new SpaceState());
     this.setPatchRate(0);
     // take control over patch and simulation loops

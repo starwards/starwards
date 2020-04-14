@@ -2,7 +2,7 @@
  * embed webpack-dev-server
  */
 
-import * as colyseus from 'colyseus';
+import {Server} from 'colyseus';
 import * as http from 'http';
 import express = require('express');
 import basicAuth = require('express-basic-auth');
@@ -12,9 +12,9 @@ import { NextHandleFunction } from 'connect';
 
 export function server(port: number, staticDir: string, handlers?: NextHandleFunction[] ) {
   const app = express();
-  const gameServer = new colyseus.Server({ server: http.createServer(app) });
+  const gameServer = new Server({ server: http.createServer(app) });
 
-  gameServer.register('space', SpaceRoom);
+  gameServer.define('space', SpaceRoom);
   // .then(handler => {
   //     handler.
   //       on('create', room => console.log('room created:', room.roomId)).
@@ -31,7 +31,7 @@ export function server(port: number, staticDir: string, handlers?: NextHandleFun
 
   // add colyseus monitor
   const auth = basicAuth({ users: { admin: 'admin' }, challenge: true });
-  app.use('/colyseus', auth, monitor(gameServer));
+  app.use('/colyseus', auth, monitor());
 
   gameServer.listen(port);
   // tslint:disable-next-line:no-console

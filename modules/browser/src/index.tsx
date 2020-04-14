@@ -8,7 +8,7 @@ import {
   Heading
 } from 'arwes';
 import WebFont from 'webfontloader';
-import {getRoom} from './client';
+import {client} from './client';
 
 WebFont.load({
   custom: {
@@ -29,9 +29,7 @@ const App = () => (
         <Heading animate>
           <p>Starwards</p>
         </Heading>
-        <Button onClick={()=>{
-          getRoom('space');
-        }}>New Game</Button>
+        <Button onClick={()=>client.create('space')}>New Game</Button>
       </div>
     </Arwes>
   </ThemeProvider>
