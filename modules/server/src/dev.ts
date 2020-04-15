@@ -7,8 +7,7 @@ import webpackConfig from '@starwards/browser/webpack.dev';
 
 const webpackCompiler = webpack(webpackConfig);
 
-server(
-  Number(process.env.PORT || 8080),
-  path.resolve(__dirname, '..', '..', '..', 'static'),
-  [webpackDevMiddleware(webpackCompiler), webpackHotMiddleware(webpackCompiler)]
-);
+server(Number(process.env.PORT || 8080), path.resolve(__dirname, '..', '..', '..', 'static'), [
+    webpackDevMiddleware(webpackCompiler),
+    webpackHotMiddleware(webpackCompiler),
+]);

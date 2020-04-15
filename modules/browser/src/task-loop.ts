@@ -1,7 +1,6 @@
 export class TaskLoop {
     private handle: ReturnType<typeof setTimeout> | null = null;
-    constructor(private task: () => Promise<unknown>, private pause: number) {
-    }
+    constructor(private task: () => Promise<unknown>, private pause: number) {}
 
     private runTask = () => {
         this.task().then(
@@ -11,7 +10,7 @@ export class TaskLoop {
                 }
             },
             // tslint:disable-next-line:no-console
-            e => console.error(`Error polling for events`, e)
+            (e) => console.error(`Error polling for events`, e)
         );
     };
 

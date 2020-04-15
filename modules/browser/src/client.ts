@@ -5,7 +5,7 @@ const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol
 
 export const client = new Client(ENDPOINT);
 
-const rooms: {[T in keyof Rooms]?: GameRoom<Rooms[T]['state'], Rooms[T]['commands']>} = {};
+const rooms: { [T in keyof Rooms]?: GameRoom<Rooms[T]['state'], Rooms[T]['commands']> } = {};
 
 export type NamedGameRoom<T extends keyof Rooms> = GameRoom<Rooms[T]['state'], Rooms[T]['commands']>;
 export interface GameRoom<S, C> {

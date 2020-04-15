@@ -1,4 +1,3 @@
-
 import { Spaceship } from './spaceship';
 import { Asteroid } from './asteroid';
 import { SpaceState } from './space-state';
@@ -16,11 +15,11 @@ export interface RoomApi<S extends Schema, C> {
     commands: C;
 }
 export interface Rooms {
-    'space': RoomApi<SpaceState, SpaceCommand>;
+    space: RoomApi<SpaceState, SpaceCommand>;
 }
 
 export const clientInitFunctions: { [T in keyof Rooms]: (state: Rooms[T]['state']) => void } = {
-    space : SpaceState.clientInit
+    space: SpaceState.clientInit,
 };
 
 export * from './asteroid';
