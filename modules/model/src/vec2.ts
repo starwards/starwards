@@ -23,14 +23,14 @@
  *    distribution.
  */
 
- // This module is an altered version of the original matthiasferch/tsm code.
+// This module is an altered version of the original matthiasferch/tsm code.
 
-import { Schema, type} from '@colyseus/schema';
+import { Schema, type } from '@colyseus/schema';
 
 // tslint:disable-next-line:no-namespace
 export namespace XY {
     export function negate(vector: XY): XY {
-        return {x: -vector.x, y : -vector.y};
+        return { x: -vector.x, y: -vector.y };
     }
 }
 export interface XY {
@@ -39,13 +39,14 @@ export interface XY {
 }
 
 export class Vec2 extends Schema implements XY {
-
     public static Rotate(vector: XY, degrees: number, dest?: Vec2) {
         return Vec2.RotateRadians(vector, degrees * Vec2.DegToRad, dest);
     }
 
     public static RotateRadians(vector: XY, radians: number, dest?: Vec2) {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         const ca = Math.cos(radians);
         const sa = Math.sin(radians);
@@ -73,7 +74,7 @@ export class Vec2 extends Schema implements XY {
     // }
 
     public static dot(vector: XY, vector2: XY): number {
-        return (vector.x * vector2.x + vector.y * vector2.y);
+        return vector.x * vector2.x + vector.y * vector2.y;
     }
 
     public static distance(vector: XY, vector2: XY): number {
@@ -84,11 +85,13 @@ export class Vec2 extends Schema implements XY {
         const x = vector2.x - vector.x;
         const y = vector2.y - vector.y;
 
-        return (x * x + y * y);
+        return x * x + y * y;
     }
 
     public static direction(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         const x = vector.x - vector2.x;
         const y = vector.y - vector2.y;
@@ -111,7 +114,9 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static scale(vector: XY, value: number, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         dest.x = vector.x * value;
         dest.y = vector.y * value;
@@ -120,7 +125,9 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static mix(vector: XY, vector2: XY, time: number, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         const x = vector.x;
         const y = vector.y;
@@ -135,7 +142,9 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static sum(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         dest.x = vector.x + vector2.x;
         dest.y = vector.y + vector2.y;
@@ -144,7 +153,9 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static difference(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         dest.x = vector.x - vector2.x;
         dest.y = vector.y - vector2.y;
@@ -153,7 +164,9 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static product(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         dest.x = vector.x * vector2.x;
         dest.y = vector.y * vector2.y;
@@ -162,7 +175,9 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static quotient(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
-        if (!dest) { dest = new Vec2(); }
+        if (!dest) {
+            dest = new Vec2();
+        }
 
         dest.x = vector.x / vector2.x;
         dest.y = vector.y / vector2.y;
@@ -178,7 +193,7 @@ export class Vec2 extends Schema implements XY {
         const x = vector.x;
         const y = vector.y;
 
-        return (x * x + y * y);
+        return x * x + y * y;
     }
 
     private static readonly DegToRad = Math.PI / 180;
@@ -194,7 +209,7 @@ export class Vec2 extends Schema implements XY {
         this.x = x;
         this.y = y;
     }
-/*
+    /*
     if one of these methods are needed, move it to static
     public at(index: number): number {
         switch (index) {

@@ -8,6 +8,7 @@
   "license": "MIT",
   "scripts": {
     "clean": "rimraf ./cjs",
+    "prettify": "yarn prettier \"src/**/*.ts\" --write",
     "prebuild": "yarn clean",
     "build": "ts-build ./src --cjs",
     "lint": "run-p lint:src lint:test",
