@@ -2,7 +2,7 @@ import { Radar } from './radar';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
-import { getRoom } from '../client';
+import { getRoom } from '../../client';
 import { preloadList } from './blip-renderer';
 import $ from 'jquery';
 import { DashboardWidget } from '../dashboard';
