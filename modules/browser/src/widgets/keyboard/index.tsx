@@ -3,8 +3,8 @@ import { ReactProps } from 'golden-layout';
 import React from 'react';
 import { Keyboard } from './keyboard';
 import { ButtonKey } from './keyboard-display';
-import { Loop } from '../loop';
-import { getRoom, NamedGameRoom } from '../client';
+import { Loop } from '../../loop';
+import { getRoom, NamedGameRoom } from '../../client';
 import { shipId } from '@starwards/server/src/space/map';
 import { Vec2, SpaceObject } from '@starwards/model';
 

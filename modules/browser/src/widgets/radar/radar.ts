@@ -13,7 +13,7 @@ import { PontOfView } from './point-of-view';
 import { PixiFps } from './pixi-fps';
 import { blipRenderer } from './blip-renderer';
 import { DataChange } from '@colyseus/schema';
-import { GameRoom } from '../client';
+import { GameRoom } from '../../client';
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
