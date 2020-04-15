@@ -1,35 +1,42 @@
 {
-  "name": "@starwards/server",
-  "version": "0.0.0",
-  "bin": "cjs/prod.js",
-  "files": [
-    "cjs"
-  ],
-  "license": "MIT",
-  "scripts": {
-    "clean": "rimraf ./cjs",
-    "prettify": "yarn prettier \"src/**/*.ts\" --write",
-    "prebuild": "yarn clean",
-    "build": "ts-build ./src --cjs",
-    "lint": "run-p lint:src lint:test",
-    "lint:src": "tslint -p src",
-    "lint:test": "tslint -p test",
-    "test": "echo \"No tests\"",
-    "start": "nodemon -r @ts-tools/node/r ./src/dev.ts",
-    "prepack": "yarn build",
-    "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"
-  },
-  "dependencies": {
-    "@colyseus/monitor": "^0.12.2",
-    "@colyseus/schema": "^0.5.36",
-    "@starwards/model": "*",
-    "colyseus": "^0.12.6",
-    "detect-collisions": "^2.4.4",
-    "express": "^4.17.1",
-    "express-basic-auth": "^1.2.0"
-  },
-  "pkg": {
-    "scripts": "build/**/*.js",
-    "assets": "views/**/*"
-  }
+    "name": "@starwards/server",
+    "version": "0.0.0",
+    "bin": "cjs/prod.js",
+    "files": [
+        "cjs"
+    ],
+    "license": "MIT",
+    "scripts": {
+        "clean": "rimraf ./cjs",
+        "prettify": "yarn prettier \"src/**/*.ts\" --write",
+        "prebuild": "yarn clean",
+        "build": "ts-build ./src --cjs",
+        "lint": "run-p lint:src lint:test",
+        "lint:src": "tslint -p src",
+        "lint:test": "tslint -p test",
+        "test": "echo \"No tests\"",
+        "start": "nodemon -r @ts-tools/node/r ./src/dev.ts",
+        "prepack": "yarn build",
+        "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"
+    },
+    "dependencies": {
+        "@colyseus/monitor": "^0.12.2",
+        "@colyseus/schema": "^0.5.36",
+        "@starwards/model": "*",
+        "colyseus": "^0.12.6",
+        "connect": "^3.7.0",
+        "detect-collisions": "^2.4.4",
+        "express": "^4.17.1",
+        "express-basic-auth": "^1.2.0",
+        "nanoid": "^3.1.3"
+    },
+    "pkg": {
+        "scripts": "build/**/*.js",
+        "assets": "views/**/*"
+    },
+    "devDependencies": {
+        "webpack": "^4.42.1",
+        "webpack-dev-middleware": "^3.7.2",
+        "webpack-hot-middleware": "^2.25.0"
+    }
 }

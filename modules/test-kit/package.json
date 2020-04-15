@@ -1,27 +1,27 @@
 {
-  "name": "@starwards/test-kit",
-  "version": "0.0.0",
-  "main": "target/index.js",
-  "types": "target/index.d.ts",
-  "license": "MIT",
-  "scripts": {
-    "clean": "rimraf ./target",
-    "prettify": "yarn prettier \"src/**/*.ts\" --write",
-    "prebuild": "yarn clean",
-    "build": "ts-build ./src --cjs",
-    "lint": "tslint -p ./",
-    "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors",
-    "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
-    "prepack": "yarn build"
-  },
-  "files": [
-    "target"
-  ],
-  "peerDependencies": {
-    "chai": "~4.2.0",
-    "tslib": "~1.9.3"
-  },
-  "dependencies": {
-    "sinon": "~7.3.2"
-  }
+    "name": "@starwards/test-kit",
+    "version": "0.0.0",
+    "main": "target/index.js",
+    "types": "target/index.d.ts",
+    "license": "MIT",
+    "scripts": {
+        "clean": "rimraf ./target",
+        "prettify": "yarn prettier \"src/**/*.ts\" --write",
+        "prebuild": "yarn clean",
+        "build": "ts-build ./src --cjs",
+        "lint": "tslint -p ./",
+        "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors",
+        "start": "nodemon -r @ts-tools/node/r ./src/main.ts",
+        "prepack": "yarn build"
+    },
+    "files": [
+        "target"
+    ],
+    "peerDependencies": {
+        "chai": "~4.2.0",
+        "tslib": "~1.9.3"
+    },
+    "dependencies": {
+        "sinon": "~7.3.2"
+    }
 }

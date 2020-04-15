@@ -5,6 +5,7 @@ import { TextsPool } from './texts-pool';
 import { PontOfView } from './point-of-view';
 import { PixiFps } from './pixi-fps';
 import { blipRenderer } from './blip-renderer';
+// tslint:disable-next-line: no-implicit-dependencies
 import { DataChange } from '@colyseus/schema';
 import { GameRoom } from '../../client';
 
