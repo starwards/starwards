@@ -1,28 +1,29 @@
 {
-  "name": "@starwards/browser",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "license": "MIT",
-  "scripts": {
-    "clean": "rimraf ./dist",
-    "prettify": "yarn prettier \"src/**/*.ts?(x)\" --write",
-    "prebuild": "yarn clean",
-    "build": "webpack --config webpack.prod.js",
-    "lint": "tslint -p src",
-    "test": "echo \"No tests\"",
-    "prepack": "yarn build"
-  },
-  "dependencies": {
-    "@starwards/model": "*",
-    "arwes": "^1.0.0-alpha.5",
-    "colyseus.js": "^0.12.2",
-    "eventemitter3": "^4.0.0",
-    "golden-layout": "^1.5.9",
-    "hotkeys-js": "^3.7.6",
-    "lodash": "^4.17.15",
-    "pixi.js": "^5.2.1",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "webfontloader": "^1.6.28"
-  }
+    "name": "@starwards/browser",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "license": "MIT",
+    "scripts": {
+        "clean": "rimraf ./dist",
+        "prettify": "yarn prettier \"src/**/*.ts?(x)\" --write",
+        "prebuild": "yarn clean",
+        "build": "webpack --config webpack.prod.js",
+        "lint": "tslint -p src",
+        "test": "echo \"No tests\"",
+        "prepack": "yarn build"
+    },
+    "dependencies": {
+        "@starwards/model": "*",
+        "arwes": "^1.0.0-alpha.5",
+        "colyseus.js": "^0.12.2",
+        "eventemitter3": "^4.0.0",
+        "golden-layout": "^1.5.9",
+        "hotkeys-js": "^3.7.6",
+        "jquery": "^3.5.0",
+        "lodash": "^4.17.15",
+        "pixi.js": "^5.2.1",
+        "react": "^16.13.1",
+        "react-dom": "^16.13.1",
+        "webfontloader": "^1.6.28"
+    }
 }

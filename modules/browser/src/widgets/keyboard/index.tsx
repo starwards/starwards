@@ -5,8 +5,7 @@ import { Keyboard } from './keyboard';
 import { ButtonKey } from './keyboard-display';
 import { Loop } from '../../loop';
 import { getRoom, NamedGameRoom } from '../../client';
-import { shipId } from '@starwards/server/src/space/map';
-import { Vec2, SpaceObject } from '@starwards/model';
+import { Vec2, SpaceObject, shipId } from '@starwards/model';
 
 const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
 class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed: Set<ButtonKey> }> {

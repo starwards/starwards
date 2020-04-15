@@ -1,12 +1,10 @@
 {
-  "extends": "../../../tsconfig.base.json",
-  "compilerOptions": {
-    "lib": [
-      // no "dom" for server package.
-      "es2017"
-    ],
-    "types": [
-      "node"
-    ]
-  }
+    "extends": "../../../tsconfig.base.json",
+    "compilerOptions": {
+        "lib": [
+            // no "dom" for server package.
+            "es2017"
+        ],
+        "types": ["node"]
+    }
 }

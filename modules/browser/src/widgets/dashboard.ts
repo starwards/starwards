@@ -1,7 +1,6 @@
-import GoldenLayout, { Container, ContentItem, Tab, ReactProps } from 'golden-layout';
+import GoldenLayout, { Container, ContentItem, ReactProps, Tab } from 'golden-layout';
 import $ from 'jquery';
-import { ComponentClass } from 'react';
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import ReactDOM from 'react-dom';
 
 declare global {

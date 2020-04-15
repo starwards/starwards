@@ -29,3 +29,5 @@ export * from './spaceship';
 export * from './vec2';
 export * from './sectors';
 export * from './commands';
+
+export const shipId = 'shippy mcshipface'; // hack: player ship ID is constant
