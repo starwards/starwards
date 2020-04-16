@@ -15,7 +15,7 @@ WebFont.load({
 
 PIXI.Loader.shared.add(preloadList);
 
-function radarComponent(container: Container, state: { zoom: number }) {
+export function radarComponent(container: Container, state: { zoom: number }) {
     PIXI.Loader.shared.load(() => {
         const radar = new Radar(container.width, container.height, getRoom('space'));
         radar.setZoom(state.zoom);
@@ -41,7 +41,7 @@ function radarComponent(container: Container, state: { zoom: number }) {
     });
 }
 
-function makeRadarHeaders(container: Container): Array<JQuery<HTMLElement>> {
+export function makeRadarHeaders(container: Container): Array<JQuery<HTMLElement>> {
     const zoomIn = $('<i class="lm_controls tiny material-icons">zoom_in</i>');
     const zoomOut = $('<i class="lm_controls tiny material-icons">zoom_out</i>');
     zoomIn.mousedown(() => {
