@@ -1,5 +1,5 @@
 import { Asteroid, SpaceObject, Spaceship, Vec2, shipId } from '@starwards/model';
-import nanoid from 'nanoid';
+import { nanoid } from 'nanoid';
 
 const speedMax = 50;
 const asteroidSize = 30;
