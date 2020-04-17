@@ -1,13 +1,12 @@
 import * as PIXI from 'pixi.js';
 import { SpaceState, getSectorName, sectorSize, SpaceObjects, Spaceship, SpaceObject } from '@starwards/model';
-import EventEmitter from 'eventemitter3';
-import { TextsPool } from './texts-pool';
-import { PontOfView } from './point-of-view';
-import { PixiFps } from './pixi-fps';
-import { blipRenderer } from './blip-renderer';
+import { TextsPool } from '../widgets/radar/texts-pool';
+import { PixiFps } from '../widgets/radar/pixi-fps';
+import { blipRenderer } from '../widgets/radar/blip-renderer';
 // tslint:disable-next-line: no-implicit-dependencies
 import { DataChange } from '@colyseus/schema';
-import { GameRoom } from '../../client';
+import { GameRoom } from '../client';
+import { BaseContainer } from './base-container';
 
 export const lerp = (a: number, b: number, t: number) => (b - a) * t + a;
 
@@ -18,27 +17,29 @@ type Blip = PIXI.DisplayObject & {
 // sources of inspiration for future product improvements:
 // https://www.marineinsight.com/marine-navigation/using-radar-on-ships-15-important-points/
 // https://en.wikipedia.org/wiki/Radar_display
-export class Radar extends PIXI.Application {
-    private static readonly minZoom = 0.00005;
-    private static readonly maxZoom = 1;
+// TODO: split to different concerns:
+// - follow (change POV according to spaceship position)
+// - draw grid (layer)
+// - draw blips
+export class Radar {
     private static readonly gridColors = [0x6666ff, 0xf4fa77, 0x55ff55, 0xff3333];
 
     // public interpolation: boolean = false;
 
-    public events = new EventEmitter();
+    private stage: PIXI.Container;
     /**
      * a point in the world that the radar is watching, and a zoom level
      */
-    public pov = new PontOfView(() => this.events.emit('screenChanged'));
     private fpsCounter = new PixiFps();
 
     private blips: { [id: string]: Blip } = {};
     // private room = this.client.join<SpaceState>('space');
     private readonly gridLines = new PIXI.Graphics();
     private readonly sectorNames = new TextsPool(this.stage);
-    constructor(width: number, height: number, roomPromise: Promise<GameRoom<SpaceState, any>>) {
-        super({ width, height, backgroundColor: 0x0f0f0f });
-        this.events.on('screenChanged', () => this.drawSectorGrid());
+
+    constructor(private parent: BaseContainer, roomPromise: Promise<GameRoom<SpaceState, any>>) {
+        this.parent.events.on('screenChanged', () => this.drawSectorGrid());
+        this.stage = parent.addLayer();
         roomPromise.then((room) => {
             this.initialize(room);
         });
@@ -48,34 +49,15 @@ export class Radar extends PIXI.Application {
         // this.loop();
     }
 
-    public resizeWindow(width: number, height: number) {
-        this.renderer.resize(width, height);
-        this.events.emit('screenChanged');
-    }
-
-    public setZoom(zoom: number) {
-        zoom = Math.max(Radar.minZoom, Math.min(Radar.maxZoom, zoom));
-        if (this.pov.zoom !== zoom) {
-            this.pov.zoom = zoom;
-            this.events.emit('zoomChanged');
-        }
-    }
-    /**
-     * change radar zoom
-     */
-    public changeZoom(delta: number) {
-        this.setZoom(this.pov.zoom * (1.0 + delta / 1000.0));
-    }
-
     private drawSectorGrid() {
         this.gridLines.clear();
-        const minMagnitude = Math.max(0, Math.floor(Math.abs(Math.log10(this.pov.zoom / 2.5)) - 2));
+        const minMagnitude = Math.max(0, Math.floor(Math.abs(Math.log10(this.parent.pov.zoom / 2.5)) - 2));
         const minGridCellSize = sectorSize * Math.pow(8, minMagnitude);
-        const topLeft = this.pov.screenToWorld(this.renderer.screen, 0, 0);
-        const bottomRight = this.pov.screenToWorld(
-            this.renderer.screen,
-            this.renderer.screen.width,
-            this.renderer.screen.height
+        const topLeft = this.parent.pov.screenToWorld(this.parent.renderer.screen, 0, 0);
+        const bottomRight = this.parent.pov.screenToWorld(
+            this.parent.renderer.screen,
+            this.parent.renderer.screen.width,
+            this.parent.renderer.screen.height
         );
         const verticals = [];
         const horizontals = [];
@@ -84,10 +66,10 @@ export class Radar extends PIXI.Application {
             const distFrom0 = Math.abs(world) / sectorSize;
             const magnitude = this.calcGridLineMagnitude(minMagnitude, distFrom0);
             if (magnitude) {
-                const screen = this.pov.worldToScreen(this.renderer.screen, 0, world).y;
+                const screen = this.parent.pov.worldToScreen(this.parent.renderer.screen, 0, world).y;
                 horizontals.push({ world, screen, magnitude });
                 this.gridLines.lineStyle(2, magnitude.color, 0.5);
-                this.gridLines.moveTo(0, screen).lineTo(this.renderer.screen.width, screen);
+                this.gridLines.moveTo(0, screen).lineTo(this.parent.renderer.screen.width, screen);
             }
         }
         const gridlineVertLeft = topLeft.x - (topLeft.x % minGridCellSize);
@@ -95,10 +77,10 @@ export class Radar extends PIXI.Application {
             const distFrom0 = Math.abs(world) / sectorSize;
             const magnitude = this.calcGridLineMagnitude(minMagnitude, distFrom0);
             if (magnitude) {
-                const screen = this.pov.worldToScreen(this.renderer.screen, world, 0).x;
+                const screen = this.parent.pov.worldToScreen(this.parent.renderer.screen, world, 0).x;
                 verticals.push({ world, screen, magnitude });
                 this.gridLines.lineStyle(2, magnitude.color, 0.5);
-                this.gridLines.moveTo(screen, 0).lineTo(screen, this.renderer.screen.height);
+                this.gridLines.moveTo(screen, 0).lineTo(screen, this.parent.renderer.screen.height);
             }
         }
         const textsIterator = this.sectorNames[Symbol.iterator]();
@@ -139,7 +121,7 @@ export class Radar extends PIXI.Application {
     }
 
     private setBlipPosition(blip: PIXI.DisplayObject, state: SpaceObject) {
-        const screen = this.pov.worldToScreen(this.renderer.screen, state.position.x, state.position.y);
+        const screen = this.parent.pov.worldToScreen(this.parent.renderer.screen, state.position.x, state.position.y);
         blip.x = screen.x;
         blip.y = screen.y;
     }
@@ -149,7 +131,7 @@ export class Radar extends PIXI.Application {
         const blip = new PIXI.Container();
         this.setBlipPosition(blip, spaceObject);
         this.blips[spaceObject.id] = blip;
-        this.events.on('screenChanged', () => this.setBlipPosition(blip, spaceObject));
+        this.parent.events.on('screenChanged', () => this.setBlipPosition(blip, spaceObject));
         this.stage.addChild(blip);
 
         let drawProps = blipRenderer(spaceObject, blip);
@@ -160,7 +142,7 @@ export class Radar extends PIXI.Application {
                 if (change.field === 'position') {
                     this.setBlipPosition(blip, spaceObject);
                     if (follow) {
-                        this.pov.set(spaceObject.position.x, spaceObject.position.y);
+                        this.parent.pov.set(spaceObject.position.x, spaceObject.position.y);
                     }
                 }
                 redrawNeeded = redrawNeeded || drawProps.has(change.field);
@@ -174,7 +156,7 @@ export class Radar extends PIXI.Application {
         });
 
         if (follow) {
-            this.pov.set(spaceObject.position.x, spaceObject.position.y);
+            this.parent.pov.set(spaceObject.position.x, spaceObject.position.y);
         }
     }
 
