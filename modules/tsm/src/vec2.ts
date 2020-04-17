@@ -296,4 +296,15 @@ export default class vec2 {
 
         return dest;
     }
+
+    static min(vector: vec2, vector2: vec2, dest?: vec2): vec2 {
+        if (!dest) {
+            dest = new vec2();
+        }
+
+        dest.x = vector.x < vector2.x ? vector.x : vector2.x;
+        dest.y = vector.y < vector2.y ? vector.y : vector2.y;
+
+        return dest;
+    }
 }

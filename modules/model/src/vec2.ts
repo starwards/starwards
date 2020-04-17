@@ -32,6 +32,18 @@ export namespace XY {
     export function negate(vector: XY): XY {
         return { x: -vector.x, y: -vector.y };
     }
+    export function min(vector: XY, vector2: XY): XY {
+        return {
+            x: vector.x < vector2.x ? vector.x : vector2.x,
+            y: vector.y < vector2.y ? vector.y : vector2.y,
+        };
+    }
+    export function absDifference(vector: XY, vector2: XY): XY {
+        return {
+            x: Math.abs(vector.x - vector2.x),
+            y: Math.abs(vector.y - vector2.y),
+        };
+    }
 }
 export interface XY {
     readonly x: number;

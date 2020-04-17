@@ -1,4 +1,4 @@
-import { Radar } from './radar';
+import { Radar } from '../../radar/radar';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
@@ -6,6 +6,8 @@ import { getRoom } from '../../client';
 import { preloadList } from './blip-renderer';
 import $ from 'jquery';
 import { DashboardWidget } from '../dashboard';
+import { PontOfView } from '../../radar/point-of-view';
+import { BaseContainer } from '../../radar/base-container';
 
 WebFont.load({
     custom: {
@@ -15,29 +17,19 @@ WebFont.load({
 
 PIXI.Loader.shared.add(preloadList);
 
-export function radarComponent(container: Container, state: { zoom: number }) {
+function radarComponent(container: Container, state: { zoom: number }) {
+    const pov = PontOfView.makeBoundPointOfView(container, state);
     PIXI.Loader.shared.load(() => {
-        const radar = new Radar(container.width, container.height, getRoom('space'));
-        radar.setZoom(state.zoom);
-        container.on('resize', () => {
-            radar.resizeWindow(container.width, container.height);
-        });
-        container.on('zoomOut', () => {
-            radar.setZoom(radar.pov.zoom * 0.9);
-        });
-        container.on('zoomIn', () => {
-            radar.setZoom(radar.pov.zoom * 1.1);
-        });
-        radar.events.on('zoomChanged', () => {
-            state.zoom = radar.pov.zoom;
-        });
-        container.getElement().bind('wheel', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            radar.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-        });
-
-        container.getElement().append(radar.view);
+        const base = new BaseContainer(
+            {
+                width: container.width,
+                height: container.height,
+                backgroundColor: 0x0f0f0f,
+            },
+            pov,
+            container
+        );
+        const radar = new Radar(base, getRoom('space'));
     });
 }
 
