@@ -22,6 +22,10 @@ export class CameraView extends PIXI.Application {
         });
         this.resizeView(container.width, container.height);
         container.getElement().append(this.view);
+        this.view.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            return false;
+        });
     }
 
     public worldToScreen = (w: XY) => this.camera.worldToScreen(this.renderer, w.x, w.y);
