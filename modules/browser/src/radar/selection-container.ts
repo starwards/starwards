@@ -1,5 +1,46 @@
-import { SpaceObjects } from '@starwards/model';
+import { SpaceObject, SpaceState } from '@starwards/model';
+import EventEmitter from 'eventemitter3';
+import { GameRoom } from '../client';
 
 export class SelectionContainer {
-    private items: Array<SpaceObjects[keyof SpaceObjects]> = [];
+    /**
+     * emits an event after an object chnanges its selection state
+     * event name is the object's ID
+     */
+    public events = new EventEmitter();
+    /**
+     * currently selected objects
+     */
+    public selectedItems = new Set<SpaceObject>();
+
+    constructor(room: GameRoom<SpaceState, any>) {
+        room.state.events.on('remove', (spaceObject: SpaceObject) => {
+            if (this.selectedItems.delete(spaceObject)) {
+                this.events.emit(spaceObject.id);
+            }
+        });
+    }
+
+    public clear() {
+        const changed = [...this.selectedItems];
+        this.selectedItems.clear();
+        for (const spaceObject of changed) {
+            this.events.emit(spaceObject.id);
+        }
+    }
+
+    public set(selected: SpaceObject[]) {
+        const changed = selected.filter((so) => !this.selectedItems.delete(so)).concat(...this.selectedItems);
+        this.selectedItems.clear();
+        for (const spaceObject of selected) {
+            this.selectedItems.add(spaceObject);
+        }
+        for (const spaceObject of changed) {
+            this.events.emit(spaceObject.id);
+        }
+    }
+
+    public has(o: SpaceObject) {
+        return this.selectedItems.has(o);
+    }
 }

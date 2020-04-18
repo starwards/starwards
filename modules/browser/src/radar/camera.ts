@@ -1,40 +1,17 @@
-import * as PIXI from 'pixi.js';
-import { XY } from '@starwards/model';
+import { SpaceObject, XY } from '@starwards/model';
+// tslint:disable-next-line: no-implicit-dependencies
+import { DataChange } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-
-function bindPointOfViewToContainer(pov: PontOfView, container: Container, state: { zoom: number }) {
-    pov.setZoom(state.zoom);
-    container.on('zoomOut', () => {
-        pov.setZoom(pov.zoom * 0.9);
-    });
-    container.on('zoomIn', () => {
-        pov.setZoom(pov.zoom * 1.1);
-    });
-    pov.events.on('zoomChanged', () => {
-        state.zoom = pov.zoom;
-    });
-    container.getElement().bind('wheel', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        pov.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-    });
-}
+import * as PIXI from 'pixi.js';
 
 export interface Screen {
     width: number;
     height: number;
 }
-export class PontOfView {
+export class Camera {
     private static readonly minZoom = 0.00005;
     private static readonly maxZoom = 1;
-
-    public static makeBoundPointOfView(container: Container, state: { zoom: number }) {
-        const pov = new PontOfView();
-        bindPointOfViewToContainer(pov, container, state);
-        return pov;
-    }
-
     private _zoom = 1;
     public events = new EventEmitter();
     private cb = () => this.events.emit('change');
@@ -73,7 +50,7 @@ export class PontOfView {
     }
 
     public setZoom(value: number) {
-        value = Math.max(PontOfView.minZoom, Math.min(PontOfView.maxZoom, value));
+        value = Math.max(Camera.minZoom, Math.min(Camera.maxZoom, value));
         if (this._zoom !== value && !Number.isNaN(value)) {
             this._zoom = value;
             this.cb();
@@ -87,7 +64,7 @@ export class PontOfView {
         this.setZoom(this.zoom * (1.0 + delta / 1000.0));
     }
 
-    public worldToScreen(screen: Screen, x: number, y: number): XY {
+    public worldToScreen(screen: { width: number; height: number }, x: number, y: number): XY {
         return {
             x: (x - this.x) * this.zoom + screen.width / 2,
             y: (y - this.y) * this.zoom + screen.height / 2,
@@ -99,5 +76,34 @@ export class PontOfView {
             x: this.x + (x - screen.width / 2) / this.zoom,
             y: this.y + (y - screen.height / 2) / this.zoom,
         };
+    }
+
+    bindZoom(container: Container, state: { zoom: number }) {
+        this.setZoom(state.zoom);
+        container.on('zoomOut', () => {
+            this.setZoom(this.zoom * 0.9);
+        });
+        container.on('zoomIn', () => {
+            this.setZoom(this.zoom * 1.1);
+        });
+        this.events.on('zoomChanged', () => {
+            state.zoom = this.zoom;
+        });
+        container.getElement().bind('wheel', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+        });
+    }
+
+    followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter) {
+        changeEvents.on(spaceObject.id, (changes: DataChange[]) => {
+            changes.forEach((change) => {
+                if (change.field === 'position') {
+                    this.set(spaceObject.position.x, spaceObject.position.y);
+                }
+            });
+        });
+        this.set(spaceObject.position.x, spaceObject.position.y);
     }
 }

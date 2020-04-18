@@ -29,6 +29,14 @@ import { Schema, type } from '@colyseus/schema';
 
 // tslint:disable-next-line:no-namespace
 export namespace XY {
+    export const one = Object.freeze({ x: 1, y: 1 });
+    export const zero = Object.freeze({ x: 0, y: 0 });
+    export function add(vector: XY, vector2: XY): XY {
+        return {
+            x: vector.x + vector2.x,
+            y: vector.y + vector2.y,
+        };
+    }
     export function negate(vector: XY): XY {
         return { x: -vector.x, y: -vector.y };
     }
@@ -38,11 +46,20 @@ export namespace XY {
             y: vector.y < vector2.y ? vector.y : vector2.y,
         };
     }
+    export function max(vector: XY, vector2: XY): XY {
+        return {
+            x: vector.x > vector2.x ? vector.x : vector2.x,
+            y: vector.y > vector2.y ? vector.y : vector2.y,
+        };
+    }
     export function absDifference(vector: XY, vector2: XY): XY {
         return {
             x: Math.abs(vector.x - vector2.x),
             y: Math.abs(vector.y - vector2.y),
         };
+    }
+    export function inRange(point: XY, start: XY, end: XY): boolean {
+        return start.x <= point.x && point.x <= end.x && start.y <= point.y && point.y <= end.y;
     }
 }
 export interface XY {
