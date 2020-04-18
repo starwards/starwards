@@ -21,6 +21,11 @@ export interface SpaceCommands {
         id: SpaceObjectBase['id'];
         value: XY;
     };
+    MoveObjects: {
+        type: 'MoveObjects';
+        ids: Array<SpaceObjectBase['id']>;
+        delta: XY;
+    };
 }
 
 export function isCommand<T extends keyof SpaceCommands>(type: T, command: SpaceCommand): command is SpaceCommands[T] {
