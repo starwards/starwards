@@ -3,5 +3,5 @@
     "singleQuote": true,
     "jsxSingleQuote": false,
     "tabWidth": 4,
-    "endOfLine": "auto"
+    "endOfLine": "lf"
 }
