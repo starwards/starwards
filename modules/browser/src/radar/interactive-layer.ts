@@ -91,8 +91,8 @@ export class InteractiveLayer {
                 this.drawSelection();
             } else if (this.actionType === ActionType.panCamera) {
                 const dragTo = event.data.getLocalPosition(this.stage);
-                const screenMove = XY.add(dragTo, XY.negate(this.dragFrom));
-                const worldMove = XY.scale(screenMove, -1 / this.parent.camera.zoom);
+                const screenMove = XY.add(XY.negate(dragTo), this.dragFrom); // camera moves opposite to the drag direction
+                const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
                 this.parent.camera.set(XY.add(this.parent.camera, worldMove));
                 // set next drag origin to current mouse position
                 this.dragFrom = dragTo;
