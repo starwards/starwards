@@ -1,7 +1,7 @@
-import { XY, SpaceState } from '@starwards/model';
+import { SpaceObject, XY } from '@starwards/model';
 import * as PIXI from 'pixi.js';
+import { NamedGameRoom } from '../client';
 import { CameraView } from './camera-view';
-import { GameRoom } from '../client';
 import { SelectionContainer } from './selection-container';
 enum MouseButton {
     none = -1,
@@ -15,6 +15,7 @@ enum ActionType {
     none,
     select,
     panCamera,
+    dragObjects,
 }
 export class InteractiveLayer {
     private static readonly selectionColor = 0x26dafd;
@@ -27,7 +28,7 @@ export class InteractiveLayer {
 
     constructor(
         private parent: CameraView,
-        private room: GameRoom<SpaceState, any>,
+        private room: NamedGameRoom<'space'>,
         private selectedItems: SelectionContainer
     ) {
         this.stage.cursor = 'crosshair';
@@ -49,20 +50,14 @@ export class InteractiveLayer {
     }
 
     onSelectPoint(point: XY) {
-        const grace = {
-            x: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
-            y: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
-        };
-        const from = XY.add(point, XY.negate(grace));
-        const to = XY.add(point, grace);
-        for (const spaceObject of this.room.state) {
-            if (XY.inRange(spaceObject.position, from, to)) {
-                this.selectedItems.set([spaceObject]);
-                return;
-            }
+        const spaceObject = this.getObjectAtPoint(this.room.state, point);
+        if (spaceObject) {
+            this.selectedItems.set([spaceObject]);
+        } else {
+            this.selectedItems.clear();
         }
-        this.selectedItems.clear();
     }
+
     onSelectArea(a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
@@ -70,12 +65,35 @@ export class InteractiveLayer {
         this.selectedItems.set(selected);
     }
 
+    getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
+        // TODO: simplify and refer to object radius by measuring distance?
+        const grace = {
+            x: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
+            y: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
+        };
+        const from = XY.add(pointInWorld, XY.negate(grace));
+        const to = XY.add(pointInWorld, grace);
+        for (const spaceObject of objects) {
+            if (XY.inRange(spaceObject.position, from, to)) {
+                return spaceObject;
+            }
+        }
+        return null;
+    }
+
     onPointerDown = (event: PIXI.interaction.InteractionEvent) => {
         if (this.actionType === ActionType.none) {
             if (event.data.button === MouseButton.main) {
-                this.actionType = ActionType.select;
-                this.dragFrom = this.parent.screenToWorld(event.data.getLocalPosition(this.stage));
-                this.drawSelection();
+                this.dragFrom = event.data.getLocalPosition(this.stage);
+                if (
+                    this.selectedItems.selectedItems.size > 0 &&
+                    this.getObjectAtPoint(this.selectedItems.selectedItems, this.parent.screenToWorld(this.dragFrom))
+                ) {
+                    this.actionType = ActionType.dragObjects;
+                } else {
+                    this.actionType = ActionType.select;
+                    this.drawSelection();
+                }
             } else if (event.data.button === MouseButton.right) {
                 this.stage.cursor = 'grab';
                 this.actionType = ActionType.panCamera;
@@ -96,6 +114,17 @@ export class InteractiveLayer {
                 this.parent.camera.set(XY.add(this.parent.camera, worldMove));
                 // set next drag origin to current mouse position
                 this.dragFrom = dragTo;
+            } else if (this.actionType === ActionType.dragObjects) {
+                const dragTo = event.data.getLocalPosition(this.stage);
+                const screenMove = XY.add(dragTo, XY.negate(this.dragFrom));
+                const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
+                this.room.send({
+                    type: 'MoveObjects',
+                    ids: [...this.selectedItems.selectedItems].map((o) => o.id),
+                    delta: worldMove,
+                });
+                // set next drag origin to current mouse position
+                this.dragFrom = dragTo;
             }
         }
     };
@@ -104,10 +133,10 @@ export class InteractiveLayer {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 if (this.dragTo == null) {
-                    this.onSelectPoint(this.dragFrom);
+                    this.onSelectPoint(this.parent.screenToWorld(this.dragFrom));
                 } else {
                     const to = this.parent.screenToWorld(this.dragTo);
-                    this.onSelectArea(this.dragFrom, to);
+                    this.onSelectArea(this.parent.screenToWorld(this.dragFrom), to);
                 }
             }
         }
@@ -121,8 +150,7 @@ export class InteractiveLayer {
     private drawSelection() {
         this.stage.removeChildren();
         if (this.dragFrom && this.dragTo) {
-            const begin = this.parent.worldToScreen(this.dragFrom);
-            const graphics = this.drawSelectionArea(begin, this.dragTo);
+            const graphics = this.drawSelectionArea(this.dragFrom, this.dragTo);
             this.stage.addChild(graphics);
         }
     }

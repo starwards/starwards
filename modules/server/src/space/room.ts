@@ -40,20 +40,30 @@ export class SpaceRoom extends Room<SpaceState> {
     }
 
     public onMessage(_client: Client, message: SpaceCommand): void {
-        const subject = this.state.get(message.id);
-        if (subject) {
-            if (isCommand('ChangeTurnSpeed', message)) {
-                subject.turnSpeed += message.delta;
-            } else if (isCommand('SetTurnSpeed', message)) {
-                subject.turnSpeed = message.value;
-            } else if (isCommand('ChangeVelocity', message)) {
-                subject.velocity.x += message.delta.x;
-                subject.velocity.y += message.delta.y;
-            } else if (isCommand('SetVelocity', message)) {
-                subject.velocity.x = message.value.x;
-                subject.velocity.y = message.value.y;
-            } else {
-                throw new Error('Method not implemented.');
+        if (isCommand('MoveObjects', message)) {
+            for (const id of message.ids) {
+                const subject = this.state.get(id);
+                if (subject) {
+                    subject.position.x += message.delta.x;
+                    subject.position.y += message.delta.y;
+                }
+            }
+        } else {
+            const subject = this.state.get(message.id);
+            if (subject) {
+                if (isCommand('ChangeTurnSpeed', message)) {
+                    subject.turnSpeed += message.delta;
+                } else if (isCommand('SetTurnSpeed', message)) {
+                    subject.turnSpeed = message.value;
+                } else if (isCommand('ChangeVelocity', message)) {
+                    subject.velocity.x += message.delta.x;
+                    subject.velocity.y += message.delta.y;
+                } else if (isCommand('SetVelocity', message)) {
+                    subject.velocity.x = message.value.x;
+                    subject.velocity.y = message.value.y;
+                } else {
+                    throw new Error('Method not implemented.');
+                }
             }
         }
     }
