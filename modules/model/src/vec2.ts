@@ -40,6 +40,9 @@ export namespace XY {
     export function negate(vector: XY): XY {
         return { x: -vector.x, y: -vector.y };
     }
+    export function scale(vector: XY, scalar: number): XY {
+        return { x: scalar * vector.x, y: scalar * vector.y };
+    }
     export function min(vector: XY, vector2: XY): XY {
         return {
             x: vector.x < vector2.x ? vector.x : vector2.x,

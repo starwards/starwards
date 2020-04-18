@@ -3,7 +3,6 @@ import { SpaceObject, XY } from '@starwards/model';
 import { DataChange } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-import * as PIXI from 'pixi.js';
 
 export interface Screen {
     width: number;
@@ -14,8 +13,7 @@ export class Camera {
     private static readonly maxZoom = 1;
     private _zoom = 1;
     public events = new EventEmitter();
-    private cb = () => this.events.emit('change');
-    public point = new PIXI.ObservablePoint(this.cb, null);
+    private point = { x: 0, y: 0 };
 
     /**
      * The position of the PontOfView on the x axis relative to the local coordinates of the parent.
@@ -45,15 +43,16 @@ export class Camera {
     /**
      * Sets the point to a new x and y position.
      */
-    set(x: number, y: number) {
-        this.point.set(x, y);
+    set(position: XY) {
+        this.point = position;
+        this.events.emit('change');
     }
 
     public setZoom(value: number) {
         value = Math.max(Camera.minZoom, Math.min(Camera.maxZoom, value));
         if (this._zoom !== value && !Number.isNaN(value)) {
             this._zoom = value;
-            this.cb();
+            this.events.emit('change');
         }
     }
 
@@ -100,10 +99,10 @@ export class Camera {
         changeEvents.on(spaceObject.id, (changes: DataChange[]) => {
             changes.forEach((change) => {
                 if (change.field === 'position') {
-                    this.set(spaceObject.position.x, spaceObject.position.y);
+                    this.set(spaceObject.position);
                 }
             });
         });
-        this.set(spaceObject.position.x, spaceObject.position.y);
+        this.set(spaceObject.position);
     }
 }

@@ -6,7 +6,7 @@ import { makeRadarHeaders } from './radar';
 import { CameraView } from '../radar/camera-view';
 import { Camera } from '../radar/camera';
 import { GridLayer } from '../radar/grid-layer';
-import { SelectionLayer } from '../radar/selection-layer';
+import { InteractiveLayer } from '../radar/interactive-layer';
 import { BlipsLayer } from '../radar/blips-layer';
 import { SelectionContainer } from '../radar/selection-container';
 
@@ -20,7 +20,7 @@ function gmComponent(container: Container, state: { zoom: number }) {
         root.addLayer(grid.renderRoot);
         const room = await getRoom('space');
         const selectionContainer = new SelectionContainer(room);
-        const selection = new SelectionLayer(root, room, selectionContainer);
+        const selection = new InteractiveLayer(root, room, selectionContainer);
         const blipper = new BlipsLayer(root, room, selectionContainer);
         root.addLayer(blipper.renderRoot);
         root.addLayer(selection.renderRoot);
