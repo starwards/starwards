@@ -1,7 +1,7 @@
-import { SpaceObjects, Vec2 } from '@starwards/model';
+import { SpaceObjects, Vec2, SpaceObject } from '@starwards/model';
 import * as PIXI from 'pixi.js';
 
-export const preloadList = ['images/RadarBlip.png', 'images/radar_fighter.png'];
+export const preloadList = ['images/RadarBlip.png', 'images/radar_fighter.png', 'images/redicule.png'];
 
 type DrawBlip<T extends keyof SpaceObjects> = (spaceObject: SpaceObjects[T], root: PIXI.Container) => Set<string>;
 
@@ -15,8 +15,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         radarBlipSprite.angle = spaceObject.angle % 360;
         root.addChild(radarBlipSprite);
         const text = new PIXI.Text(
-            `speed: ${Vec2.lengthOf(spaceObject.velocity).toFixed()}
-turn speed: ${spaceObject.turnSpeed.toFixed()}`,
+            `speed: ${Vec2.lengthOf(spaceObject.velocity).toFixed()}\nturn speed: ${spaceObject.turnSpeed.toFixed()}`,
             new PIXI.TextStyle({
                 fontFamily: 'Bebas',
                 fontSize: 14,
@@ -59,9 +58,19 @@ turn speed: ${spaceObject.turnSpeed.toFixed()}`,
  * @param blip PIXI container to render into
  * @returns a set of property names of `spaceObject` that were used for the render
  */
-export function blipRenderer<T extends keyof SpaceObjects>(
-    spaceObject: SpaceObjects[T],
-    blip: PIXI.Container
-): Set<string> {
-    return (drawFunctions[spaceObject.type] as DrawBlip<T>)(spaceObject, blip);
+export function blipRenderer(spaceObject: SpaceObject, blip: PIXI.Container, selected: boolean): Set<string> {
+    const propsToTrack = (drawFunctions[spaceObject.type] as DrawBlip<typeof spaceObject.type>)(spaceObject, blip);
+    if (selected) {
+        selectionRenderer(blip);
+    }
+    return propsToTrack;
+}
+
+export function selectionRenderer(root: PIXI.Container) {
+    const radarBlipTexture = PIXI.Loader.shared.resources['images/redicule.png'].texture;
+    const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
+    radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
+    radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
+    radarBlipSprite.tint = 0x26dafd;
+    root.addChild(radarBlipSprite);
 }
