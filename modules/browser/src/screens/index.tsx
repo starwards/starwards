@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { ThemeProvider, SoundsProvider, createTheme, createSounds, Arwes, Button, Heading } from 'arwes';
 import WebFont from 'webfontloader';
-import { client } from '../client';
+import { client, getRoom } from '../client';
 import { TaskLoop } from '../task-loop';
 
 WebFont.load({
@@ -78,7 +78,7 @@ const App = () => {
                         {gamesCount ? (
                             <InGameMenu></InGameMenu>
                         ) : (
-                            <Button onClick={() => client.create('space')} animate>
+                            <Button onClick={async () => (await getRoom('admin')).send({ type: 'StartGame' })} animate>
                                 New Game
                             </Button>
                         )}

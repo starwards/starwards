@@ -1,5 +1,5 @@
 import { Client } from 'colyseus.js';
-import { clientInitFunctions, Rooms } from '@starwards/model';
+import { initClient, Rooms } from '@starwards/model';
 
 const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
 
@@ -16,8 +16,8 @@ export async function getRoom<T extends keyof Rooms>(roomName: T): Promise<Named
     let room: NamedGameRoom<T> | undefined = rooms[roomName];
     if (!room) {
         const newRoom = await client.join<Rooms[T]['state']>(roomName);
-        clientInitFunctions[roomName](newRoom.state);
-        rooms[roomName] = room = newRoom;
+        initClient(roomName, newRoom.state);
+        (rooms[roomName] as any) = room = newRoom;
     }
     return room!;
 }

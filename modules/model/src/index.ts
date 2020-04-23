@@ -1,33 +1,21 @@
-import { Spaceship } from './spaceship';
-import { Asteroid } from './asteroid';
-import { SpaceState } from './space-state';
 import { Schema } from '@colyseus/schema';
-import { SpaceCommand } from './commands';
-
-export interface SpaceObjects {
-    Spaceship: Spaceship;
-    Asteroid: Asteroid;
-}
-
-export type SpaceObject = SpaceObjects[keyof SpaceObjects];
+import { SpaceState, SpaceCommand } from './space';
+import { AdminState, AdminCommand } from './admin';
 export interface RoomApi<S extends Schema, C> {
     state: S;
     commands: C;
 }
 export interface Rooms {
     space: RoomApi<SpaceState, SpaceCommand>;
+    admin: RoomApi<AdminState, AdminCommand>;
 }
-
-export const clientInitFunctions: { [T in keyof Rooms]: (state: Rooms[T]['state']) => void } = {
+export function initClient<T extends keyof Rooms>(roomName: T, state: Rooms[T]['state']) {
+    (clientInitFunctions[roomName] as (state: Rooms[T]['state']) => void)(state);
+}
+const clientInitFunctions: { [T in keyof Rooms]: (state: Rooms[T]['state']) => void } = {
     space: SpaceState.clientInit,
+    admin: () => undefined,
 };
 
-export * from './asteroid';
-export * from './space-object-base';
-export * from './space-state';
-export * from './spaceship';
-export * from './vec2';
-export * from './sectors';
-export * from './commands';
-
-export const shipId = 'shippy mcshipface'; // hack: player ship ID is constant
+export * from './space';
+export * from './admin';

@@ -28,7 +28,10 @@ export interface SpaceCommands {
     };
 }
 
-export function isCommand<T extends keyof SpaceCommands>(type: T, command: SpaceCommand): command is SpaceCommands[T] {
+export function isSpaceCommand<T extends keyof SpaceCommands>(
+    type: T,
+    command: SpaceCommand
+): command is SpaceCommands[T] {
     return command.type === type;
 }
 
