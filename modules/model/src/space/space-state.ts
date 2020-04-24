@@ -5,28 +5,6 @@ import EventEmitter from 'eventemitter3';
 import { SpaceObject, SpaceObjects } from '.';
 
 export class SpaceState extends Schema {
-    /**
-     * monkey-patch to enable methods on remote copies of SpaceState.
-     * need to be called explicitly from the appliction.
-     * @param clientState client side state object (replication)
-     */
-    public static clientInit(clientState: SpaceState) {
-        (['get', 'getAll', 'registerOnAdd', 'registerOnRemove', Symbol.iterator] as Array<keyof SpaceState>).forEach(
-            (p) => ((clientState[p] as any) = SpaceState.prototype[p])
-        );
-        clientState.events = new EventEmitter();
-        clientState.asteroids.onAdd = clientState.spaceships.onAdd = (so: SpaceObject) =>
-            clientState.events.emit('add', so);
-
-        clientState.asteroids.onRemove = clientState.spaceships.onRemove = (so: SpaceObject) =>
-            clientState.events.emit('remove', so);
-
-        clientState.events.on(
-            'add',
-            (so: SpaceObject) => (so.onChange = (changes) => clientState.events.emit(so.id, changes))
-        );
-    }
-
     @type({ map: Asteroid })
     public asteroids = new MapSchema<Asteroid>();
 
@@ -34,9 +12,15 @@ export class SpaceState extends Schema {
     public spaceships = new MapSchema<Spaceship>();
     public events = new EventEmitter();
 
-    constructor() {
+    constructor(isClient = true) {
         super();
+        if (isClient) {
+            this.asteroids.onAdd = this.spaceships.onAdd = (so: SpaceObject) => this.events.emit('add', so);
+            this.asteroids.onRemove = this.spaceships.onRemove = (so: SpaceObject) => this.events.emit('remove', so);
+            this.events.on('add', (so: SpaceObject) => (so.onChange = (changes) => this.events.emit(so.id, changes)));
+        }
     }
+
     public get(id: string): SpaceObject | undefined {
         return this.asteroids[id] || this.spaceships[id];
     }
