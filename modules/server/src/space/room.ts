@@ -21,7 +21,7 @@ export class SpaceRoom extends Room<SpaceState> {
     }
 
     public onCreate() {
-        this.setState(new SpaceState());
+        this.setState(new SpaceState(false));
         this.setSimulationInterval((deltaTime) => this.update(deltaTime));
         map.forEach((o) => this.insert(o.clone()));
 

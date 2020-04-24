@@ -9,12 +9,10 @@ export interface Rooms {
     space: RoomApi<SpaceState, SpaceCommands>;
     admin: RoomApi<AdminState, AdminCommands>;
 }
-export function initClient<T extends keyof Rooms>(roomName: T, state: Rooms[T]['state']) {
-    (clientInitFunctions[roomName] as (state: Rooms[T]['state']) => void)(state);
-}
-const clientInitFunctions: { [T in keyof Rooms]: (state: Rooms[T]['state']) => void } = {
-    space: SpaceState.clientInit,
-    admin: () => undefined,
+
+export const schemaClasses = {
+    space: SpaceState,
+    admin: AdminState,
 };
 
 export * from './admin';
