@@ -78,7 +78,7 @@ const App = () => {
                         {gamesCount ? (
                             <InGameMenu></InGameMenu>
                         ) : (
-                            <Button onClick={async () => (await getRoom('admin')).send({ type: 'StartGame' })} animate>
+                            <Button onClick={async () => (await getRoom('admin')).send('StartGame', undefined)} animate>
                                 New Game
                             </Button>
                         )}

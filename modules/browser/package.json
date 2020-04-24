@@ -15,7 +15,7 @@
     "dependencies": {
         "@starwards/model": "*",
         "arwes": "^1.0.0-alpha.5",
-        "colyseus.js": "^0.12.2",
+        "colyseus.js": "^0.13.0",
         "eventemitter3": "^4.0.0",
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.7.6",

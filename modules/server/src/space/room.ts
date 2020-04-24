@@ -1,14 +1,14 @@
-import { Room, Client } from 'colyseus';
-import { SpaceState, XY, SpaceObject, SpaceCommand, isSpaceCommand, SpaceObjectBase } from '@starwards/model';
+import { SpaceCommands, SpaceObject, SpaceObjectBase, SpaceState, XY } from '@starwards/model';
+import { Client, Room } from 'colyseus';
+import { Body, Collisions, Result } from 'detect-collisions';
 import { map } from './map';
-import { Result, Collisions, Body } from 'detect-collisions';
 
 export class SpaceRoom extends Room<SpaceState> {
     public collisions = new Collisions();
     private collisionToState = new WeakMap<Body, SpaceObject>();
     private stateToCollision = new WeakMap<SpaceObject, Body>();
-    private myLoopInterval: NodeJS.Timeout | undefined;
 
+    // For this example
     constructor() {
         super();
         this.autoDispose = false;
@@ -22,25 +22,10 @@ export class SpaceRoom extends Room<SpaceState> {
 
     public onCreate() {
         this.setState(new SpaceState());
-        this.setPatchRate(0);
-        // take control over patch and simulation loops
-        this.myLoopInterval = setInterval(() => {
-            this.broadcastPatch();
-            this.broadcastAfterPatch();
-            this.update(this.clock.deltaTime);
-        }, 1000 / 20);
+        this.setSimulationInterval((deltaTime) => this.update(deltaTime));
         map.forEach((o) => this.insert(o.clone()));
-    }
 
-    public onDispose() {
-        if (this.myLoopInterval) {
-            clearInterval(this.myLoopInterval);
-            this.myLoopInterval = undefined;
-        }
-    }
-
-    public onMessage(_client: Client, message: SpaceCommand): void {
-        if (isSpaceCommand('MoveObjects', message)) {
+        this.onMessage('MoveObjects', (_client: Client, message: SpaceCommands['MoveObjects']) => {
             for (const id of message.ids) {
                 const subject = this.state.get(id);
                 if (subject) {
@@ -48,24 +33,37 @@ export class SpaceRoom extends Room<SpaceState> {
                     subject.position.y += message.delta.y;
                 }
             }
-        } else {
+        });
+
+        this.onMessage('ChangeTurnSpeed', (_client: Client, message: SpaceCommands['ChangeTurnSpeed']) => {
             const subject = this.state.get(message.id);
             if (subject) {
-                if (isSpaceCommand('ChangeTurnSpeed', message)) {
-                    subject.turnSpeed += message.delta;
-                } else if (isSpaceCommand('SetTurnSpeed', message)) {
-                    subject.turnSpeed = message.value;
-                } else if (isSpaceCommand('ChangeVelocity', message)) {
-                    subject.velocity.x += message.delta.x;
-                    subject.velocity.y += message.delta.y;
-                } else if (isSpaceCommand('SetVelocity', message)) {
-                    subject.velocity.x = message.value.x;
-                    subject.velocity.y = message.value.y;
-                } else {
-                    throw new Error('Method not implemented.');
-                }
+                subject.turnSpeed += message.delta;
             }
-        }
+        });
+
+        this.onMessage('SetTurnSpeed', (_client: Client, message: SpaceCommands['SetTurnSpeed']) => {
+            const subject = this.state.get(message.id);
+            if (subject) {
+                subject.turnSpeed = message.value;
+            }
+        });
+
+        this.onMessage('ChangeVelocity', (_client: Client, message: SpaceCommands['ChangeVelocity']) => {
+            const subject = this.state.get(message.id);
+            if (subject) {
+                subject.velocity.x += message.delta.x;
+                subject.velocity.y += message.delta.y;
+            }
+        });
+
+        this.onMessage('SetVelocity', (_client: Client, message: SpaceCommands['SetVelocity']) => {
+            const subject = this.state.get(message.id);
+            if (subject) {
+                subject.velocity.x = message.value.x;
+                subject.velocity.y = message.value.y;
+            }
+        });
     }
 
     public insert(object: SpaceObject) {

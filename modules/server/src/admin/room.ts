@@ -1,4 +1,4 @@
-import { AdminState, AdminCommand, isAdminCommand } from '@starwards/model';
+import { AdminCommand, AdminState } from '@starwards/model';
 import { Client, matchMaker, Room } from 'colyseus';
 
 export class AdminRoom extends Room<AdminState> {
@@ -15,11 +15,8 @@ export class AdminRoom extends Room<AdminState> {
 
     public onCreate() {
         this.setState(new AdminState());
-    }
-
-    public async onMessage(_client: Client, message: AdminCommand) {
-        if (isAdminCommand('StartGame', message)) {
+        this.onMessage('StartGame', async (_client: Client, _message: AdminCommand) => {
             await matchMaker.createRoom('space', {}); // create a game
-        }
+        });
     }
 }

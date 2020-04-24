@@ -1,11 +1,11 @@
-import { DashboardWidget } from '../dashboard';
+import { shipId, SpaceObject, Vec2 } from '@starwards/model';
 import { ReactProps } from 'golden-layout';
 import React from 'react';
+import { getRoom, NamedGameRoom } from '../../client';
+import { Loop } from '../../loop';
+import { DashboardWidget } from '../dashboard';
 import { Keyboard } from './keyboard';
 import { ButtonKey } from './keyboard-display';
-import { Loop } from '../../loop';
-import { getRoom, NamedGameRoom } from '../../client';
-import { Vec2, SpaceObject, shipId } from '@starwards/model';
 
 const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
 class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed: Set<ButtonKey> }> {
@@ -64,47 +64,41 @@ class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed:
             switch (key) {
                 case 32:
                     // stop turning
-                    this.room.send({
+                    this.room.send('SetTurnSpeed', {
                         id: shipId,
-                        type: 'SetTurnSpeed',
                         value: subject.turnSpeed * 0.8,
                     });
                     // stop moving
-                    this.room.send({
+                    this.room.send('SetVelocity', {
                         id: shipId,
-                        type: 'SetVelocity',
                         value: Vec2.scale(subject.velocity, 0.8),
                     });
                     break;
                 case 37:
                     // turn left
-                    this.room.send({
+                    this.room.send('ChangeTurnSpeed', {
                         id: shipId,
-                        type: 'ChangeTurnSpeed',
                         delta: -presedTime * boost,
                     });
                     break;
                 case 39:
                     // turn right
-                    this.room.send({
+                    this.room.send('ChangeTurnSpeed', {
                         id: shipId,
-                        type: 'ChangeTurnSpeed',
                         delta: presedTime * boost,
                     });
                     break;
                 case 38:
                     // accelerate forward
-                    this.room.send({
+                    this.room.send('ChangeVelocity', {
                         id: shipId,
-                        type: 'ChangeVelocity',
                         delta: Vec2.Rotate({ x: presedTime * boost, y: 0 }, subject.angle),
                     });
                     break;
                 case 40:
                     // accelerate forward
-                    this.room.send({
+                    this.room.send('ChangeVelocity', {
                         id: shipId,
-                        type: 'ChangeVelocity',
                         delta: Vec2.Rotate({ x: -presedTime * boost, y: 0 }, subject.angle),
                     });
                     break;
