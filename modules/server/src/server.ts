@@ -20,6 +20,7 @@ process.on('uncaughtException', function (err) {
 
 export async function server(port: number, staticDir: string, handlers?: NextHandleFunction[]) {
     const app = express();
+    app.use(express.json());
     const gameServer = new Server({ server: http.createServer(app) });
 
     gameServer

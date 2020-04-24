@@ -17,6 +17,6 @@
         "prepack": "yarn build"
     },
     "dependencies": {
-        "@colyseus/schema": "^0.5.36"
+        "@colyseus/schema": "^0.5.37"
     }
 }
