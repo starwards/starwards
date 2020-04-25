@@ -2,7 +2,7 @@ import { GridLayer } from '../radar/grid-layer';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
-import { getRoom, NamedGameRoom } from '../client';
+import { getGlobalRoom, NamedGameRoom } from '../client';
 import { preloadList } from '../radar/blip-renderer';
 import $ from 'jquery';
 import { DashboardWidget } from './dashboard';
@@ -10,7 +10,7 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { BlipsLayer } from '../radar/blips-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { Spaceship, SpaceObject } from '@starwards/model';
+import { SpaceObject } from '@starwards/model';
 
 WebFont.load({
     custom: {
@@ -20,34 +20,27 @@ WebFont.load({
 
 PIXI.Loader.shared.add(preloadList);
 
-function radarComponent(container: Container, state: { zoom: number }) {
+function radarComponent(container: Container, state: Props) {
     const camera = new Camera();
     camera.bindZoom(container, state);
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
-        const room = await getRoom('space');
+        const room = await getGlobalRoom('space');
         const blipper = new BlipsLayer(root, room, new SelectionContainer(room));
         root.addLayer(blipper.renderRoot);
-        trackFirstSpaceship(camera, room);
+        trackObject(camera, room, state.subjectId);
     });
 }
 
-// hacky just for show
-function trackFirstSpaceship(camera: Camera, room: NamedGameRoom<'space'>) {
-    let tracked: Spaceship | null = null;
-    for (const spaceObject of room.state) {
-        if (Spaceship.isInstance(spaceObject)) {
-            tracked = spaceObject;
-            break;
-        }
-    }
+function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: string) {
+    let tracked = room.state.get(subjectId);
     if (tracked) {
         camera.followSpaceObject(tracked, room.state.events);
     } else {
         room.state.events.on('add', (spaceObject: SpaceObject) => {
-            if (!tracked && Spaceship.isInstance(spaceObject)) {
+            if (!tracked && spaceObject.id === subjectId) {
                 tracked = spaceObject;
                 camera.followSpaceObject(tracked, room.state.events);
             }
@@ -72,11 +65,11 @@ export function makeRadarHeaders(container: Container): Array<JQuery<HTMLElement
     });
     return [zoomIn, zoomOut];
 }
-
-export const radarWidget: DashboardWidget<{ zoom: number }> = {
+export type Props = { zoom: number; subjectId: string };
+export const radarWidget: DashboardWidget<Props> = {
     name: 'radar',
     type: 'component',
     component: radarComponent,
-    initialState: { zoom: 1 },
+    defaultProps: { zoom: 1 },
     makeHeaders: makeRadarHeaders,
 };

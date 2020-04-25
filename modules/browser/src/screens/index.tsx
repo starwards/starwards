@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { ThemeProvider, SoundsProvider, createTheme, createSounds, Arwes, Button, Heading } from 'arwes';
 import WebFont from 'webfontloader';
-import { client, getRoom } from '../client';
+import { client, getGlobalRoom } from '../client';
 import { TaskLoop } from '../task-loop';
 
 WebFont.load({
@@ -12,24 +12,35 @@ WebFont.load({
 });
 
 const InGameMenu = () => {
+    const [ships, setShips] = useState<string[]>([]);
+
+    useEffect(() => {
+        const loop = new TaskLoop(async () => {
+            const rooms = await client.getAvailableRooms('ship');
+            setShips(rooms.map((r) => r.roomId));
+        }, 500);
+        loop.start();
+        return loop.stop;
+    });
     return (
         <ul>
-            <li>
-                <Button key="pb" onClick={() => window.location.assign('player')} animate>
-                    Player Screen
-                </Button>
-            </li>
             <li>
                 <Button key="gmb" onClick={() => window.location.assign('gm')} animate>
                     GM Screen
                 </Button>
             </li>
+            {ships.map((shipId) => (
+                <li>
+                    <Button key="pb" onClick={() => window.location.assign('player?id=' + shipId)} animate>
+                        Play: {shipId}
+                    </Button>
+                </li>
+            ))}
         </ul>
     );
 };
 
 const App = () => {
-    // Declare a new state variable, which we'll call "count"
     const [gamesCount, setgamesCount] = useState(0);
 
     useEffect(() => {
@@ -78,7 +89,10 @@ const App = () => {
                         {gamesCount ? (
                             <InGameMenu></InGameMenu>
                         ) : (
-                            <Button onClick={async () => (await getRoom('admin')).send('StartGame', undefined)} animate>
+                            <Button
+                                onClick={async () => (await getGlobalRoom('admin')).send('StartGame', undefined)}
+                                animate
+                            >
                                 New Game
                             </Button>
                         )}

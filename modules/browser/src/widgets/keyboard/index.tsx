@@ -1,24 +1,26 @@
-import { shipId, SpaceObject, Vec2 } from '@starwards/model';
+import { SpaceObject, Vec2 } from '@starwards/model';
 import { ReactProps } from 'golden-layout';
 import React from 'react';
-import { getRoom, NamedGameRoom } from '../../client';
+import { getGlobalRoom, NamedGameRoom, getRoomById } from '../../client';
 import { Loop } from '../../loop';
 import { DashboardWidget } from '../dashboard';
 import { Keyboard } from './keyboard';
 import { ButtonKey } from './keyboard-display';
 
 const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
-class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed: Set<ButtonKey> }> {
+class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Set<ButtonKey> }> {
     private pressedTime = new Map<ButtonKey, number>();
     private loop = new Loop(this.whilePressed.bind(this), 1000 / 10);
-    private room: NamedGameRoom<'space'> | null = null;
+    private shipRoom: NamedGameRoom<'ship'> | null = null;
+    private spaceRoom: NamedGameRoom<'space'> | null = null;
 
-    constructor(p: Mappings & ReactProps) {
+    constructor(p: Props & ReactProps) {
         super(p);
         this.state = {
             pressed: new Set<ButtonKey>(),
         };
-        getRoom('space').then((room) => (this.room = room));
+        getRoomById('ship', p.shipId).then((room) => (this.shipRoom = room));
+        getGlobalRoom('space').then((room) => (this.spaceRoom = room));
     }
     public render() {
         return (
@@ -59,46 +61,40 @@ class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed:
         });
     };
     private handlePressed(subject: SpaceObject, key: ButtonKey, presedTime: number) {
-        if (this.room) {
+        if (this.shipRoom) {
             const boost = this.pressedTime.has(16) ? 3 : 1;
             switch (key) {
                 case 32:
                     // stop turning
-                    this.room.send('SetTurnSpeed', {
-                        id: shipId,
+                    this.shipRoom.send('SetTurnSpeed', {
                         value: subject.turnSpeed * 0.8,
                     });
                     // stop moving
-                    this.room.send('SetVelocity', {
-                        id: shipId,
+                    this.shipRoom.send('SetVelocity', {
                         value: Vec2.scale(subject.velocity, 0.8),
                     });
                     break;
                 case 37:
                     // turn left
-                    this.room.send('ChangeTurnSpeed', {
-                        id: shipId,
+                    this.shipRoom.send('ChangeTurnSpeed', {
                         delta: -presedTime * boost,
                     });
                     break;
                 case 39:
                     // turn right
-                    this.room.send('ChangeTurnSpeed', {
-                        id: shipId,
+                    this.shipRoom.send('ChangeTurnSpeed', {
                         delta: presedTime * boost,
                     });
                     break;
                 case 38:
                     // accelerate forward
-                    this.room.send('ChangeVelocity', {
-                        id: shipId,
+                    this.shipRoom.send('ChangeVelocity', {
                         delta: Vec2.Rotate({ x: presedTime * boost, y: 0 }, subject.angle),
                     });
                     break;
                 case 40:
-                    // accelerate forward
-                    this.room.send('ChangeVelocity', {
-                        id: shipId,
+                    // accelerate backwards
+                    this.shipRoom.send('ChangeVelocity', {
                         delta: Vec2.Rotate({ x: -presedTime * boost, y: 0 }, subject.angle),
                     });
                     break;
@@ -107,9 +103,9 @@ class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed:
     }
 
     private whilePressed(deltaMs: number) {
-        if (this.room) {
+        if (this.spaceRoom) {
             const deltaSeconds = deltaMs / 1000;
-            const ship = this.room.state.get(shipId);
+            const ship = this.spaceRoom.state.get(this.props.shipId);
             for (const pressed of this.pressedTime) {
                 this.pressedTime.set(pressed[0], (pressed[1] += deltaSeconds));
                 if (ship) {
@@ -120,14 +116,13 @@ class KeyboardCommands extends React.Component<Mappings & ReactProps, { pressed:
     }
 }
 
-type Mappings = object;
-const defaultMappings: Mappings = {};
+type Props = { shipId: string };
 
-export const keyboardWidget: DashboardWidget<Mappings> = {
+export const keyboardWidget: DashboardWidget<Props> = {
     name: 'keyboard commands',
     type: 'react-component',
     component: KeyboardCommands,
-    initialState: defaultMappings,
+    defaultProps: {},
 };
 
 // TODO https://www.npmjs.com/package/contro
