@@ -1,6 +1,6 @@
 import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
-import { getRoom } from '../client';
+import { getGlobalRoom } from '../client';
 import { DashboardWidget } from './dashboard';
 import { makeRadarHeaders } from './radar';
 import { CameraView } from '../radar/camera-view';
@@ -18,7 +18,7 @@ function gmComponent(container: Container, state: { zoom: number }) {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
-        const room = await getRoom('space');
+        const room = await getGlobalRoom('space');
         const selectionContainer = new SelectionContainer(room);
         const selection = new InteractiveLayer(root, room, selectionContainer);
         const blipper = new BlipsLayer(root, room, selectionContainer);
@@ -31,6 +31,6 @@ export const gmWidget: DashboardWidget<{ zoom: number }> = {
     name: 'GM',
     type: 'component',
     component: gmComponent,
-    initialState: { zoom: 1 },
+    defaultProps: { zoom: 1 },
     makeHeaders: makeRadarHeaders,
 };

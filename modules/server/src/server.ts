@@ -11,6 +11,7 @@ import { monitor } from '@colyseus/monitor';
 import { SpaceRoom } from './space/room';
 import { NextHandleFunction } from 'connect';
 import { AdminRoom } from './admin/room';
+import { ShipRoom } from './ship/room';
 
 process.on('uncaughtException', function (err) {
     console.error(new Date().toUTCString() + ' uncaughtException:', err.message);
@@ -36,6 +37,14 @@ export async function server(port: number, staticDir: string, handlers?: NextHan
         .on('dispose', (room) => console.log('AdminRoom disposed:', room.roomId))
         .on('join', (room, client) => console.log('AdminRoom:', client.sessionId, 'joined', room.roomId))
         .on('leave', (room, client) => console.log('AdminRoom:', client.sessionId, 'left', room.roomId));
+
+    gameServer
+        .define('ship', ShipRoom)
+        .on('create', (room) => console.log('ship created:', room.roomId))
+        .on('dispose', (room) => console.log('ship disposed:', room.roomId))
+        .on('join', (room, client) => console.log('ship:', client.sessionId, 'joined', room.roomId))
+        .on('leave', (room, client) => console.log('ship:', client.sessionId, 'left', room.roomId))
+        .enableRealtimeListing();
 
     if (handlers) {
         app.use(...handlers);

@@ -20,7 +20,7 @@ export interface DashboardWidget<T extends object = object> {
     name: string;
     type: 'component' | 'react-component';
     component: GLComponent<T> | ComponentClass<T & ReactProps>;
-    initialState: T;
+    defaultProps: Partial<T>;
     makeHeaders?: MakeHeaders;
 }
 export class Dashboard extends GoldenLayout {
@@ -34,15 +34,18 @@ export class Dashboard extends GoldenLayout {
         super.init();
     }
 
-    public registerWidget<T extends object>({ name, component, type, initialState, makeHeaders }: DashboardWidget<T>) {
+    public registerWidget<T extends object>(
+        { name, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
+        props: Partial<T> = {}
+    ) {
         this.registerComponent(name, component);
-        this.registerWidgetMenuItem(name, initialState, type);
+        this.registerWidgetMenuItem(name, { ...defaultProps, ...props }, type);
         if (makeHeaders) {
             this.registerWidgetHeaders(name, makeHeaders);
         }
     }
 
-    private registerWidgetMenuItem(name: string, initialState: object, type: DashboardWidget['type']) {
+    private registerWidgetMenuItem(name: string, props: object, type: DashboardWidget['type']) {
         const menuItem = $('<li>' + name + '</li>');
         $('#menuContainer').append(menuItem);
 
@@ -54,10 +57,10 @@ export class Dashboard extends GoldenLayout {
 
         if (type === 'react-component') {
             newItemConfig.component = name;
-            newItemConfig.props = initialState;
+            newItemConfig.props = props;
         } else {
             newItemConfig.componentName = name;
-            newItemConfig.componentState = initialState;
+            newItemConfig.componentState = props;
         }
         this.createDragSource(menuItem, newItemConfig);
     }

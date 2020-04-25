@@ -1,8 +1,8 @@
 import { Schema, type } from '@colyseus/schema';
 
 export class AdminState extends Schema {
-    @type('number')
-    x: number = 123;
+    @type('boolean')
+    isGameRunning: boolean = false;
 }
 
 export * from './commands';

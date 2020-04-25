@@ -1,7 +1,10 @@
-import { AdminCommand, AdminState } from '@starwards/model';
+import { AdminState, Spaceship } from '@starwards/model';
 import { Client, matchMaker, Room } from 'colyseus';
+import { SpaceManager } from '../space/space-manager';
+import { map } from './map';
 
 export class AdminRoom extends Room<AdminState> {
+    private manager = new SpaceManager();
     constructor() {
         super();
         this.autoDispose = false;
@@ -15,8 +18,21 @@ export class AdminRoom extends Room<AdminState> {
 
     public onCreate() {
         this.setState(new AdminState());
-        this.onMessage('StartGame', async (_client: Client, _message: AdminCommand) => {
-            await matchMaker.createRoom('space', {}); // create a game
-        });
+        this.onMessage('StartGame', () => this.startGame());
+    }
+
+    private async startGame() {
+        if (!this.state.isGameRunning) {
+            this.state.isGameRunning = true;
+            this.manager = new SpaceManager();
+            map.forEach((o) => {
+                o = o.clone();
+                if (Spaceship.isInstance(o)) {
+                    matchMaker.createRoom('ship', { id: o.id, manager: this.manager }); // create a room to control this ship
+                }
+                this.manager.insert(o);
+            });
+            await matchMaker.createRoom('space', { manager: this.manager });
+        }
     }
 }
