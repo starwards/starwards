@@ -40,6 +40,25 @@ try {
     //   }
 
     if (fs.existsSync(path.join(rootPath, '.vscode'))) {
+        fs.writeFileSync(
+            path.join(rootPath, '.vscode', 'tasks.json'),
+            JSON.stringify(
+                {
+                    version: '2.0.0',
+                    tasks: [
+                        {
+                            label: 'build:model',
+                            type: 'shell',
+                            command: 'yarn build',
+                            group: 'build',
+                            options: { cwd: './modules/model' },
+                        },
+                    ],
+                },
+                null,
+                2
+            )
+        );
         fs.writeFileSync(path.join(rootPath, '.vscode', 'launch.json'), launchJson(moduleNames));
 
         function launchJson(moduleNames) {
@@ -76,6 +95,7 @@ try {
                                 type: 'node',
                                 request: 'launch',
                                 name: 'run server',
+                                preLaunchTask: 'build:model',
                                 cwd: '${workspaceFolder}/modules/server',
                                 args: ['-r', '@ts-tools/node/r', '${workspaceFolder}/modules/server/src/dev.ts'],
                                 internalConsoleOptions: 'openOnSessionStart',
