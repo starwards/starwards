@@ -1,12 +1,22 @@
 import { Schema, type } from '@colyseus/schema';
+import EventEmitter from 'eventemitter3';
 
 export class ShipState extends Schema {
-    @type('string')
-    id: string;
+    @type('number')
+    targetTurnSpeed = 0;
+    @type('number')
+    energy = 1000;
 
-    constructor(id: string) {
+    public events = new EventEmitter();
+    constructor(isClient = true) {
         super();
-        this.id = id;
+        if (isClient) {
+            this.onChange = (changes) => {
+                changes.forEach((c) => {
+                    this.events.emit(c.field, c.value);
+                });
+            };
+        }
     }
 }
 

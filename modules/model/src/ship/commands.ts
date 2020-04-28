@@ -1,6 +1,16 @@
 import { XY } from '../space';
 
 export interface ShipCommands {
+    SetTargetTurnSpeed: {
+        value: number;
+    };
+    SetImpulse: {
+        value: number;
+    };
+    SetRotation: {
+        value: number;
+    };
+    // --- physical changes
     ChangeTurnSpeed: {
         delta: number;
     };

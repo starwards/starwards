@@ -28,7 +28,7 @@ export class AdminRoom extends Room<AdminState> {
             map.forEach((o) => {
                 o = o.clone();
                 if (Spaceship.isInstance(o)) {
-                    matchMaker.createRoom('ship', { id: o.id, manager: this.manager }); // create a room to control this ship
+                    matchMaker.createRoom('ship', { object: o, manager: this.manager }); // create a room to control this ship
                 }
                 this.manager.insert(o);
             });

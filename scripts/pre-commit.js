@@ -96,7 +96,7 @@ try {
                                 request: 'launch',
                                 name: 'run server',
                                 preLaunchTask: 'build:model',
-                                cwd: '${workspaceFolder}/modules/server',
+                                cwd: '${workspaceFolder}',
                                 args: ['-r', '@ts-tools/node/r', '${workspaceFolder}/modules/server/src/dev.ts'],
                                 internalConsoleOptions: 'openOnSessionStart',
                             },
