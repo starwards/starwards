@@ -50,9 +50,13 @@ export class ShipRoom extends Room<ShipState> {
         const maxRotationDeltaPerSecond = 75;
         const turnSpeedDiff = this.state.targetTurnSpeed - object.turnSpeed;
         if (turnSpeedDiff) {
-            const enginePower = capToRange(-maxRotationDeltaPerSecond, maxRotationDeltaPerSecond, turnSpeedDiff);
-            if (this.trySpendEnergy(Math.abs(enginePower) * deltaTime * rotationEnergyCost)) {
-                manager.ChangeTurnSpeed(this.roomId, enginePower * deltaTime);
+            const enginePower = capToRange(
+                -maxRotationDeltaPerSecond * deltaTime,
+                maxRotationDeltaPerSecond * deltaTime,
+                turnSpeedDiff
+            );
+            if (this.trySpendEnergy(Math.abs(enginePower) * rotationEnergyCost)) {
+                manager.ChangeTurnSpeed(this.roomId, enginePower);
             }
         }
     }
