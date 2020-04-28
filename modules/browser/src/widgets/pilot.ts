@@ -3,6 +3,7 @@ import { Container } from 'golden-layout';
 import { getRoomById } from '../client';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
+import { Vec2 } from '@starwards/model';
 // github.com/MaulingMonkey/mmk.gamepad
 
 function pilotComponent(container: Container, p: Props) {
@@ -22,7 +23,9 @@ function pilotComponent(container: Container, p: Props) {
                 deadzone: [-0.1, 0.05],
             }
         );
-        panel.addProperty('energy', () => shipRoom.state.targetTurnSpeed, [0, 1000]);
+        panel.addProperty('velocity', () => Vec2.lengthOf(shipRoom.state.velocity), [0, 1000]);
+        panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-120, 120]);
+        panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
     });
 }
 
