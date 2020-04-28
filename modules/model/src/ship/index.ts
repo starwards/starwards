@@ -1,7 +1,8 @@
-import { Schema, type } from '@colyseus/schema';
+import { type } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
+import { Spaceship, Vec2 } from '../space';
 
-export class ShipState extends Schema {
+export class ShipState extends Spaceship {
     @type('number')
     targetTurnSpeed = 0;
     @type('number')
@@ -9,7 +10,7 @@ export class ShipState extends Schema {
 
     public events = new EventEmitter();
     constructor(isClient = true) {
-        super();
+        super('', new Vec2(), 0);
         if (isClient) {
             this.onChange = (changes) => {
                 changes.forEach((c) => {

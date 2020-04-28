@@ -50,8 +50,8 @@ export class PropertyPanel {
     ) {
         this.viewModel[name] = getValue();
         const guiController = this.gui.add(this.viewModel, name, ...range);
-        this.modelEvents.on(name, (newVal: number) => {
-            this.viewModel[name] = newVal;
+        this.modelEvents.on(name, () => {
+            this.viewModel[name] = getValue();
             guiController.updateDisplay();
         });
         if (onChange) {

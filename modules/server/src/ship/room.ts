@@ -39,13 +39,12 @@ export class ShipRoom extends Room<ShipState> {
     }
 
     update(deltaTime: number, object: Spaceship, manager: SpaceManager) {
+        // sync relevant ship props
+        this.syncShipProperties(object);
+
         const energyPerSecond = 0.5;
         const maxEnergy = 1000;
         this.state.energy = capToRange(0, maxEnergy, this.state.energy + energyPerSecond * deltaTime);
-        // if (this.state.impulse !== 0) {
-        //     const delta = Vec2.Rotate({ x: this.state.impulse * deltaTime, y: 0 }, object.angle);
-        //     manager.ChangeVelocity(this.roomId, delta);
-        // }
         const rotationEnergyCost = 0.01;
         const maxRotationDeltaPerSecond = 75;
         const turnSpeedDiff = this.state.targetTurnSpeed - object.turnSpeed;
@@ -60,6 +59,13 @@ export class ShipRoom extends Room<ShipState> {
             }
         }
     }
+
+    private syncShipProperties(object: Spaceship) {
+        this.state.velocity.x = object.velocity.x;
+        this.state.velocity.y = object.velocity.y;
+        this.state.turnSpeed = object.turnSpeed;
+    }
+
     trySpendEnergy(value: number): boolean {
         if (value < 0) {
             // tslint:disable-next-line: no-console
