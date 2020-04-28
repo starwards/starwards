@@ -37,15 +37,14 @@ export class SpaceManager {
         for (const id of ids) {
             const subject = this.state.get(id);
             if (subject) {
-                subject.position.x += delta.x;
-                subject.position.y += delta.y;
+                SpaceObjectBase.moveObject(subject, delta);
             }
         }
     }
 
     public update(deltaMs: number) {
         this.applyPhysics(deltaMs / 1000);
-        this.handleCollisions();
+        this.handleCollisions(deltaMs / 1000);
     }
 
     public async insert(object: SpaceObject) {
@@ -76,17 +75,25 @@ export class SpaceManager {
         }
     }
 
-    // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
-    private resolveCollision(object: SpaceObject, otherObjext: SpaceObject, result: Result) {
+    private resolveCollision(object: SpaceObject, otherObjext: SpaceObject, result: Result, deltaSeconds: number) {
         const collisionVector = {
             x: (result.overlap * result.overlap_x) / 2,
             y: (result.overlap * result.overlap_y) / 2,
         };
         // each colliding side backs off
-        SpaceObjectBase.moveObject(object, XY.negate(collisionVector));
-        SpaceObjectBase.moveObject(otherObjext, collisionVector);
+        this.collideObject(object, XY.negate(collisionVector), deltaSeconds);
+        this.collideObject(otherObjext, collisionVector, deltaSeconds);
+
         this.updateObjectCollision(object);
         this.updateObjectCollision(otherObjext);
+    }
+
+    // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
+    private collideObject(otherObjext: SpaceObject, collisionVector: XY, deltaSeconds: number) {
+        const elasticityFactor = 0.05; // how much velocity created
+        SpaceObjectBase.moveObject(otherObjext, collisionVector);
+        otherObjext.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
+        otherObjext.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
     }
 
     private updateObjectCollision(object: SpaceObject) {
@@ -100,7 +107,7 @@ export class SpaceManager {
         }
     }
 
-    private handleCollisions() {
+    private handleCollisions(deltaSeconds: number) {
         // update collisions state
         this.collisions.update();
         const result = new Result();
@@ -113,7 +120,7 @@ export class SpaceManager {
                     for (const potential of body.potentials()) {
                         if (body.collides(potential, result)) {
                             const otherObjext = this.collisionToState.get(potential)!;
-                            this.resolveCollision(object, otherObjext, result);
+                            this.resolveCollision(object, otherObjext, result, deltaSeconds);
                         }
                     }
                 } else {
