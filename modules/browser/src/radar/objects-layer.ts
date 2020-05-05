@@ -4,19 +4,19 @@ import { SpaceObject, SpaceState, XY } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import * as PIXI from 'pixi.js';
 import { GameRoom } from '../client';
-import { blipRenderer } from './blip-renderer';
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 
-export class BlipsLayer {
+export type ObjectRenderer = (spaceObject: SpaceObject, root: PIXI.Container, selected: boolean) => Set<string>;
+export class ObjectsLayer {
     private stage = new PIXI.Container();
-    private blips: { [id: string]: Blip } = {};
+    private graphics: { [id: string]: ObjectGraphics } = {};
     constructor(
         private parent: CameraView,
         private room: GameRoom<SpaceState, any>,
+        private renderer: ObjectRenderer,
         private selectedItems: SelectionContainer
     ) {
-        // assume single spaceship, this is the center of the radar
         room.state.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
         room.state.events.on('remove', (spaceObject: SpaceObject) => this.onRemoveSpaceObject(spaceObject.id));
 
@@ -30,23 +30,25 @@ export class BlipsLayer {
     }
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
-        const blip = new Blip(spaceObject, this.parent.worldToScreen);
-        this.blips[spaceObject.id] = blip;
-        this.stage.addChild(blip.stage);
-        blip.listen(this.parent.events as EventEmitter, 'screenChanged', () => blip.updatePosition());
-        blip.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
-            const redraw = changes.reduce((r, change) => blip.onFieldChange(change.field) || r, false);
+        const objGraphics = new ObjectGraphics(spaceObject, this.renderer, this.parent.worldToScreen);
+        this.graphics[spaceObject.id] = objGraphics;
+        this.stage.addChild(objGraphics.stage);
+        objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => objGraphics.updatePosition());
+        objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
+            const redraw = changes.reduce((r, change) => objGraphics.onFieldChange(change.field) || r, false);
             if (redraw) {
-                blip.redraw(this.selectedItems.has(spaceObject));
+                objGraphics.redraw(this.selectedItems.has(spaceObject));
             }
         });
-        blip.listen(this.selectedItems.events, spaceObject.id, () => blip.redraw(this.selectedItems.has(spaceObject)));
+        objGraphics.listen(this.selectedItems.events, spaceObject.id, () =>
+            objGraphics.redraw(this.selectedItems.has(spaceObject))
+        );
     }
 
     private onRemoveSpaceObject(id: string) {
-        const blip = this.blips[id];
-        delete this.blips[id];
-        blip.destroy();
+        const objGraphics = this.graphics[id];
+        delete this.graphics[id];
+        objGraphics.destroy();
     }
 }
 
@@ -54,11 +56,15 @@ export class BlipsLayer {
  * internal class
  */
 // tslint:disable-next-line: max-classes-per-file
-class Blip {
+class ObjectGraphics {
     public stage = new PIXI.Container();
     private renderedProperties = new Set<string>();
     private disposables: Array<() => void> = [];
-    constructor(private spaceObject: SpaceObject, private worldToScreen: (w: XY) => XY) {
+    constructor(
+        private spaceObject: SpaceObject,
+        private renderer: ObjectRenderer,
+        private worldToScreen: (w: XY) => XY
+    ) {
         this.updatePosition();
         this.redraw(false);
     }
@@ -70,9 +76,9 @@ class Blip {
     }
 
     redraw(isSelected: boolean) {
-        // re-draw blip
+        // re-draw
         this.stage.removeChildren();
-        this.renderedProperties = blipRenderer(this.spaceObject, this.stage, isSelected);
+        this.renderedProperties = this.renderer(this.spaceObject, this.stage, isSelected);
     }
 
     onFieldChange(field: string): boolean {

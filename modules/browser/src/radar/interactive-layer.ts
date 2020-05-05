@@ -116,7 +116,7 @@ export class InteractiveLayer {
                 this.dragFrom = dragTo;
             } else if (this.actionType === ActionType.dragObjects) {
                 const dragTo = event.data.getLocalPosition(this.stage);
-                const screenMove = XY.add(dragTo, XY.negate(this.dragFrom));
+                const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
                 this.room.send('MoveObjects', {
                     ids: [...this.selectedItems.selectedItems].map((o) => o.id),

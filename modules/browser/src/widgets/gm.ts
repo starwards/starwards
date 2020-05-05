@@ -7,8 +7,10 @@ import { CameraView } from '../radar/camera-view';
 import { Camera } from '../radar/camera';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
-import { BlipsLayer } from '../radar/blips-layer';
+import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
+import { blipRenderer } from '../radar/blip-renderer';
+// import { velocityRenderer } from '../radar/velocity-renderer';
 
 // TODO: use https://github.com/dataarts/dat.gui
 function gmComponent(container: Container, state: { zoom: number }) {
@@ -21,8 +23,10 @@ function gmComponent(container: Container, state: { zoom: number }) {
         const room = await getGlobalRoom('space');
         const selectionContainer = new SelectionContainer(room);
         const selection = new InteractiveLayer(root, room, selectionContainer);
-        const blipper = new BlipsLayer(root, room, selectionContainer);
-        root.addLayer(blipper.renderRoot);
+        const blipLayer = new ObjectsLayer(root, room, blipRenderer, selectionContainer);
+        root.addLayer(blipLayer.renderRoot);
+        // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
+        // root.addLayer(velocityLayer.renderRoot);
         root.addLayer(selection.renderRoot);
     });
 }

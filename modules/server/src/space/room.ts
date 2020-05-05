@@ -11,6 +11,11 @@ export class SpaceRoom extends Room<SpaceState> {
         this.autoDispose = false;
     }
 
+    onDispose() {
+        console.error('trying to dispose of SpaceRoom!');
+        return new Promise(() => {}); // never surrender!
+    }
+
     public async onLeave(client: Client, consented: boolean) {
         if (!consented) {
             await this.allowReconnection(client, 30);

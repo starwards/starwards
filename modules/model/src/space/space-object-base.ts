@@ -26,11 +26,11 @@ export abstract class SpaceObjectBase extends Schema {
     public abstract readonly type: keyof SpaceObjects;
 
     @type('string')
-    public id: string;
+    public id: string = '';
     @type(Vec2)
-    public position: Vec2;
+    public position: Vec2 = new Vec2(0, 0);
     @type('uint16')
-    public radius: number;
+    public radius: number = 0;
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 
@@ -46,10 +46,10 @@ export abstract class SpaceObjectBase extends Schema {
     @type('float32')
     public turnSpeed: number = 0;
 
-    constructor(id: string, position: Vec2, radius: number) {
-        super();
+    init(id: string, position: Vec2, radius: number): this {
         this.id = id;
         this.position = position;
         this.radius = radius;
+        return this;
     }
 }

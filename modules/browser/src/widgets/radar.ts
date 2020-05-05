@@ -3,22 +3,21 @@ import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
 import { getGlobalRoom, NamedGameRoom } from '../client';
-import { preloadList } from '../radar/blip-renderer';
+import { blipRenderer } from '../radar/blip-renderer';
 import $ from 'jquery';
 import { DashboardWidget } from './dashboard';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
-import { BlipsLayer } from '../radar/blips-layer';
+import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceObject } from '@starwards/model';
+import { velocityRenderer } from '../radar/velocity-renderer';
 
 WebFont.load({
     custom: {
         families: ['Bebas'],
     },
 });
-
-PIXI.Loader.shared.add(preloadList);
 
 function radarComponent(container: Container, state: Props) {
     const camera = new Camera();
@@ -28,8 +27,10 @@ function radarComponent(container: Container, state: Props) {
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
         const room = await getGlobalRoom('space');
-        const blipper = new BlipsLayer(root, room, new SelectionContainer(room));
-        root.addLayer(blipper.renderRoot);
+        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room));
+        root.addLayer(blipLayer.renderRoot);
+        // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
+        // root.addLayer(velocityLayer.renderRoot);
         trackObject(camera, room, state.subjectId);
     });
 }

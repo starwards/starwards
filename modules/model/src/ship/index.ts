@@ -6,6 +6,10 @@ export class ShipState extends Spaceship {
     @type('number')
     targetTurnSpeed = 0;
     @type('number')
+    impulse = 0;
+    @type('number')
+    stabilizer = 0;
+    @type('number')
     energy = 1000;
 
     public events = new EventEmitter();
