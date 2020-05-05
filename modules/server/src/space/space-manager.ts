@@ -89,6 +89,7 @@ export class SpaceManager {
     }
 
     // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
+    // todo add spin
     private collideObject(otherObjext: SpaceObject, collisionVector: XY, deltaSeconds: number) {
         const elasticityFactor = 0.05; // how much velocity created
         SpaceObjectBase.moveObject(otherObjext, collisionVector);

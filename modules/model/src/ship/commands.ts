@@ -7,6 +7,9 @@ export interface ShipCommands {
     SetImpulse: {
         value: number;
     };
+    SetStabilizer: {
+        value: number;
+    };
     SetRotation: {
         value: number;
     };

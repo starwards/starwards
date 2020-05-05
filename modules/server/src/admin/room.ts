@@ -15,6 +15,10 @@ export class AdminRoom extends Room<AdminState> {
             await this.allowReconnection(client, 30);
         }
     }
+    onDispose() {
+        console.error(`trying to dispose of AdminRoom`);
+        return new Promise(() => {}); // never surrender!
+    }
 
     public onCreate() {
         this.setState(new AdminState());

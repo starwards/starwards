@@ -17,6 +17,7 @@ export type GamePadAxis = {
     gamepadIndex: number;
     axisIndex: number;
     deadzone: [number, number];
+    inverted?: boolean;
 };
 
 type AxisListener = { axis: GamePadAxis; range: [number, number]; onChange: (v: number) => any };
@@ -32,7 +33,10 @@ export class PropertyPanel {
             for (const listener of this.axes) {
                 if (e.axisIndex === listener.axis.axisIndex && e.gamepadIndex === listener.axis.gamepadIndex) {
                     let value = e.axisValue;
-                    if (isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], e.axisValue)) {
+                    if (listener.axis.inverted) {
+                        value = -value;
+                    }
+                    if (isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], value)) {
                         value = 0;
                     }
                     value = lerpAxisToRange(value, listener.range);

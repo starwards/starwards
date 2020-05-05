@@ -24,14 +24,14 @@ const InGameMenu = () => {
     });
     return (
         <ul>
-            <li>
-                <Button key="gmb" onClick={() => window.location.assign('gm')} animate>
+            <li key="gmb">
+                <Button onClick={() => window.location.assign('gm')} animate>
                     GM Screen
                 </Button>
             </li>
             {ships.map((shipId) => (
-                <li>
-                    <Button key="pb" onClick={() => window.location.assign('player?id=' + shipId)} animate>
+                <li key={shipId}>
+                    <Button onClick={() => window.location.assign('player?id=' + shipId)} animate>
                         Play: {shipId}
                     </Button>
                 </li>

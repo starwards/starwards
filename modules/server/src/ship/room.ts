@@ -1,4 +1,4 @@
-import { ShipState, ShipCommands, Spaceship } from '@starwards/model';
+import { ShipCommands, ShipState, Spaceship, XY } from '@starwards/model';
 import { Client, Room } from 'colyseus';
 import { SpaceManager } from '../space/space-manager';
 
@@ -14,28 +14,32 @@ export class ShipRoom extends Room<ShipState> {
         }
     }
 
+    onDispose() {
+        console.error(`trying to dispose of ShipRoom ${this.roomId}`);
+        return new Promise(() => {}); // never surrender!
+    }
     public onCreate({ object, manager }: { object: Spaceship; manager: SpaceManager }) {
         this.roomId = object.id;
         this.setState(new ShipState(false));
         this.setSimulationInterval((deltaMs) => this.update(deltaMs / 1000, object, manager));
         this.onMessage('ChangeTurnSpeed', (_, msg: ShipCommands['ChangeTurnSpeed']) =>
-            manager.ChangeTurnSpeed(this.roomId, msg.delta)
+            manager.ChangeTurnSpeed(object.id, msg.delta)
         );
         this.onMessage('SetTurnSpeed', (_, msg: ShipCommands['SetTurnSpeed']) =>
-            manager.SetTurnSpeed(this.roomId, msg.value)
+            manager.SetTurnSpeed(object.id, msg.value)
         );
         this.onMessage('ChangeVelocity', (_, msg: ShipCommands['ChangeVelocity']) =>
-            manager.ChangeVelocity(this.roomId, msg.delta)
+            manager.ChangeVelocity(object.id, msg.delta)
         );
         this.onMessage('SetVelocity', (_, msg: ShipCommands['SetVelocity']) =>
-            manager.SetVelocity(this.roomId, msg.value)
+            manager.SetVelocity(object.id, msg.value)
         );
-        // this.onMessage('SetImpulse', (_, msg: ShipCommands['SetImpulse']) => (this.state.impulse = msg.value));
+        this.onMessage('SetImpulse', (_, msg: ShipCommands['SetImpulse']) => (this.state.impulse = msg.value));
         // this.onMessage('SetRotation', (_, msg: ShipCommands['SetRotation']) => (this.state.rotation = msg.value));
-        this.onMessage(
-            'SetTargetTurnSpeed',
-            (_, msg: ShipCommands['SetTargetTurnSpeed']) => (this.state.targetTurnSpeed = msg.value)
-        );
+        this.onMessage('SetTargetTurnSpeed', (_, msg: ShipCommands['SetTargetTurnSpeed']) => {
+            this.state.targetTurnSpeed = msg.value;
+        });
+        this.onMessage('SetStabilizer', (_, msg: ShipCommands['SetStabilizer']) => (this.state.stabilizer = msg.value));
     }
 
     update(deltaTime: number, object: Spaceship, manager: SpaceManager) {
@@ -55,7 +59,31 @@ export class ShipRoom extends Room<ShipState> {
                 turnSpeedDiff
             );
             if (this.trySpendEnergy(Math.abs(enginePower) * rotationEnergyCost)) {
-                manager.ChangeTurnSpeed(this.roomId, enginePower);
+                manager.ChangeTurnSpeed(object.id, enginePower);
+            }
+        }
+        const stabilizerEnergyCost = 0.07;
+        if (this.state.stabilizer) {
+            const nonDriftVelocity = XY.projection(object.velocity, XY.rotate(XY.one, object.angle));
+            const velocityDiff = XY.scale(XY.difference(nonDriftVelocity, this.state.velocity), this.state.stabilizer);
+            const diffLenfth = XY.lengthOf(velocityDiff);
+            if (diffLenfth) {
+                const enginePower = capToRange(
+                    -maxRotationDeltaPerSecond * deltaTime,
+                    maxRotationDeltaPerSecond * deltaTime,
+                    diffLenfth
+                );
+
+                if (this.trySpendEnergy(enginePower * stabilizerEnergyCost)) {
+                    manager.ChangeVelocity(object.id, XY.scale(velocityDiff, enginePower / diffLenfth));
+                }
+            }
+        }
+
+        const impulseEnergyCost = 5;
+        if (this.state.impulse) {
+            if (this.trySpendEnergy(Math.abs(this.state.impulse) * deltaTime * impulseEnergyCost)) {
+                manager.ChangeVelocity(object.id, XY.rotate({ x: this.state.impulse * deltaTime, y: 0 }, object.angle));
             }
         }
     }
@@ -64,6 +92,7 @@ export class ShipRoom extends Room<ShipState> {
         this.state.velocity.x = object.velocity.x;
         this.state.velocity.y = object.velocity.y;
         this.state.turnSpeed = object.turnSpeed;
+        this.state.angle = object.angle;
     }
 
     trySpendEnergy(value: number): boolean {

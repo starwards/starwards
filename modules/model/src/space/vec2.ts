@@ -29,14 +29,22 @@ import { Schema, type } from '@colyseus/schema';
 
 // tslint:disable-next-line:no-namespace
 export namespace XY {
-    export const one = Object.freeze({ x: 1, y: 1 });
+    export const one = Object.freeze({ x: 1, y: 0 });
     export const zero = Object.freeze({ x: 0, y: 0 });
+    export const degToRad = Math.PI / 180;
     export function add(vector: XY, vector2: XY): XY {
         return {
             x: vector.x + vector2.x,
             y: vector.y + vector2.y,
         };
     }
+    export function difference(vector: XY, vector2: XY) {
+        return {
+            x: vector.x - vector2.x,
+            y: vector.y - vector2.y,
+        };
+    }
+
     export function negate(vector: XY): XY {
         return { x: -vector.x, y: -vector.y };
     }
@@ -64,6 +72,79 @@ export namespace XY {
     export function inRange(point: XY, start: XY, end: XY): boolean {
         return start.x <= point.x && point.x <= end.x && start.y <= point.y && point.y <= end.y;
     }
+    export function rotate(vector: XY, degrees: number) {
+        return rotateRadians(vector, degrees * degToRad);
+    }
+    export function rotateRadians(vector: XY, radians: number) {
+        const ca = Math.cos(radians);
+        const sa = Math.sin(radians);
+        return {
+            x: ca * vector.x - sa * vector.y,
+            y: sa * vector.x - ca * vector.y,
+        };
+    }
+
+    export function lengthOf(vector: XY): number {
+        return Math.sqrt(XY.squaredLength(vector));
+    }
+
+    export function squaredLength(vector: XY): number {
+        const x = vector.x;
+        const y = vector.y;
+
+        return x * x + y * y;
+    }
+
+    export function normalize(vector: XY) {
+        const length = lengthOf(vector);
+        if (length === 1) {
+            return vector;
+        } else if (length === 0) {
+            return XY.zero;
+        } else {
+            return XY.scale(vector, 1 / length);
+        }
+    }
+
+    export function direction(vector: XY, vector2: XY) {
+        return XY.normalize(XY.difference(vector, vector2));
+    }
+
+    export function angleOf(vector: XY) {
+        if (vector.x === 0)
+            // special cases
+            return vector.y > 0 ? 90 : vector.y === 0 ? 0 : 270;
+        else if (vector.y === 0)
+            // special cases
+            return vector.x >= 0 ? 0 : 180;
+
+        let ret = Math.atan(vector.y / vector.x) / degToRad;
+        if (vector.x < 0 && vector.y < 0)
+            // quadrant Ⅲ
+            ret = 180 + ret;
+        else if (vector.x < 0)
+            // quadrant Ⅱ
+            ret = 180 + ret;
+        // it actually substracts
+        else if (vector.y < 0)
+            // quadrant Ⅳ
+            ret = 270 + (90 + ret); // it actually substracts
+        if (ret >= 359.9999) {
+            return ret % 360;
+        }
+        return ret;
+    }
+
+    // https://en.wikipedia.org/wiki/Dot_product
+    export function dot(vector: XY, vector2: XY): number {
+        return vector.x * vector2.x + vector.y * vector2.y;
+    }
+
+    // https://www.ck12.org/book/ck-12-college-precalculus/section/9.6/
+    export function projection(vector: XY, dimention: XY): XY {
+        const normDimention = XY.normalize(dimention);
+        return XY.scale(normDimention, XY.dot(vector, normDimention));
+    }
 }
 export interface XY {
     readonly x: number;
@@ -72,7 +153,7 @@ export interface XY {
 
 export class Vec2 extends Schema implements XY {
     public static Rotate(vector: XY, degrees: number, dest?: Vec2) {
-        return Vec2.RotateRadians(vector, degrees * Vec2.DegToRad, dest);
+        return Vec2.RotateRadians(vector, degrees * XY.degToRad, dest);
     }
 
     public static RotateRadians(vector: XY, radians: number, dest?: Vec2) {
@@ -227,8 +308,6 @@ export class Vec2 extends Schema implements XY {
 
         return x * x + y * y;
     }
-
-    private static readonly DegToRad = Math.PI / 180;
 
     @type('float32')
     public x: number = 0;
