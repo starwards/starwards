@@ -1,11 +1,9 @@
-import '@maulingmonkey/gamepad';
 import { Container } from 'golden-layout';
 import { getRoomById } from '../client';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
 import { XY } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
-// github.com/MaulingMonkey/mmk.gamepad
 
 function pilotComponent(container: Container, p: Props) {
     getRoomById('ship', p.shipId).then((shipRoom) => {
@@ -33,14 +31,11 @@ function pilotComponent(container: Container, p: Props) {
             [0, 5],
             (value) => {
                 shipRoom.send('SetImpulse', { value });
+            },
+            {
+                gamepadIndex: 0,
+                buttonIndex: 0,
             }
-            // ,
-            // {
-            //     gamepadIndex: 0,
-            //     axisIndex: 2,
-            //     deadzone: [0, 0],
-            //     inverted: true,
-            // }
         );
         panel.addProperty(
             'stabilizer',
