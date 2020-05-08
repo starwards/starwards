@@ -19,7 +19,7 @@ export abstract class SpaceObjectBase extends Schema {
      * change angle
      */
     public static rotateObject(object: SpaceObjectBase, turnSpeed: number, deltaSeconds: number = 1) {
-        object.angle = (object.angle + turnSpeed * deltaSeconds) % 360;
+        object.angle = (360 + object.angle + turnSpeed * deltaSeconds) % 360;
     }
 
     @type('string')
