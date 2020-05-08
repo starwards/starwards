@@ -13,22 +13,47 @@ function lerpAxisToRange(axisValue: number, range: [number, number]) {
     return (1 - t) * range[0] + t * range[1];
 }
 
-export type GamePadAxis = {
+export type GamepadAxis = {
     gamepadIndex: number;
     axisIndex: number;
     deadzone: [number, number];
     inverted?: boolean;
 };
+export type GamepadButton = {
+    gamepadIndex: number;
+    buttonIndex: number;
+    inverted?: boolean;
+};
 
-type AxisListener = { axis: GamePadAxis; range: [number, number]; onChange: (v: number) => any };
+function isGamepadAxis(v: any): v is GamepadAxis {
+    return v && typeof v.axisIndex === 'number';
+}
+function isGamepadButton(v: any): v is GamepadButton {
+    return v && typeof v.buttonIndex === 'number';
+}
+
+type AxisListener = { axis: GamepadAxis; range: [number, number]; onChange: (v: number) => any };
+type ButtonListener = { button: GamepadButton; range: [number, number]; onChange: (v: number) => any };
 
 export class PropertyPanel {
     private viewModel: Dictionary<number> = {};
     private gui = new GUI({ autoPlace: false, hideable: false });
     private axes: AxisListener[] = [];
+    private buttons: ButtonListener[] = [];
     constructor(private modelEvents: EventEmitter) {}
     init(container: Container) {
         container.getElement().append(this.gui.domElement);
+        addEventListener('mmk-gamepad-button-value', (e) => {
+            for (const listener of this.buttons) {
+                if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
+                    let value = e.buttonValue;
+                    if (listener.button.inverted) {
+                        value = 1 - value;
+                    }
+                    listener.onChange(listener.range[value]);
+                }
+            }
+        });
         addEventListener('mmk-gamepad-axis-value', (e) => {
             for (const listener of this.axes) {
                 if (e.axisIndex === listener.axis.axisIndex && e.gamepadIndex === listener.axis.gamepadIndex) {
@@ -50,7 +75,7 @@ export class PropertyPanel {
         getValue: () => number,
         range: [number, number],
         onChange?: (v: number) => any,
-        gamepad?: GamePadAxis
+        gamepad?: GamepadAxis | GamepadButton
     ) {
         this.viewModel[name] = getValue();
         const guiController = this.gui.add(this.viewModel, name, ...range);
@@ -61,7 +86,11 @@ export class PropertyPanel {
         if (onChange) {
             guiController.onChange(onChange);
             if (gamepad) {
-                this.axes.push({ axis: gamepad, onChange, range });
+                if (isGamepadAxis(gamepad)) {
+                    this.axes.push({ axis: gamepad, onChange, range });
+                } else if (isGamepadButton(gamepad)) {
+                    this.buttons.push({ button: gamepad, onChange, range });
+                }
             }
         } else {
             guiController.onChange(() => {
