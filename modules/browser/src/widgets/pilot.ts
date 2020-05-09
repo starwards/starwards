@@ -10,6 +10,9 @@ function pilotComponent(container: Container, p: Props) {
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
+        container.on('destroy', () => {
+            panel.destroy();
+        });
         panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
         panel.addProperty(
             'targetTurnSpeed',

@@ -10,7 +10,9 @@ function shipConstantsComponent(container: Container, p: Props) {
             const viewModelChanges = new EventEmitter();
             const panel = new PropertyPanel(viewModelChanges);
             panel.init(container);
-
+            container.on('destroy', () => {
+                panel.destroy();
+            });
             shipRoom.state.constants.onAdd = (_, name) => {
                 const val = shipRoom.state.constants[name];
                 panel.addProperty(
