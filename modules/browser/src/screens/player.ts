@@ -4,7 +4,9 @@ import { Dashboard } from '../widgets/dashboard';
 import { keyboardWidget } from '../widgets/keyboard';
 import { pilotWidget } from '../widgets/pilot';
 
-const dashboard = new Dashboard({ content: [] }, $('#layoutContainer'));
+const layoutStorageKey = 'pilotLayout';
+const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
+const dashboard = new Dashboard(JSON.parse(layoutStr), $('#layoutContainer'));
 dashboard.setup();
 dashboard.setDragContainer($('#menuContainer'));
 
@@ -19,7 +21,6 @@ if (shipId) {
     console.log('shipId is missing from URL');
 }
 
-// dashboard.on('stateChanged', function () {
-//     // var state = JSON.stringify(dashboard.toConfig());
-//     console.log('savedState', dashboard.toConfig());
-// });
+dashboard.on('stateChanged', function () {
+    localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig()));
+});
