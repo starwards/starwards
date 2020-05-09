@@ -22,17 +22,24 @@ const InGameMenu = () => {
         loop.start();
         return loop.stop;
     });
+    const layouts = new Set<string>(ships.map((shipId) => 'pilot-' + shipId));
+    for (const key in localStorage) {
+        if (key.startsWith('layout:')) {
+            layouts.add(key.substring('layout:'.length));
+        }
+        // console.log(localStorage.getItem(key));
+    }
     return (
         <ul>
-            <li key="gmb">
+            <li key="empty">
                 <Button onClick={() => window.location.assign('gm.html')} animate>
-                    GM Screen
+                    empty screen
                 </Button>
             </li>
-            {ships.map((shipId) => (
-                <li key={shipId}>
-                    <Button onClick={() => window.location.assign('player.html?id=' + shipId)} animate>
-                        Play: {shipId}
+            {[...layouts].map((layout) => (
+                <li key={layout}>
+                    <Button onClick={() => window.location.assign('gm.html?layout=' + layout)} animate>
+                        {layout}
                     </Button>
                 </li>
             ))}
