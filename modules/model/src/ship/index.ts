@@ -1,8 +1,11 @@
-import { type } from '@colyseus/schema';
+import { type, MapSchema } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
 import { Spaceship, Vec2 } from '../space';
 
 export class ShipState extends Spaceship {
+    @type({ map: 'number' })
+    constants!: MapSchema<number>;
+
     @type('number')
     targetTurnSpeed = 0;
     @type('number')

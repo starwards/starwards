@@ -1,6 +1,7 @@
 import { ShipCommands, ShipState, Spaceship, XY } from '@starwards/model';
 import { Client, Room } from 'colyseus';
 import { SpaceManager } from '../space/space-manager';
+import { MapSchema } from '@colyseus/schema';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -19,9 +20,20 @@ export class ShipRoom extends Room<ShipState> {
         console.error(`trying to dispose of ShipRoom ${this.roomId}`);
         return new Promise(() => 0); // never surrender!
     }
+    private setInitialState() {
+        const state = new ShipState(false);
+        state.constants = new MapSchema<number>();
+        state.constants.energyPerSecond = 0.5;
+        state.constants.maxEnergy = 1000;
+        state.constants.rotationEnergyCost = 0.01;
+        state.constants.maxRotationDeltaPerSecond = 75;
+        state.constants.stabilizerEnergyCost = 0.07;
+        state.constants.impulseEnergyCost = 5;
+        this.setState(state);
+    }
     public onCreate({ object, manager }: { object: Spaceship; manager: SpaceManager }) {
         this.roomId = object.id;
-        this.setState(new ShipState(false));
+        this.setInitialState();
         this.setSimulationInterval((deltaMs) => this.update(deltaMs / 1000, object, manager));
         this.onMessage('ChangeTurnSpeed', (_, msg: ShipCommands['ChangeTurnSpeed']) =>
             manager.ChangeTurnSpeed(object.id, msg.delta)
@@ -41,49 +53,53 @@ export class ShipRoom extends Room<ShipState> {
             this.state.targetTurnSpeed = msg.value;
         });
         this.onMessage('SetStabilizer', (_, msg: ShipCommands['SetStabilizer']) => (this.state.stabilizer = msg.value));
+        this.onMessage(
+            'SetConstant',
+            (_, msg: ShipCommands['SetConstant']) => (this.state.constants[msg.name] = msg.value)
+        );
     }
 
     update(deltaTime: number, object: Spaceship, manager: SpaceManager) {
         // sync relevant ship props
         this.syncShipProperties(object);
 
-        const energyPerSecond = 0.5;
-        const maxEnergy = 1000;
-        this.state.energy = capToRange(0, maxEnergy, this.state.energy + energyPerSecond * deltaTime);
-        const rotationEnergyCost = 0.01;
-        const maxRotationDeltaPerSecond = 75;
+        this.state.energy = capToRange(
+            0,
+            this.state.constants.maxEnergy,
+            this.state.energy + this.state.constants.energyPerSecond * deltaTime
+        );
         const turnSpeedDiff = this.state.targetTurnSpeed - object.turnSpeed;
         if (turnSpeedDiff) {
             const enginePower = capToRange(
-                -maxRotationDeltaPerSecond * deltaTime,
-                maxRotationDeltaPerSecond * deltaTime,
+                -this.state.constants.maxRotationDeltaPerSecond * deltaTime,
+                this.state.constants.maxRotationDeltaPerSecond * deltaTime,
                 turnSpeedDiff
             );
-            if (this.trySpendEnergy(Math.abs(enginePower) * rotationEnergyCost)) {
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.rotationEnergyCost)) {
                 manager.ChangeTurnSpeed(object.id, enginePower);
             }
         }
-        const stabilizerEnergyCost = 0.07;
         if (this.state.stabilizer) {
             const nonDriftVelocity = XY.projection(object.velocity, XY.rotate(XY.one, object.angle));
             const velocityDiff = XY.scale(XY.difference(nonDriftVelocity, this.state.velocity), this.state.stabilizer);
             const diffLenfth = XY.lengthOf(velocityDiff);
             if (diffLenfth) {
                 const enginePower = capToRange(
-                    -maxRotationDeltaPerSecond * deltaTime,
-                    maxRotationDeltaPerSecond * deltaTime,
+                    -this.state.constants.maxRotationDeltaPerSecond * deltaTime,
+                    this.state.constants.maxRotationDeltaPerSecond * deltaTime,
                     diffLenfth
                 );
 
-                if (this.trySpendEnergy(enginePower * stabilizerEnergyCost)) {
+                if (this.trySpendEnergy(enginePower * this.state.constants.stabilizerEnergyCost)) {
                     manager.ChangeVelocity(object.id, XY.scale(velocityDiff, enginePower / diffLenfth));
                 }
             }
         }
 
-        const impulseEnergyCost = 5;
         if (this.state.impulse) {
-            if (this.trySpendEnergy(Math.abs(this.state.impulse) * deltaTime * impulseEnergyCost)) {
+            if (
+                this.trySpendEnergy(Math.abs(this.state.impulse) * deltaTime * this.state.constants.impulseEnergyCost)
+            ) {
                 manager.ChangeVelocity(object.id, XY.rotate({ x: this.state.impulse * deltaTime, y: 0 }, object.angle));
             }
         }

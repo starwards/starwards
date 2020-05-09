@@ -26,6 +26,11 @@ export interface ShipCommands {
     SetVelocity: {
         value: XY;
     };
+    // changes to ship
+    SetConstant: {
+        name: string;
+        value: number;
+    };
 }
 
 export type ShipCommand = ShipCommands[keyof ShipCommands];
