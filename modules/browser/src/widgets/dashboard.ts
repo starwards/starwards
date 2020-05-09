@@ -1,3 +1,4 @@
+// tslint:disable: max-classes-per-file
 import GoldenLayout, { Container, ContentItem, ReactProps, Tab } from 'golden-layout';
 import $ from 'jquery';
 import React, { ComponentClass } from 'react';
@@ -25,31 +26,54 @@ export interface DashboardWidget<T extends object = object> {
 }
 export class Dashboard extends GoldenLayout {
     private dragContainer: JQuery<HTMLElement> | null = null;
-    public setup(): void {
-        this.on('stackCreated', (stack: ContentItem & Tab) => {
-            stack.on('activeContentItemChanged', () =>
-                // clean up any outdated widget headers
-                stack.header.controlsContainer.find('.widget_header').detach()
-            );
-        });
-        super.init();
-    }
+    private widgets: Array<DashboardWidget<any>> = [];
 
-    public registerWidget<T extends object>(
-        { name, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
-        props: Partial<T> = {}
-    ) {
-        this.registerComponent(name, component);
-        this.registerWidgetMenuItem(name, { ...defaultProps, ...props }, type);
-        if (makeHeaders) {
-            this.registerWidgetHeaders(name, makeHeaders);
-        }
-    }
+    private readonly onNewStack = (stack: ContentItem & Tab) => {
+        stack.on('activeContentItemChanged', (contentItem: ContentItem) => {
+            // clean up any outdated widget headers
+            stack.header.controlsContainer.find('.widget_header').detach();
+            if (contentItem) {
+                for (const widget of this.widgets) {
+                    if (widget.makeHeaders && contentItem.config.id === widget.name) {
+                        const headers = widget.makeHeaders(contentItem.container);
+                        for (const header of headers.reverse()) {
+                            stack.header.controlsContainer.prepend($('<li class="widget_header"></li>').append(header));
+                        }
+                    }
+                }
+            }
+        });
+    };
 
     public setDragContainer(dragSource: JQuery<HTMLElement>) {
         if (dragSource.length) {
             this.dragContainer = dragSource;
         }
+    }
+
+    public setup(): void {
+        this.destroy();
+        if (this.dragContainer) {
+            this.dragContainer.empty();
+        }
+        this.on('stackCreated', this.onNewStack);
+        try {
+            super.init();
+            for (const widget of this.widgets) {
+                this.registerWidgetMenuItem(widget.name, widget.defaultProps, widget.type);
+            }
+            // tslint:disable-next-line: no-empty
+        } catch (e) {}
+    }
+
+    public registerWidget<T extends object>(
+        { name: wName, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
+        props: Partial<T> = {},
+        name?: string
+    ) {
+        name = name || wName;
+        this.registerComponent(name, component);
+        this.widgets.push({ name, type, component, defaultProps: { ...defaultProps, ...props }, makeHeaders });
     }
 
     private registerWidgetMenuItem(name: string, props: object, type: DashboardWidget['type']) {
@@ -72,18 +96,5 @@ export class Dashboard extends GoldenLayout {
             }
             this.createDragSource(menuItem, newItemConfig);
         }
-    }
-
-    private registerWidgetHeaders(name: string, makeHeaders: MakeHeaders) {
-        this.on('stackCreated', (stack: ContentItem & Tab) =>
-            stack.on('activeContentItemChanged', (contentItem: ContentItem) => {
-                if (contentItem && contentItem.config.id === name) {
-                    const headers = makeHeaders(contentItem.container);
-                    for (const header of headers.reverse()) {
-                        stack.header.controlsContainer.prepend($('<li class="widget_header"></li>').append(header));
-                    }
-                }
-            })
-        );
     }
 }

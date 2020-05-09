@@ -9,7 +9,7 @@ const layoutStorageKey = 'pilotLayout';
 const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
 const dashboard = new Dashboard(JSON.parse(layoutStr), $('#layoutContainer'));
 dashboard.setup();
-dashboard.setDragContainer($('#menuContainer'));
+dashboard.oneTimeSetup($('#menuContainer'));
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipId = urlParams.get('id');
