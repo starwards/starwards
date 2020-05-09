@@ -40,35 +40,44 @@ export class PropertyPanel {
     private gui = new GUI({ autoPlace: false, hideable: false });
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
+    private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
+        for (const listener of this.buttons) {
+            if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
+                let value = e.buttonValue;
+                if (listener.button.inverted) {
+                    value = 1 - value;
+                }
+                listener.onChange(listener.range[value]);
+            }
+        }
+    };
+
+    private readonly onAxis = (e: mmk.gamepad.GamepadAxisEvent & CustomEvent<undefined>): void => {
+        for (const listener of this.axes) {
+            if (e.axisIndex === listener.axis.axisIndex && e.gamepadIndex === listener.axis.gamepadIndex) {
+                let value = e.axisValue;
+                if (listener.axis.inverted) {
+                    value = -value;
+                }
+                if (isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], value)) {
+                    value = 0;
+                }
+                value = lerpAxisToRange(value, listener.range);
+                listener.onChange(value);
+            }
+        }
+    };
+
     constructor(private modelEvents: EventEmitter) {}
     init(container: Container) {
         container.getElement().append(this.gui.domElement);
-        addEventListener('mmk-gamepad-button-value', (e) => {
-            for (const listener of this.buttons) {
-                if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
-                    let value = e.buttonValue;
-                    if (listener.button.inverted) {
-                        value = 1 - value;
-                    }
-                    listener.onChange(listener.range[value]);
-                }
-            }
-        });
-        addEventListener('mmk-gamepad-axis-value', (e) => {
-            for (const listener of this.axes) {
-                if (e.axisIndex === listener.axis.axisIndex && e.gamepadIndex === listener.axis.gamepadIndex) {
-                    let value = e.axisValue;
-                    if (listener.axis.inverted) {
-                        value = -value;
-                    }
-                    if (isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], value)) {
-                        value = 0;
-                    }
-                    value = lerpAxisToRange(value, listener.range);
-                    listener.onChange(value);
-                }
-            }
-        });
+        addEventListener('mmk-gamepad-button-value', this.onButton);
+        addEventListener('mmk-gamepad-axis-value', this.onAxis);
+    }
+    destroy() {
+        removeEventListener('mmk-gamepad-axis-value', this.onAxis);
+        removeEventListener('mmk-gamepad-button-value', this.onButton);
+        this.gui.destroy();
     }
     addProperty(
         name: string,
