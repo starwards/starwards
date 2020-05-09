@@ -12,8 +12,9 @@ export class SpaceRoom extends Room<SpaceState> {
     }
 
     onDispose() {
+        // tslint:disable-next-line: no-console
         console.error('trying to dispose of SpaceRoom!');
-        return new Promise(() => {}); // never surrender!
+        return new Promise(() => 0); // never surrender!
     }
 
     public async onLeave(client: Client, consented: boolean) {

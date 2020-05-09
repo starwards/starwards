@@ -16,8 +16,9 @@ export class AdminRoom extends Room<AdminState> {
         }
     }
     onDispose() {
+        // tslint:disable-next-line: no-console
         console.error(`trying to dispose of AdminRoom`);
-        return new Promise(() => {}); // never surrender!
+        return new Promise(() => 0); // never surrender!
     }
 
     public onCreate() {

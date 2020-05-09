@@ -7,7 +7,6 @@ import EventEmitter from 'eventemitter3';
 
 function pilotComponent(container: Container, p: Props) {
     getRoomById('ship', p.shipId).then((shipRoom) => {
-        console.log('connected to ', p.shipId, shipRoom.state.id);
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
