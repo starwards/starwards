@@ -25,13 +25,13 @@ const InGameMenu = () => {
     return (
         <ul>
             <li key="gmb">
-                <Button onClick={() => window.location.assign('gm')} animate>
+                <Button onClick={() => window.location.assign('gm.html')} animate>
                     GM Screen
                 </Button>
             </li>
             {ships.map((shipId) => (
                 <li key={shipId}>
-                    <Button onClick={() => window.location.assign('player?id=' + shipId)} animate>
+                    <Button onClick={() => window.location.assign('player.html?id=' + shipId)} animate>
                         Play: {shipId}
                     </Button>
                 </li>
@@ -39,7 +39,11 @@ const InGameMenu = () => {
         </ul>
     );
 };
-
+/*
+onClick={() => {
+    window.location.href = '/player.html?id=' + shipId;
+}}
+*/
 export const Lobby = () => {
     const [gamesCount, setgamesCount] = useState(0);
 

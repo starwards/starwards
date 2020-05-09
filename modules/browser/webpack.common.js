@@ -22,12 +22,12 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            filename: 'player',
+            filename: 'player.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
             chunks: ['player'],
         }),
         new HtmlWebpackPlugin({
-            filename: 'gm',
+            filename: 'gm.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
             chunks: ['gm'],
         }),
