@@ -24,6 +24,7 @@ export interface DashboardWidget<T extends object = object> {
     makeHeaders?: MakeHeaders;
 }
 export class Dashboard extends GoldenLayout {
+    private dragContainer: JQuery<HTMLElement> | null = null;
     public setup(): void {
         this.on('stackCreated', (stack: ContentItem & Tab) => {
             stack.on('activeContentItemChanged', () =>
@@ -45,24 +46,32 @@ export class Dashboard extends GoldenLayout {
         }
     }
 
-    private registerWidgetMenuItem(name: string, props: object, type: DashboardWidget['type']) {
-        const menuItem = $('<li>' + name + '</li>');
-        $('#menuContainer').append(menuItem);
-
-        const newItemConfig = {
-            id: name,
-            title: name,
-            type,
-        } as any;
-
-        if (type === 'react-component') {
-            newItemConfig.component = name;
-            newItemConfig.props = props;
-        } else {
-            newItemConfig.componentName = name;
-            newItemConfig.componentState = props;
+    public setDragContainer(dragSource: JQuery<HTMLElement>) {
+        if (dragSource.length) {
+            this.dragContainer = dragSource;
         }
-        this.createDragSource(menuItem, newItemConfig);
+    }
+
+    private registerWidgetMenuItem(name: string, props: object, type: DashboardWidget['type']) {
+        if (this.dragContainer) {
+            const menuItem = $('<li>' + name + '</li>');
+            this.dragContainer.append(menuItem);
+
+            const newItemConfig = {
+                id: name,
+                title: name,
+                type,
+            } as any;
+
+            if (type === 'react-component') {
+                newItemConfig.component = name;
+                newItemConfig.props = props;
+            } else {
+                newItemConfig.componentName = name;
+                newItemConfig.componentState = props;
+            }
+            this.createDragSource(menuItem, newItemConfig);
+        }
     }
 
     private registerWidgetHeaders(name: string, makeHeaders: MakeHeaders) {

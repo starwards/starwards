@@ -6,6 +6,7 @@ import { pilotWidget } from '../widgets/pilot';
 
 const dashboard = new Dashboard({ content: [] }, $('#layoutContainer'));
 dashboard.setup();
+dashboard.setDragContainer($('#menuContainer'));
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipId = urlParams.get('id');
@@ -17,3 +18,8 @@ if (shipId) {
     // tslint:disable-next-line: no-console
     console.log('shipId is missing from URL');
 }
+
+// dashboard.on('stateChanged', function () {
+//     // var state = JSON.stringify(dashboard.toConfig());
+//     console.log('savedState', dashboard.toConfig());
+// });

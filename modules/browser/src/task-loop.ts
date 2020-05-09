@@ -10,7 +10,7 @@ export class TaskLoop {
                 }
             },
             // tslint:disable-next-line:no-console
-            (e) => console.error(`Error polling for events`, e)
+            (e) => console.error(`Error running task`, e)
         );
     };
 
