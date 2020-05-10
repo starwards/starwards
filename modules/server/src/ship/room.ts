@@ -27,9 +27,10 @@ export class ShipRoom extends Room<ShipState> {
         state.constants.maxEnergy = 1000;
         state.constants.maneuveringCapacity = 75;
         state.constants.maneuveringEnergyCost = 0.07;
-        state.constants.antiDriftEffectFactor = 1;
+        state.constants.antiDriftEffectFactor = 0.3;
         state.constants.rotationEffectFactor = 0.75;
-        state.constants.strafeEffectFactor = 1;
+        state.constants.strafeEffectFactor = 0.3;
+        state.constants.boostEffectFactor = 0.3;
         state.constants.impulseEnergyCost = 5;
         state.constants.impulseCapacity = 75;
         state.constants.impulseEffectFactor = 4;
@@ -53,7 +54,7 @@ export class ShipRoom extends Room<ShipState> {
         );
         this.onMessage('SetImpulse', (_, msg: ShipCommands['SetImpulse']) => (this.state.impulse = msg.value));
         this.onMessage('SetStrafe', (_, msg: ShipCommands['SetStrafe']) => (this.state.strafe = msg.value));
-        // this.onMessage('SetRotation', (_, msg: ShipCommands['SetRotation']) => (this.state.rotation = msg.value));
+        this.onMessage('SetBoost', (_, msg: ShipCommands['SetBoost']) => (this.state.boost = msg.value));
         this.onMessage('SetTargetTurnSpeed', (_, msg: ShipCommands['SetTargetTurnSpeed']) => {
             this.state.targetTurnSpeed = msg.value;
         });
@@ -82,6 +83,19 @@ export class ShipRoom extends Room<ShipState> {
             );
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
                 manager.ChangeTurnSpeed(object.id, enginePower * this.state.constants.rotationEffectFactor);
+            }
+        }
+        if (this.state.boost) {
+            const enginePower = capToRange(
+                -this.state.constants.maneuveringCapacity * deltaTime,
+                this.state.constants.maneuveringCapacity * deltaTime,
+                this.state.boost
+            );
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
+                manager.ChangeVelocity(
+                    object.id,
+                    XY.scale(XY.rotate(XY.one, object.angle), enginePower * this.state.constants.boostEffectFactor)
+                );
             }
         }
         if (this.state.strafe) {

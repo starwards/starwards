@@ -16,6 +16,9 @@ export interface ShipCommands {
     SetStrafe: {
         value: number;
     };
+    SetBoost: {
+        value: number;
+    };
     // --- physical changes
     ChangeTurnSpeed: {
         delta: number;

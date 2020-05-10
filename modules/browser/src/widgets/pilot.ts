@@ -66,6 +66,20 @@ function pilotComponent(container: Container, p: Props) {
                 deadzone: [-0.1, 0.05],
             }
         );
+        panel.addProperty(
+            'boost',
+            () => shipRoom.state.boost,
+            [-5, 5],
+            (value) => {
+                shipRoom.send('SetBoost', { value });
+            },
+            {
+                gamepadIndex: 0,
+                axisIndex: 1,
+                deadzone: [-0.08, 0.05],
+                inverted: true,
+            }
+        );
         panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-120, 120]);
         panel.addProperty('angle', () => shipRoom.state.angle, [0, 360]);
         panel.addProperty('speed direction', () => XY.angleOf(shipRoom.state.velocity), [0, 360]);
