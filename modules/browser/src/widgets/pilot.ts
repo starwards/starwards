@@ -40,17 +40,30 @@ function pilotComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty(
-            'stabilizer',
-            () => shipRoom.state.stabilizer,
+            'antiDrift',
+            () => shipRoom.state.antiDrift,
             [0, 1],
             (value) => {
-                shipRoom.send('SetStabilizer', { value });
+                shipRoom.send('SetAntiDrift', { value });
             },
             {
                 gamepadIndex: 0,
                 axisIndex: 2,
                 deadzone: [0, 0],
                 inverted: true,
+            }
+        );
+        panel.addProperty(
+            'strafe',
+            () => shipRoom.state.strafe,
+            [-5, 5],
+            (value) => {
+                shipRoom.send('SetStrafe', { value });
+            },
+            {
+                gamepadIndex: 0,
+                axisIndex: 0,
+                deadzone: [-0.1, 0.05],
             }
         );
         panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-120, 120]);

@@ -11,7 +11,9 @@ export class ShipState extends Spaceship {
     @type('number')
     impulse = 0;
     @type('number')
-    stabilizer = 0;
+    strafe = 0;
+    @type('number')
+    antiDrift = 0;
     @type('number')
     energy = 1000;
 

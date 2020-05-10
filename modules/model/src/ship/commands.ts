@@ -7,10 +7,13 @@ export interface ShipCommands {
     SetImpulse: {
         value: number;
     };
-    SetStabilizer: {
+    SetAntiDrift: {
         value: number;
     };
     SetRotation: {
+        value: number;
+    };
+    SetStrafe: {
         value: number;
     };
     // --- physical changes

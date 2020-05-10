@@ -25,10 +25,14 @@ export class ShipRoom extends Room<ShipState> {
         state.constants = new MapSchema<number>();
         state.constants.energyPerSecond = 0.5;
         state.constants.maxEnergy = 1000;
-        state.constants.rotationEnergyCost = 0.01;
-        state.constants.maxRotationDeltaPerSecond = 75;
-        state.constants.stabilizerEnergyCost = 0.07;
+        state.constants.maneuveringCapacity = 75;
+        state.constants.maneuveringEnergyCost = 0.07;
+        state.constants.antiDriftEffectFactor = 1;
+        state.constants.rotationEffectFactor = 0.75;
+        state.constants.strafeEffectFactor = 1;
         state.constants.impulseEnergyCost = 5;
+        state.constants.impulseCapacity = 75;
+        state.constants.impulseEffectFactor = 4;
         this.setState(state);
     }
     public onCreate({ object, manager }: { object: Spaceship; manager: SpaceManager }) {
@@ -48,11 +52,12 @@ export class ShipRoom extends Room<ShipState> {
             manager.SetVelocity(object.id, msg.value)
         );
         this.onMessage('SetImpulse', (_, msg: ShipCommands['SetImpulse']) => (this.state.impulse = msg.value));
+        this.onMessage('SetStrafe', (_, msg: ShipCommands['SetStrafe']) => (this.state.strafe = msg.value));
         // this.onMessage('SetRotation', (_, msg: ShipCommands['SetRotation']) => (this.state.rotation = msg.value));
         this.onMessage('SetTargetTurnSpeed', (_, msg: ShipCommands['SetTargetTurnSpeed']) => {
             this.state.targetTurnSpeed = msg.value;
         });
-        this.onMessage('SetStabilizer', (_, msg: ShipCommands['SetStabilizer']) => (this.state.stabilizer = msg.value));
+        this.onMessage('SetAntiDrift', (_, msg: ShipCommands['SetAntiDrift']) => (this.state.antiDrift = msg.value));
         this.onMessage(
             'SetConstant',
             (_, msg: ShipCommands['SetConstant']) => (this.state.constants[msg.name] = msg.value)
@@ -71,27 +76,48 @@ export class ShipRoom extends Room<ShipState> {
         const turnSpeedDiff = this.state.targetTurnSpeed - object.turnSpeed;
         if (turnSpeedDiff) {
             const enginePower = capToRange(
-                -this.state.constants.maxRotationDeltaPerSecond * deltaTime,
-                this.state.constants.maxRotationDeltaPerSecond * deltaTime,
+                -this.state.constants.maneuveringCapacity * deltaTime,
+                this.state.constants.maneuveringCapacity * deltaTime,
                 turnSpeedDiff
             );
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.rotationEnergyCost)) {
-                manager.ChangeTurnSpeed(object.id, enginePower);
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
+                manager.ChangeTurnSpeed(object.id, enginePower * this.state.constants.rotationEffectFactor);
             }
         }
-        if (this.state.stabilizer) {
-            const nonDriftVelocity = XY.projection(object.velocity, XY.rotate(XY.one, object.angle));
-            const velocityDiff = XY.scale(XY.difference(nonDriftVelocity, this.state.velocity), this.state.stabilizer);
-            const diffLenfth = XY.lengthOf(velocityDiff);
+        if (this.state.strafe) {
+            const enginePower = capToRange(
+                -this.state.constants.maneuveringCapacity * deltaTime,
+                this.state.constants.maneuveringCapacity * deltaTime,
+                this.state.strafe
+            );
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
+                manager.ChangeVelocity(
+                    object.id,
+                    XY.scale(
+                        XY.rotate(XY.one, object.angle + 90),
+                        enginePower * this.state.constants.strafeEffectFactor
+                    )
+                );
+            }
+        }
+        if (this.state.antiDrift) {
+            const driftVelocity = XY.projection(object.velocity, XY.rotate(XY.one, object.angle - 90));
+            const diffLenfth = XY.lengthOf(driftVelocity);
             if (diffLenfth) {
                 const enginePower = capToRange(
-                    -this.state.constants.maxRotationDeltaPerSecond * deltaTime,
-                    this.state.constants.maxRotationDeltaPerSecond * deltaTime,
-                    diffLenfth
+                    -this.state.constants.maneuveringCapacity * deltaTime,
+                    this.state.constants.maneuveringCapacity * deltaTime,
+                    diffLenfth * this.state.antiDrift
                 );
 
-                if (this.trySpendEnergy(enginePower * this.state.constants.stabilizerEnergyCost)) {
-                    manager.ChangeVelocity(object.id, XY.scale(velocityDiff, enginePower / diffLenfth));
+                if (this.trySpendEnergy(enginePower * this.state.constants.maneuveringEnergyCost)) {
+                    manager.ChangeVelocity(
+                        object.id,
+                        XY.scale(
+                            XY.negate(XY.normalize(driftVelocity)),
+                            enginePower * this.state.constants.antiDriftEffectFactor
+                        )
+                    );
                 }
             }
         }
@@ -100,7 +126,13 @@ export class ShipRoom extends Room<ShipState> {
             if (
                 this.trySpendEnergy(Math.abs(this.state.impulse) * deltaTime * this.state.constants.impulseEnergyCost)
             ) {
-                manager.ChangeVelocity(object.id, XY.rotate({ x: this.state.impulse * deltaTime, y: 0 }, object.angle));
+                manager.ChangeVelocity(
+                    object.id,
+                    XY.rotate(
+                        { x: this.state.impulse * deltaTime * this.state.constants.impulseEffectFactor, y: 0 },
+                        object.angle
+                    )
+                );
             }
         }
     }
