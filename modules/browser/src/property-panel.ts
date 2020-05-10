@@ -16,7 +16,7 @@ function lerpAxisToRange(axisValue: number, range: [number, number]) {
 export type GamepadAxis = {
     gamepadIndex: number;
     axisIndex: number;
-    deadzone: [number, number];
+    deadzone?: [number, number];
     inverted?: boolean;
 };
 export type GamepadButton = {
@@ -59,7 +59,7 @@ export class PropertyPanel {
                 if (listener.axis.inverted) {
                     value = -value;
                 }
-                if (isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], value)) {
+                if (listener.axis.deadzone && isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], value)) {
                     value = 0;
                 }
                 value = lerpAxisToRange(value, listener.range);
