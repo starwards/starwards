@@ -17,7 +17,7 @@
         "prepack": "yarn build"
     },
     "dependencies": {
-        "@colyseus/schema": "^0.5.37",
+        "@colyseus/schema": "^0.5.39",
         "eventemitter3": "^4.0.0"
     }
 }
