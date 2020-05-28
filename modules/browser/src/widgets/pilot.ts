@@ -36,7 +36,7 @@ function pilotComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                buttonIndex: 0,
+                buttonIndex: 1,
             }
         );
         panel.addProperty(

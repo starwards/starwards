@@ -19,6 +19,9 @@ export interface ShipCommands {
     SetBoost: {
         value: number;
     };
+    AutoCannon: {
+        isFiring: boolean;
+    };
     // --- physical changes
     ChangeTurnSpeed: {
         delta: number;

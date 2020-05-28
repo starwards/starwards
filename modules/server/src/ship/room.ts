@@ -1,7 +1,8 @@
-import { ShipCommands, ShipState, Spaceship, XY } from '@starwards/model';
+import { ShipCommands, ShipState, Spaceship, XY, AutoCannon, Missile, Vec2 } from '@starwards/model';
 import { Client, Room } from 'colyseus';
 import { SpaceManager } from '../space/space-manager';
 import { MapSchema } from '@colyseus/schema';
+import { makeId } from '../admin/id';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -34,6 +35,11 @@ export class ShipRoom extends Room<ShipState> {
         state.constants.impulseEnergyCost = 5;
         state.constants.impulseCapacity = 75;
         state.constants.impulseEffectFactor = 4;
+        state.autoCannon = new AutoCannon();
+        state.autoCannon.constants = new MapSchema<number>();
+        state.autoCannon.constants.bulletsPerSecond = 2.5;
+        state.autoCannon.constants.bulletSpeed = 100;
+        state.autoCannon.constants.bulletRandomDegrees = 4;
         this.setState(state);
     }
     public onCreate({ object, manager }: { object: Spaceship; manager: SpaceManager }) {
@@ -62,6 +68,10 @@ export class ShipRoom extends Room<ShipState> {
         this.onMessage(
             'SetConstant',
             (_, msg: ShipCommands['SetConstant']) => (this.state.constants[msg.name] = msg.value)
+        );
+        this.onMessage(
+            'AutoCannon',
+            (_, msg: ShipCommands['AutoCannon']) => (this.state.autoCannon.isFiring = msg.isFiring)
         );
     }
 
@@ -149,9 +159,42 @@ export class ShipRoom extends Room<ShipState> {
                 );
             }
         }
+
+        // autocannon state
+        const autocannon = this.state.autoCannon;
+        if (autocannon.cooldown > 0) {
+            // charge weapon
+            autocannon.cooldown -= deltaTime * autocannon.constants.bulletsPerSecond;
+            if (!autocannon.isFiring && autocannon.cooldown < 0) {
+                autocannon.cooldown = 0;
+            }
+        }
+        if (autocannon.isFiring && autocannon.cooldown <= 0) {
+            // fire weapon
+            autocannon.cooldown += 1;
+            const missileRadius = 10;
+            const missile = new Missile();
+            missile.angle = object.angle + autocannon.angle;
+            missile.velocity = Vec2.sum(
+                object.velocity,
+                XY.rotate(
+                    { x: autocannon.constants.bulletSpeed, y: 0 },
+                    missile.angle + (Math.random() - 0.5) * autocannon.constants.bulletRandomDegrees
+                )
+            );
+            const missilePosition = Vec2.sum(
+                object.position,
+                XY.rotate({ x: object.radius + missileRadius, y: 0 }, missile.angle)
+            );
+            missile.init(makeId(), missilePosition, missileRadius);
+            manager.insert(missile);
+        }
     }
 
     private syncShipProperties(object: Spaceship) {
+        // this.state.radius = object.radius;
+        // this.state.position.x = object.position.x;
+        // this.state.position.y = object.position.y;
         this.state.velocity.x = object.velocity.x;
         this.state.velocity.y = object.velocity.y;
         this.state.turnSpeed = object.turnSpeed;
