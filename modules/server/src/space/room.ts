@@ -27,8 +27,8 @@ export class SpaceRoom extends Room<SpaceState> {
         this.roomId = SpaceRoom.id;
         this.setState(manager.state);
         this.setSimulationInterval((deltaTime) => manager.update(deltaTime));
-        this.onMessage('MoveObjects', (_, msg: SpaceCommands['MoveObjects']) =>
-            manager.MoveObjects(msg.ids, msg.delta)
+        this.onMessage('moveObjects', (_, msg: SpaceCommands['moveObjects']) =>
+            manager.moveObjects(msg.ids, msg.delta)
         );
     }
 }

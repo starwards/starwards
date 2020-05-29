@@ -20,7 +20,7 @@ function shipConstantsComponent(container: Container, p: Props) {
                     () => shipRoom.state.constants[name],
                     [val / 2, val * 2],
                     (value) => {
-                        shipRoom.send('SetConstant', { name, value });
+                        shipRoom.send('setConstant', { name, value });
                     }
                 );
             };

@@ -13,7 +13,7 @@ export class AutoCannon extends Schema {
     @type('boolean')
     isFiring = false;
 
-    @type('boolean')
+    @type('float32')
     cooldown = 0;
 
     @type('float32')

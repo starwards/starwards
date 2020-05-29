@@ -13,13 +13,13 @@ function gunComponent(container: Container, p: Props) {
             panel.destroy();
         });
 
-        panel.addProperty('cooldown', () => 1000 * shipRoom.state.autoCannon?.cooldown || 0, [0, 1]);
+        panel.addProperty('cooldown', () => shipRoom.state.autoCannon?.cooldown || 0, [0, 1]);
         panel.addProperty(
             'isFiring',
             () => Number(shipRoom.state.autoCannon?.isFiring || 0),
             [0, 1],
             (value) => {
-                shipRoom.send('AutoCannon', { isFiring: Boolean(value) });
+                shipRoom.send('autoCannon', { isFiring: Boolean(value) });
             },
             {
                 gamepadIndex: 0,

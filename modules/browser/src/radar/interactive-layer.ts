@@ -118,7 +118,7 @@ export class InteractiveLayer {
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.room.send('MoveObjects', {
+                this.room.send('moveObjects', {
                     ids: [...this.selectedItems.selectedItems].map((o) => o.id),
                     delta: worldMove,
                 });

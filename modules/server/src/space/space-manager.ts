@@ -33,7 +33,7 @@ export class SpaceManager {
             subject.velocity.y = value.y;
         }
     }
-    public MoveObjects(ids: string[], delta: XY) {
+    public moveObjects(ids: string[], delta: XY) {
         for (const id of ids) {
             const subject = this.state.get(id);
             if (subject) {

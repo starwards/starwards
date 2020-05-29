@@ -101,7 +101,7 @@ export const Lobby = () => {
                             <InGameMenu></InGameMenu>
                         ) : (
                             <Button
-                                onClick={async () => (await getGlobalRoom('admin')).send('StartGame', undefined)}
+                                onClick={async () => (await getGlobalRoom('admin')).send('startGame', undefined)}
                                 animate
                             >
                                 New Game

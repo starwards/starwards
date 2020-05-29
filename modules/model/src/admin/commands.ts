@@ -1,5 +1,5 @@
 export interface AdminCommands {
-    StartGame: undefined;
+    startGame: undefined;
 }
 
 export type AdminCommand = AdminCommands[keyof AdminCommands];

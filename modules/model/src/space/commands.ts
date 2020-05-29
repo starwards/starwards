@@ -1,7 +1,7 @@
 import { SpaceObjectBase } from './space-object-base';
 import { XY } from './vec2';
 export interface SpaceCommands {
-    MoveObjects: {
+    moveObjects: {
         ids: Array<SpaceObjectBase['id']>;
         delta: XY;
     };

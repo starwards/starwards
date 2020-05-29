@@ -1,42 +1,24 @@
-import { XY } from '../space';
-
 export interface ShipCommands {
-    SetTargetTurnSpeed: {
+    setTargetTurnSpeed: {
         value: number;
     };
-    SetImpulse: {
+    setImpulse: {
         value: number;
     };
-    SetAntiDrift: {
+    setAntiDrift: {
         value: number;
     };
-    SetRotation: {
+    setStrafe: {
         value: number;
     };
-    SetStrafe: {
+    setBoost: {
         value: number;
     };
-    SetBoost: {
-        value: number;
-    };
-    AutoCannon: {
+    autoCannon: {
         isFiring: boolean;
     };
-    // --- physical changes
-    ChangeTurnSpeed: {
-        delta: number;
-    };
-    SetTurnSpeed: {
-        value: number;
-    };
-    ChangeVelocity: {
-        delta: XY;
-    };
-    SetVelocity: {
-        value: XY;
-    };
     // changes to ship
-    SetConstant: {
+    setConstant: {
         name: string;
         value: number;
     };

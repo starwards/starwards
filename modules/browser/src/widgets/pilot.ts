@@ -19,7 +19,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.targetTurnSpeed,
             [-90, 90],
             (value) => {
-                shipRoom.send('SetTargetTurnSpeed', { value });
+                shipRoom.send('setTargetTurnSpeed', { value });
             },
             {
                 gamepadIndex: 0,
@@ -32,7 +32,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.impulse,
             [0, 5],
             (value) => {
-                shipRoom.send('SetImpulse', { value });
+                shipRoom.send('setImpulse', { value });
             },
             {
                 gamepadIndex: 0,
@@ -44,7 +44,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.antiDrift,
             [0, 1],
             (value) => {
-                shipRoom.send('SetAntiDrift', { value });
+                shipRoom.send('setAntiDrift', { value });
             },
             {
                 gamepadIndex: 0,
@@ -58,7 +58,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.strafe,
             [-5, 5],
             (value) => {
-                shipRoom.send('SetStrafe', { value });
+                shipRoom.send('setStrafe', { value });
             },
             {
                 gamepadIndex: 0,
@@ -71,7 +71,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.boost,
             [-5, 5],
             (value) => {
-                shipRoom.send('SetBoost', { value });
+                shipRoom.send('setBoost', { value });
             },
             {
                 gamepadIndex: 0,
