@@ -35,9 +35,13 @@ export class ObjectsLayer {
         this.stage.addChild(objGraphics.stage);
         objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => objGraphics.updatePosition());
         objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
-            const redraw = changes.reduce((r, change) => objGraphics.onFieldChange(change.field) || r, false);
-            if (redraw) {
-                objGraphics.redraw(this.selectedItems.has(spaceObject));
+            if (changes.some((change) => change.field === 'destroyed' && change.value === true)) {
+                this.onRemoveSpaceObject(spaceObject.id);
+            } else {
+                const redraw = changes.reduce((r, change) => objGraphics.onFieldChange(change.field) || r, false);
+                if (redraw) {
+                    objGraphics.redraw(this.selectedItems.has(spaceObject));
+                }
             }
         });
         objGraphics.listen(this.selectedItems.events, spaceObject.id, () =>
@@ -47,8 +51,10 @@ export class ObjectsLayer {
 
     private onRemoveSpaceObject(id: string) {
         const objGraphics = this.graphics[id];
-        delete this.graphics[id];
-        objGraphics.destroy();
+        if (objGraphics) {
+            delete this.graphics[id];
+            objGraphics.destroy();
+        }
     }
 }
 
@@ -58,6 +64,7 @@ export class ObjectsLayer {
 // tslint:disable-next-line: max-classes-per-file
 class ObjectGraphics {
     public stage = new PIXI.Container();
+    private drawRoot = new PIXI.Container();
     private renderedProperties = new Set<string>();
     private disposables: Array<() => void> = [];
     constructor(
@@ -65,6 +72,7 @@ class ObjectGraphics {
         private renderer: ObjectRenderer,
         private worldToScreen: (w: XY) => XY
     ) {
+        this.stage.addChild(this.drawRoot);
         this.updatePosition();
         this.redraw(false);
     }
@@ -78,7 +86,12 @@ class ObjectGraphics {
     redraw(isSelected: boolean) {
         // re-draw
         this.stage.removeChildren();
-        this.renderedProperties = this.renderer(this.spaceObject, this.stage, isSelected);
+        this.drawRoot.destroy({
+            children: true,
+        });
+        this.drawRoot = new PIXI.Container();
+        this.stage.addChild(this.drawRoot);
+        this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected);
     }
 
     onFieldChange(field: string): boolean {
@@ -98,6 +111,8 @@ class ObjectGraphics {
             d();
         }
         this.stage.parent.removeChild(this.stage);
-        this.stage.destroy();
+        this.stage.destroy({
+            children: true,
+        });
     }
 }

@@ -1,6 +1,6 @@
 import { Schema, type } from '@colyseus/schema';
 import { Vec2, XY } from './vec2';
-import { SpaceObjects } from '.';
+import { SpaceObjects, SpaceObject } from '.';
 
 export abstract class SpaceObjectBase extends Schema {
     public static compare(a: SpaceObjectBase, b: SpaceObjectBase): number {
@@ -24,12 +24,14 @@ export abstract class SpaceObjectBase extends Schema {
 
     @type('string')
     public abstract readonly type: keyof SpaceObjects;
+    @type('boolean')
+    public destroyed: boolean = false;
 
     @type('string')
     public id: string = '';
     @type(Vec2)
     public position: Vec2 = new Vec2(0, 0);
-    @type('uint16')
+    @type('float32')
     public radius: number = 0;
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
@@ -46,10 +48,21 @@ export abstract class SpaceObjectBase extends Schema {
     @type('float32')
     public turnSpeed: number = 0;
 
-    init(id: string, position: Vec2, radius: number): this {
+    @type('uint16')
+    public health: number = 0;
+
+    init(id: string, position: Vec2): this {
         this.id = id;
         this.position = position;
-        this.radius = radius;
         return this;
+    }
+
+    // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
+    // todo add spin
+    public collide(_other: SpaceObject, collisionVector: XY, deltaSeconds: number): void {
+        const elasticityFactor = 0.05; // how much velocity created
+        SpaceObjectBase.moveObject(this, collisionVector);
+        this.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
+        this.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
     }
 }

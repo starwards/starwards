@@ -28,11 +28,12 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
                 `[${spaceObject.position.x.toFixed(0)}:${spaceObject.position.y.toFixed(0)}]`,
                 `speed: ${Vec2.lengthOf(spaceObject.velocity).toFixed()}`,
                 `turn speed: ${spaceObject.turnSpeed.toFixed()}`,
+                `health: ${spaceObject.health.toFixed(0)}`,
             ],
             0xff0000
         );
         root.addChild(text);
-        return new Set(['angle', 'turnSpeed', 'velocity', 'position']);
+        return new Set(['angle', 'turnSpeed', 'velocity', 'position', 'health']);
     },
     Asteroid(spaceObject: Asteroid, root: PIXI.Container): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;

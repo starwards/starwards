@@ -5,8 +5,6 @@ import { map } from './map';
 import { ShipManager } from '../ship/ship-manager';
 
 export class AdminRoom extends Room<AdminState> {
-    private manager = new SpaceManager();
-    private shipManagers = new Map<string, ShipManager>();
     constructor() {
         super();
         this.autoDispose = false;
@@ -31,17 +29,16 @@ export class AdminRoom extends Room<AdminState> {
     private async startGame() {
         if (!this.state.isGameRunning) {
             this.state.isGameRunning = true;
-            this.manager = new SpaceManager();
+            const spaceManager = new SpaceManager();
             map.forEach((o) => {
                 o = o.clone();
                 if (Spaceship.isInstance(o)) {
-                    const shipManager = new ShipManager(o, this.manager); // create a manager to manage the ship
-                    this.shipManagers.set(o.id, shipManager);
+                    const shipManager = new ShipManager(o, spaceManager); // create a manager to manage the ship
                     matchMaker.createRoom('ship', { manager: shipManager }); // create a room to control this ship
                 }
-                this.manager.insert(o);
+                spaceManager.insert(o);
             });
-            await matchMaker.createRoom('space', { manager: this.manager });
+            await matchMaker.createRoom('space', { manager: spaceManager });
         }
     }
 }

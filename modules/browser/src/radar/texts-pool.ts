@@ -38,7 +38,9 @@ class TextsPoolIterator {
         const toRemove = this.instances.splice(this.nextElement);
         for (const child of toRemove) {
             child.parent.removeChild(child);
-            child.destroy();
+            child.destroy({
+                children: true,
+            });
         }
     }
 }

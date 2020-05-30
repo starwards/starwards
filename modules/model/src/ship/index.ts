@@ -1,6 +1,6 @@
 import { type, MapSchema } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
-import { Spaceship, Vec2 } from '../space';
+import { Spaceship } from '../space';
 import { AutoCannon } from './auto-cannon';
 
 export class ShipState extends Spaceship {
@@ -25,7 +25,7 @@ export class ShipState extends Spaceship {
 
     public events = new EventEmitter();
     constructor(isClient = true) {
-        super('', new Vec2(), 0);
+        super();
         if (isClient) {
             this.onChange = (changes) => {
                 changes.forEach((c) => {

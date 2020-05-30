@@ -21,7 +21,7 @@ export class ShipRoom extends Room<ShipState> {
     }
 
     public onCreate({ manager }: { manager: ShipManager }) {
-        this.roomId = manager.object.id;
+        this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
         this.setSimulationInterval((deltaMs) => manager.update(deltaMs / 1000));
         this.onMessage('setImpulse', (_, msg: ShipCommands['setImpulse']) => manager.setImpulse(msg.value));

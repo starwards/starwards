@@ -40,17 +40,17 @@ export class SpaceState extends Schema {
         delete this.getMap(obj.type)[obj.id];
     }
 
-    public getAll(): SpaceObject[] {
-        return [...this];
+    public getAll<T extends keyof SpaceObjects>(typeField: T): IterableIterator<SpaceObjects[T]> {
+        return mapSchemaValues(this.getMap(typeField) as MapSchema<SpaceObjects[T]>);
     }
 
-    public *[Symbol.iterator](): IterableIterator<SpaceObject> {
-        yield* mapSchemaValues(this.missiles);
-        yield* mapSchemaValues(this.asteroids);
-        yield* mapSchemaValues(this.spaceships);
+    public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
+        yield* mapSchemaValues(this.missiles, destroyed);
+        yield* mapSchemaValues(this.asteroids, destroyed);
+        yield* mapSchemaValues(this.spaceships, destroyed);
     }
 
-    private getMap(typeField: keyof SpaceObjects) {
+    private getMap<T extends keyof SpaceObjects>(typeField: T) {
         switch (typeField) {
             case 'Missile':
                 return this.missiles;
@@ -58,15 +58,17 @@ export class SpaceState extends Schema {
                 return this.asteroids;
             case 'Spaceship':
                 return this.spaceships;
+            default:
+                throw new Error(`unknmown type ${typeField}`);
         }
     }
 }
 
 const mapSchemaClassProps = Object.getOwnPropertyNames(new MapSchema());
 
-export function* mapSchemaValues<T>(map: MapSchema<T>): IterableIterator<T> {
+export function* mapSchemaValues<T>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
     for (const id of Object.getOwnPropertyNames(map)) {
-        if (!mapSchemaClassProps.includes(id)) {
+        if (!mapSchemaClassProps.includes(id) && map[id].destroyed === destroyed) {
             yield map[id];
         }
     }

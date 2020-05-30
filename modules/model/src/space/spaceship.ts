@@ -6,4 +6,10 @@ export class Spaceship extends SpaceObjectBase {
     }
 
     public readonly type = 'Spaceship';
+
+    constructor() {
+        super();
+        this.health = 1000;
+        this.radius = 7;
+    }
 }

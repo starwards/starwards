@@ -5,17 +5,15 @@ import 'mocha';
 import { nanoid } from 'nanoid';
 
 const fieldSize = 80000;
-const asteroidSize = 25;
 const map = Array(100)
     .fill(null)
     .map<SpaceObject>(() =>
         new Asteroid().init(
             nanoid(),
-            new Vec2(Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2),
-            Math.random() * asteroidSize
+            new Vec2(Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2)
         )
     );
-map.push(new Spaceship().init(nanoid(), new Vec2(0, 0), 10));
+map.push(new Spaceship().init(nanoid(), new Vec2(0, 0)));
 
 describe('model', () => {
     describe('SpaceState', () => {
