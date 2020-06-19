@@ -108,11 +108,11 @@ export class SpaceManager {
 
     private resolveCollision(object: SpaceObject, otherObject: SpaceObject, result: Result, deltaSeconds: number) {
         const collisionVector = {
-            x: (result.overlap * result.overlap_x) / 2,
-            y: (result.overlap * result.overlap_y) / 2,
+            x: -(result.overlap * result.overlap_x) / 2,
+            y: -(result.overlap * result.overlap_y) / 2,
         };
         // each colliding side backs off
-        object.collide(otherObject, XY.negate(collisionVector), deltaSeconds);
+        object.collide(otherObject, collisionVector, deltaSeconds);
     }
 
     private updateObjectCollision(object: SpaceObject) {
