@@ -13,6 +13,10 @@ function lerpAxisToRange(axisValue: number, range: [number, number]) {
     return (1 - t) * range[0] + t * range[1];
 }
 
+function lerpButtonToRange(buttonValue: number, range: [number, number]) {
+    const t = buttonValue;
+    return (1 - t) * range[0] + t * range[1];
+}
 export type GamepadAxis = {
     gamepadIndex: number;
     axisIndex: number;
@@ -47,7 +51,8 @@ export class PropertyPanel {
                 if (listener.button.inverted) {
                     value = 1 - value;
                 }
-                listener.onChange(listener.range[value]);
+                value = lerpButtonToRange(value, listener.range);
+                listener.onChange(value);
             }
         }
     };

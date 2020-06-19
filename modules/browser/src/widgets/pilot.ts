@@ -23,8 +23,8 @@ function pilotComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                axisIndex: 5,
-                deadzone: [-0.1, 0.05],
+                axisIndex: 0,
+                deadzone: [-0.01, 0.01],
             }
         );
         panel.addProperty(
@@ -36,7 +36,7 @@ function pilotComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                buttonIndex: 1,
+                buttonIndex: 6,
             }
         );
         panel.addProperty(
@@ -48,9 +48,7 @@ function pilotComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                axisIndex: 2,
-                deadzone: [0, 0],
-                inverted: true,
+                buttonIndex: 7,
             }
         );
         panel.addProperty(
@@ -62,8 +60,8 @@ function pilotComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                axisIndex: 0,
-                deadzone: [-0.1, 0.05],
+                axisIndex: 2,
+                deadzone: [-0.01, 0.01],
             }
         );
         panel.addProperty(
@@ -75,8 +73,8 @@ function pilotComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                axisIndex: 1,
-                deadzone: [-0.08, 0.05],
+                axisIndex: 3,
+                deadzone: [-0.01, 0.01],
                 inverted: true,
             }
         );

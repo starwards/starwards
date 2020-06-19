@@ -1,8 +1,9 @@
-import { AdminState, Spaceship } from '@starwards/model';
+import { AdminState } from '@starwards/model';
 import { Client, matchMaker, Room } from 'colyseus';
-import { SpaceManager } from '../space/space-manager';
-import { map } from './map';
 import { ShipManager } from '../ship/ship-manager';
+import { SpaceManager } from '../space/space-manager';
+import { newShip, resetShip } from './map';
+import { MapSchema } from '@colyseus/schema';
 
 export class AdminRoom extends Room<AdminState> {
     constructor() {
@@ -22,7 +23,9 @@ export class AdminRoom extends Room<AdminState> {
     }
 
     public onCreate() {
-        this.setState(new AdminState());
+        const state = new AdminState();
+        state.points = new MapSchema();
+        this.setState(state);
         this.onMessage('startGame', () => this.startGame());
     }
 
@@ -30,15 +33,20 @@ export class AdminRoom extends Room<AdminState> {
         if (!this.state.isGameRunning) {
             this.state.isGameRunning = true;
             const spaceManager = new SpaceManager();
-            map.forEach((o) => {
-                o = o.clone();
-                if (Spaceship.isInstance(o)) {
-                    const shipManager = new ShipManager(o, spaceManager); // create a manager to manage the ship
-                    matchMaker.createRoom('ship', { manager: shipManager }); // create a room to control this ship
-                }
-                spaceManager.insert(o);
-            });
+            this.addShip(spaceManager, 'A');
+            this.addShip(spaceManager, 'B');
             await matchMaker.createRoom('space', { manager: spaceManager });
         }
+    }
+
+    private addShip(spaceManager: SpaceManager, id: string) {
+        const ship = newShip(id);
+        this.state.points[ship.id] = 0;
+        const shipManager = new ShipManager(ship, spaceManager, () => {
+            this.state.points[ship.id]++;
+            resetShip(ship);
+        }); // create a manager to manage the ship
+        matchMaker.createRoom('ship', { manager: shipManager });
+        spaceManager.insert(ship);
     }
 }

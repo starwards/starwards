@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema';
-import { ShipState, Spaceship, XY, AutoCannon, Missile, Vec2, SpaceObject } from '@starwards/model';
+import { ShipState, Spaceship, XY, AutoCannon, Missile, Vec2 } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
 import { makeId } from '../admin/id';
 
@@ -10,7 +10,7 @@ function capToRange(from: number, to: number, value: number) {
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
 
-    constructor(public spaceObject: Spaceship, private spaceManager: SpaceManager) {
+    constructor(public spaceObject: Spaceship, private spaceManager: SpaceManager, private onDestroy: () => void) {
         this.state.constants = new MapSchema<number>();
         this.state.constants.energyPerSecond = 0.5;
         this.state.constants.maxEnergy = 1000;
@@ -59,16 +59,20 @@ export class ShipManager {
     }
 
     update(deltaSeconds: number) {
-        // sync relevant ship props
-        this.syncShipProperties();
-        this.updateEnergy(deltaSeconds);
-        this.updateTurnSpeed(deltaSeconds);
-        this.updateBoost(deltaSeconds);
-        this.updateStrafe(deltaSeconds);
-        this.updateAntiDrift(deltaSeconds);
-        this.updateImpulse(deltaSeconds);
-        this.updateAutocannon(deltaSeconds);
-        this.fireAutocannon();
+        if (this.spaceObject.health <= 0) {
+            this.onDestroy();
+        } else {
+            // sync relevant ship props
+            this.syncShipProperties();
+            this.updateEnergy(deltaSeconds);
+            this.updateTurnSpeed(deltaSeconds);
+            this.updateBoost(deltaSeconds);
+            this.updateStrafe(deltaSeconds);
+            this.updateAntiDrift(deltaSeconds);
+            this.updateImpulse(deltaSeconds);
+            this.updateAutocannon(deltaSeconds);
+            this.fireAutocannon();
+        }
     }
 
     private syncShipProperties() {

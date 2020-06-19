@@ -23,7 +23,7 @@ function gunComponent(container: Container, p: Props) {
             },
             {
                 gamepadIndex: 0,
-                buttonIndex: 0,
+                buttonIndex: 4,
             }
         );
         panel.addProperty('angle', () => Number(shipRoom.state.autoCannon?.angle || 0), [0, 360]);
