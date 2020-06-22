@@ -27,6 +27,21 @@ export class AdminRoom extends Room<AdminState> {
         state.points = new MapSchema();
         this.setState(state);
         this.onMessage('startGame', () => this.startGame());
+        this.onMessage('stopGame', () => this.stopGame());
+    }
+
+    private async stopGame() {
+        if (this.state.isGameRunning) {
+            const shipRooms = await matchMaker.query({ name: 'ship' });
+            for (const shipRoom of shipRooms) {
+                await matchMaker.remoteRoomCall(shipRoom.roomId, 'disconnect', []);
+            }
+            const spaceRooms = await matchMaker.query({ name: 'space' });
+            for (const spaceRoom of spaceRooms) {
+                await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
+            }
+            this.state.isGameRunning = false;
+        }
     }
 
     private async startGame() {

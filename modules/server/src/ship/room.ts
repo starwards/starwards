@@ -16,8 +16,7 @@ export class ShipRoom extends Room<ShipState> {
 
     onDispose() {
         // tslint:disable-next-line: no-console
-        console.error(`trying to dispose of ShipRoom ${this.roomId}`);
-        return new Promise(() => 0); // never surrender!
+        console.error(`disposing ShipRoom ${this.roomId}`);
     }
 
     public onCreate({ manager }: { manager: ShipManager }) {

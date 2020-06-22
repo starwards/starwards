@@ -32,6 +32,11 @@ const InGameMenu = () => {
     return (
         <ul>
             <li key="empty">
+                <Button onClick={async () => (await getGlobalRoom('admin')).send('stopGame', undefined)} animate>
+                    Stop Game
+                </Button>
+            </li>
+            <li key="empty">
                 <Button onClick={() => window.location.assign('gm.html')} animate>
                     empty screen
                 </Button>
