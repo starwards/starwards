@@ -38,9 +38,18 @@ export class ObjectsLayer {
             if (changes.some((change) => change.field === 'destroyed' && change.value === true)) {
                 this.onRemoveSpaceObject(spaceObject.id);
             } else {
-                const redraw = changes.reduce((r, change) => objGraphics.onFieldChange(change.field) || r, false);
-                if (redraw) {
-                    objGraphics.redraw(this.selectedItems.has(spaceObject));
+                // TODO move into objGraphics.updatePosition(). trigger redraw when re-entring screen.
+                const pos = this.parent.worldToScreen(spaceObject.position);
+                if (
+                    pos.x > 0 &&
+                    pos.y > 0 &&
+                    pos.x < this.parent.renderer.width &&
+                    pos.y < this.parent.renderer.height
+                ) {
+                    const redraw = changes.reduce((r, change) => objGraphics.onFieldChange(change.field) || r, false);
+                    if (redraw) {
+                        objGraphics.redraw(this.selectedItems.has(spaceObject));
+                    }
                 }
             }
         });
