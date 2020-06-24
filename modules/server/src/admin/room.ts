@@ -2,7 +2,7 @@ import { AdminState } from '@starwards/model';
 import { Client, matchMaker, Room } from 'colyseus';
 import { ShipManager } from '../ship/ship-manager';
 import { SpaceManager } from '../space/space-manager';
-import { newShip, resetShip } from './map';
+import { newShip, resetShip, newAsteroid } from './map';
 import { MapSchema } from '@colyseus/schema';
 
 export class AdminRoom extends Room<AdminState> {
@@ -50,6 +50,9 @@ export class AdminRoom extends Room<AdminState> {
             const spaceManager = new SpaceManager();
             this.addShip(spaceManager, 'A');
             this.addShip(spaceManager, 'B');
+            Array(1000)
+                .fill(null)
+                .forEach(() => spaceManager.insert(newAsteroid()));
             await matchMaker.createRoom('space', { manager: spaceManager });
         }
     }

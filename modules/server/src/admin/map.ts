@@ -1,11 +1,12 @@
-import { Asteroid, SpaceObject, Spaceship, Vec2 } from '@starwards/model';
+import { Asteroid, Spaceship, Vec2, sectorSize } from '@starwards/model';
 import { makeId } from './id';
 const speedMax = 50;
 
-const asteroids = Array(0).fill(null).map<SpaceObject>(newAsteroid);
-
 export function newAsteroid() {
-    const asteroid = new Asteroid().init(makeId(), new Vec2(0, 0));
+    const asteroid = new Asteroid().init(
+        makeId(),
+        Vec2.Rotate({ x: Math.random() * sectorSize * 2, y: 0 }, Math.random() * 360)
+    );
     asteroid.velocity = Vec2.Rotate({ x: Math.random() * speedMax, y: 0 }, Math.random() * 360);
     return asteroid;
 }
@@ -25,9 +26,3 @@ export function resetShip(ship: Spaceship) {
     ship.health = 1000;
     return ship;
 }
-
-const shipA = new Spaceship().init('A', new Vec2(-100, 0));
-shipA.angle = 0;
-const shipB = new Spaceship().init('B', new Vec2(100, 0));
-shipB.angle = 180;
-export const map = [...asteroids, shipA, shipB]; //newShip('A'), newShip('B')];

@@ -12,21 +12,20 @@ export class ShipManager {
 
     constructor(public spaceObject: Spaceship, private spaceManager: SpaceManager, private onDestroy: () => void) {
         this.state.constants = new MapSchema<number>();
-        this.state.constants.energyPerSecond = 0.5;
+        this.state.constants.energyPerSecond = 5;
         this.state.constants.maxEnergy = 1000;
-        this.state.constants.maneuveringCapacity = 75;
-        this.state.constants.maneuveringEnergyCost = 0.07;
-        this.state.constants.antiDriftEffectFactor = 0.3;
+        this.state.constants.maneuveringCapacity = 150;
+        this.state.constants.maneuveringEnergyCost = 1;
+        this.state.constants.antiDriftEffectFactor = 1;
         this.state.constants.rotationEffectFactor = 0.75;
-        this.state.constants.strafeEffectFactor = 0.3;
-        this.state.constants.boostEffectFactor = 0.3;
-        this.state.constants.impulseEnergyCost = 5;
-        this.state.constants.impulseCapacity = 75;
+        this.state.constants.strafeEffectFactor = 0.7;
+        this.state.constants.boostEffectFactor = 0.7;
+        this.state.constants.impulseEnergyCost = 0.3;
         this.state.constants.impulseEffectFactor = 4;
         this.state.autoCannon = new AutoCannon();
         this.state.autoCannon.constants = new MapSchema<number>();
-        this.state.autoCannon.constants.bulletsPerSecond = 7;
-        this.state.autoCannon.constants.bulletSpeed = 150;
+        this.state.autoCannon.constants.bulletsPerSecond = 5;
+        this.state.autoCannon.constants.bulletSpeed = 300;
         this.state.autoCannon.constants.bulletRandomDegrees = 4;
     }
 
