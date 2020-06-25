@@ -15,8 +15,9 @@ export class ShipManager {
         this.state.constants.energyPerSecond = 5;
         this.state.constants.maxEnergy = 1000;
         this.state.constants.maneuveringCapacity = 150;
-        this.state.constants.maneuveringEnergyCost = 1;
+        this.state.constants.maneuveringEnergyCost = 0.07;
         this.state.constants.antiDriftEffectFactor = 1;
+        this.state.constants.breaksEffectFactor = 1;
         this.state.constants.rotationEffectFactor = 0.75;
         this.state.constants.strafeEffectFactor = 0.7;
         this.state.constants.boostEffectFactor = 0.7;
@@ -49,6 +50,10 @@ export class ShipManager {
         this.state.antiDrift = value;
     }
 
+    public setBreaks(value: number) {
+        this.state.breaks = value;
+    }
+
     public setConstant(name: string, value: number) {
         this.state.constants[name] = value;
     }
@@ -68,6 +73,7 @@ export class ShipManager {
             this.updateBoost(deltaSeconds);
             this.updateStrafe(deltaSeconds);
             this.updateAntiDrift(deltaSeconds);
+            this.updateBreaks(deltaSeconds);
             this.updateImpulse(deltaSeconds);
             this.updateAutocannon(deltaSeconds);
             this.fireAutocannon();
@@ -178,6 +184,27 @@ export class ShipManager {
                         )
                     );
                 }
+            }
+        }
+    }
+
+    private updateBreaks(deltaSeconds: number) {
+        if (this.state.breaks && !XY.isZero(this.spaceObject.velocity)) {
+            const velocityLength = XY.lengthOf(this.spaceObject.velocity);
+            const enginePower = capToRange(
+                -this.state.constants.maneuveringCapacity * deltaSeconds,
+                this.state.constants.maneuveringCapacity * deltaSeconds,
+                velocityLength * this.state.breaks
+            );
+
+            if (this.trySpendEnergy(enginePower * this.state.constants.maneuveringEnergyCost)) {
+                this.spaceManager.ChangeVelocity(
+                    this.spaceObject.id,
+                    XY.scale(
+                        XY.negate(XY.normalize(this.spaceObject.velocity)),
+                        enginePower * this.state.constants.breaksEffectFactor
+                    )
+                );
             }
         }
     }

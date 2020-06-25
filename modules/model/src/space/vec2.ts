@@ -88,6 +88,22 @@ export namespace XY {
         return Math.sqrt(XY.squaredLength(vector));
     }
 
+    export function isZero(vector: XY, threshold = 0.00001): boolean {
+        return XY.equals(vector, XY.zero, threshold);
+    }
+
+    export function equals(vector1: XY, vector2: XY, threshold = 0.00001): boolean {
+        if (Math.abs(vector1.x - vector2.x) > threshold) {
+            return false;
+        }
+
+        if (Math.abs(vector1.y - vector2.y) > threshold) {
+            return false;
+        }
+
+        return true;
+    }
+
     export function squaredLength(vector: XY): number {
         const x = vector.x;
         const y = vector.y;

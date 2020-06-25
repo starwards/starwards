@@ -30,6 +30,7 @@ export class ShipRoom extends Room<ShipState> {
             manager.setTargetTurnSpeed(msg.value)
         );
         this.onMessage('setAntiDrift', (_, msg: ShipCommands['setAntiDrift']) => manager.setAntiDrift(msg.value));
+        this.onMessage('setBreaks', (_, msg: ShipCommands['setBreaks']) => manager.setBreaks(msg.value));
         this.onMessage('setConstant', (_, msg: ShipCommands['setConstant']) =>
             manager.setConstant(msg.name, msg.value)
         );

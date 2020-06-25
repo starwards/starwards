@@ -52,6 +52,18 @@ function pilotComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty(
+            'breaks',
+            () => shipRoom.state.breaks,
+            [0, 1],
+            (value) => {
+                shipRoom.send('setBreaks', { value });
+            },
+            {
+                gamepadIndex: 0,
+                buttonIndex: 5,
+            }
+        );
+        panel.addProperty(
             'strafe',
             () => shipRoom.state.strafe,
             [-5, 5],

@@ -21,6 +21,8 @@ export class ShipState extends Spaceship {
     @type('number')
     antiDrift = 0;
     @type('number')
+    breaks = 0;
+    @type('number')
     energy = 1000;
 
     public events = new EventEmitter();

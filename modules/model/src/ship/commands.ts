@@ -14,6 +14,9 @@ export interface ShipCommands {
     setBoost: {
         value: number;
     };
+    setBreaks: {
+        value: number;
+    };
     autoCannon: {
         isFiring: boolean;
     };
