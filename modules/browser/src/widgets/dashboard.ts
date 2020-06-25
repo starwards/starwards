@@ -63,9 +63,7 @@ export class Dashboard extends GoldenLayout {
                 this.registerWidgetMenuItem(widget.name, widget.defaultProps, widget.type);
             }
             // tslint:disable-next-line: no-empty
-        } catch (e) {
-            console.log('ggg', e);
-        }
+        } catch (e) {}
     }
 
     public registerWidget<T extends object>(

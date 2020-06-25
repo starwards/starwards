@@ -17,7 +17,6 @@ if (layoutUrlParam) {
     const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
     dashboard = new Dashboard(JSON.parse(layoutStr), $('#layoutContainer'));
     dashboard.on('stateChanged', function () {
-        console.log('state change');
         localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig()));
     });
 } else {
