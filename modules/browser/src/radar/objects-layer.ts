@@ -30,23 +30,19 @@ export class ObjectsLayer {
     }
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
-        const objGraphics = new ObjectGraphics(spaceObject, this.renderer, this.parent.worldToScreen);
+        const objGraphics = new ObjectGraphics(spaceObject, this.renderer, this.parent);
         this.graphics[spaceObject.id] = objGraphics;
         this.stage.addChild(objGraphics.stage);
         objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => objGraphics.updatePosition());
         objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
-            if (changes.some((change) => change.field === 'destroyed' && change.value === true)) {
+            // changes.some((change) => change.field === 'destroyed' && change.value === true)) {
+            if (spaceObject.destroyed) {
                 this.onRemoveSpaceObject(spaceObject.id);
             } else {
                 // TODO move into objGraphics.updatePosition(). trigger redraw when re-entring screen.
-                const pos = this.parent.worldToScreen(spaceObject.position);
-                if (
-                    pos.x > 0 &&
-                    pos.y > 0 &&
-                    pos.x < this.parent.renderer.width &&
-                    pos.y < this.parent.renderer.height
-                ) {
-                    const redraw = changes.reduce((r, change) => objGraphics.onFieldChange(change.field) || r, false);
+                objGraphics.updatePosition();
+                if (objGraphics.isInScreen()) {
+                    const redraw = changes.some((change) => objGraphics.shouldRedrawOnFieldChange(change.field));
                     if (redraw) {
                         objGraphics.redraw(this.selectedItems.has(spaceObject));
                     }
@@ -76,20 +72,25 @@ class ObjectGraphics {
     private drawRoot = new PIXI.Container();
     private renderedProperties = new Set<string>();
     private disposables: Array<() => void> = [];
-    constructor(
-        private spaceObject: SpaceObject,
-        private renderer: ObjectRenderer,
-        private worldToScreen: (w: XY) => XY
-    ) {
+    constructor(private spaceObject: SpaceObject, private renderer: ObjectRenderer, private parent: CameraView) {
         this.stage.addChild(this.drawRoot);
         this.updatePosition();
         this.redraw(false);
     }
 
     updatePosition() {
-        const pos = this.worldToScreen(this.spaceObject.position);
+        const pos = this.parent.worldToScreen(this.spaceObject.position);
         this.stage.x = pos.x;
         this.stage.y = pos.y;
+    }
+
+    isInScreen() {
+        return (
+            this.stage.x + this.stage.width > 0 &&
+            this.stage.y + this.stage.height > 0 &&
+            this.stage.x < this.parent.renderer.width &&
+            this.stage.y < this.parent.renderer.height
+        );
     }
 
     redraw(isSelected: boolean) {
@@ -103,10 +104,7 @@ class ObjectGraphics {
         this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected);
     }
 
-    onFieldChange(field: string): boolean {
-        if (field === 'position') {
-            this.updatePosition();
-        }
+    shouldRedrawOnFieldChange(field: string): boolean {
         return this.renderedProperties.has(field);
     }
 
