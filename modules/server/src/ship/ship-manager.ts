@@ -26,7 +26,7 @@ export class ShipManager {
         this.state.autoCannon = new AutoCannon();
         this.state.autoCannon.constants = new MapSchema<number>();
         this.state.autoCannon.constants.bulletsPerSecond = 5;
-        this.state.autoCannon.constants.bulletSpeed = 300;
+        this.state.autoCannon.constants.bulletSpeed = 1000;
         this.state.autoCannon.constants.bulletRandomDegrees = 4;
     }
 
