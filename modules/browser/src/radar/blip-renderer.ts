@@ -33,7 +33,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
             0xff0000
         );
         root.addChild(text);
-        return new Set(['angle', 'turnSpeed', 'velocity', 'position', 'health']);
+        return new Set(['angle', 'turnSpeed', 'velocity', 'position', 'health', 'selected']);
     },
     Asteroid(spaceObject: Asteroid, root: PIXI.Container): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
@@ -49,7 +49,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
             0xffff0b
         );
         root.addChild(text);
-        return new Set(['radius']);
+        return new Set(['radius', 'selected']);
     },
     Missile(spaceObject: Missile, root: PIXI.Container): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarArrow.png'].texture;
@@ -60,7 +60,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         radarBlipSprite.tint = 0xffff0b;
         radarBlipSprite.angle = spaceObject.angle % 360;
         root.addChild(radarBlipSprite);
-        return new Set(['angle']);
+        return new Set(['angle', 'selected']);
     },
 };
 
