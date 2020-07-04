@@ -94,3 +94,4 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 ngrok.*
+assets
