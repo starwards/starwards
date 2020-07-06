@@ -88,11 +88,6 @@ export class Camera {
         this.events.on('zoomChanged', () => {
             state.zoom = this.zoom;
         });
-        container.getElement().bind('wheel', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            this.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-        });
     }
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter) {
