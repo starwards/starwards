@@ -4,6 +4,7 @@ import { Dashboard } from '../widgets/dashboard';
 import { gmWidget } from '../widgets/gm';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
 import { TaskLoop } from '../task-loop';
 import { gunWidget } from '../widgets/gun';
@@ -37,6 +38,7 @@ const loop = new TaskLoop(async () => {
         if (!ships.has(shipId)) {
             ships.add(shipId);
             dashboard.registerWidget(radarWidget, { subjectId: shipId }, shipId + ' radar');
+            dashboard.registerWidget(tacticalRadarWidget, { subjectId: shipId }, shipId + ' tactical radar');
             dashboard.registerWidget(pilotWidget, { shipId }, shipId + ' helm');
             dashboard.registerWidget(gunWidget, { shipId }, shipId + ' gun');
             dashboard.registerWidget(shipConstantsWidget, { shipId }, shipId + ' constants');
