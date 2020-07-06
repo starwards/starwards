@@ -16,6 +16,11 @@ import { blipRenderer } from '../radar/blip-renderer';
 function gmComponent(container: Container, state: { zoom: number }) {
     const camera = new Camera();
     camera.bindZoom(container, state);
+    container.getElement().bind('wheel', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+    });
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);

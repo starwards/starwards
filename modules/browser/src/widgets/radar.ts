@@ -11,7 +11,6 @@ import { CameraView } from '../radar/camera-view';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceObject } from '@starwards/model';
-import { velocityRenderer } from '../radar/velocity-renderer';
 
 WebFont.load({
     custom: {
@@ -22,6 +21,11 @@ WebFont.load({
 function radarComponent(container: Container, state: Props) {
     const camera = new Camera();
     camera.bindZoom(container, state);
+    container.getElement().bind('wheel', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+    });
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);
