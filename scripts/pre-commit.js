@@ -101,11 +101,29 @@ try {
                                 internalConsoleOptions: 'openOnSessionStart',
                             },
                             {
+                                // from https://github.com/angular/angular-cli/issues/2453#issuecomment-269055938
                                 name: 'debug chrome',
                                 type: 'chrome',
                                 request: 'launch',
                                 url: 'http://localhost:8080/',
-                                webRoot: '${workspaceFolder}/modules/browser',
+                                sourceMaps: true,
+                                webRoot: '${workspaceFolder}',
+                                sourceMapPathOverrides: {
+                                    'webpack:///./*': '${webRoot}/*',
+                                },
+                            },
+                            {
+                                // from https://github.com/angular/angular-cli/issues/2453#issuecomment-269055938
+                                name: 'attach to chrome',
+                                type: 'chrome',
+                                request: 'attach',
+                                url: 'http://localhost:8080/gm.html',
+                                port: 9222,
+                                sourceMaps: true,
+                                webRoot: '${workspaceFolder}',
+                                sourceMapPathOverrides: {
+                                    'webpack:///./*': '${webRoot}/*',
+                                },
                             },
                         ]),
                 },
