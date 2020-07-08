@@ -8,6 +8,11 @@ import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
 import { TaskLoop } from '../task-loop';
 import { gunWidget } from '../widgets/gun';
+import * as PIXI from 'pixi.js';
+
+// enable pixi dev-tools
+// https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
+window.PIXI = PIXI;
 
 const urlParams = new URLSearchParams(window.location.search);
 const layoutUrlParam = urlParams.get('layout');

@@ -31,6 +31,9 @@ export class CameraView extends PIXI.Application {
     public worldToScreen = (w: XY) => this.camera.worldToScreen(this.renderer, w.x, w.y);
     public screenToWorld = (s: XY) => this.camera.screenToWorld(this.renderer, s.x, s.y);
 
+    public pixelsToMeters = (p: number) => p / this.camera.zoom;
+    public metersToPixles = (m: number) => m * this.camera.zoom;
+
     private resizeView(width: number, height: number) {
         this.renderer.resize(width, height);
         this.events.emit('screenChanged');
@@ -38,5 +41,9 @@ export class CameraView extends PIXI.Application {
 
     public addLayer(child: PIXI.DisplayObject) {
         this.stage.addChild(child);
+    }
+
+    public get radius() {
+        return Math.min(this.renderer.width, this.renderer.height) / 2;
     }
 }

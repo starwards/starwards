@@ -10,6 +10,7 @@ import { CameraView } from '../radar/camera-view';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceObject } from '@starwards/model';
+import { RangeIndicators } from '../radar/range-indicators';
 
 WebFont.load({
     custom: {
@@ -20,10 +21,18 @@ WebFont.load({
 function tacticalRadarComponent(container: Container, state: Props) {
     const camera = new Camera();
     camera.bindZoom(container, state);
+
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
+        const range = new RangeIndicators(root, 1000);
+        root.addLayer(range.renderRoot);
+        // container.getElement().bind('wheel', (e) => {
+        //     e.stopPropagation();
+        //     e.preventDefault();
+        //     range.changeStepSize(-(e.originalEvent as WheelEvent).deltaY);
+        // });
         const room = await getGlobalRoom('space');
         const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room));
         root.addLayer(blipLayer.renderRoot);
@@ -52,5 +61,5 @@ export const tacticalRadarWidget: DashboardWidget<Props> = {
     name: 'tactical radar',
     type: 'component',
     component: tacticalRadarComponent,
-    defaultProps: { zoom: 1 },
+    defaultProps: { zoom: 1 / 15 },
 };
