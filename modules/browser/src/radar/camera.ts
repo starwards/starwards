@@ -9,7 +9,7 @@ export interface Screen {
     height: number;
 }
 export class Camera {
-    private static readonly minZoom = 0.00005;
+    private static readonly minZoom = 0.00005; // must be > 0 to avoid division errors
     private static readonly maxZoom = 1;
     private _zoom = 1;
     public events = new EventEmitter();
@@ -38,6 +38,13 @@ export class Camera {
      */
     public get zoom() {
         return this._zoom;
+    }
+
+    /**
+     * the meter / pixel ratio
+     */
+    public get distance() {
+        return 1 / this._zoom;
     }
 
     /**
