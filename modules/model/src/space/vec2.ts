@@ -80,7 +80,7 @@ export namespace XY {
         const sa = Math.sin(radians);
         return {
             x: ca * vector.x - sa * vector.y,
-            y: sa * vector.x - ca * vector.y,
+            y: sa * vector.x + ca * vector.y,
         };
     }
 

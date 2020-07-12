@@ -1,13 +1,18 @@
 // tslint:disable-next-line: no-implicit-dependencies
 import { DataChange } from '@colyseus/schema';
-import { SpaceObject, SpaceState, XY } from '@starwards/model';
+import { SpaceObject, SpaceState } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import * as PIXI from 'pixi.js';
 import { GameRoom } from '../client';
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 
-export type ObjectRenderer = (spaceObject: SpaceObject, root: PIXI.Container, selected: boolean) => Set<string>;
+export type ObjectRenderer = (
+    spaceObject: SpaceObject,
+    root: PIXI.Container,
+    selected: boolean,
+    angle: number
+) => Set<string>;
 export class ObjectsLayer {
     private stage = new PIXI.Container();
     private graphics: { [id: string]: ObjectGraphics } = {};
@@ -48,6 +53,10 @@ export class ObjectsLayer {
         this.graphics[spaceObject.id] = objGraphics;
         this.stage.addChild(objGraphics.stage);
         objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
+            this.toReDraw.add(objGraphics);
+        });
+        objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
+            objGraphics.markChanged(['parentAngle']);
             this.toReDraw.add(objGraphics);
         });
         objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
@@ -125,7 +134,7 @@ class ObjectGraphics {
         });
         this.drawRoot = new PIXI.Container();
         this.stage.addChild(this.drawRoot);
-        this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected);
+        this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent.camera.angle);
     }
 
     shouldRedrawOnFieldChange(field: string): boolean {
