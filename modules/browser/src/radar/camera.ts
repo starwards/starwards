@@ -12,7 +12,8 @@ export class Camera {
     private static readonly minZoom = 0.00005; // must be > 0 to avoid division errors
     private static readonly maxZoom = 1;
     private _zoom = 1;
-    public events = new EventEmitter();
+    private _angle = 0;
+    public events = new EventEmitter<'view' | 'angle'>();
     private point = { x: 0, y: 0 };
 
     /**
@@ -36,6 +37,13 @@ export class Camera {
     /**
      * the pixel / meter ratio
      */
+    public get angle() {
+        return this._angle;
+    }
+
+    /**
+     * the pixel / meter ratio
+     */
     public get zoom() {
         return this._zoom;
     }
@@ -52,14 +60,21 @@ export class Camera {
      */
     set(position: XY) {
         this.point = position;
-        this.events.emit('change');
+        this.events.emit('view');
     }
 
     public setZoom(value: number) {
         value = Math.max(Camera.minZoom, Math.min(Camera.maxZoom, value));
         if (this._zoom !== value && !Number.isNaN(value)) {
             this._zoom = value;
-            this.events.emit('change');
+            this.events.emit('view');
+        }
+    }
+
+    public setAngle(value: number) {
+        if (this._angle !== value && !Number.isNaN(value)) {
+            this._angle = value;
+            this.events.emit('angle');
         }
     }
 
@@ -70,18 +85,22 @@ export class Camera {
         this.setZoom(this.zoom * (1.0 + delta / 1000.0));
     }
 
+    private screenCenter(screen: { width: number; height: number }) {
+        return { x: screen.width / 2, y: screen.height / 2 };
+    }
+
     public worldToScreen(screen: { width: number; height: number }, x: number, y: number): XY {
-        return {
-            x: (x - this.x) * this.zoom + screen.width / 2,
-            y: (y - this.y) * this.zoom + screen.height / 2,
-        };
+        return XY.add(
+            XY.rotate(XY.scale(XY.difference({ x, y }, this.point), this.zoom), -this.angle),
+            this.screenCenter(screen)
+        );
     }
 
     public screenToWorld(screen: Screen, x: number, y: number): XY {
-        return {
-            x: this.x + (x - screen.width / 2) / this.zoom,
-            y: this.y + (y - screen.height / 2) / this.zoom,
-        };
+        return XY.add(
+            XY.scale(XY.rotate(XY.difference({ x, y }, this.screenCenter(screen)), this.angle), 1 / this.zoom),
+            this.point
+        );
     }
 
     bindZoom(container: Container, state: { zoom: number }) {
@@ -92,19 +111,21 @@ export class Camera {
         container.on('zoomIn', () => {
             this.setZoom(this.zoom * 1.1);
         });
-        this.events.on('zoomChanged', () => {
-            state.zoom = this.zoom;
-        });
     }
 
-    followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter) {
+    followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter, angle = false) {
         changeEvents.on(spaceObject.id, (changes: DataChange[]) => {
             changes.forEach((change) => {
                 if (change.field === 'position') {
                     this.set(spaceObject.position);
+                } else if (angle && change.field === 'angle') {
+                    this.setAngle(spaceObject.angle + 90);
                 }
             });
         });
         this.set(spaceObject.position);
+        if (angle) {
+            this.setAngle(spaceObject.angle + 90);
+        }
     }
 }

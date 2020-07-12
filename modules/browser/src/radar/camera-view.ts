@@ -8,7 +8,7 @@ import { XY } from '@starwards/model';
 type AppOptions = typeof PIXI.Application extends new (options?: infer T) => PIXI.Application ? T : never;
 
 export class CameraView extends PIXI.Application {
-    public events = new EventEmitter<'screenChanged'>();
+    public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
     private square = false;
 
     /**
@@ -17,7 +17,8 @@ export class CameraView extends PIXI.Application {
      */
     constructor(pixiOptions: AppOptions, public camera: Camera, container: Container) {
         super(pixiOptions);
-        camera.events.on('change', () => this.events.emit('screenChanged'));
+        camera.events.on('view', () => this.events.emit('screenChanged'));
+        camera.events.on('angle', () => this.events.emit('angleChanged'));
         container.on('resize', () => {
             this.resizeView(container.width, container.height);
         });

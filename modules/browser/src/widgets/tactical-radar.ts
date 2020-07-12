@@ -1,4 +1,3 @@
-import { GridLayer } from '../radar/grid-layer';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
@@ -25,8 +24,6 @@ function tacticalRadarComponent(container: Container, state: Props) {
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
-        const grid = new GridLayer(root);
-        root.addLayer(grid.renderRoot);
         const range = new RangeIndicators(root, 1000);
         root.addLayer(range.renderRoot);
         // container.getElement().bind('wheel', (e) => {
@@ -46,12 +43,12 @@ function tacticalRadarComponent(container: Container, state: Props) {
 function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: string) {
     let tracked = room.state.get(subjectId);
     if (tracked) {
-        camera.followSpaceObject(tracked, room.state.events);
+        camera.followSpaceObject(tracked, room.state.events, true);
     } else {
         room.state.events.on('add', (spaceObject: SpaceObject) => {
             if (!tracked && spaceObject.id === subjectId) {
                 tracked = spaceObject;
-                camera.followSpaceObject(tracked, room.state.events);
+                camera.followSpaceObject(tracked, room.state.events, true);
             }
         });
     }
