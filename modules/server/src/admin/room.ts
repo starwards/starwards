@@ -50,9 +50,9 @@ export class AdminRoom extends Room<AdminState> {
             const spaceManager = new SpaceManager();
             this.addShip(spaceManager, 'A');
             this.addShip(spaceManager, 'B');
-            Array(2000)
-                .fill(null)
-                .forEach(() => spaceManager.insert(newAsteroid()));
+            // Array(2000)
+            //     .fill(null)
+            //     .forEach(() => spaceManager.insert(newAsteroid()));
             await matchMaker.createRoom('space', { manager: spaceManager });
         }
     }

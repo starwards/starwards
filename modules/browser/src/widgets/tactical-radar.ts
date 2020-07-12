@@ -24,6 +24,7 @@ function tacticalRadarComponent(container: Container, state: Props) {
 
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+        root.setSquare();
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
         const range = new RangeIndicators(root, 1000);
