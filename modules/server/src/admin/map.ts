@@ -11,7 +11,7 @@ export function newAsteroid() {
     return asteroid;
 }
 
-const locationRange = 40 * 1000;
+const locationRange = 2 * 1000;
 export function newShip(id: string) {
     const ship = new Spaceship();
     ship.id = id;
@@ -21,8 +21,8 @@ export function newShip(id: string) {
 
 export function resetShip(ship: Spaceship) {
     ship.position = new Vec2((Math.random() - 0.5) * locationRange, (Math.random() - 0.5) * locationRange);
-    ship.angle = Math.random() * 360;
-    ship.velocity = Vec2.Rotate({ x: speedMax / 2, y: 0 }, ship.angle);
+    // ship.angle = Math.random() * 360;
+    // ship.velocity = Vec2.Rotate({ x: speedMax / 2, y: 0 }, ship.angle);
     ship.health = 1000;
     return ship;
 }

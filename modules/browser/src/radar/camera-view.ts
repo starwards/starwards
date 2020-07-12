@@ -9,6 +9,7 @@ type AppOptions = typeof PIXI.Application extends new (options?: infer T) => PIX
 
 export class CameraView extends PIXI.Application {
     public events = new EventEmitter<'screenChanged'>();
+    private square = false;
 
     /**
      * @param pixiOptions options for the pixi application
@@ -34,8 +35,18 @@ export class CameraView extends PIXI.Application {
     public pixelsToMeters = (p: number) => p / this.camera.zoom;
     public metersToPixles = (m: number) => m * this.camera.zoom;
 
+    public setSquare() {
+        this.square = true;
+        this.resizeView(this.renderer.width, this.renderer.height);
+    }
+
     private resizeView(width: number, height: number) {
-        this.renderer.resize(width, height);
+        if (this.square) {
+            const side = Math.min(width, height);
+            this.renderer.resize(side, side);
+        } else {
+            this.renderer.resize(width, height);
+        }
         this.events.emit('screenChanged');
     }
 
