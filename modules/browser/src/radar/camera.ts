@@ -63,6 +63,10 @@ export class Camera {
         this.events.emit('view');
     }
 
+    public setRange(radius: number, range: number) {
+        this.setZoom(radius / range);
+    }
+
     public setZoom(value: number) {
         value = Math.max(Camera.minZoom, Math.min(Camera.maxZoom, value));
         if (this._zoom !== value && !Number.isNaN(value)) {
@@ -110,6 +114,13 @@ export class Camera {
         });
         container.on('zoomIn', () => {
             this.setZoom(this.zoom * 1.1);
+        });
+    }
+
+    bindRange(container: Container, sizeFactor: number, state: { range: number }) {
+        this.setRange((sizeFactor * Math.min(container.width, container.height)) / 2, state.range);
+        container.on('resize', () => {
+            this.setRange((sizeFactor * Math.min(container.width, container.height)) / 2, state.range);
         });
     }
 

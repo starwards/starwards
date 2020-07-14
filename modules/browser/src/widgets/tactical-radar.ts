@@ -17,14 +17,18 @@ WebFont.load({
     },
 });
 
+const sizeFactor = 0.85; // 15% left for azimut circle
+const sizeFactorGrace = 0.005;
+
 function tacticalRadarComponent(container: Container, state: Props) {
     const camera = new Camera();
-    camera.bindZoom(container, state);
+    camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
 
     PIXI.Loader.shared.load(async () => {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
         const range = new RangeIndicators(root, 1000);
+        range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
         // container.getElement().bind('wheel', (e) => {
         //     e.stopPropagation();
@@ -54,10 +58,10 @@ function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: st
     }
 }
 
-export type Props = { zoom: number; subjectId: string };
+export type Props = { range: number; subjectId: string };
 export const tacticalRadarWidget: DashboardWidget<Props> = {
     name: 'tactical radar',
     type: 'component',
     component: tacticalRadarComponent,
-    defaultProps: { zoom: 1 / 15 },
+    defaultProps: { range: 5000 },
 };
