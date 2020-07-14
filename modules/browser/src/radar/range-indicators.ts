@@ -7,11 +7,23 @@ export class RangeIndicators {
     private stage = new PIXI.Container();
     private readonly rangeIndicators = new PIXI.Graphics();
     private readonly rangeNames = new TextsPool(this.stage);
+    private sizeFactor = 1;
+    private shouldRender = true;
 
     constructor(private parent: CameraView, private stepSize: number) {
-        this.parent.events.on('screenChanged', () => this.drawRangeIndicators());
+        this.parent.events.on('screenChanged', () => {
+            this.shouldRender = true;
+        });
+        parent.ticker.add((_delta) => {
+            if (this.shouldRender) {
+                this.drawRangeIndicators();
+            }
+        });
         this.stage.addChild(this.rangeIndicators);
-        this.drawRangeIndicators();
+    }
+
+    setSizeFactor(value: number) {
+        this.sizeFactor = value;
     }
 
     changeStepSize(delta: number) {
@@ -23,14 +35,16 @@ export class RangeIndicators {
     }
 
     private drawRangeIndicators() {
+        this.shouldRender = false;
         this.rangeIndicators.clear();
         this.rangeIndicators.lineStyle(2, 0xffffff, 0.1);
         const textsIterator = this.rangeNames[Symbol.iterator]();
-        const maxCircleSize = this.parent.pixelsToMeters(this.parent.radius);
+        const maxCircleSize = this.parent.pixelsToMeters(this.parent.radius * this.sizeFactor);
+        console.log(maxCircleSize);
         // draw circles
-        for (let circleSize = this.stepSize; circleSize < maxCircleSize; circleSize += this.stepSize) {
+        for (let circleSize = this.stepSize; circleSize <= maxCircleSize; circleSize += this.stepSize) {
             // this.rangeIndicators.beginFill(0x00000000);
-            const radius = circleSize * this.parent.camera.zoom;
+            const radius = this.parent.metersToPixles(circleSize);
             this.rangeIndicators.drawCircle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, radius);
             const text = textsIterator.next().value;
             text.text = circleSize + 'M';
