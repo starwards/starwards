@@ -53,6 +53,10 @@ export class ShipManager {
     public setBreaks(value: number) {
         this.state.breaks = value;
     }
+    public setTarget(id: string) {
+        // TODO check (and register for changes) that id is or real  (valid?) target.
+        this.state.targetId = id;
+    }
 
     public setConstant(name: string, value: number) {
         this.state.constants[name] = value;

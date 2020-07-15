@@ -20,6 +20,9 @@ export interface ShipCommands {
     autoCannon: {
         isFiring: boolean;
     };
+    setTarget: {
+        id: string;
+    };
     // changes to ship
     setConstant: {
         name: string;
