@@ -21,7 +21,7 @@ export interface ShipCommands {
         isFiring: boolean;
     };
     setTarget: {
-        id: string;
+        id: string | null;
     };
     // changes to ship
     setConstant: {

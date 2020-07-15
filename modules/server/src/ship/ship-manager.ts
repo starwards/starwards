@@ -53,9 +53,9 @@ export class ShipManager {
     public setBreaks(value: number) {
         this.state.breaks = value;
     }
-    public setTarget(id: string) {
-        // TODO check (and register for changes) that id is or real  (valid?) target.
+    public setTarget(id: string | null) {
         this.state.targetId = id;
+        this.validateTargetId();
     }
 
     public setConstant(name: string, value: number) {
@@ -70,6 +70,7 @@ export class ShipManager {
         if (this.spaceObject.health <= 0) {
             this.onDestroy();
         } else {
+            this.validateTargetId();
             // sync relevant ship props
             this.syncShipProperties();
             this.updateEnergy(deltaSeconds);
@@ -81,6 +82,12 @@ export class ShipManager {
             this.updateImpulse(deltaSeconds);
             this.updateAutocannon(deltaSeconds);
             this.fireAutocannon();
+        }
+    }
+
+    private validateTargetId() {
+        if (this.state.targetId && !this.spaceManager.state.get(this.state.targetId)) {
+            this.state.targetId = null;
         }
     }
 
