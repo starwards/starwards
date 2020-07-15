@@ -31,20 +31,22 @@ function gunComponent(container: Container, p: Props) {
             'nextTarget',
             () => 0,
             [0, 1],
-            (_) => {
-                let currentFound = false;
-                for (const obj of spaceRoom.state) {
-                    if (obj.id === shipRoom.state.targetId) {
-                        currentFound = true;
-                    } else if (currentFound && obj.id !== p.shipId) {
-                        shipRoom.send('setTarget', { id: obj.id });
-                        return;
+            (value) => {
+                if (value) {
+                    let currentFound = false;
+                    for (const obj of spaceRoom.state) {
+                        if (obj.id === shipRoom.state.targetId) {
+                            currentFound = true;
+                        } else if (currentFound && obj.id !== p.shipId) {
+                            shipRoom.send('setTarget', { id: obj.id });
+                            return;
+                        }
                     }
-                }
-                for (const obj of spaceRoom.state) {
-                    if (obj.id !== p.shipId) {
-                        shipRoom.send('setTarget', { id: obj.id });
-                        return;
+                    for (const obj of spaceRoom.state) {
+                        if (obj.id !== p.shipId) {
+                            shipRoom.send('setTarget', { id: obj.id });
+                            return;
+                        }
                     }
                 }
             },

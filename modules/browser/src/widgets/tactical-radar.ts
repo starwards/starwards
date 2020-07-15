@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
 import { Container } from 'golden-layout';
-import { getGlobalRoom, NamedGameRoom } from '../client';
+import { getGlobalRoom, NamedGameRoom, getRoomById } from '../client';
 import { blipRenderer } from '../radar/blip-renderer';
 import { DashboardWidget } from './dashboard';
 import { Camera } from '../radar/camera';
@@ -35,12 +35,22 @@ function tacticalRadarComponent(container: Container, state: Props) {
         //     e.preventDefault();
         //     range.changeStepSize(-(e.originalEvent as WheelEvent).deltaY);
         // });
-        const room = await getGlobalRoom('space');
-        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room));
+        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', state.subjectId)]);
+        const selectionContainer = new SelectionContainer(spaceRoom);
+        shipRoom.state.events.on('targetId', () => {
+            if (shipRoom.state.targetId) {
+                const targetObj = spaceRoom.state.get(shipRoom.state.targetId);
+                selectionContainer.set(targetObj ? [targetObj] : []);
+            } else {
+                selectionContainer.set([]);
+            }
+        });
+
+        const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, selectionContainer);
         root.addLayer(blipLayer.renderRoot);
         // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
         // root.addLayer(velocityLayer.renderRoot);
-        trackObject(camera, room, state.subjectId);
+        trackObject(camera, spaceRoom, state.subjectId);
     });
 }
 
