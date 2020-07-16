@@ -24,15 +24,15 @@ export class ObjectsLayer {
         private selectedItems: SelectionContainer
     ) {
         room.state.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        room.state.events.on('remove', (spaceObject: SpaceObject) => this.onRemoveSpaceObject(spaceObject.id));
+        room.state.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
 
         for (const spaceObject of room.state) {
             this.onNewSpaceObject(spaceObject);
         }
         parent.ticker.add((_delta) => {
             for (const objGraphics of this.toReDraw) {
-                if (objGraphics.spaceObject.destroyed) {
-                    this.onRemoveSpaceObject(objGraphics.spaceObject.id);
+                if (objGraphics.isDestroyed()) {
+                    this.cleanupSpaceObject(objGraphics.spaceObject.id);
                 } else {
                     objGraphics.updatePosition();
                     if (objGraphics.shouldRedraw()) {
@@ -69,11 +69,12 @@ export class ObjectsLayer {
         });
     }
 
-    private onRemoveSpaceObject(id: string) {
+    private cleanupSpaceObject(id: string) {
         const objGraphics = this.graphics[id];
         if (objGraphics) {
             delete this.graphics[id];
             objGraphics.destroy();
+            this.toReDraw.delete(objGraphics);
         }
     }
 }
@@ -88,10 +89,15 @@ class ObjectGraphics {
     private renderedProperties = new Set<string>();
     private dirtyProperties = new Set<string>();
     private disposables: Array<() => void> = [];
+    private destroyed = false;
     constructor(public spaceObject: SpaceObject, private renderer: ObjectRenderer, private parent: CameraView) {
         this.stage.addChild(this.drawRoot);
         this.updatePosition();
         this.redraw(false);
+    }
+
+    isDestroyed() {
+        return this.spaceObject.destroyed || this.destroyed;
     }
 
     markChanged(fields: string[]) {
@@ -147,12 +153,15 @@ class ObjectGraphics {
     }
 
     destroy() {
-        for (const d of this.disposables) {
-            d();
+        if (!this.destroyed) {
+            this.destroyed = true;
+            for (const d of this.disposables) {
+                d();
+            }
+            this.stage.parent.removeChild(this.stage);
+            this.stage.destroy({
+                children: true,
+            });
         }
-        this.stage.parent.removeChild(this.stage);
-        this.stage.destroy({
-            children: true,
-        });
     }
 }
