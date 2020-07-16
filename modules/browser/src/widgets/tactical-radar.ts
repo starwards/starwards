@@ -1,15 +1,17 @@
+import { SpaceObject } from '@starwards/model';
+import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
-import { Container } from 'golden-layout';
-import { getGlobalRoom, NamedGameRoom, getRoomById } from '../client';
+import { getGlobalRoom, getRoomById, NamedGameRoom } from '../client';
 import { blipRenderer } from '../radar/blip-renderer';
-import { DashboardWidget } from './dashboard';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { InteractiveLayer } from '../radar/interactive-layer';
+import { LineLayer } from '../radar/line-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
-import { SelectionContainer } from '../radar/selection-container';
-import { SpaceObject } from '@starwards/model';
 import { RangeIndicators } from '../radar/range-indicators';
+import { SelectionContainer } from '../radar/selection-container';
+import { DashboardWidget } from './dashboard';
 
 WebFont.load({
     custom: {
@@ -30,28 +32,33 @@ function tacticalRadarComponent(container: Container, state: Props) {
         const range = new RangeIndicators(root, 1000);
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
-        // container.getElement().bind('wheel', (e) => {
-        //     e.stopPropagation();
-        //     e.preventDefault();
-        //     range.changeStepSize(-(e.originalEvent as WheelEvent).deltaY);
-        // });
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', state.subjectId)]);
-        const selectionContainer = new SelectionContainer(spaceRoom);
-        shipRoom.state.events.on('targetId', () => {
-            if (shipRoom.state.targetId) {
-                const targetObj = spaceRoom.state.get(shipRoom.state.targetId);
-                selectionContainer.set(targetObj ? [targetObj] : []);
-            } else {
-                selectionContainer.set([]);
-            }
-        });
+        const shipTarget = trackTargetObject(spaceRoom, shipRoom);
 
-        const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, selectionContainer);
+        const targetLineLayer = new LineLayer(
+            root,
+            () => [spaceRoom.state.get(state.subjectId)?.position, shipTarget.getSingle()?.position],
+            [2, InteractiveLayer.selectionColor, 0.5]
+        );
+        root.addLayer(targetLineLayer.renderRoot);
+        const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
         // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
         // root.addLayer(velocityLayer.renderRoot);
         trackObject(camera, spaceRoom, state.subjectId);
     });
+}
+
+function trackTargetObject(spaceRoom: NamedGameRoom<'space'>, shipRoom: NamedGameRoom<'ship'>): SelectionContainer {
+    const result = new SelectionContainer(spaceRoom);
+    const updateSelectedTarget = () => {
+        const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);
+        result.set(targetObj ? [targetObj] : []);
+    };
+    shipRoom.state.events.on('targetId', updateSelectedTarget);
+    spaceRoom.state.events.on('add', () => setTimeout(updateSelectedTarget, 0));
+    updateSelectedTarget();
+    return result;
 }
 
 function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: string) {
