@@ -15,7 +15,7 @@ export class Missile extends SpaceObjectBase {
     constructor() {
         super();
         this.health = 10;
-        this.radius = 0.1;
+        this.radius = 1;
     }
 
     public collide(other: SpaceObject, _collisionVector: XY, _deltaSeconds: number): void {

@@ -26,7 +26,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         radarBlipSprite.angle = (spaceObject.angle - parentAngle) % 360;
         root.addChild(radarBlipSprite);
         const text = renderText(
-            radarBlipSprite.height,
+            radarBlipSprite.height / 2,
             [
                 `ID: ${spaceObject.id}`,
                 `[${spaceObject.position.x.toFixed(0)}:${spaceObject.position.y.toFixed(0)}]`,
@@ -58,9 +58,9 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
     Missile(spaceObject: Missile, root: PIXI.Container, parentAngle: number): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarArrow.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
-        radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
-        radarBlipSprite.x = -radarBlipSprite.width / 2;
-        radarBlipSprite.y = -radarBlipSprite.height / 2;
+        radarBlipSprite.scale = new PIXI.Point(0.2, 0.2);
+        radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
+        radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
         radarBlipSprite.tint = 0xffff0b;
         radarBlipSprite.angle = (spaceObject.angle - parentAngle) % 360;
         root.addChild(radarBlipSprite);
