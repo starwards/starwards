@@ -7,6 +7,13 @@ function capToRange(from: number, to: number, value: number) {
     return value > to ? to : value < from ? from : value;
 }
 
+/**
+ *  generate a random number with a given mean and standard deviation
+ */
+function gaussianRandom(mean: number, stdev: number): number {
+    return mean + 2.0 * stdev * (Math.random() + Math.random() + Math.random() - 1.5);
+}
+
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
 
@@ -25,9 +32,9 @@ export class ShipManager {
         this.state.constants.impulseEffectFactor = 4;
         this.state.autoCannon = new AutoCannon();
         this.state.autoCannon.constants = new MapSchema<number>();
-        this.state.autoCannon.constants.bulletsPerSecond = 5;
+        this.state.autoCannon.constants.bulletsPerSecond = 20;
         this.state.autoCannon.constants.bulletSpeed = 1000;
-        this.state.autoCannon.constants.bulletRandomDegrees = 4;
+        this.state.autoCannon.constants.bulletDegreesDeviation = 1;
     }
 
     public setImpulse(value: number) {
@@ -53,6 +60,10 @@ export class ShipManager {
     public setBreaks(value: number) {
         this.state.breaks = value;
     }
+    public setTarget(id: string | null) {
+        this.state.targetId = id;
+        this.validateTargetId();
+    }
 
     public setConstant(name: string, value: number) {
         this.state.constants[name] = value;
@@ -66,6 +77,7 @@ export class ShipManager {
         if (this.spaceObject.health <= 0) {
             this.onDestroy();
         } else {
+            this.validateTargetId();
             // sync relevant ship props
             this.syncShipProperties();
             this.updateEnergy(deltaSeconds);
@@ -77,6 +89,12 @@ export class ShipManager {
             this.updateImpulse(deltaSeconds);
             this.updateAutocannon(deltaSeconds);
             this.fireAutocannon();
+        }
+    }
+
+    private validateTargetId() {
+        if (this.state.targetId && !this.spaceManager.state.get(this.state.targetId)) {
+            this.state.targetId = null;
         }
     }
 
@@ -130,7 +148,7 @@ export class ShipManager {
                 this.spaceObject.velocity,
                 XY.rotate(
                     { x: autocannon.constants.bulletSpeed, y: 0 },
-                    missile.angle + (Math.random() - 0.5) * autocannon.constants.bulletRandomDegrees
+                    gaussianRandom(missile.angle, autocannon.constants.bulletDegreesDeviation)
                 )
             );
             const missilePosition = Vec2.sum(

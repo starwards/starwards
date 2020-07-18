@@ -18,7 +18,7 @@ enum ActionType {
     dragObjects,
 }
 export class InteractiveLayer {
-    private static readonly selectionColor = 0x26dafd;
+    static readonly selectionColor = 0x26dafd;
     private static readonly selectPointGrace = 32;
 
     private actionType: ActionType = ActionType.none;

@@ -1,11 +1,11 @@
 import { Container } from 'golden-layout';
-import { getRoomById } from '../client';
+import { getRoomById, getGlobalRoom } from '../client';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
 import EventEmitter from 'eventemitter3';
 
 function gunComponent(container: Container, p: Props) {
-    getRoomById('ship', p.shipId).then((shipRoom) => {
+    Promise.all([getGlobalRoom('space'), getRoomById('ship', p.shipId)]).then(([spaceRoom, shipRoom]) => {
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
@@ -27,7 +27,34 @@ function gunComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty('angle', () => Number(shipRoom.state.autoCannon?.angle || 0), [0, 360]);
-
+        panel.addProperty(
+            'nextTarget',
+            () => 0,
+            [0, 1],
+            (value) => {
+                if (value) {
+                    let currentFound = false;
+                    for (const obj of spaceRoom.state) {
+                        if (obj.id === shipRoom.state.targetId) {
+                            currentFound = true;
+                        } else if (currentFound && obj.id !== p.shipId) {
+                            shipRoom.send('setTarget', { id: obj.id });
+                            return;
+                        }
+                    }
+                    for (const obj of spaceRoom.state) {
+                        if (obj.id !== p.shipId) {
+                            shipRoom.send('setTarget', { id: obj.id });
+                            return;
+                        }
+                    }
+                }
+            },
+            {
+                gamepadIndex: 0,
+                buttonIndex: 2,
+            }
+        );
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
         }

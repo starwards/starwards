@@ -43,4 +43,8 @@ export class SelectionContainer {
     public has(o: SpaceObject) {
         return this.selectedItems.has(o);
     }
+
+    public getSingle(): SpaceObject | undefined {
+        return this.selectedItems.values().next().value;
+    }
 }

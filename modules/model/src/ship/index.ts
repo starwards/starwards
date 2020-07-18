@@ -25,6 +25,9 @@ export class ShipState extends Spaceship {
     @type('number')
     energy = 1000;
 
+    @type('string')
+    public targetId: string | null = null;
+
     public events = new EventEmitter();
     constructor(isClient = true) {
         super();

@@ -40,7 +40,6 @@ export class RangeIndicators {
         this.rangeIndicators.lineStyle(2, 0xffffff, 0.1);
         const textsIterator = this.rangeNames[Symbol.iterator]();
         const maxCircleSize = this.parent.pixelsToMeters(this.parent.radius * this.sizeFactor);
-        console.log(maxCircleSize);
         // draw circles
         for (let circleSize = this.stepSize; circleSize <= maxCircleSize; circleSize += this.stepSize) {
             // this.rangeIndicators.beginFill(0x00000000);
