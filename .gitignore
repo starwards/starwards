@@ -6,7 +6,6 @@ umd
 
 # IDEs
 .idea
-.vscode
 
 # OS-specific
 .DS_Store

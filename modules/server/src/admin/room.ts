@@ -1,9 +1,9 @@
+import { MapSchema } from '@colyseus/schema';
 import { AdminState } from '@starwards/model';
 import { Client, matchMaker, Room } from 'colyseus';
 import { ShipManager } from '../ship/ship-manager';
 import { SpaceManager } from '../space/space-manager';
-import { newShip, resetShip, newAsteroid } from './map';
-import { MapSchema } from '@colyseus/schema';
+import { newShip, resetShip } from './map';
 
 export class AdminRoom extends Room<AdminState> {
     constructor() {

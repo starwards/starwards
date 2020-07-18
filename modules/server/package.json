@@ -5,7 +5,6 @@
     "files": [
         "cjs"
     ],
-    "license": "MIT",
     "scripts": {
         "clean": "rimraf ./cjs",
         "prettify": "yarn prettier \"src/**/*.ts\" --write",

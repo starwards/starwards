@@ -62,6 +62,5 @@
     },
     "repository": "git@github.com:amir-arad/starwards.git",
     "author": "amir-arad <greenshade@gmail.com>",
-    "license": "MIT",
     "private": true
 }
