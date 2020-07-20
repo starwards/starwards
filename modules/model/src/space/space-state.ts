@@ -4,10 +4,14 @@ import { Spaceship } from './spaceship';
 import { CannonShell } from './cannon-shell';
 import EventEmitter from 'eventemitter3';
 import { SpaceObject, SpaceObjects } from '.';
+import { Explosion } from './explosion';
 
 export class SpaceState extends Schema {
     @type({ map: CannonShell })
     public cannonShells = new MapSchema<CannonShell>();
+
+    @type({ map: Explosion })
+    public explosions = new MapSchema<Explosion>();
 
     @type({ map: Asteroid })
     public asteroids = new MapSchema<Asteroid>();
@@ -29,7 +33,7 @@ export class SpaceState extends Schema {
     }
 
     public get(id: string): SpaceObject | undefined {
-        return this.cannonShells[id] || this.asteroids[id] || this.spaceships[id];
+        return this.cannonShells[id] || this.asteroids[id] || this.spaceships[id] || this.explosions[id];
     }
 
     public set(obj: SpaceObject) {
@@ -46,12 +50,15 @@ export class SpaceState extends Schema {
 
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
         yield* mapSchemaValues(this.cannonShells, destroyed);
+        yield* mapSchemaValues(this.explosions, destroyed);
         yield* mapSchemaValues(this.asteroids, destroyed);
         yield* mapSchemaValues(this.spaceships, destroyed);
     }
 
     private getMap<T extends keyof SpaceObjects>(typeField: T) {
         switch (typeField) {
+            case 'Explosion':
+                return this.explosions;
             case 'CannonShell':
                 return this.cannonShells;
             case 'Asteroid':
