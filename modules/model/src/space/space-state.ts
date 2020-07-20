@@ -1,13 +1,13 @@
 import { Schema, type, MapSchema } from '@colyseus/schema';
 import { Asteroid } from './asteroid';
 import { Spaceship } from './spaceship';
-import { Missile } from './missile';
+import { CannonShell } from './cannon-shell';
 import EventEmitter from 'eventemitter3';
 import { SpaceObject, SpaceObjects } from '.';
 
 export class SpaceState extends Schema {
-    @type({ map: Missile })
-    public missiles = new MapSchema<Missile>();
+    @type({ map: CannonShell })
+    public cannonShells = new MapSchema<CannonShell>();
 
     @type({ map: Asteroid })
     public asteroids = new MapSchema<Asteroid>();
@@ -20,16 +20,16 @@ export class SpaceState extends Schema {
     constructor(isClient = true) {
         super();
         if (isClient) {
-            this.missiles.onAdd = this.asteroids.onAdd = this.spaceships.onAdd = (so: SpaceObject) =>
+            this.cannonShells.onAdd = this.asteroids.onAdd = this.spaceships.onAdd = (so: SpaceObject) =>
                 this.events.emit('add', so);
-            this.missiles.onRemove = this.asteroids.onRemove = this.spaceships.onRemove = (so: SpaceObject) =>
+            this.cannonShells.onRemove = this.asteroids.onRemove = this.spaceships.onRemove = (so: SpaceObject) =>
                 this.events.emit('remove', so);
             this.events.on('add', (so: SpaceObject) => (so.onChange = (changes) => this.events.emit(so.id, changes)));
         }
     }
 
     public get(id: string): SpaceObject | undefined {
-        return this.missiles[id] || this.asteroids[id] || this.spaceships[id];
+        return this.cannonShells[id] || this.asteroids[id] || this.spaceships[id];
     }
 
     public set(obj: SpaceObject) {
@@ -45,15 +45,15 @@ export class SpaceState extends Schema {
     }
 
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
-        yield* mapSchemaValues(this.missiles, destroyed);
+        yield* mapSchemaValues(this.cannonShells, destroyed);
         yield* mapSchemaValues(this.asteroids, destroyed);
         yield* mapSchemaValues(this.spaceships, destroyed);
     }
 
     private getMap<T extends keyof SpaceObjects>(typeField: T) {
         switch (typeField) {
-            case 'Missile':
-                return this.missiles;
+            case 'CannonShell':
+                return this.cannonShells;
             case 'Asteroid':
                 return this.asteroids;
             case 'Spaceship':

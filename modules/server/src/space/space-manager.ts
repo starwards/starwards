@@ -55,7 +55,7 @@ export class SpaceManager {
 
     public update(deltaMs: number) {
         const deltaSeconds = deltaMs / 1000;
-        this.destroyOldMissiles(deltaSeconds);
+        this.destroyOldShells(deltaSeconds);
         this.untrackDestroyedObjects();
         this.applyPhysics(deltaSeconds);
         this.handleCollisions(deltaSeconds);
@@ -65,11 +65,11 @@ export class SpaceManager {
         }
     }
 
-    private destroyOldMissiles(deltaSeconds: number) {
-        for (const missile of this.state.getAll('Missile')) {
-            missile.secondsToLive -= deltaSeconds;
-            if (missile.secondsToLive <= 0) {
-                missile.destroyed = true;
+    private destroyOldShells(deltaSeconds: number) {
+        for (const shell of this.state.getAll('CannonShell')) {
+            shell.secondsToLive -= deltaSeconds;
+            if (shell.secondsToLive <= 0) {
+                shell.destroyed = true;
             }
         }
     }

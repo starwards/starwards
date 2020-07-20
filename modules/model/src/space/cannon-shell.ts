@@ -2,15 +2,15 @@ import { SpaceObjectBase } from './space-object-base';
 import { type } from '@colyseus/schema';
 import { SpaceObject, XY } from '.';
 
-export class Missile extends SpaceObjectBase {
-    public static isInstance(o: SpaceObjectBase): o is Missile {
-        return o.type === 'Missile';
+export class CannonShell extends SpaceObjectBase {
+    public static isInstance(o: SpaceObjectBase): o is CannonShell {
+        return o.type === 'CannonShell';
     }
 
     @type('float32')
     public secondsToLive: number = 0;
 
-    public readonly type = 'Missile';
+    public readonly type = 'CannonShell';
 
     constructor() {
         super();

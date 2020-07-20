@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema';
-import { ShipState, Spaceship, XY, AutoCannon, Missile, Vec2 } from '@starwards/model';
+import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2 } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
 import { makeId } from '../admin/id';
 
@@ -141,23 +141,23 @@ export class ShipManager {
         const autocannon = this.state.autoCannon;
         if (autocannon.isFiring && autocannon.cooldown <= 0) {
             autocannon.cooldown += 1;
-            const missile = new Missile();
+            const shell = new CannonShell();
 
-            missile.angle = this.spaceObject.angle + autocannon.angle;
-            missile.velocity = Vec2.sum(
+            shell.angle = this.spaceObject.angle + autocannon.angle;
+            shell.velocity = Vec2.sum(
                 this.spaceObject.velocity,
                 XY.rotate(
                     { x: autocannon.constants.bulletSpeed, y: 0 },
-                    gaussianRandom(missile.angle, autocannon.constants.bulletDegreesDeviation)
+                    gaussianRandom(shell.angle, autocannon.constants.bulletDegreesDeviation)
                 )
             );
-            const missilePosition = Vec2.sum(
+            const shellPosition = Vec2.sum(
                 this.spaceObject.position,
-                XY.rotate({ x: this.spaceObject.radius + missile.radius, y: 0 }, missile.angle)
+                XY.rotate({ x: this.spaceObject.radius + shell.radius, y: 0 }, shell.angle)
             );
-            missile.init(makeId(), missilePosition);
-            missile.secondsToLive = 10;
-            this.spaceManager.insert(missile);
+            shell.init(makeId(), shellPosition);
+            shell.secondsToLive = 10;
+            this.spaceManager.insert(shell);
         }
     }
 
