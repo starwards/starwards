@@ -21,6 +21,6 @@ export class Missile extends SpaceObjectBase {
     public collide(other: SpaceObject, _collisionVector: XY, _deltaSeconds: number): void {
         // super.collide(other, collisionVector, deltaSeconds);
         this.destroyed = true;
-        other.health -= 50;
+        other.takeDamage(50);
     }
 }

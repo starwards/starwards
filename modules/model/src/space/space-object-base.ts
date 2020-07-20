@@ -51,18 +51,30 @@ export abstract class SpaceObjectBase extends Schema {
     @type('uint16')
     public health: number = 0;
 
+    public collideOtherOverride:
+        | ((other: SpaceObject, collisionVector: XY, deltaSeconds: number) => void)
+        | null = null;
+
     init(id: string, position: Vec2): this {
         this.id = id;
         this.position = position;
         return this;
     }
 
+    public takeDamage(damage: number) {
+        this.health -= damage;
+    }
+
     // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
     // todo add spin
-    public collide(_other: SpaceObject, collisionVector: XY, deltaSeconds: number): void {
-        const elasticityFactor = 0.05; // how much velocity created
-        SpaceObjectBase.moveObject(this, collisionVector);
-        this.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
-        this.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
+    public collide(other: SpaceObject, collisionVector: XY, deltaSeconds: number): void {
+        if (other.collideOtherOverride) {
+            other.collideOtherOverride(this as SpaceObject, collisionVector, deltaSeconds);
+        } else {
+            const elasticityFactor = 0.05; // how much velocity created
+            SpaceObjectBase.moveObject(this, collisionVector);
+            this.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
+            this.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
+        }
     }
 }

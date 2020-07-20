@@ -168,6 +168,16 @@ export interface XY {
 }
 
 export class Vec2 extends Schema implements XY {
+    public static add(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
+        if (!dest) {
+            dest = new Vec2();
+        }
+        dest.x += vector.x + vector2.x;
+        dest.y += vector.y + vector2.y;
+
+        return dest;
+    }
+
     public static Rotate(vector: XY, degrees: number, dest?: Vec2) {
         return Vec2.RotateRadians(vector, degrees * XY.degToRad, dest);
     }
@@ -370,13 +380,6 @@ export class Vec2 extends Schema implements XY {
         }
 
         return true;
-    }
-
-    public add(vector: XY): this {
-        this.x += vector.x;
-        this.y += vector.y;
-
-        return this;
     }
 
     public subtract(vector: XY): this {
