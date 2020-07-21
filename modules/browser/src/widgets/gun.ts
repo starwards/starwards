@@ -34,7 +34,7 @@ function gunComponent(container: Container, p: Props) {
             (value) => {
                 if (value) {
                     let currentFound = false;
-                    for (const obj of spaceRoom.state) {
+                    for (const obj of spaceRoom.state.getAll('Spaceship')) {
                         if (obj.id === shipRoom.state.targetId) {
                             currentFound = true;
                         } else if (currentFound && obj.id !== p.shipId) {
