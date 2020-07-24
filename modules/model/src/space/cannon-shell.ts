@@ -1,6 +1,5 @@
-import { SpaceObjectBase } from './space-object-base';
 import { type } from '@colyseus/schema';
-import { SpaceObject, XY } from '.';
+import { SpaceObjectBase } from './space-object-base';
 
 export class CannonShell extends SpaceObjectBase {
     public static isInstance(o: SpaceObjectBase): o is CannonShell {
@@ -16,11 +15,5 @@ export class CannonShell extends SpaceObjectBase {
         super();
         this.health = 10;
         this.radius = 1;
-    }
-
-    public collide(other: SpaceObject, _collisionVector: XY, _deltaSeconds: number): void {
-        // super.collide(other, collisionVector, deltaSeconds);
-        this.destroyed = true;
-        other.takeDamage(50);
     }
 }

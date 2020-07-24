@@ -1,7 +1,7 @@
 import { MapSchema } from '@colyseus/schema';
 import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2 } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
-import { makeId } from '../admin/id';
+import { makeId } from '../id';
 
 function capToRange(from: number, to: number, value: number) {
     return value > to ? to : value < from ? from : value;

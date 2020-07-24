@@ -1,5 +1,5 @@
 import { Asteroid, Spaceship, Vec2, sectorSize } from '@starwards/model';
-import { makeId } from './id';
+import { makeId } from '../id';
 const speedMax = 50;
 
 export function newAsteroid() {
