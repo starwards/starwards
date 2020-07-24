@@ -43,6 +43,7 @@ export class SpaceManager {
             const subject = this.state.get(id);
             if (subject) {
                 SpaceObjectBase.moveObject(subject, delta);
+                this.updateObjectCollision(subject);
             }
         }
     }
@@ -163,7 +164,7 @@ export class SpaceManager {
     }
 
     private resolveExplosionEffect(object: SpaceObject, explosion: Explosion, result: Result, deltaSeconds: number) {
-        const exposure = deltaSeconds * result.overlap;
+        const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
         object.health -= explosion.damageFactor * exposure;
         object.velocity.x -= result.overlap_x * exposure * explosion.blastFactor;
         object.velocity.y -= result.overlap_y * exposure * explosion.blastFactor;
