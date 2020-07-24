@@ -1,12 +1,14 @@
-import { SpaceObject, SpaceObjectBase, SpaceState, XY } from '@starwards/model';
-import { Body, Collisions, Result } from 'detect-collisions';
+import { CannonShell, Explosion, SpaceObject, SpaceObjectBase, SpaceState, XY } from '@starwards/model';
+import { Body, Circle, Collisions, Result } from 'detect-collisions';
+import { makeId } from '../id';
 
 const GC_TIMEOUT = 5;
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new Collisions();
     private collisionToState = new WeakMap<Body, SpaceObject>();
-    private stateToCollision = new WeakMap<SpaceObject, Body>();
+    private stateToCollision = new WeakMap<SpaceObject, Circle>();
+    private toInsert: SpaceObject[] = [];
 
     private secondsSinceLastGC = 0;
 
@@ -41,6 +43,7 @@ export class SpaceManager {
             const subject = this.state.get(id);
             if (subject) {
                 SpaceObjectBase.moveObject(subject, delta);
+                this.updateObjectCollision(subject);
             }
         }
     }
@@ -55,21 +58,36 @@ export class SpaceManager {
 
     public update(deltaMs: number) {
         const deltaSeconds = deltaMs / 1000;
-        this.destroyOldMissiles(deltaSeconds);
+        this.growExplosions(deltaSeconds);
+        this.destroyTimedOut(deltaSeconds);
         this.untrackDestroyedObjects();
         this.applyPhysics(deltaSeconds);
         this.handleCollisions(deltaSeconds);
+        this.handleToInsert();
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
             this.gc();
         }
     }
 
-    private destroyOldMissiles(deltaSeconds: number) {
-        for (const missile of this.state.getAll('Missile')) {
-            missile.secondsToLive -= deltaSeconds;
-            if (missile.secondsToLive <= 0) {
-                missile.destroyed = true;
+    private growExplosions(deltaSeconds: number) {
+        for (const explosion of this.state.getAll('Explosion')) {
+            explosion.radius += explosion.expansionSpeed * deltaSeconds;
+            this.updateObjectCollision(explosion);
+        }
+    }
+
+    private destroyTimedOut(deltaSeconds: number) {
+        for (const explosion of this.state.getAll('Explosion')) {
+            explosion.secondsToLive -= deltaSeconds;
+            if (explosion.secondsToLive <= 0) {
+                explosion.destroyed = true;
+            }
+        }
+        for (const shell of this.state.getAll('CannonShell')) {
+            shell.secondsToLive -= deltaSeconds;
+            if (shell.secondsToLive <= 0) {
+                this.explodeCannonShell(shell);
             }
         }
     }
@@ -86,11 +104,20 @@ export class SpaceManager {
     }
 
     public insert(object: SpaceObject) {
-        this.gc();
-        this.state.set(object);
-        const body = this.collisions.createCircle(object.position.x, object.position.y, object.radius);
-        this.collisionToState.set(body, object);
-        this.stateToCollision.set(object, body);
+        this.toInsert.push(object);
+    }
+
+    private handleToInsert() {
+        if (this.toInsert.length) {
+            this.gc();
+            for (const object of this.toInsert) {
+                this.state.set(object);
+                const body = this.collisions.createCircle(object.position.x, object.position.y, object.radius);
+                this.collisionToState.set(body, object);
+                this.stateToCollision.set(object, body);
+            }
+            this.toInsert = [];
+        }
     }
 
     private applyPhysics(deltaSeconds: number) {
@@ -107,12 +134,40 @@ export class SpaceManager {
     }
 
     private resolveCollision(object: SpaceObject, otherObject: SpaceObject, result: Result, deltaSeconds: number) {
+        if (CannonShell.isInstance(object)) {
+            this.explodeCannonShell(object);
+        } else if (!Explosion.isInstance(object)) {
+            if (Explosion.isInstance(otherObject)) {
+                this.resolveExplosionEffect(object, otherObject, result, deltaSeconds);
+            } else {
+                this.resolveCrash(object, result, deltaSeconds);
+            }
+        }
+    }
+
+    private explodeCannonShell(shell: CannonShell) {
+        shell.destroyed = true;
+        const explosion = new Explosion();
+        explosion.init(makeId(), shell.position.clone());
+        this.insert(explosion);
+    }
+
+    private resolveCrash(object: SpaceObject, result: Result, deltaSeconds: number) {
         const collisionVector = {
             x: -(result.overlap * result.overlap_x) / 2,
             y: -(result.overlap * result.overlap_y) / 2,
         };
-        // each colliding side backs off
-        object.collide(otherObject, collisionVector, deltaSeconds);
+        const elasticityFactor = 0.05; // how much velocity created
+        SpaceObjectBase.moveObject(object, collisionVector);
+        object.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
+        object.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
+    }
+
+    private resolveExplosionEffect(object: SpaceObject, explosion: Explosion, result: Result, deltaSeconds: number) {
+        const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
+        object.health -= explosion.damageFactor * exposure;
+        object.velocity.x -= result.overlap_x * exposure * explosion.blastFactor;
+        object.velocity.y -= result.overlap_y * exposure * explosion.blastFactor;
     }
 
     private updateObjectCollision(object: SpaceObject) {
@@ -120,6 +175,7 @@ export class SpaceManager {
         if (body) {
             body.x = object.position.x;
             body.y = object.position.y;
+            body.radius = object.radius;
         } else {
             // tslint:disable-next-line:no-console
             console.error(`object leak! ${object.id} has no collision body`);
@@ -138,7 +194,7 @@ export class SpaceManager {
                 // Get any potential collisions
                 for (const potential of body.potentials()) {
                     const otherObjext = this.collisionToState.get(potential)!;
-                    if (body.collides(potential, result)) {
+                    if (!otherObjext.destroyed && body.collides(potential, result)) {
                         this.resolveCollision(object, otherObjext, result, deltaSeconds);
                         toUpdate.add(object);
                         toUpdate.add(otherObjext);

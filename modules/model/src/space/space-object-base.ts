@@ -1,6 +1,6 @@
 import { Schema, type } from '@colyseus/schema';
+import { SpaceObjects } from '.';
 import { Vec2, XY } from './vec2';
-import { SpaceObjects, SpaceObject } from '.';
 
 export abstract class SpaceObjectBase extends Schema {
     public static compare(a: SpaceObjectBase, b: SpaceObjectBase): number {
@@ -55,14 +55,5 @@ export abstract class SpaceObjectBase extends Schema {
         this.id = id;
         this.position = position;
         return this;
-    }
-
-    // todo better collision behavior (plastic (bounce off) and elastic (smash) collision factors)
-    // todo add spin
-    public collide(_other: SpaceObject, collisionVector: XY, deltaSeconds: number): void {
-        const elasticityFactor = 0.05; // how much velocity created
-        SpaceObjectBase.moveObject(this, collisionVector);
-        this.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
-        this.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
     }
 }
