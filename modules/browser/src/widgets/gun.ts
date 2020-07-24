@@ -42,7 +42,7 @@ function gunComponent(container: Container, p: Props) {
                             return;
                         }
                     }
-                    for (const obj of spaceRoom.state) {
+                    for (const obj of spaceRoom.state.getAll('Spaceship')) {
                         if (obj.id !== p.shipId) {
                             shipRoom.send('setTarget', { id: obj.id });
                             return;
