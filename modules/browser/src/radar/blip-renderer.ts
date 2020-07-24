@@ -1,5 +1,6 @@
 import { SpaceObjects, Vec2, SpaceObject, Spaceship, Asteroid, CannonShell, Explosion } from '@starwards/model';
 import * as PIXI from 'pixi.js';
+import { CameraView } from './camera-view';
 
 export const preloadList = [
     'images/RadarBlip.png',
@@ -13,17 +14,17 @@ PIXI.Loader.shared.add(preloadList);
 type DrawBlip<T extends keyof SpaceObjects> = (
     spaceObject: SpaceObjects[T],
     root: PIXI.Container,
-    parentAngle: number
+    parent: CameraView
 ) => Set<string>;
 
 const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
-    Spaceship(spaceObject: Spaceship, root: PIXI.Container, parentAngle: number): Set<string> {
+    Spaceship(spaceObject: Spaceship, root: PIXI.Container, parent: CameraView): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/radar_fighter.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
         radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
         radarBlipSprite.tint = 0xff0000;
-        radarBlipSprite.angle = (spaceObject.angle - parentAngle) % 360;
+        radarBlipSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
         root.addChild(radarBlipSprite);
         const text = renderText(
             radarBlipSprite.height / 2,
@@ -37,9 +38,22 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
             0xff0000
         );
         root.addChild(text);
-        return new Set(['parentAngle', 'angle', 'turnSpeed', 'velocity', 'position', 'health', 'selected']);
+        const body = renderShape(parent, spaceObject.radius);
+        root.addChild(body);
+
+        return new Set([
+            'screen',
+            'radius',
+            'parentAngle',
+            'angle',
+            'turnSpeed',
+            'velocity',
+            'position',
+            'health',
+            'selected',
+        ]);
     },
-    Asteroid(spaceObject: Asteroid, root: PIXI.Container, _parentAngle: number): Set<string> {
+    Asteroid(spaceObject: Asteroid, root: PIXI.Container, parent: CameraView): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
@@ -53,20 +67,24 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
             0xffff0b
         );
         root.addChild(text);
-        return new Set(['radius', 'selected']);
+        const body = renderShape(parent, spaceObject.radius);
+        root.addChild(body);
+        return new Set(['screen', 'radius', 'selected']);
     },
-    CannonShell(spaceObject: CannonShell, root: PIXI.Container, parentAngle: number): Set<string> {
+    CannonShell(spaceObject: CannonShell, root: PIXI.Container, parent: CameraView): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarArrow.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.scale = new PIXI.Point(0.2, 0.2);
         radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
         radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
         radarBlipSprite.tint = 0xffff0b;
-        radarBlipSprite.angle = (spaceObject.angle - parentAngle) % 360;
+        radarBlipSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
         root.addChild(radarBlipSprite);
-        return new Set(['parentAngle', 'angle', 'selected']);
+        const body = renderShape(parent, spaceObject.radius);
+        root.addChild(body);
+        return new Set(['screen', 'radius', 'parentAngle', 'angle', 'selected']);
     },
-    Explosion(_spaceObject: Explosion, root: PIXI.Container, _parentAngle: number): Set<string> {
+    Explosion(spaceObject: Explosion, root: PIXI.Container, parent: CameraView): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
@@ -75,9 +93,18 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         radarBlipSprite.tint = 0xe74c3c;
         radarBlipSprite.alpha = 0.3;
         root.addChild(radarBlipSprite);
-        return new Set(['selected']);
+        const body = renderShape(parent, spaceObject.radius);
+        root.addChild(body);
+        return new Set(['screen', 'radius', 'selected']);
     },
 };
+
+function renderShape(parent: CameraView, radius: number) {
+    const body = new PIXI.Graphics();
+    body.lineStyle(1, 0x4ce73c, 0.5);
+    body.drawCircle(0, 0, parent.metersToPixles(radius));
+    return body;
+}
 
 function renderText(y: number, value: string[], color: number) {
     const result = new PIXI.Text(
@@ -105,12 +132,12 @@ export function blipRenderer(
     spaceObject: SpaceObject,
     blip: PIXI.Container,
     selected: boolean,
-    parentAngle: number
+    parent: CameraView
 ): Set<string> {
     const propsToTrack = (drawFunctions[spaceObject.type] as DrawBlip<typeof spaceObject.type>)(
         spaceObject,
         blip,
-        parentAngle
+        parent
     );
     if (selected) {
         selectionRenderer(blip);

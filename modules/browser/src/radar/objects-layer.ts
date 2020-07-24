@@ -11,7 +11,7 @@ export type ObjectRenderer = (
     spaceObject: SpaceObject,
     root: PIXI.Container,
     selected: boolean,
-    angle: number
+    parent: CameraView
 ) => Set<string>;
 export class ObjectsLayer {
     private stage = new PIXI.Container();
@@ -53,6 +53,7 @@ export class ObjectsLayer {
         this.graphics[spaceObject.id] = objGraphics;
         this.stage.addChild(objGraphics.stage);
         objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
+            objGraphics.markChanged(['screen']);
             this.toReDraw.add(objGraphics);
         });
         objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
@@ -140,7 +141,7 @@ class ObjectGraphics {
         });
         this.drawRoot = new PIXI.Container();
         this.stage.addChild(this.drawRoot);
-        this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent.camera.angle);
+        this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
     }
 
     shouldRedrawOnFieldChange(field: string): boolean {
