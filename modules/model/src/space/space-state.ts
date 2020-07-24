@@ -24,10 +24,12 @@ export class SpaceState extends Schema {
     constructor(isClient = true) {
         super();
         if (isClient) {
-            this.cannonShells.onAdd = this.asteroids.onAdd = this.spaceships.onAdd = (so: SpaceObject) =>
-                this.events.emit('add', so);
-            this.cannonShells.onRemove = this.asteroids.onRemove = this.spaceships.onRemove = (so: SpaceObject) =>
-                this.events.emit('remove', so);
+            this.cannonShells.onAdd = this.asteroids.onAdd = this.spaceships.onAdd = this.explosions.onAdd = (
+                so: SpaceObject
+            ) => this.events.emit('add', so);
+            this.cannonShells.onRemove = this.asteroids.onRemove = this.spaceships.onRemove = this.explosions.onRemove = (
+                so: SpaceObject
+            ) => this.events.emit('remove', so);
             this.events.on('add', (so: SpaceObject) => (so.onChange = (changes) => this.events.emit(so.id, changes)));
         }
     }
@@ -75,7 +77,7 @@ const mapSchemaClassProps = Object.getOwnPropertyNames(new MapSchema());
 
 export function* mapSchemaValues<T>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
     for (const id of Object.getOwnPropertyNames(map)) {
-        if (!mapSchemaClassProps.includes(id) && map[id].destroyed === destroyed) {
+        if (!mapSchemaClassProps.includes(id) && map[id] && map[id].destroyed === destroyed) {
             yield map[id];
         }
     }

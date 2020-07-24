@@ -1,4 +1,4 @@
-import { SpaceObjects, Vec2, SpaceObject, Spaceship, Asteroid, CannonShell } from '@starwards/model';
+import { SpaceObjects, Vec2, SpaceObject, Spaceship, Asteroid, CannonShell, Explosion } from '@starwards/model';
 import * as PIXI from 'pixi.js';
 
 export const preloadList = [
@@ -65,6 +65,17 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         radarBlipSprite.angle = (spaceObject.angle - parentAngle) % 360;
         root.addChild(radarBlipSprite);
         return new Set(['parentAngle', 'angle', 'selected']);
+    },
+    Explosion(_spaceObject: Explosion, root: PIXI.Container, _parentAngle: number): Set<string> {
+        const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
+        const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
+        radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
+        radarBlipSprite.x = -radarBlipSprite.width / 2;
+        radarBlipSprite.y = -radarBlipSprite.height / 2;
+        radarBlipSprite.tint = 0xe74c3c;
+        radarBlipSprite.alpha = 0.3;
+        root.addChild(radarBlipSprite);
+        return new Set(['selected']);
     },
 };
 
