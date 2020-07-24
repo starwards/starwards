@@ -19,7 +19,7 @@ export class Explosion extends SpaceObjectBase {
      * damage per (second * overlap in meters)
      */
     @type('float32')
-    public damageFactor: number = 100;
+    public damageFactor: number = 20;
 
     @type('float32')
     public blastFactor: number = 1;
