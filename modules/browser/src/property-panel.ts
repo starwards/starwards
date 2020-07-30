@@ -39,9 +39,19 @@ function isGamepadButton(v: any): v is GamepadButton {
 type AxisListener = { axis: GamepadAxis; range: [number, number]; onChange: (v: number) => any };
 type ButtonListener = { button: GamepadButton; range: [number, number]; onChange: (v: number) => any };
 
-export class PropertyPanel {
-    private viewModel: Dictionary<number> = {};
-    private gui = new GUI({ autoPlace: false, hideable: false });
+export interface Panel {
+    addProperty(
+        name: string,
+        getValue: () => number,
+        range: [number, number],
+        onChange?: (v: number) => any,
+        gamepad?: GamepadAxis | GamepadButton
+    ): void;
+}
+
+export class PropertyPanel implements Panel {
+    private rootViewModel: Dictionary<number> = {};
+    private rootGui = new GUI({ autoPlace: false, hideable: false });
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
@@ -75,26 +85,29 @@ export class PropertyPanel {
 
     constructor(private modelEvents: EventEmitter) {}
     init(container: Container) {
-        container.getElement().append(this.gui.domElement);
+        container.getElement().append(this.rootGui.domElement);
         addEventListener('mmk-gamepad-button-value', this.onButton);
         addEventListener('mmk-gamepad-axis-value', this.onAxis);
     }
     destroy() {
         removeEventListener('mmk-gamepad-axis-value', this.onAxis);
         removeEventListener('mmk-gamepad-button-value', this.onButton);
-        this.gui.destroy();
+        this.rootGui.destroy();
     }
-    addProperty(
+
+    private contextAddProperty(
+        guiFolder: GUI,
+        viewModel: Dictionary<number>,
         name: string,
         getValue: () => number,
         range: [number, number],
         onChange?: (v: number) => any,
         gamepad?: GamepadAxis | GamepadButton
     ) {
-        this.viewModel[name] = getValue();
-        const guiController = this.gui.add(this.viewModel, name, ...range);
+        viewModel[name] = getValue();
+        const guiController = guiFolder.add(viewModel, name, ...range);
         this.modelEvents.on(name, () => {
-            this.viewModel[name] = getValue();
+            viewModel[name] = getValue();
             guiController.updateDisplay();
         });
         if (onChange) {
@@ -108,8 +121,33 @@ export class PropertyPanel {
             }
         } else {
             guiController.onChange(() => {
-                this.viewModel[name] = getValue();
+                viewModel[name] = getValue();
             });
         }
+    }
+
+    addProperty(
+        name: string,
+        getValue: () => number,
+        range: [number, number],
+        onChange?: (v: number) => any,
+        gamepad?: GamepadAxis | GamepadButton
+    ) {
+        this.contextAddProperty(this.rootGui, this.rootViewModel, name, getValue, range, onChange, gamepad);
+    }
+
+    addFolder(folderName: string): Panel {
+        const guiFolder = this.rootGui.addFolder(folderName);
+        guiFolder.open();
+        const folderViewModel: Dictionary<number> = {};
+        return {
+            addProperty: (
+                name: string,
+                getValue: () => number,
+                range: [number, number],
+                onChange?: (v: number) => any,
+                gamepad?: GamepadAxis | GamepadButton
+            ) => this.contextAddProperty(guiFolder, folderViewModel, name, getValue, range, onChange, gamepad),
+        };
     }
 }

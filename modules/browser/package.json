@@ -12,6 +12,7 @@
         "prepack": "yarn build"
     },
     "dependencies": {
+        "@colyseus/schema": "^0.5.39",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@starwards/model": "*",
         "arwes": "^1.0.0-alpha.5",
