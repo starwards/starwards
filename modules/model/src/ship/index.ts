@@ -37,6 +37,13 @@ export class ShipState extends Spaceship {
                     this.events.emit(c.field, c.value);
                 });
             };
+            this.events.once('autoCannon', () => {
+                this.autoCannon.onChange = (changes) => {
+                    changes.forEach((c) => {
+                        this.events.emit('autoCannon.' + c.field, c.value);
+                    });
+                };
+            });
         }
     }
 }
