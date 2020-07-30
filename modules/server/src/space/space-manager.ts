@@ -147,7 +147,7 @@ export class SpaceManager {
 
     private explodeCannonShell(shell: CannonShell) {
         shell.destroyed = true;
-        const explosion = new Explosion();
+        const explosion = shell._explosion || new Explosion();
         explosion.init(makeId(), shell.position.clone());
         this.insert(explosion);
     }

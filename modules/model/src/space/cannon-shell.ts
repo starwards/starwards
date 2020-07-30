@@ -1,5 +1,6 @@
 import { type } from '@colyseus/schema';
 import { SpaceObjectBase } from './space-object-base';
+import { Explosion } from './explosion';
 
 export class CannonShell extends SpaceObjectBase {
     public static isInstance(o: SpaceObjectBase): o is CannonShell {
@@ -11,7 +12,7 @@ export class CannonShell extends SpaceObjectBase {
 
     public readonly type = 'CannonShell';
 
-    constructor() {
+    constructor(public _explosion?: Explosion) {
         super();
         this.health = 10;
         this.radius = 1;

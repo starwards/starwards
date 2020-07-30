@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema';
-import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2 } from '@starwards/model';
+import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2, Explosion } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
 import { makeId } from '../id';
 
@@ -38,6 +38,10 @@ export class ShipManager {
         this.state.autoCannon.constants.bulletDegreesDeviation = 1;
         this.state.autoCannon.constants.maxShellSecondsToLive = 3;
         this.state.autoCannon.constants.minShellSecondsToLive = 0.25;
+        this.state.autoCannon.constants.explosionSecondsToLive = 0.5;
+        this.state.autoCannon.constants.explosionExpansionSpeed = 10;
+        this.state.autoCannon.constants.explosionDamageFactor = 20;
+        this.state.autoCannon.constants.explosionBlastFactor = 1;
         this.setShellSecondsToLive(10);
     }
 
@@ -153,11 +157,20 @@ export class ShipManager {
         }
     }
 
+    private getAutoCannonExplosion() {
+        const result = new Explosion();
+        result.secondsToLive = this.state.autoCannon.constants.explosionSecondsToLive;
+        result.expansionSpeed = this.state.autoCannon.constants.explosionExpansionSpeed;
+        result.damageFactor = this.state.autoCannon.constants.explosionDamageFactor;
+        result.blastFactor = this.state.autoCannon.constants.explosionBlastFactor;
+        return result;
+    }
+
     private fireAutocannon() {
         const autocannon = this.state.autoCannon;
         if (autocannon.isFiring && autocannon.cooldown <= 0) {
             autocannon.cooldown += 1;
-            const shell = new CannonShell();
+            const shell = new CannonShell(this.getAutoCannonExplosion());
 
             shell.angle = this.spaceObject.angle + autocannon.angle;
             shell.velocity = Vec2.sum(

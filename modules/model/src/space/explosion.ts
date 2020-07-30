@@ -29,6 +29,6 @@ export class Explosion extends SpaceObjectBase {
     constructor() {
         super();
         this.health = 1;
-        this.radius = 0.1;
+        this.radius = 0.01;
     }
 }
