@@ -18,6 +18,7 @@ export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
 
     constructor(public spaceObject: Spaceship, private spaceManager: SpaceManager, private onDestroy: () => void) {
+        this.state.id = this.spaceObject.id;
         this.state.constants = new MapSchema<number>();
         this.state.constants.energyPerSecond = 5;
         this.state.constants.maxEnergy = 1000;
