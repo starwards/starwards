@@ -4,11 +4,26 @@ import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
 import EventEmitter from 'eventemitter3';
 import { once } from '../async-utils';
+import { Loop } from '../loop';
+import { XY } from '@starwards/model';
 
 function gunComponent(container: Container, p: Props) {
     (async () => {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', p.shipId)]);
         await once(shipRoom.state.events, 'autoCannon');
+        let manualShellSecondsToLive = shipRoom.state.autoCannon.shellSecondsToLive;
+        const loop = new Loop(() => {
+            const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);
+            const spaceShip = shipRoom.state.id && spaceRoom.state.get(shipRoom.state.id);
+            if (targetObj && spaceShip) {
+                const distance = XY.lengthOf(XY.difference(targetObj.position, spaceShip.position));
+                const time = distance / shipRoom.state.autoCannon.constants.bulletSpeed;
+                shipRoom.send('setShellSecondsToLive', { value: time });
+            } else {
+                shipRoom.send('setShellSecondsToLive', { value: manualShellSecondsToLive });
+            }
+        }, 1000 / 10);
+        loop.start();
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
@@ -59,14 +74,15 @@ function gunComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty(
-            'shellSecondsToLive',
-            () => shipRoom.state.autoCannon.shellSecondsToLive,
+            'manual shellSecondsToLive',
+            () => manualShellSecondsToLive,
             [
                 shipRoom.state.autoCannon.constants.minShellSecondsToLive,
                 shipRoom.state.autoCannon.constants.maxShellSecondsToLive,
             ],
             (value) => {
-                shipRoom.send('setShellSecondsToLive', { value });
+                manualShellSecondsToLive = value;
+                viewModelChanges.emit('manual shellSecondsToLive');
             },
             {
                 gamepadIndex: 0,
@@ -75,6 +91,10 @@ function gunComponent(container: Container, p: Props) {
                 inverted: true,
             }
         );
+        panel.addProperty('shellSecondsToLive', () => shipRoom.state.autoCannon.shellSecondsToLive, [
+            shipRoom.state.autoCannon.constants.minShellSecondsToLive,
+            shipRoom.state.autoCannon.constants.maxShellSecondsToLive,
+        ]);
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
         }
