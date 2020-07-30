@@ -23,8 +23,15 @@ export interface ShipCommands {
     setTarget: {
         id: string | null;
     };
+    setShellSecondsToLive: {
+        value: number;
+    };
     // changes to ship
     setConstant: {
+        name: string;
+        value: number;
+    };
+    setCannonConstant: {
         name: string;
         value: number;
     };

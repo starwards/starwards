@@ -17,5 +17,5 @@ export class AutoCannon extends Schema {
     cooldown = 0;
 
     @type('float32')
-    secondsBetweenBullets: number = 0;
+    shellSecondsToLive = 10;
 }
