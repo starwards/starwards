@@ -3,9 +3,12 @@ import { getRoomById, getGlobalRoom } from '../client';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
 import EventEmitter from 'eventemitter3';
+import { once } from '../async-utils';
 
 function gunComponent(container: Container, p: Props) {
-    Promise.all([getGlobalRoom('space'), getRoomById('ship', p.shipId)]).then(([spaceRoom, shipRoom]) => {
+    (async () => {
+        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', p.shipId)]);
+        await once(shipRoom.state.events, 'autoCannon');
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
@@ -55,6 +58,23 @@ function gunComponent(container: Container, p: Props) {
                 buttonIndex: 2,
             }
         );
+        panel.addProperty(
+            'shellSecondsToLive',
+            () => shipRoom.state.autoCannon.shellSecondsToLive,
+            [
+                shipRoom.state.autoCannon.constants.minShellSecondsToLive,
+                shipRoom.state.autoCannon.constants.maxShellSecondsToLive,
+            ],
+            (value) => {
+                shipRoom.send('setShellSecondsToLive', { value });
+            },
+            {
+                gamepadIndex: 0,
+                axisIndex: 1,
+                deadzone: [-0.01, 0.01],
+                inverted: true,
+            }
+        );
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
         }
@@ -67,8 +87,9 @@ function gunComponent(container: Container, p: Props) {
             viewModelChanges.emit('cooldown');
             viewModelChanges.emit('isFiring');
             viewModelChanges.emit('angle');
+            viewModelChanges.emit('shellSecondsToLive');
         });
-    });
+    })();
 }
 
 export type Props = { shipId: string };
