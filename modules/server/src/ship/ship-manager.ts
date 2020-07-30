@@ -33,8 +33,11 @@ export class ShipManager {
         this.state.autoCannon = new AutoCannon();
         this.state.autoCannon.constants = new MapSchema<number>();
         this.state.autoCannon.constants.bulletsPerSecond = 20;
-        this.state.autoCannon.constants.bulletSpeed = 1000;
+        this.state.autoCannon.constants.bulletSpeed = 2000;
         this.state.autoCannon.constants.bulletDegreesDeviation = 1;
+        this.state.autoCannon.constants.maxShellSecondsToLive = 3;
+        this.state.autoCannon.constants.minShellSecondsToLive = 0.25;
+        this.setShellSecondsToLive(10);
     }
 
     public setImpulse(value: number) {
@@ -69,8 +72,20 @@ export class ShipManager {
         this.state.constants[name] = value;
     }
 
+    public setCannonConstant(name: string, value: number) {
+        this.state.autoCannon.constants[name] = value;
+    }
+
     public autoCannon(isFiring: boolean) {
         this.state.autoCannon.isFiring = isFiring;
+    }
+
+    public setShellSecondsToLive(shellSecondsToLive: number) {
+        this.state.autoCannon.shellSecondsToLive = capToRange(
+            this.state.autoCannon.constants.minShellSecondsToLive,
+            this.state.autoCannon.constants.maxShellSecondsToLive,
+            shellSecondsToLive
+        );
     }
 
     update(deltaSeconds: number) {
@@ -156,7 +171,7 @@ export class ShipManager {
                 XY.rotate({ x: this.spaceObject.radius + shell.radius, y: 0 }, shell.angle)
             );
             shell.init(makeId(), shellPosition);
-            shell.secondsToLive = 10;
+            shell.secondsToLive = autocannon.shellSecondsToLive;
             this.spaceManager.insert(shell);
         }
     }
