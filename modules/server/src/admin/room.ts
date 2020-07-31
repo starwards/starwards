@@ -1,9 +1,6 @@
-import { MapSchema } from '@colyseus/schema';
 import { AdminState } from '@starwards/model';
-import { Client, matchMaker, Room } from 'colyseus';
-import { ShipManager } from '../ship/ship-manager';
-import { SpaceManager } from '../space/space-manager';
-import { newShip, resetShip, newAsteroid } from './map';
+import { Client, Room } from 'colyseus';
+import { GameManager } from './game-manager';
 
 export class AdminRoom extends Room<AdminState> {
     constructor() {
@@ -16,55 +13,16 @@ export class AdminRoom extends Room<AdminState> {
             await this.allowReconnection(client, 30);
         }
     }
+
     onDispose() {
         // tslint:disable-next-line: no-console
         console.error(`trying to dispose of AdminRoom`);
         return new Promise(() => 0); // never surrender!
     }
 
-    public onCreate() {
-        const state = new AdminState();
-        state.points = new MapSchema();
-        this.setState(state);
-        this.onMessage('startGame', () => this.startGame());
-        this.onMessage('stopGame', () => this.stopGame());
-    }
-
-    private async stopGame() {
-        if (this.state.isGameRunning) {
-            const shipRooms = await matchMaker.query({ name: 'ship' });
-            for (const shipRoom of shipRooms) {
-                await matchMaker.remoteRoomCall(shipRoom.roomId, 'disconnect', []);
-            }
-            const spaceRooms = await matchMaker.query({ name: 'space' });
-            for (const spaceRoom of spaceRooms) {
-                await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
-            }
-            this.state.isGameRunning = false;
-        }
-    }
-
-    private async startGame() {
-        if (!this.state.isGameRunning) {
-            this.state.isGameRunning = true;
-            const spaceManager = new SpaceManager();
-            this.addShip(spaceManager, 'A');
-            this.addShip(spaceManager, 'B');
-            for (let i = 0; i < 1; i++) {
-                spaceManager.insert(newAsteroid());
-            }
-            await matchMaker.createRoom('space', { manager: spaceManager });
-        }
-    }
-
-    private addShip(spaceManager: SpaceManager, id: string) {
-        const ship = newShip(id);
-        this.state.points[ship.id] = 0;
-        const shipManager = new ShipManager(ship, spaceManager, () => {
-            this.state.points[ship.id]++;
-            resetShip(ship);
-        }); // create a manager to manage the ship
-        matchMaker.createRoom('ship', { manager: shipManager });
-        spaceManager.insert(ship);
+    public onCreate({ manager }: { manager: GameManager }) {
+        this.setState(manager.adminState);
+        this.onMessage('startGame', () => manager.startGame());
+        this.onMessage('stopGame', () => manager.stopGame());
     }
 }
