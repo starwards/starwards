@@ -1,7 +1,7 @@
 import { MapSchema } from '@colyseus/schema';
 import { ShipState, Spaceship, XY, ChainGun, CannonShell, Vec2, Explosion, TargetedStatus } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
-import { makeId } from '../id';
+import { uniqueId } from '../id';
 
 function capToRange(from: number, to: number, value: number) {
     return value > to ? to : value < from ? from : value;
@@ -194,19 +194,19 @@ export class ShipManager {
             chaingun.cooldown += 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 
-            shell.angle = this.spaceObject.angle + chaingun.angle;
+            shell.angle = gaussianRandom(
+                this.spaceObject.angle + chaingun.angle,
+                chaingun.constants.bulletDegreesDeviation
+            );
             shell.velocity = Vec2.sum(
                 this.spaceObject.velocity,
-                XY.rotate(
-                    { x: chaingun.constants.bulletSpeed, y: 0 },
-                    gaussianRandom(shell.angle, chaingun.constants.bulletDegreesDeviation)
-                )
+                XY.rotate({ x: chaingun.constants.bulletSpeed, y: 0 }, shell.angle)
             );
             const shellPosition = Vec2.sum(
                 this.spaceObject.position,
                 XY.rotate({ x: this.spaceObject.radius + shell.radius, y: 0 }, shell.angle)
             );
-            shell.init(makeId(), shellPosition);
+            shell.init(uniqueId('shell'), shellPosition);
             shell.secondsToLive = chaingun.shellSecondsToLive;
             this.spaceManager.insert(shell);
         }
