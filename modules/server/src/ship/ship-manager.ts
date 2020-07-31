@@ -142,6 +142,8 @@ export class ShipManager {
 
     private syncShipProperties() {
         // only sync data that should be exposed to room clients
+        this.state.position.x = this.spaceObject.position.x;
+        this.state.position.y = this.spaceObject.position.y;
         this.state.velocity.x = this.spaceObject.velocity.x;
         this.state.velocity.y = this.spaceObject.velocity.y;
         this.state.turnSpeed = this.spaceObject.turnSpeed;
