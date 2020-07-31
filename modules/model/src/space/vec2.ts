@@ -172,8 +172,8 @@ export class Vec2 extends Schema implements XY {
         if (!dest) {
             dest = new Vec2();
         }
-        dest.x += vector.x + vector2.x;
-        dest.y += vector.y + vector2.y;
+        dest.x = vector.x + vector2.x;
+        dest.y = vector.y + vector2.y;
 
         return dest;
     }
