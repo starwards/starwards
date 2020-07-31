@@ -16,7 +16,7 @@ function shipConstantsComponent(container: Container, p: Props) {
         container.on('destroy', () => rootPanel.destroy());
         addMapToPanel(
             () => shipRoom.state.constants,
-            rootPanel,
+            rootPanel.addFolder('main'),
             (name: string, value: number) => shipRoom.send('setConstant', { name, value }),
             shipRoom.state.events,
             'constants',
