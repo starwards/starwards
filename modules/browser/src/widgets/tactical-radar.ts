@@ -1,4 +1,4 @@
-import { SpaceObject } from '@starwards/model';
+import { SpaceObject, XY, ShipState, SpaceState } from '@starwards/model';
 import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
@@ -33,30 +33,28 @@ function tacticalRadarComponent(container: Container, state: Props) {
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', state.subjectId)]);
-        const shipTarget = trackTargetObject(spaceRoom, shipRoom);
+        const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
 
-        const targetLineLayer = new LineLayer(
-            root,
-            () => [spaceRoom.state.get(state.subjectId)?.position, shipTarget.getSingle()?.position],
-            [2, InteractiveLayer.selectionColor, 0.5]
-        );
+        const targetLineLayer = new LineLayer(root, () => [shipRoom.state.position, shipTarget.getSingle()?.position], [
+            2,
+            InteractiveLayer.selectionColor,
+            0.5,
+        ]);
         root.addLayer(targetLineLayer.renderRoot);
         const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
-        // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
-        // root.addLayer(velocityLayer.renderRoot);
         trackObject(camera, spaceRoom, state.subjectId);
     });
 }
 
-function trackTargetObject(spaceRoom: NamedGameRoom<'space'>, shipRoom: NamedGameRoom<'ship'>): SelectionContainer {
-    const result = new SelectionContainer(spaceRoom);
+function trackTargetObject(space: SpaceState, ship: ShipState): SelectionContainer {
+    const result = new SelectionContainer(space);
     const updateSelectedTarget = () => {
-        const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);
+        const targetObj = ship.targetId && space.get(ship.targetId);
         result.set(targetObj ? [targetObj] : []);
     };
-    shipRoom.state.events.on('targetId', updateSelectedTarget);
-    spaceRoom.state.events.on('add', () => setTimeout(updateSelectedTarget, 0));
+    ship.events.on('targetId', updateSelectedTarget);
+    space.events.on('add', () => setTimeout(updateSelectedTarget, 0));
     updateSelectedTarget();
     return result;
 }

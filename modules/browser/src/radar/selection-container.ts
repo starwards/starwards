@@ -13,8 +13,8 @@ export class SelectionContainer {
      */
     public selectedItems = new Set<SpaceObject>();
 
-    constructor(room: GameRoom<SpaceState, any>) {
-        room.state.events.on('remove', (spaceObject: SpaceObject) => {
+    constructor(space: SpaceState) {
+        space.events.on('remove', (spaceObject: SpaceObject) => {
             if (this.selectedItems.delete(spaceObject)) {
                 this.events.emit(spaceObject.id);
             }

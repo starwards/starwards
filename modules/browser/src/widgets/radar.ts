@@ -31,10 +31,8 @@ function radarComponent(container: Container, state: Props) {
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
         const room = await getGlobalRoom('space');
-        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room));
+        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room.state));
         root.addLayer(blipLayer.renderRoot);
-        // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
-        // root.addLayer(velocityLayer.renderRoot);
         trackObject(camera, room, state.subjectId);
     });
 }

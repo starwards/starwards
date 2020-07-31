@@ -26,12 +26,10 @@ function gmComponent(container: Container, state: { zoom: number }) {
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
         const room = await getGlobalRoom('space');
-        const selectionContainer = new SelectionContainer(room);
+        const selectionContainer = new SelectionContainer(room.state);
         const selection = new InteractiveLayer(root, room, selectionContainer);
         const blipLayer = new ObjectsLayer(root, room, blipRenderer, selectionContainer);
         root.addLayer(blipLayer.renderRoot);
-        // const velocityLayer = new ObjectsLayer(root, room, velocityRenderer, new SelectionContainer(room));
-        // root.addLayer(velocityLayer.renderRoot);
         root.addLayer(selection.renderRoot);
     });
 }
