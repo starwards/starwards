@@ -1,25 +1,10 @@
 import { Schema, type } from '@colyseus/schema';
 import { SpaceObjects } from '.';
-import { Vec2, XY } from './vec2';
+import { Vec2 } from './vec2';
 
 export abstract class SpaceObjectBase extends Schema {
     public static compare(a: SpaceObjectBase, b: SpaceObjectBase): number {
         return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
-    }
-
-    /**
-     * change position
-     */
-    public static moveObject(object: SpaceObjectBase, velocity: XY, deltaSeconds: number = 1) {
-        object.position.x += velocity.x * deltaSeconds;
-        object.position.y += velocity.y * deltaSeconds;
-    }
-
-    /**
-     * change angle
-     */
-    public static rotateObject(object: SpaceObjectBase, turnSpeed: number, deltaSeconds: number = 1) {
-        object.angle = (360 + object.angle + turnSpeed * deltaSeconds) % 360;
     }
 
     @type('string')

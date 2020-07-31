@@ -1,4 +1,4 @@
-import { CannonShell, Explosion, SpaceObject, SpaceObjectBase, SpaceState, XY } from '@starwards/model';
+import { CannonShell, Explosion, SpaceObject, SpaceState, XY, Vec2 } from '@starwards/model';
 import { Body, Circle, Collisions, Result } from 'detect-collisions';
 import { uniqueId } from '../id';
 
@@ -14,35 +14,22 @@ export class SpaceManager {
 
     public ChangeTurnSpeed(id: string, delta: number) {
         const subject = this.state.get(id);
-        if (subject) {
+        if (subject && !subject.destroyed) {
             subject.turnSpeed += delta;
-        }
-    }
-    public SetTurnSpeed(id: string, value: number) {
-        const subject = this.state.get(id);
-        if (subject) {
-            subject.turnSpeed = value;
         }
     }
     public ChangeVelocity(id: string, delta: XY) {
         const subject = this.state.get(id);
-        if (subject) {
+        if (subject && !subject.destroyed) {
             subject.velocity.x += delta.x;
             subject.velocity.y += delta.y;
-        }
-    }
-    public SetVelocity(id: string, value: XY) {
-        const subject = this.state.get(id);
-        if (subject) {
-            subject.velocity.x = value.x;
-            subject.velocity.y = value.y;
         }
     }
     public moveObjects(ids: string[], delta: XY) {
         for (const id of ids) {
             const subject = this.state.get(id);
             if (subject && !subject.destroyed) {
-                SpaceObjectBase.moveObject(subject, delta);
+                Vec2.add(subject.position, delta, subject.position);
                 this.updateObjectCollision(subject);
             }
         }
@@ -124,11 +111,11 @@ export class SpaceManager {
         // loop over objects and apply velocity
         for (const object of this.state) {
             if (object.velocity.x || object.velocity.y) {
-                SpaceObjectBase.moveObject(object, object.velocity, deltaSeconds);
+                Vec2.add(object.position, XY.scale(object.velocity, deltaSeconds), object.position);
                 this.updateObjectCollision(object);
             }
             if (object.turnSpeed) {
-                SpaceObjectBase.rotateObject(object, object.turnSpeed, deltaSeconds);
+                object.angle = (360 + object.angle + object.turnSpeed * deltaSeconds) % 360;
             }
         }
     }
@@ -158,7 +145,7 @@ export class SpaceManager {
             y: -(result.overlap * result.overlap_y) / 2,
         };
         const elasticityFactor = 0.05; // how much velocity created
-        SpaceObjectBase.moveObject(object, collisionVector);
+        Vec2.add(object.position, collisionVector, object.position);
         object.velocity.x += (elasticityFactor * collisionVector.x) / deltaSeconds;
         object.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
     }

@@ -1,7 +1,7 @@
-import { SpaceObject, Vec2 } from '@starwards/model';
+import { SpaceObject } from '@starwards/model';
 import { ReactProps } from 'golden-layout';
 import React from 'react';
-import { getGlobalRoom, NamedGameRoom, getRoomById } from '../../client';
+import { getGlobalRoom, NamedGameRoom } from '../../client';
 import { Loop } from '../../loop';
 import { DashboardWidget } from '../dashboard';
 import { Keyboard } from './keyboard';
@@ -11,7 +11,7 @@ const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
 class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Set<ButtonKey> }> {
     private pressedTime = new Map<ButtonKey, number>();
     private loop = new Loop(this.whilePressed.bind(this), 1000 / 10);
-    private shipRoom: NamedGameRoom<'ship'> | null = null;
+    // private shipRoom: NamedGameRoom<'ship'> | null = null;
     private spaceRoom: NamedGameRoom<'space'> | null = null;
 
     constructor(p: Props & ReactProps) {
@@ -19,7 +19,7 @@ class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Se
         this.state = {
             pressed: new Set<ButtonKey>(),
         };
-        getRoomById('ship', p.shipId).then((room) => (this.shipRoom = room));
+        // getRoomById('ship', p.shipId).then((room) => (this.shipRoom = room));
         getGlobalRoom('space').then((room) => (this.spaceRoom = room));
     }
     public render() {
@@ -60,46 +60,46 @@ class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Se
             }
         });
     };
-    private handlePressed(subject: SpaceObject, key: ButtonKey, presedTime: number) {
-        if (this.shipRoom) {
-            const boost = this.pressedTime.has(16) ? 3 : 1;
-            switch (key) {
-                case 32:
-                    // stop turning
-                    this.shipRoom.send('SetTurnSpeed', {
-                        value: subject.turnSpeed * 0.8,
-                    });
-                    // stop moving
-                    this.shipRoom.send('SetVelocity', {
-                        value: Vec2.scale(subject.velocity, 0.8),
-                    });
-                    break;
-                case 37:
-                    // turn left
-                    this.shipRoom.send('ChangeTurnSpeed', {
-                        delta: -presedTime * boost,
-                    });
-                    break;
-                case 39:
-                    // turn right
-                    this.shipRoom.send('ChangeTurnSpeed', {
-                        delta: presedTime * boost,
-                    });
-                    break;
-                case 38:
-                    // accelerate forward
-                    this.shipRoom.send('ChangeVelocity', {
-                        delta: Vec2.Rotate({ x: presedTime * boost, y: 0 }, subject.angle),
-                    });
-                    break;
-                case 40:
-                    // accelerate backwards
-                    this.shipRoom.send('ChangeVelocity', {
-                        delta: Vec2.Rotate({ x: -presedTime * boost, y: 0 }, subject.angle),
-                    });
-                    break;
-            }
-        }
+    private handlePressed(_subject: SpaceObject, _key: ButtonKey, _presedTime: number) {
+        // if (this.shipRoom) {
+        //     const boost = this.pressedTime.has(16) ? 3 : 1;
+        //     switch (key) {
+        //         case 32:
+        //             // stop turning
+        //             this.shipRoom.send('SetTurnSpeed', {
+        //                 value: subject.turnSpeed * 0.8,
+        //             });
+        //             // stop moving
+        //             this.shipRoom.send('SetVelocity', {
+        //                 value: Vec2.scale(subject.velocity, 0.8),
+        //             });
+        //             break;
+        //         case 37:
+        //             // turn left
+        //             this.shipRoom.send('ChangeTurnSpeed', {
+        //                 delta: -presedTime * boost,
+        //             });
+        //             break;
+        //         case 39:
+        //             // turn right
+        //             this.shipRoom.send('ChangeTurnSpeed', {
+        //                 delta: presedTime * boost,
+        //             });
+        //             break;
+        //         case 38:
+        //             // accelerate forward
+        //             this.shipRoom.send('ChangeVelocity', {
+        //                 delta: Vec2.Rotate({ x: presedTime * boost, y: 0 }, subject.angle),
+        //             });
+        //             break;
+        //         case 40:
+        //             // accelerate backwards
+        //             this.shipRoom.send('ChangeVelocity', {
+        //                 delta: Vec2.Rotate({ x: -presedTime * boost, y: 0 }, subject.angle),
+        //             });
+        //             break;
+        //     }
+        // }
     }
 
     private whilePressed(deltaMs: number) {
