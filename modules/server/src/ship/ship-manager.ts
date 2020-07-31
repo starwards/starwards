@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema';
-import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2, Explosion, TargetedStatus } from '@starwards/model';
+import { ShipState, Spaceship, XY, ChainGun, CannonShell, Vec2, Explosion, TargetedStatus } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
 import { makeId } from '../id';
 
@@ -36,17 +36,17 @@ export class ShipManager {
         this.state.constants.boostEffectFactor = 0.7;
         this.state.constants.impulseEnergyCost = 0.3;
         this.state.constants.impulseEffectFactor = 4;
-        this.state.autoCannon = new AutoCannon();
-        this.state.autoCannon.constants = new MapSchema<number>();
-        this.state.autoCannon.constants.bulletsPerSecond = 20;
-        this.state.autoCannon.constants.bulletSpeed = 2000;
-        this.state.autoCannon.constants.bulletDegreesDeviation = 1;
-        this.state.autoCannon.constants.maxShellSecondsToLive = 3;
-        this.state.autoCannon.constants.minShellSecondsToLive = 0.25;
-        this.state.autoCannon.constants.explosionSecondsToLive = 0.5;
-        this.state.autoCannon.constants.explosionExpansionSpeed = 10;
-        this.state.autoCannon.constants.explosionDamageFactor = 20;
-        this.state.autoCannon.constants.explosionBlastFactor = 1;
+        this.state.chainGun = new ChainGun();
+        this.state.chainGun.constants = new MapSchema<number>();
+        this.state.chainGun.constants.bulletsPerSecond = 20;
+        this.state.chainGun.constants.bulletSpeed = 2000;
+        this.state.chainGun.constants.bulletDegreesDeviation = 1;
+        this.state.chainGun.constants.maxShellSecondsToLive = 3;
+        this.state.chainGun.constants.minShellSecondsToLive = 0.25;
+        this.state.chainGun.constants.explosionSecondsToLive = 0.5;
+        this.state.chainGun.constants.explosionExpansionSpeed = 10;
+        this.state.chainGun.constants.explosionDamageFactor = 20;
+        this.state.chainGun.constants.explosionBlastFactor = 1;
         this.setShellSecondsToLive(10);
     }
 
@@ -82,18 +82,18 @@ export class ShipManager {
         this.state.constants[name] = value;
     }
 
-    public setCannonConstant(name: string, value: number) {
-        this.state.autoCannon.constants[name] = value;
+    public setChainGunConstant(name: string, value: number) {
+        this.state.chainGun.constants[name] = value;
     }
 
-    public autoCannon(isFiring: boolean) {
-        this.state.autoCannon.isFiring = isFiring;
+    public chainGun(isFiring: boolean) {
+        this.state.chainGun.isFiring = isFiring;
     }
 
     public setShellSecondsToLive(shellSecondsToLive: number) {
-        this.state.autoCannon.shellSecondsToLive = capToRange(
-            this.state.autoCannon.constants.minShellSecondsToLive,
-            this.state.autoCannon.constants.maxShellSecondsToLive,
+        this.state.chainGun.shellSecondsToLive = capToRange(
+            this.state.chainGun.constants.minShellSecondsToLive,
+            this.state.chainGun.constants.maxShellSecondsToLive,
             shellSecondsToLive
         );
     }
@@ -113,8 +113,8 @@ export class ShipManager {
             this.updateAntiDrift(deltaSeconds);
             this.updateBreaks(deltaSeconds);
             this.updateImpulse(deltaSeconds);
-            this.updateAutocannon(deltaSeconds);
-            this.fireAutocannon();
+            this.updateChainGun(deltaSeconds);
+            this.fireChainGun();
         }
     }
 
@@ -122,7 +122,7 @@ export class ShipManager {
         let status = TargetedStatus.NONE; // default state
         for (const shipManager of this.ships.values()) {
             if (shipManager.state.targetId === this.state.id) {
-                if (shipManager.state.autoCannon.isFiring) {
+                if (shipManager.state.chainGun.isFiring) {
                     status = TargetedStatus.FIRED_UPON;
                     break; // no need to look further
                 }
@@ -168,38 +168,38 @@ export class ShipManager {
         );
     }
 
-    private updateAutocannon(deltaSeconds: number) {
-        const autocannon = this.state.autoCannon;
-        if (autocannon.cooldown > 0) {
+    private updateChainGun(deltaSeconds: number) {
+        const chaingun = this.state.chainGun;
+        if (chaingun.cooldown > 0) {
             // charge weapon
-            autocannon.cooldown -= deltaSeconds * autocannon.constants.bulletsPerSecond;
-            if (!autocannon.isFiring && autocannon.cooldown < 0) {
-                autocannon.cooldown = 0;
+            chaingun.cooldown -= deltaSeconds * chaingun.constants.bulletsPerSecond;
+            if (!chaingun.isFiring && chaingun.cooldown < 0) {
+                chaingun.cooldown = 0;
             }
         }
     }
 
-    private getAutoCannonExplosion() {
+    private getChainGunExplosion() {
         const result = new Explosion();
-        result.secondsToLive = this.state.autoCannon.constants.explosionSecondsToLive;
-        result.expansionSpeed = this.state.autoCannon.constants.explosionExpansionSpeed;
-        result.damageFactor = this.state.autoCannon.constants.explosionDamageFactor;
-        result.blastFactor = this.state.autoCannon.constants.explosionBlastFactor;
+        result.secondsToLive = this.state.chainGun.constants.explosionSecondsToLive;
+        result.expansionSpeed = this.state.chainGun.constants.explosionExpansionSpeed;
+        result.damageFactor = this.state.chainGun.constants.explosionDamageFactor;
+        result.blastFactor = this.state.chainGun.constants.explosionBlastFactor;
         return result;
     }
 
-    private fireAutocannon() {
-        const autocannon = this.state.autoCannon;
-        if (autocannon.isFiring && autocannon.cooldown <= 0) {
-            autocannon.cooldown += 1;
-            const shell = new CannonShell(this.getAutoCannonExplosion());
+    private fireChainGun() {
+        const chaingun = this.state.chainGun;
+        if (chaingun.isFiring && chaingun.cooldown <= 0) {
+            chaingun.cooldown += 1;
+            const shell = new CannonShell(this.getChainGunExplosion());
 
-            shell.angle = this.spaceObject.angle + autocannon.angle;
+            shell.angle = this.spaceObject.angle + chaingun.angle;
             shell.velocity = Vec2.sum(
                 this.spaceObject.velocity,
                 XY.rotate(
-                    { x: autocannon.constants.bulletSpeed, y: 0 },
-                    gaussianRandom(shell.angle, autocannon.constants.bulletDegreesDeviation)
+                    { x: chaingun.constants.bulletSpeed, y: 0 },
+                    gaussianRandom(shell.angle, chaingun.constants.bulletDegreesDeviation)
                 )
             );
             const shellPosition = Vec2.sum(
@@ -207,7 +207,7 @@ export class ShipManager {
                 XY.rotate({ x: this.spaceObject.radius + shell.radius, y: 0 }, shell.angle)
             );
             shell.init(makeId(), shellPosition);
-            shell.secondsToLive = autocannon.shellSecondsToLive;
+            shell.secondsToLive = chaingun.shellSecondsToLive;
             this.spaceManager.insert(shell);
         }
     }

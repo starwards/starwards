@@ -35,9 +35,9 @@ export class ShipRoom extends Room<ShipState> {
         this.onMessage('setConstant', (_, msg: ShipCommands['setConstant']) =>
             manager.setConstant(msg.name, msg.value)
         );
-        this.onMessage('autoCannon', (_, msg: ShipCommands['autoCannon']) => manager.autoCannon(msg.isFiring));
-        this.onMessage('setCannonConstant', (_, msg: ShipCommands['setCannonConstant']) =>
-            manager.setCannonConstant(msg.name, msg.value)
+        this.onMessage('chainGun', (_, msg: ShipCommands['chainGun']) => manager.chainGun(msg.isFiring));
+        this.onMessage('setChainGunConstant', (_, msg: ShipCommands['setChainGunConstant']) =>
+            manager.setChainGunConstant(msg.name, msg.value)
         );
         this.onMessage('setShellSecondsToLive', (_, msg: ShipCommands['setShellSecondsToLive']) =>
             manager.setShellSecondsToLive(msg.value)

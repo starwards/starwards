@@ -17,7 +17,7 @@ export interface ShipCommands {
     setBreaks: {
         value: number;
     };
-    autoCannon: {
+    chainGun: {
         isFiring: boolean;
     };
     setTarget: {
@@ -31,7 +31,7 @@ export interface ShipCommands {
         name: string;
         value: number;
     };
-    setCannonConstant: {
+    setChainGunConstant: {
         name: string;
         value: number;
     };

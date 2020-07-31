@@ -9,7 +9,7 @@ import { waitForEvents } from '../async-utils';
 function shipConstantsComponent(container: Container, p: Props) {
     (async () => {
         const shipRoom = await getRoomById('ship', p.shipId);
-        await waitForEvents(shipRoom.state.events, ['constants', 'autoCannon']);
+        await waitForEvents(shipRoom.state.events, ['constants', 'chainGun']);
         const viewModelChanges = new EventEmitter();
         const rootPanel = new PropertyPanel(viewModelChanges);
         rootPanel.init(container);
@@ -23,11 +23,11 @@ function shipConstantsComponent(container: Container, p: Props) {
             viewModelChanges
         );
         addMapToPanel(
-            () => shipRoom.state.autoCannon.constants,
-            rootPanel.addFolder('autoCannon'),
-            (name: string, value: number) => shipRoom.send('setCannonConstant', { name, value }),
+            () => shipRoom.state.chainGun.constants,
+            rootPanel.addFolder('chainGun'),
+            (name: string, value: number) => shipRoom.send('setChainGunConstant', { name, value }),
             shipRoom.state.events,
-            'autoCannon.constants',
+            'chainGun.constants',
             viewModelChanges
         );
     })();
