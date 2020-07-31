@@ -74,7 +74,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
     CannonShell(spaceObject: CannonShell, root: PIXI.Container, parent: CameraView): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarArrow.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
-        radarBlipSprite.scale = new PIXI.Point(0.2, 0.2);
+        radarBlipSprite.scale = new PIXI.Point(0.1, 0.1);
         radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
         radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
         radarBlipSprite.tint = 0xffff0b;
@@ -87,7 +87,7 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
     Explosion(spaceObject: Explosion, root: PIXI.Container, parent: CameraView): Set<string> {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
-        radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
+        radarBlipSprite.scale = new PIXI.Point(0.2, 0.2);
         radarBlipSprite.x = -radarBlipSprite.width / 2;
         radarBlipSprite.y = -radarBlipSprite.height / 2;
         radarBlipSprite.tint = 0xe74c3c;
