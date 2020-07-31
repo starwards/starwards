@@ -2,11 +2,12 @@ import { Container } from 'golden-layout';
 import { getRoomById } from '../client';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
-import { XY } from '@starwards/model';
+import { XY, TargetedStatus } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 
 function pilotComponent(container: Container, p: Props) {
-    getRoomById('ship', p.shipId).then((shipRoom) => {
+    (async () => {
+        const shipRoom = await getRoomById('ship', p.shipId);
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
@@ -94,6 +95,7 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty('angle', () => shipRoom.state.angle, [0, 360]);
         panel.addProperty('speed direction', () => XY.angleOf(shipRoom.state.velocity), [0, 360]);
         panel.addProperty('speed', () => XY.lengthOf(shipRoom.state.velocity), [0, 1000]);
+        panel.addText('targeted', () => TargetedStatus[shipRoom.state.targeted]);
 
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
@@ -102,7 +104,7 @@ function pilotComponent(container: Container, p: Props) {
             viewModelChanges.emit('speed');
             viewModelChanges.emit('speed direction');
         });
-    });
+    })();
 }
 
 export type Props = { shipId: string };

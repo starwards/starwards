@@ -3,6 +3,11 @@ import EventEmitter from 'eventemitter3';
 import { Spaceship } from '../space';
 import { AutoCannon } from './auto-cannon';
 
+export enum TargetedStatus {
+    NONE,
+    LOCKED,
+    FIRED_UPON,
+}
 export class ShipState extends Spaceship {
     @type({ map: 'number' })
     constants!: MapSchema<number>;
@@ -27,6 +32,9 @@ export class ShipState extends Spaceship {
 
     @type('string')
     public targetId: string | null = null;
+
+    @type('int8')
+    targeted = TargetedStatus.NONE;
 
     public events = new EventEmitter();
     constructor(isClient = true) {

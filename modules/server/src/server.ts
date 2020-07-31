@@ -12,6 +12,7 @@ import { SpaceRoom } from './space/room';
 import { NextHandleFunction } from 'connect';
 import { AdminRoom } from './admin/room';
 import { ShipRoom } from './ship/room';
+import { GameManager } from './admin/game-manager';
 
 process.on('uncaughtException', function (err) {
     console.error(new Date().toUTCString() + ' uncaughtException:', err.message);
@@ -60,5 +61,6 @@ export async function server(port: number, staticDir: string, handlers?: NextHan
     // tslint:disable-next-line:no-console
     console.log(`Listening on port ${port}`);
 
-    await matchMaker.createRoom('admin', {}); // create a room
+    const gameManager = new GameManager();
+    await matchMaker.createRoom('admin', { manager: gameManager }); // create a room
 }

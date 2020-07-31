@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema';
-import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2, Explosion } from '@starwards/model';
+import { ShipState, Spaceship, XY, AutoCannon, CannonShell, Vec2, Explosion, TargetedStatus } from '@starwards/model';
 import { SpaceManager } from '../space/space-manager';
 import { makeId } from '../id';
 
@@ -17,7 +17,12 @@ function gaussianRandom(mean: number, stdev: number): number {
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
 
-    constructor(public spaceObject: Spaceship, private spaceManager: SpaceManager, private onDestroy: () => void) {
+    constructor(
+        public spaceObject: Spaceship,
+        private spaceManager: SpaceManager,
+        private ships: Map<string, ShipManager>,
+        private onDestroy: () => void
+    ) {
         this.state.id = this.spaceObject.id;
         this.state.constants = new MapSchema<number>();
         this.state.constants.energyPerSecond = 5;
@@ -98,6 +103,7 @@ export class ShipManager {
             this.onDestroy();
         } else {
             this.validateTargetId();
+            this.calcTargetedStatus();
             // sync relevant ship props
             this.syncShipProperties();
             this.updateEnergy(deltaSeconds);
@@ -110,6 +116,22 @@ export class ShipManager {
             this.updateAutocannon(deltaSeconds);
             this.fireAutocannon();
         }
+    }
+
+    private calcTargetedStatus() {
+        let status = TargetedStatus.NONE; // default state
+        for (const shipManager of this.ships.values()) {
+            if (shipManager.state.targetId === this.state.id) {
+                if (shipManager.state.autoCannon.isFiring) {
+                    status = TargetedStatus.FIRED_UPON;
+                    break; // no need to look further
+                }
+                if (status === TargetedStatus.NONE) {
+                    status = TargetedStatus.LOCKED;
+                }
+            }
+        }
+        this.state.targeted = status;
     }
 
     private validateTargetId() {
