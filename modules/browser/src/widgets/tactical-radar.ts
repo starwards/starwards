@@ -41,6 +41,24 @@ function tacticalRadarComponent(container: Container, state: Props) {
             0.5,
         ]);
         root.addLayer(targetLineLayer.renderRoot);
+        const speedLineLayer = new LineLayer(
+            root,
+            () => [shipRoom.state.position, XY.add(shipRoom.state.position, shipRoom.state.velocity)],
+            [2, 0x26fd9a, 0.5]
+        );
+        root.addLayer(speedLineLayer.renderRoot);
+        const targetSpeedLineLayer = new LineLayer(
+            root,
+            () => {
+                const target = shipTarget.getSingle();
+                return [
+                    shipRoom.state.position,
+                    target && XY.add(shipRoom.state.position, XY.difference(shipRoom.state.velocity, target.velocity)),
+                ];
+            },
+            [2, 0x26cbcb, 0.5]
+        );
+        root.addLayer(targetSpeedLineLayer.renderRoot);
         const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, spaceRoom, state.subjectId);
