@@ -49,25 +49,27 @@ export class ObjectsLayer {
     }
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
-        const objGraphics = new ObjectGraphics(spaceObject, this.renderer, this.parent);
-        this.graphics[spaceObject.id] = objGraphics;
-        this.stage.addChild(objGraphics.stage);
-        objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
-            objGraphics.markChanged(['screen']);
-            this.toReDraw.add(objGraphics);
-        });
-        objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
-            objGraphics.markChanged(['parentAngle']);
-            this.toReDraw.add(objGraphics);
-        });
-        objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
-            objGraphics.markChanged(changes.map((c) => c.field));
-            this.toReDraw.add(objGraphics);
-        });
-        objGraphics.listen(this.selectedItems.events, spaceObject.id, () => {
-            objGraphics.markChanged(['selected']);
-            this.toReDraw.add(objGraphics);
-        });
+        if (!spaceObject.destroyed) {
+            const objGraphics = new ObjectGraphics(spaceObject, this.renderer, this.parent);
+            this.graphics[spaceObject.id] = objGraphics;
+            this.stage.addChild(objGraphics.stage);
+            objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
+                objGraphics.markChanged(['screen']);
+                this.toReDraw.add(objGraphics);
+            });
+            objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
+                objGraphics.markChanged(['parentAngle']);
+                this.toReDraw.add(objGraphics);
+            });
+            objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
+                objGraphics.markChanged(changes.map((c) => c.field));
+                this.toReDraw.add(objGraphics);
+            });
+            objGraphics.listen(this.selectedItems.events, spaceObject.id, () => {
+                objGraphics.markChanged(['selected']);
+                this.toReDraw.add(objGraphics);
+            });
+        }
     }
 
     private cleanupSpaceObject(id: string) {
@@ -128,9 +130,11 @@ class ObjectGraphics {
     }
 
     updatePosition() {
-        const pos = this.parent.worldToScreen(this.spaceObject.position);
-        this.stage.x = pos.x;
-        this.stage.y = pos.y;
+        if (!this.isDestroyed()) {
+            const pos = this.parent.worldToScreen(this.spaceObject.position);
+            this.stage.x = pos.x;
+            this.stage.y = pos.y;
+        }
     }
 
     redraw(isSelected: boolean) {
@@ -139,30 +143,30 @@ class ObjectGraphics {
         this.drawRoot.destroy({
             children: true,
         });
-        this.drawRoot = new PIXI.Container();
-        this.stage.addChild(this.drawRoot);
-        this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
-    }
-
-    shouldRedrawOnFieldChange(field: string): boolean {
-        return this.renderedProperties.has(field);
+        if (!this.isDestroyed()) {
+            this.drawRoot = new PIXI.Container();
+            this.stage.addChild(this.drawRoot);
+            this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
+        }
     }
 
     listen(events: EventEmitter, event: string, listener: (...args: any[]) => any) {
-        events.on(event, listener);
-        this.disposables.push(() => events.off(event, listener));
+        if (!this.isDestroyed()) {
+            events.on(event, listener);
+            this.disposables.push(() => events.off(event, listener));
+        }
     }
 
     destroy() {
         if (!this.destroyed) {
-            this.destroyed = true;
-            for (const d of this.disposables) {
-                d();
-            }
             this.stage.parent.removeChild(this.stage);
             this.stage.destroy({
                 children: true,
             });
+            for (const d of this.disposables) {
+                d();
+            }
+            this.destroyed = true;
         }
     }
 }
