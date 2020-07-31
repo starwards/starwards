@@ -1,6 +1,6 @@
 import { CannonShell, Explosion, SpaceObject, SpaceObjectBase, SpaceState, XY } from '@starwards/model';
 import { Body, Circle, Collisions, Result } from 'detect-collisions';
-import { makeId } from '../id';
+import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 export class SpaceManager {
@@ -41,7 +41,7 @@ export class SpaceManager {
     public moveObjects(ids: string[], delta: XY) {
         for (const id of ids) {
             const subject = this.state.get(id);
-            if (subject) {
+            if (subject && !subject.destroyed) {
                 SpaceObjectBase.moveObject(subject, delta);
                 this.updateObjectCollision(subject);
             }
@@ -94,7 +94,7 @@ export class SpaceManager {
 
     private untrackDestroyedObjects() {
         for (const destroyed of this.state[Symbol.iterator](true)) {
-            const body = this.stateToCollision.get(destroyed)!;
+            const body = this.stateToCollision.get(destroyed);
             if (body) {
                 this.stateToCollision.delete(destroyed);
                 this.collisionToState.delete(body);
@@ -148,7 +148,7 @@ export class SpaceManager {
     private explodeCannonShell(shell: CannonShell) {
         shell.destroyed = true;
         const explosion = shell._explosion || new Explosion();
-        explosion.init(makeId(), shell.position.clone());
+        explosion.init(uniqueId('explosion'), shell.position.clone());
         this.insert(explosion);
     }
 
