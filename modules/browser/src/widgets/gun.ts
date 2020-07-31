@@ -10,14 +10,14 @@ import { XY } from '@starwards/model';
 function gunComponent(container: Container, p: Props) {
     (async () => {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', p.shipId)]);
-        await once(shipRoom.state.events, 'autoCannon');
-        let manualShellSecondsToLive = shipRoom.state.autoCannon.shellSecondsToLive;
+        await once(shipRoom.state.events, 'chainGun');
+        let manualShellSecondsToLive = shipRoom.state.chainGun.shellSecondsToLive;
         const loop = new Loop(() => {
             const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);
             const spaceShip = shipRoom.state.id && spaceRoom.state.get(shipRoom.state.id);
             if (targetObj && spaceShip) {
                 const distance = XY.lengthOf(XY.difference(targetObj.position, spaceShip.position));
-                const time = distance / shipRoom.state.autoCannon.constants.bulletSpeed;
+                const time = distance / shipRoom.state.chainGun.constants.bulletSpeed;
                 shipRoom.send('setShellSecondsToLive', { value: time });
             } else {
                 shipRoom.send('setShellSecondsToLive', { value: manualShellSecondsToLive });
@@ -31,20 +31,20 @@ function gunComponent(container: Container, p: Props) {
             panel.destroy();
         });
 
-        panel.addProperty('cooldown', () => shipRoom.state.autoCannon?.cooldown || 0, [0, 1]);
+        panel.addProperty('cooldown', () => shipRoom.state.chainGun?.cooldown || 0, [0, 1]);
         panel.addProperty(
             'isFiring',
-            () => Number(shipRoom.state.autoCannon?.isFiring || 0),
+            () => Number(shipRoom.state.chainGun?.isFiring || 0),
             [0, 1],
             (value) => {
-                shipRoom.send('autoCannon', { isFiring: Boolean(value) });
+                shipRoom.send('chainGun', { isFiring: Boolean(value) });
             },
             {
                 gamepadIndex: 0,
                 buttonIndex: 4,
             }
         );
-        panel.addProperty('angle', () => Number(shipRoom.state.autoCannon?.angle || 0), [0, 360]);
+        panel.addProperty('angle', () => Number(shipRoom.state.chainGun?.angle || 0), [0, 360]);
         panel.addProperty(
             'nextTarget',
             () => 0,
@@ -77,8 +77,8 @@ function gunComponent(container: Container, p: Props) {
             'manual shellSecondsToLive',
             () => manualShellSecondsToLive,
             [
-                shipRoom.state.autoCannon.constants.minShellSecondsToLive,
-                shipRoom.state.autoCannon.constants.maxShellSecondsToLive,
+                shipRoom.state.chainGun.constants.minShellSecondsToLive,
+                shipRoom.state.chainGun.constants.maxShellSecondsToLive,
             ],
             (value) => {
                 manualShellSecondsToLive = value;
@@ -91,9 +91,9 @@ function gunComponent(container: Container, p: Props) {
                 inverted: true,
             }
         );
-        panel.addProperty('shellSecondsToLive', () => shipRoom.state.autoCannon.shellSecondsToLive, [
-            shipRoom.state.autoCannon.constants.minShellSecondsToLive,
-            shipRoom.state.autoCannon.constants.maxShellSecondsToLive,
+        panel.addProperty('shellSecondsToLive', () => shipRoom.state.chainGun.shellSecondsToLive, [
+            shipRoom.state.chainGun.constants.minShellSecondsToLive,
+            shipRoom.state.chainGun.constants.maxShellSecondsToLive,
         ]);
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
@@ -103,7 +103,7 @@ function gunComponent(container: Container, p: Props) {
             viewModelChanges.emit('speed direction');
         });
 
-        shipRoom.state.events.on('autoCannon', () => {
+        shipRoom.state.events.on('chainGun', () => {
             viewModelChanges.emit('cooldown');
             viewModelChanges.emit('isFiring');
             viewModelChanges.emit('angle');

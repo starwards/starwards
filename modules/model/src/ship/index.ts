@@ -1,7 +1,7 @@
 import { type, MapSchema } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
 import { Spaceship } from '../space';
-import { AutoCannon } from './auto-cannon';
+import { ChainGun } from './chain-gun';
 
 export enum TargetedStatus {
     NONE,
@@ -12,8 +12,8 @@ export class ShipState extends Spaceship {
     @type({ map: 'number' })
     constants!: MapSchema<number>;
 
-    @type(AutoCannon)
-    autoCannon!: AutoCannon;
+    @type(ChainGun)
+    chainGun!: ChainGun;
 
     @type('number')
     targetTurnSpeed = 0;
@@ -45,10 +45,10 @@ export class ShipState extends Spaceship {
                     this.events.emit(c.field, c.value);
                 });
             };
-            this.events.once('autoCannon', () => {
-                this.autoCannon.onChange = (changes) => {
+            this.events.once('chainGun', () => {
+                this.chainGun.onChange = (changes) => {
                     changes.forEach((c) => {
-                        this.events.emit('autoCannon.' + c.field, c.value);
+                        this.events.emit('chainGun.' + c.field, c.value);
                     });
                 };
             });
@@ -57,4 +57,4 @@ export class ShipState extends Spaceship {
 }
 
 export * from './commands';
-export * from './auto-cannon';
+export * from './chain-gun';
