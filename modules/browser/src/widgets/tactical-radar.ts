@@ -12,12 +12,17 @@ import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
 import { DashboardWidget } from './dashboard';
+import { SpriteLayer } from '../radar/sprite-layer';
 
 WebFont.load({
     custom: {
         families: ['Bebas'],
     },
 });
+
+export const preloadList = ['images/crosshair1.png'];
+
+PIXI.Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
@@ -35,6 +40,28 @@ function tacticalRadarComponent(container: Container, state: Props) {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', state.subjectId)]);
         const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
 
+        const crosshairLayer = new SpriteLayer(
+            root,
+            {
+                fileName: 'images/crosshair1.png',
+                tint: 0xfdaaaa,
+                size: 32,
+            },
+            () => {
+                const fireAngle = shipRoom.state.angle + shipRoom.state.chainGun.angle;
+                const fireSource = XY.add(
+                    shipRoom.state.position,
+                    XY.rotate({ x: shipRoom.state.radius, y: 0 }, fireAngle)
+                );
+                const fireVelocity = XY.add(
+                    shipRoom.state.velocity,
+                    XY.rotate({ x: shipRoom.state.chainGun.bulletSpeed, y: 0 }, fireAngle)
+                );
+                const fireTime = shipRoom.state.chainGun.shellSecondsToLive;
+                return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
+            }
+        );
+        root.addLayer(crosshairLayer.renderRoot);
         const targetLineLayer = new LineLayer(root, () => [shipRoom.state.position, shipTarget.getSingle()?.position], [
             2,
             InteractiveLayer.selectionColor,

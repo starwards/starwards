@@ -18,4 +18,8 @@ export class ChainGun extends Schema {
 
     @type('float32')
     shellSecondsToLive = 10;
+
+    get bulletSpeed(): number {
+        return this.constants.bulletSpeed;
+    }
 }
