@@ -44,7 +44,7 @@ function tacticalRadarComponent(container: Container, state: Props) {
             root,
             {
                 fileName: 'images/crosshair1.png',
-                tint: 0xfdaaaa,
+                tint: 0xffaaaa,
                 size: 32,
             },
             () => {
@@ -62,6 +62,24 @@ function tacticalRadarComponent(container: Container, state: Props) {
             }
         );
         root.addLayer(crosshairLayer.renderRoot);
+        const deflectionCrosshairLayer = new SpriteLayer(
+            root,
+            {
+                fileName: 'images/crosshair1.png',
+                tint: 0xaaaaff,
+                size: 32,
+            },
+            () => {
+                const target = shipTarget.getSingle();
+                if (target) {
+                    const fireTime = shipRoom.state.chainGun.shellSecondsToLive;
+                    return XY.add(target.position, XY.scale(target.velocity, fireTime));
+                } else {
+                    return undefined;
+                }
+            }
+        );
+        root.addLayer(deflectionCrosshairLayer.renderRoot);
         const targetLineLayer = new LineLayer(root, () => [shipRoom.state.position, shipTarget.getSingle()?.position], [
             2,
             InteractiveLayer.selectionColor,
