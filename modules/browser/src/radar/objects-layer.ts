@@ -1,4 +1,3 @@
-// tslint:disable-next-line: no-implicit-dependencies
 import { DataChange } from '@colyseus/schema';
 import { SpaceObject, SpaceState } from '@starwards/model';
 import EventEmitter from 'eventemitter3';

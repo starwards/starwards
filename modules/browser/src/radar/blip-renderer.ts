@@ -1,6 +1,7 @@
 import { SpaceObjects, Vec2, SpaceObject, Spaceship, Asteroid, CannonShell, Explosion } from '@starwards/model';
 import * as PIXI from 'pixi.js';
 import { CameraView } from './camera-view';
+import { InteractiveLayer } from './interactive-layer';
 
 export const preloadList = [
     'images/RadarBlip.png',
@@ -150,6 +151,6 @@ export function selectionRenderer(root: PIXI.Container) {
     const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
     radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
     radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
-    radarBlipSprite.tint = 0x26dafd;
+    radarBlipSprite.tint = InteractiveLayer.selectionColor;
     root.addChild(radarBlipSprite);
 }
