@@ -51,7 +51,7 @@ you've just installed the development environment, and have succesfully built th
 
 The `run server` command (in `.vscode/launch.json`) runs a local development server. This server will automatically re-load the client appilcation when changes are made to it, but you will need to restart the server manually if you want it to re-load server-side code (changes to the `server` or `model` modules). after the server is up, open your chrome browser at `http://localhost:8080/`.
 
-To quickly host a local game with a remote party, I reccommend you use [ngrok](https://ngrok.com/). just download the executable file to the root of this project and run `ngrok http 8080` to create an HTTP tunnel to your local server.
+To quickly host a local game with a remote party, I reccommend you use [ngrok](https://ngrok.com/). just download the executable file to the root of this project and run `./ngrok http 8080` to create an HTTP tunnel to your local server.
 
 ### Building executable
 

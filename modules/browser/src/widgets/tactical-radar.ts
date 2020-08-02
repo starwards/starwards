@@ -13,6 +13,7 @@ import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
 import { DashboardWidget } from './dashboard';
 import { SpriteLayer } from '../radar/sprite-layer';
+import { waitForEvents } from '../async-utils';
 
 WebFont.load({
     custom: {
@@ -38,9 +39,12 @@ function tacticalRadarComponent(container: Container, state: Props) {
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', state.subjectId)]);
+        if (!shipRoom.state.chainGun) {
+            await waitForEvents(shipRoom.state.events, ['chainGun']);
+        }
         const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
 
-        const crosshairLayer = new SpriteLayer(
+        const shellCrosshairLayer = new SpriteLayer(
             root,
             {
                 fileName: 'images/crosshair1.png',
@@ -53,15 +57,13 @@ function tacticalRadarComponent(container: Container, state: Props) {
                     shipRoom.state.position,
                     XY.rotate({ x: shipRoom.state.radius, y: 0 }, fireAngle)
                 );
-                const fireVelocity = XY.add(
-                    shipRoom.state.velocity,
-                    XY.rotate({ x: shipRoom.state.chainGun.bulletSpeed, y: 0 }, fireAngle)
-                );
+                const fireVelocity = XY.rotate({ x: shipRoom.state.chainGun.bulletSpeed, y: 0 }, fireAngle);
+
                 const fireTime = shipRoom.state.chainGun.shellSecondsToLive;
                 return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
             }
         );
-        root.addLayer(crosshairLayer.renderRoot);
+        root.addLayer(shellCrosshairLayer.renderRoot);
         const deflectionCrosshairLayer = new SpriteLayer(
             root,
             {
@@ -73,7 +75,10 @@ function tacticalRadarComponent(container: Container, state: Props) {
                 const target = shipTarget.getSingle();
                 if (target) {
                     const fireTime = shipRoom.state.chainGun.shellSecondsToLive;
-                    return XY.add(target.position, XY.scale(target.velocity, fireTime));
+                    return XY.add(
+                        target.position,
+                        XY.scale(XY.difference(target.velocity, shipRoom.state.velocity), fireTime)
+                    );
                 } else {
                     return undefined;
                 }
