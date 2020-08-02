@@ -1,4 +1,3 @@
-// tslint:disable-next-line: no-implicit-dependencies
 import { XY } from '@starwards/model';
 import * as PIXI from 'pixi.js';
 import { CameraView } from './camera-view';
