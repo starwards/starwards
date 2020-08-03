@@ -1,16 +1,14 @@
+import { XY } from '@starwards/model';
+import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-import { getRoomById, getGlobalRoom } from '../client';
+import { getGlobalRoom, getShipRoom } from '../client';
+import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
-import EventEmitter from 'eventemitter3';
-import { once } from '../async-utils';
-import { Loop } from '../loop';
-import { XY } from '@starwards/model';
 
 function gunComponent(container: Container, p: Props) {
     (async () => {
-        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', p.shipId)]);
-        await once(shipRoom.state.events, 'chainGun');
+        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
         let manualShellSecondsToLive = shipRoom.state.chainGun.shellSecondsToLive;
         const loop = new Loop(() => {
             const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);

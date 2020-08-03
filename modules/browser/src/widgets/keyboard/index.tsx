@@ -19,7 +19,7 @@ class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Se
         this.state = {
             pressed: new Set<ButtonKey>(),
         };
-        // getRoomById('ship', p.shipId).then((room) => (this.shipRoom = room));
+        // getShipRoom(p.shipId).then((room) => (this.shipRoom = room));
         getGlobalRoom('space').then((room) => (this.spaceRoom = room));
     }
     public render() {

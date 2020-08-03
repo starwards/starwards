@@ -1,19 +1,16 @@
-import { SpaceObject, XY, ShipState, SpaceState } from '@starwards/model';
+import { ShipState, SpaceObject, SpaceState } from '@starwards/model';
 import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
-import { getGlobalRoom, getRoomById, NamedGameRoom } from '../client';
+import { getGlobalRoom, getShipRoom, NamedGameRoom } from '../client';
 import { blipRenderer } from '../radar/blip-renderer';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
-import { InteractiveLayer } from '../radar/interactive-layer';
-import { LineLayer } from '../radar/line-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
+import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { DashboardWidget } from './dashboard';
-import { SpriteLayer } from '../radar/sprite-layer';
-import { waitForEvents } from '../async-utils';
 
 WebFont.load({
     custom: {
@@ -38,77 +35,10 @@ function tacticalRadarComponent(container: Container, state: Props) {
         const range = new RangeIndicators(root, 1000);
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
-        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getRoomById('ship', state.subjectId)]);
-        if (!shipRoom.state.chainGun) {
-            await waitForEvents(shipRoom.state.events, ['chainGun']);
-        }
+        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
         const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
-
-        const shellCrosshairLayer = new SpriteLayer(
-            root,
-            {
-                fileName: 'images/crosshair1.png',
-                tint: 0xffaaaa,
-                size: 32,
-            },
-            () => {
-                const fireAngle = shipRoom.state.angle + shipRoom.state.chainGun.angle;
-                const fireSource = XY.add(
-                    shipRoom.state.position,
-                    XY.rotate({ x: shipRoom.state.radius, y: 0 }, fireAngle)
-                );
-                const fireVelocity = XY.rotate({ x: shipRoom.state.chainGun.bulletSpeed, y: 0 }, fireAngle);
-
-                const fireTime = shipRoom.state.chainGun.shellSecondsToLive;
-                return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
-            }
-        );
-        root.addLayer(shellCrosshairLayer.renderRoot);
-        const deflectionCrosshairLayer = new SpriteLayer(
-            root,
-            {
-                fileName: 'images/crosshair1.png',
-                tint: 0xaaaaff,
-                size: 32,
-            },
-            () => {
-                const target = shipTarget.getSingle();
-                if (target) {
-                    const fireTime = shipRoom.state.chainGun.shellSecondsToLive;
-                    return XY.add(
-                        target.position,
-                        XY.scale(XY.difference(target.velocity, shipRoom.state.velocity), fireTime)
-                    );
-                } else {
-                    return undefined;
-                }
-            }
-        );
-        root.addLayer(deflectionCrosshairLayer.renderRoot);
-        const targetLineLayer = new LineLayer(root, () => [shipRoom.state.position, shipTarget.getSingle()?.position], [
-            2,
-            InteractiveLayer.selectionColor,
-            0.5,
-        ]);
-        root.addLayer(targetLineLayer.renderRoot);
-        const speedLineLayer = new LineLayer(
-            root,
-            () => [shipRoom.state.position, XY.add(shipRoom.state.position, shipRoom.state.velocity)],
-            [2, 0x26fd9a, 0.5]
-        );
-        root.addLayer(speedLineLayer.renderRoot);
-        const targetSpeedLineLayer = new LineLayer(
-            root,
-            () => {
-                const target = shipTarget.getSingle();
-                return [
-                    shipRoom.state.position,
-                    target && XY.add(shipRoom.state.position, XY.difference(shipRoom.state.velocity, target.velocity)),
-                ];
-            },
-            [2, 0x26cbcb, 0.5]
-        );
-        root.addLayer(targetSpeedLineLayer.renderRoot);
+        root.addLayer(crosshairs(root, shipRoom.state, shipTarget));
+        root.addLayer(speedLines(root, shipRoom.state, shipTarget));
         const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, spaceRoom, state.subjectId);
