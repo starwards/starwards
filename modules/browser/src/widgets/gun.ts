@@ -12,9 +12,8 @@ function gunComponent(container: Container, p: Props) {
         let manualShellSecondsToLive = shipRoom.state.chainGun.shellSecondsToLive;
         const loop = new Loop(() => {
             const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);
-            const spaceShip = shipRoom.state.id && spaceRoom.state.get(shipRoom.state.id);
-            if (targetObj && spaceShip) {
-                const distance = XY.lengthOf(XY.difference(targetObj.position, spaceShip.position));
+            if (targetObj) {
+                const distance = XY.lengthOf(XY.difference(targetObj.position, shipRoom.state.position));
                 const time = distance / shipRoom.state.chainGun.constants.bulletSpeed;
                 shipRoom.send('setShellSecondsToLive', { value: time });
             } else {
