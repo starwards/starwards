@@ -1,15 +1,13 @@
-import { Container } from 'golden-layout';
-import { getRoomById } from '../client';
-import { PropertyPanel, Panel } from '../property-panel';
-import { DashboardWidget } from './dashboard';
-import EventEmitter from 'eventemitter3';
 import { MapSchema } from '@colyseus/schema';
-import { waitForEvents } from '../async-utils';
+import EventEmitter from 'eventemitter3';
+import { Container } from 'golden-layout';
+import { getShipRoom } from '../client';
+import { Panel, PropertyPanel } from '../property-panel';
+import { DashboardWidget } from './dashboard';
 
 function shipConstantsComponent(container: Container, p: Props) {
     (async () => {
-        const shipRoom = await getRoomById('ship', p.shipId);
-        await waitForEvents(shipRoom.state.events, ['constants', 'chainGun']);
+        const shipRoom = await getShipRoom(p.shipId);
         const viewModelChanges = new EventEmitter();
         const rootPanel = new PropertyPanel(viewModelChanges);
         rootPanel.init(container);

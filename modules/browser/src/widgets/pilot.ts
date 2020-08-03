@@ -1,13 +1,13 @@
+import { TargetedStatus, XY } from '@starwards/model';
+import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-import { getRoomById } from '../client';
+import { getShipRoom } from '../client';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
-import { XY, TargetedStatus } from '@starwards/model';
-import EventEmitter from 'eventemitter3';
 
 function pilotComponent(container: Container, p: Props) {
     (async () => {
-        const shipRoom = await getRoomById('ship', p.shipId);
+        const shipRoom = await getShipRoom(p.shipId);
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
