@@ -54,6 +54,13 @@ export class ShipState extends Spaceship {
             });
         }
     }
+
+    get boostEffectFactor() {
+        return this.constants.boostEffectFactor;
+    }
+    get strafeEffectFactor() {
+        return this.constants.strafeEffectFactor;
+    }
 }
 
 export * from './commands';
