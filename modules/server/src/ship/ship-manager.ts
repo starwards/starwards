@@ -1,18 +1,18 @@
 import { MapSchema } from '@colyseus/schema';
-import { ShipState, Spaceship, XY, ChainGun, CannonShell, Vec2, Explosion, TargetedStatus } from '@starwards/model';
-import { SpaceManager } from '../space/space-manager';
+import {
+    CannonShell,
+    capToRange,
+    ChainGun,
+    Explosion,
+    gaussianRandom,
+    ShipState,
+    Spaceship,
+    TargetedStatus,
+    Vec2,
+    XY,
+} from '@starwards/model';
 import { uniqueId } from '../id';
-
-function capToRange(from: number, to: number, value: number) {
-    return value > to ? to : value < from ? from : value;
-}
-
-/**
- *  generate a random number with a given mean and standard deviation
- */
-function gaussianRandom(mean: number, stdev: number): number {
-    return mean + 2.0 * stdev * (Math.random() + Math.random() + Math.random() - 1.5);
-}
+import { SpaceManager } from '../space/space-manager';
 
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
