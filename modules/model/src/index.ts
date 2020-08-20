@@ -22,4 +22,4 @@ export * from './admin';
 export * from './space';
 export * from './ship';
 export * from './formulas';
-export * from './target';
+export * from './pilot-assist';

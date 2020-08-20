@@ -1,13 +1,20 @@
-import { TargetedStatus, XY } from '@starwards/model';
+import '@maulingmonkey/gamepad';
+import { PilotAssist, TargetedStatus, XY, capToRange } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-import { getShipRoom } from '../client';
+import { getGlobalRoom, getShipRoom } from '../client';
+import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
 
+export enum OnOffStatus {
+    OFF,
+    ON,
+}
+
 function pilotComponent(container: Container, p: Props) {
     (async () => {
-        const shipRoom = await getShipRoom(p.shipId);
+        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
@@ -64,12 +71,41 @@ function pilotComponent(container: Container, p: Props) {
                 buttonIndex: 5,
             }
         );
+
+        let matchSpeed = OnOffStatus.OFF;
+        const autoPilot = new PilotAssist(
+            () => spaceRoom.state,
+            () => shipRoom.state
+        );
+        const loop = new Loop((delta: number) => {
+            if (matchSpeed === OnOffStatus.ON) {
+                const command = autoPilot.matchTargetSpeed(delta);
+                if (command) {
+                    shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
+                    shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });
+                } else {
+                    matchSpeed = OnOffStatus.OFF;
+                }
+            }
+        }, 1000 / 5);
+        loop.start();
+        addEventListener(
+            'mmk-gamepad-button-down',
+            (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
+                if (e.buttonIndex === 11 && e.gamepadIndex === 0) {
+                    matchSpeed = (matchSpeed + 1) % 2;
+                    viewModelChanges.emit('matchSpeed');
+                }
+            }
+        );
+        panel.addText('matchSpeed', () => OnOffStatus[matchSpeed]);
+
         panel.addProperty(
             'strafe',
             () => shipRoom.state.strafe,
             [-5, 5],
             (value) => {
-                shipRoom.send('setStrafe', { value });
+                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setStrafe', { value });
             },
             {
                 gamepadIndex: 0,
@@ -82,7 +118,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.boost,
             [-5, 5],
             (value) => {
-                shipRoom.send('setBoost', { value });
+                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setBoost', { value });
             },
             {
                 gamepadIndex: 0,
