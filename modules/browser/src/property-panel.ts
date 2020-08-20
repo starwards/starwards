@@ -46,8 +46,8 @@ export interface Panel {
         range: [number, number],
         onChange?: (v: number) => any,
         gamepad?: GamepadAxis | GamepadButton
-    ): void;
-    addText(name: string, getValue: () => string): void;
+    ): this;
+    addText(name: string, getValue: () => string): this;
 }
 
 export class PropertyPanel implements Panel {
@@ -147,26 +147,34 @@ export class PropertyPanel implements Panel {
         gamepad?: GamepadAxis | GamepadButton
     ) {
         this.contextAddProperty(this.rootGui, this.rootViewModel, name, getValue, range, onChange, gamepad);
+        return this;
     }
 
     addText(name: string, getValue: () => string) {
         this.contextAddText(this.rootGui, this.rootViewModel, name, getValue);
+        return this;
     }
 
     addFolder(folderName: string): Panel {
         const guiFolder = this.rootGui.addFolder(folderName);
         guiFolder.open();
         const folderViewModel: Dictionary<number | string> = {};
-        return {
+        const folder: Panel = {
             addProperty: (
                 name: string,
                 getValue: () => number,
                 range: [number, number],
                 onChange?: (v: number) => any,
                 gamepad?: GamepadAxis | GamepadButton
-            ) => this.contextAddProperty(guiFolder, folderViewModel, name, getValue, range, onChange, gamepad),
-            addText: (name: string, getValue: () => string) =>
-                this.contextAddText(guiFolder, folderViewModel, name, getValue),
+            ) => {
+                this.contextAddProperty(guiFolder, folderViewModel, name, getValue, range, onChange, gamepad);
+                return folder;
+            },
+            addText: (name: string, getValue: () => string) => {
+                this.contextAddText(guiFolder, folderViewModel, name, getValue);
+                return folder;
+            },
         };
+        return folder;
     }
 }
