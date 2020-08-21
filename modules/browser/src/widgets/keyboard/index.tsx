@@ -102,9 +102,8 @@ class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Se
         // }
     }
 
-    private whilePressed(deltaMs: number) {
+    private whilePressed(deltaSeconds: number) {
         if (this.spaceRoom) {
-            const deltaSeconds = deltaMs / 1000;
             const ship = this.spaceRoom.state.get(this.props.shipId);
             for (const pressed of this.pressedTime) {
                 this.pressedTime.set(pressed[0], (pressed[1] += deltaSeconds));

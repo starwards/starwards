@@ -2,7 +2,7 @@ export class Loop {
     private t0: number = 0;
     private timer: ReturnType<typeof setInterval> | null = null;
 
-    constructor(private body: (delta: number) => void, private interval = 1000 / 60) {}
+    constructor(private body: (deltaSeconds: number) => void, private interval = 1000 / 60) {}
 
     public start() {
         if (this.timer === null) {
@@ -20,7 +20,7 @@ export class Loop {
 
     private iteration = () => {
         const t1 = Date.now();
-        this.body(t1 - this.t0);
+        this.body((t1 - this.t0) / 1000);
         this.t0 = t1;
     };
 }
