@@ -6,6 +6,7 @@ import { getGlobalRoom, getShipRoom } from '../client';
 import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
+import { isNumber } from 'util';
 
 export enum OnOffStatus {
     OFF,
@@ -16,18 +17,64 @@ function pilotComponent(container: Container, p: Props) {
     (async () => {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
         const viewModelChanges = new EventEmitter();
+        let matchSpeed = OnOffStatus.OFF;
+        let matchHeading = OnOffStatus.OFF;
         const panel = new PropertyPanel(viewModelChanges);
         panel.init(container);
         container.on('destroy', () => {
             panel.destroy();
         });
+
+        const autoPilot = new PilotAssist(
+            () => spaceRoom.state,
+            () => shipRoom.state
+        );
+        panel.addText('matchSpeed', () => OnOffStatus[matchSpeed]);
+        panel.addText('matchHeading', () => OnOffStatus[matchHeading]);
+
+        const loop = new Loop((delta: number) => {
+            if (matchSpeed === OnOffStatus.ON) {
+                const command = autoPilot.matchTargetSpeed(delta);
+                if (command) {
+                    shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
+                    shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });
+                } else {
+                    matchSpeed = OnOffStatus.OFF;
+                }
+            }
+            if (matchHeading === OnOffStatus.ON) {
+                const command = autoPilot.matchTargetDirection(delta);
+                if (isNumber(command)) {
+                    shipRoom.send('setTargetTurnSpeed', { value: capToRange(-90, 90, command) });
+                } else {
+                    matchHeading = OnOffStatus.OFF;
+                }
+            }
+        }, 1000 / 5);
+        loop.start();
+        addEventListener(
+            'mmk-gamepad-button-down',
+            (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
+                if (e.buttonIndex === 11 && e.gamepadIndex === 0) {
+                    matchSpeed = (matchSpeed + 1) % 2;
+                    shipRoom.send('setStrafe', { value: 0 });
+                    shipRoom.send('setBoost', { value: 0 });
+                    viewModelChanges.emit('matchSpeed');
+                } else if (e.buttonIndex === 10 && e.gamepadIndex === 0) {
+                    matchHeading = (matchHeading + 1) % 2;
+                    shipRoom.send('setTargetTurnSpeed', { value: 0 });
+                    viewModelChanges.emit('matchHeading');
+                }
+            }
+        );
+
         panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
         panel.addProperty(
             'targetTurnSpeed',
             () => shipRoom.state.targetTurnSpeed,
             [-90, 90],
             (value) => {
-                shipRoom.send('setTargetTurnSpeed', { value });
+                if (matchHeading === OnOffStatus.OFF) shipRoom.send('setTargetTurnSpeed', { value });
             },
             {
                 gamepadIndex: 0,
@@ -71,35 +118,6 @@ function pilotComponent(container: Container, p: Props) {
                 buttonIndex: 5,
             }
         );
-
-        let matchSpeed = OnOffStatus.OFF;
-        const autoPilot = new PilotAssist(
-            () => spaceRoom.state,
-            () => shipRoom.state
-        );
-        const loop = new Loop((delta: number) => {
-            if (matchSpeed === OnOffStatus.ON) {
-                const command = autoPilot.matchTargetSpeed(delta);
-                if (command) {
-                    shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
-                    shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });
-                } else {
-                    matchSpeed = OnOffStatus.OFF;
-                }
-            }
-        }, 1000 / 5);
-        loop.start();
-        addEventListener(
-            'mmk-gamepad-button-down',
-            (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
-                if (e.buttonIndex === 11 && e.gamepadIndex === 0) {
-                    matchSpeed = (matchSpeed + 1) % 2;
-                    viewModelChanges.emit('matchSpeed');
-                }
-            }
-        );
-        panel.addText('matchSpeed', () => OnOffStatus[matchSpeed]);
-
         panel.addProperty(
             'strafe',
             () => shipRoom.state.strafe,

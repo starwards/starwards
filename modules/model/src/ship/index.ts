@@ -55,6 +55,9 @@ export class ShipState extends Spaceship {
         }
     }
 
+    get rotationEffectFactor() {
+        return this.constants.rotationEffectFactor;
+    }
     get boostEffectFactor() {
         return this.constants.boostEffectFactor;
     }
