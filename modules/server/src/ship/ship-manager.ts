@@ -41,7 +41,7 @@ export class ShipManager {
         this.state.chainGun.constants.bulletsPerSecond = 20;
         this.state.chainGun.constants.bulletSpeed = 2000;
         this.state.chainGun.constants.bulletDegreesDeviation = 1;
-        this.state.chainGun.constants.maxShellSecondsToLive = 3;
+        this.state.chainGun.constants.maxShellSecondsToLive = 2.5;
         this.state.chainGun.constants.minShellSecondsToLive = 0.25;
         this.state.chainGun.constants.explosionSecondsToLive = 0.5;
         this.state.chainGun.constants.explosionExpansionSpeed = 10;
