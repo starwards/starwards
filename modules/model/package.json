@@ -17,6 +17,6 @@
     },
     "dependencies": {
         "@colyseus/schema": "^0.5.41",
-        "eventemitter3": "^4.0.0"
+        "eventemitter3": "^4.0.5"
     }
 }
