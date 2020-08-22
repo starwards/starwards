@@ -46,17 +46,17 @@ function addMapToPanel(
     viewModelChanges: EventEmitter
 ) {
     getConstants().onAdd = (_, name) => {
-        const val = getConstants()[name];
+        const val = getConstants().get(name);
         panel.addProperty(
             name,
-            () => getConstants()[name],
+            () => getConstants().get(name),
             [val / 2, val * 2],
             (value: number) => onChange(name, value)
         );
     };
-    for (const constName in getConstants()) {
-        if (typeof getConstants()[constName] === 'number') {
-            getConstants().onAdd(0, constName);
+    for (const constName in getConstants().keys()) {
+        if (typeof getConstants().get(constName) === 'number') {
+            getConstants().onAdd!(0, constName);
         }
     }
     // lazy hack: just update everything when a constant changes

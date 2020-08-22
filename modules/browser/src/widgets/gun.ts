@@ -14,7 +14,7 @@ function gunComponent(container: Container, p: Props) {
             const targetObj = shipRoom.state.targetId && spaceRoom.state.get(shipRoom.state.targetId);
             if (targetObj) {
                 const distance = XY.lengthOf(XY.difference(targetObj.position, shipRoom.state.position));
-                const time = distance / shipRoom.state.chainGun.constants.bulletSpeed;
+                const time = distance / shipRoom.state.chainGun.bulletSpeed;
                 shipRoom.send('setShellSecondsToLive', { value: time });
             } else {
                 shipRoom.send('setShellSecondsToLive', { value: manualShellSecondsToLive });
@@ -73,10 +73,7 @@ function gunComponent(container: Container, p: Props) {
         panel.addProperty(
             'manual shellSecondsToLive',
             () => manualShellSecondsToLive,
-            [
-                shipRoom.state.chainGun.constants.minShellSecondsToLive,
-                shipRoom.state.chainGun.constants.maxShellSecondsToLive,
-            ],
+            [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
             (value) => {
                 manualShellSecondsToLive = value;
                 viewModelChanges.emit('manual shellSecondsToLive');
@@ -89,8 +86,8 @@ function gunComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty('shellSecondsToLive', () => shipRoom.state.chainGun.shellSecondsToLive, [
-            shipRoom.state.chainGun.constants.minShellSecondsToLive,
-            shipRoom.state.chainGun.constants.maxShellSecondsToLive,
+            shipRoom.state.chainGun.minShellSecondsToLive,
+            shipRoom.state.chainGun.maxShellSecondsToLive,
         ]);
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));

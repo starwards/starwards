@@ -30,24 +30,34 @@ export class SpaceState extends Schema {
             this.cannonShells.onRemove = this.asteroids.onRemove = this.spaceships.onRemove = this.explosions.onRemove = (
                 so: SpaceObject
             ) => this.events.emit('remove', so);
-            this.events.on('add', (so: SpaceObject) => (so.onChange = (changes) => this.events.emit(so.id, changes)));
+            this.events.on('add', (so: SpaceObject) => {
+                so.onChange = (changes) => {
+                    for (const { field } of changes) {
+                        this.events.emit(so.id, field);
+                    }
+                };
+                so.position.onChange = (_) => this.events.emit(so.id, 'position');
+                so.velocity.onChange = (_) => this.events.emit(so.id, 'velocity');
+            });
         }
     }
 
     public get(id: string): SpaceObject | undefined {
-        return this.cannonShells[id] || this.asteroids[id] || this.spaceships[id] || this.explosions[id];
+        return (
+            this.cannonShells.get(id) ?? this.asteroids.get(id) ?? this.spaceships.get(id) ?? this.explosions.get(id)
+        );
     }
 
     public set(obj: SpaceObject) {
-        this.getMap(obj.type)[obj.id] = obj;
+        this.getMap(obj.type).set(obj.id, obj);
     }
 
     public delete(obj: SpaceObject) {
-        delete this.getMap(obj.type)[obj.id];
+        this.getMap(obj.type).delete(obj.id);
     }
 
     public getAll<T extends keyof SpaceObjects>(typeField: T): IterableIterator<SpaceObjects[T]> {
-        return mapSchemaValues(this.getMap(typeField) as MapSchema<SpaceObjects[T]>);
+        return mapSchemaValues(this.getMap(typeField));
     }
 
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
@@ -57,28 +67,26 @@ export class SpaceState extends Schema {
         yield* mapSchemaValues(this.spaceships, destroyed);
     }
 
-    private getMap<T extends keyof SpaceObjects>(typeField: T) {
+    private getMap<T extends keyof SpaceObjects>(typeField: T): MapSchema<SpaceObjects[T]> {
         switch (typeField) {
             case 'Explosion':
-                return this.explosions;
+                return this.explosions as MapSchema<any>;
             case 'CannonShell':
-                return this.cannonShells;
+                return this.cannonShells as MapSchema<any>;
             case 'Asteroid':
-                return this.asteroids;
+                return this.asteroids as MapSchema<any>;
             case 'Spaceship':
-                return this.spaceships;
+                return this.spaceships as MapSchema<any>;
             default:
                 throw new Error(`unknmown type ${typeField}`);
         }
     }
 }
 
-const mapSchemaClassProps = Object.getOwnPropertyNames(new MapSchema());
-
-export function* mapSchemaValues<T>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
-    for (const id of Object.getOwnPropertyNames(map)) {
-        if (!mapSchemaClassProps.includes(id) && map[id] && map[id].destroyed === destroyed) {
-            yield map[id];
+export function* mapSchemaValues<T extends SpaceObject>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
+    for (const result of map.values()) {
+        if (result && result.destroyed === destroyed) {
+            yield result;
         }
     }
 }

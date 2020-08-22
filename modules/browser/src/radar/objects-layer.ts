@@ -1,4 +1,3 @@
-import { DataChange } from '@colyseus/schema';
 import { SpaceObject, SpaceState } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import * as PIXI from 'pixi.js';
@@ -53,19 +52,19 @@ export class ObjectsLayer {
             this.graphics[spaceObject.id] = objGraphics;
             this.stage.addChild(objGraphics.stage);
             objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
-                objGraphics.markChanged(['screen']);
+                objGraphics.markChanged('screen');
                 this.toReDraw.add(objGraphics);
             });
             objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
-                objGraphics.markChanged(['parentAngle']);
+                objGraphics.markChanged('parentAngle');
                 this.toReDraw.add(objGraphics);
             });
-            objGraphics.listen(this.room.state.events, spaceObject.id, (changes: DataChange[]) => {
-                objGraphics.markChanged(changes.map((c) => c.field));
+            objGraphics.listen(this.room.state.events, spaceObject.id, (field: string) => {
+                objGraphics.markChanged(field);
                 this.toReDraw.add(objGraphics);
             });
             objGraphics.listen(this.selectedItems.events, spaceObject.id, () => {
-                objGraphics.markChanged(['selected']);
+                objGraphics.markChanged('selected');
                 this.toReDraw.add(objGraphics);
             });
         }
@@ -102,10 +101,8 @@ class ObjectGraphics {
         return this.spaceObject.destroyed || this.destroyed;
     }
 
-    markChanged(fields: string[]) {
-        for (const field of fields) {
-            this.dirtyProperties.add(field);
-        }
+    markChanged(field: string) {
+        this.dirtyProperties.add(field);
     }
 
     shouldRedraw() {
