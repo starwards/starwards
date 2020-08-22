@@ -51,7 +51,7 @@ function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: st
     }
 }
 
-export function makeRadarHeaders(container: Container): Array<JQuery<HTMLElement>> {
+export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery<HTMLElement>> {
     const zoomIn = $('<i class="lm_controls tiny material-icons">zoom_in</i>');
     const zoomOut = $('<i class="lm_controls tiny material-icons">zoom_out</i>');
     zoomIn.mousedown(() => {

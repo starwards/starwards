@@ -13,7 +13,7 @@ declare global {
 window.React = React;
 window.ReactDOM = ReactDOM;
 
-export type MakeHeaders = (container: Container) => Array<JQuery<HTMLElement>>;
+export type MakeHeaders<T> = (container: Container, state: T) => Array<JQuery<HTMLElement>>;
 
 export type GLComponent<T> = (container: Container, state: T) => void;
 
@@ -22,7 +22,7 @@ export interface DashboardWidget<T extends object = object> {
     type: 'component' | 'react-component';
     component: GLComponent<T> | ComponentClass<T & ReactProps>;
     defaultProps: Partial<T>;
-    makeHeaders?: MakeHeaders;
+    makeHeaders?: MakeHeaders<T>;
 }
 export class Dashboard extends GoldenLayout {
     private dragContainer: JQuery<HTMLElement> | null = null;
@@ -35,7 +35,7 @@ export class Dashboard extends GoldenLayout {
             if (contentItem) {
                 for (const widget of this.widgets) {
                     if (widget.makeHeaders && contentItem.config.id === widget.name) {
-                        const headers = widget.makeHeaders(contentItem.container);
+                        const headers = widget.makeHeaders(contentItem.container, widget.defaultProps);
                         for (const header of headers.reverse()) {
                             stack.header.controlsContainer.prepend($('<li class="widget_header"></li>').append(header));
                         }

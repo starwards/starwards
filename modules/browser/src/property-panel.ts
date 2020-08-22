@@ -93,6 +93,7 @@ export class PropertyPanel implements Panel {
     destroy() {
         removeEventListener('mmk-gamepad-axis-value', this.onAxis);
         removeEventListener('mmk-gamepad-button-value', this.onButton);
+        this.rootGui.domElement.parentElement?.removeChild(this.rootGui.domElement);
         this.rootGui.destroy();
     }
 
