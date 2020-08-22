@@ -124,7 +124,7 @@ export class Camera {
     }
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter, angle = false) {
-        changeEvents.on(spaceObject.id, (changes: DataChange[]) => {
+        const listener = (changes: DataChange[]) => {
             changes.forEach((change) => {
                 if (change.field === 'position') {
                     this.set(spaceObject.position);
@@ -132,10 +132,14 @@ export class Camera {
                     this.setAngle(spaceObject.angle + 90);
                 }
             });
-        });
+        };
+        changeEvents.on(spaceObject.id, listener);
         this.set(spaceObject.position);
         if (angle) {
             this.setAngle(spaceObject.angle + 90);
         }
+        return () => {
+            changeEvents.off(spaceObject.id, listener);
+        };
     }
 }
