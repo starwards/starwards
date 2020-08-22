@@ -81,7 +81,7 @@ export class InteractiveLayer {
         return null;
     }
 
-    onPointerDown = (event: PIXI.interaction.InteractionEvent) => {
+    onPointerDown = (event: PIXI.InteractionEvent) => {
         if (this.actionType === ActionType.none) {
             if (event.data.button === MouseButton.main) {
                 this.dragFrom = event.data.getLocalPosition(this.stage);
@@ -102,7 +102,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointermove = (event: PIXI.interaction.InteractionEvent) => {
+    onPointermove = (event: PIXI.InteractionEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 this.dragTo = event.data.getLocalPosition(this.stage);
@@ -128,7 +128,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointerup = (_event: PIXI.interaction.InteractionEvent) => {
+    onPointerup = (_event: PIXI.InteractionEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 if (this.dragTo == null) {
