@@ -8,6 +8,7 @@
     ],
     "scripts": {
         "clean": "rimraf ./cjs",
+        "pre-commit": "pretty-quick --staged --pattern \"src/**/*.ts\"",
         "prettify": "yarn prettier \"src/**/*.ts\" --write",
         "prebuild": "yarn clean",
         "build": "ts-build ./src --cjs",
