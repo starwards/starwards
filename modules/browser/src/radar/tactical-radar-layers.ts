@@ -1,12 +1,13 @@
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
-import { XY, ShipState } from '@starwards/model';
+import { XY, ShipState, GunnerAssist } from '@starwards/model';
 import { LineLayer } from './line-layer';
 import { InteractiveLayer } from './interactive-layer';
 
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new PIXI.Container();
+    const assist = new GunnerAssist(() => shipState);
     const shellCrosshairLayer = new SpriteLayer(
         root,
         {
@@ -14,14 +15,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
             tint: 0xffaaaa,
             size: 32,
         },
-        () => {
-            const fireAngle = shipState.angle + shipState.chainGun.angle;
-            const fireSource = XY.add(shipState.position, XY.rotate({ x: shipState.radius, y: 0 }, fireAngle));
-            const fireVelocity = XY.rotate({ x: shipState.chainGun.bulletSpeed, y: 0 }, fireAngle);
-
-            const fireTime = shipState.chainGun.shellSecondsToLive;
-            return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
-        }
+        () => assist.getShellExplosionLocation()
     );
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
@@ -32,12 +26,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
         },
         () => {
             const target = shipTarget.getSingle();
-            if (target) {
-                const fireTime = shipState.chainGun.shellSecondsToLive;
-                return XY.add(target.position, XY.scale(XY.difference(target.velocity, shipState.velocity), fireTime));
-            } else {
-                return undefined;
-            }
+            return target && assist.getTargetLocationAtShellExplosion(target);
         }
     );
     stage.addChild(deflectionCrosshairLayer.renderRoot);

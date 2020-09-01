@@ -1,6 +1,6 @@
 import { capToMagnitude } from './formulas';
-import { ShipState } from './ship';
-import { SpaceState, XY } from './space';
+import { ShipState } from '../ship';
+import { SpaceState, XY } from '../space';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
 export class PilotAssist {
