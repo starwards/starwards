@@ -6,7 +6,6 @@ import { getGlobalRoom, getShipRoom } from '../client';
 import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
-import { isNumber } from 'util';
 
 export enum OnOffStatus {
     OFF,
@@ -44,7 +43,7 @@ function pilotComponent(container: Container, p: Props) {
             }
             if (matchHeading === OnOffStatus.ON) {
                 const command = autoPilot.matchTargetDirection(delta);
-                if (isNumber(command)) {
+                if (typeof command === 'number') {
                     shipRoom.send('setTargetTurnSpeed', { value: capToRange(-90, 90, command) });
                 } else {
                     matchHeading = OnOffStatus.OFF;
