@@ -1,3 +1,4 @@
+import { type } from '@colyseus/schema';
 import { SpaceObjectBase } from './space-object-base';
 
 export class Spaceship extends SpaceObjectBase {
@@ -6,6 +7,9 @@ export class Spaceship extends SpaceObjectBase {
     }
 
     public readonly type = 'Spaceship';
+
+    @type('string')
+    public targetId: string | null = null;
 
     constructor() {
         super();

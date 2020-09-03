@@ -30,9 +30,6 @@ export class ShipState extends Spaceship {
     @type('number')
     energy = 1000;
 
-    @type('string')
-    public targetId: string | null = null;
-
     @type('int8')
     targeted = TargetedStatus.NONE;
 
