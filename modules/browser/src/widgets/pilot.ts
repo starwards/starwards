@@ -1,5 +1,5 @@
 import '@maulingmonkey/gamepad';
-import { PilotAssist, TargetedStatus, XY, capToRange } from '@starwards/model';
+import { TargetedStatus, XY, capToRange, getTarget, matchTargetSpeed, matchTargetDirection } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { getGlobalRoom, getShipRoom } from '../client';
@@ -24,16 +24,13 @@ function pilotComponent(container: Container, p: Props) {
             panel.destroy();
         });
 
-        const autoPilot = new PilotAssist(
-            () => spaceRoom.state,
-            () => shipRoom.state
-        );
         panel.addText('matchSpeed', () => OnOffStatus[matchSpeed]);
         panel.addText('matchHeading', () => OnOffStatus[matchHeading]);
 
         const loop = new Loop((delta: number) => {
+            const target = getTarget(shipRoom.state, spaceRoom.state);
             if (matchSpeed === OnOffStatus.ON) {
-                const command = autoPilot.matchTargetSpeed(delta);
+                const command = target && matchTargetSpeed(delta, shipRoom.state, target);
                 if (command) {
                     shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
                     shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });
@@ -42,7 +39,7 @@ function pilotComponent(container: Container, p: Props) {
                 }
             }
             if (matchHeading === OnOffStatus.ON) {
-                const command = autoPilot.matchTargetDirection(delta);
+                const command = target && matchTargetDirection(delta, shipRoom.state, target);
                 if (typeof command === 'number') {
                     shipRoom.send('setTargetTurnSpeed', { value: capToRange(-90, 90, command) });
                 } else {

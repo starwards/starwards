@@ -22,4 +22,24 @@ export class ChainGun extends Schema {
     get bulletSpeed(): number {
         return this.constants.bulletSpeed;
     }
+
+    get bulletDegreesDeviation(): number {
+        return this.constants.bulletDegreesDeviation;
+    }
+
+    get explosionSecondsToLive(): number {
+        return this.constants.explosionSecondsToLive;
+    }
+
+    get explosionExpansionSpeed(): number {
+        return this.constants.explosionExpansionSpeed;
+    }
+
+    get explosionDamageFactor(): number {
+        return this.constants.explosionDamageFactor;
+    }
+
+    get explosionBlastFactor(): number {
+        return this.constants.explosionBlastFactor;
+    }
 }

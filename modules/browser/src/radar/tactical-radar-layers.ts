@@ -1,13 +1,12 @@
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
-import { XY, ShipState, GunnerAssist } from '@starwards/model';
+import { XY, ShipState, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/model';
 import { LineLayer } from './line-layer';
 import { InteractiveLayer } from './interactive-layer';
 
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new PIXI.Container();
-    const assist = new GunnerAssist(() => shipState);
     const shellCrosshairLayer = new SpriteLayer(
         root,
         {
@@ -15,7 +14,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
             tint: 0xffaaaa,
             size: 32,
         },
-        () => assist.getShellExplosionLocation()
+        () => getShellExplosionLocation(shipState)
     );
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
@@ -26,7 +25,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
         },
         () => {
             const target = shipTarget.getSingle();
-            return target && assist.getTargetLocationAtShellExplosion(target);
+            return target && getTargetLocationAtShellExplosion(shipState, target);
         }
     );
     stage.addChild(deflectionCrosshairLayer.renderRoot);
