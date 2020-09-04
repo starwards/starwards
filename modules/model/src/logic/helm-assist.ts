@@ -11,6 +11,20 @@ const conf = {
     reactionFactor: 1, //  > 1 means over-reaction
 };
 
+export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, scale: number): ManeuveringCommand {
+    const posDiff = XY.rotate(XY.difference(targetPos, ship.position), -ship.angle);
+    const desiredSpeed = XY.scale(XY.normalize(posDiff), scale);
+    if (XY.lengthOf(desiredSpeed) < conf.noiseThreshold) {
+        return { strafe: 0, boost: 0 };
+    } else {
+        const desiredManeuvering = XY.scale(desiredSpeed, deltaSeconds * conf.reactionFactor);
+        return {
+            strafe: capToMagnitude(ship.strafe, conf.changeFactor, desiredManeuvering.y / ship.strafeEffectFactor),
+            boost: capToMagnitude(ship.boost, conf.changeFactor, desiredManeuvering.x / ship.boostEffectFactor),
+        };
+    }
+}
+
 export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetObj: SpaceObject): ManeuveringCommand {
     const speedDiff = XY.rotate(XY.difference(targetObj.velocity, ship.velocity), -ship.angle);
     if (XY.lengthOf(speedDiff) < conf.noiseThreshold) {

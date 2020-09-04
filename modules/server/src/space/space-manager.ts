@@ -94,6 +94,10 @@ export class SpaceManager {
         this.toInsert.push(object);
     }
 
+    public forceFlushEntities() {
+        this.handleToInsert();
+    }
+
     private handleToInsert() {
         if (this.toInsert.length) {
             this.gc();

@@ -5,5 +5,5 @@ export function getTarget(ship: Spaceship, space: SpaceState): SpaceObject | nul
 }
 
 export * from './formulas';
-export * from './pilot-assist';
+export * from './helm-assist';
 export * from './gunner-assist';

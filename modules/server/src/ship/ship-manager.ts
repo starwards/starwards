@@ -13,9 +13,11 @@ import {
 } from '@starwards/model';
 import { uniqueId } from '../id';
 import { SpaceManager } from '../space/space-manager';
+import { Bot } from './bot';
 
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
+    public bot: Bot | null = null;
 
     constructor(
         public spaceObject: Spaceship,
@@ -102,6 +104,9 @@ export class ShipManager {
         if (this.spaceObject.health <= 0) {
             this.onDestroy();
         } else {
+            if (this.bot) {
+                this.bot(this.spaceManager.state, this, deltaSeconds);
+            }
             this.validateTargetId();
             this.calcTargetedStatus();
             // sync relevant ship props
