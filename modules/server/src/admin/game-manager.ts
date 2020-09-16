@@ -36,9 +36,12 @@ export class GameManager {
             this.addShip(this.spaceManager, 'A');
             this.addShip(this.spaceManager, 'B');
             this.spaceManager.forceFlushEntities();
+            // const aManager = this.ships.get('A')!;
+            // aManager.setTarget('B');
+            // aManager.bot = terminator();
             const bManager = this.ships.get('B')!;
             bManager.setTarget('A');
-            bManager.bot = terminator;
+            bManager.bot = terminator();
             for (let i = 0; i < 1; i++) {
                 this.spaceManager.insert(newAsteroid());
             }

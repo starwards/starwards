@@ -4,6 +4,7 @@ export function getTarget(ship: Spaceship, space: SpaceState): SpaceObject | nul
     return (ship.targetId && space.get(ship.targetId)) || null;
 }
 
+export * from './xy';
 export * from './formulas';
 export * from './helm-assist';
 export * from './gunner-assist';

@@ -57,15 +57,15 @@ export class ShipManager {
     }
 
     public setStrafe(value: number) {
-        this.state.strafe = value;
+        this.state.strafe = capToRange(-5, 5, value);
     }
 
     public setBoost(value: number) {
-        this.state.boost = value;
+        this.state.boost = capToRange(-5, 5, value);
     }
 
-    public setTargetTurnSpeed(value: number) {
-        this.state.targetTurnSpeed = value;
+    public setRotation(value: number) {
+        this.state.rotation = capToRange(-1, 1, value);
     }
 
     public setAntiDrift(value: number) {
@@ -207,7 +207,7 @@ export class ShipManager {
             );
             shell.velocity = Vec2.sum(
                 this.spaceObject.velocity,
-                XY.rotate({ x: chaingun.constants.bulletSpeed, y: 0 }, shell.angle)
+                XY.rotate({ x: chaingun.bulletSpeed, y: 0 }, shell.angle)
             );
             const shellPosition = Vec2.sum(
                 this.spaceObject.position,
@@ -246,8 +246,8 @@ export class ShipManager {
             const diffLenfth = XY.lengthOf(driftVelocity);
             if (diffLenfth) {
                 const enginePower = capToRange(
-                    -this.state.constants.maneuveringCapacity * deltaSeconds,
-                    this.state.constants.maneuveringCapacity * deltaSeconds,
+                    -this.state.maneuveringCapacity * deltaSeconds,
+                    this.state.maneuveringCapacity * deltaSeconds,
                     diffLenfth * this.state.antiDrift
                 );
 
@@ -268,8 +268,8 @@ export class ShipManager {
         if (this.state.breaks && !XY.isZero(this.spaceObject.velocity)) {
             const velocityLength = XY.lengthOf(this.spaceObject.velocity);
             const enginePower = capToRange(
-                -this.state.constants.maneuveringCapacity * deltaSeconds,
-                this.state.constants.maneuveringCapacity * deltaSeconds,
+                -this.state.maneuveringCapacity * deltaSeconds,
+                this.state.maneuveringCapacity * deltaSeconds,
                 velocityLength * this.state.breaks
             );
 
@@ -288,8 +288,8 @@ export class ShipManager {
     private updateStrafe(deltaSeconds: number) {
         if (this.state.strafe) {
             const enginePower = capToRange(
-                -this.state.constants.maneuveringCapacity * deltaSeconds,
-                this.state.constants.maneuveringCapacity * deltaSeconds,
+                -this.state.maneuveringCapacity * deltaSeconds,
+                this.state.maneuveringCapacity * deltaSeconds,
                 this.state.strafe
             );
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
@@ -307,8 +307,8 @@ export class ShipManager {
     private updateBoost(deltaSeconds: number) {
         if (this.state.boost) {
             const enginePower = capToRange(
-                -this.state.constants.maneuveringCapacity * deltaSeconds,
-                this.state.constants.maneuveringCapacity * deltaSeconds,
+                -this.state.maneuveringCapacity * deltaSeconds,
+                this.state.maneuveringCapacity * deltaSeconds,
                 this.state.boost
             );
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
@@ -324,18 +324,10 @@ export class ShipManager {
     }
 
     private updateTurnSpeed(deltaSeconds: number) {
-        const turnSpeedDiff = this.state.targetTurnSpeed - this.spaceObject.turnSpeed;
-        if (turnSpeedDiff) {
-            const enginePower = capToRange(
-                -this.state.constants.maneuveringCapacity * deltaSeconds,
-                this.state.constants.maneuveringCapacity * deltaSeconds,
-                turnSpeedDiff
-            );
+        if (this.state.rotation) {
+            const enginePower = this.state.rotation * this.state.maneuveringCapacity * deltaSeconds;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
-                this.spaceManager.ChangeTurnSpeed(
-                    this.spaceObject.id,
-                    enginePower * this.state.constants.rotationEffectFactor
-                );
+                this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, enginePower * this.state.rotationEffectFactor);
             }
         }
     }

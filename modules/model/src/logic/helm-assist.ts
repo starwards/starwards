@@ -1,6 +1,7 @@
 import { ShipState } from '../ship';
-import { SpaceObject, XY } from '../space';
-import { capToMagnitude } from './formulas';
+import { SpaceObject } from '../space';
+import { capToMagnitude, capToRange, lerp, negSign, sign, toDegreesDelta, whereWillItStop } from './formulas';
+import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
 
@@ -10,6 +11,17 @@ const conf = {
     changeFactor: 2, // has to be > 1
     reactionFactor: 1, //  > 1 means over-reaction
 };
+
+export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number) {
+    const turnSpeedDiff = capToRange(-180, 180, targetTurnSpeed - ship.turnSpeed);
+    if (turnSpeedDiff) {
+        // use two lineras to calc a form of (turnSpeedDiff/180)^2
+        const sharpness = lerp([0, 180], [1, 6], Math.abs(turnSpeedDiff));
+        return capToRange(-1, 1, lerp([-180, 180], [-sharpness, sharpness], turnSpeedDiff));
+    } else {
+        return 0;
+    }
+}
 
 export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, scale: number): ManeuveringCommand {
     const posDiff = XY.rotate(XY.difference(targetPos, ship.position), -ship.angle);
@@ -38,15 +50,40 @@ export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetOb
     }
 }
 
-export function matchTargetDirection(_deltaSeconds: number, ship: ShipState, targetObj: SpaceObject): number {
-    const targetAngle = XY.angleOf(XY.difference(targetObj.position, ship.position)) % 360;
-    let angleDelta = ((360 + 180 + targetAngle - ship.angle) % 360) - 180;
+/**
+ * returns a desired rotation in range [-1, 1] depending on the target speed of the ship that is required in oprder to point to the target
+ */
+export function calcRotationForTargetDirection(ship: ShipState, targetPos: XY): number {
+    const targetAngle = XY.angleOf(XY.difference(targetPos, ship.position)) % 360;
+    const angleDelta = toDegreesDelta(targetAngle - ship.angle);
+    const maxTurnAcceleration = calcMaxTurnAcceleration(ship);
+    const turnSpeed = ship.turnSpeed;
     if (Math.abs(angleDelta) < conf.noiseThreshold) {
         return 0;
+    } else if (sign(angleDelta) !== sign(turnSpeed)) {
+        // use two lineras to calc a form of (turnSpeedDiff/180)^2
+        const sharpness = lerp([0, 180], [1, 50], Math.abs(angleDelta));
+        return capToRange(-1, 1, lerp([-180, 180], [-sharpness, sharpness], angleDelta));
+        // return negSign(turnSpeed);
     } else {
-        if (Math.abs(angleDelta) < conf.minRotation) {
-            angleDelta = angleDelta < 0 ? -conf.minRotation : conf.minRotation;
+        const stoppingPoint = toDegreesDelta(whereWillItStop(0, turnSpeed, maxTurnAcceleration * negSign(turnSpeed)));
+        const breakDistance = Math.abs(angleDelta) - Math.abs(stoppingPoint);
+        if (breakDistance <= 0) {
+            // overshoot, start breaking
+            return negSign(turnSpeed) * lerp([0, 5], [conf.noiseThreshold, 1], capToRange(0, 5, -breakDistance));
+        } else if (breakDistance < 5) {
+            // overshoot, start breaking
+            return sign(turnSpeed) * lerp([0, 45], [0, 1], capToRange(0, 45, breakDistance));
+        } else {
+            // const sharpness = lerp([0, 180], [1, 50], capToRange(0, 180, Math.abs(breakDistance)));
+            // return sign(angleDelta) * capToRange(0, 1, lerp([0, 180], [0, sharpness], Math.abs(angleDelta)));
+            // return sign(turnSpeed) * lerp([0, 5], [conf.noiseThreshold, 1], capToRange(0, 5, breakDistance));
+
+            return sign(turnSpeed);
         }
-        return (conf.reactionFactor * angleDelta) / ship.rotationEffectFactor;
     }
+}
+
+export function calcMaxTurnAcceleration(ship: ShipState) {
+    return ship.maneuveringCapacity * ship.rotationEffectFactor;
 }

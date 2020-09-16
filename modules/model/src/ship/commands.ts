@@ -1,5 +1,5 @@
 export interface ShipCommands {
-    setTargetTurnSpeed: {
+    setRotation: {
         value: number;
     };
     setImpulse: {

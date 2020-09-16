@@ -5,6 +5,10 @@ import { XY, ShipState, getShellExplosionLocation, getTargetLocationAtShellExplo
 import { LineLayer } from './line-layer';
 import { InteractiveLayer } from './interactive-layer';
 
+function globalToAim(ship: ShipState, pos: XY) {
+    return XY.difference(pos, XY.scale(ship.velocity, ship.chainGun.shellSecondsToLive));
+}
+
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new PIXI.Container();
     const shellCrosshairLayer = new SpriteLayer(
@@ -14,7 +18,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
             tint: 0xffaaaa,
             size: 32,
         },
-        () => getShellExplosionLocation(shipState)
+        () => globalToAim(shipState, getShellExplosionLocation(shipState))
     );
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
@@ -25,7 +29,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
         },
         () => {
             const target = shipTarget.getSingle();
-            return target && getTargetLocationAtShellExplosion(shipState, target);
+            return target && globalToAim(shipState, getTargetLocationAtShellExplosion(shipState, target));
         }
     );
     stage.addChild(deflectionCrosshairLayer.renderRoot);

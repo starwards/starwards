@@ -1,5 +1,35 @@
 import { ShipState } from '../ship';
-import { SpaceObject, XY } from '../space';
+import { SpaceObject } from '../space';
+import { addScale, equasionOfMotion } from './formulas';
+import { XY } from './xy';
+
+export function predictHitLocation(ship: ShipState, target: SpaceObject, targetAccel: XY) {
+    const maxIterations = 20;
+    const maxSeconds = 100;
+    const fireAngle = ship.angle + ship.chainGun.angle;
+    const fireVelocity = Math.max(
+        XY.lengthOf(XY.add(ship.velocity, XY.rotate({ x: ship.chainGun.bulletSpeed, y: 0 }, fireAngle))),
+        1
+    );
+    let time = 0;
+    let targetPos: XY = target.position;
+    for (let i = 0; i < maxIterations; i++) {
+        const distance = Math.max(XY.lengthOf(XY.difference(targetPos, ship.position)), 1);
+        if (!isFinite(distance) || !Number.isSafeInteger(Math.trunc(distance))) {
+            break;
+        }
+        time = distance / fireVelocity;
+        if (time > maxSeconds) {
+            break;
+        }
+        const newTargetPos = equasionOfMotion(target.position, target.velocity, targetAccel, time);
+        if (!XY.isFinite(newTargetPos)) {
+            break;
+        }
+        targetPos = newTargetPos;
+    }
+    return targetPos;
+}
 
 export function getKillZoneRadius(ship: ShipState): [number, number] {
     const shellExplosionDistance = ship.chainGun.shellSecondsToLive * ship.chainGun.bulletSpeed;
@@ -15,15 +45,20 @@ export function isTargetInKillZone(ship: ShipState, target: SpaceObject) {
     return aimingDistanceToTarget < shellDangerZoneRadius;
 }
 
-export function getShellSecondsToLive(ship: ShipState, targetPos: XY) {
+export function calcShellSecondsToLive(ship: ShipState, targetPos: XY) {
+    const fireAngle = ship.angle + ship.chainGun.angle;
+    const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: ship.chainGun.bulletSpeed, y: 0 }, fireAngle));
     const distance = XY.lengthOf(XY.difference(targetPos, ship.position));
-    return distance / ship.chainGun.constants.bulletSpeed;
+    return distance / XY.lengthOf(fireVelocity);
 }
 
+export function getShellAimVelocityCompensation(ship: ShipState): XY {
+    return XY.negate(XY.scale(ship.velocity, ship.chainGun.shellSecondsToLive));
+}
 export function getShellExplosionLocation(ship: ShipState): XY {
     const fireAngle = ship.angle + ship.chainGun.angle;
     const fireSource = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, fireAngle));
-    const fireVelocity = XY.rotate({ x: ship.chainGun.bulletSpeed, y: 0 }, fireAngle);
+    const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: ship.chainGun.bulletSpeed, y: 0 }, fireAngle));
     const fireTime = ship.chainGun.shellSecondsToLive;
     return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
 }
@@ -38,5 +73,5 @@ export function getShellDangerZoneRadius(ship: ShipState): number {
 
 export function getTargetLocationAtShellExplosion(ship: ShipState, target: SpaceObject) {
     const fireTime = ship.chainGun.shellSecondsToLive;
-    return XY.add(target.position, XY.scale(XY.difference(target.velocity, ship.velocity), fireTime));
+    return addScale(target.position, target.velocity, fireTime);
 }

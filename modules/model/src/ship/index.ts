@@ -9,23 +9,23 @@ export enum TargetedStatus {
     FIRED_UPON,
 }
 export class ShipState extends Spaceship {
-    @type({ map: 'number' })
+    @type({ map: 'float32' })
     constants!: MapSchema<number>;
 
     @type(ChainGun)
     chainGun!: ChainGun;
 
-    @type('number')
-    targetTurnSpeed = 0;
-    @type('number')
+    @type('float32')
+    rotation = 0;
+    @type('float32')
     impulse = 0;
-    @type('number')
+    @type('float32')
     boost = 0;
-    @type('number')
+    @type('float32')
     strafe = 0;
-    @type('number')
+    @type('float32')
     antiDrift = 0;
-    @type('number')
+    @type('float32')
     breaks = 0;
     @type('number')
     energy = 1000;
@@ -60,6 +60,9 @@ export class ShipState extends Spaceship {
     }
     get strafeEffectFactor() {
         return this.constants.strafeEffectFactor;
+    }
+    get maneuveringCapacity() {
+        return this.constants.maneuveringCapacity;
     }
 }
 

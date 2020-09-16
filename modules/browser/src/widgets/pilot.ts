@@ -1,5 +1,13 @@
 import '@maulingmonkey/gamepad';
-import { TargetedStatus, XY, capToRange, getTarget, matchTargetSpeed, matchTargetDirection } from '@starwards/model';
+import {
+    TargetedStatus,
+    XY,
+    capToRange,
+    getTarget,
+    matchTargetSpeed,
+    calcRotationForTargetDirection,
+    rotationFromTargetTurnSpeed,
+} from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { getGlobalRoom, getShipRoom } from '../client';
@@ -27,6 +35,8 @@ function pilotComponent(container: Container, p: Props) {
         panel.addText('matchSpeed', () => OnOffStatus[matchSpeed]);
         panel.addText('matchHeading', () => OnOffStatus[matchHeading]);
 
+        let targetTurnSpeed = 0;
+
         const loop = new Loop((delta: number) => {
             const target = getTarget(shipRoom.state, spaceRoom.state);
             if (matchSpeed === OnOffStatus.ON) {
@@ -39,14 +49,19 @@ function pilotComponent(container: Container, p: Props) {
                 }
             }
             if (matchHeading === OnOffStatus.ON) {
-                const command = target && matchTargetDirection(delta, shipRoom.state, target);
+                const command = target && calcRotationForTargetDirection(shipRoom.state, target.position);
                 if (typeof command === 'number') {
-                    shipRoom.send('setTargetTurnSpeed', { value: capToRange(-90, 90, command) });
+                    shipRoom.send('setRotation', { value: command });
                 } else {
                     matchHeading = OnOffStatus.OFF;
                 }
+            } else {
+                const command = rotationFromTargetTurnSpeed(shipRoom.state, targetTurnSpeed);
+                if (shipRoom.state.rotation !== command) {
+                    shipRoom.send('setRotation', { value: command });
+                }
             }
-        }, 1000 / 5);
+        }, 1000 / 10);
         loop.start();
         addEventListener(
             'mmk-gamepad-button-down',
@@ -58,7 +73,9 @@ function pilotComponent(container: Container, p: Props) {
                     viewModelChanges.emit('matchSpeed');
                 } else if (e.buttonIndex === 10 && e.gamepadIndex === 0) {
                     matchHeading = (matchHeading + 1) % 2;
-                    shipRoom.send('setTargetTurnSpeed', { value: 0 });
+                    shipRoom.send('setRotation', { value: 0 });
+                    targetTurnSpeed = 0;
+                    viewModelChanges.emit('targetTurnSpeed');
                     viewModelChanges.emit('matchHeading');
                 }
             }
@@ -67,10 +84,11 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
         panel.addProperty(
             'targetTurnSpeed',
-            () => shipRoom.state.targetTurnSpeed,
+            () => targetTurnSpeed,
             [-90, 90],
             (value) => {
-                if (matchHeading === OnOffStatus.OFF) shipRoom.send('setTargetTurnSpeed', { value });
+                targetTurnSpeed = value;
+                viewModelChanges.emit('targetTurnSpeed');
             },
             {
                 gamepadIndex: 0,
@@ -78,6 +96,7 @@ function pilotComponent(container: Container, p: Props) {
                 deadzone: [-0.01, 0.01],
             }
         );
+        panel.addProperty('rotation', () => shipRoom.state.rotation, [-1, 1]);
         panel.addProperty(
             'impulse',
             () => shipRoom.state.impulse,
@@ -141,7 +160,7 @@ function pilotComponent(container: Container, p: Props) {
                 inverted: true,
             }
         );
-        panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-120, 120]);
+        panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-180, 180]);
         panel.addProperty('angle', () => shipRoom.state.angle, [0, 360]);
         panel.addProperty('speed direction', () => XY.angleOf(shipRoom.state.velocity), [0, 360]);
         panel.addProperty('speed', () => XY.lengthOf(shipRoom.state.velocity), [0, 1000]);

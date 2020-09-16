@@ -1,4 +1,4 @@
-import { getShellSecondsToLive, getTarget } from '@starwards/model';
+import { calcShellSecondsToLive, getTarget } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { getGlobalRoom, getShipRoom } from '../client';
@@ -14,7 +14,7 @@ function gunComponent(container: Container, p: Props) {
             const target = getTarget(shipRoom.state, spaceRoom.state);
             if (target) {
                 shipRoom.send('setShellSecondsToLive', {
-                    value: getShellSecondsToLive(shipRoom.state, target.position),
+                    value: calcShellSecondsToLive(shipRoom.state, target.position),
                 });
             } else {
                 shipRoom.send('setShellSecondsToLive', { value: manualShellSecondsToLive });
