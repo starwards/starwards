@@ -1,7 +1,7 @@
 {
+    "deno.enable": false,
     "editor.formatOnSave": true,
     "files.eol": "\n",
-    "typescript.tsdk": "node_modules\\typescript\\lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
-    "deno.enable": false
+    "typescript.tsdk": "node_modules\\typescript\\lib"
 }
