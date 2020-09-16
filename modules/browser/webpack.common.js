@@ -39,6 +39,6 @@ module.exports = {
     ],
     resolve: {
         extensions: ['.ts', '.tsx', '.mjs', '.js', '.json'],
-        plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./src/tsconfig.json') })],
+        plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.json') })],
     },
 };

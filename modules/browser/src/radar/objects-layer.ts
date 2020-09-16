@@ -18,7 +18,7 @@ export class ObjectsLayer {
     private toReDraw = new Set<ObjectGraphics>();
     constructor(
         private parent: CameraView,
-        private room: GameRoom<SpaceState, any>,
+        private room: GameRoom<SpaceState, unknown>,
         private renderer: ObjectRenderer,
         private selectedItems: SelectionContainer
     ) {
@@ -84,7 +84,7 @@ export class ObjectsLayer {
 /**
  * internal class
  */
-// tslint:disable-next-line: max-classes-per-file
+// eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics {
     public stage = new PIXI.Container();
     private drawRoot = new PIXI.Container();
@@ -149,6 +149,7 @@ class ObjectGraphics {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     listen(events: EventEmitter, event: string, listener: (...args: any[]) => any) {
         if (!this.isDestroyed()) {
             events.on(event, listener);

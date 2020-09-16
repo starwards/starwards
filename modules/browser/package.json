@@ -8,7 +8,6 @@
         "prettify": "yarn prettier \"src/**/*.ts?(x)\" --write",
         "prebuild": "yarn clean",
         "build": "webpack --config webpack.prod.js",
-        "lint": "tslint -p src",
         "test": "echo \"No tests\"",
         "prepack": "yarn build"
     },

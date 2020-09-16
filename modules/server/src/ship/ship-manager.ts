@@ -157,7 +157,7 @@ export class ShipManager {
 
     trySpendEnergy(value: number): boolean {
         if (value < 0) {
-            // tslint:disable-next-line: no-console
+            // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
         }
         if (this.state.energy > value) {
@@ -188,10 +188,10 @@ export class ShipManager {
 
     private getChainGunExplosion() {
         const result = new Explosion();
-        result.secondsToLive = this.state.chainGun.constants.explosionSecondsToLive;
-        result.expansionSpeed = this.state.chainGun.constants.explosionExpansionSpeed;
-        result.damageFactor = this.state.chainGun.constants.explosionDamageFactor;
-        result.blastFactor = this.state.chainGun.constants.explosionBlastFactor;
+        result.secondsToLive = this.state.chainGun.explosionSecondsToLive;
+        result.expansionSpeed = this.state.chainGun.explosionExpansionSpeed;
+        result.damageFactor = this.state.chainGun.explosionDamageFactor;
+        result.blastFactor = this.state.chainGun.explosionBlastFactor;
         return result;
     }
 

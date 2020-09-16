@@ -34,7 +34,7 @@ async function makeShipComponent(container: Container, p: Props) {
     container.on('destroy', cleanup);
 }
 function shipConstantsComponent(container: Container, p: Props) {
-    makeShipComponent(container, p);
+    void makeShipComponent(container, p);
 }
 
 function addMapToPanel(
@@ -46,10 +46,10 @@ function addMapToPanel(
     viewModelChanges: EventEmitter
 ) {
     getConstants().onAdd = (_, name) => {
-        const val = getConstants()[name];
+        const val = getConstants()[name] as number;
         panel.addProperty(
             name,
-            () => getConstants()[name],
+            () => getConstants()[name] as number,
             [val / 2, val * 2],
             (value: number) => onChange(name, value)
         );
@@ -71,7 +71,7 @@ export function makeConstantsHeaders(container: Container, p: Props): Array<JQue
     const refresh = $('<i class="lm_controls tiny material-icons">refresh</i>');
     refresh.mousedown(() => {
         container.emit('destroy');
-        makeShipComponent(container, p);
+        void makeShipComponent(container, p);
     });
     return [refresh];
 }

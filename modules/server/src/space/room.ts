@@ -12,7 +12,7 @@ export class SpaceRoom extends Room<SpaceState> {
     }
 
     onDispose() {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.error(`disposing SpaceRoom ${this.roomId}`);
     }
 

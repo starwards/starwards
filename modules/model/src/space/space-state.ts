@@ -34,8 +34,10 @@ export class SpaceState extends Schema {
         }
     }
 
-    public get(id: string): SpaceObject | undefined {
-        return this.cannonShells[id] || this.asteroids[id] || this.spaceships[id] || this.explosions[id];
+    public get(id: string) {
+        return (this.cannonShells[id] || this.asteroids[id] || this.spaceships[id] || this.explosions[id]) as
+            | SpaceObject
+            | undefined;
     }
 
     public set(obj: SpaceObject) {
@@ -77,7 +79,7 @@ const mapSchemaClassProps = Object.getOwnPropertyNames(new MapSchema());
 
 export function* mapSchemaValues<T>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
     for (const id of Object.getOwnPropertyNames(map)) {
-        if (!mapSchemaClassProps.includes(id) && map[id] && map[id].destroyed === destroyed) {
+        if (!mapSchemaClassProps.includes(id) && map[id] && (map[id] as SpaceObject).destroyed === destroyed) {
             yield map[id];
         }
     }

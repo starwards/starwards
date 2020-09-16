@@ -28,8 +28,7 @@ const sizeFactorGrace = 0.005;
 function tacticalRadarComponent(container: Container, state: Props) {
     const camera = new Camera();
     camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
-
-    PIXI.Loader.shared.load(async () => {
+    async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
         const range = new RangeIndicators(root, 1000);
@@ -42,6 +41,10 @@ function tacticalRadarComponent(container: Container, state: Props) {
         const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, spaceRoom, state.subjectId);
+    }
+
+    PIXI.Loader.shared.load(() => {
+        void init();
     });
 }
 

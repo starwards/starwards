@@ -1,4 +1,4 @@
-import { SelectionContainer, SpaceState } from '@starwards/model';
+import { SpaceState } from '@starwards/model';
 import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
@@ -8,6 +8,7 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
+import { SelectionContainer } from '../radar/selection-container';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { trackTargetObject } from '../ship-logic';
 import { DashboardWidget } from './dashboard';
@@ -25,7 +26,7 @@ function targetRadarComponent(container: Container, state: Props) {
     const camera = new Camera();
     camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
 
-    PIXI.Loader.shared.load(async () => {
+    async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
         const range = new RangeIndicators(root, state.range / 5);
@@ -37,6 +38,10 @@ function targetRadarComponent(container: Container, state: Props) {
         const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, spaceRoom.state, shipTarget);
+    }
+
+    PIXI.Loader.shared.load(() => {
+        void init();
     });
 }
 

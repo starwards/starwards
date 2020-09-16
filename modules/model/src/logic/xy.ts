@@ -1,6 +1,6 @@
 import { limitPercision } from './formulas';
 
-// tslint:disable-next-line:no-namespace
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
     export const one = Object.freeze({ x: 1, y: 0 });
     export const zero = Object.freeze({ x: 0, y: 0 });

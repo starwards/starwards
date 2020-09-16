@@ -1,5 +1,12 @@
-// tslint:disable: no-implicit-dependencies
-import { Asteroid, SpaceObject, SpaceObjectBase, Spaceship, SpaceState, Vec2 } from '@starwards/model';
+import {
+    Asteroid,
+    compareSpaceObjects,
+    SpaceObject,
+    SpaceObjectBase,
+    Spaceship,
+    SpaceState,
+    Vec2,
+} from '@starwards/model';
 import { expect } from 'chai';
 import 'mocha';
 import { nanoid } from 'nanoid';
@@ -25,7 +32,7 @@ describe('model', () => {
         it('iterator has the same elements', () => {
             const uut = new SpaceState(false);
             map.forEach((o) => uut.set(o));
-            expect([...uut].sort(SpaceObjectBase.compare)).to.eql(map.sort(SpaceObjectBase.compare));
+            expect([...uut].sort(compareSpaceObjects)).to.eql(map.sort(compareSpaceObjects));
         });
     });
 });

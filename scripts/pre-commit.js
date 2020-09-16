@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 var fs = require('fs');
 var path = require('path');
 var rootPath = path.resolve(__dirname, '..');
@@ -60,78 +61,78 @@ try {
             )
         );
         fs.writeFileSync(path.join(rootPath, '.vscode', 'launch.json'), launchJson(moduleNames));
-
-        function launchJson(moduleNames) {
-            return JSON.stringify(
-                {
-                    version: '0.2.0',
-                    configurations: moduleNames
-                        .map((moduleName) => ({
-                            type: 'node',
-                            request: 'launch',
-                            name: moduleName + ' Mocha Tests',
-                            program: '${workspaceFolder}/node_modules/mocha/bin/_mocha',
-                            cwd: '${workspaceFolder}/modules/' + moduleName,
-                            args: [
-                                '-r',
-                                '@ts-tools/node/r',
-                                '--timeout',
-                                '999999',
-                                '--colors',
-                                '${workspaceFolder}/modules/' + moduleName + '/test/**/**.spec.ts',
-                            ],
-                            internalConsoleOptions: 'openOnSessionStart',
-                        }))
-                        .concat([
-                            {
-                                type: 'node',
-                                request: 'launch',
-                                name: 'Mocha Current',
-                                program: '${workspaceFolder}/node_modules/mocha/bin/_mocha',
-                                args: ['-r', '@ts-tools/node/r', '--timeout', '999999', '--colors', '${file}'],
-                                internalConsoleOptions: 'openOnSessionStart',
-                            },
-                            {
-                                name: 'run server',
-                                type: 'node',
-                                request: 'launch',
-                                preLaunchTask: 'build:model',
-                                cwd: '${workspaceFolder}',
-                                args: ['-r', '@ts-tools/node/r', '${workspaceFolder}/modules/server/src/dev.ts'],
-                                internalConsoleOptions: 'openOnSessionStart',
-                            },
-                            {
-                                // from https://github.com/angular/angular-cli/issues/2453#issuecomment-269055938
-                                name: 'debug chrome',
-                                type: 'chrome',
-                                request: 'launch',
-                                url: 'http://localhost:8080/',
-                                sourceMaps: true,
-                                webRoot: '${workspaceFolder}',
-                                sourceMapPathOverrides: {
-                                    'webpack:///./*': '${webRoot}/*',
-                                },
-                            },
-                            {
-                                // from https://github.com/angular/angular-cli/issues/2453#issuecomment-269055938
-                                name: 'attach to chrome',
-                                type: 'chrome',
-                                request: 'attach',
-                                url: 'http://localhost:8080/gm.html',
-                                port: 9222,
-                                sourceMaps: true,
-                                webRoot: '${workspaceFolder}',
-                                sourceMapPathOverrides: {
-                                    'webpack:///./*': '${webRoot}/*',
-                                },
-                            },
-                        ]),
-                },
-                null,
-                2
-            );
-        }
     }
 } catch (e) {
     console.error(e);
+}
+
+function launchJson(moduleNames) {
+    return JSON.stringify(
+        {
+            version: '0.2.0',
+            configurations: moduleNames
+                .map((moduleName) => ({
+                    type: 'node',
+                    request: 'launch',
+                    name: moduleName + ' Mocha Tests',
+                    program: '${workspaceFolder}/node_modules/mocha/bin/_mocha',
+                    cwd: '${workspaceFolder}/modules/' + moduleName,
+                    args: [
+                        '-r',
+                        '@ts-tools/node/r',
+                        '--timeout',
+                        '999999',
+                        '--colors',
+                        '${workspaceFolder}/modules/' + moduleName + '/test/**/**.spec.ts',
+                    ],
+                    internalConsoleOptions: 'openOnSessionStart',
+                }))
+                .concat([
+                    {
+                        type: 'node',
+                        request: 'launch',
+                        name: 'Mocha Current',
+                        program: '${workspaceFolder}/node_modules/mocha/bin/_mocha',
+                        args: ['-r', '@ts-tools/node/r', '--timeout', '999999', '--colors', '${file}'],
+                        internalConsoleOptions: 'openOnSessionStart',
+                    },
+                    {
+                        name: 'run server',
+                        type: 'node',
+                        request: 'launch',
+                        preLaunchTask: 'build:model',
+                        cwd: '${workspaceFolder}',
+                        args: ['-r', '@ts-tools/node/r', '${workspaceFolder}/modules/server/src/dev.ts'],
+                        internalConsoleOptions: 'openOnSessionStart',
+                    },
+                    {
+                        // from https://github.com/angular/angular-cli/issues/2453#issuecomment-269055938
+                        name: 'debug chrome',
+                        type: 'chrome',
+                        request: 'launch',
+                        url: 'http://localhost:8080/',
+                        sourceMaps: true,
+                        webRoot: '${workspaceFolder}',
+                        sourceMapPathOverrides: {
+                            'webpack:///./*': '${webRoot}/*',
+                        },
+                    },
+                    {
+                        // from https://github.com/angular/angular-cli/issues/2453#issuecomment-269055938
+                        name: 'attach to chrome',
+                        type: 'chrome',
+                        request: 'attach',
+                        url: 'http://localhost:8080/gm.html',
+                        port: 9222,
+                        sourceMaps: true,
+                        webRoot: '${workspaceFolder}',
+                        sourceMapPathOverrides: {
+                            'webpack:///./*': '${webRoot}/*',
+                        },
+                    },
+                ]),
+        },
+        null,
+        2
+    );
 }

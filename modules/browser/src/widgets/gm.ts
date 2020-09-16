@@ -22,7 +22,7 @@ function gmComponent(container: Container, state: { zoom: number }) {
         e.preventDefault();
         camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
     });
-    PIXI.Loader.shared.load(async () => {
+    async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
@@ -34,6 +34,10 @@ function gmComponent(container: Container, state: { zoom: number }) {
         root.addLayer(blipLayer.renderRoot);
         root.addLayer(selection.renderRoot);
         root.addLayer(fragCounter);
+    }
+
+    PIXI.Loader.shared.load(() => {
+        void init();
     });
 }
 

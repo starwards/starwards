@@ -6,7 +6,7 @@ export class TextsPool {
     public [Symbol.iterator] = () => new TextsPoolIterator(this.parent, this.instances);
 }
 
-// tslint:disable-next-line:max-classes-per-file
+// eslint-disable-next-line:max-classes-per-file
 class TextsPoolIterator {
     private nextElement = 0;
 

@@ -1,8 +1,7 @@
-// tslint:disable no-console
+/* eslint-disable no-console */
 /*
  * embed webpack-dev-server
  */
-
 import { Server, matchMaker } from 'colyseus';
 import * as http from 'http';
 import express = require('express');
@@ -40,7 +39,6 @@ export async function server(port: number, staticDir: string, handlers?: NextHan
     app.use('/colyseus', auth, monitor());
 
     await gameServer.listen(port);
-    // tslint:disable-next-line:no-console
     console.log(`Listening on port ${port}`);
 
     const gameManager = new GameManager();

@@ -24,7 +24,7 @@ export class FragCounter extends PIXI.Container {
                 this._fpsTextField.text =
                     'Deaths:\n' +
                     Object.keys(state.points)
-                        .map((id) => `${id} : ${state.points[id]}`)
+                        .map((id) => `${id} : ${state.points[id] as number}`)
                         .join('\n');
             } else {
                 this._fpsTextField.text = '';

@@ -29,22 +29,22 @@ export type GamepadButton = {
     inverted?: boolean;
 };
 
-function isGamepadAxis(v: any): v is GamepadAxis {
-    return v && typeof v.axisIndex === 'number';
+function isGamepadAxis(v: unknown): v is GamepadAxis {
+    return v && typeof (v as GamepadAxis).axisIndex === 'number';
 }
-function isGamepadButton(v: any): v is GamepadButton {
-    return v && typeof v.buttonIndex === 'number';
+function isGamepadButton(v: unknown): v is GamepadButton {
+    return v && typeof (v as GamepadButton).buttonIndex === 'number';
 }
 
-type AxisListener = { axis: GamepadAxis; range: [number, number]; onChange: (v: number) => any };
-type ButtonListener = { button: GamepadButton; range: [number, number]; onChange: (v: number) => any };
+type AxisListener = { axis: GamepadAxis; range: [number, number]; onChange: (v: number) => unknown };
+type ButtonListener = { button: GamepadButton; range: [number, number]; onChange: (v: number) => unknown };
 
 export interface Panel {
     addProperty(
         name: string,
         getValue: () => number,
         range: [number, number],
-        onChange?: (v: number) => any,
+        onChange?: (v: number) => unknown,
         gamepad?: GamepadAxis | GamepadButton
     ): this;
     addText(name: string, getValue: () => string): this;
@@ -103,7 +103,7 @@ export class PropertyPanel implements Panel {
         name: string,
         getValue: () => number,
         range: [number, number],
-        onChange?: (v: number) => any,
+        onChange?: (v: number) => unknown,
         gamepad?: GamepadAxis | GamepadButton
     ) {
         viewModel[name] = getValue();
@@ -144,7 +144,7 @@ export class PropertyPanel implements Panel {
         name: string,
         getValue: () => number,
         range: [number, number],
-        onChange?: (v: number) => any,
+        onChange?: (v: number) => unknown,
         gamepad?: GamepadAxis | GamepadButton
     ) {
         this.contextAddProperty(this.rootGui, this.rootViewModel, name, getValue, range, onChange, gamepad);
@@ -165,7 +165,7 @@ export class PropertyPanel implements Panel {
                 name: string,
                 getValue: () => number,
                 range: [number, number],
-                onChange?: (v: number) => any,
+                onChange?: (v: number) => unknown,
                 gamepad?: GamepadAxis | GamepadButton
             ) => {
                 this.contextAddProperty(guiFolder, folderViewModel, name, getValue, range, onChange, gamepad);

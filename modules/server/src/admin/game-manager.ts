@@ -39,9 +39,11 @@ export class GameManager {
             // const aManager = this.ships.get('A')!;
             // aManager.setTarget('B');
             // aManager.bot = terminator();
-            const bManager = this.ships.get('B')!;
-            bManager.setTarget('A');
-            bManager.bot = terminator();
+            const bManager = this.ships.get('B');
+            if (bManager) {
+                bManager.setTarget('A');
+                bManager.bot = terminator();
+            }
             for (let i = 0; i < 1; i++) {
                 this.spaceManager.insert(newAsteroid());
             }
@@ -57,7 +59,7 @@ export class GameManager {
             resetShip(ship);
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);
-        matchMaker.createRoom('ship', { manager: shipManager });
+        void matchMaker.createRoom('ship', { manager: shipManager });
         spaceManager.insert(ship);
     }
 }

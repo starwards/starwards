@@ -66,7 +66,7 @@ export class GridLayer {
                                 ? horizontal.magnitude.color
                                 : vertical.magnitude.color;
                         text.text = getSectorName(horizontal.world, vertical.world);
-                        text.style.fill = gridlineColor;
+                        (text.style as PIXI.TextStyle).fill = gridlineColor;
                         text.x = vertical.screen;
                         text.y = horizontal.screen;
                     }

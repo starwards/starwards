@@ -8,7 +8,7 @@ export class ChainGun extends Schema {
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
     @type('float32')
-    angle: number = 0;
+    angle = 0;
 
     @type('boolean')
     isFiring = false;
@@ -20,26 +20,26 @@ export class ChainGun extends Schema {
     shellSecondsToLive = 10;
 
     get bulletSpeed(): number {
-        return this.constants.bulletSpeed;
+        return this.constants.bulletSpeed as number;
     }
 
     get bulletDegreesDeviation(): number {
-        return this.constants.bulletDegreesDeviation;
+        return this.constants.bulletDegreesDeviation as number;
     }
 
     get explosionSecondsToLive(): number {
-        return this.constants.explosionSecondsToLive;
+        return this.constants.explosionSecondsToLive as number;
     }
 
     get explosionExpansionSpeed(): number {
-        return this.constants.explosionExpansionSpeed;
+        return this.constants.explosionExpansionSpeed as number;
     }
 
     get explosionDamageFactor(): number {
-        return this.constants.explosionDamageFactor;
+        return this.constants.explosionDamageFactor as number;
     }
 
     get explosionBlastFactor(): number {
-        return this.constants.explosionBlastFactor;
+        return this.constants.explosionBlastFactor as number;
     }
 }

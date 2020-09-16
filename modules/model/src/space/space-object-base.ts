@@ -1,23 +1,21 @@
 import { Schema, type } from '@colyseus/schema';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
-
+export function compareSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
+    return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
+}
 export abstract class SpaceObjectBase extends Schema {
-    public static compare(a: SpaceObjectBase, b: SpaceObjectBase): number {
-        return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
-    }
-
     @type('string')
     public abstract readonly type: keyof SpaceObjects;
     @type('boolean')
-    public destroyed: boolean = false;
+    public destroyed = false;
 
     @type('string')
-    public id: string = '';
+    public id = '';
     @type(Vec2)
     public position: Vec2 = new Vec2(0, 0);
     @type('float32')
-    public radius: number = 0;
+    public radius = 0;
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 
@@ -25,16 +23,16 @@ export abstract class SpaceObjectBase extends Schema {
      *The direction of the object. (in degrees, 0 is right, 90 is up)
      */
     @type('float32')
-    public angle: number = 0;
+    public angle = 0;
 
     /*!
      * [config] Speed of rotation, change of angle in deg/second
      */
     @type('float32')
-    public turnSpeed: number = 0;
+    public turnSpeed = 0;
 
     @type('uint16')
-    public health: number = 0;
+    public health = 0;
 
     init(id: string, position: Vec2): this {
         this.id = id;

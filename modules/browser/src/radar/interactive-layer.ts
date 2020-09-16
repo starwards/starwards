@@ -39,10 +39,10 @@ export class InteractiveLayer {
             this.drawSelection();
         });
         // there are issues with click events from multiple mouse buttons: https://github.com/pixijs/pixi.js/issues/5384
-        this.parent.renderer.plugins.interaction.on('mousedown', this.onPointerDown);
-        this.parent.renderer.plugins.interaction.on('pointerdown', this.onPointerDown);
-        this.parent.renderer.plugins.interaction.on('pointermove', this.onPointermove);
-        this.parent.renderer.plugins.interaction.on('pointerup', this.onPointerup);
+        this.parent.renderer.plugins.interaction.on('mousedown', this.onPointerDown); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.parent.renderer.plugins.interaction.on('pointerdown', this.onPointerDown); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.parent.renderer.plugins.interaction.on('pointermove', this.onPointermove); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.parent.renderer.plugins.interaction.on('pointerup', this.onPointerup); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     }
 
     get renderRoot(): PIXI.DisplayObject {

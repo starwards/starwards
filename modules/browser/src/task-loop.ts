@@ -9,7 +9,7 @@ export class TaskLoop {
                     this.handle = setTimeout(this.runTask, this.pause);
                 }
             },
-            // tslint:disable-next-line:no-console
+            // eslint-disable-next-line no-console
             (e) => console.error(`Error running task`, e)
         );
     };

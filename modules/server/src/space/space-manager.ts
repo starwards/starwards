@@ -168,7 +168,7 @@ export class SpaceManager {
             body.y = object.position.y;
             body.radius = object.radius;
         } else {
-            // tslint:disable-next-line:no-console
+            // eslint-disable-next-line no-console
             console.error(`object leak! ${object.id} has no collision body`);
         }
     }
@@ -184,15 +184,15 @@ export class SpaceManager {
             if (body) {
                 // Get any potential collisions
                 for (const potential of body.potentials()) {
-                    const otherObjext = this.collisionToState.get(potential)!;
-                    if (!otherObjext.destroyed && body.collides(potential, result)) {
+                    const otherObjext = this.collisionToState.get(potential);
+                    if (otherObjext && !otherObjext.destroyed && body.collides(potential, result)) {
                         this.resolveCollision(object, otherObjext, result, deltaSeconds);
                         toUpdate.add(object);
                         toUpdate.add(otherObjext);
                     }
                 }
             } else {
-                // tslint:disable-next-line:no-console
+                // eslint-disable-next-line no-console
                 console.error(`object leak! ${object.id} has no collision body`);
             }
         }

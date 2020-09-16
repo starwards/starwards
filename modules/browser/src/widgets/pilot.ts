@@ -21,7 +21,7 @@ export enum OnOffStatus {
 }
 
 function pilotComponent(container: Container, p: Props) {
-    (async () => {
+    void (async () => {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
         const viewModelChanges = new EventEmitter();
         let matchSpeed = OnOffStatus.OFF;

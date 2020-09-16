@@ -7,7 +7,7 @@ import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
 
 function gunComponent(container: Container, p: Props) {
-    (async () => {
+    void (async () => {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
         let manualShellSecondsToLive = shipRoom.state.chainGun.shellSecondsToLive;
         const loop = new Loop(() => {

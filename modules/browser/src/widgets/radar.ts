@@ -26,7 +26,7 @@ function radarComponent(container: Container, state: Props) {
         e.preventDefault();
         camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
     });
-    PIXI.Loader.shared.load(async () => {
+    async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
@@ -34,6 +34,9 @@ function radarComponent(container: Container, state: Props) {
         const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room.state));
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, room, state.subjectId);
+    }
+    PIXI.Loader.shared.load(() => {
+        void init();
     });
 }
 

@@ -198,12 +198,12 @@ export class Vec2 extends Schema implements XY {
     }
 
     @type('float32')
-    public x: number = 0;
+    public x = 0;
 
     @type('float32')
-    public y: number = 0;
+    public y = 0;
 
-    constructor(x: number = 0, y: number = 0) {
+    constructor(x = 0, y = 0) {
         super();
         this.x = x;
         this.y = y;
