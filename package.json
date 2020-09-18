@@ -5,17 +5,23 @@
     ],
     "scripts": {
         "clean": "lerna run clean --stream --parallel",
-        "pre-commit": "lerna run pre-commit --stream --parallel",
-        "prettify": "lerna run prettify --stream --parallel",
+        "pretty-quick": "pretty-quick --staged --pattern \"./modules/*/src/**/*.{ts,tsx,json}\"",
+        "prettify": "prettier \"./modules/*/src/**/*.{ts,tsx,json}\" --write",
         "build": "lerna run build --stream --parallel",
         "lint": "eslint .",
         "test": "lerna run test --stream --parallel",
         "start": "yarn --cwd ./dist start",
         "pkg": "node scripts/pkg.js"
     },
+    "lint-staged": {
+        "./modules/*/src/**/*.{ts,tsx,json}": [
+            "eslint . --fix",
+            "git add"
+        ]
+    },
     "husky": {
         "hooks": {
-            "pre-commit": "node scripts/pre-commit.js && yarn pre-commit"
+            "pre-commit": "node scripts/pre-commit.js && yarn pretty-quick && lint-staged"
         }
     },
     "devDependencies": {
@@ -50,6 +56,7 @@
         "html-webpack-plugin": "^4.2.0",
         "husky": "^4.2.5",
         "lerna": "^3.22.1",
+        "lint-staged": "^10.4.0",
         "mocha": "^8.1.1",
         "ncp": "^2.0.0",
         "nodemon": "^2.0.4",

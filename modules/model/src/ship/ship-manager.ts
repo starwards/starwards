@@ -13,7 +13,7 @@ import {
 } from '@starwards/model';
 import { uniqueId } from '../id';
 import { SpaceManager } from '../space/space-manager';
-import { Bot } from './bot';
+import { Bot } from '../../../server/src/ship/bot';
 
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room

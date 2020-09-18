@@ -1,6 +1,5 @@
-import { ShipCommands, ShipState } from '@starwards/model';
+import { ShipCommands, ShipManager, ShipState } from '@starwards/model';
 import { Client, Room } from 'colyseus';
-import { ShipManager } from './ship-manager';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -12,11 +11,6 @@ export class ShipRoom extends Room<ShipState> {
         if (!consented) {
             await this.allowReconnection(client, 30);
         }
-    }
-
-    onDispose() {
-        // eslint-disable-next-line no-console
-        console.error(`disposing ShipRoom ${this.roomId}`);
     }
 
     public onCreate({ manager }: { manager: ShipManager }) {

@@ -4,8 +4,6 @@
     "main": "dist/index.js",
     "scripts": {
         "clean": "rimraf ./dist",
-        "pre-commit": "pretty-quick --staged --pattern \"src/**/*.ts?(x)\"",
-        "prettify": "yarn prettier \"src/**/*.ts?(x)\" --write",
         "prebuild": "yarn clean",
         "build": "webpack --config webpack.prod.js",
         "test": "echo \"No tests\"",

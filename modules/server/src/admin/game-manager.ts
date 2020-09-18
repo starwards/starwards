@@ -2,8 +2,8 @@ import { MapSchema } from '@colyseus/schema';
 import { AdminState } from '@starwards/model';
 import { matchMaker } from 'colyseus';
 import { terminator } from '../ship/bot';
-import { ShipManager } from '../ship/ship-manager';
-import { SpaceManager } from '../space/space-manager';
+import { ShipManager } from '../../../model/src/ship/ship-manager';
+import { SpaceManager } from '../../../model/src/space/space-manager';
 import { newAsteroid, newShip, resetShip } from './map';
 
 export class GameManager {

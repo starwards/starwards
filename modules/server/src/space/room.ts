@@ -1,19 +1,12 @@
-import { SpaceCommands, SpaceState } from '@starwards/model';
+import { SpaceCommands, SpaceState, SpaceManager } from '@starwards/model';
 import { Client, Room } from 'colyseus';
-import { SpaceManager } from './space-manager';
 
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';
 
-    // For this example
     constructor() {
         super();
         this.autoDispose = false;
-    }
-
-    onDispose() {
-        // eslint-disable-next-line no-console
-        console.error(`disposing SpaceRoom ${this.roomId}`);
     }
 
     public async onLeave(client: Client, consented: boolean) {

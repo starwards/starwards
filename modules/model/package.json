@@ -8,8 +8,6 @@
     ],
     "scripts": {
         "clean": "rimraf ./cjs",
-        "pre-commit": "pretty-quick --staged --pattern \"src/**/*.ts\"",
-        "prettify": "yarn prettier \"src/**/*.ts\" --write",
         "prebuild": "yarn clean",
         "build": "ts-build ./src --cjs",
         "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors",

@@ -17,7 +17,7 @@ The project is a monorepo, based on [yarn workspaces](https://classic.yarnpkg.co
 Utility scripts are stored in the `scripts` folder:
 
 -   `pkg.js` packages and compiles the game server into a single, native executable. used by `yarn pkg` command.
--   `pre-commit.js` rens before each commit, notmalizes text formatting and re-generates some boilerplate configurations. runs in pre-commit hook.
+-   `pre-commit.js` runs before each commit, notmalizes text formatting and re-generates some boilerplate configurations. runs in pre-commit hook.
 
 ### IDE
 

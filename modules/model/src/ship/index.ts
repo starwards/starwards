@@ -66,5 +66,6 @@ export class ShipState extends Spaceship {
     }
 }
 
+export * from './ship-manager';
 export * from './commands';
 export * from './chain-gun';
