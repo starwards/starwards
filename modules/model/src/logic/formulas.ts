@@ -1,5 +1,6 @@
 import { XY } from './xy';
 
+export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 /**
  * translate drgrees to value between [-180, 180]
  */
@@ -8,7 +9,7 @@ export function toDegreesDelta(degrees: number) {
     if (isInRange(-180, 180, deg)) {
         return deg;
     } else {
-        return (deg + negSign(deg) * 360) % 360;
+        return 180 - (deg % 360);
     }
 }
 
@@ -47,36 +48,26 @@ export function addScale(orig: XY, deriv: XY, time: number) {
 }
 
 // x(t)=x0+v0t+(at^2)/2
-export function equasionOfMotion(pos: XY, vel: XY, acc: XY, seconds: number) {
-    return addScale(addScale(pos, vel, seconds), acc, 0.5 * seconds * seconds);
-}
-
-// x(t)=x0+v0t+(at^2)/2
-export function scalarEquasionOfMotion(x0: number, v0: number, a: number, t: number) {
+export function equasionOfMotion(x0: number, v0: number, a: number, t: number) {
     return x0 + v0 * t + (a / 2) * t * t;
 }
 
-export function whereWillItStop(x0: number, v0: number, a: number) {
+export function whenWillItStop(v0: number, a: number) {
     if (v0 === 0) {
-        return x0;
-    } else if (sign(v0) === sign(a)) {
+        return 0;
+    } else if (a === 0 || sign(v0) === sign(a)) {
         return Infinity;
     } else {
-        return scalarEquasionOfMotion(0, v0, a, Math.abs(v0 / a));
+        return Math.abs(v0 / a);
     }
+}
+
+export function whereWillItStop(x0: number, v0: number, a: number) {
+    return equasionOfMotion(x0, v0, a, whenWillItStop(v0, a));
 }
 
 export function limitPercision(num: number) {
     return Math.trunc(num * 1e3) / 1e3;
-    // if (num > 1e5 || num < -1e5) {
-    //     return Math.trunc(num);
-    // } else {
-    //     // const f32 = Math.fround(num);
-    //     // if (isFinite(f32)) {
-    //     //     return f32;
-    //     // }
-    //     return Math.fround(Math.trunc(num * 1e3) / 1e3);
-    // }
 }
 
 export type Sign = 1 | -1 | 0;

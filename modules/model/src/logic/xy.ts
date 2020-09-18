@@ -1,4 +1,4 @@
-import { limitPercision } from './formulas';
+import { limitPercision, equasionOfMotion as eom } from './formulas';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
@@ -15,6 +15,12 @@ export namespace XY {
         return {
             x: limitPercision(vector.x + vector2.x),
             y: limitPercision(vector.y + vector2.y),
+        };
+    }
+    export function equasionOfMotion(pos: XY, vel: XY, acc: XY, t: number) {
+        return {
+            x: limitPercision(eom(pos.x, vel.x, acc.x, t)),
+            y: limitPercision(eom(pos.y, vel.y, acc.y, t)),
         };
     }
     export function difference(vector: XY, vector2: XY) {

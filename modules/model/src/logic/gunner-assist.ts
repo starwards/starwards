@@ -1,6 +1,6 @@
 import { ShipState } from '../ship';
 import { SpaceObject } from '../space';
-import { addScale, equasionOfMotion } from './formulas';
+import { addScale } from './formulas';
 import { XY } from './xy';
 
 export function predictHitLocation(ship: ShipState, target: SpaceObject, targetAccel: XY) {
@@ -22,7 +22,7 @@ export function predictHitLocation(ship: ShipState, target: SpaceObject, targetA
         if (time > maxSeconds) {
             break;
         }
-        const newTargetPos = equasionOfMotion(target.position, target.velocity, targetAccel, time);
+        const newTargetPos = XY.equasionOfMotion(target.position, target.velocity, targetAccel, time);
         if (!XY.isFinite(newTargetPos)) {
             break;
         }
