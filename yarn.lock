@@ -4488,6 +4488,13 @@ extsprintf@^1.2.0:
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
   integrity sha1-4mifjzVvrWLMplo6kcXfX5VRaS8=
 
+fast-check@^2.3.0:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/fast-check/-/fast-check-2.3.0.tgz#5292727f5971f44155c07a0e7c3930174c625eda"
+  integrity sha512-VnU5lzab1vlXj3tUVe4bqWabZhUNyE/DJ+iilpQWW1GLnrp7OZBHccCz7NzZaNv7cEdrp4YgXoguKQjSVREXng==
+  dependencies:
+    pure-rand "^3.0.0"
+
 fast-deep-equal@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz#7b05218ddf9667bf7f370bf7fdb2cb15fdd0aa49"
@@ -8366,6 +8373,11 @@ pupa@^2.0.1:
   integrity sha512-hEJH0s8PXLY/cdXh66tNEQGndDrIKNqNC5xmrysZy3i5C3oEoLna7YAOad+7u125+zH1HNXUmGEkrhb3c2VriA==
   dependencies:
     escape-goat "^2.0.0"
+
+pure-rand@^3.0.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/pure-rand/-/pure-rand-3.1.0.tgz#646b812635cbac86105c46b0b03aa5dac1c759b3"
+  integrity sha512-xkCSMNjEnLG/A8iTH9M5ayXN4SCWRP+ih3rxi09Q7Fu0b9jAP6V9H59pOtcB37IsVt3eHxf1FMy9n7YrqdDdSA==
 
 q@^1.5.1:
   version "1.5.1"
