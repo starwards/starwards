@@ -14,9 +14,8 @@
         "pkg": "node scripts/pkg.js"
     },
     "lint-staged": {
-        "./modules/*/src/**/*.{ts,tsx,json}": [
-            "eslint . --fix",
-            "git add"
+        "./modules/*/{src,test}/**/*.{ts,tsx,json}": [
+            "eslint . --fix"
         ]
     },
     "husky": {
