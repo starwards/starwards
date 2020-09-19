@@ -1,11 +1,11 @@
 import { expect } from 'chai';
 import 'mocha';
-import { lerp, negSign, equasionOfMotion, toDegreesDelta, sign, whenWillItStop } from '../src';
+import { lerp, negSign, equasionOfMotion, toDegreesDelta, sign, whenWillItStop, isInRange } from '../src';
 import fc from 'fast-check';
 
 describe('model', () => {
     describe('formulas', () => {
-        const safeFloat = () => fc.float(-Math.pow(2, 20), Math.pow(2, 20));
+        const safeFloat = () => fc.float(-Math.pow(2, 30), Math.pow(2, 30));
         const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));
         const orderedTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => t[0] < t[1]);
         const orderedTuple3 = () =>
@@ -78,13 +78,18 @@ describe('model', () => {
         });
         describe('whenWillItStop', () => {
             it('detects stop correctly', () => {
+                const ITERATIONS = 10000;
                 fc.assert(
                     fc.property(
-                        safeFloat(),
                         differentSignTuple2().filter((t) => t[0] !== 0 && t[1] !== 0),
-                        (x0: number, [v0, a]: [number, number]) => {
-                            const t = whenWillItStop(v0, a);
-                            expect(equasionOfMotion(x0, v0, a, t)).to.be.closeTo(x0, Math.abs((v0 * a * t) / 1000));
+                        ([v0, a]: [number, number]) => {
+                            const timeToStop = whenWillItStop(v0, a);
+                            const iterationTime = timeToStop / ITERATIONS;
+                            let v = v0;
+                            for (let i = 0; i < ITERATIONS; i++) {
+                                v += a * iterationTime;
+                            }
+                            expect(v).to.be.closeTo(0, 1 / Math.sqrt(ITERATIONS));
                         }
                     )
                 );
