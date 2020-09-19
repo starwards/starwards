@@ -12,8 +12,8 @@ import {
     SpaceObject,
     SpaceState,
     XY,
+    ShipManager,
 } from '@starwards/model';
-import { ShipManager } from '../../../model/src/ship/ship-manager';
 
 export type Bot = (spaceState: SpaceState, shipManager: ShipManager, deltaSeconds: number) => void;
 

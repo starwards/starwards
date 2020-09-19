@@ -12,7 +12,7 @@ import {
     XY,
 } from '@starwards/model';
 import { uniqueId } from '../id';
-import { SpaceManager } from '../space/space-manager';
+import { SpaceManager } from './space-manager';
 import { Bot } from '../../../server/src/ship/bot';
 
 export class ShipManager {

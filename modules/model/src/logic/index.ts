@@ -8,3 +8,5 @@ export * from './xy';
 export * from './formulas';
 export * from './helm-assist';
 export * from './gunner-assist';
+export * from './space-manager';
+export * from './ship-manager';
