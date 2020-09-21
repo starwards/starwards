@@ -22,8 +22,8 @@ export class ShipManager {
     constructor(
         public spaceObject: Spaceship,
         private spaceManager: SpaceManager,
-        private ships: Map<string, ShipManager>,
-        private onDestroy: () => void
+        private ships?: Map<string, ShipManager>,
+        private onDestroy?: () => void
     ) {
         this.state.id = this.spaceObject.id;
         this.state.constants = new MapSchema<number>();
@@ -102,7 +102,7 @@ export class ShipManager {
 
     update(deltaSeconds: number) {
         if (this.spaceObject.health <= 0) {
-            this.onDestroy();
+            this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
                 this.bot(this.spaceManager.state, this, deltaSeconds);
@@ -125,14 +125,16 @@ export class ShipManager {
 
     private calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
-        for (const shipManager of this.ships.values()) {
-            if (shipManager.state.targetId === this.state.id) {
-                if (shipManager.state.chainGun.isFiring) {
-                    status = TargetedStatus.FIRED_UPON;
-                    break; // no need to look further
-                }
-                if (status === TargetedStatus.NONE) {
-                    status = TargetedStatus.LOCKED;
+        if (this.ships) {
+            for (const shipManager of this.ships.values()) {
+                if (shipManager.state.targetId === this.state.id) {
+                    if (shipManager.state.chainGun.isFiring) {
+                        status = TargetedStatus.FIRED_UPON;
+                        break; // no need to look further
+                    }
+                    if (status === TargetedStatus.NONE) {
+                        status = TargetedStatus.LOCKED;
+                    }
                 }
             }
         }
@@ -326,7 +328,7 @@ export class ShipManager {
     private updateTurnSpeed(deltaSeconds: number) {
         if (this.state.rotation) {
             const enginePower = this.state.rotation * this.state.maneuveringCapacity * deltaSeconds;
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
                 this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, enginePower * this.state.rotationEffectFactor);
             }
         }

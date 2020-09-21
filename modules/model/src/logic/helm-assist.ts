@@ -13,11 +13,13 @@ const conf = {
 };
 
 export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number) {
-    const turnSpeedDiff = capToRange(-180, 180, targetTurnSpeed - ship.turnSpeed);
+    const turnDiffRange = 100;
+    const maxSharpness = 6;
+    const turnSpeedDiff = capToRange(-turnDiffRange, turnDiffRange, targetTurnSpeed - ship.turnSpeed);
     if (turnSpeedDiff) {
-        // use two lineras to calc a form of (turnSpeedDiff/180)^2
-        const sharpness = lerp([0, 180], [1, 6], Math.abs(turnSpeedDiff));
-        return capToRange(-1, 1, lerp([-180, 180], [-sharpness, sharpness], turnSpeedDiff));
+        // use two lineras to calc a form of (turnSpeedDiff/turnDiffRange)^2
+        const convexity = lerp([0, turnDiffRange], [1, maxSharpness], Math.abs(turnSpeedDiff));
+        return capToRange(-1, 1, lerp([-turnDiffRange, turnDiffRange], [-convexity, convexity], turnSpeedDiff));
     } else {
         return 0;
     }

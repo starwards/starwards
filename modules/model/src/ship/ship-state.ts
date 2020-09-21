@@ -52,6 +52,9 @@ export class ShipState extends Spaceship {
         }
     }
 
+    get rotationCapacity() {
+        return this.maneuveringCapacity * this.rotationEffectFactor;
+    }
     get rotationEffectFactor() {
         return this.constants.rotationEffectFactor as number;
     }
@@ -63,5 +66,8 @@ export class ShipState extends Spaceship {
     }
     get maneuveringCapacity() {
         return this.constants.maneuveringCapacity as number;
+    }
+    get maneuveringEnergyCost() {
+        return this.constants.maneuveringEnergyCost as number;
     }
 }

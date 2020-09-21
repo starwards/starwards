@@ -1,14 +1,10 @@
 import { expect } from 'chai';
-import 'mocha';
-import { lerp, negSign, equasionOfMotion, toDegreesDelta, sign, whenWillItStop, isInRange } from '../src';
 import fc from 'fast-check';
+import 'mocha';
+import { equasionOfMotion, lerp, negSign, toDegreesDelta, whenWillItStop } from '../src';
+import { differentSignTuple2, orderedTuple2, orderedTuple3, safeFloat } from './properties';
 
 describe('formulas', () => {
-    const safeFloat = () => fc.float(-Math.pow(2, 30), Math.pow(2, 30));
-    const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));
-    const orderedTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => t[0] < t[1]);
-    const orderedTuple3 = () =>
-        fc.tuple(safeFloat(), safeFloat(), safeFloat()).filter((t) => t[0] < t[2] && t[0] <= t[1] && t[1] <= t[2]);
     describe('toDegreesDelta', () => {
         it('between [-180, 180]', () => {
             fc.assert(
