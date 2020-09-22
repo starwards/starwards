@@ -12,10 +12,10 @@ const conf = {
     reactionFactor: 1, //  > 1 means over-reaction
 };
 
-export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number) {
+export function rotationFromTargetTurnSpeed(currentTurnSpeed: number, targetTurnSpeed: number) {
     const turnDiffRange = 100;
     const maxSharpness = 6;
-    const turnSpeedDiff = capToRange(-turnDiffRange, turnDiffRange, targetTurnSpeed - ship.turnSpeed);
+    const turnSpeedDiff = capToRange(-turnDiffRange, turnDiffRange, targetTurnSpeed - currentTurnSpeed);
     if (turnSpeedDiff) {
         // use two lineras to calc a form of (turnSpeedDiff/turnDiffRange)^2
         const convexity = lerp([0, turnDiffRange], [1, maxSharpness], Math.abs(turnSpeedDiff));
