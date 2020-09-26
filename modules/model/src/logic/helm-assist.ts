@@ -12,16 +12,14 @@ const conf = {
     reactionFactor: 1, //  > 1 means over-reaction
 };
 
-export function rotationFromTargetTurnSpeed(currentTurnSpeed: number, targetTurnSpeed: number) {
-    const turnDiffRange = 100;
-    const maxSharpness = 6;
-    const turnSpeedDiff = capToRange(-turnDiffRange, turnDiffRange, targetTurnSpeed - currentTurnSpeed);
-    if (turnSpeedDiff) {
-        // use two lineras to calc a form of (turnSpeedDiff/turnDiffRange)^2
-        const convexity = lerp([0, turnDiffRange], [1, maxSharpness], Math.abs(turnSpeedDiff));
-        return capToRange(-1, 1, lerp([-turnDiffRange, turnDiffRange], [-convexity, convexity], turnSpeedDiff));
+export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number, deltaSeconds: number) {
+    const maxTurnSpeedInTime = deltaSeconds * ship.rotationCapacity;
+    const turnSpeedDiff = capToRange(-maxTurnSpeedInTime, maxTurnSpeedInTime, targetTurnSpeed - ship.turnSpeed);
+    if (Math.abs(turnSpeedDiff) < ship.rotationCapacity / 2) {
+        // TODO: generalize the " / 2" magic number
+        return lerp([-maxTurnSpeedInTime, maxTurnSpeedInTime], [-1, 1], turnSpeedDiff);
     } else {
-        return 0;
+        return sign(turnSpeedDiff);
     }
 }
 
@@ -58,7 +56,6 @@ export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetOb
 export function calcRotationForTargetDirection(ship: ShipState, targetPos: XY): number {
     const targetAngle = XY.angleOf(XY.difference(targetPos, ship.position)) % 360;
     const angleDelta = toDegreesDelta(targetAngle - ship.angle);
-    const maxTurnAcceleration = calcMaxTurnAcceleration(ship);
     const turnSpeed = ship.turnSpeed;
     if (Math.abs(angleDelta) < conf.noiseThreshold) {
         return 0;
@@ -68,7 +65,7 @@ export function calcRotationForTargetDirection(ship: ShipState, targetPos: XY): 
         return capToRange(-1, 1, lerp([-180, 180], [-sharpness, sharpness], angleDelta));
         // return negSign(turnSpeed);
     } else {
-        const stoppingPoint = toDegreesDelta(whereWillItStop(0, turnSpeed, maxTurnAcceleration * negSign(turnSpeed)));
+        const stoppingPoint = toDegreesDelta(whereWillItStop(0, turnSpeed, ship.rotationCapacity * negSign(turnSpeed)));
         const breakDistance = Math.abs(angleDelta) - Math.abs(stoppingPoint);
         if (breakDistance <= 0) {
             // overshoot, start breaking
@@ -84,8 +81,4 @@ export function calcRotationForTargetDirection(ship: ShipState, targetPos: XY): 
             return sign(turnSpeed);
         }
     }
-}
-
-export function calcMaxTurnAcceleration(ship: ShipState) {
-    return ship.maneuveringCapacity * ship.rotationEffectFactor;
 }

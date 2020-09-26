@@ -37,10 +37,10 @@ function pilotComponent(container: Container, p: Props) {
 
         let targetTurnSpeed = 0;
 
-        const loop = new Loop((delta: number) => {
+        const loop = new Loop((deltaSeconds: number) => {
             const target = getTarget(shipRoom.state, spaceRoom.state);
             if (matchSpeed === OnOffStatus.ON) {
-                const command = target && matchTargetSpeed(delta, shipRoom.state, target);
+                const command = target && matchTargetSpeed(deltaSeconds, shipRoom.state, target);
                 if (command) {
                     shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
                     shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });
@@ -56,7 +56,7 @@ function pilotComponent(container: Container, p: Props) {
                     matchHeading = OnOffStatus.OFF;
                 }
             } else {
-                const command = rotationFromTargetTurnSpeed(shipRoom.state.turnSpeed, targetTurnSpeed);
+                const command = rotationFromTargetTurnSpeed(shipRoom.state, targetTurnSpeed, deltaSeconds);
                 if (shipRoom.state.rotation !== command) {
                     shipRoom.send('setRotation', { value: command });
                 }
