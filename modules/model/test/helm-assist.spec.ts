@@ -44,7 +44,7 @@ describe('helm assist', () => {
             const MIN_GRACE = 0.01;
             const MIN_TIME = 1;
             fc.assert(
-                fc.property(floatIn(2000), fc.integer(10, 1000), (turnSpeed: number, iterations: number) => {
+                fc.property(floatIn(2000), fc.integer(10, 100), (turnSpeed: number, iterations: number) => {
                     const harness = new ShipTestHarness();
                     const turnSpeedDiff = Math.abs(turnSpeed);
                     const errorMargin = Math.max(MIN_GRACE, turnSpeedDiff / Math.sqrt(iterations));
@@ -97,7 +97,7 @@ describe('helm assist', () => {
                     const timeToReach = Math.max(1, Math.abs(distance)) / harness.shipState.movementCapacity;
 
                     harness.simulate(timeToReach, iterations, (time: number) => {
-                        const maneuvering = moveToTarget(time, harness.shipState, to, 100);
+                        const maneuvering = moveToTarget(time, harness.shipState, to);
                         // console.log(`maneuvering`, maneuvering);
                         harness.shipMgr.setBoost(maneuvering.boost);
                         harness.shipMgr.setStrafe(maneuvering.strafe);
