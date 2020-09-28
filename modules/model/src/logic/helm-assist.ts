@@ -33,13 +33,13 @@ export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: nu
 }
 
 // TODO deprecate scale arg by normalizing all commands and using lerp for capacity limits in ship manager
-export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, scale: number): ManeuveringCommand {
+export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY): ManeuveringCommand {
     const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
     const posDiff = XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
     const velocity = XY.rotate(ship.velocity, -ship.angle); // TODO cap to range maxMovementInTime
     return {
-        strafe: 0, //accelerateToTarget(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y) * scale,
-        boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x) * scale,
+        strafe: accelerateToTarget(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
+        boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x),
     };
 }
 

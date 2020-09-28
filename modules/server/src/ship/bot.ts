@@ -31,15 +31,15 @@ function tailTarget(shipManager: ShipManager, target: SpaceObject, hitLocation: 
         shipManager.setBoost(maneuvering.boost);
         shipManager.setStrafe(maneuvering.strafe);
     } else {
-        const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation, 100);
+        const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
         // close distance to target
         if (distanceToTarget > killRadius[1]) {
             shipManager.setBoost(maneuvering.boost);
             shipManager.setStrafe(maneuvering.strafe);
         } else {
             // distanceToTarget < killRadius[0]
-            shipManager.setBoost(maneuvering.boost);
-            shipManager.setStrafe(maneuvering.strafe);
+            shipManager.setBoost(-maneuvering.boost);
+            shipManager.setStrafe(-maneuvering.strafe);
         }
     }
 }

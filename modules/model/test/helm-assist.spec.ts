@@ -76,7 +76,7 @@ describe('helm assist', () => {
                     );
 
                     harness.simulate(timeToReach, iterations, (time: number) => {
-                        const maneuvering = moveToTarget(time, harness.shipState, { x: 0, y: 0 }, 100);
+                        const maneuvering = moveToTarget(time, harness.shipState, { x: 0, y: 0 });
                         harness.shipMgr.setBoost(maneuvering.boost);
                         // console.log('I', harness.shipState.position.x, harness.shipState.velocity.x, maneuvering.boost);
                     });
