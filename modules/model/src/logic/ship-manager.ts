@@ -29,7 +29,7 @@ export class ShipManager {
         this.state.constants = new MapSchema<number>();
         this.state.constants.energyPerSecond = 5;
         this.state.constants.maxEnergy = 1000;
-        this.state.constants.maneuveringCapacity = 150;
+        this.state.constants.maneuveringCapacity = 5;
         this.state.constants.maneuveringEnergyCost = 0.07;
         this.state.constants.antiDriftEffectFactor = 1;
         this.state.constants.breaksEffectFactor = 1;
@@ -53,15 +53,15 @@ export class ShipManager {
     }
 
     public setImpulse(value: number) {
-        this.state.impulse = value;
+        this.state.impulse = capToRange(-1, 1, value);
     }
 
     public setStrafe(value: number) {
-        this.state.strafe = capToRange(-5, 5, value);
+        this.state.strafe = capToRange(-1, 1, value);
     }
 
     public setBoost(value: number) {
-        this.state.boost = capToRange(-5, 5, value);
+        this.state.boost = capToRange(-1, 1, value);
     }
 
     public setRotation(value: number) {
@@ -69,11 +69,11 @@ export class ShipManager {
     }
 
     public setAntiDrift(value: number) {
-        this.state.antiDrift = value;
+        this.state.antiDrift = capToRange(-1, 1, value);
     }
 
     public setBreaks(value: number) {
-        this.state.breaks = value;
+        this.state.breaks = capToRange(-1, 1, value);
     }
     public setTarget(id: string | null) {
         this.state.targetId = id;

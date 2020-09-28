@@ -1,6 +1,15 @@
 import { ShipState } from '../ship';
 import { SpaceObject } from '../space';
-import { capToMagnitude, capToRange, lerp, negSign, sign, toDegreesDelta, whereWillItStop } from './formulas';
+import {
+    capToMagnitude,
+    capToRange,
+    isInRange,
+    lerp,
+    negSign,
+    sign,
+    toDegreesDelta,
+    whereWillItStop,
+} from './formulas';
 import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
@@ -23,18 +32,36 @@ export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: nu
     }
 }
 
+// TODO deprecate scale arg by normalizing all commands and using lerp for capacity limits in ship manager
 export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, scale: number): ManeuveringCommand {
-    const posDiff = XY.rotate(XY.difference(targetPos, ship.position), -ship.angle);
-    const desiredSpeed = XY.scale(XY.normalize(posDiff), scale);
-    if (XY.lengthOf(desiredSpeed) < conf.noiseThreshold) {
-        return { strafe: 0, boost: 0 };
-    } else {
-        const desiredManeuvering = XY.scale(desiredSpeed, deltaSeconds * conf.reactionFactor);
-        return {
-            strafe: capToMagnitude(ship.strafe, conf.changeFactor, desiredManeuvering.y / ship.strafeEffectFactor),
-            boost: capToMagnitude(ship.boost, conf.changeFactor, desiredManeuvering.x / ship.boostEffectFactor),
-        };
+    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
+    const posDiff = XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
+    const velocity = XY.rotate(ship.velocity, -ship.angle); // TODO cap to range maxMovementInTime
+    return {
+        strafe: 0, //accelerateToTarget(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y) * scale,
+        boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x) * scale,
+    };
+}
+
+// result is normalized
+function accelerateToTarget(deltaSeconds: number, capacity: number, velocity: number, targetDistance: number) {
+    const maxAccelerationInTime = deltaSeconds * capacity;
+    const maxMovementInTime = (deltaSeconds * maxAccelerationInTime) / 2; // from equasion of motion
+    if (Math.abs(targetDistance) < maxMovementInTime) {
+        // console.log('pin-point stopping');
+        return lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], targetDistance);
     }
+    if (velocity) {
+        const estimatedCruiseSpeed = velocity + maxAccelerationInTime * sign(targetDistance); // speed if going to cruise
+        const cruiseStopDistance = whereWillItStop(0, estimatedCruiseSpeed, capacity * -sign(estimatedCruiseSpeed));
+        const fromTo = [0, targetDistance].sort();
+        if (!isInRange(fromTo[0], fromTo[1], cruiseStopDistance)) {
+            // console.log('too fast! break');
+            return -sign(velocity);
+        }
+    }
+    // console.log('cruise');
+    return sign(targetDistance);
 }
 
 export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetObj: SpaceObject): ManeuveringCommand {
