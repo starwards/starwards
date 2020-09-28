@@ -98,23 +98,11 @@ function pilotComponent(container: Container, p: Props) {
         );
         panel.addProperty('rotation', () => shipRoom.state.rotation, [-1, 1]);
         panel.addProperty(
-            'impulse',
-            () => shipRoom.state.impulse,
-            [0, 5],
-            (value) => {
-                shipRoom.send('setImpulse', { value });
-            },
-            {
-                gamepadIndex: 0,
-                buttonIndex: 6,
-            }
-        );
-        panel.addProperty(
             'antiDrift',
             () => shipRoom.state.antiDrift,
-            [0, 1],
+            [0, 100],
             (value) => {
-                shipRoom.send('setAntiDrift', { value });
+                shipRoom.send('setAntiDrift', { value: value / 100 });
             },
             {
                 gamepadIndex: 0,
@@ -124,9 +112,9 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty(
             'breaks',
             () => shipRoom.state.breaks,
-            [0, 1],
+            [0, 100],
             (value) => {
-                shipRoom.send('setBreaks', { value });
+                shipRoom.send('setBreaks', { value: value / 100 });
             },
             {
                 gamepadIndex: 0,
@@ -136,9 +124,9 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty(
             'strafe',
             () => shipRoom.state.strafe,
-            [-5, 5],
+            [-100, 100],
             (value) => {
-                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setStrafe', { value });
+                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setStrafe', { value: value / 100 });
             },
             {
                 gamepadIndex: 0,
@@ -149,9 +137,9 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty(
             'boost',
             () => shipRoom.state.boost,
-            [-5, 5],
+            [-100, 100],
             (value) => {
-                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setBoost', { value });
+                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setBoost', { value: value / 100 });
             },
             {
                 gamepadIndex: 0,

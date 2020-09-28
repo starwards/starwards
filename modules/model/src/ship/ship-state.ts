@@ -18,8 +18,6 @@ export class ShipState extends Spaceship {
     @type('float32')
     rotation = 0;
     @type('float32')
-    impulse = 0;
-    @type('float32')
     boost = 0;
     @type('float32')
     strafe = 0;

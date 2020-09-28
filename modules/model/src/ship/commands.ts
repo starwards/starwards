@@ -2,9 +2,6 @@ export interface ShipCommands {
     setRotation: {
         value: number;
     };
-    setImpulse: {
-        value: number;
-    };
     setAntiDrift: {
         value: number;
     };
