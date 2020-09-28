@@ -58,6 +58,15 @@ export class ShipState extends Spaceship {
     get rotationEffectFactor() {
         return this.constants.rotationEffectFactor as number;
     }
+    get movementCapacity() {
+        return this.maneuveringCapacity * Math.max(this.boostEffectFactor, this.strafeEffectFactor);
+    }
+    get boostCapacity() {
+        return this.maneuveringCapacity * this.boostEffectFactor;
+    }
+    get strafeCapacity() {
+        return this.maneuveringCapacity * this.strafeEffectFactor;
+    }
     get boostEffectFactor() {
         return this.constants.boostEffectFactor as number;
     }
