@@ -37,6 +37,57 @@ class ShipTestHarness {
         }
     }
 }
+type LineData = {
+    name: string;
+    y: number[];
+    x: number[];
+};
+class PlotlyGraphBuilder {
+    public readonly lines: Record<string, LineData | undefined> = {};
+    public readonly annotations = Array.of<[string, number]>();
+    private lastAnnotation = '';
+    private lastPoint = 0;
+    constructor(...lineNames: string[]) {
+        for (const name of lineNames) {
+            this.lines[name] = { name, y: Array.of<number>(), x: Array.of<number>() };
+        }
+    }
+    public build() {
+        return {
+            kind: { plotly: true },
+            data: Object.values(this.lines),
+            layout: {
+                showlegend: true,
+                legend: { orientation: 'h' },
+                annotations: this.annotations.map(([text, x], i) => {
+                    const y = (i % 2) * 2 - 1;
+                    return { x, y, xref: 'x', yref: 'y', text };
+                }),
+            },
+        };
+    }
+    newPoint(delta: number) {
+        const x = this.lastPoint + delta;
+        this.lastPoint = x;
+        const addtoLine = (name: string, value: number) => {
+            const lineData = this.lines[name];
+            if (lineData) {
+                lineData.y.push(value);
+                lineData.x.push(x);
+            }
+        };
+        const annotate = (text: string) => {
+            if (this.lastAnnotation !== text) {
+                this.lastAnnotation = text;
+                this.annotations.push([text, x]);
+            }
+        };
+        return {
+            addtoLine,
+            annotate,
+        };
+    }
+}
 
 describe('helm assist', () => {
     describe('rotationFromTargetTurnSpeed', () => {
@@ -62,26 +113,34 @@ describe('helm assist', () => {
 
     describe('moveToTarget', () => {
         it('(boost only) reach target in good time from 0 speed', () => {
-            const MIN_GRACE = 1;
             const MIN_TIME = 1;
             fc.assert(
-                fc.property(floatIn(2000), fc.integer(50, 500), (fromX: number, iterations: number) => {
+                fc.property(floatIn(2000, 100), fc.integer(15, 20), (fromX: number, iterationsPerSecond: number) => {
                     const harness = new ShipTestHarness();
                     harness.shipObj.position.x = fromX;
                     const distance = Math.abs(fromX);
-                    const errorMargin = Math.max(MIN_GRACE, distance / Math.sqrt(iterations));
                     const timeToReach = Math.max(
                         MIN_TIME,
                         2 * Math.sqrt(distance / harness.shipState.movementCapacity) // from equasion of motion
                     );
-
-                    harness.simulate(timeToReach, iterations, (time: number) => {
-                        const maneuvering = moveToTarget(time, harness.shipState, { x: 0, y: 0 });
+                    const iterations = Math.floor(timeToReach * iterationsPerSecond);
+                    const errorMargin = distance / Math.sqrt(iterations);
+                    const g = new PlotlyGraphBuilder('boost', 'velocity', 'position');
+                    const iteration = (time: number) => {
+                        const p = g.newPoint(time);
+                        const maneuvering = moveToTarget(time, harness.shipState, { x: 0, y: 0 }, p.annotate);
                         harness.shipMgr.setBoost(maneuvering.boost);
-                        // console.log('I', harness.shipState.position.x, harness.shipState.velocity.x, maneuvering.boost);
-                    });
+                        p.addtoLine('boost', maneuvering.boost);
+                        p.addtoLine('position', harness.shipState.position.x);
+                        p.addtoLine('velocity', harness.shipState.velocity.x);
+                    };
+                    harness.simulate(timeToReach, iterations, iteration);
                     expect(harness.shipObj.position.x, 'position').to.be.closeTo(0, errorMargin);
-                    expect(harness.shipObj.velocity.x, 'velocity').to.be.closeTo(0, 2 * Math.sqrt(errorMargin)); // todo remove the 2 *
+                    harness.simulate(timeToReach, iterations, iteration);
+                    expect(harness.shipObj.position.x, 'position after stabling').to.be.closeTo(
+                        0,
+                        Math.log(errorMargin)
+                    );
                 })
             );
         });

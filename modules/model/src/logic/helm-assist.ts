@@ -33,34 +33,53 @@ export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: nu
 }
 
 // TODO deprecate scale arg by normalizing all commands and using lerp for capacity limits in ship manager
-export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY): ManeuveringCommand {
+export function moveToTarget(
+    deltaSeconds: number,
+    ship: ShipState,
+    targetPos: XY,
+    log?: (s: string) => unknown
+): ManeuveringCommand {
     const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
     const posDiff = XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
     const velocity = XY.rotate(ship.velocity, -ship.angle); // TODO cap to range maxMovementInTime
     return {
         strafe: accelerateToTarget(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
-        boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x),
+        boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x, log),
     };
 }
 
 // result is normalized
-function accelerateToTarget(deltaSeconds: number, capacity: number, velocity: number, targetDistance: number) {
+function accelerateToTarget(
+    deltaSeconds: number,
+    capacity: number,
+    velocity: number,
+    targetDistance: number,
+    log?: (s: string) => unknown
+) {
     const maxAccelerationInTime = deltaSeconds * capacity;
-    const maxMovementInTime = (deltaSeconds * maxAccelerationInTime) / 2; // from equasion of motion
-    if (Math.abs(targetDistance) < maxMovementInTime) {
-        // console.log('pin-point stopping');
-        return lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], targetDistance);
+    const maxMovementInTime = deltaSeconds * maxAccelerationInTime;
+    const breakDistance = whereWillItStop(0, velocity, capacity * -sign(velocity));
+    if (Math.abs(targetDistance) < maxMovementInTime && Math.abs(breakDistance) < maxMovementInTime) {
+        log && log('pin-point');
+        return capToRange(-1, 1, lerp([-maxMovementInTime, maxMovementInTime], [-0.5, 0.5], targetDistance));
     }
     if (velocity) {
-        const estimatedCruiseSpeed = velocity + maxAccelerationInTime * sign(targetDistance); // speed if going to cruise
-        const cruiseStopDistance = whereWillItStop(0, estimatedCruiseSpeed, capacity * -sign(estimatedCruiseSpeed));
-        const fromTo = [0, targetDistance].sort();
-        if (!isInRange(fromTo[0], fromTo[1], cruiseStopDistance)) {
-            // console.log('too fast! break');
+        if (
+            maxAccelerationInTime < Math.abs(velocity) &&
+            (sign(breakDistance) != sign(targetDistance) || Math.abs(breakDistance) > Math.abs(targetDistance) + 1)
+        ) {
+            log && log('break');
             return -sign(velocity);
         }
+        if (
+            Math.abs(targetDistance) < Math.abs(deltaSeconds * velocity * 10) &&
+            Math.abs(breakDistance) < maxMovementInTime
+        ) {
+            log && log('soft-break');
+            return capToRange(-1, 1, lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], breakDistance));
+        }
     }
-    // console.log('cruise');
+    log && log('full-speed');
     return sign(targetDistance);
 }
 

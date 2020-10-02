@@ -7,7 +7,11 @@ export const xy = (range: number) =>
         .tuple(floatIn(range), floatIn(range))
         .map<XY>((t) => ({ x: t[0], y: t[1] }))
         .filter((t) => XY.lengthOf(t) <= range);
-export const floatIn = (range: number) => fc.float(-range, range).map(limitPercision);
+export const floatIn = (range: number, minRange = 0) =>
+    fc
+        .float(-range, range)
+        .filter((n) => Math.abs(n) >= minRange)
+        .map(limitPercision);
 export const fromTo = (range: number, minDiff: number) =>
     fc.tuple(floatIn(range), floatIn(range)).filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));
