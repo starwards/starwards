@@ -124,7 +124,7 @@ describe('helm assist', () => {
                         2 * Math.sqrt(distance / harness.shipState.movementCapacity) // from equasion of motion
                     );
                     const iterations = Math.floor(timeToReach * iterationsPerSecond);
-                    const errorMargin = distance / Math.sqrt(iterations);
+                    const errorMargin = distance / iterations;
                     const g = new PlotlyGraphBuilder('boost', 'velocity', 'position');
                     const iteration = (time: number) => {
                         const p = g.newPoint(time);
@@ -135,6 +135,7 @@ describe('helm assist', () => {
                         p.addtoLine('velocity', harness.shipState.velocity.x);
                     };
                     harness.simulate(timeToReach, iterations, iteration);
+                    g.newPoint(0).annotate('test position');
                     expect(harness.shipObj.position.x, 'position').to.be.closeTo(0, errorMargin);
                     harness.simulate(timeToReach, iterations, iteration);
                     expect(harness.shipObj.position.x, 'position after stabling').to.be.closeTo(
