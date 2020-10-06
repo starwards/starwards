@@ -136,11 +136,11 @@ describe('helm assist', () => {
                     };
                     harness.simulate(timeToReach, iterations, iteration);
                     g.newPoint(0).annotate('test position');
-                    expect(harness.shipObj.position.x, 'position').to.be.closeTo(0, errorMargin);
+                    expect(harness.shipObj.position.x, 'position').to.be.closeTo(0, Math.max(1, errorMargin));
                     harness.simulate(timeToReach, iterations, iteration);
                     expect(harness.shipObj.position.x, 'position after stabling').to.be.closeTo(
                         0,
-                        Math.log(errorMargin)
+                        Math.max(1, Math.log(errorMargin))
                     );
                 })
             );
