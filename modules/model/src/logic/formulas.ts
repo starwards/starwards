@@ -2,11 +2,11 @@ import { XY } from './xy';
 
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 /**
- * translate drgrees to value between [-180, 180]
+ * normalize drgrees to value between (-180, 180]
  */
 export function toDegreesDelta(degrees: number) {
     const deg = degrees % 360;
-    if (deg < -180) {
+    if (deg <= -180) {
         return deg + 360;
     } else if (deg > 180) {
         return deg - 360;

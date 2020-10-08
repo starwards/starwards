@@ -1,9 +1,12 @@
-import { limitPercision, equasionOfMotion as eom } from './formulas';
+import { limitPercision, equasionOfMotion as eom, toDegreesDelta } from './formulas';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
     export const one = Object.freeze({ x: 1, y: 0 });
     export const zero = Object.freeze({ x: 0, y: 0 });
+    export function byLengthAndDirection(length: number, degrees: number) {
+        return XY.rotate({ x: length, y: 0 }, toDegreesDelta(degrees));
+    }
     export function clone(vector: XY): XY {
         return {
             x: vector.x,

@@ -1,20 +1,38 @@
 import { expect } from 'chai';
 import 'mocha';
-import { XY } from '../src';
+import { limitPercision, toDegreesDelta, XY } from '../src';
 import fc from 'fast-check';
+import { floatIn } from './properties';
 
 const GRACE = 0.1;
 
 const assertRotation = (vec: XY) => (deg: number) =>
-    void expect(XY.angleOf(XY.rotate(vec, deg)), `vector rotated ${deg} degrees`).to.be.closeTo(deg % 360, GRACE);
+    void expect(toDegreesDelta(XY.angleOf(XY.rotate(vec, deg))), `vector rotated ${deg} degrees`).to.be.closeTo(
+        toDegreesDelta(deg),
+        GRACE
+    );
 
 describe('model', () => {
+    describe('XY.byLengthAndDirection() ', () => {
+        it('is correct angle and length', () => {
+            fc.assert(
+                fc.property(fc.float(1, 100).map(limitPercision), floatIn(180), (length: number, deg: number) => {
+                    const vec = XY.byLengthAndDirection(length, deg);
+                    void expect(XY.lengthOf(vec), `vector length ${length}`).to.be.closeTo(length, GRACE);
+                    void expect(toDegreesDelta(XY.angleOf(vec)), `vector rotated ${deg} degrees`).to.be.closeTo(
+                        toDegreesDelta(deg),
+                        GRACE
+                    );
+                })
+            );
+        });
+    });
     describe('XY.angleOf()', () => {
         it('complies with XY.rotate() for normal vectors', () => {
-            fc.assert(fc.property(fc.integer(0, 720), assertRotation({ x: 1, y: 0 })));
+            fc.assert(fc.property(fc.integer(-720, 720), assertRotation({ x: 1, y: 0 })));
         });
         it('complies with XY.rotate() for large vectors', () => {
-            fc.assert(fc.property(fc.integer(0, 720), assertRotation({ x: 12345, y: 0 })));
+            fc.assert(fc.property(fc.integer(-720, 720), assertRotation({ x: 12345, y: 0 })));
         });
         it('correct on sanity cases', () => {
             expect(XY.angleOf({ x: 1, y: 0 }), `{ x: 1, y: 0 }`).to.be.closeTo(0, GRACE);

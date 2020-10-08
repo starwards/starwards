@@ -6,10 +6,14 @@ import { differentSignTuple2, floatIn, orderedTuple2, orderedTuple3, safeFloat }
 
 describe('formulas', () => {
     describe('toDegreesDelta', () => {
-        it('between [-180, 180]', () => {
+        it('-180 becomes 180', () => {
+            expect(toDegreesDelta(-180)).to.eql(180);
+        });
+        it('between (-180, 180]', () => {
             fc.assert(
                 fc.property(floatIn(1000), (number: number) => {
                     expect(toDegreesDelta(number)).to.be.within(-180, 180);
+                    expect(toDegreesDelta(number), 'dont return -180').to.not.eql(-180);
                 })
             );
         });
