@@ -17,8 +17,8 @@ describe('formulas', () => {
             fc.assert(
                 fc.property(floatIn(1000), (deg: number) => {
                     const result = limitPercision(toDegreesDelta(deg));
-                    const mod360 = limitPercision(deg % 360);
-                    const minus360mod360 = limitPercision(-((deg - 180) % 360));
+                    const mod360 = limitPercision(((deg % 360) + 360) % 360);
+                    const minus360mod360 = limitPercision((mod360 - 360) % 360);
                     expect(result).to.be.oneOf([mod360, minus360mod360]);
                 })
             );

@@ -6,10 +6,12 @@ export const MAX_SAFE_FLOAT = Math.pow(2, 39);
  */
 export function toDegreesDelta(degrees: number) {
     const deg = degrees % 360;
-    if (isInRange(-180, 180, deg)) {
-        return deg;
+    if (deg < -180) {
+        return deg + 360;
+    } else if (deg > 180) {
+        return deg - 360;
     } else {
-        return (180 - deg) % 360;
+        return deg;
     }
 }
 
