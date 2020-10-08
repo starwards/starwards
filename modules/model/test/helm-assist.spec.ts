@@ -6,7 +6,8 @@ import { GraphPointInput } from './ploty-graph-builder';
 import { floatIn, xy } from './properties';
 import { MovementTestMetrics, ShipTestHarness } from './ship-test-harness';
 
-describe('helm assist', () => {
+describe('helm assist', function () {
+    this.timeout(60 * 1000);
     describe('rotationFromTargetTurnSpeed', () => {
         it('acheives target turnSpeed in a reasonable time', () => {
             const MIN_GRACE = 0.01;
@@ -89,4 +90,4 @@ describe('helm assist', () => {
             );
         });
     });
-}).timeout(60 * 1000);
+});
