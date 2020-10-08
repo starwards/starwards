@@ -2,11 +2,8 @@ import fc from 'fast-check';
 import { limitPercision, sign, XY } from '../src';
 
 export const safeFloat = () => floatIn(Math.pow(2, 30));
-export const xy = (range: number) =>
-    fc
-        .tuple(floatIn(range), floatIn(range))
-        .map<XY>((t) => ({ x: t[0], y: t[1] }))
-        .filter((t) => XY.lengthOf(t) <= range);
+export const xy = (range: number, minRange = 0) =>
+    fc.tuple(floatIn(360), floatIn(range, minRange)).map<XY>((t) => XY.rotate(XY.scale(XY.one, t[1]), t[0]));
 export const floatIn = (range: number, minRange = 0) =>
     fc
         .float(-range, range)
