@@ -89,4 +89,4 @@ describe('helm assist', () => {
             );
         });
     });
-});
+}).timeout(60 * 1000);
