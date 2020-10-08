@@ -9,7 +9,7 @@ export function toDegreesDelta(degrees: number) {
     if (isInRange(-180, 180, deg)) {
         return deg;
     } else {
-        return 180 - (deg % 360);
+        return (180 - deg) % 360;
     }
 }
 

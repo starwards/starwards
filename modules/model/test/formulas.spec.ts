@@ -1,22 +1,25 @@
 import { expect } from 'chai';
 import fc from 'fast-check';
 import 'mocha';
-import { equasionOfMotion, lerp, negSign, toDegreesDelta, whenWillItStop } from '../src';
-import { differentSignTuple2, orderedTuple2, orderedTuple3, safeFloat } from './properties';
+import { equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
+import { differentSignTuple2, floatIn, orderedTuple2, orderedTuple3, safeFloat } from './properties';
 
 describe('formulas', () => {
     describe('toDegreesDelta', () => {
         it('between [-180, 180]', () => {
             fc.assert(
-                fc.property(fc.float(), (number: number) => {
+                fc.property(floatIn(1000), (number: number) => {
                     expect(toDegreesDelta(number)).to.be.within(-180, 180);
                 })
             );
         });
         it('same direction', () => {
             fc.assert(
-                fc.property(fc.float(), (deg: number) => {
-                    expect(toDegreesDelta(deg)).to.be.oneOf([deg % 360, (deg + negSign(deg) * 360) % 360]);
+                fc.property(floatIn(1000), (deg: number) => {
+                    const result = limitPercision(toDegreesDelta(deg));
+                    const mod360 = limitPercision(deg % 360);
+                    const minus360mod360 = limitPercision(-((deg - 180) % 360));
+                    expect(result).to.be.oneOf([mod360, minus360mod360]);
                 })
             );
         });
