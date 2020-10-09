@@ -1,12 +1,12 @@
 import '@maulingmonkey/gamepad';
 import {
-    TargetedStatus,
-    XY,
     capToRange,
     getTarget,
     matchTargetSpeed,
-    calcRotationForTargetDirection,
+    rotateToTarget,
     rotationFromTargetTurnSpeed,
+    TargetedStatus,
+    XY,
 } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
@@ -49,7 +49,7 @@ function pilotComponent(container: Container, p: Props) {
                 }
             }
             if (matchHeading === OnOffStatus.ON) {
-                const command = target && calcRotationForTargetDirection(shipRoom.state, target.position);
+                const command = target && rotateToTarget(deltaSeconds, shipRoom.state, target.position);
                 if (typeof command === 'number') {
                     shipRoom.send('setRotation', { value: command });
                 } else {

@@ -34,9 +34,11 @@ export class GameManager {
             this.addShip(this.spaceManager, 'A');
             this.addShip(this.spaceManager, 'B');
             this.spaceManager.forceFlushEntities();
-            // const aManager = this.ships.get('A')!;
-            // aManager.setTarget('B');
-            // aManager.bot = terminator();
+            const aManager = this.ships.get('A');
+            if (aManager) {
+                aManager.setTarget('B');
+                aManager.bot = terminator();
+            }
             const bManager = this.ships.get('B');
             if (bManager) {
                 bManager.setTarget('A');

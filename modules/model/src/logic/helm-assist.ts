@@ -1,25 +1,9 @@
 import { ShipState } from '../ship';
 import { SpaceObject } from '../space';
-import {
-    capToMagnitude,
-    capToRange,
-    equasionOfMotion,
-    lerp,
-    negSign,
-    sign,
-    toDegreesDelta,
-    whereWillItStop,
-} from './formulas';
+import { capToMagnitude, capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
 import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
-
-const conf = {
-    noiseThreshold: 0.01,
-    minRotation: 1.5,
-    changeFactor: 2, // has to be > 1
-    reactionFactor: 1, //  > 1 means over-reaction
-};
 
 export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number, deltaSeconds: number) {
     const maxTurnSpeedInTime = deltaSeconds * ship.rotationCapacity;
@@ -32,23 +16,46 @@ export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: nu
     }
 }
 
-// TODO deprecate scale arg by normalizing all commands and using lerp for capacity limits in ship manager
 export function moveToTarget(
     deltaSeconds: number,
     ship: ShipState,
     targetPos: XY,
     log?: (s: string) => unknown
 ): ManeuveringCommand {
-    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
-    const posDiff = XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
-    const velocity = XY.rotate(ship.velocity, -ship.angle); // TODO cap to range maxMovementInTime
+    const posDiff = calcTargetPositionDiff(ship, deltaSeconds, targetPos); // TODO cap to range maxMovementInTime
+    const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
     return {
         strafe: accelerateToTarget(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
         boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x, log),
     };
 }
 
-// result is normalized
+function calcTargetPositionDiff(ship: ShipState, deltaSeconds: number, targetPos: XY) {
+    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
+    const posDiff = XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
+    return posDiff;
+}
+
+function calcTargetAngleDiff(ship: ShipState, deltaSeconds: number, targetPos: XY) {
+    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
+    const estimatedAngle = ship.turnSpeed * deltaSeconds + ship.angle;
+    const targetAngle = XY.angleOf(XY.difference(targetPos, estimatedLocation));
+    const angleDiff = toDegreesDelta(targetAngle - estimatedAngle);
+    return angleDiff;
+}
+
+export function rotateToTarget(
+    deltaSeconds: number,
+    ship: ShipState,
+    targetPos: XY,
+    log?: (s: string) => unknown
+): number {
+    const angleDiff = calcTargetAngleDiff(ship, deltaSeconds, targetPos);
+    const rotation = accelerateToTarget(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff, log);
+    return rotation;
+}
+
+// result is normalized [-1, 1]
 function accelerateToTarget(
     deltaSeconds: number,
     capacity: number,
@@ -57,7 +64,7 @@ function accelerateToTarget(
     log?: (s: string) => unknown
 ) {
     const cautionFactor = 1.1;
-    const pinpointIterationsPredict = 10;
+    const pinpointIterationsPredict = 5;
     const targetDistance = Math.abs(relTargetPosition);
     const absVelocity = Math.abs(velocity);
     const signVelocity = sign(velocity);
@@ -90,6 +97,12 @@ function accelerateToTarget(
     return sign(relTargetPosition);
 }
 
+const conf = {
+    noiseThreshold: 0.01,
+    minRotation: 1.5,
+    changeFactor: 2, // has to be > 1
+    reactionFactor: 1, //  > 1 means over-reaction
+};
 export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetObj: SpaceObject): ManeuveringCommand {
     const speedDiff = XY.rotate(XY.difference(targetObj.velocity, ship.velocity), -ship.angle);
     if (XY.lengthOf(speedDiff) < conf.noiseThreshold) {
@@ -100,38 +113,5 @@ export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetOb
             strafe: capToMagnitude(ship.strafe, conf.changeFactor, desiredManeuvering.y / ship.strafeEffectFactor),
             boost: capToMagnitude(ship.boost, conf.changeFactor, desiredManeuvering.x / ship.boostEffectFactor),
         };
-    }
-}
-
-/**
- * returns a desired rotation in range [-1, 1] depending on the target speed of the ship that is required in oprder to point to the target
- */
-export function calcRotationForTargetDirection(ship: ShipState, targetPos: XY): number {
-    const targetAngle = XY.angleOf(XY.difference(targetPos, ship.position)) % 360;
-    const angleDelta = toDegreesDelta(targetAngle - ship.angle);
-    const turnSpeed = ship.turnSpeed;
-    if (Math.abs(angleDelta) < conf.noiseThreshold) {
-        return 0;
-    } else if (sign(angleDelta) !== sign(turnSpeed)) {
-        // use two lineras to calc a form of (turnSpeedDiff/180)^2
-        const sharpness = lerp([0, 180], [1, 50], Math.abs(angleDelta));
-        return capToRange(-1, 1, lerp([-180, 180], [-sharpness, sharpness], angleDelta));
-        // return negSign(turnSpeed);
-    } else {
-        const stoppingPoint = toDegreesDelta(whereWillItStop(0, turnSpeed, ship.rotationCapacity * negSign(turnSpeed)));
-        const breakDistance = Math.abs(angleDelta) - Math.abs(stoppingPoint);
-        if (breakDistance <= 0) {
-            // overshoot, start breaking
-            return negSign(turnSpeed) * lerp([0, 5], [conf.noiseThreshold, 1], capToRange(0, 5, -breakDistance));
-        } else if (breakDistance < 5) {
-            // overshoot, start breaking
-            return sign(turnSpeed) * lerp([0, 45], [0, 1], capToRange(0, 45, breakDistance));
-        } else {
-            // const sharpness = lerp([0, 180], [1, 50], capToRange(0, 180, Math.abs(breakDistance)));
-            // return sign(angleDelta) * capToRange(0, 1, lerp([0, 180], [0, sharpness], Math.abs(angleDelta)));
-            // return sign(turnSpeed) * lerp([0, 5], [conf.noiseThreshold, 1], capToRange(0, 5, breakDistance));
-
-            return sign(turnSpeed);
-        }
     }
 }

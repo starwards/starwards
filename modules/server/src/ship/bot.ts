@@ -5,14 +5,14 @@ import {
     getTarget,
     isInRange,
     isTargetInKillZone,
-    calcRotationForTargetDirection,
     matchTargetSpeed,
     moveToTarget,
     predictHitLocation,
+    rotateToTarget,
+    ShipManager,
     SpaceObject,
     SpaceState,
     XY,
-    ShipManager,
 } from '@starwards/model';
 
 export type Bot = (spaceState: SpaceState, shipManager: ShipManager, deltaSeconds: number) => void;
@@ -20,7 +20,7 @@ export type Bot = (spaceState: SpaceState, shipManager: ShipManager, deltaSecond
 function tailTarget(shipManager: ShipManager, target: SpaceObject, hitLocation: XY, deltaSeconds: number) {
     const ship = shipManager.state;
     shipManager.setShellSecondsToLive(calcShellSecondsToLive(ship, hitLocation));
-    const rotation = calcRotationForTargetDirection(ship, XY.add(hitLocation, getShellAimVelocityCompensation(ship)));
+    const rotation = rotateToTarget(deltaSeconds, ship, XY.add(hitLocation, getShellAimVelocityCompensation(ship)));
     shipManager.setRotation(rotation);
     const shipToTarget = XY.difference(hitLocation, ship.position);
     const distanceToTarget = XY.lengthOf(shipToTarget);

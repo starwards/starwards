@@ -1,13 +1,61 @@
 import { expect } from 'chai';
 import fc from 'fast-check';
 import 'mocha';
-import { limitPercision, moveToTarget, rotationFromTargetTurnSpeed, Vec2, XY } from '../src';
+import {
+    rotateToTarget,
+    limitPercision,
+    moveToTarget,
+    rotationFromTargetTurnSpeed,
+    toDegreesDelta,
+    Vec2,
+    XY,
+} from '../src';
 import { GraphPointInput } from './ploty-graph-builder';
 import { floatIn, xy } from './properties';
 import { MovementTestMetrics, ShipTestHarness } from './ship-test-harness';
 
 describe('helm assist', function () {
     this.timeout(60 * 1000);
+    describe('rotateToTarget', () => {
+        const target = XY.byLengthAndDirection(100, 0); // always aim at (100, 0), meaning target angle is 0
+        it('acheives target direction in a reasonable time', () => {
+            fc.assert(
+                fc.property(
+                    floatIn(180, 30),
+                    fc.integer(15, 20),
+                    (originalAngle: number, iterationsPerSecond: number) => {
+                        const harness = new ShipTestHarness();
+                        harness.shipObj.angle = originalAngle;
+                        const metrics = new MovementTestMetrics(
+                            iterationsPerSecond,
+                            Math.abs(originalAngle),
+                            harness.shipState.rotationCapacity
+                        );
+                        harness.initGraph(
+                            {
+                                angle: () => toDegreesDelta(harness.shipState.angle),
+                                turnSpeed: () => harness.shipState.turnSpeed,
+                            },
+                            ['rotation']
+                        );
+                        const iteration = (time: number, p?: GraphPointInput) => {
+                            const rotation = rotateToTarget(time, harness.shipState, target, p?.annotate);
+                            p?.addtoLine('rotation', rotation);
+                            harness.shipMgr.setRotation(rotation);
+                        };
+                        harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                        harness.annotateGraph('test position');
+                        expect(toDegreesDelta(harness.shipObj.angle), 'angle').to.be.closeTo(0, metrics.errorMargin);
+                        harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                        expect(toDegreesDelta(harness.shipObj.angle), 'position after stabling').to.be.closeTo(
+                            0,
+                            metrics.logErrorMargin
+                        );
+                    }
+                )
+            );
+        });
+    });
     describe('rotationFromTargetTurnSpeed', () => {
         it('acheives target turnSpeed in a reasonable time', () => {
             const MIN_GRACE = 0.01;
