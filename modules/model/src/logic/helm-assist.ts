@@ -1,6 +1,5 @@
 import { ShipState } from '../ship';
-import { SpaceObject } from '../space';
-import { capToMagnitude, capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
+import { capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
 import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
@@ -97,21 +96,20 @@ function accelerateToTarget(
     return sign(relTargetPosition);
 }
 
-const conf = {
-    noiseThreshold: 0.01,
-    minRotation: 1.5,
-    changeFactor: 2, // has to be > 1
-    reactionFactor: 1, //  > 1 means over-reaction
-};
-export function matchTargetSpeed(deltaSeconds: number, ship: ShipState, targetObj: SpaceObject): ManeuveringCommand {
-    const speedDiff = XY.rotate(XY.difference(targetObj.velocity, ship.velocity), -ship.angle);
-    if (XY.lengthOf(speedDiff) < conf.noiseThreshold) {
-        return { strafe: 0, boost: 0 };
-    } else {
-        const desiredManeuvering = XY.scale(speedDiff, deltaSeconds * conf.reactionFactor);
-        return {
-            strafe: capToMagnitude(ship.strafe, conf.changeFactor, desiredManeuvering.y / ship.strafeEffectFactor),
-            boost: capToMagnitude(ship.boost, conf.changeFactor, desiredManeuvering.x / ship.boostEffectFactor),
-        };
-    }
+export function matchTargetSpeed(
+    deltaSeconds: number,
+    ship: ShipState,
+    targetVelocity: XY,
+    _log?: (s: string) => unknown
+): ManeuveringCommand {
+    const relTargetSpeed = ship.globalToLocal(XY.difference(targetVelocity, ship.velocity));
+    return {
+        strafe: accelerateToSpeed(deltaSeconds, ship.strafeCapacity, relTargetSpeed.y),
+        boost: accelerateToSpeed(deltaSeconds, ship.boostCapacity, relTargetSpeed.x),
+    };
+}
+
+function accelerateToSpeed(deltaSeconds: number, capacity: number, relTargetSpeed: number) {
+    const maxAccelerationInTime = deltaSeconds * capacity;
+    return capToRange(-1, 1, lerp([-maxAccelerationInTime, maxAccelerationInTime], [-1, 1], relTargetSpeed));
 }

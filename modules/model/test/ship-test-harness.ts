@@ -1,13 +1,16 @@
 import 'mocha';
-import { ShipManager, SpaceManager, Spaceship } from '../src';
+import {
+    ShipManager,
+    SpaceManager,
+    Spaceship,
+    timeToReachDistanceByAcceleration,
+    timeToReachVelocityByAcceleration,
+} from '../src';
 import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 
-export class MovementTestMetrics {
-    constructor(public iterationsPerSecond: number, public distance: number, public capacity: number) {}
-    get timeToReach() {
-        // from equasion of motion
-        return Math.max(1, 2 * Math.sqrt(this.distance / this.capacity));
-    }
+abstract class AbsTestMetrics {
+    constructor(public iterationsPerSecond: number, public distance: number) {}
+    abstract readonly timeToReach: number;
     get iterations() {
         return Math.floor(this.timeToReach * this.iterationsPerSecond);
     }
@@ -16,6 +19,23 @@ export class MovementTestMetrics {
     }
     get logErrorMargin() {
         return Math.max(1, Math.log(this.distance / this.iterations));
+    }
+}
+
+export class MovementTestMetrics extends AbsTestMetrics {
+    constructor(public iterationsPerSecond: number, public distance: number, public capacity: number) {
+        super(iterationsPerSecond, distance);
+    }
+    get timeToReach() {
+        return Math.max(1, timeToReachDistanceByAcceleration(this.distance, this.capacity));
+    }
+}
+export class SpeedTestMetrics extends AbsTestMetrics {
+    constructor(public iterationsPerSecond: number, public speedDiff: number, public capacity: number) {
+        super(iterationsPerSecond, speedDiff);
+    }
+    get timeToReach() {
+        return Math.max(1, timeToReachVelocityByAcceleration(this.speedDiff, this.capacity));
     }
 }
 

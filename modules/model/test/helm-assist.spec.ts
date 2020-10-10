@@ -2,9 +2,10 @@ import { expect } from 'chai';
 import fc from 'fast-check';
 import 'mocha';
 import {
-    rotateToTarget,
     limitPercision,
+    matchTargetSpeed,
     moveToTarget,
+    rotateToTarget,
     rotationFromTargetTurnSpeed,
     toDegreesDelta,
     Vec2,
@@ -12,7 +13,7 @@ import {
 } from '../src';
 import { GraphPointInput } from './ploty-graph-builder';
 import { floatIn, xy } from './properties';
-import { MovementTestMetrics, ShipTestHarness } from './ship-test-harness';
+import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics } from './ship-test-harness';
 
 describe('helm assist', function () {
     this.timeout(60 * 1000);
@@ -76,7 +77,81 @@ describe('helm assist', function () {
             );
         });
     });
-
+    describe('matchTargetSpeed', () => {
+        it('(boost only) reach target speed in good time from 0 speed', () => {
+            fc.assert(
+                fc.property(floatIn(1000), fc.integer(15, 20), (fromX: number, iterationsPerSecond: number) => {
+                    const harness = new ShipTestHarness();
+                    harness.shipObj.velocity.x = fromX;
+                    const metrics = new SpeedTestMetrics(
+                        iterationsPerSecond,
+                        Math.abs(fromX),
+                        harness.shipState.boostCapacity
+                    );
+                    harness.initGraph(
+                        {
+                            velocity: () => harness.shipState.velocity.x,
+                        },
+                        ['boost']
+                    );
+                    const iteration = (time: number, p?: GraphPointInput) => {
+                        const maneuvering = matchTargetSpeed(time, harness.shipState, XY.zero);
+                        p?.addtoLine('boost', maneuvering.boost);
+                        harness.shipMgr.setBoost(maneuvering.boost);
+                    };
+                    harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                    harness.annotateGraph('test velocity');
+                    expect(harness.shipObj.velocity.x, 'velocity').to.be.closeTo(0, metrics.errorMargin);
+                    harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                    expect(harness.shipObj.velocity.x, 'velocity after stabling').to.be.closeTo(
+                        0,
+                        metrics.logErrorMargin
+                    );
+                })
+            );
+        });
+        it('acheives target location in a reasonable time from 0 speed', () => {
+            fc.assert(
+                fc.property(
+                    xy(1000),
+                    fc.integer(15, 20),
+                    floatIn(180),
+                    (from: XY, iterationsPerSecond: number, angle: number) => {
+                        const harness = new ShipTestHarness();
+                        harness.shipObj.angle = angle;
+                        harness.shipObj.velocity = Vec2.make(from);
+                        const metrics = new SpeedTestMetrics(
+                            iterationsPerSecond,
+                            XY.lengthOf(from),
+                            harness.shipState.movementCapacity
+                        );
+                        harness.initGraph(
+                            {
+                                velocityX: () => harness.shipState.velocity.x,
+                                velocityY: () => harness.shipState.velocity.x,
+                            },
+                            ['boost', 'strafe']
+                        );
+                        const iteration = (time: number, p?: GraphPointInput) => {
+                            const maneuvering = matchTargetSpeed(time, harness.shipState, XY.zero);
+                            p?.addtoLine('boost', maneuvering.boost);
+                            p?.addtoLine('strafe', maneuvering.strafe);
+                            harness.shipMgr.setBoost(maneuvering.boost);
+                            harness.shipMgr.setStrafe(maneuvering.strafe);
+                        };
+                        harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                        harness.annotateGraph('test velocity');
+                        expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.be.closeTo(0, metrics.errorMargin);
+                        harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                        expect(XY.lengthOf(harness.shipObj.velocity), 'velocity after stabling').to.be.closeTo(
+                            0,
+                            metrics.logErrorMargin
+                        );
+                    }
+                )
+            );
+        });
+    });
     describe('moveToTarget', () => {
         it('(boost only) reach target in good time from 0 speed', () => {
             fc.assert(
@@ -111,30 +186,35 @@ describe('helm assist', function () {
                 })
             );
         });
-
         it('acheives target location in a reasonable time from 0 speed', () => {
             fc.assert(
-                fc.property(xy(2000, 100), fc.integer(15, 20), (from: XY, iterationsPerSecond: number) => {
-                    const harness = new ShipTestHarness();
-                    harness.shipObj.position = Vec2.make(from);
-                    const metrics = new MovementTestMetrics(
-                        iterationsPerSecond,
-                        XY.lengthOf(from),
-                        harness.shipState.movementCapacity
-                    );
-                    const iteration = (time: number) => {
-                        const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
-                        harness.shipMgr.setBoost(maneuvering.boost);
-                        harness.shipMgr.setStrafe(maneuvering.strafe);
-                    };
-                    harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
-                    expect(XY.lengthOf(harness.shipObj.position)).to.be.closeTo(0, metrics.errorMargin);
-                    harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
-                    expect(XY.lengthOf(harness.shipObj.position), 'position after stabling').to.be.closeTo(
-                        0,
-                        metrics.logErrorMargin
-                    );
-                })
+                fc.property(
+                    xy(2000, 100),
+                    fc.integer(15, 20),
+                    floatIn(180),
+                    (from: XY, iterationsPerSecond: number, angle: number) => {
+                        const harness = new ShipTestHarness();
+                        harness.shipObj.angle = angle;
+                        harness.shipObj.position = Vec2.make(from);
+                        const metrics = new MovementTestMetrics(
+                            iterationsPerSecond,
+                            XY.lengthOf(from),
+                            harness.shipState.movementCapacity
+                        );
+                        const iteration = (time: number) => {
+                            const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
+                            harness.shipMgr.setBoost(maneuvering.boost);
+                            harness.shipMgr.setStrafe(maneuvering.strafe);
+                        };
+                        harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                        expect(XY.lengthOf(harness.shipObj.position)).to.be.closeTo(0, metrics.errorMargin);
+                        harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                        expect(XY.lengthOf(harness.shipObj.position), 'position after stabling').to.be.closeTo(
+                            0,
+                            metrics.logErrorMargin
+                        );
+                    }
+                )
             );
         });
     });

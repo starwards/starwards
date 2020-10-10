@@ -30,15 +30,6 @@ export function capToRange(from: number, to: number, value: number) {
 export function isInRange(from: number, to: number, value: number) {
     return value < to && value > from;
 }
-
-export function capToMagnitude(base: number, order: number, value: number) {
-    const fraction = order / 100;
-    const absLow = base / order;
-    const absHigh = base * order;
-    return base > 0
-        ? capToRange(absLow - fraction, absHigh + fraction, value)
-        : capToRange(absHigh - fraction, absLow + fraction, value);
-}
 /**
  *  generate a random number with a given mean and standard deviation
  */
@@ -52,6 +43,12 @@ export function addScale(orig: XY, deriv: XY, time: number) {
 // x(t)=x0+v0t+(at^2)/2
 export function equasionOfMotion(x0: number, v0: number, a: number, t: number) {
     return x0 + v0 * t + (a / 2) * t * t;
+}
+export function timeToReachDistanceByAcceleration(x: number, a: number) {
+    return 2 * Math.sqrt(x / a);
+}
+export function timeToReachVelocityByAcceleration(v: number, a: number) {
+    return v / a;
 }
 
 export function whenWillItStop(v0: number, a: number) {

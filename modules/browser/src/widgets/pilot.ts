@@ -40,7 +40,7 @@ function pilotComponent(container: Container, p: Props) {
         const loop = new Loop((deltaSeconds: number) => {
             const target = getTarget(shipRoom.state, spaceRoom.state);
             if (matchSpeed === OnOffStatus.ON) {
-                const command = target && matchTargetSpeed(deltaSeconds, shipRoom.state, target);
+                const command = target && matchTargetSpeed(deltaSeconds, shipRoom.state, target.velocity);
                 if (command) {
                     shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
                     shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });

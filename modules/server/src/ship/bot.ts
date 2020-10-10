@@ -27,7 +27,7 @@ function tailTarget(shipManager: ShipManager, target: SpaceObject, hitLocation: 
     const killRadius = getKillZoneRadius(ship);
     if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
         // if close enough to target, tail it
-        const maneuvering = matchTargetSpeed(deltaSeconds, ship, target);
+        const maneuvering = matchTargetSpeed(deltaSeconds, ship, target.velocity);
         shipManager.setBoost(maneuvering.boost);
         shipManager.setStrafe(maneuvering.strafe);
     } else {
