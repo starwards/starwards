@@ -1,6 +1,6 @@
 import {
     calcShellSecondsToLive,
-    getKillZoneRadius,
+    getKillZoneRadiusRange,
     getShellAimVelocityCompensation,
     getTarget,
     isInRange,
@@ -24,7 +24,7 @@ function tailTarget(shipManager: ShipManager, target: SpaceObject, hitLocation: 
     shipManager.setRotation(rotation);
     const shipToTarget = XY.difference(hitLocation, ship.position);
     const distanceToTarget = XY.lengthOf(shipToTarget);
-    const killRadius = getKillZoneRadius(ship);
+    const killRadius = getKillZoneRadiusRange(ship);
     if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
         // if close enough to target, tail it
         const maneuvering = matchTargetSpeed(deltaSeconds, ship, target.velocity);
