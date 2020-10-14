@@ -1,12 +1,12 @@
 import '@maulingmonkey/gamepad';
 import {
-    TargetedStatus,
-    XY,
     capToRange,
     getTarget,
     matchTargetSpeed,
-    calcRotationForTargetDirection,
+    rotateToTarget,
     rotationFromTargetTurnSpeed,
+    TargetedStatus,
+    XY,
 } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
@@ -37,26 +37,26 @@ function pilotComponent(container: Container, p: Props) {
 
         let targetTurnSpeed = 0;
 
-        const loop = new Loop((delta: number) => {
+        const loop = new Loop((deltaSeconds: number) => {
             const target = getTarget(shipRoom.state, spaceRoom.state);
             if (matchSpeed === OnOffStatus.ON) {
-                const command = target && matchTargetSpeed(delta, shipRoom.state, target);
+                const command = target && matchTargetSpeed(deltaSeconds, shipRoom.state, target.velocity);
                 if (command) {
-                    shipRoom.send('setStrafe', { value: capToRange(-5, 5, command.strafe) });
-                    shipRoom.send('setBoost', { value: capToRange(-5, 5, command.boost) });
+                    shipRoom.send('setStrafe', { value: capToRange(-1, 1, command.strafe) });
+                    shipRoom.send('setBoost', { value: capToRange(-1, 1, command.boost) });
                 } else {
                     matchSpeed = OnOffStatus.OFF;
                 }
             }
             if (matchHeading === OnOffStatus.ON) {
-                const command = target && calcRotationForTargetDirection(shipRoom.state, target.position);
+                const command = target && rotateToTarget(deltaSeconds, shipRoom.state, target.position);
                 if (typeof command === 'number') {
                     shipRoom.send('setRotation', { value: command });
                 } else {
                     matchHeading = OnOffStatus.OFF;
                 }
             } else {
-                const command = rotationFromTargetTurnSpeed(shipRoom.state, targetTurnSpeed);
+                const command = rotationFromTargetTurnSpeed(deltaSeconds, shipRoom.state, targetTurnSpeed);
                 if (shipRoom.state.rotation !== command) {
                     shipRoom.send('setRotation', { value: command });
                 }
@@ -98,23 +98,11 @@ function pilotComponent(container: Container, p: Props) {
         );
         panel.addProperty('rotation', () => shipRoom.state.rotation, [-1, 1]);
         panel.addProperty(
-            'impulse',
-            () => shipRoom.state.impulse,
-            [0, 5],
-            (value) => {
-                shipRoom.send('setImpulse', { value });
-            },
-            {
-                gamepadIndex: 0,
-                buttonIndex: 6,
-            }
-        );
-        panel.addProperty(
             'antiDrift',
             () => shipRoom.state.antiDrift,
             [0, 1],
             (value) => {
-                shipRoom.send('setAntiDrift', { value });
+                shipRoom.send('setAntiDrift', { value: value });
             },
             {
                 gamepadIndex: 0,
@@ -126,7 +114,7 @@ function pilotComponent(container: Container, p: Props) {
             () => shipRoom.state.breaks,
             [0, 1],
             (value) => {
-                shipRoom.send('setBreaks', { value });
+                shipRoom.send('setBreaks', { value: value });
             },
             {
                 gamepadIndex: 0,
@@ -136,9 +124,9 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty(
             'strafe',
             () => shipRoom.state.strafe,
-            [-5, 5],
+            [-1, 1],
             (value) => {
-                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setStrafe', { value });
+                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setStrafe', { value: value });
             },
             {
                 gamepadIndex: 0,
@@ -149,9 +137,9 @@ function pilotComponent(container: Container, p: Props) {
         panel.addProperty(
             'boost',
             () => shipRoom.state.boost,
-            [-5, 5],
+            [-1, 1],
             (value) => {
-                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setBoost', { value });
+                if (matchSpeed === OnOffStatus.OFF) shipRoom.send('setBoost', { value: value });
             },
             {
                 gamepadIndex: 0,
@@ -160,7 +148,7 @@ function pilotComponent(container: Container, p: Props) {
                 inverted: true,
             }
         );
-        panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-180, 180]);
+        panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-90, 90]);
         panel.addProperty('angle', () => shipRoom.state.angle, [0, 360]);
         panel.addProperty('speed direction', () => XY.angleOf(shipRoom.state.velocity), [0, 360]);
         panel.addProperty('speed', () => XY.lengthOf(shipRoom.state.velocity), [0, 1000]);

@@ -197,6 +197,10 @@ export class Vec2 extends Schema implements XY {
         return limitPercision(x * x + y * y);
     }
 
+    public static make(vector: XY): Vec2 {
+        return new Vec2(vector.x, vector.y);
+    }
+
     @type('float32')
     public x = 0;
 

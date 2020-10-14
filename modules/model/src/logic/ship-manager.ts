@@ -12,7 +12,7 @@ import {
     XY,
 } from '@starwards/model';
 import { uniqueId } from '../id';
-import { SpaceManager } from '../space/space-manager';
+import { SpaceManager } from './space-manager';
 import { Bot } from '../../../server/src/ship/bot';
 
 export class ShipManager {
@@ -22,22 +22,20 @@ export class ShipManager {
     constructor(
         public spaceObject: Spaceship,
         private spaceManager: SpaceManager,
-        private ships: Map<string, ShipManager>,
-        private onDestroy: () => void
+        private ships?: Map<string, ShipManager>,
+        private onDestroy?: () => void
     ) {
         this.state.id = this.spaceObject.id;
         this.state.constants = new MapSchema<number>();
         this.state.constants.energyPerSecond = 5;
         this.state.constants.maxEnergy = 1000;
-        this.state.constants.maneuveringCapacity = 150;
+        this.state.constants.maneuveringCapacity = 40;
         this.state.constants.maneuveringEnergyCost = 0.07;
         this.state.constants.antiDriftEffectFactor = 1;
         this.state.constants.breaksEffectFactor = 1;
-        this.state.constants.rotationEffectFactor = 0.75;
+        this.state.constants.rotationEffectFactor = 0.9;
         this.state.constants.strafeEffectFactor = 0.7;
         this.state.constants.boostEffectFactor = 0.7;
-        this.state.constants.impulseEnergyCost = 0.3;
-        this.state.constants.impulseEffectFactor = 4;
         this.state.chainGun = new ChainGun();
         this.state.chainGun.constants = new MapSchema<number>();
         this.state.chainGun.constants.bulletsPerSecond = 20;
@@ -52,16 +50,12 @@ export class ShipManager {
         this.setShellSecondsToLive(10);
     }
 
-    public setImpulse(value: number) {
-        this.state.impulse = value;
-    }
-
     public setStrafe(value: number) {
-        this.state.strafe = capToRange(-5, 5, value);
+        this.state.strafe = capToRange(-1, 1, value);
     }
 
     public setBoost(value: number) {
-        this.state.boost = capToRange(-5, 5, value);
+        this.state.boost = capToRange(-1, 1, value);
     }
 
     public setRotation(value: number) {
@@ -69,11 +63,11 @@ export class ShipManager {
     }
 
     public setAntiDrift(value: number) {
-        this.state.antiDrift = value;
+        this.state.antiDrift = capToRange(-1, 1, value);
     }
 
     public setBreaks(value: number) {
-        this.state.breaks = value;
+        this.state.breaks = capToRange(-1, 1, value);
     }
     public setTarget(id: string | null) {
         this.state.targetId = id;
@@ -102,7 +96,7 @@ export class ShipManager {
 
     update(deltaSeconds: number) {
         if (this.spaceObject.health <= 0) {
-            this.onDestroy();
+            this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
                 this.bot(this.spaceManager.state, this, deltaSeconds);
@@ -112,12 +106,11 @@ export class ShipManager {
             // sync relevant ship props
             this.syncShipProperties();
             this.updateEnergy(deltaSeconds);
-            this.updateTurnSpeed(deltaSeconds);
+            this.updateRotation(deltaSeconds);
             this.updateBoost(deltaSeconds);
             this.updateStrafe(deltaSeconds);
             this.updateAntiDrift(deltaSeconds);
             this.updateBreaks(deltaSeconds);
-            this.updateImpulse(deltaSeconds);
             this.updateChainGun(deltaSeconds);
             this.fireChainGun();
         }
@@ -125,14 +118,16 @@ export class ShipManager {
 
     private calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
-        for (const shipManager of this.ships.values()) {
-            if (shipManager.state.targetId === this.state.id) {
-                if (shipManager.state.chainGun.isFiring) {
-                    status = TargetedStatus.FIRED_UPON;
-                    break; // no need to look further
-                }
-                if (status === TargetedStatus.NONE) {
-                    status = TargetedStatus.LOCKED;
+        if (this.ships) {
+            for (const shipManager of this.ships.values()) {
+                if (shipManager.state.targetId === this.state.id) {
+                    if (shipManager.state.chainGun.isFiring) {
+                        status = TargetedStatus.FIRED_UPON;
+                        break; // no need to look further
+                    }
+                    if (status === TargetedStatus.NONE) {
+                        status = TargetedStatus.LOCKED;
+                    }
                 }
             }
         }
@@ -219,24 +214,6 @@ export class ShipManager {
         }
     }
 
-    private updateImpulse(deltaSeconds: number) {
-        if (this.state.impulse) {
-            if (
-                this.trySpendEnergy(
-                    Math.abs(this.state.impulse) * deltaSeconds * this.state.constants.impulseEnergyCost
-                )
-            ) {
-                this.spaceManager.ChangeVelocity(
-                    this.spaceObject.id,
-                    XY.rotate(
-                        { x: this.state.impulse * deltaSeconds * this.state.constants.impulseEffectFactor, y: 0 },
-                        this.spaceObject.angle
-                    )
-                );
-            }
-        }
-    }
-
     private updateAntiDrift(deltaSeconds: number) {
         if (this.state.antiDrift) {
             const driftVelocity = XY.projection(
@@ -245,11 +222,10 @@ export class ShipManager {
             );
             const diffLenfth = XY.lengthOf(driftVelocity);
             if (diffLenfth) {
-                const enginePower = capToRange(
-                    -this.state.maneuveringCapacity * deltaSeconds,
-                    this.state.maneuveringCapacity * deltaSeconds,
-                    diffLenfth * this.state.antiDrift
-                );
+                const enginePower =
+                    this.state.breaks *
+                    capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, diffLenfth) *
+                    deltaSeconds;
 
                 if (this.trySpendEnergy(enginePower * this.state.constants.maneuveringEnergyCost)) {
                     this.spaceManager.ChangeVelocity(
@@ -267,11 +243,10 @@ export class ShipManager {
     private updateBreaks(deltaSeconds: number) {
         if (this.state.breaks && !XY.isZero(this.spaceObject.velocity)) {
             const velocityLength = XY.lengthOf(this.spaceObject.velocity);
-            const enginePower = capToRange(
-                -this.state.maneuveringCapacity * deltaSeconds,
-                this.state.maneuveringCapacity * deltaSeconds,
-                velocityLength * this.state.breaks
-            );
+            const enginePower =
+                this.state.breaks *
+                capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, velocityLength) *
+                deltaSeconds;
 
             if (this.trySpendEnergy(enginePower * this.state.constants.maneuveringEnergyCost)) {
                 this.spaceManager.ChangeVelocity(
@@ -287,11 +262,7 @@ export class ShipManager {
 
     private updateStrafe(deltaSeconds: number) {
         if (this.state.strafe) {
-            const enginePower = capToRange(
-                -this.state.maneuveringCapacity * deltaSeconds,
-                this.state.maneuveringCapacity * deltaSeconds,
-                this.state.strafe
-            );
+            const enginePower = this.state.strafe * this.state.maneuveringCapacity * deltaSeconds;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
                 this.spaceManager.ChangeVelocity(
                     this.spaceObject.id,
@@ -306,11 +277,7 @@ export class ShipManager {
 
     private updateBoost(deltaSeconds: number) {
         if (this.state.boost) {
-            const enginePower = capToRange(
-                -this.state.maneuveringCapacity * deltaSeconds,
-                this.state.maneuveringCapacity * deltaSeconds,
-                this.state.boost
-            );
+            const enginePower = this.state.boost * this.state.maneuveringCapacity * deltaSeconds;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
                 this.spaceManager.ChangeVelocity(
                     this.spaceObject.id,
@@ -323,10 +290,10 @@ export class ShipManager {
         }
     }
 
-    private updateTurnSpeed(deltaSeconds: number) {
+    private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
             const enginePower = this.state.rotation * this.state.maneuveringCapacity * deltaSeconds;
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.constants.maneuveringEnergyCost)) {
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
                 this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, enginePower * this.state.rotationEffectFactor);
             }
         }

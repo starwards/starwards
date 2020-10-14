@@ -18,7 +18,7 @@ export class SpaceRoom extends Room<SpaceState> {
     public onCreate({ manager }: { manager: SpaceManager }) {
         this.roomId = SpaceRoom.id;
         this.setState(manager.state);
-        this.setSimulationInterval((deltaTime) => manager.update(deltaTime));
+        this.setSimulationInterval((deltaTime) => manager.update(deltaTime / 1000));
         this.onMessage('moveObjects', (_, msg: SpaceCommands['moveObjects']) =>
             manager.moveObjects(msg.ids, msg.delta)
         );

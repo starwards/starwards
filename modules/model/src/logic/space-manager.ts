@@ -43,8 +43,7 @@ export class SpaceManager {
         }
     }
 
-    public update(deltaMs: number) {
-        const deltaSeconds = deltaMs / 1000;
+    public update(deltaSeconds: number) {
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.untrackDestroyedObjects();

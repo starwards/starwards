@@ -13,6 +13,8 @@ export function predictHitLocation(ship: ShipState, target: SpaceObject, targetA
     );
     let time = 0;
     let targetPos: XY = target.position;
+    // this loop refines the time it will take for a bullet to reach the target
+    // and from that it estimates when the target will be at the time of impact
     for (let i = 0; i < maxIterations; i++) {
         const distance = Math.max(XY.lengthOf(XY.difference(targetPos, ship.position)), 1);
         if (!isFinite(distance) || !Number.isSafeInteger(Math.trunc(distance))) {
@@ -31,7 +33,7 @@ export function predictHitLocation(ship: ShipState, target: SpaceObject, targetA
     return targetPos;
 }
 
-export function getKillZoneRadius(ship: ShipState): [number, number] {
+export function getKillZoneRadiusRange(ship: ShipState): [number, number] {
     const shellExplosionDistance = ship.chainGun.shellSecondsToLive * ship.chainGun.bulletSpeed;
     const explosionRadius = ship.chainGun.explosionSecondsToLive * ship.chainGun.explosionExpansionSpeed;
     return [shellExplosionDistance - 3.0 * explosionRadius, shellExplosionDistance + 3.0 * explosionRadius];

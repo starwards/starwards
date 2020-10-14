@@ -108,6 +108,9 @@ export class PropertyPanel implements Panel {
     ) {
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name, ...range);
+        if (range[1] === 1) {
+            guiController.step(0.01);
+        }
         this.modelEvents.on(name, () => {
             viewModel[name] = getValue();
             guiController.updateDisplay();

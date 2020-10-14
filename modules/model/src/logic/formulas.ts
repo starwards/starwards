@@ -2,14 +2,16 @@ import { XY } from './xy';
 
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 /**
- * translate drgrees to value between [-180, 180]
+ * normalize drgrees to value between (-180, 180]
  */
 export function toDegreesDelta(degrees: number) {
     const deg = degrees % 360;
-    if (isInRange(-180, 180, deg)) {
-        return deg;
+    if (deg <= -180) {
+        return deg + 360;
+    } else if (deg > 180) {
+        return deg - 360;
     } else {
-        return 180 - (deg % 360);
+        return deg;
     }
 }
 
@@ -28,15 +30,6 @@ export function capToRange(from: number, to: number, value: number) {
 export function isInRange(from: number, to: number, value: number) {
     return value < to && value > from;
 }
-
-export function capToMagnitude(base: number, order: number, value: number) {
-    const fraction = order / 100;
-    const absLow = base / order;
-    const absHigh = base * order;
-    return base > 0
-        ? capToRange(absLow - fraction, absHigh + fraction, value)
-        : capToRange(absHigh - fraction, absLow + fraction, value);
-}
 /**
  *  generate a random number with a given mean and standard deviation
  */
@@ -50,6 +43,12 @@ export function addScale(orig: XY, deriv: XY, time: number) {
 // x(t)=x0+v0t+(at^2)/2
 export function equasionOfMotion(x0: number, v0: number, a: number, t: number) {
     return x0 + v0 * t + (a / 2) * t * t;
+}
+export function timeToReachDistanceByAcceleration(x: number, a: number) {
+    return 2 * Math.sqrt(x / a);
+}
+export function timeToReachVelocityByAcceleration(v: number, a: number) {
+    return v / a;
 }
 
 export function whenWillItStop(v0: number, a: number) {
@@ -67,7 +66,7 @@ export function whereWillItStop(x0: number, v0: number, a: number) {
 }
 
 export function limitPercision(num: number) {
-    return Math.trunc(num * 1e3) / 1e3;
+    return Math.round(num * 1e3) / 1e3;
 }
 
 export type Sign = 1 | -1 | 0;

@@ -1,45 +1,45 @@
 import {
     calcShellSecondsToLive,
-    getKillZoneRadius,
+    getKillZoneRadiusRange,
     getShellAimVelocityCompensation,
     getTarget,
     isInRange,
     isTargetInKillZone,
-    calcRotationForTargetDirection,
     matchTargetSpeed,
     moveToTarget,
     predictHitLocation,
+    rotateToTarget,
+    ShipManager,
     SpaceObject,
     SpaceState,
     XY,
 } from '@starwards/model';
-import { ShipManager } from '../../../model/src/ship/ship-manager';
 
 export type Bot = (spaceState: SpaceState, shipManager: ShipManager, deltaSeconds: number) => void;
 
 function tailTarget(shipManager: ShipManager, target: SpaceObject, hitLocation: XY, deltaSeconds: number) {
     const ship = shipManager.state;
     shipManager.setShellSecondsToLive(calcShellSecondsToLive(ship, hitLocation));
-    const rotation = calcRotationForTargetDirection(ship, XY.add(hitLocation, getShellAimVelocityCompensation(ship)));
+    const rotation = rotateToTarget(deltaSeconds, ship, XY.add(hitLocation, getShellAimVelocityCompensation(ship)));
     shipManager.setRotation(rotation);
     const shipToTarget = XY.difference(hitLocation, ship.position);
     const distanceToTarget = XY.lengthOf(shipToTarget);
-    const killRadius = getKillZoneRadius(ship);
+    const killRadius = getKillZoneRadiusRange(ship);
     if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
         // if close enough to target, tail it
-        const maneuvering = matchTargetSpeed(deltaSeconds, ship, target);
+        const maneuvering = matchTargetSpeed(deltaSeconds, ship, target.velocity);
         shipManager.setBoost(maneuvering.boost);
         shipManager.setStrafe(maneuvering.strafe);
     } else {
-        const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation, 100);
+        const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
         // close distance to target
         if (distanceToTarget > killRadius[1]) {
             shipManager.setBoost(maneuvering.boost);
             shipManager.setStrafe(maneuvering.strafe);
         } else {
             // distanceToTarget < killRadius[0]
-            shipManager.setBoost(maneuvering.boost);
-            shipManager.setStrafe(maneuvering.strafe);
+            shipManager.setBoost(-maneuvering.boost);
+            shipManager.setStrafe(-maneuvering.strafe);
         }
     }
 }

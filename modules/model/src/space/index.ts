@@ -11,7 +11,6 @@ export interface SpaceObjects {
 
 export type SpaceObject = SpaceObjects[keyof SpaceObjects];
 
-export * from './space-manager';
 export * from './asteroid';
 export * from './space-object-base';
 export * from './spaceship';
