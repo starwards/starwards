@@ -13,7 +13,7 @@ import {
 } from '@starwards/model';
 import { uniqueId } from '../id';
 import { SpaceManager } from './space-manager';
-import { Bot } from '../../../server/src/ship/bot';
+import { Bot } from './bot';
 
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
@@ -99,7 +99,7 @@ export class ShipManager {
             this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
-                this.bot(this.spaceManager.state, this, deltaSeconds);
+                this.bot(deltaSeconds, this.spaceManager.state, this);
             }
             this.validateTargetId();
             this.calcTargetedStatus();
