@@ -4,10 +4,21 @@ import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
 
-export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number, deltaSeconds: number) {
-    const maxTurnSpeedInTime = deltaSeconds * ship.rotationCapacity;
-    const turnSpeedDiff = capToRange(-maxTurnSpeedInTime, maxTurnSpeedInTime, targetTurnSpeed - ship.turnSpeed);
-    return lerp([-maxTurnSpeedInTime, maxTurnSpeedInTime], [-1, 1], turnSpeedDiff);
+export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipState, targetTurnSpeed: number) {
+    return accelerateToSpeed(deltaSeconds, ship.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
+}
+
+export function matchTargetSpeed(
+    deltaSeconds: number,
+    ship: ShipState,
+    targetVelocity: XY,
+    _log?: (s: string) => unknown
+): ManeuveringCommand {
+    const relTargetSpeed = ship.globalToLocal(XY.difference(targetVelocity, ship.velocity));
+    return {
+        strafe: accelerateToSpeed(deltaSeconds, ship.strafeCapacity, relTargetSpeed.y),
+        boost: accelerateToSpeed(deltaSeconds, ship.boostCapacity, relTargetSpeed.x),
+    };
 }
 
 export function moveToTarget(
@@ -16,26 +27,12 @@ export function moveToTarget(
     targetPos: XY,
     log?: (s: string) => unknown
 ): ManeuveringCommand {
-    const posDiff = calcTargetPositionDiff(ship, deltaSeconds, targetPos); // TODO cap to range maxMovementInTime
+    const posDiff = calcTargetPositionDiff(deltaSeconds, ship, targetPos); // TODO cap to range maxMovementInTime
     const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
     return {
-        strafe: accelerateToTarget(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
-        boost: accelerateToTarget(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x, log),
+        strafe: accelerateToPosition(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
+        boost: accelerateToPosition(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x, log),
     };
-}
-
-function calcTargetPositionDiff(ship: ShipState, deltaSeconds: number, targetPos: XY) {
-    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
-    const posDiff = XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
-    return posDiff;
-}
-
-function calcTargetAngleDiff(ship: ShipState, deltaSeconds: number, targetPos: XY) {
-    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
-    const estimatedAngle = ship.turnSpeed * deltaSeconds + ship.angle;
-    const targetAngle = XY.angleOf(XY.difference(targetPos, estimatedLocation));
-    const angleDiff = toDegreesDelta(targetAngle - estimatedAngle);
-    return angleDiff;
 }
 
 export function rotateToTarget(
@@ -44,13 +41,24 @@ export function rotateToTarget(
     targetPos: XY,
     log?: (s: string) => unknown
 ): number {
-    const angleDiff = calcTargetAngleDiff(ship, deltaSeconds, targetPos);
-    const rotation = accelerateToTarget(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff, log);
-    return rotation;
+    const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
+    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff, log);
+}
+
+function calcTargetPositionDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
+    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
+    return XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
+}
+
+function calcTargetAngleDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
+    const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
+    const estimatedAngle = ship.turnSpeed * deltaSeconds + ship.angle;
+    const targetAngle = XY.angleOf(XY.difference(targetPos, estimatedLocation));
+    return toDegreesDelta(targetAngle - estimatedAngle);
 }
 
 // result is normalized [-1, 1]
-function accelerateToTarget(
+function accelerateToPosition(
     deltaSeconds: number,
     capacity: number,
     velocity: number,
@@ -68,14 +76,13 @@ function accelerateToTarget(
     const pinPointRange = equasionOfMotion(0, 0, capacity, deltaSeconds * pinpointIterationsPredict);
     const closeToStopPosition = stopDistance < pinPointRange;
     if (closeToStopPosition) {
-        const closeToTarget = targetDistance < pinPointRange;
         const soonReachTarget = targetDistance < deltaSeconds * absVelocity * pinpointIterationsPredict;
         if (soonReachTarget) {
             const maxMovementInTime = deltaSeconds * maxAccelerationInTime;
             log && log('soft-break');
             return capToRange(-1, 1, lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], -relStopPosition));
         }
-        if (closeToTarget) {
+        if (targetDistance < pinPointRange) {
             log && log('pin-point');
             return capToRange(-0.5, 0.5, lerp([-pinPointRange, pinPointRange], [-0.5, 0.5], relTargetPosition));
         }
@@ -91,19 +98,7 @@ function accelerateToTarget(
     return sign(relTargetPosition);
 }
 
-export function matchTargetSpeed(
-    deltaSeconds: number,
-    ship: ShipState,
-    targetVelocity: XY,
-    _log?: (s: string) => unknown
-): ManeuveringCommand {
-    const relTargetSpeed = ship.globalToLocal(XY.difference(targetVelocity, ship.velocity));
-    return {
-        strafe: accelerateToSpeed(deltaSeconds, ship.strafeCapacity, relTargetSpeed.y),
-        boost: accelerateToSpeed(deltaSeconds, ship.boostCapacity, relTargetSpeed.x),
-    };
-}
-
+// result is normalized [-1, 1]
 function accelerateToSpeed(deltaSeconds: number, capacity: number, relTargetSpeed: number) {
     const maxAccelerationInTime = deltaSeconds * capacity;
     return capToRange(-1, 1, lerp([-maxAccelerationInTime, maxAccelerationInTime], [-1, 1], relTargetSpeed));

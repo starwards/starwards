@@ -56,7 +56,7 @@ function pilotComponent(container: Container, p: Props) {
                     matchHeading = OnOffStatus.OFF;
                 }
             } else {
-                const command = rotationFromTargetTurnSpeed(shipRoom.state, targetTurnSpeed, deltaSeconds);
+                const command = rotationFromTargetTurnSpeed(deltaSeconds, shipRoom.state, targetTurnSpeed);
                 if (shipRoom.state.rotation !== command) {
                     shipRoom.send('setRotation', { value: command });
                 }
