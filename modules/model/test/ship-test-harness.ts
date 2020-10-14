@@ -1,5 +1,6 @@
 import 'mocha';
 import {
+    limitPercision,
     ShipManager,
     SpaceManager,
     Spaceship,
@@ -15,10 +16,10 @@ abstract class AbsTestMetrics {
         return Math.floor(this.timeToReach * this.iterationsPerSecond);
     }
     get errorMargin() {
-        return Math.max(1, this.distance / this.iterations);
+        return Math.max(1, limitPercision(this.distance / this.iterations));
     }
     get logErrorMargin() {
-        return Math.max(1, Math.log(this.distance / this.iterations));
+        return Math.max(1, limitPercision(Math.log(this.distance / this.iterations)));
     }
 }
 
