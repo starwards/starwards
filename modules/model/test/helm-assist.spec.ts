@@ -59,20 +59,20 @@ describe('helm assist', function () {
     });
     describe('rotationFromTargetTurnSpeed', () => {
         it('acheives target turnSpeed in a reasonable time', () => {
-            const MIN_GRACE = 0.01;
-            const MIN_TIME = 1;
             fc.assert(
-                fc.property(floatIn(2000), fc.integer(10, 100), (turnSpeed: number, iterations: number) => {
+                fc.property(floatIn(1000), fc.integer(15, 20), (turnSpeed: number, iterationsPerSecond: number) => {
                     const harness = new ShipTestHarness();
-                    const turnSpeedDiff = Math.abs(turnSpeed);
-                    const errorMargin = Math.max(MIN_GRACE, turnSpeedDiff / Math.sqrt(iterations));
-                    const timeToReach = Math.max(MIN_TIME, turnSpeedDiff / harness.shipState.rotationCapacity);
+                    const metrics = new SpeedTestMetrics(
+                        iterationsPerSecond,
+                        Math.abs(turnSpeed),
+                        harness.shipState.rotationCapacity
+                    );
                     harness.shipObj.turnSpeed = turnSpeed;
-                    harness.simulate(timeToReach, iterations, (time: number) => {
+                    harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
                         const rotation = rotationFromTargetTurnSpeed(harness.shipState, 0, time);
                         harness.shipMgr.setRotation(rotation);
                     });
-                    expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, errorMargin);
+                    expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.logErrorMargin);
                 })
             );
         });

@@ -7,12 +7,7 @@ export type ManeuveringCommand = { strafe: number; boost: number };
 export function rotationFromTargetTurnSpeed(ship: ShipState, targetTurnSpeed: number, deltaSeconds: number) {
     const maxTurnSpeedInTime = deltaSeconds * ship.rotationCapacity;
     const turnSpeedDiff = capToRange(-maxTurnSpeedInTime, maxTurnSpeedInTime, targetTurnSpeed - ship.turnSpeed);
-    if (Math.abs(turnSpeedDiff) < ship.rotationCapacity / 2) {
-        // TODO: generalize the " / 2" magic number
-        return lerp([-maxTurnSpeedInTime, maxTurnSpeedInTime], [-1, 1], turnSpeedDiff);
-    } else {
-        return sign(turnSpeedDiff);
-    }
+    return lerp([-maxTurnSpeedInTime, maxTurnSpeedInTime], [-1, 1], turnSpeedDiff);
 }
 
 export function moveToTarget(
