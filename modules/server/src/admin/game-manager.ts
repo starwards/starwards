@@ -32,14 +32,12 @@ export class GameManager {
             this.adminState.isGameRunning = true;
             this.spaceManager = new SpaceManager();
             this.addShip(this.spaceManager, 'A');
-            this.addShip(this.spaceManager, 'B');
+            const bManager = this.addShip(this.spaceManager, 'B');
             this.spaceManager.forceFlushEntities();
-            const aManager = this.ships.get('A');
-            if (aManager) {
-                aManager.setTarget('B');
-                aManager.bot = terminator();
-            }
-            const bManager = this.ships.get('B');
+            // if (aManager) {
+            //     aManager.setTarget('B');
+            //     aManager.bot = terminator();
+            // }
             if (bManager) {
                 bManager.setTarget('A');
                 bManager.bot = terminator();
@@ -61,5 +59,6 @@ export class GameManager {
         this.ships.set(id, shipManager);
         void matchMaker.createRoom('ship', { manager: shipManager });
         spaceManager.insert(ship);
+        return shipManager;
     }
 }
