@@ -19,7 +19,7 @@ describe('helm assist', function () {
     this.timeout(60 * 1000);
     describe('rotateToTarget', () => {
         const target = XY.byLengthAndDirection(100, 0); // always aim at (100, 0), meaning target angle is 0
-        it('acheives target direction in a reasonable time', () => {
+        it('basic scenario acheives target direction in a reasonable time', () => {
             fc.assert(
                 fc.property(
                     floatIn(180, 30),
@@ -40,7 +40,7 @@ describe('helm assist', function () {
                             ['rotation']
                         );
                         const iteration = (time: number, p?: GraphPointInput) => {
-                            const rotation = rotateToTarget(time, harness.shipState, target, p?.annotate);
+                            const rotation = rotateToTarget(time, harness.shipState, target, 0, p?.annotate);
                             p?.addtoLine('rotation', rotation);
                             harness.shipMgr.setRotation(rotation);
                         };

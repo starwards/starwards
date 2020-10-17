@@ -39,10 +39,11 @@ export function rotateToTarget(
     deltaSeconds: number,
     ship: ShipState,
     targetPos: XY,
+    offset: number,
     log?: (s: string) => unknown
 ): number {
     const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
-    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff, log);
+    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff + offset, log);
 }
 
 function calcTargetPositionDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
