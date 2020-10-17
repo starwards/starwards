@@ -30,7 +30,8 @@ export function jouster(): Bot {
             const rotation = rotateToTarget(
                 deltaSeconds,
                 ship,
-                XY.add(hitLocation, getShellAimVelocityCompensation(ship))
+                XY.add(hitLocation, getShellAimVelocityCompensation(ship)),
+                0
             );
             shipManager.setRotation(rotation);
             const shipToTarget = XY.difference(hitLocation, ship.position);
