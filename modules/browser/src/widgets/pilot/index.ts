@@ -1,38 +1,32 @@
 import '@maulingmonkey/gamepad';
-import { capToRange, getTarget, matchTargetSpeed, TargetedStatus, XY } from '@starwards/model';
+import { getTarget, TargetedStatus, XY } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { getGlobalRoom, getShipRoom } from '../../client';
 import { Loop } from '../../loop';
 import { PropertyPanel } from '../../property-panel';
-import { StatesToggle } from '../../states-toggle';
 import { DashboardWidget } from '../dashboard';
+import { ManeuveringComponent } from './maneuvering';
 import { RotationComponent } from './rotation';
 
 function pilotComponent(container: Container, p: Props) {
     void (async () => {
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
         const viewModelChanges = new EventEmitter();
-        const maneuveringState = new StatesToggle('ENGINE', 'TARGET');
-        const headingComp = new RotationComponent(shipRoom, viewModelChanges);
         const panel = new PropertyPanel(viewModelChanges);
+        const maneuveringState = new ManeuveringComponent(shipRoom, viewModelChanges);
+        const headingComp = new RotationComponent(shipRoom, viewModelChanges);
         panel.init(container);
         container.on('destroy', () => {
             panel.destroy();
         });
 
         headingComp.addToPanel(panel);
-        panel.addText('matchSpeed', () => maneuveringState.toString());
+        maneuveringState.addToPanel(panel);
 
         const loop = new Loop((deltaSeconds: number) => {
             const target = getTarget(shipRoom.state, spaceRoom.state);
-            maneuveringState.setLegalState('TARGET', !!target);
-            if (maneuveringState.isState('TARGET')) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                const command = matchTargetSpeed(deltaSeconds, shipRoom.state, target!.velocity);
-                shipRoom.send('setStrafe', { value: capToRange(-1, 1, command.strafe) });
-                shipRoom.send('setBoost', { value: capToRange(-1, 1, command.boost) });
-            }
+            maneuveringState.update(deltaSeconds, target);
             headingComp.update(deltaSeconds, target);
         }, 1000 / 10);
         loop.start();
@@ -41,9 +35,6 @@ function pilotComponent(container: Container, p: Props) {
             (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
                 if (e.buttonIndex === 11 && e.gamepadIndex === 0) {
                     maneuveringState.toggleState();
-                    shipRoom.send('setStrafe', { value: 0 });
-                    shipRoom.send('setBoost', { value: 0 });
-                    viewModelChanges.emit('matchSpeed');
                 } else if (e.buttonIndex === 10 && e.gamepadIndex === 0) {
                     headingComp.toggleState();
                 }
@@ -73,37 +64,6 @@ function pilotComponent(container: Container, p: Props) {
             {
                 gamepadIndex: 0,
                 buttonIndex: 5,
-            }
-        );
-        panel.addProperty(
-            'strafe',
-            () => shipRoom.state.strafe,
-            [-1, 1],
-            (value) => {
-                if (maneuveringState.isState('ENGINE')) {
-                    shipRoom.send('setStrafe', { value: value });
-                }
-            },
-            {
-                gamepadIndex: 0,
-                axisIndex: 2,
-                deadzone: [-0.01, 0.01],
-            }
-        );
-        panel.addProperty(
-            'boost',
-            () => shipRoom.state.boost,
-            [-1, 1],
-            (value) => {
-                if (maneuveringState.isState('ENGINE')) {
-                    shipRoom.send('setBoost', { value: value });
-                }
-            },
-            {
-                gamepadIndex: 0,
-                axisIndex: 3,
-                deadzone: [-0.01, 0.01],
-                inverted: true,
             }
         );
         panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-90, 90]);

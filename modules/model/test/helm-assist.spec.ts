@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import 'mocha';
 import {
     limitPercision,
-    matchTargetSpeed,
+    matchGlobalSpeed,
     moveToTarget,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
@@ -77,7 +77,7 @@ describe('helm assist', function () {
             );
         });
     });
-    describe('matchTargetSpeed', () => {
+    describe('matchGlobalSpeed', () => {
         it('(boost only) reach target speed in good time from 0 speed', () => {
             fc.assert(
                 fc.property(floatIn(1000), fc.integer(15, 20), (fromX: number, iterationsPerSecond: number) => {
@@ -95,7 +95,7 @@ describe('helm assist', function () {
                         ['boost']
                     );
                     const iteration = (time: number, p?: GraphPointInput) => {
-                        const maneuvering = matchTargetSpeed(time, harness.shipState, XY.zero);
+                        const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                         p?.addtoLine('boost', maneuvering.boost);
                         harness.shipMgr.setBoost(maneuvering.boost);
                     };
@@ -133,7 +133,7 @@ describe('helm assist', function () {
                             ['boost', 'strafe']
                         );
                         const iteration = (time: number, p?: GraphPointInput) => {
-                            const maneuvering = matchTargetSpeed(time, harness.shipState, XY.zero);
+                            const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                             p?.addtoLine('boost', maneuvering.boost);
                             p?.addtoLine('strafe', maneuvering.strafe);
                             harness.shipMgr.setBoost(maneuvering.boost);

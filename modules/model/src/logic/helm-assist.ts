@@ -8,13 +8,22 @@ export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipStat
     return accelerateToSpeed(deltaSeconds, ship.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
 }
 
-export function matchTargetSpeed(
+export function matchGlobalSpeed(
     deltaSeconds: number,
     ship: ShipState,
-    targetVelocity: XY,
+    globalVelocity: XY,
     _log?: (s: string) => unknown
 ): ManeuveringCommand {
-    const relTargetSpeed = ship.globalToLocal(XY.difference(targetVelocity, ship.velocity));
+    return matchLocalSpeed(deltaSeconds, ship, ship.globalToLocal(globalVelocity), _log);
+}
+
+export function matchLocalSpeed(
+    deltaSeconds: number,
+    ship: ShipState,
+    localVelocity: XY,
+    _log?: (s: string) => unknown
+): ManeuveringCommand {
+    const relTargetSpeed = XY.difference(localVelocity, ship.globalToLocal(ship.velocity));
     return {
         strafe: accelerateToSpeed(deltaSeconds, ship.strafeCapacity, relTargetSpeed.y),
         boost: accelerateToSpeed(deltaSeconds, ship.boostCapacity, relTargetSpeed.x),
