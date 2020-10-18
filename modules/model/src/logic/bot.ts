@@ -5,7 +5,7 @@ import {
     getTarget,
     isInRange,
     isTargetInKillZone,
-    matchTargetSpeed,
+    matchGlobalSpeed,
     moveToTarget,
     predictHitLocation,
     rotateToTarget,
@@ -39,7 +39,7 @@ export function jouster(): Bot {
             const killRadius = getKillZoneRadiusRange(ship);
             if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
                 // if close enough to target, tail it
-                const maneuvering = matchTargetSpeed(deltaSeconds, ship, target.velocity);
+                const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
                 shipManager.setBoost(maneuvering.boost);
                 shipManager.setStrafe(maneuvering.strafe);
             } else {

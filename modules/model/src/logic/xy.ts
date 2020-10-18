@@ -2,6 +2,10 @@ import { limitPercision, equasionOfMotion as eom, toDegreesDelta } from './formu
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
+    export interface Mutable extends XY {
+        x: number;
+        y: number;
+    }
     export const one = Object.freeze({ x: 1, y: 0 });
     export const zero = Object.freeze({ x: 0, y: 0 });
     export function byLengthAndDirection(length: number, degrees: number) {
