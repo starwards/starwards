@@ -70,12 +70,16 @@ export class SpaceState extends Schema {
     private getMap<T extends keyof SpaceObjects>(typeField: T): MapSchema<SpaceObjects[T]> {
         switch (typeField) {
             case 'Explosion':
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
                 return this.explosions as MapSchema<any>;
             case 'CannonShell':
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
                 return this.cannonShells as MapSchema<any>;
             case 'Asteroid':
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
                 return this.asteroids as MapSchema<any>;
             case 'Spaceship':
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
                 return this.spaceships as MapSchema<any>;
             default:
                 throw new Error(`unknmown type ${typeField}`);

@@ -46,8 +46,8 @@ export class RangeIndicators {
             const radius = this.parent.metersToPixles(circleSize);
             this.rangeIndicators.drawCircle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, radius);
             const text = textsIterator.next().value;
-            text.text = circleSize + 'M';
-            text.style.fill = 0xffffff;
+            text.text = circleSize.toString() + 'M';
+            (text.style as PIXI.TextStyle).fill = 0xffffff;
             text.alpha = 0.1;
             text.x = this.parent.renderer.width / 2 - text.width / 2;
             text.y = this.parent.renderer.height / 2 - text.height - radius - TEXT_MARGIN;

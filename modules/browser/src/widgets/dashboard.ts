@@ -1,9 +1,9 @@
-// tslint:disable: max-classes-per-file
 import GoldenLayout, { Container, ContentItem, ReactProps, Tab } from 'golden-layout';
 import $ from 'jquery';
 import React, { ComponentClass } from 'react';
 import ReactDOM from 'react-dom';
 
+type Obj = Record<string, unknown>;
 declare global {
     interface Window {
         React: typeof React;
@@ -17,7 +17,7 @@ export type MakeHeaders<T> = (container: Container, state: T) => Array<JQuery<HT
 
 export type GLComponent<T> = (container: Container, state: T) => void;
 
-export interface DashboardWidget<T extends object = object> {
+export interface DashboardWidget<T extends Obj = Obj> {
     name: string;
     type: 'component' | 'react-component';
     component: GLComponent<T> | ComponentClass<T & ReactProps>;
@@ -26,7 +26,7 @@ export interface DashboardWidget<T extends object = object> {
 }
 export class Dashboard extends GoldenLayout {
     private dragContainer: JQuery<HTMLElement> | null = null;
-    private widgets: Array<DashboardWidget<any>> = [];
+    private widgets: Array<DashboardWidget> = [];
 
     private readonly onNewStack = (stack: ContentItem & Tab) => {
         stack.on('activeContentItemChanged', (contentItem: ContentItem) => {
@@ -62,21 +62,27 @@ export class Dashboard extends GoldenLayout {
             for (const widget of this.widgets) {
                 this.registerWidgetMenuItem(widget.name, widget.defaultProps, widget.type);
             }
-            // tslint:disable-next-line: no-empty
+            // eslint-disable-next-line no-empty
         } catch (e) {}
     }
 
-    public registerWidget<T extends object>(
+    public registerWidget<T extends Obj>(
         { name: wName, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
         props: Partial<T> = {},
         name?: string
     ) {
         name = name || wName;
         this.registerComponent(name, component);
-        this.widgets.push({ name, type, component, defaultProps: { ...defaultProps, ...props }, makeHeaders });
+        this.widgets.push({
+            name,
+            type,
+            component,
+            defaultProps: { ...defaultProps, ...props },
+            makeHeaders,
+        } as DashboardWidget);
     }
 
-    private registerWidgetMenuItem(name: string, props: object, type: DashboardWidget['type']) {
+    private registerWidgetMenuItem(name: string, props: Obj, type: DashboardWidget['type']) {
         if (this.dragContainer) {
             const menuItem = $('<li>' + name + '</li>');
             this.dragContainer.append(menuItem);
@@ -85,14 +91,14 @@ export class Dashboard extends GoldenLayout {
                 id: name,
                 title: name,
                 type,
-            } as any;
+            } as GoldenLayout.ItemConfigType;
 
             if (type === 'react-component') {
-                newItemConfig.component = name;
-                newItemConfig.props = props;
+                (newItemConfig as GoldenLayout.ReactComponentConfig).component = name;
+                (newItemConfig as GoldenLayout.ReactComponentConfig).props = props;
             } else {
-                newItemConfig.componentName = name;
-                newItemConfig.componentState = props;
+                (newItemConfig as GoldenLayout.ComponentConfig).componentName = name;
+                (newItemConfig as GoldenLayout.ComponentConfig).componentState = props;
             }
             this.createDragSource(menuItem, newItemConfig);
         }

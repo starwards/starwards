@@ -9,7 +9,7 @@ const layoutStorageKey = 'pilotLayout';
 const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
 const dashboard = new Dashboard(JSON.parse(layoutStr), $('#layoutContainer'));
 dashboard.setup();
-dashboard.oneTimeSetup($('#menuContainer'));
+dashboard.setDragContainer($('#menuContainer'));
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipId = urlParams.get('id');
@@ -19,7 +19,7 @@ if (shipId) {
     dashboard.registerWidget(pilotWidget, { shipId });
     dashboard.registerWidget(shipConstantsWidget, { shipId });
 } else {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log('shipId is missing from URL');
 }
 

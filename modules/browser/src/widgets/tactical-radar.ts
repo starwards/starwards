@@ -1,4 +1,4 @@
-import { ShipState, SpaceObject, SpaceState } from '@starwards/model';
+import { SpaceObject } from '@starwards/model';
 import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
@@ -8,8 +8,8 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
-import { SelectionContainer } from '../radar/selection-container';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
+import { trackTargetObject } from '../ship-logic';
 import { DashboardWidget } from './dashboard';
 
 WebFont.load({
@@ -28,8 +28,7 @@ const sizeFactorGrace = 0.005;
 function tacticalRadarComponent(container: Container, state: Props) {
     const camera = new Camera();
     camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
-
-    PIXI.Loader.shared.load(async () => {
+    async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
         const range = new RangeIndicators(root, 1000);
@@ -42,19 +41,11 @@ function tacticalRadarComponent(container: Container, state: Props) {
         const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, spaceRoom, state.subjectId);
-    });
-}
+    }
 
-function trackTargetObject(space: SpaceState, ship: ShipState): SelectionContainer {
-    const result = new SelectionContainer(space);
-    const updateSelectedTarget = () => {
-        const targetObj = ship.targetId && space.get(ship.targetId);
-        result.set(targetObj ? [targetObj] : []);
-    };
-    ship.events.on('targetId', updateSelectedTarget);
-    space.events.on('add', () => setTimeout(updateSelectedTarget, 0));
-    updateSelectedTarget();
-    return result;
+    PIXI.Loader.shared.load(() => {
+        void init();
+    });
 }
 
 function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: string) {

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider, SoundsProvider, createTheme, createSounds, Arwes, Button, Heading } from 'arwes';
 import WebFont from 'webfontloader';
@@ -119,7 +121,7 @@ export const Lobby = () => {
     );
 };
 
-export const lobbyWidget: DashboardWidget<{}> = {
+export const lobbyWidget: DashboardWidget<Record<string, unknown>> = {
     name: 'lobby',
     type: 'react-component',
     component: Lobby,

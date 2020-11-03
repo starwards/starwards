@@ -10,5 +10,5 @@ const uniqueIds: { [prefix: string]: number | undefined } = {};
 export function uniqueId(prefix: string) {
     const num = uniqueIds[prefix] || 0;
     uniqueIds[prefix] = (num + 1) % maxId;
-    return prefix + num;
+    return prefix + num.toString();
 }

@@ -8,7 +8,7 @@ export class CannonShell extends SpaceObjectBase {
     }
 
     @type('float32')
-    public secondsToLive: number = 0;
+    public secondsToLive = 0;
 
     public readonly type = 'CannonShell';
 

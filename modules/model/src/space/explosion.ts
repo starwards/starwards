@@ -7,22 +7,22 @@ export class Explosion extends SpaceObjectBase {
     }
 
     @type('float32')
-    public secondsToLive: number = 0.5;
+    public secondsToLive = 0.5;
 
     /**
      * radius growth speed in meters / seconds
      */
     @type('float32')
-    public expansionSpeed: number = 10;
+    public expansionSpeed = 10;
 
     /**
      * damage per (second * overlap in meters)
      */
     @type('float32')
-    public damageFactor: number = 20;
+    public damageFactor = 20;
 
     @type('float32')
-    public blastFactor: number = 1;
+    public blastFactor = 1;
 
     public readonly type = 'Explosion';
 

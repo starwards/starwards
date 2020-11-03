@@ -106,7 +106,7 @@ export const keys = {
 
 export type ButtonKey = keyof typeof keys;
 export function isButtonKey(keyCode: number | string): keyCode is ButtonKey {
-    return (keys as any)[keyCode] !== undefined;
+    return (keys as Record<string, unknown>)[keyCode] !== undefined;
 }
 export interface Props {
     buttons: Iterable<ButtonKey>;
@@ -175,7 +175,7 @@ export default function KeyboardDisplay({ buttons, pressed, onButtonDown, onButt
                 {Array.from(buttons, (buttonKey) => {
                     const item = keys[buttonKey];
                     const name = item.name.map((iName, i) => (
-                        <span key={`${i}`} className={'lines' + item.name.length}>
+                        <span key={`${i}`} className={'lines' + item.name.length.toString()}>
                             {iName}
                         </span>
                     ));

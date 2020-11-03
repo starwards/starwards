@@ -17,11 +17,11 @@ The project is a monorepo, based on [yarn workspaces](https://classic.yarnpkg.co
 Utility scripts are stored in the `scripts` folder:
 
 -   `pkg.js` packages and compiles the game server into a single, native executable. used by `yarn pkg` command.
--   `pre-commit.js` rens before each commit, notmalizes text formatting and re-generates some boilerplate configurations. runs in pre-commit hook.
+-   `pre-commit.js` runs before each commit, notmalizes text formatting and re-generates some boilerplate configurations. runs in pre-commit hook.
 
 ### IDE
 
-This project is written with [VSCode](https://code.visualstudio.com/) in mind. specifically configured for these extensions: [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode), [ms-vscode.vscode-typescript-tslint-plugin](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-typescript-tslint-plugin), [msjsdiag.debugger-for-chrome](https://marketplace.visualstudio.com/items?itemName=msjsdiag.debugger-for-chrome), [fabiospampinato.vscode-commands
+This project is written with [VSCode](https://code.visualstudio.com/) in mind. specifically configured for these extensions: [esbenp.prettier-vscode](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode), [dbaeumer.vscode-eslint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint), [msjsdiag.debugger-for-chrome](https://marketplace.visualstudio.com/items?itemName=msjsdiag.debugger-for-chrome), [fabiospampinato.vscode-commands
 ](https://marketplace.visualstudio.com/items?itemName=fabiospampinato.vscode-commands) and [jvandyke.vscode-circleci
 ](https://marketplace.visualstudio.com/items?itemName=jvandyke.vscode-circleci).
 

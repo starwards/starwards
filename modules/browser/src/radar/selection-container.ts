@@ -1,6 +1,5 @@
 import { SpaceObject, SpaceState } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
-import { GameRoom } from '../client';
 
 export class SelectionContainer {
     /**
@@ -27,6 +26,7 @@ export class SelectionContainer {
         for (const spaceObject of changed) {
             this.events.emit(spaceObject.id);
         }
+        this.events.emit('changed');
     }
 
     public set(selected: SpaceObject[]) {
@@ -38,13 +38,14 @@ export class SelectionContainer {
         for (const spaceObject of changed) {
             this.events.emit(spaceObject.id);
         }
+        this.events.emit('changed');
     }
 
     public has(o: SpaceObject) {
         return this.selectedItems.has(o);
     }
 
-    public getSingle(): SpaceObject | undefined {
-        return this.selectedItems.values().next().value;
+    public getSingle() {
+        return this.selectedItems.values().next().value as SpaceObject | undefined;
     }
 }

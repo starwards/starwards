@@ -1,6 +1,5 @@
 import { getSectorName, sectorSize, XY } from '@starwards/model';
 import * as PIXI from 'pixi.js';
-import { PixiFps } from './pixi-fps';
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
 
@@ -9,7 +8,6 @@ const miniSectorSize = sectorSize / (scaleFactor * 2);
 export class GridLayer {
     private static readonly gridColors = [0xcccccc, 0xcccccc, 0x6666ff, 0xf4fa77, 0x55ff55, 0xff3333];
     private stage = new PIXI.Container();
-    private fpsCounter = new PixiFps();
 
     private readonly gridLines = new PIXI.Graphics();
     private readonly sectorNames = new TextsPool(this.stage);
@@ -17,7 +15,6 @@ export class GridLayer {
     constructor(private parent: CameraView) {
         this.parent.events.on('screenChanged', () => this.drawSectorGrid());
         this.stage.addChild(this.gridLines);
-        this.stage.addChild(this.fpsCounter);
         this.drawSectorGrid();
     }
 
@@ -69,7 +66,7 @@ export class GridLayer {
                                 ? horizontal.magnitude.color
                                 : vertical.magnitude.color;
                         text.text = getSectorName(horizontal.world, vertical.world);
-                        text.style.fill = gridlineColor;
+                        (text.style as PIXI.TextStyle).fill = gridlineColor;
                         text.x = vertical.screen;
                         text.y = horizontal.screen;
                     }

@@ -1,5 +1,5 @@
 export class Loop {
-    private t0: number = 0;
+    private t0 = 0;
     private timer: ReturnType<typeof setInterval> | null = null;
 
     constructor(private body: (deltaSeconds: number) => void, private interval = 1000 / 60) {}

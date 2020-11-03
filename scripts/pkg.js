@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
@@ -7,7 +8,6 @@ const pkg = require('pkg');
 const mkdir = util.promisify(fs.mkdir);
 const exec = util.promisify(require('child_process').exec);
 const writeFile = util.promisify(fs.writeFile);
-
 const rootPath = path.resolve(__dirname, '..');
 const distPath = path.join(rootPath, 'dist');
 const staticDistPath = path.join(distPath, 'static');

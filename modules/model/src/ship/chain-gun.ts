@@ -8,7 +8,7 @@ export class ChainGun extends Schema {
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
     @type('float32')
-    angle: number = 0;
+    angle = 0;
 
     @type('boolean')
     isFiring = false;

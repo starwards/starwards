@@ -1,7 +1,8 @@
 {
+    "deno.enable": false,
     "editor.formatOnSave": true,
     "files.eol": "\n",
-    "typescript.tsdk": "node_modules\\typescript\\lib",
     "typescript.enablePromptUseWorkspaceTsdk": true,
-    "deno.enable": false
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "circleci-vscode.apiToken": "ae146f2ddd21472c9177b05fd9df6437a6b7128d"
 }

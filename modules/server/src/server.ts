@@ -1,8 +1,7 @@
-// tslint:disable no-console
+/* eslint-disable no-console */
 /*
  * embed webpack-dev-server
  */
-
 import { Server, matchMaker } from 'colyseus';
 import * as http from 'http';
 import express = require('express');
@@ -25,27 +24,9 @@ export async function server(port: number, staticDir: string, handlers?: NextHan
     app.use(express.json());
     const gameServer = new Server({ server: http.createServer(app) });
 
-    gameServer
-        .define('space', SpaceRoom)
-        .on('create', (room) => console.log('SpaceRoom created:', room.roomId))
-        .on('dispose', (room) => console.log('SpaceRoom disposed:', room.roomId))
-        .on('join', (room, client) => console.log('SpaceRoom:', client.sessionId, 'joined', room.roomId))
-        .on('leave', (room, client) => console.log('SpaceRoom:', client.sessionId, 'left', room.roomId));
-
-    gameServer
-        .define('admin', AdminRoom)
-        .on('create', (room) => console.log('AdminRoom created:', room.roomId))
-        .on('dispose', (room) => console.log('AdminRoom disposed:', room.roomId))
-        .on('join', (room, client) => console.log('AdminRoom:', client.sessionId, 'joined', room.roomId))
-        .on('leave', (room, client) => console.log('AdminRoom:', client.sessionId, 'left', room.roomId));
-
-    gameServer
-        .define('ship', ShipRoom)
-        .on('create', (room) => console.log('ship created:', room.roomId))
-        .on('dispose', (room) => console.log('ship disposed:', room.roomId))
-        .on('join', (room, client) => console.log('ship:', client.sessionId, 'joined', room.roomId))
-        .on('leave', (room, client) => console.log('ship:', client.sessionId, 'left', room.roomId))
-        .enableRealtimeListing();
+    gameServer.define('space', SpaceRoom);
+    gameServer.define('admin', AdminRoom);
+    gameServer.define('ship', ShipRoom).enableRealtimeListing();
 
     if (handlers) {
         app.use(...handlers);
@@ -58,7 +39,6 @@ export async function server(port: number, staticDir: string, handlers?: NextHan
     app.use('/colyseus', auth, monitor());
 
     await gameServer.listen(port);
-    // tslint:disable-next-line:no-console
     console.log(`Listening on port ${port}`);
 
     const gameManager = new GameManager();

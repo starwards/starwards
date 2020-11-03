@@ -39,10 +39,10 @@ export class InteractiveLayer {
             this.drawSelection();
         });
         // there are issues with click events from multiple mouse buttons: https://github.com/pixijs/pixi.js/issues/5384
-        this.parent.renderer.plugins.interaction.on('mousedown', this.onPointerDown);
-        this.parent.renderer.plugins.interaction.on('pointerdown', this.onPointerDown);
-        this.parent.renderer.plugins.interaction.on('pointermove', this.onPointermove);
-        this.parent.renderer.plugins.interaction.on('pointerup', this.onPointerup);
+        this.parent.renderer.plugins.interaction.on('mousedown', this.onPointerDown); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.parent.renderer.plugins.interaction.on('pointerdown', this.onPointerDown); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.parent.renderer.plugins.interaction.on('pointermove', this.onPointermove); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.parent.renderer.plugins.interaction.on('pointerup', this.onPointerup); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     }
 
     get renderRoot(): PIXI.DisplayObject {
@@ -81,7 +81,7 @@ export class InteractiveLayer {
         return null;
     }
 
-    onPointerDown = (event: PIXI.interaction.InteractionEvent) => {
+    onPointerDown = (event: PIXI.InteractionEvent) => {
         if (this.actionType === ActionType.none) {
             if (event.data.button === MouseButton.main) {
                 this.dragFrom = event.data.getLocalPosition(this.stage);
@@ -102,7 +102,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointermove = (event: PIXI.interaction.InteractionEvent) => {
+    onPointermove = (event: PIXI.InteractionEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 this.dragTo = event.data.getLocalPosition(this.stage);
@@ -128,7 +128,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointerup = (_event: PIXI.interaction.InteractionEvent) => {
+    onPointerup = (_event: PIXI.InteractionEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 if (this.dragTo == null) {

@@ -49,7 +49,7 @@ export class Keyboard extends React.Component<Props> {
         // hotkeys.unbind('*', this.onHotKeys);
     }
 
-    private onKeyDownEvent(evn: KeyboardEvent) {
+    private onKeyDownEvent = (evn: KeyboardEvent) => {
         evn.preventDefault();
         if (hotkeys.shift && this.props.buttons.has(16)) {
             this.keyPressed.add(16);
@@ -70,14 +70,14 @@ export class Keyboard extends React.Component<Props> {
             this.keyPressed.add(evn.keyCode);
         }
         this.updatePressed();
-    }
+    };
 
-    private onKeyUpEvent(evn: KeyboardEvent) {
+    private onKeyUpEvent = (evn: KeyboardEvent) => {
         if (isButtonKey(evn.keyCode)) {
             this.keyPressed.delete(evn.keyCode);
             this.updatePressed();
         }
-    }
+    };
 
     private updatePressed() {
         for (const key of this.props.pressed) {
