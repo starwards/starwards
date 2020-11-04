@@ -1350,34 +1350,34 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@ts-tools/build@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/build/-/build-2.1.0.tgz#471cf044cbafbb7e3e8cf2773c207d5237b2b1f8"
-  integrity sha512-k97My+U3Z52oFGQa13D7r77b1HAuEXZce7Vb6EuKgwKWCmonEffRaHgYBVV2ggWEaBnv24hLaLb4Hlgz//xBAQ==
+"@ts-tools/build@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/build/-/build-2.1.1.tgz#6580c0ed5aea8ee8de93d43f40929fcba211f3a5"
+  integrity sha512-uuyXyYMa5BBbZoOddoBQPd+keLUjBR+V7unYAv/cjkCKwahbCAHTlvm2EIXIVafFyMJ9Egit4D9kohE3Q8j8fw==
   dependencies:
-    "@ts-tools/transpile" "^2.1.0"
+    "@ts-tools/transpile" "^2.1.1"
     chalk "^4.1.0"
-    commander "^6.0.0"
+    commander "^6.1.0"
 
-"@ts-tools/node@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/node/-/node-2.1.0.tgz#0ce281af3a9de6372c284d456f21cb847a6d9c22"
-  integrity sha512-di8T8SCHM4WUnqFaNwLb9ZSq4Ycl9DmXQmVhvW0DhZfyzNd/1oIs8xUQNlCUyqFdHZg14409YYlqtz7BZey3pA==
+"@ts-tools/node@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/node/-/node-2.1.1.tgz#2923b4386e543bd20d534824429440b46ac87e95"
+  integrity sha512-+pcRdNZIz32c8lxZrKJAoXxD/X9UgdioV7ccqfXL0h1Yyt+VeGdSUknxJ3WyKWiDKiS4RacL4LqHztaSUmBiLA==
   dependencies:
-    "@ts-tools/transpile" "^2.1.0"
+    "@ts-tools/transpile" "^2.1.1"
     source-map-support "^0.5.19"
 
-"@ts-tools/transpile@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/transpile/-/transpile-2.1.0.tgz#e4204340f1f6ed786711a26b7222d38d7ac260c7"
-  integrity sha512-sr5QQhb0BbcnzDfFWAq8XwJRm/N1VcZQ0rbKi+aZLtFffg0SHtLP2guTeupAVDsRki6sYKC/M+jVh6JqhaWomw==
+"@ts-tools/transpile@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/transpile/-/transpile-2.1.1.tgz#f2448013cdfc2944055d0446a568da97b93c6a3e"
+  integrity sha512-kuhuOlvexcF2UBkmnr+Ir8yhInzJtItiuUxLEgYKQ6odVsD1w7N1n9B0Eqxj9ZT53rhYWUzZEzMWalh9l34EPQ==
 
-"@ts-tools/webpack-loader@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/webpack-loader/-/webpack-loader-2.1.0.tgz#8144b316cc3af295af727d98bf6b6acd4e7c8632"
-  integrity sha512-RP4oAk76FWYx3fVM1/5ZHb06O1LQY4STPjOYjcM4y4E9dgJ8JL2BsCN4KUs/PEDIk3Am6KNVnfhj1eJX6Spxbg==
+"@ts-tools/webpack-loader@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/webpack-loader/-/webpack-loader-2.1.1.tgz#29971073f4650935f075e747883b8f9342cec340"
+  integrity sha512-lHYxSZCajnPcaODE0VKYizsq6qmrd8UAESJfNWfQHKZVvIScH64HRdLfBRKQXYSfmELa/6Lg6s0fqg6KJlfieA==
   dependencies:
-    "@ts-tools/transpile" "^2.1.0"
+    "@ts-tools/transpile" "^2.1.1"
     loader-utils "^2.0.0"
 
 "@types/anymatch@*":
@@ -3128,6 +3128,11 @@ commander@^6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-6.0.0.tgz#2b270da94f8fb9014455312f829a1129dbf8887e"
   integrity sha512-s7EA+hDtTYNhuXkTlhqew4txMZVdszBmKWSPEMxGr8ru8JXR7bLUFIAtPhcSuFdJQ0ILMxnJi8GkQL0yvDy/YA==
+
+commander@^6.1.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-6.2.0.tgz#b990bfb8ac030aedc6d11bc04d1488ffef56db75"
+  integrity sha512-zP4jEKbe8SHzKJYQmq8Y9gYjtO/POJLgIdKgV7B9qNmABVFVc+ctqSX6iXh4mCpJfRBOabiZ2YKPg8ciDw6C+Q==
 
 commondir@^1.0.1:
   version "1.0.1"
