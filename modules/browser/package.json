@@ -10,11 +10,11 @@
         "prepack": "yarn build"
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.0",
+        "@colyseus/schema": "^1.0.2",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@starwards/model": "*",
         "arwes": "^1.0.0-alpha.5",
-        "colyseus.js": "^0.14.0-alpha.8",
+        "colyseus.js": "^0.14.0",
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.5",
         "golden-layout": "^1.5.9",

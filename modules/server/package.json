@@ -16,7 +16,7 @@
     },
     "dependencies": {
         "@colyseus/monitor": "^0.12.2",
-        "@colyseus/schema": "^1.0.0",
+        "@colyseus/schema": "^1.0.2",
         "@starwards/model": "*",
         "colyseus": "^0.14.1",
         "connect": "^3.7.0",
