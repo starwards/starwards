@@ -22,10 +22,7 @@ export class FragCounter extends PIXI.Container {
         this._fpsTicker.add(() => {
             if (state.points) {
                 this._fpsTextField.text =
-                    'Deaths:\n' +
-                    Object.keys(state.points)
-                        .map((id) => `${id} : ${state.points[id] as number}`)
-                        .join('\n');
+                    'Deaths:\n' + [...state.points.entries()].map(([id, score]) => `${id} : ${score}`).join('\n');
             } else {
                 this._fpsTextField.text = '';
             }
