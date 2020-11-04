@@ -1,5 +1,4 @@
 import { SpaceObject, XY } from '@starwards/model';
-import { DataChange } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 

@@ -1,4 +1,4 @@
-import { CannonShell, Explosion, SpaceObject, SpaceState, XY, Vec2 } from '@starwards/model';
+import { CannonShell, Explosion, SpaceObject, SpaceState, XY, Vec2 } from '../';
 import { Body, Circle, Collisions, Result } from 'detect-collisions';
 import { uniqueId } from '../id';
 

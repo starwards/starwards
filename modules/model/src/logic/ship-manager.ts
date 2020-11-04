@@ -10,7 +10,7 @@ import {
     TargetedStatus,
     Vec2,
     XY,
-} from '@starwards/model';
+} from '../';
 import { uniqueId } from '../id';
 import { SpaceManager } from './space-manager';
 import { Bot } from './bot';
