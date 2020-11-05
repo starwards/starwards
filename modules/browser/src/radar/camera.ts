@@ -1,5 +1,4 @@
 import { SpaceObject, XY } from '@starwards/model';
-import { DataChange } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 
@@ -124,14 +123,12 @@ export class Camera {
     }
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter, angle = false) {
-        const listener = (changes: DataChange[]) => {
-            changes.forEach((change) => {
-                if (change.field === 'position') {
-                    this.set(spaceObject.position);
-                } else if (angle && change.field === 'angle') {
-                    this.setAngle(spaceObject.angle + 90);
-                }
-            });
+        const listener = (field: string) => {
+            if (field === 'position') {
+                this.set(spaceObject.position);
+            } else if (angle && field === 'angle') {
+                this.setAngle(spaceObject.angle + 90);
+            }
         };
         changeEvents.on(spaceObject.id, listener);
         this.set(spaceObject.position);

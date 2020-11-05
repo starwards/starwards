@@ -50,9 +50,9 @@ export class GameManager {
 
     private addShip(spaceManager: SpaceManager, id: string) {
         const ship = newShip(id);
-        this.adminState.points[ship.id] = 0;
+        this.adminState.points.set(ship.id, 0);
         const shipManager = new ShipManager(ship, spaceManager, this.ships, () => {
-            this.adminState.points[ship.id]++;
+            this.adminState.points.set(ship.id, this.adminState.points.get(ship.id) + 1);
             resetShip(ship);
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);

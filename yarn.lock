@@ -35,6 +35,11 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
+"@colyseus/http@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@colyseus/http/-/http-2.0.0.tgz#620209a3dd06f9c455de12128d22ebdffda05592"
+  integrity sha512-GLg13402o160vBcjcO5uupVzf8FLAFtMQKvi7QdfxG2OvPFHx+s6wws5CAWOvcyqA97aR4Xzqxngp8AEX7ndNA==
+
 "@colyseus/loadtest@^0.13.1":
   version "0.13.1"
   resolved "https://registry.yarnpkg.com/@colyseus/loadtest/-/loadtest-0.13.1.tgz#87572c9a134bc46cce8be60b50b71f9be7ac412b"
@@ -56,10 +61,20 @@
     express "^4.16.3"
     node-os-utils "^1.2.0"
 
-"@colyseus/schema@^0.5.19", "@colyseus/schema@^0.5.41", "@colyseus/schema@^0.5.5":
+"@colyseus/schema@^0.5.5":
   version "0.5.41"
   resolved "https://registry.yarnpkg.com/@colyseus/schema/-/schema-0.5.41.tgz#0bb3d3653e2b9170fef8732835cc3db2f0d8e8a0"
   integrity sha512-yJXSK6S1bAyWTKuxfNQ2u3KAVHjornnDg8hvbX7T+ZfX8BiYGBTbiv5JIUG9bYXbMRqQnQYa5QlPHjU30R7rJQ==
+
+"@colyseus/schema@^1.0.0":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@colyseus/schema/-/schema-1.0.1.tgz#cf554370597372366cbc06e4544e609e9e421052"
+  integrity sha512-P5+PZ9zBEe+Ykw5W8Eo01BeWLQOziaM4lRTpS40R6/o+zH4gmOPzMaWhQlVoVHw0GEAqOfwUtbk9u7qPFbwtyQ==
+
+"@colyseus/schema@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@colyseus/schema/-/schema-1.0.2.tgz#8a45e503112ea1746f57f0fec36a0559e270fd2a"
+  integrity sha512-icFMtf7Znp/AVToxljDbJj1/ah+4wJx3Nvq2zKszPT3LDQswC7B6IxrYOhbgoxWZjsxHhTA4ZwB46YUgwc2XSQ==
 
 "@eslint/eslintrc@^0.1.3":
   version "0.1.3"
@@ -1335,34 +1350,34 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@ts-tools/build@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/build/-/build-2.1.0.tgz#471cf044cbafbb7e3e8cf2773c207d5237b2b1f8"
-  integrity sha512-k97My+U3Z52oFGQa13D7r77b1HAuEXZce7Vb6EuKgwKWCmonEffRaHgYBVV2ggWEaBnv24hLaLb4Hlgz//xBAQ==
+"@ts-tools/build@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/build/-/build-2.1.1.tgz#6580c0ed5aea8ee8de93d43f40929fcba211f3a5"
+  integrity sha512-uuyXyYMa5BBbZoOddoBQPd+keLUjBR+V7unYAv/cjkCKwahbCAHTlvm2EIXIVafFyMJ9Egit4D9kohE3Q8j8fw==
   dependencies:
-    "@ts-tools/transpile" "^2.1.0"
+    "@ts-tools/transpile" "^2.1.1"
     chalk "^4.1.0"
-    commander "^6.0.0"
+    commander "^6.1.0"
 
-"@ts-tools/node@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/node/-/node-2.1.0.tgz#0ce281af3a9de6372c284d456f21cb847a6d9c22"
-  integrity sha512-di8T8SCHM4WUnqFaNwLb9ZSq4Ycl9DmXQmVhvW0DhZfyzNd/1oIs8xUQNlCUyqFdHZg14409YYlqtz7BZey3pA==
+"@ts-tools/node@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/node/-/node-2.1.1.tgz#2923b4386e543bd20d534824429440b46ac87e95"
+  integrity sha512-+pcRdNZIz32c8lxZrKJAoXxD/X9UgdioV7ccqfXL0h1Yyt+VeGdSUknxJ3WyKWiDKiS4RacL4LqHztaSUmBiLA==
   dependencies:
-    "@ts-tools/transpile" "^2.1.0"
+    "@ts-tools/transpile" "^2.1.1"
     source-map-support "^0.5.19"
 
-"@ts-tools/transpile@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/transpile/-/transpile-2.1.0.tgz#e4204340f1f6ed786711a26b7222d38d7ac260c7"
-  integrity sha512-sr5QQhb0BbcnzDfFWAq8XwJRm/N1VcZQ0rbKi+aZLtFffg0SHtLP2guTeupAVDsRki6sYKC/M+jVh6JqhaWomw==
+"@ts-tools/transpile@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/transpile/-/transpile-2.1.1.tgz#f2448013cdfc2944055d0446a568da97b93c6a3e"
+  integrity sha512-kuhuOlvexcF2UBkmnr+Ir8yhInzJtItiuUxLEgYKQ6odVsD1w7N1n9B0Eqxj9ZT53rhYWUzZEzMWalh9l34EPQ==
 
-"@ts-tools/webpack-loader@^2.1.0":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@ts-tools/webpack-loader/-/webpack-loader-2.1.0.tgz#8144b316cc3af295af727d98bf6b6acd4e7c8632"
-  integrity sha512-RP4oAk76FWYx3fVM1/5ZHb06O1LQY4STPjOYjcM4y4E9dgJ8JL2BsCN4KUs/PEDIk3Am6KNVnfhj1eJX6Spxbg==
+"@ts-tools/webpack-loader@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@ts-tools/webpack-loader/-/webpack-loader-2.1.1.tgz#29971073f4650935f075e747883b8f9342cec340"
+  integrity sha512-lHYxSZCajnPcaODE0VKYizsq6qmrd8UAESJfNWfQHKZVvIScH64HRdLfBRKQXYSfmELa/6Lg6s0fqg6KJlfieA==
   dependencies:
-    "@ts-tools/transpile" "^2.1.0"
+    "@ts-tools/transpile" "^2.1.1"
     loader-utils "^2.0.0"
 
 "@types/anymatch@*":
@@ -3041,7 +3056,7 @@ columnify@^1.5.4:
     strip-ansi "^3.0.0"
     wcwidth "^1.0.0"
 
-colyseus.js@^0.13.0, colyseus.js@^0.13.1:
+colyseus.js@^0.13.0:
   version "0.13.1"
   resolved "https://registry.yarnpkg.com/colyseus.js/-/colyseus.js-0.13.1.tgz#558a77ea9672eaebc7a8a832dd23f0a996dde846"
   integrity sha512-T55TFcuqSpfMIS090PBXzE8jepN9035ZkVSkGgxvwuCXItOYy7ZbWrwuOD3DqkLexL6xYiumIqJXqtbUC/GEuA==
@@ -3056,12 +3071,27 @@ colyseus.js@^0.13.0, colyseus.js@^0.13.1:
     notepack.io "^2.1.3"
     strong-events "^1.0.5"
 
-colyseus@^0.13.7:
-  version "0.13.7"
-  resolved "https://registry.yarnpkg.com/colyseus/-/colyseus-0.13.7.tgz#7cc5a76d945d4d3f264606afdcde0042c6c3b462"
-  integrity sha512-MalA6bHWFyz5c3o7wmSuOnVqZUBAdDaGv9OWc5kI0/jteyMn5BkqjxXV7IHhRy+B3DQGJOxLSnvoOFIy9eIf/A==
+colyseus.js@^0.14.0:
+  version "0.14.0"
+  resolved "https://registry.yarnpkg.com/colyseus.js/-/colyseus.js-0.14.0.tgz#c74e978f073be60b94639b398919991e68a57aac"
+  integrity sha512-beBsTF1iHTwJIXD3SumaTIqhwPMpRr9MA5/qw/uQxAlXi3Fucopn4gJEuTIVHBONTErvVjslRJ0+aY0yQbuVnA==
   dependencies:
-    "@colyseus/schema" "^0.5.19"
+    "@colyseus/http" "^2.0.0"
+    "@colyseus/schema" "^1.0.0"
+    "@gamestdio/signals" "^1.0.0"
+    "@gamestdio/state-listener" "^3.1.0"
+    "@gamestdio/websocket" "^0.3.2"
+    fossil-delta "^1.0.0"
+    nanoevents "^5.1.5"
+    notepack.io "^2.1.3"
+    strong-events "^1.0.5"
+
+colyseus@^0.14.1:
+  version "0.14.1"
+  resolved "https://registry.yarnpkg.com/colyseus/-/colyseus-0.14.1.tgz#23a47511f149eeeeca7f9c942de210098f6958c4"
+  integrity sha512-1d9UoyyyDkXBLlC9s7Ql+p7bKR5VAwPsCpD9aNDv9p1ODCRhIS47aIv7P2fCwe2wa5PnbyykGABjLWUOnRVI8g==
+  dependencies:
+    "@colyseus/schema" "^1.0.0"
     "@gamestdio/timer" "^1.3.0"
     "@types/redis" "^2.8.12"
     "@types/ws" "^6.0.1"
@@ -3098,6 +3128,11 @@ commander@^6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-6.0.0.tgz#2b270da94f8fb9014455312f829a1129dbf8887e"
   integrity sha512-s7EA+hDtTYNhuXkTlhqew4txMZVdszBmKWSPEMxGr8ru8JXR7bLUFIAtPhcSuFdJQ0ILMxnJi8GkQL0yvDy/YA==
+
+commander@^6.1.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-6.2.0.tgz#b990bfb8ac030aedc6d11bc04d1488ffef56db75"
+  integrity sha512-zP4jEKbe8SHzKJYQmq8Y9gYjtO/POJLgIdKgV7B9qNmABVFVc+ctqSX6iXh4mCpJfRBOabiZ2YKPg8ciDw6C+Q==
 
 commondir@^1.0.1:
   version "1.0.1"

@@ -3,5 +3,6 @@
     "editor.formatOnSave": true,
     "files.eol": "\n",
     "typescript.enablePromptUseWorkspaceTsdk": true,
-    "typescript.tsdk": "node_modules\\typescript\\lib"
+    "typescript.tsdk": "node_modules\\typescript\\lib",
+    "circleci-vscode.apiToken": "ae146f2ddd21472c9177b05fd9df6437a6b7128d"
 }

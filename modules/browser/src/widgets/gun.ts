@@ -73,10 +73,7 @@ function gunComponent(container: Container, p: Props) {
         panel.addProperty(
             'manual shellSecondsToLive',
             () => manualShellSecondsToLive,
-            [
-                shipRoom.state.chainGun.constants.minShellSecondsToLive,
-                shipRoom.state.chainGun.constants.maxShellSecondsToLive,
-            ],
+            [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
             (value) => {
                 manualShellSecondsToLive = value;
                 viewModelChanges.emit('manual shellSecondsToLive');
@@ -89,8 +86,8 @@ function gunComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty('shellSecondsToLive', () => shipRoom.state.chainGun.shellSecondsToLive, [
-            shipRoom.state.chainGun.constants.minShellSecondsToLive,
-            shipRoom.state.chainGun.constants.maxShellSecondsToLive,
+            shipRoom.state.chainGun.minShellSecondsToLive,
+            shipRoom.state.chainGun.maxShellSecondsToLive,
         ]);
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));

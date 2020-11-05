@@ -1,4 +1,4 @@
-import { Asteroid, compareSpaceObjects, SpaceObject, Spaceship, SpaceState, Vec2 } from '@starwards/model';
+import { Asteroid, compareSpaceObjects, SpaceObject, Spaceship, SpaceState, Vec2 } from '../src';
 import { expect } from 'chai';
 import 'mocha';
 import { nanoid } from 'nanoid';

@@ -36,25 +36,60 @@ export class ShipState extends Spaceship {
         super();
         if (isClient) {
             this.onChange = (changes) => {
-                changes.forEach((c) => {
-                    this.events.emit(c.field, c.value);
-                });
+                for (const { field, value } of changes) {
+                    this.events.emit(field, value);
+                }
             };
+            this.events.once('constants', () => {
+                this.constants.onChange = (value: number, key: string) => {
+                    this.events.emit('constants.' + key, value);
+                    this.events.emit('constants');
+                };
+            });
+            this.position.onChange = (_) => this.events.emit('position', this.position);
+            this.velocity.onChange = (_) => this.events.emit('velocity', this.velocity);
             this.events.once('chainGun', () => {
                 this.chainGun.onChange = (changes) => {
                     changes.forEach((c) => {
                         this.events.emit('chainGun.' + c.field, c.value);
                     });
                 };
+                this.chainGun.constants.onChange = (value: number, key: string) => {
+                    this.events.emit('chainGun.constants.' + key, value);
+                    this.events.emit('chainGun.constants');
+                };
             });
         }
     }
-
-    get rotationCapacity() {
-        return this.maneuveringCapacity * this.rotationEffectFactor;
+    get maxEnergy() {
+        return this.constants.get('maxEnergy');
+    }
+    get energyPerSecond() {
+        return this.constants.get('energyPerSecond');
+    }
+    get maneuveringCapacity() {
+        return this.constants.get('maneuveringCapacity');
+    }
+    get maneuveringEnergyCost() {
+        return this.constants.get('maneuveringEnergyCost');
+    }
+    get antiDriftEffectFactor() {
+        return this.constants.get('antiDriftEffectFactor');
+    }
+    get breaksEffectFactor() {
+        return this.constants.get('breaksEffectFactor');
     }
     get rotationEffectFactor() {
-        return this.constants.rotationEffectFactor as number;
+        return this.constants.get('rotationEffectFactor');
+    }
+    get boostEffectFactor() {
+        return this.constants.get('boostEffectFactor');
+    }
+    get strafeEffectFactor() {
+        return this.constants.get('strafeEffectFactor');
+    }
+    get rotationCapacity() {
+        return this.maneuveringCapacity * this.rotationEffectFactor;
     }
     get movementCapacity() {
         return this.maneuveringCapacity * Math.max(this.boostEffectFactor, this.strafeEffectFactor);
@@ -64,17 +99,5 @@ export class ShipState extends Spaceship {
     }
     get strafeCapacity() {
         return this.maneuveringCapacity * this.strafeEffectFactor;
-    }
-    get boostEffectFactor() {
-        return this.constants.boostEffectFactor as number;
-    }
-    get strafeEffectFactor() {
-        return this.constants.strafeEffectFactor as number;
-    }
-    get maneuveringCapacity() {
-        return this.constants.maneuveringCapacity as number;
-    }
-    get maneuveringEnergyCost() {
-        return this.constants.maneuveringEnergyCost as number;
     }
 }

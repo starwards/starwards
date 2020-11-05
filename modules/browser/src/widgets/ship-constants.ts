@@ -14,19 +14,14 @@ async function makeShipComponent(container: Container, p: Props) {
     addMapToPanel(
         () => shipRoom.state.constants,
         rootPanel.addFolder('main'),
-        (name: string, value: number) => shipRoom.send('setConstant', { name, value }),
-        shipRoom.state.events,
-        'constants',
-        viewModelChanges
+        (name: string, value: number) => shipRoom.send('setConstant', { name, value })
     );
     addMapToPanel(
         () => shipRoom.state.chainGun.constants,
         rootPanel.addFolder('chainGun'),
-        (name: string, value: number) => shipRoom.send('setChainGunConstant', { name, value }),
-        shipRoom.state.events,
-        'chainGun.constants',
-        viewModelChanges
+        (name: string, value: number) => shipRoom.send('setChainGunConstant', { name, value })
     );
+    triggerEverythingOnEvent(shipRoom.state.events, ['constants', 'chainGun.constants'], viewModelChanges);
     const cleanup = () => {
         container.off('destroy', cleanup);
         rootPanel.destroy();
@@ -40,31 +35,36 @@ function shipConstantsComponent(container: Container, p: Props) {
 function addMapToPanel(
     getConstants: () => MapSchema<number>,
     panel: Panel,
-    onChange: (name: string, value: number) => void,
-    stateEvents: EventEmitter,
-    constantsChangeEventName: string,
-    viewModelChanges: EventEmitter
+    onChange: (name: string, value: number) => void
 ) {
-    getConstants().onAdd = (_, name) => {
-        const val = getConstants()[name] as number;
+    const initConst = (_: unknown, name: string) => {
+        const val = getConstants().get(name);
         panel.addProperty(
             name,
-            () => getConstants()[name] as number,
+            () => getConstants().get(name),
             [val / 2, val * 2],
             (value: number) => onChange(name, value)
         );
     };
-    for (const constName in getConstants()) {
-        if (typeof getConstants()[constName] === 'number') {
-            getConstants().onAdd(0, constName);
-        }
+    getConstants().onAdd = initConst;
+    for (const constName of getConstants().keys()) {
+        initConst(0, constName);
     }
+}
+
+function triggerEverythingOnEvent(
+    stateEvents: EventEmitter<string | symbol, unknown>,
+    constantsChangeEventNames: string[],
+    viewModelChanges: EventEmitter<string | symbol, unknown>
+) {
     // lazy hack: just update everything when a constant changes
-    stateEvents.on(constantsChangeEventName, () => {
-        for (const eventName of viewModelChanges.eventNames()) {
-            viewModelChanges.emit(eventName);
-        }
-    });
+    for (const constantsChangeEventName of constantsChangeEventNames) {
+        stateEvents.on(constantsChangeEventName, () => {
+            for (const eventName of viewModelChanges.eventNames()) {
+                viewModelChanges.emit(eventName);
+            }
+        });
+    }
 }
 
 export function makeConstantsHeaders(container: Container, p: Props): Array<JQuery<HTMLElement>> {

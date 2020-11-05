@@ -52,6 +52,22 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "simulations Mocha Tests",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "cwd": "${workspaceFolder}/modules/simulations",
+      "args": [
+        "-r",
+        "@ts-tools/node/r",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/modules/simulations/test/**/**.spec.ts"
+      ],
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Mocha Current",
       "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
       "args": [
