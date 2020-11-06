@@ -29,7 +29,11 @@ export class ShipManager {
         this.state.constants = new MapSchema<number>();
         this.setConstant('energyPerSecond', 5);
         this.setConstant('maxEnergy', 1000);
+        this.setConstant('maxPotentialSpeed', 1000);
+        this.setConstant('potentialSpeedCharge', 20);
+        this.setConstant('potentialAcceleration', 100);
         this.setConstant('maneuveringCapacity', 40);
+        this.setConstant('potentialSpeedEnergyCost', 0.07);
         this.setConstant('maneuveringEnergyCost', 0.07);
         this.setConstant('antiDriftEffectFactor', 1);
         this.setConstant('breaksEffectFactor', 1);
@@ -69,6 +73,11 @@ export class ShipManager {
     public setBreaks(value: number) {
         this.state.breaks = capToRange(-1, 1, value);
     }
+
+    public setCombatManeuvers(value: number) {
+        this.state.combatManeuvers = capToRange(0, 1, value);
+    }
+
     public setTarget(id: string | null) {
         this.state.targetId = id;
         this.validateTargetId();
@@ -112,7 +121,20 @@ export class ShipManager {
             this.updateAntiDrift(deltaSeconds);
             this.updateBreaks(deltaSeconds);
             this.updateChainGun(deltaSeconds);
+            this.chargePotentialSpeed(deltaSeconds);
             this.fireChainGun();
+        }
+    }
+
+    private chargePotentialSpeed(deltaSeconds: number) {
+        if (this.state.potentialSpeed < this.state.maxPotentialSpeed) {
+            const speedToChange = Math.min(
+                this.state.maxPotentialSpeed - this.state.potentialSpeed,
+                this.state.potentialSpeedCharge * deltaSeconds
+            );
+            if (this.trySpendEnergy(speedToChange * this.state.maneuveringEnergyCost)) {
+                this.state.potentialSpeed += speedToChange;
+            }
         }
     }
 
@@ -157,6 +179,18 @@ export class ShipManager {
         }
         if (this.state.energy > value) {
             this.state.energy = this.state.energy - value;
+            return true;
+        }
+        return false;
+    }
+
+    trySpendPotentialSpeed(value: number): boolean {
+        if (value < 0) {
+            // eslint-disable-next-line no-console
+            console.log('probably an error: spending negative energy');
+        }
+        if (this.state.potentialSpeed > value) {
+            this.state.potentialSpeed = this.state.potentialSpeed - value;
             return true;
         }
         return false;
@@ -211,23 +245,69 @@ export class ShipManager {
         }
     }
 
+    private foo(deltaSeconds: number) {
+        const commandFactor = this.state.breaks * deltaSeconds;
+        const desiredSpeed = XY.negate(this.spaceObject.velocity);
+        const effectFactor = this.state.breaksEffectFactor;
+
+        this.maneuver(commandFactor, desiredSpeed, effectFactor);
+    }
+
+    private maneuver(commandFactor: number, desiredSpeed: XY, effectFactor: number) {
+        if (commandFactor) {
+            const velocityLength = XY.lengthOf(desiredSpeed);
+            if (velocityLength) {
+                let speedToChange = 0;
+                const enginePower =
+                    commandFactor *
+                    capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, velocityLength);
+                if (this.trySpendEnergy(enginePower * this.state.maneuveringEnergyCost)) {
+                    speedToChange += enginePower * effectFactor;
+                }
+                if (this.state.combatManeuvers) {
+                    const emergencySpeed =
+                        commandFactor * this.state.combatManeuvers * this.state.potentialAcceleration;
+                    if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+                        speedToChange += emergencySpeed;
+                    }
+                }
+                if (speedToChange) {
+                    this.spaceManager.ChangeVelocity(
+                        this.spaceObject.id,
+                        XY.scale(XY.normalize(desiredSpeed), speedToChange)
+                    );
+                }
+            }
+        }
+    }
+
     private updateAntiDrift(deltaSeconds: number) {
         if (this.state.antiDrift) {
             const driftVelocity = XY.projection(
                 this.spaceObject.velocity,
                 XY.rotate(XY.one, this.spaceObject.angle - 90)
             );
-            const diffLenfth = XY.lengthOf(driftVelocity);
-            if (diffLenfth) {
+            const diffLength = XY.lengthOf(driftVelocity);
+            if (diffLength) {
+                let speedToChange = 0;
+                const antiDriftFactor = this.state.antiDrift * deltaSeconds;
                 const enginePower =
-                    this.state.breaks *
-                    capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, diffLenfth) *
-                    deltaSeconds;
-
+                    antiDriftFactor *
+                    capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, diffLength);
                 if (this.trySpendEnergy(enginePower * this.state.maneuveringEnergyCost)) {
+                    speedToChange += enginePower * this.state.antiDriftEffectFactor;
+                }
+                if (this.state.combatManeuvers) {
+                    const emergencySpeed =
+                        antiDriftFactor * this.state.combatManeuvers * this.state.potentialAcceleration;
+                    if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+                        speedToChange += emergencySpeed;
+                    }
+                }
+                if (speedToChange) {
                     this.spaceManager.ChangeVelocity(
                         this.spaceObject.id,
-                        XY.scale(XY.negate(XY.normalize(driftVelocity)), enginePower * this.state.antiDriftEffectFactor)
+                        XY.scale(XY.negate(XY.normalize(driftVelocity)), speedToChange)
                     );
                 }
             }
@@ -235,35 +315,51 @@ export class ShipManager {
     }
 
     private updateBreaks(deltaSeconds: number) {
-        if (this.state.breaks && !XY.isZero(this.spaceObject.velocity)) {
+        if (this.state.breaks) {
             const velocityLength = XY.lengthOf(this.spaceObject.velocity);
-            const enginePower =
-                this.state.breaks *
-                capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, velocityLength) *
-                deltaSeconds;
-
-            if (this.trySpendEnergy(enginePower * this.state.maneuveringEnergyCost)) {
-                this.spaceManager.ChangeVelocity(
-                    this.spaceObject.id,
-                    XY.scale(
-                        XY.negate(XY.normalize(this.spaceObject.velocity)),
-                        enginePower * this.state.breaksEffectFactor
-                    )
-                );
+            if (velocityLength) {
+                let speedToChange = 0;
+                const breaksFactor = this.state.breaks * deltaSeconds;
+                const enginePower =
+                    breaksFactor *
+                    capToRange(-this.state.maneuveringCapacity, this.state.maneuveringCapacity, velocityLength);
+                if (this.trySpendEnergy(enginePower * this.state.maneuveringEnergyCost)) {
+                    speedToChange += enginePower * this.state.breaksEffectFactor;
+                }
+                if (this.state.combatManeuvers) {
+                    const emergencySpeed = breaksFactor * this.state.combatManeuvers * this.state.potentialAcceleration;
+                    if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+                        speedToChange += emergencySpeed;
+                    }
+                }
+                if (speedToChange) {
+                    this.spaceManager.ChangeVelocity(
+                        this.spaceObject.id,
+                        XY.scale(XY.negate(XY.normalize(this.spaceObject.velocity)), speedToChange)
+                    );
+                }
             }
         }
     }
 
     private updateStrafe(deltaSeconds: number) {
         if (this.state.strafe) {
-            const enginePower = this.state.strafe * this.state.maneuveringCapacity * deltaSeconds;
+            let speedToChange = 0;
+            const strafeFactor = this.state.strafe * deltaSeconds;
+            const enginePower = strafeFactor * this.state.maneuveringCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
+                speedToChange += enginePower * this.state.strafeEffectFactor;
+            }
+            if (this.state.combatManeuvers) {
+                const emergencySpeed = strafeFactor * this.state.combatManeuvers * this.state.potentialAcceleration;
+                if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+                    speedToChange += emergencySpeed;
+                }
+            }
+            if (speedToChange) {
                 this.spaceManager.ChangeVelocity(
                     this.spaceObject.id,
-                    XY.scale(
-                        XY.rotate(XY.one, this.spaceObject.angle + 90),
-                        enginePower * this.state.strafeEffectFactor
-                    )
+                    XY.scale(XY.rotate(XY.one, this.spaceObject.angle + 90), speedToChange)
                 );
             }
         }
@@ -271,11 +367,22 @@ export class ShipManager {
 
     private updateBoost(deltaSeconds: number) {
         if (this.state.boost) {
-            const enginePower = this.state.boost * this.state.maneuveringCapacity * deltaSeconds;
+            let speedToChange = 0;
+            const boostFactor = this.state.boost * deltaSeconds;
+            const enginePower = boostFactor * this.state.maneuveringCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
+                speedToChange += enginePower * this.state.boostEffectFactor;
+            }
+            if (this.state.combatManeuvers) {
+                const emergencySpeed = boostFactor * this.state.combatManeuvers * this.state.potentialAcceleration;
+                if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+                    speedToChange += emergencySpeed;
+                }
+            }
+            if (speedToChange) {
                 this.spaceManager.ChangeVelocity(
                     this.spaceObject.id,
-                    XY.scale(XY.rotate(XY.one, this.spaceObject.angle), enginePower * this.state.boostEffectFactor)
+                    XY.scale(XY.rotate(XY.one, this.spaceObject.angle), speedToChange)
                 );
             }
         }
@@ -283,10 +390,19 @@ export class ShipManager {
 
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
-            const enginePower = this.state.rotation * this.state.maneuveringCapacity * deltaSeconds;
+            let speedToChange = 0;
+            const rotateFactor = this.state.rotation * deltaSeconds;
+            const enginePower = rotateFactor * this.state.maneuveringCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
-                this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, enginePower * this.state.rotationEffectFactor);
+                speedToChange += enginePower * this.state.rotationEffectFactor;
             }
+            if (this.state.combatManeuvers) {
+                const emergencySpeed = rotateFactor * this.state.potentialAcceleration;
+                if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+                    speedToChange += emergencySpeed;
+                }
+            }
+            this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);
         }
     }
 }

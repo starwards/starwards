@@ -23,6 +23,9 @@ export interface ShipCommands {
     setShellSecondsToLive: {
         value: number;
     };
+    setCombatManeuvers: {
+        value: number;
+    };
     // changes to ship
     setConstant: {
         name: string;

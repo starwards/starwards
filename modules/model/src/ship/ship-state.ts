@@ -21,12 +21,17 @@ export class ShipState extends Spaceship {
     boost = 0;
     @type('float32')
     strafe = 0;
+
     @type('float32')
     antiDrift = 0;
     @type('float32')
     breaks = 0;
     @type('number')
     energy = 1000;
+    @type('number')
+    potentialSpeed = 1000;
+    @type('float32')
+    combatManeuvers = 0;
 
     @type('int8')
     targeted = TargetedStatus.NONE;
@@ -63,6 +68,15 @@ export class ShipState extends Spaceship {
     }
     get maxEnergy() {
         return this.constants.get('maxEnergy');
+    }
+    get maxPotentialSpeed() {
+        return this.constants.get('maxPotentialSpeed');
+    }
+    get potentialSpeedCharge() {
+        return this.constants.get('potentialSpeedCharge');
+    }
+    get potentialAcceleration() {
+        return this.constants.get('potentialAcceleration');
     }
     get energyPerSecond() {
         return this.constants.get('energyPerSecond');
