@@ -67,11 +67,11 @@ export class ShipManager {
     }
 
     public setAntiDrift(value: number) {
-        this.state.antiDrift = capToRange(-1, 1, value);
+        this.state.antiDrift = capToRange(0, 1, value);
     }
 
     public setBreaks(value: number) {
-        this.state.breaks = capToRange(-1, 1, value);
+        this.state.breaks = capToRange(0, 1, value);
     }
 
     public setCombatManeuvers(value: number) {
