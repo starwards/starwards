@@ -146,7 +146,7 @@ export class ShipManager {
             const velocityFromPotential = this.usePotentialVelocity(desiredSpeed, deltaSeconds);
             const speedToChange = XY.sum(maneuveringVelocity, velocityFromPotential);
             if (!XY.isZero(speedToChange)) {
-                this.spaceManager.ChangeVelocity(this.spaceObject.id, speedToChange);
+                this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
             }
         }
     }
