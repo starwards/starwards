@@ -42,10 +42,10 @@ function pilotComponent(container: Container, p: Props) {
         );
 
         panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
-        panel.addProperty('potentialSpeed', () => shipRoom.state.potentialSpeed, [0, 1000]);
+        panel.addProperty('reserveSpeed', () => shipRoom.state.reserveSpeed, [0, 1000]);
         panel.addProperty(
-            'combatManeuvers',
-            () => shipRoom.state.combatManeuvers,
+            'useReserveSpeed',
+            () => shipRoom.state.useReserveSpeed,
             [0, 1],
             (value) => {
                 shipRoom.send('setCombatManeuvers', { value: value });

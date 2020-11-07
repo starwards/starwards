@@ -29,11 +29,11 @@ export class ShipManager {
         this.state.constants = new MapSchema<number>();
         this.setConstant('energyPerSecond', 5);
         this.setConstant('maxEnergy', 1000);
-        this.setConstant('maxPotentialSpeed', 1000);
-        this.setConstant('potentialSpeedCharge', 20);
-        this.setConstant('potentialAcceleration', 100);
+        this.setConstant('maxReserveSpeed', 1000);
+        this.setConstant('reserveSpeedCharge', 20);
+        this.setConstant('reserveSpeedUsagePerSecond', 100);
+        this.setConstant('reserveSpeedEnergyCost', 0.07);
         this.setConstant('maneuveringCapacity', 40);
-        this.setConstant('potentialSpeedEnergyCost', 0.07);
         this.setConstant('maneuveringEnergyCost', 0.07);
         this.setConstant('antiDriftEffectFactor', 1);
         this.setConstant('breaksEffectFactor', 1);
@@ -75,7 +75,7 @@ export class ShipManager {
     }
 
     public setCombatManeuvers(value: number) {
-        this.state.combatManeuvers = capToRange(0, 1, value);
+        this.state.useReserveSpeed = capToRange(0, 1, value);
     }
 
     public setTarget(id: string | null) {
@@ -121,7 +121,7 @@ export class ShipManager {
             this.changeVelocity(desiredSpeed, deltaSeconds);
 
             this.updateChainGun(deltaSeconds);
-            this.chargePotentialSpeed(deltaSeconds);
+            this.chargeReserveSpeed(deltaSeconds);
             this.fireChainGun();
         }
     }
@@ -152,13 +152,13 @@ export class ShipManager {
     }
 
     private usePotentialVelocity(desiredSpeed: XY, deltaSeconds: number) {
-        if (this.state.combatManeuvers) {
+        if (this.state.useReserveSpeed) {
             const velocityLength = XY.lengthOf(desiredSpeed);
             const emergencySpeed = Math.min(
-                velocityLength * this.state.combatManeuvers,
-                this.state.potentialAcceleration * deltaSeconds
+                velocityLength * this.state.useReserveSpeed,
+                this.state.reserveSpeedUsagePerSecond * deltaSeconds
             );
-            if (this.trySpendPotentialSpeed(emergencySpeed)) {
+            if (this.trySpendReserveSpeed(emergencySpeed)) {
                 return XY.scale(XY.normalize(desiredSpeed), emergencySpeed);
             }
         }
@@ -181,14 +181,14 @@ export class ShipManager {
         return XY.zero;
     }
 
-    private chargePotentialSpeed(deltaSeconds: number) {
-        if (this.state.potentialSpeed < this.state.maxPotentialSpeed) {
+    private chargeReserveSpeed(deltaSeconds: number) {
+        if (this.state.reserveSpeed < this.state.maxReserveSpeed) {
             const speedToChange = Math.min(
-                this.state.maxPotentialSpeed - this.state.potentialSpeed,
-                this.state.potentialSpeedCharge * deltaSeconds
+                this.state.maxReserveSpeed - this.state.reserveSpeed,
+                this.state.reserveSpeedCharge * deltaSeconds
             );
-            if (this.trySpendEnergy(speedToChange * this.state.maneuveringEnergyCost)) {
-                this.state.potentialSpeed += speedToChange;
+            if (this.trySpendEnergy(speedToChange * this.state.reserveSpeedEnergyCost)) {
+                this.state.reserveSpeed += speedToChange;
             }
         }
     }
@@ -239,13 +239,13 @@ export class ShipManager {
         return false;
     }
 
-    trySpendPotentialSpeed(value: number): boolean {
+    trySpendReserveSpeed(value: number): boolean {
         if (value < 0) {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
         }
-        if (this.state.potentialSpeed > value) {
-            this.state.potentialSpeed = this.state.potentialSpeed - value;
+        if (this.state.reserveSpeed > value) {
+            this.state.reserveSpeed = this.state.reserveSpeed - value;
             return true;
         }
         return false;
@@ -308,9 +308,9 @@ export class ShipManager {
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }
-            if (this.state.combatManeuvers) {
-                const emergencySpeed = rotateFactor * this.state.potentialAcceleration;
-                if (this.trySpendPotentialSpeed(Math.abs(emergencySpeed))) {
+            if (this.state.useReserveSpeed) {
+                const emergencySpeed = rotateFactor * this.state.reserveSpeedUsagePerSecond;
+                if (this.trySpendReserveSpeed(Math.abs(emergencySpeed))) {
                     speedToChange += emergencySpeed;
                 }
             }

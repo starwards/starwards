@@ -29,9 +29,9 @@ export class ShipState extends Spaceship {
     @type('number')
     energy = 1000;
     @type('number')
-    potentialSpeed = 1000;
+    reserveSpeed = 1000;
     @type('float32')
-    combatManeuvers = 0;
+    useReserveSpeed = 0;
 
     @type('int8')
     targeted = TargetedStatus.NONE;
@@ -69,14 +69,17 @@ export class ShipState extends Spaceship {
     get maxEnergy() {
         return this.constants.get('maxEnergy');
     }
-    get maxPotentialSpeed() {
-        return this.constants.get('maxPotentialSpeed');
+    get maxReserveSpeed() {
+        return this.constants.get('maxReserveSpeed');
     }
-    get potentialSpeedCharge() {
-        return this.constants.get('potentialSpeedCharge');
+    get reserveSpeedCharge() {
+        return this.constants.get('reserveSpeedCharge');
     }
-    get potentialAcceleration() {
-        return this.constants.get('potentialAcceleration');
+    get reserveSpeedEnergyCost() {
+        return this.constants.get('reserveSpeedEnergyCost');
+    }
+    get reserveSpeedUsagePerSecond() {
+        return this.constants.get('reserveSpeedUsagePerSecond');
     }
     get energyPerSecond() {
         return this.constants.get('energyPerSecond');
