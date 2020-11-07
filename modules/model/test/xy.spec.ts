@@ -5,7 +5,7 @@ import fc from 'fast-check';
 import { floatIn } from './properties';
 
 const GRACE = 0.1;
-
+const safeDeg = 180 - GRACE;
 const assertRotation = (vec: XY) => (deg: number) =>
     void expect(toDegreesDelta(XY.angleOf(XY.rotate(vec, deg))), `vector rotated ${deg} degrees`).to.be.closeTo(
         toDegreesDelta(deg),
@@ -16,10 +16,10 @@ describe('model', () => {
     describe('XY.byLengthAndDirection() ', () => {
         it('is correct angle and length', () => {
             fc.assert(
-                fc.property(fc.float(1, 100).map(limitPercision), floatIn(180), (length: number, deg: number) => {
+                fc.property(fc.float(1, 100).map(limitPercision), floatIn(safeDeg), (length: number, deg: number) => {
                     const vec = XY.byLengthAndDirection(length, deg);
-                    void expect(XY.lengthOf(vec), `vector length ${length}`).to.be.closeTo(length, GRACE);
-                    void expect(toDegreesDelta(XY.angleOf(vec)), `vector rotated ${deg} degrees`).to.be.closeTo(
+                    expect(XY.lengthOf(vec), `vector length ${length}`).to.be.closeTo(length, GRACE);
+                    expect(toDegreesDelta(XY.angleOf(vec)), `vector rotated ${deg} degrees`).to.be.closeTo(
                         toDegreesDelta(deg),
                         GRACE
                     );
