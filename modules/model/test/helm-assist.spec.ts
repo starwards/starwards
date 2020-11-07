@@ -13,10 +13,63 @@ import {
 } from '../src';
 import { GraphPointInput } from './ploty-graph-builder';
 import { floatIn, xy } from './properties';
-import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics } from './ship-test-harness';
+import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
 
 describe('helm assist', function () {
     this.timeout(60 * 1000);
+
+    describe('assumptions', () => {
+        const time = 5;
+        const iterationsPerSecond = 5;
+        it('boostCapacity is max speed per second in boost', () => {
+            fc.assert(
+                fc.property(floatIn(1), (boost: number) => {
+                    const harness = new ShipTestHarness();
+                    harness.shipObj.velocity.x = -boost * time * harness.shipState.boostCapacity;
+                    harness.shipMgr.setBoost(boost);
+                    const metrics = new TimedTestMetrics(
+                        iterationsPerSecond,
+                        time,
+                        Math.abs(harness.shipObj.velocity.x)
+                    );
+                    harness.simulate(metrics.timeToReach, metrics.iterations);
+                    expect(harness.shipObj.velocity.x, 'velocity').to.be.closeTo(0, metrics.logErrorMargin);
+                })
+            );
+        });
+        it('strafeCapacity is max speed per second in strafe', () => {
+            fc.assert(
+                fc.property(floatIn(1), (strafe: number) => {
+                    const harness = new ShipTestHarness();
+                    harness.shipObj.velocity.y = -strafe * time * harness.shipState.strafeCapacity;
+                    harness.shipMgr.setStrafe(strafe);
+                    const metrics = new TimedTestMetrics(
+                        iterationsPerSecond,
+                        time,
+                        Math.abs(harness.shipObj.velocity.y)
+                    );
+                    harness.simulate(metrics.timeToReach, metrics.iterations);
+                    expect(harness.shipObj.velocity.y, 'velocity').to.be.closeTo(0, metrics.logErrorMargin);
+                })
+            );
+        });
+        it('rotationCapacity is max speed per second in turnSpeed', () => {
+            fc.assert(
+                fc.property(floatIn(1), (rotation: number) => {
+                    const harness = new ShipTestHarness();
+                    harness.shipObj.turnSpeed = -rotation * time * harness.shipState.rotationCapacity;
+                    harness.shipMgr.setRotation(rotation);
+                    const metrics = new TimedTestMetrics(
+                        iterationsPerSecond,
+                        time,
+                        Math.abs(harness.shipObj.turnSpeed)
+                    );
+                    harness.simulate(metrics.timeToReach, metrics.iterations);
+                    expect(harness.shipObj.turnSpeed, 'turnSpeed').to.be.closeTo(0, metrics.logErrorMargin);
+                })
+            );
+        });
+    });
     describe('rotateToTarget', () => {
         const target = XY.byLengthAndDirection(100, 0); // always aim at (100, 0), meaning target angle is 0
         it('basic scenario acheives target direction in a reasonable time', () => {

@@ -40,6 +40,12 @@ export class SpeedTestMetrics extends AbsTestMetrics {
     }
 }
 
+export class TimedTestMetrics extends AbsTestMetrics {
+    constructor(iterationsPerSecond: number, public timeToReach: number, distance: number) {
+        super(iterationsPerSecond, distance);
+    }
+}
+
 export class ShipTestHarness {
     public spaceMgr = new SpaceManager();
     public shipObj = new Spaceship();
@@ -62,13 +68,13 @@ export class ShipTestHarness {
     initGraph(metrics: Record<string, () => number>, lineNames: string[]) {
         this.graphBuilder = new PlotlyGraphBuilder(metrics, lineNames);
     }
-    simulate(timeInSeconds: number, iterations: number, body: (time: number, log?: GraphPointInput) => unknown) {
+    simulate(timeInSeconds: number, iterations: number, body?: (time: number, log?: GraphPointInput) => unknown) {
         const iterationTimeInSeconds = timeInSeconds / iterations;
         this.shipMgr.update(iterationTimeInSeconds);
         this.spaceMgr.update(iterationTimeInSeconds);
         for (let i = 0; i < iterations; i++) {
             const p = this.graphBuilder?.newPoint(iterationTimeInSeconds);
-            body(iterationTimeInSeconds, p);
+            body && body(iterationTimeInSeconds, p);
             for (let i = 0; i < 5; i++) {
                 this.shipMgr.update(iterationTimeInSeconds / 5);
                 this.spaceMgr.update(iterationTimeInSeconds / 5);
