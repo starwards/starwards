@@ -166,14 +166,17 @@ export class ShipManager {
     }
 
     private useManeuvering(desiredSpeed: XY, deltaSeconds: number) {
-        const velocityLength = XY.lengthOf(desiredSpeed);
-        const maneuveringPower = Math.min(velocityLength, this.state.maneuveringCapacity * deltaSeconds);
-        if (this.trySpendEnergy(maneuveringPower * this.state.maneuveringEnergyCost)) {
-            const cappedSpeed = XY.scale(XY.normalize(desiredSpeed), maneuveringPower);
-            const localSpeed = XY.rotate(cappedSpeed, -this.spaceObject.angle);
+        const axisCapacity = this.state.maneuveringCapacity * deltaSeconds;
+        const desiredLocalSpeed = XY.rotate(desiredSpeed, -this.spaceObject.angle);
+        const cappedSpeed = {
+            x: capToRange(-1, 1, desiredLocalSpeed.x) * axisCapacity,
+            y: capToRange(-1, 1, desiredLocalSpeed.y) * axisCapacity,
+        };
+        const sumSpeed = Math.abs(cappedSpeed.x) + Math.abs(cappedSpeed.y);
+        if (this.trySpendEnergy(sumSpeed * this.state.maneuveringEnergyCost)) {
             const effectiveLocalSpeedChange = {
-                x: localSpeed.x * this.state.boostEffectFactor,
-                y: localSpeed.y * this.state.strafeEffectFactor,
+                x: cappedSpeed.x * this.state.boostEffectFactor,
+                y: cappedSpeed.y * this.state.strafeEffectFactor,
             };
             const globalSpeedChange = XY.rotate(effectiveLocalSpeedChange, this.spaceObject.angle);
             return globalSpeedChange;
