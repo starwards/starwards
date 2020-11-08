@@ -42,6 +42,19 @@ function pilotComponent(container: Container, p: Props) {
         );
 
         panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
+        panel.addProperty('reserveSpeed', () => shipRoom.state.reserveSpeed, [0, 1000]);
+        panel.addProperty(
+            'useReserveSpeed',
+            () => shipRoom.state.useReserveSpeed,
+            [0, 1],
+            (value) => {
+                shipRoom.send('setCombatManeuvers', { value: value });
+            },
+            {
+                gamepadIndex: 0,
+                buttonIndex: 6,
+            }
+        );
         panel.addProperty(
             'antiDrift',
             () => shipRoom.state.antiDrift,

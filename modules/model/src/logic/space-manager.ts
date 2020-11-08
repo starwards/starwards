@@ -18,7 +18,7 @@ export class SpaceManager {
             subject.turnSpeed += delta;
         }
     }
-    public ChangeVelocity(id: string, delta: XY) {
+    public changeVelocity(id: string, delta: XY) {
         const subject = this.state.get(id);
         if (subject && !subject.destroyed) {
             subject.velocity.x += delta.x;

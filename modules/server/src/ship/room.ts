@@ -33,5 +33,8 @@ export class ShipRoom extends Room<ShipState> {
         this.onMessage('setShellSecondsToLive', (_, msg: ShipCommands['setShellSecondsToLive']) =>
             manager.setShellSecondsToLive(msg.value)
         );
+        this.onMessage('setCombatManeuvers', (_, msg: ShipCommands['setCombatManeuvers']) =>
+            manager.setCombatManeuvers(msg.value)
+        );
     }
 }

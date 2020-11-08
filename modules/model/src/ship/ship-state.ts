@@ -21,12 +21,17 @@ export class ShipState extends Spaceship {
     boost = 0;
     @type('float32')
     strafe = 0;
+
     @type('float32')
     antiDrift = 0;
     @type('float32')
     breaks = 0;
     @type('number')
     energy = 1000;
+    @type('number')
+    reserveSpeed = 1000;
+    @type('float32')
+    useReserveSpeed = 0;
 
     @type('int8')
     targeted = TargetedStatus.NONE;
@@ -64,6 +69,18 @@ export class ShipState extends Spaceship {
     get maxEnergy() {
         return this.constants.get('maxEnergy');
     }
+    get maxReserveSpeed() {
+        return this.constants.get('maxReserveSpeed');
+    }
+    get reserveSpeedCharge() {
+        return this.constants.get('reserveSpeedCharge');
+    }
+    get reserveSpeedEnergyCost() {
+        return this.constants.get('reserveSpeedEnergyCost');
+    }
+    get reserveSpeedUsagePerSecond() {
+        return this.constants.get('reserveSpeedUsagePerSecond');
+    }
     get energyPerSecond() {
         return this.constants.get('energyPerSecond');
     }
@@ -89,15 +106,25 @@ export class ShipState extends Spaceship {
         return this.constants.get('strafeEffectFactor');
     }
     get rotationCapacity() {
-        return this.maneuveringCapacity * this.rotationEffectFactor;
+        return (
+            this.maneuveringCapacity * this.rotationEffectFactor +
+            this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+        );
     }
     get movementCapacity() {
-        return this.maneuveringCapacity * Math.max(this.boostEffectFactor, this.strafeEffectFactor);
+        return (
+            this.maneuveringCapacity * Math.max(this.boostEffectFactor, this.strafeEffectFactor) +
+            this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+        );
     }
     get boostCapacity() {
-        return this.maneuveringCapacity * this.boostEffectFactor;
+        return (
+            this.maneuveringCapacity * this.boostEffectFactor + this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+        );
     }
     get strafeCapacity() {
-        return this.maneuveringCapacity * this.strafeEffectFactor;
+        return (
+            this.maneuveringCapacity * this.strafeEffectFactor + this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+        );
     }
 }

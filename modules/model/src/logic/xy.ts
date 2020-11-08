@@ -18,6 +18,12 @@ export namespace XY {
         };
     }
     export const degToRad = Math.PI / 180;
+    export function sum(...vectors: XY[]): XY {
+        return {
+            x: limitPercision(vectors.reduce((acc, curr) => acc + curr.x, 0)),
+            y: limitPercision(vectors.reduce((acc, curr) => acc + curr.y, 0)),
+        };
+    }
     export function add(vector: XY, vector2: XY): XY {
         return {
             x: limitPercision(vector.x + vector2.x),

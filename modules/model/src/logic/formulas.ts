@@ -66,7 +66,7 @@ export function whereWillItStop(x0: number, v0: number, a: number) {
 }
 
 export function limitPercision(num: number) {
-    return Math.round(num * 1e3) / 1e3;
+    return Math.round(num * 1e4) / 1e4;
 }
 
 export type Sign = 1 | -1 | 0;
