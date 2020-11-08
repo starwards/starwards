@@ -69,9 +69,10 @@ export class ShipTestHarness {
         this.graphBuilder = new PlotlyGraphBuilder(metrics, lineNames);
     }
     simulate(timeInSeconds: number, iterations: number, body?: (time: number, log?: GraphPointInput) => unknown) {
-        const iterationTimeInSeconds = timeInSeconds / iterations;
+        const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
         this.shipMgr.update(iterationTimeInSeconds);
         this.spaceMgr.update(iterationTimeInSeconds);
+        this.graphBuilder?.newPoint(0);
         for (let i = 0; i < iterations; i++) {
             const p = this.graphBuilder?.newPoint(iterationTimeInSeconds);
             body && body(iterationTimeInSeconds, p);
@@ -80,6 +81,7 @@ export class ShipTestHarness {
                 this.spaceMgr.update(iterationTimeInSeconds / 5);
             }
         }
+        this.graphBuilder?.newPoint(iterationTimeInSeconds);
     }
     annotateGraph(text: string) {
         this.graphBuilder?.newPoint(0).annotate(text);

@@ -9,6 +9,7 @@ export const floatIn = (range: number, minRange = 0) =>
         .float(-range, range)
         .filter((n) => Math.abs(n) >= minRange)
         .map(limitPercision);
+export const float = (from: number, to: number) => fc.float(from, to).map(limitPercision);
 export const fromTo = (range: number, minDiff: number) =>
     fc.tuple(floatIn(range), floatIn(range)).filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));

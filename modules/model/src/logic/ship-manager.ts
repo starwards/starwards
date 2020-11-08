@@ -154,10 +154,8 @@ export class ShipManager {
     private usePotentialVelocity(desiredSpeed: XY, deltaSeconds: number) {
         if (this.state.useReserveSpeed) {
             const velocityLength = XY.lengthOf(desiredSpeed);
-            const emergencySpeed = Math.min(
-                velocityLength * this.state.useReserveSpeed,
-                this.state.reserveSpeedUsagePerSecond * deltaSeconds
-            );
+            const speedCapacity = this.state.reserveSpeedUsagePerSecond * deltaSeconds;
+            const emergencySpeed = Math.min(velocityLength * this.state.useReserveSpeed, 1) * speedCapacity;
             if (this.trySpendReserveSpeed(emergencySpeed)) {
                 return XY.scale(XY.normalize(desiredSpeed), emergencySpeed);
             }
@@ -239,6 +237,7 @@ export class ShipManager {
             this.state.energy = this.state.energy - value;
             return true;
         }
+        this.state.energy = 0;
         return false;
     }
 
@@ -251,6 +250,7 @@ export class ShipManager {
             this.state.reserveSpeed = this.state.reserveSpeed - value;
             return true;
         }
+        this.state.reserveSpeed = 0;
         return false;
     }
 
@@ -312,7 +312,8 @@ export class ShipManager {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }
             if (this.state.useReserveSpeed) {
-                const emergencySpeed = rotateFactor * this.state.reserveSpeedUsagePerSecond;
+                const emergencySpeed =
+                    rotateFactor * this.state.useReserveSpeed * this.state.reserveSpeedUsagePerSecond;
                 if (this.trySpendReserveSpeed(Math.abs(emergencySpeed))) {
                     speedToChange += emergencySpeed;
                 }
