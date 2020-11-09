@@ -22,3 +22,4 @@ export * from './admin';
 export * from './space';
 export * from './ship';
 export * from './logic';
+export * from './id';
