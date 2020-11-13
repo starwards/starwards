@@ -40,6 +40,8 @@ export class ShipManager {
         this.setConstant('rotationEffectFactor', 0.9);
         this.setConstant('strafeEffectFactor', 0.7);
         this.setConstant('boostEffectFactor', 0.7);
+        this.setConstant('maxSpeed', 500);
+        this.setConstant('maxReservedSpeed', 400);
         this.state.chainGun = new ChainGun();
         this.state.chainGun.constants = new MapSchema<number>();
         this.setChainGunConstant('bulletsPerSecond', 20);
@@ -117,8 +119,8 @@ export class ShipManager {
             this.updateEnergy(deltaSeconds);
             this.updateRotation(deltaSeconds);
 
-            const desiredSpeed = this.calcDesiredSpeed();
-            this.changeVelocity(desiredSpeed, deltaSeconds);
+            const maneuveringAction = this.calcManeuveringAction();
+            this.changeVelocity(maneuveringAction, deltaSeconds);
 
             this.updateChainGun(deltaSeconds);
             this.chargeReserveSpeed(deltaSeconds);
@@ -126,24 +128,28 @@ export class ShipManager {
         }
     }
 
-    private calcDesiredSpeed() {
-        const boostFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle), this.state.boost);
-        const strafeFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle + 90), this.state.strafe);
-        const antiDriftFactor = XY.scale(
-            XY.normalize(
-                XY.negate(XY.projection(this.spaceObject.velocity, XY.rotate(XY.one, this.spaceObject.angle - 90)))
-            ),
-            this.state.antiDrift
-        );
-        const breaksFactor = XY.scale(XY.normalize(XY.negate(this.spaceObject.velocity)), this.state.breaks);
-        const desiredSpeed = XY.sum(boostFactor, strafeFactor, antiDriftFactor, breaksFactor);
-        return desiredSpeed;
+    private calcManeuveringAction() {
+        if (XY.lengthOf(this.spaceObject.velocity) > this.state.maxSpeed) {
+            return XY.normalize(XY.negate(this.spaceObject.velocity));
+        } else {
+            const boostFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle), this.state.boost);
+            const strafeFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle + 90), this.state.strafe);
+            const antiDriftFactor = XY.scale(
+                XY.normalize(
+                    XY.negate(XY.projection(this.spaceObject.velocity, XY.rotate(XY.one, this.spaceObject.angle - 90)))
+                ),
+                this.state.antiDrift
+            );
+            const breaksFactor = XY.scale(XY.normalize(XY.negate(this.spaceObject.velocity)), this.state.breaks);
+            const desiredSpeed = XY.sum(boostFactor, strafeFactor, antiDriftFactor, breaksFactor);
+            return desiredSpeed;
+        }
     }
 
-    private changeVelocity(desiredSpeed: XY, deltaSeconds: number) {
-        if (!XY.isZero(desiredSpeed)) {
-            const maneuveringVelocity = this.useManeuvering(desiredSpeed, deltaSeconds);
-            const velocityFromPotential = this.usePotentialVelocity(desiredSpeed, deltaSeconds);
+    private changeVelocity(maneuveringAction: XY, deltaSeconds: number) {
+        if (!XY.isZero(maneuveringAction)) {
+            const maneuveringVelocity = this.useManeuvering(maneuveringAction, deltaSeconds);
+            const velocityFromPotential = this.usePotentialVelocity(maneuveringAction, deltaSeconds);
             const speedToChange = XY.sum(maneuveringVelocity, velocityFromPotential);
             if (!XY.isZero(speedToChange)) {
                 this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
@@ -163,9 +169,9 @@ export class ShipManager {
         return XY.zero;
     }
 
-    private useManeuvering(desiredSpeed: XY, deltaSeconds: number) {
+    private useManeuvering(maneuveringAction: XY, deltaSeconds: number) {
         const axisCapacity = this.state.maneuveringCapacity * deltaSeconds;
-        const desiredLocalSpeed = XY.rotate(desiredSpeed, -this.spaceObject.angle);
+        const desiredLocalSpeed = XY.rotate(maneuveringAction, -this.spaceObject.angle);
         const cappedSpeed = {
             x: capToRange(-1, 1, desiredLocalSpeed.x) * axisCapacity,
             y: capToRange(-1, 1, desiredLocalSpeed.y) * axisCapacity,
