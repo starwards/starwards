@@ -24,7 +24,7 @@ const InGameMenu = () => {
         loop.start();
         return loop.stop;
     });
-    const layouts = new Set<string>(ships.map((shipId) => 'pilot-' + shipId));
+    const layouts = new Set<string>();
     for (const key in localStorage) {
         if (key.startsWith('layout:')) {
             layouts.add(key.substring('layout:'.length));
@@ -33,31 +33,38 @@ const InGameMenu = () => {
     }
     return (
         <ul>
-            <li key="empty">
+            <li key="Stop Game">
                 <Button onClick={async () => (await getGlobalRoom('admin')).send('stopGame', undefined)} animate>
                     Stop Game
                 </Button>
             </li>
-            <li key="empty">
+            <li key="Game Master">
                 <Button onClick={() => window.location.assign('gm.html')} animate>
-                    empty screen
+                    Game Master
                 </Button>
             </li>
-            {[...layouts].map((layout) => (
-                <li key={layout}>
-                    <Button onClick={() => window.location.assign('gm.html?layout=' + layout)} animate>
-                        {layout}
+            {[...ships].flatMap((shipId: string) => [
+                <li key={`title-ship-${shipId}`}> Ship {shipId}</li>,
+                ...[...layouts].map((layout) => (
+                    <li key={`ship-${shipId}-layout-${layout}`}>
+                        <Button
+                            onClick={() => window.location.assign(`ship.html?ship=${shipId}&layout=${layout}`)}
+                            animate
+                        >
+                            {layout}
+                        </Button>
+                    </li>
+                )),
+                <li key={`empty-${shipId}`}>
+                    <Button onClick={() => window.location.assign(`ship.html?ship=${shipId}`)} animate>
+                        Empty Screen
                     </Button>
-                </li>
-            ))}
+                </li>,
+            ])}
         </ul>
     );
 };
-/*
-onClick={() => {
-    window.location.href = '/player.html?id=' + shipId;
-}}
-*/
+
 export const Lobby = () => {
     const [gamesCount, setgamesCount] = useState(0);
 
@@ -101,7 +108,7 @@ export const Lobby = () => {
             >
                 <Arwes pattern="images/glow.png" style={{ padding: 20 }}>
                     <div style={{ padding: 20, textAlign: 'center' }}>
-                        <Heading animate>
+                        <Heading>
                             <p>Starwards</p>
                         </Heading>
                         {gamesCount ? (

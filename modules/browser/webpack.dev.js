@@ -7,7 +7,7 @@ module.exports = merge(common, {
     devtool: 'source-map', //'cheap-module-eval-source-map',
     entry: {
         index: ['webpack-hot-middleware/client?reload=true'],
-        player: ['webpack-hot-middleware/client?reload=true'],
+        ship: ['webpack-hot-middleware/client?reload=true'],
         gm: ['webpack-hot-middleware/client?reload=true'],
     },
     plugins: [new webpack.HotModuleReplacementPlugin()],

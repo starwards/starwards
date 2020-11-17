@@ -14,22 +14,21 @@ import * as PIXI from 'pixi.js';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 window.PIXI = PIXI;
-
-const urlParams = new URLSearchParams(window.location.search);
-const layoutUrlParam = urlParams.get('layout');
-let dashboard: Dashboard;
-if (layoutUrlParam) {
-    // load and auto save layout by name
-    const layoutStorageKey = 'layout:' + layoutUrlParam;
-    const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
-    dashboard = new Dashboard(JSON.parse(layoutStr), $('#layoutContainer'));
-    dashboard.on('stateChanged', function () {
-        localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig()));
-    });
-} else {
-    // anonymous screen
-    dashboard = new Dashboard({ content: [] }, $('#layoutContainer'));
-}
+const dashboard = new Dashboard(
+    {
+        content: [
+            {
+                id: gmWidget.name,
+                title: gmWidget.name,
+                type: gmWidget.type,
+                componentName: gmWidget.name,
+                componentState: { zoom: 1 },
+                isClosable: true,
+            },
+        ],
+    },
+    $('#layoutContainer')
+);
 
 dashboard.setDragContainer($('#menuContainer'));
 dashboard.registerWidget(gmWidget);

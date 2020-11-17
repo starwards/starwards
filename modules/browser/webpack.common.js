@@ -5,7 +5,7 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 module.exports = {
     entry: {
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
-        player: [path.resolve(__dirname, 'src', 'screens', 'player.ts')],
+        ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
     },
     module: {
@@ -22,9 +22,9 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            filename: 'player.html',
+            filename: 'ship.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
-            chunks: ['player'],
+            chunks: ['ship'],
         }),
         new HtmlWebpackPlugin({
             filename: 'gm.html',
@@ -39,6 +39,6 @@ module.exports = {
     ],
     resolve: {
         extensions: ['.ts', '.tsx', '.mjs', '.js', '.json'],
-        plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.json') })],
+        plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('../../tsconfig.json') })],
     },
 };
