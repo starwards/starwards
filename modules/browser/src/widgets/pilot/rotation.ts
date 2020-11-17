@@ -36,7 +36,7 @@ export class RotationComponent {
         };
         panel.addText('matchHeading', () => this.state.toString());
         panel.addProperty('targetTurnSpeed', () => this.targetTurnSpeed, [-90, 90], this.setValueSpeed, axisInfo);
-        panel.addProperty('targetOffset', () => this.targetAimOffset, [-45, 45], this.setValueTarget, axisInfo);
+        panel.addProperty('targetOffset', () => this.targetAimOffset, [-30, 30], this.setValueTarget, axisInfo);
         panel.addProperty('rotation', () => this.shipRoom.state.rotation, [-1, 1], this.setValueEngine, axisInfo);
     }
 

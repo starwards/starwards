@@ -66,6 +66,8 @@ export class ShipState extends Spaceship {
             });
         }
     }
+
+    // TODO: move to logic (not part of state)
     get maxEnergy() {
         return this.constants.get('maxEnergy');
     }

@@ -19,20 +19,21 @@ export class ChainGun extends Schema {
     @type('float32')
     shellSecondsToLive = 10;
 
+    // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
         return this.constants.get('bulletSpeed');
     }
     get bulletsPerSecond(): number {
         return this.constants.get('bulletsPerSecond');
     }
-    get minShellSecondsToLive(): number {
-        return this.constants.get('minShellSecondsToLive');
+    get minShellRange(): number {
+        return this.constants.get('minShellRange');
     }
-    get maxShellSecondsToLive(): number {
-        return this.constants.get('maxShellSecondsToLive');
+    get maxShellRange(): number {
+        return this.constants.get('maxShellRange');
     }
-    get explosionSecondsToLive(): number {
-        return this.constants.get('explosionSecondsToLive');
+    get explosionRadius(): number {
+        return this.constants.get('explosionRadius');
     }
     get explosionExpansionSpeed(): number {
         return this.constants.get('explosionExpansionSpeed');
@@ -45,5 +46,14 @@ export class ChainGun extends Schema {
     }
     get bulletDegreesDeviation(): number {
         return this.constants.get('bulletDegreesDeviation');
+    }
+    get explosionSecondsToLive(): number {
+        return this.explosionRadius / this.explosionExpansionSpeed;
+    }
+    get minShellSecondsToLive(): number {
+        return this.minShellRange / this.bulletSpeed;
+    }
+    get maxShellSecondsToLive(): number {
+        return this.maxShellRange / this.bulletSpeed;
     }
 }

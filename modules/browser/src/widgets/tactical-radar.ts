@@ -31,7 +31,7 @@ function tacticalRadarComponent(container: Container, state: Props) {
     async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
-        const range = new RangeIndicators(root, 1000);
+        const range = new RangeIndicators(root, state.range / 5);
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);

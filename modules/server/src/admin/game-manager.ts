@@ -1,5 +1,5 @@
 import { MapSchema } from '@colyseus/schema';
-import { AdminState, ShipManager, SpaceManager, jouster } from '@starwards/model';
+import { AdminState, ShipManager, SpaceManager } from '@starwards/model';
 import { matchMaker } from 'colyseus';
 import { newAsteroid, newShip, resetShip } from './map';
 
@@ -31,16 +31,16 @@ export class GameManager {
             this.adminState.isGameRunning = true;
             this.spaceManager = new SpaceManager();
             this.addShip(this.spaceManager, 'A');
-            const bManager = this.addShip(this.spaceManager, 'B');
+            this.addShip(this.spaceManager, 'B');
             this.spaceManager.forceFlushEntities();
             // if (aManager) {
             //     aManager.setTarget('B');
             //     aManager.bot = jouster();
             // }
-            if (bManager) {
-                bManager.setTarget('A');
-                bManager.bot = jouster();
-            }
+            // if (bManager) {
+            //     bManager.setTarget('A');
+            //     bManager.bot = jouster();
+            // }
             for (let i = 0; i < 1; i++) {
                 this.spaceManager.insert(newAsteroid());
             }
