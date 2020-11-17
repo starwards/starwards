@@ -60,7 +60,8 @@ export class Dashboard extends GoldenLayout {
         try {
             super.init();
             for (const widget of this.widgets) {
-                this.registerWidgetMenuItem(widget.name, widget.defaultProps, widget.type);
+                const newItemConfig = getGoldenLayoutItemConfig(widget);
+                this.registerWidgetMenuItem(widget.name, newItemConfig);
             }
             // eslint-disable-next-line no-empty
         } catch (e) {}
@@ -82,25 +83,32 @@ export class Dashboard extends GoldenLayout {
         } as DashboardWidget);
     }
 
-    private registerWidgetMenuItem(name: string, props: Obj, type: DashboardWidget['type']) {
+    private registerWidgetMenuItem(name: string, newItemConfig: GoldenLayout.ItemConfigType) {
         if (this.dragContainer) {
             const menuItem = $('<li>' + name + '</li>');
             this.dragContainer.append(menuItem);
-
-            const newItemConfig = {
-                id: name,
-                title: name,
-                type,
-            } as GoldenLayout.ItemConfigType;
-
-            if (type === 'react-component') {
-                (newItemConfig as GoldenLayout.ReactComponentConfig).component = name;
-                (newItemConfig as GoldenLayout.ReactComponentConfig).props = props;
-            } else {
-                (newItemConfig as GoldenLayout.ComponentConfig).componentName = name;
-                (newItemConfig as GoldenLayout.ComponentConfig).componentState = props;
-            }
             this.createDragSource(menuItem, newItemConfig);
         }
     }
+}
+
+export function getGoldenLayoutItemConfig({
+    name,
+    defaultProps,
+    type,
+}: Pick<DashboardWidget, 'name' | 'defaultProps' | 'type'>) {
+    const newItemConfig = {
+        id: name,
+        title: name,
+        type,
+    } as GoldenLayout.ItemConfigType;
+
+    if (type === 'react-component') {
+        (newItemConfig as GoldenLayout.ReactComponentConfig).component = name;
+        (newItemConfig as GoldenLayout.ReactComponentConfig).props = defaultProps;
+    } else {
+        (newItemConfig as GoldenLayout.ComponentConfig).componentName = name;
+        (newItemConfig as GoldenLayout.ComponentConfig).componentState = defaultProps;
+    }
+    return newItemConfig;
 }

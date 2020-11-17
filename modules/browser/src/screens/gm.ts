@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import { client } from '../client';
-import { Dashboard } from '../widgets/dashboard';
+import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { gmWidget } from '../widgets/gm';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -14,21 +14,7 @@ import * as PIXI from 'pixi.js';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 window.PIXI = PIXI;
-const dashboard = new Dashboard(
-    {
-        content: [
-            {
-                id: gmWidget.name,
-                title: gmWidget.name,
-                type: gmWidget.type,
-                componentName: gmWidget.name,
-                componentState: { zoom: 1 },
-                isClosable: true,
-            },
-        ],
-    },
-    $('#layoutContainer')
-);
+const dashboard = new Dashboard({ content: [getGoldenLayoutItemConfig(gmWidget)] }, $('#layoutContainer'));
 
 dashboard.setDragContainer($('#menuContainer'));
 dashboard.registerWidget(gmWidget);
