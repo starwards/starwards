@@ -12,14 +12,12 @@ export class PlotlyGraphBuilder {
     public readonly annotations = Array.of<[string, number]>();
     private lastAnnotation = '';
     private lastPoint = 0;
-    constructor(private metrics: Record<string, () => number>, lineNames: string[]) {
-        for (const name of lineNames) {
-            this.lines[name] = { name, y: Array.of<number>(), x: Array.of<number>() };
-        }
-        for (const name of Object.keys(metrics)) {
-            this.lines[name] = { name, y: Array.of<number>(), x: Array.of<number>() };
-        }
+    constructor(private metrics: Record<string, () => number>) {}
+
+    private getLine(name: string) {
+        return this.lines[name] || (this.lines[name] = { name, y: Array.of<number>(), x: Array.of<number>() });
     }
+
     public build() {
         return {
             kind: { plotly: true },
@@ -38,11 +36,9 @@ export class PlotlyGraphBuilder {
         const x = this.lastPoint + delta;
         this.lastPoint = x;
         const addtoLine = (name: string, value: number) => {
-            const lineData = this.lines[name];
-            if (lineData) {
-                lineData.y.push(value);
-                lineData.x.push(x);
-            }
+            const lineData = this.getLine(name);
+            lineData.y.push(value);
+            lineData.x.push(x);
         };
         const annotate = (text: string) => {
             if (this.lastAnnotation !== text) {

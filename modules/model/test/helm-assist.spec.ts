@@ -19,13 +19,13 @@ describe('helm assist', function () {
     this.timeout(60 * 1000);
 
     describe('assumptions', () => {
-        const time = 5;
         const iterationsPerSecond = 5;
         it('boostCapacity is max speed per second in boost', () => {
             fc.assert(
-                fc.property(floatIn(1), float(0, 1), (boost: number, useReserveSpeed: number) => {
+                fc.property(floatIn(1), float(0, 0.5), (boost: number, useReserveSpeed: number) => {
                     const harness = new ShipTestHarness();
                     harness.shipState.useReserveSpeed = useReserveSpeed;
+                    const time = (0.9 * harness.shipState.maxSpeed) / harness.shipState.boostCapacity; // 90% of the time it takes to break from max speed
                     harness.shipObj.velocity.x = -boost * time * harness.shipState.boostCapacity;
                     harness.shipMgr.setBoost(boost);
                     const metrics = new TimedTestMetrics(
@@ -34,15 +34,16 @@ describe('helm assist', function () {
                         Math.abs(harness.shipObj.velocity.x)
                     );
                     harness.simulate(metrics.timeToReach, metrics.iterations);
-                    expect(harness.shipObj.velocity.x, 'velocity').to.be.closeTo(0, metrics.logErrorMargin);
+                    expect(harness.shipObj.velocity.x, 'velocity').to.be.closeTo(0, metrics.errorMargin);
                 })
             );
         });
         it('strafeCapacity is max speed per second in strafe', () => {
             fc.assert(
-                fc.property(floatIn(1), float(0, 1), (strafe: number, useReserveSpeed: number) => {
+                fc.property(floatIn(1), float(0, 0.5), (strafe: number, useReserveSpeed: number) => {
                     const harness = new ShipTestHarness();
                     harness.shipState.useReserveSpeed = useReserveSpeed;
+                    const time = (0.9 * harness.shipState.maxSpeed) / harness.shipState.strafeCapacity; // 90% of the time it takes to break from max speed
                     harness.shipObj.velocity.y = -strafe * time * harness.shipState.strafeCapacity;
                     harness.shipMgr.setStrafe(strafe);
                     const metrics = new TimedTestMetrics(
@@ -51,14 +52,15 @@ describe('helm assist', function () {
                         Math.abs(harness.shipObj.velocity.y)
                     );
                     harness.simulate(metrics.timeToReach, metrics.iterations);
-                    expect(harness.shipObj.velocity.y, 'velocity').to.be.closeTo(0, metrics.logErrorMargin);
+                    expect(harness.shipObj.velocity.y, 'velocity').to.be.closeTo(0, metrics.errorMargin);
                 })
             );
         });
         it('rotationCapacity is max speed per second in turnSpeed', () => {
             fc.assert(
-                fc.property(floatIn(1), float(0, 1), (rotation: number, useReserveSpeed: number) => {
+                fc.property(floatIn(1), float(0, 0.5), (rotation: number, useReserveSpeed: number) => {
                     const harness = new ShipTestHarness();
+                    const time = 5;
                     harness.shipState.useReserveSpeed = useReserveSpeed;
                     harness.shipObj.turnSpeed = -rotation * time * harness.shipState.rotationCapacity;
                     harness.shipMgr.setRotation(rotation);
@@ -68,7 +70,7 @@ describe('helm assist', function () {
                         Math.abs(harness.shipObj.turnSpeed)
                     );
                     harness.simulate(metrics.timeToReach, metrics.iterations);
-                    expect(harness.shipObj.turnSpeed, 'turnSpeed').to.be.closeTo(0, metrics.logErrorMargin);
+                    expect(harness.shipObj.turnSpeed, 'turnSpeed').to.be.closeTo(0, metrics.errorMargin);
                 })
             );
         });
@@ -78,9 +80,9 @@ describe('helm assist', function () {
         it('acheives target direction in a reasonable time', () => {
             fc.assert(
                 fc.property(
-                    floatIn(180, 30),
+                    floatIn(179, 30),
                     fc.integer(15, 20),
-                    float(0, 1),
+                    float(0, 0.5),
                     (originalAngle: number, iterationsPerSecond: number, useReserveSpeed: number) => {
                         const harness = new ShipTestHarness();
                         harness.shipState.useReserveSpeed = useReserveSpeed;
@@ -90,15 +92,12 @@ describe('helm assist', function () {
                             Math.abs(originalAngle),
                             harness.shipState.rotationCapacity
                         );
-                        harness.initGraph(
-                            {
-                                angle: () => toDegreesDelta(harness.shipState.angle),
-                                turnSpeed: () => harness.shipState.turnSpeed,
-                            },
-                            ['rotation']
-                        );
+                        harness.initGraph({
+                            angle: () => toDegreesDelta(harness.shipState.angle),
+                            turnSpeed: () => harness.shipState.turnSpeed,
+                        });
                         const iteration = (time: number, p?: GraphPointInput) => {
-                            const rotation = rotateToTarget(time, harness.shipState, target, 0, p?.annotate);
+                            const rotation = rotateToTarget(time, harness.shipState, target, 0);
                             p?.addtoLine('rotation', rotation);
                             harness.shipMgr.setRotation(rotation);
                         };
@@ -119,9 +118,9 @@ describe('helm assist', function () {
         it('acheives target turnSpeed in a reasonable time', () => {
             fc.assert(
                 fc.property(
-                    floatIn(1000),
+                    floatIn(100),
                     fc.integer(15, 20),
-                    float(0, 1),
+                    float(0, 0.5),
                     (turnSpeed: number, iterationsPerSecond: number, useReserveSpeed: number) => {
                         const harness = new ShipTestHarness();
                         harness.shipState.useReserveSpeed = useReserveSpeed;
@@ -131,11 +130,15 @@ describe('helm assist', function () {
                             harness.shipState.rotationCapacity
                         );
                         harness.shipObj.turnSpeed = turnSpeed;
+                        harness.initGraph({
+                            rotation: () => harness.shipState.rotation,
+                            turnSpeed: () => harness.shipState.turnSpeed,
+                        });
                         harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
                             const rotation = rotationFromTargetTurnSpeed(time, harness.shipState, 0);
                             harness.shipMgr.setRotation(rotation);
                         });
-                        expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.logErrorMargin);
+                        expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.errorMargin);
                     }
                 )
             );
@@ -145,9 +148,9 @@ describe('helm assist', function () {
         it('(boost only) reach target speed in good time from 0 speed', () => {
             fc.assert(
                 fc.property(
-                    floatIn(1000),
+                    floatIn(1000, 250),
                     fc.integer(15, 20),
-                    float(0, 1),
+                    float(0, 0.5),
                     (fromX: number, iterationsPerSecond: number, useReserveSpeed: number) => {
                         const harness = new ShipTestHarness();
                         harness.shipState.useReserveSpeed = useReserveSpeed;
@@ -157,12 +160,9 @@ describe('helm assist', function () {
                             Math.abs(fromX),
                             harness.shipState.boostCapacity
                         );
-                        harness.initGraph(
-                            {
-                                velocity: () => harness.shipState.velocity.x,
-                            },
-                            ['boost']
-                        );
+                        harness.initGraph({
+                            velocity: () => harness.shipState.velocity.x,
+                        });
                         const iteration = (time: number, p?: GraphPointInput) => {
                             const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                             p?.addtoLine('boost', maneuvering.boost);
@@ -183,7 +183,7 @@ describe('helm assist', function () {
         it('acheives target location in a reasonable time from 0 speed', () => {
             fc.assert(
                 fc.property(
-                    xy(1000),
+                    xy(1000, 250),
                     floatIn(180),
                     float(0, 0.5),
                     (from: XY, angle: number, useReserveSpeed: number) => {
@@ -192,14 +192,11 @@ describe('helm assist', function () {
                         harness.shipObj.angle = angle;
                         harness.shipObj.velocity = Vec2.make(from);
                         const metrics = new SpeedTestMetrics(20, XY.lengthOf(from), harness.shipState.movementCapacity);
-                        harness.initGraph(
-                            {
-                                velocityX: () => harness.shipState.velocity.x,
-                                velocityY: () => harness.shipState.velocity.y,
-                                velocity: () => XY.lengthOf(harness.shipObj.velocity),
-                            },
-                            ['boost', 'strafe']
-                        );
+                        harness.initGraph({
+                            velocityX: () => harness.shipState.velocity.x,
+                            velocityY: () => harness.shipState.velocity.y,
+                            velocity: () => XY.lengthOf(harness.shipObj.velocity),
+                        });
                         const iteration = (time: number, p?: GraphPointInput) => {
                             const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                             p?.addtoLine('boost', maneuvering.boost);
@@ -224,9 +221,9 @@ describe('helm assist', function () {
         it('(boost only) reach target in good time from 0 speed', () => {
             fc.assert(
                 fc.property(
-                    floatIn(2000, 100),
+                    floatIn(2000, 500),
                     fc.integer(15, 20),
-                    float(0, 1),
+                    float(0, 0.5),
                     (fromX: number, iterationsPerSecond: number, useReserveSpeed: number) => {
                         const harness = new ShipTestHarness();
                         harness.shipState.useReserveSpeed = useReserveSpeed;
@@ -234,17 +231,15 @@ describe('helm assist', function () {
                         const metrics = new MovementTestMetrics(
                             iterationsPerSecond,
                             Math.abs(fromX),
-                            harness.shipState.boostCapacity
+                            harness.shipState.boostCapacity,
+                            harness.shipState.maxSpeed
                         );
-                        harness.initGraph(
-                            {
-                                position: () => harness.shipState.position.x,
-                                velocity: () => harness.shipState.velocity.x,
-                            },
-                            ['boost']
-                        );
+                        harness.initGraph({
+                            position: () => harness.shipState.position.x,
+                            velocity: () => harness.shipState.velocity.x,
+                        });
                         const iteration = (time: number, p?: GraphPointInput) => {
-                            const maneuvering = moveToTarget(time, harness.shipState, XY.zero, p?.annotate);
+                            const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
                             p?.addtoLine('boost', maneuvering.boost);
                             harness.shipMgr.setBoost(maneuvering.boost);
                         };
@@ -263,8 +258,8 @@ describe('helm assist', function () {
         it('acheives target location in a reasonable time from 0 speed', () => {
             fc.assert(
                 fc.property(
-                    xy(2000, 100),
-                    floatIn(180),
+                    xy(2000, 500),
+                    floatIn(179),
                     float(0, 0.5),
                     (from: XY, angle: number, useReserveSpeed: number) => {
                         const harness = new ShipTestHarness();
@@ -274,7 +269,8 @@ describe('helm assist', function () {
                         const metrics = new MovementTestMetrics(
                             20,
                             XY.lengthOf(from),
-                            harness.shipState.movementCapacity
+                            harness.shipState.movementCapacity,
+                            harness.shipState.maxSpeed
                         );
                         const iteration = (time: number) => {
                             const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
@@ -282,7 +278,7 @@ describe('helm assist', function () {
                             harness.shipMgr.setStrafe(maneuvering.strafe);
                         };
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
-                        expect(XY.lengthOf(harness.shipObj.position)).to.be.closeTo(0, metrics.errorMargin);
+                        expect(XY.lengthOf(harness.shipObj.position), 'position').to.be.closeTo(0, metrics.errorMargin);
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.position), 'position after stabling').to.be.closeTo(
                             0,

@@ -44,6 +44,16 @@ export function addScale(orig: XY, deriv: XY, time: number) {
 export function equasionOfMotion(x0: number, v0: number, a: number, t: number) {
     return x0 + v0 * t + (a / 2) * t * t;
 }
+
+export function timeToReachDistanceByAccelerationWithMaxSpeed(x: number, a: number, mv: number) {
+    const noMaxTime = timeToReachDistanceByAcceleration(x, a);
+    const speedupTime = timeToReachVelocityByAcceleration(mv, a);
+    if (noMaxTime < speedupTime) {
+        return noMaxTime;
+    }
+    const distanceInSpeedup = equasionOfMotion(0, 0, a, speedupTime);
+    return speedupTime + (x - distanceInSpeedup) / mv;
+}
 export function timeToReachDistanceByAcceleration(x: number, a: number) {
     return 2 * Math.sqrt(x / a);
 }
@@ -67,6 +77,10 @@ export function whereWillItStop(x0: number, v0: number, a: number) {
 
 export function limitPercision(num: number) {
     return Math.round(num * 1e4) / 1e4;
+}
+
+export function limitPercisionHard(num: number) {
+    return Math.round(num * 1e2) / 1e2;
 }
 
 export type Sign = 1 | -1 | 0;

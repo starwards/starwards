@@ -1,5 +1,5 @@
 import { ShipState } from '../ship';
-import { capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
+import { capToRange, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
 import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
@@ -8,21 +8,11 @@ export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipStat
     return accelerateToSpeed(deltaSeconds, ship.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
 }
 
-export function matchGlobalSpeed(
-    deltaSeconds: number,
-    ship: ShipState,
-    globalVelocity: XY,
-    _log?: (s: string) => unknown
-): ManeuveringCommand {
-    return matchLocalSpeed(deltaSeconds, ship, ship.globalToLocal(globalVelocity), _log);
+export function matchGlobalSpeed(deltaSeconds: number, ship: ShipState, globalVelocity: XY): ManeuveringCommand {
+    return matchLocalSpeed(deltaSeconds, ship, ship.globalToLocal(globalVelocity));
 }
 
-export function matchLocalSpeed(
-    deltaSeconds: number,
-    ship: ShipState,
-    localVelocity: XY,
-    _log?: (s: string) => unknown
-): ManeuveringCommand {
+export function matchLocalSpeed(deltaSeconds: number, ship: ShipState, localVelocity: XY): ManeuveringCommand {
     const relTargetSpeed = XY.difference(localVelocity, ship.globalToLocal(ship.velocity));
     return {
         strafe: accelerateToSpeed(deltaSeconds, ship.strafeCapacity, relTargetSpeed.y),
@@ -30,29 +20,18 @@ export function matchLocalSpeed(
     };
 }
 
-export function moveToTarget(
-    deltaSeconds: number,
-    ship: ShipState,
-    targetPos: XY,
-    log?: (s: string) => unknown
-): ManeuveringCommand {
+export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY): ManeuveringCommand {
     const posDiff = calcTargetPositionDiff(deltaSeconds, ship, targetPos); // TODO cap to range maxMovementInTime
     const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
     return {
         strafe: accelerateToPosition(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
-        boost: accelerateToPosition(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x, log),
+        boost: accelerateToPosition(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x),
     };
 }
 
-export function rotateToTarget(
-    deltaSeconds: number,
-    ship: ShipState,
-    targetPos: XY,
-    offset: number,
-    log?: (s: string) => unknown
-): number {
+export function rotateToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, offset: number): number {
     const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
-    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff + offset, log);
+    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff + offset);
 }
 
 function calcTargetPositionDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
@@ -68,48 +47,55 @@ function calcTargetAngleDiff(deltaSeconds: number, ship: ShipState, targetPos: X
 }
 
 // result is normalized [-1, 1]
-function accelerateToPosition(
-    deltaSeconds: number,
-    capacity: number,
-    velocity: number,
-    relTargetPosition: number,
-    log?: (s: string) => unknown
-) {
-    const cautionFactor = 1.1;
+function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: number, relTargetPosition: number) {
     const pinpointIterationsPredict = 5;
     const targetDistance = Math.abs(relTargetPosition);
+    global.harness?.addToGraph('targetDistance', targetDistance);
     const absVelocity = Math.abs(velocity);
+    global.harness?.addToGraph('absVelocity', absVelocity);
     const signVelocity = sign(velocity);
     const maxAccelerationInTime = deltaSeconds * capacity;
+    global.harness?.addToGraph('maxAccelerationInTime', maxAccelerationInTime);
     const relStopPosition = whereWillItStop(0, velocity, capacity * -signVelocity);
     const stopDistance = Math.abs(relStopPosition);
-    const pinPointRange = equasionOfMotion(0, 0, capacity, deltaSeconds * pinpointIterationsPredict);
+    global.harness?.addToGraph('stopDistance', stopDistance);
+    const targetRelativeToStop = relTargetPosition - relStopPosition;
+    global.harness?.addToGraph('targetRelativeToStop', targetRelativeToStop);
+    const signTargetRelativeToStop = sign(targetRelativeToStop);
+    const targetToStopDistance = Math.abs(targetRelativeToStop);
+    const maxMovementInTime = deltaSeconds * maxAccelerationInTime;
+    const pinPointRange = maxMovementInTime * pinpointIterationsPredict;
+    global.harness?.addToGraph('pinPointRange', pinPointRange);
     const closeToStopPosition = stopDistance < pinPointRange;
     if (closeToStopPosition) {
         const soonReachTarget = targetDistance < deltaSeconds * absVelocity * pinpointIterationsPredict;
         if (soonReachTarget) {
-            const maxMovementInTime = deltaSeconds * maxAccelerationInTime;
-            log && log('soft-break');
+            global.harness?.annotateGraph('soft-break');
             return capToRange(-1, 1, lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], -relStopPosition));
         }
         if (targetDistance < pinPointRange) {
-            log && log('pin-point');
+            global.harness?.annotateGraph('pin-point');
             return capToRange(-0.5, 0.5, lerp([-pinPointRange, pinPointRange], [-0.5, 0.5], relTargetPosition));
         }
     }
     const highSpeed = maxAccelerationInTime < absVelocity;
-    const goingTheWrongWay = velocity && signVelocity != sign(relTargetPosition);
-    const overSpeeding = targetDistance < stopDistance * cautionFactor;
-    if (highSpeed && (goingTheWrongWay || overSpeeding)) {
-        log && log('break');
-        return -signVelocity;
+    if (highSpeed) {
+        if (signTargetRelativeToStop != signVelocity) {
+            global.harness?.annotateGraph('break');
+            return signTargetRelativeToStop;
+        }
+        if (targetToStopDistance < stopDistance) {
+            global.harness?.annotateGraph('slow down');
+            return signTargetRelativeToStop * capToRange(0, 1, (targetDistance - stopDistance) / targetDistance);
+        }
     }
-    log && log('full-speed');
-    return sign(relTargetPosition);
+    global.harness?.annotateGraph('full-speed');
+    return signTargetRelativeToStop;
 }
 
 // result is normalized [-1, 1]
 function accelerateToSpeed(deltaSeconds: number, capacity: number, relTargetSpeed: number) {
-    const maxAccelerationInTime = deltaSeconds * capacity;
-    return capToRange(-1, 1, lerp([-maxAccelerationInTime, maxAccelerationInTime], [-1, 1], relTargetSpeed));
+    const maxAccelerationInTime = deltaSeconds * capacity * 1.001;
+    const res = capToRange(-1, 1, lerp([-maxAccelerationInTime, maxAccelerationInTime], [-1, 1], relTargetSpeed));
+    return res * res * sign(res);
 }
