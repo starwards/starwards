@@ -36,8 +36,7 @@ export class ShipManager {
     private smartPilotRotationMode = new StatesToggle(
         (s) => this.setSmartPilotRotationMode(s),
         SmartPilotMode.VELOCITY,
-        SmartPilotMode.TARGET,
-        SmartPilotMode.DIRECT
+        SmartPilotMode.TARGET
     );
     constructor(
         public spaceObject: Spaceship,
@@ -57,8 +56,8 @@ export class ShipManager {
         this.setConstant('maneuveringEnergyCost', 0.07);
         this.setConstant('antiDriftEffectFactor', 1);
         this.setConstant('breaksEffectFactor', 1);
-        this.setConstant('rotationEffectFactor', 0.5);
-        this.setConstant('strafeEffectFactor', 1);
+        this.setConstant('rotationEffectFactor', 0.1);
+        this.setConstant('strafeEffectFactor', 5);
         this.setConstant('boostEffectFactor', 1);
         this.setConstant('maxSpeed', 150);
         this.setConstant('maxReservedSpeed', 200);
