@@ -1,6 +1,6 @@
-import { type, MapSchema } from '@colyseus/schema';
+import { type, MapSchema, Schema } from '@colyseus/schema';
 import EventEmitter from 'eventemitter3';
-import { Spaceship } from '../space';
+import { Spaceship, Vec2 } from '../space';
 import { ChainGun } from './chain-gun';
 
 export enum TargetedStatus {
@@ -8,12 +8,34 @@ export enum TargetedStatus {
     LOCKED,
     FIRED_UPON,
 }
+
+export enum SmartPilotMode {
+    DIRECT,
+    VELOCITY,
+    TARGET,
+}
+export class SmartPilotState extends Schema {
+    @type('int8')
+    rotationMode = SmartPilotMode.VELOCITY;
+    @type('int8')
+    maneuveringMode = SmartPilotMode.VELOCITY;
+    @type('float32')
+    rotation = 0;
+    @type(Vec2)
+    maneuvering: Vec2 = new Vec2(0, 0);
+
+    readonly maxTargetAimOffset = 30;
+    readonly maxTurnSpeed = 90;
+}
 export class ShipState extends Spaceship {
     @type({ map: 'float32' })
     constants!: MapSchema<number>;
 
     @type(ChainGun)
     chainGun!: ChainGun;
+
+    @type(SmartPilotState)
+    smartPilot!: SmartPilotState;
 
     @type('float32')
     rotation = 0;
@@ -63,6 +85,16 @@ export class ShipState extends Spaceship {
                     this.events.emit('chainGun.constants.' + key, value);
                     this.events.emit('chainGun.constants');
                 };
+            });
+            this.events.once('smartPilot', () => {
+                this.smartPilot.onChange = (changes) => {
+                    changes.forEach((c) => {
+                        this.events.emit('smartPilot.' + c.field, c.value);
+                    });
+                };
+
+                this.smartPilot.maneuvering.onChange = (_) =>
+                    this.events.emit('smartPilot.maneuvering', this.smartPilot.maneuvering);
             });
         }
     }

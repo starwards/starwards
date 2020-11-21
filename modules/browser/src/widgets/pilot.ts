@@ -1,42 +1,72 @@
 import '@maulingmonkey/gamepad';
-import { getTarget, TargetedStatus, XY } from '@starwards/model';
+import { SmartPilotMode, TargetedStatus, XY } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-import { getGlobalRoom, getShipRoom } from '../../client';
-import { Loop } from '../../loop';
-import { PropertyPanel } from '../../property-panel';
-import { DashboardWidget } from '../dashboard';
-import { ManeuveringComponent } from './maneuvering';
-import { RotationComponent } from './rotation';
+import { getShipRoom } from '../client';
+import { PropertyPanel } from '../property-panel';
+import { DashboardWidget } from './dashboard';
 
 function pilotComponent(container: Container, p: Props) {
     void (async () => {
-        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
+        const shipRoom = await getShipRoom(p.shipId);
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
-        const maneuveringState = new ManeuveringComponent(shipRoom, viewModelChanges);
-        const headingComp = new RotationComponent(shipRoom, viewModelChanges);
         panel.init(container);
         container.on('destroy', () => {
             panel.destroy();
         });
 
-        headingComp.addToPanel(panel);
-        maneuveringState.addToPanel(panel);
+        panel.addText('smartPilot.rotationMode', () => SmartPilotMode[shipRoom.state.smartPilot.rotationMode]);
+        panel.addProperty(
+            'smartPilot.rotation',
+            () => shipRoom.state.smartPilot.rotation,
+            [-1, 1],
+            (value) => shipRoom.send('setSmartPilotRotation', { value }),
+            {
+                gamepadIndex: 0,
+                axisIndex: 0,
+                deadzone: [-0.01, 0.01],
+            }
+        );
+        panel.addProperty('rotation', () => shipRoom.state.rotation, [-1, 1]);
+        panel.addText('smartPilot.maneuveringMode', () => SmartPilotMode[shipRoom.state.smartPilot.maneuveringMode]);
+        shipRoom.state.events.on('smartPilot.maneuvering', () => {
+            viewModelChanges.emit('smartPilot.boost');
+            viewModelChanges.emit('smartPilot.strafe');
+        });
+        panel.addProperty(
+            'smartPilot.strafe',
+            () => shipRoom.state.smartPilot.maneuvering.y,
+            [-1, 1],
+            (value) => shipRoom.send('setSmartPilotStrafe', { value: value }),
+            {
+                gamepadIndex: 0,
+                axisIndex: 2,
+                deadzone: [-0.01, 0.01],
+            }
+        );
+        panel.addProperty(
+            'smartPilot.boost',
+            () => shipRoom.state.smartPilot.maneuvering.x,
+            [-1, 1],
+            (value) => shipRoom.send('setSmartPilotBoost', { value: value }),
+            {
+                gamepadIndex: 0,
+                axisIndex: 3,
+                deadzone: [-0.01, 0.01],
+                inverted: true,
+            }
+        );
+        panel.addProperty('strafe', () => shipRoom.state.strafe, [-1, 1]);
+        panel.addProperty('boost', () => shipRoom.state.boost, [-1, 1]);
 
-        const loop = new Loop((deltaSeconds: number) => {
-            const target = getTarget(shipRoom.state, spaceRoom.state);
-            maneuveringState.update(deltaSeconds, target);
-            headingComp.update(deltaSeconds, target);
-        }, 1000 / 10);
-        loop.start();
         addEventListener(
             'mmk-gamepad-button-down',
             (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
                 if (e.buttonIndex === 11 && e.gamepadIndex === 0) {
-                    maneuveringState.toggleState();
+                    shipRoom.send('toggleSmartPilotManeuveringMode', {});
                 } else if (e.buttonIndex === 10 && e.gamepadIndex === 0) {
-                    headingComp.toggleState();
+                    shipRoom.send('toggleSmartPilotRotationMode', {});
                 }
             }
         );

@@ -5,8 +5,16 @@ import {
     ChainGun,
     Explosion,
     gaussianRandom,
+    ManeuveringCommand,
+    matchLocalSpeed,
+    rotateToTarget,
+    rotationFromTargetTurnSpeed,
     ShipState,
+    SmartPilotMode,
+    SmartPilotState,
+    SpaceObject,
     Spaceship,
+    StatesToggle,
     TargetedStatus,
     Vec2,
     XY,
@@ -18,7 +26,19 @@ import { Bot } from './bot';
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room
     public bot: Bot | null = null;
-
+    private target: SpaceObject | null = null;
+    private smartPilotManeuveringMode = new StatesToggle(
+        (s) => this.setSmartPilotManeuveringMode(s),
+        SmartPilotMode.VELOCITY,
+        SmartPilotMode.TARGET,
+        SmartPilotMode.DIRECT
+    );
+    private smartPilotRotationMode = new StatesToggle(
+        (s) => this.setSmartPilotRotationMode(s),
+        SmartPilotMode.VELOCITY,
+        SmartPilotMode.TARGET,
+        SmartPilotMode.DIRECT
+    );
     constructor(
         public spaceObject: Spaceship,
         private spaceManager: SpaceManager,
@@ -53,6 +73,7 @@ export class ShipManager {
         this.setChainGunConstant('explosionExpansionSpeed', 10);
         this.setChainGunConstant('explosionDamageFactor', 20);
         this.setChainGunConstant('explosionBlastFactor', 1);
+        this.state.smartPilot = new SmartPilotState();
         this.setShellSecondsToLive(10);
     }
 
@@ -97,6 +118,36 @@ export class ShipManager {
         this.state.chainGun.isFiring = isFiring;
     }
 
+    public toggleSmartPilotManeuveringMode() {
+        this.smartPilotManeuveringMode.toggleState();
+    }
+    public toggleSmartPilotRotationMode() {
+        this.smartPilotRotationMode.toggleState();
+    }
+    public setSmartPilotManeuveringMode(value: SmartPilotMode) {
+        if (value !== this.state.smartPilot.maneuveringMode) {
+            this.state.smartPilot.maneuveringMode = value;
+            this.state.smartPilot.maneuvering.x = 0;
+            this.state.smartPilot.maneuvering.y = 0;
+        }
+    }
+
+    public setSmartPilotRotationMode(value: SmartPilotMode) {
+        if (value !== this.state.smartPilot.rotationMode) {
+            this.state.smartPilot.rotationMode = value;
+            this.state.smartPilot.rotation = 0;
+        }
+    }
+    public setSmartPilotRotation(value: number) {
+        this.state.smartPilot.rotation = capToRange(-1, 1, value);
+    }
+    public setSmartPilotBoost(value: number) {
+        this.state.smartPilot.maneuvering.x = capToRange(-1, 1, value);
+    }
+    public setSmartPilotStrafe(value: number) {
+        this.state.smartPilot.maneuvering.y = capToRange(-1, 1, value);
+    }
+
     public setShellSecondsToLive(shellSecondsToLive: number) {
         this.state.chainGun.shellSecondsToLive = capToRange(
             this.state.chainGun.minShellSecondsToLive,
@@ -119,6 +170,8 @@ export class ShipManager {
             this.updateEnergy(deltaSeconds);
             this.updateRotation(deltaSeconds);
 
+            this.calcSmartPilotManeuvering(deltaSeconds);
+            this.calcSmartPilotRotation(deltaSeconds);
             const maneuveringAction = this.calcManeuveringAction();
             this.changeVelocity(maneuveringAction, deltaSeconds);
 
@@ -126,6 +179,62 @@ export class ShipManager {
             this.chargeReserveSpeed(deltaSeconds);
             this.fireChainGun();
         }
+    }
+
+    private calcSmartPilotManeuvering(deltaSeconds: number) {
+        let maneuveringCommand: ManeuveringCommand;
+        switch (this.state.smartPilot.maneuveringMode) {
+            case SmartPilotMode.DIRECT: {
+                maneuveringCommand = {
+                    strafe: this.state.smartPilot.maneuvering.y,
+                    boost: this.state.smartPilot.maneuvering.x,
+                };
+                break;
+            }
+            case SmartPilotMode.TARGET: {
+                const velocity = XY.add(
+                    XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    this.state.globalToLocal(this.target!.velocity)
+                );
+                maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
+                break;
+            }
+            case SmartPilotMode.VELOCITY: {
+                const velocity = XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed);
+                maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
+                break;
+            }
+        }
+        this.setBoost(maneuveringCommand.boost);
+        this.setStrafe(maneuveringCommand.strafe);
+    }
+
+    private calcSmartPilotRotation(deltaSeconds: number) {
+        let rotationCommand: number;
+        switch (this.state.smartPilot.rotationMode) {
+            case SmartPilotMode.DIRECT:
+                return;
+            case SmartPilotMode.TARGET: {
+                rotationCommand = rotateToTarget(
+                    deltaSeconds,
+                    this.state,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    this.target!.position,
+                    this.state.smartPilot.rotation * this.state.smartPilot.maxTargetAimOffset
+                );
+                break;
+            }
+            case SmartPilotMode.VELOCITY: {
+                rotationCommand = rotationFromTargetTurnSpeed(
+                    deltaSeconds,
+                    this.state,
+                    this.state.smartPilot.rotation * this.state.smartPilot.maxTurnSpeed
+                );
+                break;
+            }
+        }
+        this.setRotation(rotationCommand);
     }
 
     private calcManeuveringAction() {
@@ -219,9 +328,14 @@ export class ShipManager {
     }
 
     private validateTargetId() {
-        if (this.state.targetId && !this.spaceManager.state.get(this.state.targetId)) {
-            this.state.targetId = null;
+        if (this.state.targetId) {
+            this.target = this.spaceManager.state.get(this.state.targetId) || null;
+            if (!this.target) {
+                this.state.targetId = null;
+            }
         }
+        this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
+        this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
     }
 
     private syncShipProperties() {

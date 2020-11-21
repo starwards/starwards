@@ -37,4 +37,17 @@ export interface ShipCommands {
     };
 }
 
-export type ShipCommand = ShipCommands[keyof ShipCommands];
+export interface SmartPilotCommands {
+    toggleSmartPilotManeuveringMode: Record<never, never>;
+    toggleSmartPilotRotationMode: Record<never, never>;
+    setSmartPilotRotation: {
+        value: number;
+    };
+    setSmartPilotBoost: {
+        value: number;
+    };
+    setSmartPilotStrafe: {
+        value: number;
+    };
+}
+export type ShipCommand = ShipCommands[keyof ShipCommands] | SmartPilotCommands[keyof SmartPilotCommands];
