@@ -18,7 +18,7 @@ WebFont.load({
     },
 });
 
-export const preloadList = ['images/crosshair1.png'];
+export const preloadList = ['images/crosshair1.png', 'images/asimuth-circle.svg'];
 
 PIXI.Loader.shared.add(preloadList);
 

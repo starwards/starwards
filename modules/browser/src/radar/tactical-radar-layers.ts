@@ -1,7 +1,13 @@
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
-import { XY, ShipState, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/model';
+import {
+    XY,
+    ShipState,
+    getShellExplosionLocation,
+    getTargetLocationAtShellExplosion,
+    degToRad,
+} from '@starwards/model';
 import { LineLayer } from './line-layer';
 import { InteractiveLayer } from './interactive-layer';
 
@@ -11,26 +17,39 @@ function globalToAim(ship: ShipState, pos: XY) {
 
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new PIXI.Container();
+    const asimuthCircle = new SpriteLayer(
+        root,
+        {
+            fileName: 'images/asimuth-circle.svg',
+            tint: 0xaaffaa,
+            radiusMeters: 6000,
+        },
+        () => shipState.position,
+        () => degToRad * -shipState.angle
+    );
+    stage.addChild(asimuthCircle.renderRoot);
     const shellCrosshairLayer = new SpriteLayer(
         root,
         {
             fileName: 'images/crosshair1.png',
             tint: 0xffaaaa,
-            size: 32,
+            sizePx: 32,
         },
-        () => globalToAim(shipState, getShellExplosionLocation(shipState))
+        () => globalToAim(shipState, getShellExplosionLocation(shipState)),
+        () => 0
     );
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
         {
             fileName: 'images/crosshair1.png',
             tint: 0xaaaaff,
-            size: 32,
+            sizePx: 32,
         },
         () => {
             const target = shipTarget.getSingle();
             return target && globalToAim(shipState, getTargetLocationAtShellExplosion(shipState, target));
-        }
+        },
+        () => 0
     );
     stage.addChild(deflectionCrosshairLayer.renderRoot);
     stage.addChild(shellCrosshairLayer.renderRoot);

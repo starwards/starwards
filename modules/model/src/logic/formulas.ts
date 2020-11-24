@@ -91,3 +91,5 @@ export function sign(x: number): Sign {
 export function negSign(x: number): Sign {
     return typeof x === 'number' && x ? (x < 0 ? 1 : -1) : 0;
 }
+
+export const degToRad = Math.PI / 180;

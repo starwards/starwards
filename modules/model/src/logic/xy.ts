@@ -1,4 +1,4 @@
-import { limitPercision, equasionOfMotion as eom, toDegreesDelta } from './formulas';
+import { limitPercision, equasionOfMotion as eom, toDegreesDelta, degToRad } from './formulas';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
@@ -17,7 +17,6 @@ export namespace XY {
             y: vector.y,
         };
     }
-    export const degToRad = Math.PI / 180;
     export function sum(...vectors: XY[]): XY {
         return {
             x: limitPercision(vectors.reduce((acc, curr) => acc + curr.x, 0)),
