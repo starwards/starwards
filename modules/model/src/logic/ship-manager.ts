@@ -76,15 +76,18 @@ export class ShipManager {
         this.setShellSecondsToLive(10);
     }
 
-    public setStrafe(value: number) {
+    // used by smartPilot
+    private setStrafe(value: number) {
         this.state.strafe = capToRange(-1, 1, value);
     }
 
-    public setBoost(value: number) {
+    // used by smartPilot
+    private setBoost(value: number) {
         this.state.boost = capToRange(-1, 1, value);
     }
 
-    public setRotation(value: number) {
+    // used by smartPilot
+    private setRotation(value: number) {
         this.state.rotation = capToRange(-1, 1, value);
     }
 
@@ -213,7 +216,8 @@ export class ShipManager {
         let rotationCommand: number;
         switch (this.state.smartPilot.rotationMode) {
             case SmartPilotMode.DIRECT:
-                return;
+                rotationCommand = this.state.smartPilot.rotation;
+                break;
             case SmartPilotMode.TARGET: {
                 rotationCommand = rotateToTarget(
                     deltaSeconds,

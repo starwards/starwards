@@ -48,7 +48,8 @@ function calcTargetAngleDiff(deltaSeconds: number, ship: ShipState, targetPos: X
 
 // result is normalized [-1, 1]
 function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: number, relTargetPosition: number) {
-    const pinpointIterationsPredict = 5;
+    const pinpointIterationsPredict = 10;
+    global.harness?.addToGraph('capacity', capacity);
     const targetDistance = Math.abs(relTargetPosition);
     global.harness?.addToGraph('targetDistance', targetDistance);
     const absVelocity = Math.abs(velocity);
@@ -62,32 +63,32 @@ function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: 
     const targetRelativeToStop = relTargetPosition - relStopPosition;
     global.harness?.addToGraph('targetRelativeToStop', targetRelativeToStop);
     const signTargetRelativeToStop = sign(targetRelativeToStop);
-    const targetToStopDistance = Math.abs(targetRelativeToStop);
     const maxMovementInTime = deltaSeconds * maxAccelerationInTime;
     const pinPointRange = maxMovementInTime * pinpointIterationsPredict;
     global.harness?.addToGraph('pinPointRange', pinPointRange);
     const closeToStopPosition = stopDistance < pinPointRange;
     if (closeToStopPosition) {
-        const soonReachTarget = targetDistance < deltaSeconds * absVelocity * pinpointIterationsPredict;
+        const distanceSoonToCover = deltaSeconds * absVelocity * pinpointIterationsPredict;
+        global.harness?.addToGraph('distanceSoonToCover', distanceSoonToCover);
+        const soonReachTarget = targetDistance < distanceSoonToCover;
         if (soonReachTarget) {
+            const f = 0.8;
             global.harness?.annotateGraph('soft-break');
-            return capToRange(-1, 1, lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], -relStopPosition));
+            return capToRange(-f, f, -relStopPosition); //lerp([-maxMovementInTime, maxMovementInTime], [-1, 1], -relStopPosition));
         }
         if (targetDistance < pinPointRange) {
+            const f = 1.5;
             global.harness?.annotateGraph('pin-point');
-            return capToRange(-0.5, 0.5, lerp([-pinPointRange, pinPointRange], [-0.5, 0.5], relTargetPosition));
+            return capToRange(-f, f, lerp([-pinPointRange, pinPointRange], [-f, f], relTargetPosition));
         }
     }
-    const highSpeed = maxAccelerationInTime < absVelocity;
-    if (highSpeed) {
-        if (signTargetRelativeToStop != signVelocity) {
-            global.harness?.annotateGraph('break');
-            return signTargetRelativeToStop;
-        }
-        if (targetToStopDistance < stopDistance) {
-            global.harness?.annotateGraph('slow down');
-            return signTargetRelativeToStop * capToRange(0, 1, (targetDistance - stopDistance) / targetDistance);
-        }
+    if (
+        maxAccelerationInTime < absVelocity &&
+        signTargetRelativeToStop == signVelocity &&
+        targetRelativeToStop < stopDistance
+    ) {
+        global.harness?.annotateGraph('slow down');
+        return signTargetRelativeToStop * capToRange(0, 1, (targetDistance - stopDistance) / targetDistance);
     }
     global.harness?.annotateGraph('full-speed');
     return signTargetRelativeToStop;

@@ -145,12 +145,6 @@ export class ShipState extends Spaceship {
             this.useReserveSpeed * this.reserveSpeedUsagePerSecond
         );
     }
-    get movementCapacity() {
-        return (
-            this.maneuveringCapacity * Math.max(this.boostEffectFactor, this.strafeEffectFactor) +
-            this.useReserveSpeed * this.reserveSpeedUsagePerSecond
-        );
-    }
     get boostCapacity() {
         return (
             this.maneuveringCapacity * this.boostEffectFactor + this.useReserveSpeed * this.reserveSpeedUsagePerSecond

@@ -3,6 +3,7 @@ import {
     limitPercision,
     MAX_SAFE_FLOAT,
     ShipManager,
+    SmartPilotMode,
     SpaceManager,
     Spaceship,
     timeToReachDistanceByAccelerationWithMaxSpeed,
@@ -25,12 +26,12 @@ abstract class AbsTestMetrics {
     get errorMargin() {
         return Math.max(1, limitPercision(2 * this.iterationDistance + this.percisionErrorsBoundery));
     }
-    get logErrorMargin() {
-        return Math.max(1, limitPercision(Math.log(this.iterationDistance) + this.percisionErrorsBoundery));
+    get sqrtErrorMargin() {
+        return Math.max(1, limitPercision(Math.sqrt(this.iterationDistance) + this.percisionErrorsBoundery));
     }
 }
 
-const stabilizationFactor = 1.3;
+const stabilizationFactor = 2;
 export class MovementTestMetrics extends AbsTestMetrics {
     constructor(
         public iterationsPerSecond: number,
@@ -79,6 +80,8 @@ export class ShipTestHarness {
         this.shipObj.id = '1';
         this.spaceMgr.insert(this.shipObj);
         global.harness = this;
+        this.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        this.shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
     }
     get shipState() {
         return this.shipMgr.state;
