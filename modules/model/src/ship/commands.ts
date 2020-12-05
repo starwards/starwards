@@ -1,14 +1,5 @@
 export interface ShipCommands {
-    setRotation: {
-        value: number;
-    };
     setAntiDrift: {
-        value: number;
-    };
-    setStrafe: {
-        value: number;
-    };
-    setBoost: {
         value: number;
     };
     setBreaks: {

@@ -10,6 +10,7 @@ import {
     predictHitLocation,
     rotateToTarget,
     ShipManager,
+    SmartPilotMode,
     SpaceState,
     XY,
 } from '../';
@@ -21,6 +22,8 @@ export function jouster(): Bot {
     let deltaSeconds = 1 / 20;
     return (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
+        shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         const target = getTarget(shipManager.state, spaceState);
         if (target) {
             const ship = shipManager.state;
@@ -33,25 +36,25 @@ export function jouster(): Bot {
                 XY.add(hitLocation, getShellAimVelocityCompensation(ship)),
                 0
             );
-            shipManager.setRotation(rotation);
+            shipManager.setSmartPilotRotation(rotation);
             const shipToTarget = XY.difference(hitLocation, ship.position);
             const distanceToTarget = XY.lengthOf(shipToTarget);
             const killRadius = getKillZoneRadiusRange(ship);
             if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
                 // if close enough to target, tail it
                 const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
-                shipManager.setBoost(maneuvering.boost);
-                shipManager.setStrafe(maneuvering.strafe);
+                shipManager.setSmartPilotBoost(maneuvering.boost);
+                shipManager.setSmartPilotStrafe(maneuvering.strafe);
             } else {
                 const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
                 // close distance to target
                 if (distanceToTarget > killRadius[1]) {
-                    shipManager.setBoost(maneuvering.boost);
-                    shipManager.setStrafe(maneuvering.strafe);
+                    shipManager.setSmartPilotBoost(maneuvering.boost);
+                    shipManager.setSmartPilotStrafe(maneuvering.strafe);
                 } else {
                     // distanceToTarget < killRadius[0]
-                    shipManager.setBoost(-maneuvering.boost);
-                    shipManager.setStrafe(-maneuvering.strafe);
+                    shipManager.setSmartPilotBoost(-maneuvering.boost);
+                    shipManager.setSmartPilotStrafe(-maneuvering.strafe);
                 }
             }
             lastTargetVelocity = XY.clone(target.velocity);

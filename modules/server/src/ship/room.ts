@@ -16,9 +16,6 @@ export class ShipRoom extends Room<ShipState> {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
         this.setSimulationInterval((deltaMs) => manager.update(deltaMs / 1000));
-        this.onMessage('setStrafe', (_, msg: ShipCommands['setStrafe']) => manager.setStrafe(msg.value));
-        this.onMessage('setBoost', (_, msg: ShipCommands['setBoost']) => manager.setBoost(msg.value));
-        this.onMessage('setRotation', (_, msg: ShipCommands['setRotation']) => manager.setRotation(msg.value));
         this.onMessage('setAntiDrift', (_, msg: ShipCommands['setAntiDrift']) => manager.setAntiDrift(msg.value));
         this.onMessage('setBreaks', (_, msg: ShipCommands['setBreaks']) => manager.setBreaks(msg.value));
         this.onMessage('setTarget', (_, msg: ShipCommands['setTarget']) => manager.setTarget(msg.id));

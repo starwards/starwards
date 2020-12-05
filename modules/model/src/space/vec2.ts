@@ -26,7 +26,7 @@
 // This module is an altered version of the original matthiasferch/tsm code.
 
 import { Schema, type } from '@colyseus/schema';
-import { limitPercision } from '../logic/formulas';
+import { degToRad, limitPercision } from '../logic/formulas';
 import { XY } from '../logic/xy';
 
 export class Vec2 extends Schema implements XY {
@@ -41,7 +41,7 @@ export class Vec2 extends Schema implements XY {
     }
 
     public static Rotate(vector: XY, degrees: number, dest?: Vec2) {
-        return Vec2.RotateRadians(vector, degrees * XY.degToRad, dest);
+        return Vec2.RotateRadians(vector, degrees * degToRad, dest);
     }
 
     public static RotateRadians(vector: XY, radians: number, dest?: Vec2) {
