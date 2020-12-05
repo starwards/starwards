@@ -51,7 +51,7 @@ function trackObject(camera: Camera, space: SpaceState, target: SelectionContain
         unfollow();
         const tracked = target.getSingle();
         if (tracked) {
-            unfollow = camera.followSpaceObject(tracked, space.events, true);
+            unfollow = camera.followSpaceObject(tracked, space.events);
         }
     });
 }
