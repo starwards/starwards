@@ -1,4 +1,4 @@
-import { SpaceObject } from '@starwards/model';
+import { degToRad, SpaceObject } from '@starwards/model';
 import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
 import WebFont from 'webfontloader';
@@ -6,8 +6,10 @@ import { getGlobalRoom, getShipRoom, NamedGameRoom } from '../client';
 import { blipRenderer } from '../radar/blip-renderer';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
+import { SpriteLayer } from '../radar/sprite-layer';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { trackTargetObject } from '../ship-logic';
 import { DashboardWidget } from './dashboard';
@@ -31,9 +33,31 @@ function tacticalRadarComponent(container: Container, state: Props) {
     async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
+        const background = new MovementAnchorLayer(
+            root,
+            {
+                width: 2,
+                color: 0xaaffaa,
+                alpha: 0.1,
+            },
+            1000,
+            state.range
+        );
+        root.addLayer(background.renderRoot);
         const range = new RangeIndicators(root, state.range / 5);
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
+        const asimuthCircle = new SpriteLayer(
+            root,
+            {
+                fileName: 'images/asimuth-circle.svg',
+                tint: 0xaaffaa,
+                radiusMeters: 6000,
+            },
+            () => shipRoom.state.position,
+            () => degToRad * -shipRoom.state.angle
+        );
+        root.addLayer(asimuthCircle.renderRoot);
         const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
         const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
         root.addLayer(crosshairs(root, shipRoom.state, shipTarget));
