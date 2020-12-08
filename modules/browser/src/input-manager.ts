@@ -35,7 +35,11 @@ function isGamepadAxis(v: unknown): v is GamepadAxis {
 function isGamepadButton(v: unknown): v is GamepadButton {
     return v && typeof (v as GamepadButton).buttonIndex === 'number';
 }
-
+export interface ChangeableProperty {
+    name: string;
+    range: [number, number];
+    onChange: (v: number) => unknown;
+}
 export class InputManager {
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
@@ -77,19 +81,19 @@ export class InputManager {
         removeEventListener('mmk-gamepad-button-value', this.onButton);
     }
 
-    _addAction(range: [number, number], onChange: (v: number) => unknown, input: GamepadAxis | GamepadButton) {
+    _addAction(property: ChangeableProperty, input: GamepadAxis | GamepadButton) {
         if (isGamepadAxis(input)) {
-            this.addAxisAction(range, onChange, input);
+            this.addAxisAction(property, input);
         } else if (isGamepadButton(input)) {
-            this.addButtonAction(range, onChange, input);
+            this.addButtonAction(property, input);
         } else throw new Error(`unknown config: ${JSON.stringify(input)}`);
     }
 
-    addAxisAction(range: [number, number], onChange: (v: number) => unknown, axis: GamepadAxis) {
-        this.axes.push({ axis, onChange, range });
+    addAxisAction(property: ChangeableProperty, axis: GamepadAxis) {
+        this.axes.push({ axis, ...property });
     }
 
-    addButtonAction(range: [number, number], onChange: (v: number) => unknown, button: GamepadButton) {
-        this.buttons.push({ button, onChange, range });
+    addButtonAction(property: ChangeableProperty, button: GamepadButton) {
+        this.buttons.push({ button, ...property });
     }
 }

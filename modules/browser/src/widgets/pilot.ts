@@ -1,10 +1,11 @@
 import '@maulingmonkey/gamepad';
-import { SmartPilotMode, TargetedStatus, XY } from '@starwards/model';
+import { SmartPilotMode, TargetedStatus } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { getShipRoom } from '../client';
 import { InputManager } from '../input-manager';
 import { PropertyPanel } from '../property-panel';
+import { shipProperties } from '../ship-properties';
 import { DashboardWidget } from './dashboard';
 
 function pilotComponent(container: Container, p: Props) {
@@ -19,50 +20,36 @@ function pilotComponent(container: Container, p: Props) {
             panel.destroy();
             input.destroy();
         });
+        const properties = shipProperties(shipRoom);
 
         panel.addText('smartPilot.rotationMode', () => SmartPilotMode[shipRoom.state.smartPilot.rotationMode]);
-        panel.addProperty(
-            'smartPilot.rotation',
-            () => shipRoom.state.smartPilot.rotation,
-            [-1, 1],
-            (value) => shipRoom.send('setSmartPilotRotation', { value })
-        );
-        input.addAxisAction([-1, 1], (value) => shipRoom.send('setSmartPilotRotation', { value }), {
+        panel.addProperty(properties['smartPilot.rotation']);
+        input.addAxisAction(properties['smartPilot.rotation'], {
             gamepadIndex: 0,
             axisIndex: 0,
             deadzone: [-0.01, 0.01],
         });
-        panel.addProperty('rotation', () => shipRoom.state.rotation, [-1, 1]);
+        panel.addProperty(properties.rotation);
         panel.addText('smartPilot.maneuveringMode', () => SmartPilotMode[shipRoom.state.smartPilot.maneuveringMode]);
         shipRoom.state.events.on('smartPilot.maneuvering', () => {
             viewModelChanges.emit('smartPilot.boost');
             viewModelChanges.emit('smartPilot.strafe');
         });
-        panel.addProperty(
-            'smartPilot.strafe',
-            () => shipRoom.state.smartPilot.maneuvering.y,
-            [-1, 1],
-            (value) => shipRoom.send('setSmartPilotStrafe', { value: value })
-        );
-        input.addAxisAction([-1, 1], (value) => shipRoom.send('setSmartPilotStrafe', { value: value }), {
+        panel.addProperty(properties['smartPilot.strafe']);
+        input.addAxisAction(properties['smartPilot.strafe'], {
             gamepadIndex: 0,
             axisIndex: 2,
             deadzone: [-0.01, 0.01],
         });
-        panel.addProperty(
-            'smartPilot.boost',
-            () => shipRoom.state.smartPilot.maneuvering.x,
-            [-1, 1],
-            (value) => shipRoom.send('setSmartPilotBoost', { value: value })
-        );
-        input.addAxisAction([-1, 1], (value) => shipRoom.send('setSmartPilotBoost', { value: value }), {
+        panel.addProperty(properties['smartPilot.boost']);
+        input.addAxisAction(properties['smartPilot.boost'], {
             gamepadIndex: 0,
             axisIndex: 3,
             deadzone: [-0.01, 0.01],
             inverted: true,
         });
-        panel.addProperty('strafe', () => shipRoom.state.strafe, [-1, 1]);
-        panel.addProperty('boost', () => shipRoom.state.boost, [-1, 1]);
+        panel.addProperty(properties.strafe);
+        panel.addProperty(properties.boost);
 
         addEventListener(
             'mmk-gamepad-button-down',
@@ -75,66 +62,27 @@ function pilotComponent(container: Container, p: Props) {
             }
         );
 
-        panel.addProperty('energy', () => shipRoom.state.energy, [0, 1000]);
-        panel.addProperty('reserveSpeed', () => shipRoom.state.reserveSpeed, [0, 1000]);
-        panel.addProperty(
-            'useReserveSpeed',
-            () => shipRoom.state.useReserveSpeed,
-            [0, 1],
-            (value) => {
-                shipRoom.send('setCombatManeuvers', { value: value });
-            }
-        );
-        input.addButtonAction(
-            [0, 1],
-            (value) => {
-                shipRoom.send('setCombatManeuvers', { value: value });
-            },
-            {
-                gamepadIndex: 0,
-                buttonIndex: 6,
-            }
-        );
-        panel.addProperty(
-            'antiDrift',
-            () => shipRoom.state.antiDrift,
-            [0, 1],
-            (value) => {
-                shipRoom.send('setAntiDrift', { value: value });
-            }
-        );
-        input.addButtonAction(
-            [0, 1],
-            (value) => {
-                shipRoom.send('setAntiDrift', { value: value });
-            },
-            {
-                gamepadIndex: 0,
-                buttonIndex: 7,
-            }
-        );
-        panel.addProperty(
-            'breaks',
-            () => shipRoom.state.breaks,
-            [0, 1],
-            (value) => {
-                shipRoom.send('setBreaks', { value: value });
-            }
-        );
-        input.addButtonAction(
-            [0, 1],
-            (value) => {
-                shipRoom.send('setBreaks', { value: value });
-            },
-            {
-                gamepadIndex: 0,
-                buttonIndex: 5,
-            }
-        );
-        panel.addProperty('turnSpeed', () => shipRoom.state.turnSpeed, [-90, 90]);
-        panel.addProperty('angle', () => shipRoom.state.angle, [0, 360]);
-        panel.addProperty('speed direction', () => XY.angleOf(shipRoom.state.velocity), [0, 360]);
-        panel.addProperty('speed', () => XY.lengthOf(shipRoom.state.velocity), [0, 1000]);
+        panel.addProperty(properties.energy);
+        panel.addProperty(properties.reserveSpeed);
+        panel.addProperty(properties.useReserveSpeed);
+        input.addButtonAction(properties.useReserveSpeed, {
+            gamepadIndex: 0,
+            buttonIndex: 6,
+        });
+        panel.addProperty(properties.antiDrift);
+        input.addButtonAction(properties.antiDrift, {
+            gamepadIndex: 0,
+            buttonIndex: 7,
+        });
+        panel.addProperty(properties.breaks);
+        input.addButtonAction(properties.breaks, {
+            gamepadIndex: 0,
+            buttonIndex: 5,
+        });
+        panel.addProperty(properties.turnSpeed);
+        panel.addProperty(properties.angle);
+        panel.addProperty(properties['speed direction']);
+        panel.addProperty(properties.speed);
         panel.addText('targeted', () => TargetedStatus[shipRoom.state.targeted]);
 
         for (const eventName of viewModelChanges.eventNames()) {

@@ -11,6 +11,7 @@ export interface ShipCommands {
     setTarget: {
         id: string | null;
     };
+    nextTarget: Record<never, never>;
     setShellSecondsToLive: {
         value: number;
     };
