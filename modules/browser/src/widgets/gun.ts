@@ -5,6 +5,7 @@ import { getGlobalRoom, getShipRoom } from '../client';
 import { InputManager } from '../input-manager';
 import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
+import { shipProperties, ShipProperty } from '../ship-properties';
 import { DashboardWidget } from './dashboard';
 
 function gunComponent(container: Container, p: Props) {
@@ -31,79 +32,41 @@ function gunComponent(container: Container, p: Props) {
             panel.destroy();
             input.destroy();
         });
-
-        panel.addProperty('cooldown', () => shipRoom.state.chainGun?.cooldown || 0, [0, 1]);
-        panel.addProperty(
-            'isFiring',
-            () => Number(shipRoom.state.chainGun?.isFiring || 0),
-            [0, 1],
-            (value) => {
-                shipRoom.send('chainGun', { isFiring: Boolean(value) });
-            }
-        );
+        const properties = shipProperties(shipRoom);
+        panel.addProperty(properties.cooldown);
+        panel.addProperty(properties.isFiring);
+        input.addButtonAction(properties.isFiring, {
+            gamepadIndex: 0,
+            buttonIndex: 4,
+        });
         input.addButtonAction(
-            [0, 1],
-            (value) => {
-                shipRoom.send('chainGun', { isFiring: Boolean(value) });
-            },
             {
-                gamepadIndex: 0,
-                buttonIndex: 4,
-            }
-        );
-        panel.addProperty('angle', () => Number(shipRoom.state.chainGun?.angle || 0), [0, 360]);
-        input.addButtonAction(
-            [0, 1],
-            (value) => {
-                if (value) {
-                    let currentFound = false;
-                    for (const obj of spaceRoom.state.getAll('Spaceship')) {
-                        if (obj.id === shipRoom.state.targetId) {
-                            currentFound = true;
-                        } else if (currentFound && obj.id !== p.shipId) {
-                            shipRoom.send('setTarget', { id: obj.id });
-                            return;
-                        }
-                    }
-                    for (const obj of spaceRoom.state.getAll('Spaceship')) {
-                        if (obj.id !== p.shipId) {
-                            shipRoom.send('setTarget', { id: obj.id });
-                            return;
-                        }
-                    }
-                }
+                name: 'nextTarget',
+                range: [0, 1],
+                onChange: (v) => v && shipRoom.send('nextTarget', {}),
             },
             {
                 gamepadIndex: 0,
                 buttonIndex: 2,
             }
         );
-        panel.addProperty(
-            'manual shellSecondsToLive',
-            () => manualShellSecondsToLive,
-            [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
-            (value) => {
-                manualShellSecondsToLive = value;
-                viewModelChanges.emit('manual shellSecondsToLive');
-            }
-        );
-        input.addAxisAction(
-            [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
-            (value) => {
+        const manualSSTL: ShipProperty = {
+            name: 'manual shellSecondsToLive',
+            getValue: () => manualShellSecondsToLive,
+            range: [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
+            onChange: (value: number) => {
                 manualShellSecondsToLive = value;
                 viewModelChanges.emit('manual shellSecondsToLive');
             },
-            {
-                gamepadIndex: 0,
-                axisIndex: 1,
-                deadzone: [-0.01, 0.01],
-                inverted: true,
-            }
-        );
-        panel.addProperty('shellSecondsToLive', () => shipRoom.state.chainGun.shellSecondsToLive, [
-            shipRoom.state.chainGun.minShellSecondsToLive,
-            shipRoom.state.chainGun.maxShellSecondsToLive,
-        ]);
+        };
+        panel.addProperty(manualSSTL);
+        input.addAxisAction(manualSSTL, {
+            gamepadIndex: 0,
+            axisIndex: 1,
+            deadzone: [-0.01, 0.01],
+            inverted: true,
+        });
+        panel.addProperty(properties.shellSecondsToLive);
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
         }

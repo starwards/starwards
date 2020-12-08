@@ -158,6 +158,24 @@ export class ShipManager {
         );
     }
 
+    public nextTarget() {
+        let currentFound = false;
+        for (const obj of this.spaceManager.state.getAll('Spaceship')) {
+            if (obj.id === this.state.targetId) {
+                currentFound = true;
+            } else if (currentFound && obj.id !== this.state.id) {
+                this.setTarget(obj.id);
+                return;
+            }
+        }
+        for (const obj of this.spaceManager.state.getAll('Spaceship')) {
+            if (obj.id !== this.state.id) {
+                this.setTarget(obj.id);
+                return;
+            }
+        }
+    }
+
     update(deltaSeconds: number) {
         if (this.spaceObject.health <= 0) {
             this.onDestroy && this.onDestroy();

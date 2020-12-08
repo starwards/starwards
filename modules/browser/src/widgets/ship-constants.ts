@@ -39,12 +39,12 @@ function addMapToPanel(
 ) {
     const initConst = (_: unknown, name: string) => {
         const val = getConstants().get(name);
-        panel.addProperty(
+        panel.addProperty({
             name,
-            () => getConstants().get(name),
-            [val / 2, val * 2],
-            (value: number) => onChange(name, value)
-        );
+            getValue: () => getConstants().get(name),
+            range: [val / 2, val * 2],
+            onChange: (value: number) => onChange(name, value),
+        });
     };
     getConstants().onAdd = initConst;
     for (const constName of getConstants().keys()) {
