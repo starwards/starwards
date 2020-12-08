@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>mmk.gamepad - Demo</title>
+        <link rel="stylesheet" href="styles/mmk.gamepad.css" type="text/css" />
+        <script src="demo.js"></script>
+    </head>
+    <body>
+        <h1>mmk.gamepad - Demo</h1>
+
+        <input id="deadzone" type="checkbox" checked="checked" /> <label for="standardize">Apply DeadZone (0.15)</label
+        ><br />
+        <input id="standardize" type="checkbox" checked="checked" /> <label for="standardize">Standardize Input</label
+        ><br />
+        <input id="keep-nonstd" type="checkbox" checked="checked" /> <label for="standardize">Keep Nonstandard</label
+        ><br />
+        <input id="keep-inactive" type="checkbox" checked="checked" /> <label for="standardize">Keep Inactive</label
+        ><br />
+
+        <table>
+            <thead>
+                <tr>
+                    <th colspan="8">Meta, Axises</th>
+
+                    <!-- Axes -->
+                    <th>LX</th>
+                    <th>LY</th>
+                    <th>RX</th>
+                    <th>RY</th>
+                    <th colspan="7">Nonstandard</th>
+                </tr>
+                <tr>
+                    <th>id</th>
+                    <th>index</th>
+                    <th>mapping</th>
+                    <th>connected</th>
+                    <th>getDeviceLabel</th>
+                    <th>vendor</th>
+                    <th>product</th>
+                    <th>hint</th>
+
+                    <th>a0</th>
+                    <th>a1</th>
+                    <th>a2</th>
+                    <th>a3</th>
+                    <th>a4</th>
+                    <th>a5</th>
+                    <th>a6</th>
+                    <th>a7</th>
+                    <th>a8</th>
+                    <th>a9</th>
+                    <th>a10</th>
+                </tr>
+            </thead>
+            <tbody id="mmk-gamepad-metadata-1-demo">
+                <!-- demo.ts -->
+            </tbody>
+        </table>
+        <br />
+
+        <table>
+            <thead>
+                <tr>
+                    <th colspan="2">Buttons</th>
+
+                    <!-- Buttons -->
+                    <th>A</th>
+                    <th>B</th>
+                    <th>X</th>
+                    <th>Y</th>
+
+                    <th>LS/L1</th>
+                    <th>RS/R1</th>
+                    <th>LT/L2</th>
+                    <th>RT/R2</th>
+
+                    <th>Back</th>
+                    <th>Start</th>
+                    <th>L/L3</th>
+                    <th>R/R3</th>
+
+                    <th>Up</th>
+                    <th>Down</th>
+                    <th>Left</th>
+                    <th>Right</th>
+
+                    <th>Guide</th>
+
+                    <th colspan="21">Nonstandard</th>
+                </tr>
+                <tr>
+                    <th>id</th>
+                    <th>index</th>
+
+                    <th>b0</th>
+                    <th>b1</th>
+                    <th>b2</th>
+                    <th>b3</th>
+                    <th>b4</th>
+                    <th>b5</th>
+                    <th>b6</th>
+                    <th>b7</th>
+                    <th>b8</th>
+                    <th>b9</th>
+                    <th>b10</th>
+                    <th>b11</th>
+                    <th>b12</th>
+                    <th>b13</th>
+                    <th>b14</th>
+                    <th>b15</th>
+                    <th>b16</th>
+                    <th>b17</th>
+                    <th>b18</th>
+                    <th>b19</th>
+                    <th>b20</th>
+                    <th>b21</th>
+                    <th>b22</th>
+                    <th>b23</th>
+                    <th>b24</th>
+                    <th>b25</th>
+                    <th>b26</th>
+                    <th>b27</th>
+                    <th>b28</th>
+                    <th>b29</th>
+                    <th>b30</th>
+                    <th>b31</th>
+                    <th>b32</th>
+                    <th>b33</th>
+                    <th>b34</th>
+                    <th>b35</th>
+                    <th>b36</th>
+                    <th>b37</th>
+                </tr>
+            </thead>
+            <tbody id="mmk-gamepad-metadata-2-demo">
+                <!-- demo.ts -->
+            </tbody>
+        </table>
+
+        <br /><br />
+        <input id="keep-button-value-events" type="checkbox" />
+        <label for="keep-button-value-events">Keep *-button-value events</label><br />
+        <input id="keep-zero-events" type="checkbox" /> <label for="keep-zero-events">Keep near-0.0 events</label><br />
+        <table>
+            <thead>
+                <tr>
+                    <th>Events</th>
+                    <th>Gamepad</th>
+                    <th colspan="4">Button/Axis</th>
+                </tr>
+                <tr>
+                    <th>type</th>
+                    <th>index</th>
+                    <th>index</th>
+                    <th>held</th>
+                    <th>value</th>
+                    <th>label</th>
+                </tr>
+            </thead>
+            <tbody id="mmk-gamepad-events-demo">
+                <!-- demo.ts -->
+            </tbody>
+        </table>
+    </body>
+</html>

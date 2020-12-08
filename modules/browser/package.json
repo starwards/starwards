@@ -15,6 +15,7 @@
         "@starwards/model": "*",
         "arwes": "^1.0.0-alpha.5",
         "colyseus.js": "^0.14.0",
+        "d3": "^6.3.0",
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.5",
         "golden-layout": "^1.5.9",
@@ -27,6 +28,7 @@
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
+        "@types/d3": "^6.2.0",
         "@types/dat.gui": "^0.7.5"
     }
 }
