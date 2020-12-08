@@ -2,6 +2,7 @@ import { calcShellSecondsToLive, getTarget } from '@starwards/model';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { getGlobalRoom, getShipRoom } from '../client';
+import { InputManager } from '../input-manager';
 import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
 import { DashboardWidget } from './dashboard';
@@ -23,15 +24,24 @@ function gunComponent(container: Container, p: Props) {
         loop.start();
         const viewModelChanges = new EventEmitter();
         const panel = new PropertyPanel(viewModelChanges);
+        const input = new InputManager();
         panel.init(container);
+        input.init();
         container.on('destroy', () => {
             panel.destroy();
+            input.destroy();
         });
 
         panel.addProperty('cooldown', () => shipRoom.state.chainGun?.cooldown || 0, [0, 1]);
         panel.addProperty(
             'isFiring',
             () => Number(shipRoom.state.chainGun?.isFiring || 0),
+            [0, 1],
+            (value) => {
+                shipRoom.send('chainGun', { isFiring: Boolean(value) });
+            }
+        );
+        input.addButtonAction(
             [0, 1],
             (value) => {
                 shipRoom.send('chainGun', { isFiring: Boolean(value) });
@@ -42,9 +52,7 @@ function gunComponent(container: Container, p: Props) {
             }
         );
         panel.addProperty('angle', () => Number(shipRoom.state.chainGun?.angle || 0), [0, 360]);
-        panel.addProperty(
-            'nextTarget',
-            () => 0,
+        input.addButtonAction(
             [0, 1],
             (value) => {
                 if (value) {
@@ -73,6 +81,13 @@ function gunComponent(container: Container, p: Props) {
         panel.addProperty(
             'manual shellSecondsToLive',
             () => manualShellSecondsToLive,
+            [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
+            (value) => {
+                manualShellSecondsToLive = value;
+                viewModelChanges.emit('manual shellSecondsToLive');
+            }
+        );
+        input.addAxisAction(
             [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
             (value) => {
                 manualShellSecondsToLive = value;
