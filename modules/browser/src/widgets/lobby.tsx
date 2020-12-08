@@ -111,16 +111,30 @@ export const Lobby = () => {
                         <Heading>
                             <p>Starwards</p>
                         </Heading>
-                        {gamesCount ? (
-                            <InGameMenu></InGameMenu>
-                        ) : (
-                            <Button
-                                onClick={async () => (await getGlobalRoom('admin')).send('startGame', undefined)}
-                                animate
-                            >
-                                New Game
-                            </Button>
-                        )}
+                        <ul>
+                            {!!gamesCount && (
+                                <li key="InGameMenu">
+                                    <InGameMenu></InGameMenu>
+                                </li>
+                            )}
+                            {!gamesCount && (
+                                <li key="startGame">
+                                    <Button
+                                        onClick={async () =>
+                                            (await getGlobalRoom('admin')).send('startGame', undefined)
+                                        }
+                                        animate
+                                    >
+                                        New Game
+                                    </Button>
+                                </li>
+                            )}
+                            <li key="input">
+                                <Button key="input" onClick={() => window.location.assign('input.html')} animate>
+                                    Input
+                                </Button>
+                            </li>
+                        </ul>
                     </div>
                 </Arwes>
             </SoundsProvider>

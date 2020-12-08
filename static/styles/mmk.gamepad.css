@@ -1,0 +1,22 @@
+body {
+	font: 10pt monospace;
+	text-align: left;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+th {
+	border:     none;
+	background: #000;
+	color:      #FFF;
+}
+
+td {
+	border: 1px solid #ccc;
+}
+
+th,td {
+	padding: 0.25em 0.5em;
+}

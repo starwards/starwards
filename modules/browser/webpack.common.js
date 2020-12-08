@@ -7,6 +7,7 @@ module.exports = {
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
         ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
+        input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
     },
     module: {
         rules: [
@@ -35,6 +36,11 @@ module.exports = {
             filename: 'index.html',
             template: path.resolve(__dirname, 'templates', 'main.html'),
             chunks: ['index'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'input.html',
+            template: path.resolve(__dirname, 'templates', 'input.html'),
+            chunks: ['input'],
         }),
     ],
     resolve: {
