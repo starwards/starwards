@@ -1,5 +1,6 @@
+import { XY, limitPercisionHard, sign } from '../src';
+
 import fc from 'fast-check';
-import { limitPercisionHard, sign, XY } from '../src';
 
 export const safeFloat = () => floatIn(Math.pow(2, 30));
 export const xy = (range: number, minRange = 0) =>

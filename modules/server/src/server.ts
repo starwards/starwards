@@ -1,17 +1,20 @@
+import * as http from 'http';
+
 /* eslint-disable no-console */
 /*
  * embed webpack-dev-server
  */
 import { Server, matchMaker } from 'colyseus';
-import * as http from 'http';
+
+import { AdminRoom } from './admin/room';
+import { GameManager } from './admin/game-manager';
+import { NextHandleFunction } from 'connect';
+import { ShipRoom } from './ship/room';
+import { SpaceRoom } from './space/room';
+import { monitor } from '@colyseus/monitor';
+
 import express = require('express');
 import basicAuth = require('express-basic-auth');
-import { monitor } from '@colyseus/monitor';
-import { SpaceRoom } from './space/room';
-import { NextHandleFunction } from 'connect';
-import { AdminRoom } from './admin/room';
-import { ShipRoom } from './ship/room';
-import { GameManager } from './admin/game-manager';
 
 process.on('uncaughtException', function (err) {
     console.error(new Date().toUTCString() + ' uncaughtException:', err.message);

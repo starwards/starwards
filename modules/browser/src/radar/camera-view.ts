@@ -1,7 +1,8 @@
-import EventEmitter from 'eventemitter3';
-import { Camera } from './camera';
 import * as PIXI from 'pixi.js';
+
+import { Camera } from './camera';
 import { Container } from 'golden-layout';
+import EventEmitter from 'eventemitter3';
 import { XY } from '@starwards/model';
 
 // extract options argument from application constructor

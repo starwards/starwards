@@ -1,5 +1,6 @@
-import { Client } from 'colyseus.js';
 import { Rooms, schemaClasses } from '@starwards/model';
+
+import { Client } from 'colyseus.js';
 import { waitForEvents } from './async-utils';
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);

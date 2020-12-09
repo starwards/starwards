@@ -1,6 +1,8 @@
-import { expect } from 'chai';
 import 'mocha';
-import { limitPercision, toDegreesDelta, XY } from '../src';
+
+import { XY, limitPercision, toDegreesDelta } from '../src';
+
+import { expect } from 'chai';
 import fc from 'fast-check';
 import { floatIn } from './properties';
 

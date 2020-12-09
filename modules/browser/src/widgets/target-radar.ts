@@ -1,17 +1,19 @@
-import { SpaceState } from '@starwards/model';
-import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
-import WebFont from 'webfontloader';
+
 import { getGlobalRoom, getShipRoom } from '../client';
-import { blipRenderer } from '../radar/blip-renderer';
+
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { Container } from 'golden-layout';
+import { DashboardWidget } from './dashboard';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
+import { SpaceState } from '@starwards/model';
+import WebFont from 'webfontloader';
+import { blipRenderer } from '../radar/blip-renderer';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { trackTargetObject } from '../ship-logic';
-import { DashboardWidget } from './dashboard';
 
 WebFont.load({
     custom: {

@@ -1,5 +1,6 @@
-import { CannonShell, Explosion, SpaceObject, SpaceState, XY, Vec2 } from '../';
 import { Body, Circle, Collisions, Result } from 'detect-collisions';
+import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
+
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;

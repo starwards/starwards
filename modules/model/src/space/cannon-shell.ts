@@ -1,6 +1,6 @@
-import { type } from '@colyseus/schema';
-import { SpaceObjectBase } from './space-object-base';
 import { Explosion } from './explosion';
+import { SpaceObjectBase } from './space-object-base';
+import { type } from '@colyseus/schema';
 
 export class CannonShell extends SpaceObjectBase {
     public static isInstance(o: SpaceObjectBase): o is CannonShell {

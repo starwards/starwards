@@ -1,4 +1,8 @@
 import {
+    ShipManager,
+    SmartPilotMode,
+    SpaceState,
+    XY,
     calcShellSecondsToLive,
     getKillZoneRadiusRange,
     getShellAimVelocityCompensation,
@@ -9,10 +13,6 @@ import {
     moveToTarget,
     predictHitLocation,
     rotateToTarget,
-    ShipManager,
-    SmartPilotMode,
-    SpaceState,
-    XY,
 } from '../';
 
 export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;

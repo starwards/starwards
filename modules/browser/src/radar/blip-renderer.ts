@@ -1,5 +1,7 @@
-import { SpaceObjects, Vec2, SpaceObject, Spaceship, Asteroid, CannonShell, Explosion } from '@starwards/model';
 import * as PIXI from 'pixi.js';
+
+import { Asteroid, CannonShell, Explosion, SpaceObject, SpaceObjects, Spaceship, Vec2 } from '@starwards/model';
+
 import { CameraView } from './camera-view';
 import { InteractiveLayer } from './interactive-layer';
 

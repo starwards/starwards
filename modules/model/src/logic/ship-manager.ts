@@ -1,14 +1,8 @@
-import { MapSchema } from '@colyseus/schema';
 import {
     CannonShell,
-    capToRange,
     ChainGun,
     Explosion,
-    gaussianRandom,
     ManeuveringCommand,
-    matchLocalSpeed,
-    rotateToTarget,
-    rotationFromTargetTurnSpeed,
     ShipState,
     SmartPilotMode,
     SmartPilotState,
@@ -18,10 +12,17 @@ import {
     TargetedStatus,
     Vec2,
     XY,
+    capToRange,
+    gaussianRandom,
+    matchLocalSpeed,
+    rotateToTarget,
+    rotationFromTargetTurnSpeed,
 } from '../';
-import { uniqueId } from '../id';
-import { SpaceManager } from './space-manager';
+
 import { Bot } from './bot';
+import { MapSchema } from '@colyseus/schema';
+import { SpaceManager } from './space-manager';
+import { uniqueId } from '../id';
 
 export class ShipManager {
     public state = new ShipState(false); // this state tree should only be exposed by the ship room

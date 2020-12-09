@@ -1,16 +1,18 @@
-import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
-import { getGlobalRoom } from '../client';
-import { DashboardWidget } from './dashboard';
-import { makeRadarHeaders } from './radar';
-import { CameraView } from '../radar/camera-view';
+
 import { Camera } from '../radar/camera';
+import { CameraView } from '../radar/camera-view';
+import { Container } from 'golden-layout';
+import { DashboardWidget } from './dashboard';
+import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { blipRenderer } from '../radar/blip-renderer';
-import { FragCounter } from './frag';
+import { getGlobalRoom } from '../client';
+import { makeRadarHeaders } from './radar';
+
 // import { velocityRenderer } from '../radar/velocity-renderer';
 
 // TODO: use https://github.com/dataarts/dat.gui

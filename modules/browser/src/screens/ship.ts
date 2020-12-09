@@ -1,17 +1,19 @@
-import $ from 'jquery';
+import * as PIXI from 'pixi.js';
+
 import { client, getShipRoom } from '../client';
+
+import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
-import { pilotWidget } from '../widgets/pilot';
-import { radarWidget } from '../widgets/radar';
-import { tacticalRadarWidget } from '../widgets/tactical-radar';
-import { targetRadarWidget } from '../widgets/target-radar';
-import { shipConstantsWidget } from '../widgets/ship-constants';
+import { InputManager } from '../input-manager';
 import { TaskLoop } from '../task-loop';
 import { gunWidget } from '../widgets/gun';
-import * as PIXI from 'pixi.js';
-import { InputManager } from '../input-manager';
-import { shipProperties } from '../ship-properties';
 import { inputConfig } from '../ship-input';
+import { pilotWidget } from '../widgets/pilot';
+import { radarWidget } from '../widgets/radar';
+import { shipConstantsWidget } from '../widgets/ship-constants';
+import { shipProperties } from '../ship-properties';
+import { tacticalRadarWidget } from '../widgets/tactical-radar';
+import { targetRadarWidget } from '../widgets/target-radar';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon

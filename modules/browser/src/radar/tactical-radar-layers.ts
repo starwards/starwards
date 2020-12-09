@@ -1,9 +1,10 @@
+import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/model';
+
 import { CameraView } from './camera-view';
+import { InteractiveLayer } from './interactive-layer';
+import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
-import { XY, ShipState, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/model';
-import { LineLayer } from './line-layer';
-import { InteractiveLayer } from './interactive-layer';
 
 function globalToAim(ship: ShipState, pos: XY) {
     return XY.difference(pos, XY.scale(ship.velocity, ship.chainGun.shellSecondsToLive));

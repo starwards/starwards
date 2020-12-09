@@ -1,9 +1,10 @@
-import { MapSchema } from '@colyseus/schema';
-import { Container } from 'golden-layout';
-import { getShipRoom } from '../client';
 import { Panel, PropertyPanel } from '../property-panel';
-import { DashboardWidget } from './dashboard';
+
 import $ from 'jquery';
+import { Container } from 'golden-layout';
+import { DashboardWidget } from './dashboard';
+import { MapSchema } from '@colyseus/schema';
+import { getShipRoom } from '../client';
 
 async function makeShipComponent(container: Container, p: Props) {
     const shipRoom = await getShipRoom(p.shipId);

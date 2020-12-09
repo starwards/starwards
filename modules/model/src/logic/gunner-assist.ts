@@ -1,7 +1,7 @@
 import { ShipState } from '../ship';
 import { SpaceObject } from '../space';
-import { addScale } from './formulas';
 import { XY } from './xy';
+import { addScale } from './formulas';
 
 export function predictHitLocation(ship: ShipState, target: SpaceObject, targetAccel: XY) {
     const maxIterations = 20;

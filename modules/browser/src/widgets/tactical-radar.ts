@@ -1,18 +1,20 @@
-import { degToRad, SpaceObject } from '@starwards/model';
-import { Container } from 'golden-layout';
 import * as PIXI from 'pixi.js';
-import WebFont from 'webfontloader';
-import { getGlobalRoom, getShipRoom, NamedGameRoom } from '../client';
-import { blipRenderer } from '../radar/blip-renderer';
+
+import { NamedGameRoom, getGlobalRoom, getShipRoom } from '../client';
+import { SpaceObject, degToRad } from '@starwards/model';
+import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
+
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { Container } from 'golden-layout';
+import { DashboardWidget } from './dashboard';
 import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
-import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
+import WebFont from 'webfontloader';
+import { blipRenderer } from '../radar/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
-import { DashboardWidget } from './dashboard';
 
 WebFont.load({
     custom: {

@@ -1,8 +1,9 @@
-import { GUI } from 'dat.gui';
+import { NumericProperty, TextProperty } from './ship-properties';
+
 import { Container } from 'golden-layout';
 import { Dictionary } from 'lodash';
 import { EmitterLoop } from './loop';
-import { NumericProperty, TextProperty } from './ship-properties';
+import { GUI } from 'dat.gui';
 
 export interface Panel {
     addProperty(name: string, property: NumericProperty): this;

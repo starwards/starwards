@@ -14,6 +14,7 @@ module.exports = {
     },
 
     rules: {
+        'sort-imports': 'error',
         'no-only-tests/no-only-tests': 'error',
         'no-console': 'error',
         'react-hooks/rules-of-hooks': 'error',

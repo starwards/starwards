@@ -1,7 +1,8 @@
-import { type, MapSchema, Schema } from '@colyseus/schema';
-import EventEmitter from 'eventemitter3';
+import { MapSchema, Schema, type } from '@colyseus/schema';
 import { Spaceship, Vec2 } from '../space';
+
 import { ChainGun } from './chain-gun';
+import EventEmitter from 'eventemitter3';
 
 export enum TargetedStatus {
     NONE,

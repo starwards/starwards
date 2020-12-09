@@ -1,7 +1,9 @@
 import { Schema, type } from '@colyseus/schema';
+
 import { SpaceObjects } from '.';
-import { XY } from '..';
 import { Vec2 } from './vec2';
+import { XY } from '..';
+
 export function compareSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
     return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
 }
