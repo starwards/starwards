@@ -5,7 +5,7 @@ import { getGlobalRoom, getShipRoom } from '../client';
 import { InputManager } from '../input-manager';
 import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
-import { shipProperties, ShipProperty } from '../ship-properties';
+import { shipProperties, NumericProperty } from '../ship-properties';
 import { DashboardWidget } from './dashboard';
 
 function gunComponent(container: Container, p: Props) {
@@ -33,24 +33,13 @@ function gunComponent(container: Container, p: Props) {
             input.destroy();
         });
         const properties = shipProperties(shipRoom);
-        panel.addProperty(properties.cooldown);
-        panel.addProperty(properties.isFiring);
-        input.addButtonAction(properties.isFiring, {
-            gamepadIndex: 0,
-            buttonIndex: 4,
-        });
-        input.addButtonAction(
-            {
-                name: 'nextTarget',
-                range: [0, 1],
-                onChange: (v) => v && shipRoom.send('nextTarget', {}),
-            },
-            {
-                gamepadIndex: 0,
-                buttonIndex: 2,
-            }
-        );
-        const manualSSTL: ShipProperty = {
+        const chainGunPanel = panel.addFolder('chainGun');
+
+        chainGunPanel.addProperty(properties['chainGun.cooldown']);
+        chainGunPanel.addText(properties['chainGun.isFiring']);
+        panel.addText(properties.target);
+        // TODO fix and move to shipManager
+        const manualSSTL: NumericProperty = {
             name: 'manual shellSecondsToLive',
             getValue: () => manualShellSecondsToLive,
             range: [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
@@ -66,7 +55,7 @@ function gunComponent(container: Container, p: Props) {
             deadzone: [-0.01, 0.01],
             inverted: true,
         });
-        panel.addProperty(properties.shellSecondsToLive);
+        chainGunPanel.addProperty(properties['chainGun.shellSecondsToLive']);
         for (const eventName of viewModelChanges.eventNames()) {
             shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
         }
@@ -75,12 +64,12 @@ function gunComponent(container: Container, p: Props) {
             viewModelChanges.emit('speed direction');
         });
 
-        shipRoom.state.events.on('chainGun', () => {
-            viewModelChanges.emit('cooldown');
-            viewModelChanges.emit('isFiring');
-            viewModelChanges.emit('angle');
-            viewModelChanges.emit('shellSecondsToLive');
-        });
+        // shipRoom.state.events.on('chainGun', () => {
+        //     viewModelChanges.emit('cooldown');
+        //     viewModelChanges.emit('isFiring');
+        //     viewModelChanges.emit('angle');
+        //     viewModelChanges.emit('shellSecondsToLive');
+        // });
     })();
 }
 

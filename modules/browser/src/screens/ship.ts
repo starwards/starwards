@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import { client } from '../client';
+import { client, getShipRoom } from '../client';
 import { Dashboard } from '../widgets/dashboard';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -9,6 +9,9 @@ import { shipConstantsWidget } from '../widgets/ship-constants';
 import { TaskLoop } from '../task-loop';
 import { gunWidget } from '../widgets/gun';
 import * as PIXI from 'pixi.js';
+import { InputManager } from '../input-manager';
+import { shipProperties } from '../ship-properties';
+import { inputConfig } from '../ship-input';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -29,13 +32,7 @@ if (shipUrlParam) {
             const shipId = room.roomId;
             if (shipUrlParam === shipId) {
                 loop.stop();
-                dashboard.registerWidget(radarWidget, { subjectId: shipId }, 'radar');
-                dashboard.registerWidget(tacticalRadarWidget, { subjectId: shipId }, 'tactical radar');
-                dashboard.registerWidget(pilotWidget, { shipId }, 'helm');
-                dashboard.registerWidget(gunWidget, { shipId }, 'gun');
-                dashboard.registerWidget(shipConstantsWidget, { shipId }, 'constants');
-                dashboard.registerWidget(targetRadarWidget, { subjectId: shipId }, 'target radar');
-                dashboard.setup();
+                await initScreen(dashboard, shipId);
             }
         }
     }, 500);
@@ -43,6 +40,32 @@ if (shipUrlParam) {
 } else {
     // eslint-disable-next-line no-console
     console.error('missing "shipId" url query param');
+}
+
+async function initScreen(dashboard: Dashboard, shipId: string) {
+    dashboard.registerWidget(radarWidget, { subjectId: shipId }, 'radar');
+    dashboard.registerWidget(tacticalRadarWidget, { subjectId: shipId }, 'tactical radar');
+    dashboard.registerWidget(pilotWidget, { shipId }, 'helm');
+    dashboard.registerWidget(gunWidget, { shipId }, 'gun');
+    dashboard.registerWidget(shipConstantsWidget, { shipId }, 'constants');
+    dashboard.registerWidget(targetRadarWidget, { subjectId: shipId }, 'target radar');
+    dashboard.setup();
+
+    // todo extract to configurable widget
+    const shipRoom = await getShipRoom(shipId);
+    const properties = shipProperties(shipRoom);
+    const input = new InputManager();
+    input.addAxisAction(properties['smartPilot.rotation'], inputConfig['smartPilot.rotation']);
+    input.addAxisAction(properties['smartPilot.strafe'], inputConfig['smartPilot.strafe']);
+    input.addAxisAction(properties['smartPilot.boost'], inputConfig['smartPilot.boost']);
+    input.addButtonAction(properties['smartPilot.rotationMode'], inputConfig['smartPilot.rotationMode']);
+    input.addButtonAction(properties['smartPilot.maneuveringMode'], inputConfig['smartPilot.maneuveringMode']);
+    input.addButtonAction(properties.useReserveSpeed, inputConfig.useReserveSpeed);
+    input.addButtonAction(properties.antiDrift, inputConfig.antiDrift);
+    input.addButtonAction(properties.breaks, inputConfig.breaks);
+    input.addButtonAction(properties['chainGun.isFiring'], inputConfig['chainGun.isFiring']);
+    input.addButtonAction(properties.target, inputConfig.target);
+    input.init();
 }
 
 function makeDashboard(shipId: string, layout: string | null): Dashboard {

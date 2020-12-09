@@ -2,11 +2,11 @@ import { GUI } from 'dat.gui';
 import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { Dictionary } from 'lodash';
-import { ShipProperty } from './ship-properties';
+import { NumericProperty, TextProperty } from './ship-properties';
 
 export interface Panel {
-    addProperty(property: ShipProperty): this;
-    addText(name: string, getValue: () => string): this;
+    addProperty(property: NumericProperty): this;
+    addText(property: TextProperty): this;
 }
 
 export class PropertyPanel implements Panel {
@@ -22,7 +22,7 @@ export class PropertyPanel implements Panel {
         this.rootGui.destroy();
     }
 
-    private contextAddProperty(guiFolder: GUI, viewModel: Dictionary<number | string>, property: ShipProperty) {
+    private contextAddProperty(guiFolder: GUI, viewModel: Dictionary<number | string>, property: NumericProperty) {
         const { name, getValue, range, onChange } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name, ...range);
@@ -36,25 +36,24 @@ export class PropertyPanel implements Panel {
         guiController.onChange(onChange);
     }
 
-    contextAddText(guiFolder: GUI, viewModel: Dictionary<number | string>, name: string, getValue: () => string) {
+    contextAddText(guiFolder: GUI, viewModel: Dictionary<number | string>, property: TextProperty) {
+        const { name, getValue, onChange } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name);
         this.modelEvents.on(name, () => {
             viewModel[name] = getValue();
             guiController.updateDisplay();
         });
-        guiController.onChange(() => {
-            viewModel[name] = getValue();
-        });
+        guiController.onChange(onChange);
     }
 
-    addProperty(property: ShipProperty) {
+    addProperty(property: NumericProperty) {
         this.contextAddProperty(this.rootGui, this.rootViewModel, property);
         return this;
     }
 
-    addText(name: string, getValue: () => string) {
-        this.contextAddText(this.rootGui, this.rootViewModel, name, getValue);
+    addText(property: TextProperty) {
+        this.contextAddText(this.rootGui, this.rootViewModel, property);
         return this;
     }
 
@@ -63,12 +62,12 @@ export class PropertyPanel implements Panel {
         guiFolder.open();
         const folderViewModel: Dictionary<number | string> = {};
         const folder: Panel = {
-            addProperty: (property: ShipProperty) => {
+            addProperty: (property: NumericProperty) => {
                 this.contextAddProperty(guiFolder, folderViewModel, property);
                 return folder;
             },
-            addText: (name: string, getValue: () => string) => {
-                this.contextAddText(guiFolder, folderViewModel, name, getValue);
+            addText: (property: TextProperty) => {
+                this.contextAddText(guiFolder, folderViewModel, property);
                 return folder;
             },
         };
