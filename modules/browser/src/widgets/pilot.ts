@@ -8,45 +8,32 @@ import { DashboardWidget } from './dashboard';
 function pilotComponent(container: Container, p: Props) {
     void (async () => {
         const shipRoom = await getShipRoom(p.shipId);
-        const viewModelChanges = new EventEmitter();
-        const panel = new PropertyPanel(viewModelChanges);
+        const panel = new PropertyPanel();
         panel.init(container);
         container.on('destroy', () => {
             panel.destroy();
         });
         const properties = shipProperties(shipRoom);
 
-        panel.addText(properties['smartPilot.rotationMode']);
-        panel.addProperty(properties['smartPilot.rotation']);
-        panel.addProperty(properties.rotation);
-        panel.addText(properties['smartPilot.maneuveringMode']);
-        shipRoom.state.events.on('smartPilot.maneuvering', () => {
-            viewModelChanges.emit('smartPilot.boost');
-            viewModelChanges.emit('smartPilot.strafe');
-        });
-        panel.addProperty(properties['smartPilot.strafe']);
-        panel.addProperty(properties['smartPilot.boost']);
-        panel.addProperty(properties.strafe);
-        panel.addProperty(properties.boost);
+        panel.addText('rotationMode', properties['smartPilot.rotationMode']);
+        panel.addProperty('smartPilot.rotation', properties['smartPilot.rotation']);
+        panel.addProperty('rotation', properties.rotation);
+        panel.addText('maneuveringMode', properties['smartPilot.maneuveringMode']);
+        panel.addProperty('smartPilot.strafe', properties['smartPilot.strafe']);
+        panel.addProperty('smartPilot.boost', properties['smartPilot.boost']);
+        panel.addProperty('strafe', properties.strafe);
+        panel.addProperty('boost', properties.boost);
 
-        panel.addProperty(properties.energy);
-        panel.addProperty(properties.reserveSpeed);
-        panel.addProperty(properties.useReserveSpeed);
-        panel.addProperty(properties.antiDrift);
-        panel.addProperty(properties.breaks);
-        panel.addProperty(properties.turnSpeed);
-        panel.addProperty(properties.angle);
-        panel.addProperty(properties['speed direction']);
-        panel.addProperty(properties.speed);
-        panel.addText(properties.targeted);
-
-        for (const eventName of viewModelChanges.eventNames()) {
-            shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
-        }
-        shipRoom.state.events.on('velocity', () => {
-            viewModelChanges.emit('speed');
-            viewModelChanges.emit('speed direction');
-        });
+        panel.addProperty('energy', properties.energy);
+        panel.addProperty('reserveSpeed', properties.reserveSpeed);
+        panel.addProperty('useReserveSpeed', properties.useReserveSpeed);
+        panel.addProperty('antiDrift', properties.antiDrift);
+        panel.addProperty('breaks', properties.breaks);
+        panel.addProperty('turnSpeed', properties.turnSpeed);
+        panel.addProperty('angle', properties.angle);
+        panel.addProperty('speed direction', properties['speed direction']);
+        panel.addProperty('speed', properties.speed);
+        panel.addText('targeted', properties.targeted);
     })();
 }
 

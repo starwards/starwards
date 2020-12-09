@@ -31,12 +31,10 @@ function lerpAxisToRange(axisValue: number, range: [number, number]) {
 //     return v && typeof (v as GamepadButton).buttonIndex === 'number';
 // }
 export interface RangeAction {
-    name: string;
     range: [number, number];
     onChange: (v: number) => unknown;
 }
 export interface TriggerAction {
-    name: string;
     onChange: (v: boolean) => unknown;
 }
 export class InputManager {

@@ -23,8 +23,7 @@ function gunComponent(container: Container, p: Props) {
             }
         }, 1000 / 10);
         loop.start();
-        const viewModelChanges = new EventEmitter();
-        const panel = new PropertyPanel(viewModelChanges);
+        const panel = new PropertyPanel();
         const input = new InputManager();
         panel.init(container);
         input.init();
@@ -35,41 +34,25 @@ function gunComponent(container: Container, p: Props) {
         const properties = shipProperties(shipRoom);
         const chainGunPanel = panel.addFolder('chainGun');
 
-        chainGunPanel.addProperty(properties['chainGun.cooldown']);
-        chainGunPanel.addText(properties['chainGun.isFiring']);
-        panel.addText(properties.target);
+        chainGunPanel.addProperty('chainGun.cooldown', properties['chainGun.cooldown']);
+        chainGunPanel.addText('chainGun.isFiring', properties['chainGun.isFiring']);
+        panel.addText('target', properties.target);
         // TODO fix and move to shipManager
         const manualSSTL: NumericProperty = {
-            name: 'manual shellSecondsToLive',
             getValue: () => manualShellSecondsToLive,
             range: [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
             onChange: (value: number) => {
                 manualShellSecondsToLive = value;
-                viewModelChanges.emit('manual shellSecondsToLive');
             },
         };
-        panel.addProperty(manualSSTL);
+        panel.addProperty('manual shellSecondsToLive', manualSSTL);
         input.addAxisAction(manualSSTL, {
             gamepadIndex: 0,
             axisIndex: 1,
             deadzone: [-0.01, 0.01],
             inverted: true,
         });
-        chainGunPanel.addProperty(properties['chainGun.shellSecondsToLive']);
-        for (const eventName of viewModelChanges.eventNames()) {
-            shipRoom.state.events.on(eventName, () => viewModelChanges.emit(eventName));
-        }
-        shipRoom.state.events.on('velocity', () => {
-            viewModelChanges.emit('speed');
-            viewModelChanges.emit('speed direction');
-        });
-
-        // shipRoom.state.events.on('chainGun', () => {
-        //     viewModelChanges.emit('cooldown');
-        //     viewModelChanges.emit('isFiring');
-        //     viewModelChanges.emit('angle');
-        //     viewModelChanges.emit('shellSecondsToLive');
-        // });
+        chainGunPanel.addProperty('shellSecondsToLive', properties['chainGun.shellSecondsToLive']);
     })();
 }
 
