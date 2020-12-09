@@ -1,5 +1,6 @@
-import { AdminState } from '@starwards/model';
 import { Client, Room } from 'colyseus';
+
+import { AdminState } from '@starwards/model';
 import { GameManager } from './game-manager';
 
 export class AdminRoom extends Room<AdminState> {

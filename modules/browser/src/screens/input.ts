@@ -1,14 +1,13 @@
+import { BaseType, Selection, select } from 'd3-selection';
 import {
+    Gamepad,
     ParsedGamepadId,
     getGamepads,
-    Gamepad,
-    tryRemapStdLayout,
+    metadata,
     parseGamepadId,
     poll,
-    metadata,
+    tryRemapStdLayout,
 } from '@maulingmonkey/gamepad/modular';
-
-import { select, Selection, BaseType } from 'd3-selection';
 
 /* Copyright 2017 MaulingMonkey
 

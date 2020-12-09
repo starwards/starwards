@@ -1,9 +1,8 @@
-import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
-import { getShipRoom } from '../client';
-import { PropertyPanel } from '../property-panel';
-import { shipProperties } from '../ship-properties';
 import { DashboardWidget } from './dashboard';
+import { PropertyPanel } from '../property-panel';
+import { getShipRoom } from '../client';
+import { shipProperties } from '../ship-properties';
 
 function pilotComponent(container: Container, p: Props) {
     void (async () => {

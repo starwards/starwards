@@ -1,4 +1,4 @@
-import { SpaceObject, Spaceship, SpaceState } from '../space';
+import { SpaceObject, SpaceState, Spaceship } from '../space';
 
 export function getTarget(ship: Spaceship, space: SpaceState): SpaceObject | null {
     return (ship.targetId && space.get(ship.targetId)) || null;

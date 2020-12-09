@@ -1,12 +1,12 @@
+import { NumericProperty, shipProperties } from '../ship-properties';
 import { calcShellSecondsToLive, getTarget } from '@starwards/model';
-import EventEmitter from 'eventemitter3';
-import { Container } from 'golden-layout';
 import { getGlobalRoom, getShipRoom } from '../client';
+
+import { Container } from 'golden-layout';
+import { DashboardWidget } from './dashboard';
 import { InputManager } from '../input-manager';
 import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
-import { shipProperties, NumericProperty } from '../ship-properties';
-import { DashboardWidget } from './dashboard';
 
 function gunComponent(container: Container, p: Props) {
     void (async () => {

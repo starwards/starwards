@@ -1,10 +1,11 @@
-import { server } from './server';
 import * as path from 'path';
+
+import { server } from './server';
 import webpack from 'webpack';
-import webpackDevMiddleware from 'webpack-dev-middleware';
-import webpackHotMiddleware from 'webpack-hot-middleware';
 // eslint-disable-next-line: no-submodule-imports
 import webpackConfig from '@starwards/browser/webpack.dev';
+import webpackDevMiddleware from 'webpack-dev-middleware';
+import webpackHotMiddleware from 'webpack-hot-middleware';
 
 const webpackCompiler = webpack(webpackConfig);
 

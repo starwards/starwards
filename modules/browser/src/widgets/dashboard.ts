@@ -1,6 +1,7 @@
 import GoldenLayout, { Container, ContentItem, ReactProps, Tab } from 'golden-layout';
-import $ from 'jquery';
 import React, { ComponentClass } from 'react';
+
+import $ from 'jquery';
 import ReactDOM from 'react-dom';
 
 type Obj = Record<string, unknown>;

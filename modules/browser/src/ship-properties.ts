@@ -1,4 +1,5 @@
 import { SmartPilotMode, TargetedStatus, XY } from '@starwards/model';
+
 import { NamedGameRoom } from './client';
 
 const noop = () => void 0;

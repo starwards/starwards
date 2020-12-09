@@ -1,5 +1,5 @@
-import { ShipCommands, ShipManager, ShipState, SmartPilotCommands } from '@starwards/model';
 import { Client, Room } from 'colyseus';
+import { ShipCommands, ShipManager, ShipState, SmartPilotCommands } from '@starwards/model';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {

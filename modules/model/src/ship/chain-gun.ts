@@ -1,4 +1,4 @@
-import { Schema, type, MapSchema } from '@colyseus/schema';
+import { MapSchema, Schema, type } from '@colyseus/schema';
 
 export class ChainGun extends Schema {
     @type({ map: 'number' })

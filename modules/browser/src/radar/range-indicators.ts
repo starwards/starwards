@@ -1,6 +1,7 @@
+import * as PIXI from 'pixi.js';
+
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
-import * as PIXI from 'pixi.js';
 
 const TEXT_MARGIN = 5;
 export class RangeIndicators {

@@ -1,5 +1,6 @@
-import { ShipState } from '../ship';
 import { capToRange, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
+
+import { ShipState } from '../ship';
 import { XY } from './xy';
 
 export type ManeuveringCommand = { strafe: number; boost: number };

@@ -1,5 +1,6 @@
-import { AdminState } from '@starwards/model';
 import * as PIXI from 'pixi.js';
+
+import { AdminState } from '@starwards/model';
 
 export class FragCounter extends PIXI.Container {
     private static readonly DEFAULT_FONT_SIZE: number = 30;

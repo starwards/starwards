@@ -1,7 +1,8 @@
-import { MapSchema } from '@colyseus/schema';
 import { AdminState, ShipManager, SpaceManager } from '@starwards/model';
-import { matchMaker } from 'colyseus';
 import { newAsteroid, newShip, resetShip } from './map';
+
+import { MapSchema } from '@colyseus/schema';
+import { matchMaker } from 'colyseus';
 
 export class GameManager {
     public adminState = new AdminState();

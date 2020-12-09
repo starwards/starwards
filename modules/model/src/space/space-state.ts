@@ -1,10 +1,11 @@
-import { Schema, type, MapSchema } from '@colyseus/schema';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+import { SpaceObject, SpaceObjects } from '.';
+
 import { Asteroid } from './asteroid';
-import { Spaceship } from './spaceship';
 import { CannonShell } from './cannon-shell';
 import EventEmitter from 'eventemitter3';
-import { SpaceObject, SpaceObjects } from '.';
 import { Explosion } from './explosion';
+import { Spaceship } from './spaceship';
 
 export class SpaceState extends Schema {
     @type({ map: CannonShell })

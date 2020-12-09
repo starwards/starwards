@@ -1,11 +1,12 @@
+import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import React, { useState, useEffect } from 'react';
-import { ThemeProvider, SoundsProvider, createTheme, createSounds, Arwes, Button, Heading } from 'arwes';
-import WebFont from 'webfontloader';
+import React, { useEffect, useState } from 'react';
 import { client, getGlobalRoom } from '../client';
-import { TaskLoop } from '../task-loop';
+
 import { DashboardWidget } from './dashboard';
+import { TaskLoop } from '../task-loop';
+import WebFont from 'webfontloader';
 
 WebFont.load({
     custom: {

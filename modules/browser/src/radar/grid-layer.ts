@@ -1,5 +1,7 @@
-import { getSectorName, sectorSize, XY } from '@starwards/model';
 import * as PIXI from 'pixi.js';
+
+import { XY, getSectorName, sectorSize } from '@starwards/model';
+
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
 

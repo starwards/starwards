@@ -1,6 +1,8 @@
-import { Asteroid, compareSpaceObjects, SpaceObject, Spaceship, SpaceState, Vec2 } from '../src';
-import { expect } from 'chai';
 import 'mocha';
+
+import { Asteroid, SpaceObject, SpaceState, Spaceship, Vec2, compareSpaceObjects } from '../src';
+
+import { expect } from 'chai';
 import { nanoid } from 'nanoid';
 
 const fieldSize = 80000;

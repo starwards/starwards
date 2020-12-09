@@ -1,7 +1,9 @@
-import { Schema } from '@colyseus/schema';
 import { AdminCommands, AdminState } from './admin';
+import { ShipCommands, ShipState, SmartPilotCommands } from './ship';
 import { SpaceCommands, SpaceState } from './space';
-import { ShipState, ShipCommands, SmartPilotCommands } from './ship';
+
+import { Schema } from '@colyseus/schema';
+
 export interface RoomApi<S extends Schema, C> {
     state: S;
     commands: C;

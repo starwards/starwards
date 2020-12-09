@@ -1,11 +1,12 @@
-import { SpaceObject } from '@starwards/model';
-import { ReactProps } from 'golden-layout';
-import React from 'react';
-import { getGlobalRoom, NamedGameRoom } from '../../client';
-import { Loop } from '../../loop';
+import { NamedGameRoom, getGlobalRoom } from '../../client';
+
+import { ButtonKey } from './keyboard-display';
 import { DashboardWidget } from '../dashboard';
 import { Keyboard } from './keyboard';
-import { ButtonKey } from './keyboard-display';
+import { Loop } from '../../loop';
+import React from 'react';
+import { ReactProps } from 'golden-layout';
+import { SpaceObject } from '@starwards/model';
 
 const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
 class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Set<ButtonKey> }> {

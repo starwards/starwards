@@ -1,6 +1,7 @@
-import { XY } from '@starwards/model';
 import * as PIXI from 'pixi.js';
+
 import { CameraView } from './camera-view';
+import { XY } from '@starwards/model';
 
 export type SpriteStylePx = {
     fileName: string;

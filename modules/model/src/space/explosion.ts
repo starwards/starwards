@@ -1,5 +1,5 @@
-import { type } from '@colyseus/schema';
 import { SpaceObjectBase } from './space-object-base';
+import { type } from '@colyseus/schema';
 
 export class Explosion extends SpaceObjectBase {
     public static isInstance(o: SpaceObjectBase): o is Explosion {

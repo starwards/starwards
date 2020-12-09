@@ -1,5 +1,5 @@
-import { SpaceCommands, SpaceState, SpaceManager } from '@starwards/model';
 import { Client, Room } from 'colyseus';
+import { SpaceCommands, SpaceManager, SpaceState } from '@starwards/model';
 
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';

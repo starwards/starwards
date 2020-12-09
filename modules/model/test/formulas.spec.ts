@@ -1,8 +1,10 @@
+import 'mocha';
+
+import { differentSignTuple2, floatIn, orderedTuple2, orderedTuple3, safeFloat } from './properties';
+import { equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
+
 import { expect } from 'chai';
 import fc from 'fast-check';
-import 'mocha';
-import { equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
-import { differentSignTuple2, floatIn, orderedTuple2, orderedTuple3, safeFloat } from './properties';
 
 describe('formulas', () => {
     describe('toDegreesDelta', () => {

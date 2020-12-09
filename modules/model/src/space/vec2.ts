@@ -27,6 +27,7 @@
 
 import { Schema, type } from '@colyseus/schema';
 import { degToRad, limitPercision } from '../logic/formulas';
+
 import { XY } from '../logic/xy';
 
 export class Vec2 extends Schema implements XY {

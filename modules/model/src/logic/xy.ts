@@ -1,4 +1,4 @@
-import { limitPercision, equasionOfMotion as eom, toDegreesDelta, degToRad } from './formulas';
+import { degToRad, equasionOfMotion as eom, limitPercision, toDegreesDelta } from './formulas';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {

@@ -1,19 +1,21 @@
-import { expect } from 'chai';
-import fc from 'fast-check';
 import 'mocha';
+
+import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
 import {
+    Vec2,
+    XY,
     limitPercision,
     matchGlobalSpeed,
     moveToTarget,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
     toDegreesDelta,
-    Vec2,
-    XY,
 } from '../src';
-import { GraphPointInput } from './ploty-graph-builder';
 import { float, floatIn, xy } from './properties';
-import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
+
+import { GraphPointInput } from './ploty-graph-builder';
+import { expect } from 'chai';
+import fc from 'fast-check';
 
 const iterationsPerSecond = 20;
 describe('helm assist', function () {

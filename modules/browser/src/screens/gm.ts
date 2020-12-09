@@ -1,15 +1,17 @@
-import $ from 'jquery';
-import { client } from '../client';
+import * as PIXI from 'pixi.js';
+
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
+
+import $ from 'jquery';
+import { TaskLoop } from '../task-loop';
+import { client } from '../client';
 import { gmWidget } from '../widgets/gm';
+import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { shipConstantsWidget } from '../widgets/ship-constants';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
-import { shipConstantsWidget } from '../widgets/ship-constants';
-import { TaskLoop } from '../task-loop';
-import { gunWidget } from '../widgets/gun';
-import * as PIXI from 'pixi.js';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon

@@ -1,4 +1,4 @@
-import { Schema, type, MapSchema } from '@colyseus/schema';
+import { MapSchema, Schema, type } from '@colyseus/schema';
 
 export class AdminState extends Schema {
     @type('boolean')

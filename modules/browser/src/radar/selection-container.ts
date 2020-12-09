@@ -1,4 +1,5 @@
 import { SpaceObject, SpaceState } from '@starwards/model';
+
 import EventEmitter from 'eventemitter3';
 
 export class SelectionContainer {

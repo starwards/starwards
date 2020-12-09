@@ -1,5 +1,7 @@
-import { SpaceState, ShipState } from '@starwards/model';
+import { ShipState, SpaceState } from '@starwards/model';
+
 import { SelectionContainer } from './radar/selection-container';
+
 // TODO: move to model? (along with SelectionContainer)
 export function trackTargetObject(space: SpaceState, ship: ShipState): SelectionContainer {
     const result = new SelectionContainer(space);

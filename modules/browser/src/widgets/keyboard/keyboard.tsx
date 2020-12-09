@@ -1,7 +1,8 @@
-import React from 'react';
 import KeyboardDisplay, { ButtonKey, isButtonKey } from './keyboard-display';
-import hotkeys from 'hotkeys-js';
+
+import React from 'react';
 import _ from 'lodash';
+import hotkeys from 'hotkeys-js';
 
 export interface Props {
     buttons: Set<ButtonKey>;

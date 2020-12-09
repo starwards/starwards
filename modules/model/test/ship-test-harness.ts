@@ -1,15 +1,16 @@
 import 'mocha';
+
+import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 import {
-    limitPercision,
     MAX_SAFE_FLOAT,
     ShipManager,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
+    limitPercision,
     timeToReachDistanceByAccelerationWithMaxSpeed,
     timeToReachVelocityByAcceleration,
 } from '../src';
-import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 
 abstract class AbsTestMetrics {
     constructor(public iterationsPerSecond: number, public distance: number) {}

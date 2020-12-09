@@ -1,16 +1,18 @@
-import { GridLayer } from '../radar/grid-layer';
 import * as PIXI from 'pixi.js';
-import WebFont from 'webfontloader';
-import { Container } from 'golden-layout';
-import { getGlobalRoom, NamedGameRoom } from '../client';
-import { blipRenderer } from '../radar/blip-renderer';
+
+import { NamedGameRoom, getGlobalRoom } from '../client';
+
 import $ from 'jquery';
-import { DashboardWidget } from './dashboard';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
+import { Container } from 'golden-layout';
+import { DashboardWidget } from './dashboard';
+import { GridLayer } from '../radar/grid-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceObject } from '@starwards/model';
+import WebFont from 'webfontloader';
+import { blipRenderer } from '../radar/blip-renderer';
 
 WebFont.load({
     custom: {
