@@ -1,59 +1,65 @@
 import { GUI } from 'dat.gui';
-import EventEmitter from 'eventemitter3';
 import { Container } from 'golden-layout';
 import { Dictionary } from 'lodash';
+import { EmitterLoop } from './loop';
 import { NumericProperty, TextProperty } from './ship-properties';
 
 export interface Panel {
-    addProperty(property: NumericProperty): this;
-    addText(property: TextProperty): this;
+    addProperty(name: string, property: NumericProperty): this;
+    addText(name: string, property: TextProperty): this;
 }
 
 export class PropertyPanel implements Panel {
     private rootViewModel: Dictionary<number | string> = {};
     private rootGui = new GUI({ autoPlace: false, hideable: false });
-
-    constructor(private modelEvents: EventEmitter) {}
+    private viewLoop = new EmitterLoop();
     init(container: Container) {
         container.getElement().append(this.rootGui.domElement);
+        this.viewLoop.start();
     }
     destroy() {
         this.rootGui.domElement.parentElement?.removeChild(this.rootGui.domElement);
         this.rootGui.destroy();
+        this.viewLoop.stop();
     }
 
-    private contextAddProperty(guiFolder: GUI, viewModel: Dictionary<number | string>, property: NumericProperty) {
-        const { name, getValue, range, onChange } = property;
+    private contextAddProperty(
+        guiFolder: GUI,
+        viewModel: Dictionary<number | string>,
+        name: string,
+        property: NumericProperty
+    ) {
+        const { getValue, range, onChange } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name, ...range);
         if (range[1] === 1) {
             guiController.step(0.01);
         }
-        this.modelEvents.on(name, () => {
+        this.viewLoop.onLoop(() => {
             viewModel[name] = getValue();
             guiController.updateDisplay();
         });
         guiController.onChange(onChange);
     }
 
-    contextAddText(guiFolder: GUI, viewModel: Dictionary<number | string>, property: TextProperty) {
-        const { name, getValue, onChange } = property;
+    contextAddText(guiFolder: GUI, viewModel: Dictionary<number | string>, name: string, property: TextProperty) {
+        const { getValue, onChange } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name);
-        this.modelEvents.on(name, () => {
+        this.viewLoop.onLoop(() => {
             viewModel[name] = getValue();
             guiController.updateDisplay();
         });
         guiController.onChange(onChange);
     }
 
-    addProperty(property: NumericProperty) {
-        this.contextAddProperty(this.rootGui, this.rootViewModel, property);
+    addProperty(name: string, property: NumericProperty) {
+        this.contextAddProperty(this.rootGui, this.rootViewModel, name, property);
         return this;
     }
 
-    addText(property: TextProperty) {
-        this.contextAddText(this.rootGui, this.rootViewModel, property);
+    addText(name: string, property: TextProperty) {
+        this.contextAddText(this.rootGui, this.rootViewModel, name, property);
         return this;
     }
 
@@ -62,12 +68,12 @@ export class PropertyPanel implements Panel {
         guiFolder.open();
         const folderViewModel: Dictionary<number | string> = {};
         const folder: Panel = {
-            addProperty: (property: NumericProperty) => {
-                this.contextAddProperty(guiFolder, folderViewModel, property);
+            addProperty: (name: string, property: NumericProperty) => {
+                this.contextAddProperty(guiFolder, folderViewModel, name, property);
                 return folder;
             },
-            addText: (property: TextProperty) => {
-                this.contextAddText(guiFolder, folderViewModel, property);
+            addText: (name: string, property: TextProperty) => {
+                this.contextAddText(guiFolder, folderViewModel, name, property);
                 return folder;
             },
         };

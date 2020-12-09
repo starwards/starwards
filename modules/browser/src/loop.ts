@@ -1,8 +1,9 @@
-export class Loop {
+// TODO bettwr use requestAnimationFrame
+abstract class BaseLoop {
     private t0 = 0;
     private timer: ReturnType<typeof setInterval> | null = null;
-
-    constructor(private body: (deltaSeconds: number) => void, private interval = 1000 / 60) {}
+    protected abstract readonly interval: number;
+    protected abstract readonly body: (deltaSeconds: number) => void;
 
     public start() {
         if (this.timer === null) {
@@ -23,4 +24,24 @@ export class Loop {
         this.body((t1 - this.t0) / 1000);
         this.t0 = t1;
     };
+}
+export class Loop extends BaseLoop {
+    constructor(protected body: (deltaSeconds: number) => void, protected interval = 1000 / 60) {
+        super();
+    }
+}
+
+export class EmitterLoop extends BaseLoop {
+    private bodies: Array<(deltaSeconds: number) => void> = [];
+    protected readonly body = (deltaSeconds: number) => {
+        for (const b of this.bodies) {
+            b(deltaSeconds);
+        }
+    };
+    constructor(protected interval = 1000 / 60) {
+        super();
+    }
+    onLoop(b: (deltaSeconds: number) => void) {
+        this.bodies.push(b);
+    }
 }
