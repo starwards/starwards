@@ -39,7 +39,7 @@ export class MovementAnchorLayer {
         const gridlineHorizTop = min.y - (min.y % this.spacing);
         const gridlineVertLeft = min.x - (min.x % this.spacing);
         for (let worldY = gridlineHorizTop; worldY <= max.y; worldY += this.spacing) {
-            for (let worldX = gridlineVertLeft; worldX < max.x; worldX += this.spacing) {
+            for (let worldX = gridlineVertLeft; worldX <= max.x; worldX += this.spacing) {
                 const candidate = { x: worldX, y: worldY };
                 if (XY.lengthOf(XY.difference(candidate, center)) <= this.range) {
                     yield this.parent.worldToScreen(candidate);
@@ -54,5 +54,6 @@ export class MovementAnchorLayer {
             this.anchors.lineStyle(this.style.width, this.style.color, this.style.alpha);
             this.anchors.drawStar(anchorPosition.x, anchorPosition.y, 3, 1);
         }
+        this.shouldRender = false;
     }
 }

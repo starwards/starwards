@@ -10,11 +10,10 @@ export type GamepadAxis = {
 export type GamepadButton = {
     gamepadIndex: number;
     buttonIndex: number;
-    inverted?: boolean;
 };
 
 type AxisListener = { axis: GamepadAxis; range: [number, number]; onChange: (v: number) => unknown };
-type ButtonListener = { button: GamepadButton; range: [number, number]; onChange: (v: number) => unknown };
+type ButtonListener = { button: GamepadButton; onChange: (v: boolean) => unknown };
 
 export function isInRange(from: number, to: number, value: number) {
     return value > from && value < to;
@@ -25,20 +24,20 @@ function lerpAxisToRange(axisValue: number, range: [number, number]) {
     return (1 - t) * range[0] + t * range[1];
 }
 
-function lerpButtonToRange(buttonValue: number, range: [number, number]) {
-    const t = buttonValue;
-    return (1 - t) * range[0] + t * range[1];
-}
-function isGamepadAxis(v: unknown): v is GamepadAxis {
-    return v && typeof (v as GamepadAxis).axisIndex === 'number';
-}
-function isGamepadButton(v: unknown): v is GamepadButton {
-    return v && typeof (v as GamepadButton).buttonIndex === 'number';
-}
-export interface ChangeableProperty {
+// function isGamepadAxis(v: unknown): v is GamepadAxis {
+//     return v && typeof (v as GamepadAxis).axisIndex === 'number';
+// }
+// function isGamepadButton(v: unknown): v is GamepadButton {
+//     return v && typeof (v as GamepadButton).buttonIndex === 'number';
+// }
+export interface RangeAction {
     name: string;
     range: [number, number];
     onChange: (v: number) => unknown;
+}
+export interface TriggerAction {
+    name: string;
+    onChange: (v: boolean) => unknown;
 }
 export class InputManager {
     private axes: AxisListener[] = [];
@@ -46,12 +45,7 @@ export class InputManager {
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
-                let value = e.buttonValue;
-                if (listener.button.inverted) {
-                    value = 1 - value;
-                }
-                value = lerpButtonToRange(value, listener.range);
-                listener.onChange(value);
+                listener.onChange(Boolean(e.buttonValue));
             }
         }
     };
@@ -81,19 +75,11 @@ export class InputManager {
         removeEventListener('mmk-gamepad-button-value', this.onButton);
     }
 
-    _addAction(property: ChangeableProperty, input: GamepadAxis | GamepadButton) {
-        if (isGamepadAxis(input)) {
-            this.addAxisAction(property, input);
-        } else if (isGamepadButton(input)) {
-            this.addButtonAction(property, input);
-        } else throw new Error(`unknown config: ${JSON.stringify(input)}`);
-    }
-
-    addAxisAction(property: ChangeableProperty, axis: GamepadAxis) {
+    addAxisAction(property: RangeAction, axis: GamepadAxis) {
         this.axes.push({ axis, ...property });
     }
 
-    addButtonAction(property: ChangeableProperty, button: GamepadButton) {
+    addButtonAction(property: TriggerAction, button: GamepadButton) {
         this.buttons.push({ button, ...property });
     }
 }

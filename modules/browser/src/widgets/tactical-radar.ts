@@ -33,6 +33,7 @@ function tacticalRadarComponent(container: Container, state: Props) {
     async function init() {
         const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
         root.setSquare();
+        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
         const background = new MovementAnchorLayer(
             root,
             {
@@ -58,7 +59,6 @@ function tacticalRadarComponent(container: Container, state: Props) {
             () => degToRad * -shipRoom.state.angle
         );
         root.addLayer(asimuthCircle.renderRoot);
-        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
         const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
         root.addLayer(crosshairs(root, shipRoom.state, shipTarget));
         root.addLayer(speedLines(root, shipRoom.state, shipTarget));
