@@ -1,10 +1,9 @@
 import * as PIXI from 'pixi.js';
 
-import { SpaceObject, SpaceState } from '@starwards/model';
+import { GameRoom, SpaceObject, SpaceState } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import EventEmitter from 'eventemitter3';
-import { GameRoom } from '../client';
 import { SelectionContainer } from './selection-container';
 
 export type ObjectRenderer = (

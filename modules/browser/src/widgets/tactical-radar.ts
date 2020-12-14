@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { NamedGameRoom, getGlobalRoom, getShipRoom } from '../client';
-import { SpaceObject, degToRad } from '@starwards/model';
+import { NamedGameRoom, SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
+import { getGlobalRoom, getShipRoom } from '../client';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';

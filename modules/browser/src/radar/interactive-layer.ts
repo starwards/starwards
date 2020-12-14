@@ -1,9 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { SpaceObject, XY } from '@starwards/model';
+import { NamedGameRoom, SpaceObject, XY } from '@starwards/model';
 
 import { CameraView } from './camera-view';
-import { NamedGameRoom } from '../client';
 import { SelectionContainer } from './selection-container';
 
 enum MouseButton {

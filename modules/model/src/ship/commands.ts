@@ -8,9 +8,6 @@ export interface ShipCommands {
     chainGun: {
         isFiring: boolean;
     };
-    setTarget: {
-        id: string | null;
-    };
     nextTarget: Record<never, never>;
     setShellSecondsToLive: {
         value: number;

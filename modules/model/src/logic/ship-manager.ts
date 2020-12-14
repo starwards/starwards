@@ -92,28 +92,11 @@ export class ShipManager {
         this.state.rotation = capToRange(-1, 1, value);
     }
 
-    public setAntiDrift(value: number) {
-        this.state.antiDrift = capToRange(0, 1, value);
-    }
-
-    public setBreaks(value: number) {
-        this.state.breaks = capToRange(0, 1, value);
-    }
-
-    public setCombatManeuvers(value: number) {
-        this.state.useReserveSpeed = capToRange(0, 1, value);
-    }
-
-    public setTarget(id: string | null) {
-        this.state.targetId = id;
-        this.validateTargetId();
-    }
-
-    public setConstant(name: string, value: number) {
+    private setConstant(name: string, value: number) {
         this.state.constants.set(name, value);
     }
 
-    public setChainGunConstant(name: string, value: number) {
+    private setChainGunConstant(name: string, value: number) {
         this.state.chainGun.constants.set(name, value);
     }
 
@@ -121,12 +104,6 @@ export class ShipManager {
         this.state.chainGun.isFiring = isFiring;
     }
 
-    public toggleSmartPilotManeuveringMode() {
-        this.smartPilotManeuveringMode.toggleState();
-    }
-    public toggleSmartPilotRotationMode() {
-        this.smartPilotRotationMode.toggleState();
-    }
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
         if (value !== this.state.smartPilot.maneuveringMode) {
             this.state.smartPilot.maneuveringMode = value;
@@ -141,15 +118,6 @@ export class ShipManager {
             this.state.smartPilot.rotation = 0;
         }
     }
-    public setSmartPilotRotation(value: number) {
-        this.state.smartPilot.rotation = capToRange(-1, 1, value);
-    }
-    public setSmartPilotBoost(value: number) {
-        this.state.smartPilot.maneuvering.x = capToRange(-1, 1, value);
-    }
-    public setSmartPilotStrafe(value: number) {
-        this.state.smartPilot.maneuvering.y = capToRange(-1, 1, value);
-    }
 
     public setShellSecondsToLive(shellSecondsToLive: number) {
         this.state.chainGun.shellSecondsToLive = capToRange(
@@ -159,21 +127,44 @@ export class ShipManager {
         );
     }
 
-    public nextTarget() {
-        let currentFound = false;
-        for (const obj of this.spaceManager.state.getAll('Spaceship')) {
-            if (obj.id === this.state.targetId) {
-                currentFound = true;
-            } else if (currentFound && obj.id !== this.state.id) {
-                this.setTarget(obj.id);
-                return;
+    public setTarget(id: string | null) {
+        this.state.targetId = id;
+        this.validateTargetId();
+    }
+
+    public handleNextTargetCommand() {
+        if (this.state.nextTargetCommand) {
+            this.state.nextTargetCommand = false;
+            // currently only iterate
+            let currentFound = false;
+            for (const obj of this.spaceManager.state.getAll('Spaceship')) {
+                if (obj.id === this.state.targetId) {
+                    currentFound = true;
+                } else if (currentFound && obj.id !== this.state.id) {
+                    this.setTarget(obj.id);
+                    return;
+                }
+            }
+            for (const obj of this.spaceManager.state.getAll('Spaceship')) {
+                if (obj.id !== this.state.id) {
+                    this.setTarget(obj.id);
+                    return;
+                }
             }
         }
-        for (const obj of this.spaceManager.state.getAll('Spaceship')) {
-            if (obj.id !== this.state.id) {
-                this.setTarget(obj.id);
-                return;
-            }
+    }
+
+    public handleToggleSmartPilotManeuveringMode() {
+        if (this.state.maneuveringModeCommand) {
+            this.state.maneuveringModeCommand = false;
+            this.smartPilotManeuveringMode.toggleState();
+        }
+    }
+
+    public handleToggleSmartPilotRotationMode() {
+        if (this.state.rotationModeCommand) {
+            this.state.rotationModeCommand = false;
+            this.smartPilotRotationMode.toggleState();
         }
     }
 
@@ -184,6 +175,9 @@ export class ShipManager {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
+            this.handleNextTargetCommand();
+            this.handleToggleSmartPilotRotationMode();
+            this.handleToggleSmartPilotManeuveringMode();
             this.validateTargetId();
             this.calcTargetedStatus();
             // sync relevant ship props
