@@ -11,8 +11,10 @@ import {
     isTargetInKillZone,
     matchGlobalSpeed,
     moveToTarget,
+    shipProperties as p,
     predictHitLocation,
     rotateToTarget,
+    setNumericProperty,
 } from '../';
 
 export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;
@@ -36,25 +38,25 @@ export function jouster(): Bot {
                 XY.add(hitLocation, getShellAimVelocityCompensation(ship)),
                 0
             );
-            shipManager.setSmartPilotRotation(rotation);
+            setNumericProperty(shipManager, p.smartPilotRotation, rotation);
             const shipToTarget = XY.difference(hitLocation, ship.position);
             const distanceToTarget = XY.lengthOf(shipToTarget);
             const killRadius = getKillZoneRadiusRange(ship);
             if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
                 // if close enough to target, tail it
                 const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
-                shipManager.setSmartPilotBoost(maneuvering.boost);
-                shipManager.setSmartPilotStrafe(maneuvering.strafe);
+                setNumericProperty(shipManager, p.smartPilotBoost, maneuvering.boost);
+                setNumericProperty(shipManager, p.smartPilotStrafe, maneuvering.strafe);
             } else {
                 const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
                 // close distance to target
                 if (distanceToTarget > killRadius[1]) {
-                    shipManager.setSmartPilotBoost(maneuvering.boost);
-                    shipManager.setSmartPilotStrafe(maneuvering.strafe);
+                    setNumericProperty(shipManager, p.smartPilotBoost, maneuvering.boost);
+                    setNumericProperty(shipManager, p.smartPilotStrafe, maneuvering.strafe);
                 } else {
                     // distanceToTarget < killRadius[0]
-                    shipManager.setSmartPilotBoost(-maneuvering.boost);
-                    shipManager.setSmartPilotStrafe(-maneuvering.strafe);
+                    setNumericProperty(shipManager, p.smartPilotBoost, -maneuvering.boost);
+                    setNumericProperty(shipManager, p.smartPilotStrafe, -maneuvering.strafe);
                 }
             }
             lastTargetVelocity = XY.clone(target.velocity);

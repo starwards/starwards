@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { NamedGameRoom, getGlobalRoom } from '../client';
+import { NamedGameRoom, SpaceObject } from '@starwards/model';
 
 import $ from 'jquery';
 import { Camera } from '../radar/camera';
@@ -10,9 +10,9 @@ import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { SpaceObject } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
+import { getGlobalRoom } from '../client';
 
 WebFont.load({
     custom: {

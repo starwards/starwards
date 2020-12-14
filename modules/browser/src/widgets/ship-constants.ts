@@ -1,25 +1,17 @@
+import { MappedPropertyCommand, NamedGameRoom, cmdSender, shipProperties } from '@starwards/model';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { MapSchema } from '@colyseus/schema';
 import { getShipRoom } from '../client';
 
 async function makeShipComponent(container: Container, p: Props) {
     const shipRoom = await getShipRoom(p.shipId);
     const rootPanel = new PropertyPanel();
     rootPanel.init(container);
-    addMapToPanel(
-        () => shipRoom.state.constants,
-        rootPanel.addFolder('main'),
-        (name: string, value: number) => shipRoom.send('setConstant', { name, value })
-    );
-    addMapToPanel(
-        () => shipRoom.state.chainGun.constants,
-        rootPanel.addFolder('chainGun'),
-        (name: string, value: number) => shipRoom.send('setChainGunConstant', { name, value })
-    );
+    addMapToPanel(rootPanel.addFolder('main'), shipProperties.constants, shipRoom);
+    addMapToPanel(rootPanel.addFolder('chainGun'), shipProperties.chainGunConstants, shipRoom);
     const cleanup = () => {
         container.off('destroy', cleanup);
         rootPanel.destroy();
@@ -30,21 +22,19 @@ function shipConstantsComponent(container: Container, p: Props) {
     void makeShipComponent(container, p);
 }
 
-function addMapToPanel(
-    getConstants: () => MapSchema<number>,
-    panel: Panel,
-    onChange: (name: string, value: number) => void
-) {
+function addMapToPanel(panel: Panel, p: MappedPropertyCommand<'ship'>, shipRoom: NamedGameRoom<'ship'>) {
+    const map = p.getValue(shipRoom.state);
     const initConst = (_: unknown, name: string) => {
-        const val = getConstants().get(name);
+        const sender = cmdSender(shipRoom, p);
+        const val = map.get(name);
         panel.addProperty(name, {
-            getValue: () => getConstants().get(name),
+            getValue: () => map.get(name),
             range: [val / 2, val * 2],
-            onChange: (value: number) => onChange(name, value),
+            onChange: (value: number) => sender([name, value]),
         });
     };
-    getConstants().onAdd = initConst;
-    for (const constName of getConstants().keys()) {
+    map.onAdd = initConst;
+    for (const constName of map.keys()) {
         initConst(0, constName);
     }
 }

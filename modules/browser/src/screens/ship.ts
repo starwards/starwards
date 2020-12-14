@@ -57,15 +57,15 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     const shipRoom = await getShipRoom(shipId);
     const properties = shipProperties(shipRoom);
     const input = new InputManager();
-    input.addAxisAction(properties['smartPilot.rotation'], inputConfig['smartPilot.rotation']);
-    input.addAxisAction(properties['smartPilot.strafe'], inputConfig['smartPilot.strafe']);
-    input.addAxisAction(properties['smartPilot.boost'], inputConfig['smartPilot.boost']);
-    input.addButtonAction(properties['smartPilot.rotationMode'], inputConfig['smartPilot.rotationMode']);
-    input.addButtonAction(properties['smartPilot.maneuveringMode'], inputConfig['smartPilot.maneuveringMode']);
+    input.addAxisAction(properties.smartPilotRotation, inputConfig.smartPilotRotation);
+    input.addAxisAction(properties.smartPilotStrafe, inputConfig.smartPilotStrafe);
+    input.addAxisAction(properties.smartPilotBoost, inputConfig.smartPilotBoost);
+    input.addButtonAction(properties.rotationMode, inputConfig.rotationMode);
+    input.addButtonAction(properties.maneuveringMode, inputConfig.maneuveringMode);
     input.addButtonAction(properties.useReserveSpeed, inputConfig.useReserveSpeed);
     input.addButtonAction(properties.antiDrift, inputConfig.antiDrift);
     input.addButtonAction(properties.breaks, inputConfig.breaks);
-    input.addButtonAction(properties['chainGun.isFiring'], inputConfig['chainGun.isFiring']);
+    input.addButtonAction(properties.chainGunIsFiring, inputConfig.chainGunIsFiring);
     input.addButtonAction(properties.target, inputConfig.target);
     input.init();
 }

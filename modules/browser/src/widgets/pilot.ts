@@ -14,12 +14,12 @@ function pilotComponent(container: Container, p: Props) {
         });
         const properties = shipProperties(shipRoom);
 
-        panel.addText('rotationMode', properties['smartPilot.rotationMode']);
-        panel.addProperty('smartPilot.rotation', properties['smartPilot.rotation']);
+        panel.addText('rotationMode', properties.rotationMode);
+        panel.addProperty('smartPilotRotation', properties.smartPilotRotation);
         panel.addProperty('rotation', properties.rotation);
-        panel.addText('maneuveringMode', properties['smartPilot.maneuveringMode']);
-        panel.addProperty('smartPilot.strafe', properties['smartPilot.strafe']);
-        panel.addProperty('smartPilot.boost', properties['smartPilot.boost']);
+        panel.addText('maneuveringMode', properties.maneuveringMode);
+        panel.addProperty('smartPilotStrafe', properties.smartPilotStrafe);
+        panel.addProperty('smartPilotBoost', properties.smartPilotBoost);
         panel.addProperty('strafe', properties.strafe);
         panel.addProperty('boost', properties.boost);
 

@@ -20,6 +20,16 @@ export const schemaClasses = {
     ship: ShipState,
 };
 
+export type RoomName = keyof Rooms;
+export type Commands<T extends RoomName> = Rooms[T]['commands'];
+export type CommandName<T extends RoomName> = keyof Commands<T>;
+export type State<T extends RoomName> = Rooms[T]['state'];
+export type NamedGameRoom<T extends RoomName> = GameRoom<State<T>, Commands<T>>;
+export interface GameRoom<S, C> {
+    state: S;
+    send<T extends keyof C>(type: T, message: C[T]): void;
+}
+
 export * from './admin';
 export * from './space';
 export * from './ship';

@@ -159,4 +159,7 @@ export class ShipState extends Spaceship {
     get maxSpeed() {
         return this.constants.get('maxSpeed') + this.useReserveSpeed * this.constants.get('maxReservedSpeed');
     }
+    get maxMaxSpeed() {
+        return this.constants.get('maxSpeed') + this.constants.get('maxReservedSpeed');
+    }
 }

@@ -1,6 +1,6 @@
 export const inputConfig = {
     // buttons
-    'chainGun.isFiring': {
+    chainGunIsFiring: {
         gamepadIndex: 0,
         buttonIndex: 4,
     },
@@ -20,26 +20,26 @@ export const inputConfig = {
         gamepadIndex: 0,
         buttonIndex: 5,
     },
-    'smartPilot.rotationMode': {
+    rotationMode: {
         gamepadIndex: 0,
         buttonIndex: 10,
     },
-    'smartPilot.maneuveringMode': {
+    maneuveringMode: {
         gamepadIndex: 0,
         buttonIndex: 11,
     },
     // axes
-    'smartPilot.rotation': {
+    smartPilotRotation: {
         gamepadIndex: 0,
         axisIndex: 0,
         deadzone: [-0.01, 0.01] as [number, number],
     },
-    'smartPilot.strafe': {
+    smartPilotStrafe: {
         gamepadIndex: 0,
         axisIndex: 2,
         deadzone: [-0.01, 0.01] as [number, number],
     },
-    'smartPilot.boost': {
+    smartPilotBoost: {
         gamepadIndex: 0,
         axisIndex: 3,
         deadzone: [-0.01, 0.01] as [number, number],

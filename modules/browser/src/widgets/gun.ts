@@ -34,8 +34,8 @@ function gunComponent(container: Container, p: Props) {
         const properties = shipProperties(shipRoom);
         const chainGunPanel = panel.addFolder('chainGun');
 
-        chainGunPanel.addProperty('chainGun.cooldown', properties['chainGun.cooldown']);
-        chainGunPanel.addText('chainGun.isFiring', properties['chainGun.isFiring']);
+        chainGunPanel.addProperty('chainGunCooldown', properties.chainGunCooldown);
+        chainGunPanel.addText('chainGunFire', properties.chainGunIsFiring);
         panel.addText('target', properties.target);
         // TODO fix and move to shipManager
         const manualSSTL: NumericProperty = {
@@ -52,7 +52,7 @@ function gunComponent(container: Container, p: Props) {
             deadzone: [-0.01, 0.01],
             inverted: true,
         });
-        chainGunPanel.addProperty('shellSecondsToLive', properties['chainGun.shellSecondsToLive']);
+        chainGunPanel.addProperty('shellSecondsToLive', properties.chainGunShellSecondsToLive);
     })();
 }
 

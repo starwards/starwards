@@ -1,4 +1,4 @@
-import { Rooms, schemaClasses } from '@starwards/model';
+import { GameRoom, NamedGameRoom, Rooms, schemaClasses } from '@starwards/model';
 
 import { Client } from 'colyseus.js';
 import { waitForEvents } from './async-utils';
@@ -11,11 +11,6 @@ export const client = new Client(ENDPOINT);
 const rooms: { [T in keyof Rooms]?: GameRoom<Rooms[T]['state'], Rooms[T]['commands']> } = {};
 const roomsById: { [k: string]: NamedGameRoom<'ship'> } = {};
 
-export type NamedGameRoom<T extends keyof Rooms> = GameRoom<Rooms[T]['state'], Rooms[T]['commands']>;
-export interface GameRoom<S, C> {
-    state: S;
-    send<T extends keyof C>(type: T, message: C[T]): void;
-}
 export async function getGlobalRoom<T extends keyof Rooms>(roomName: T): Promise<NamedGameRoom<T>> {
     const room: NamedGameRoom<T> | undefined = rooms[roomName];
     if (!room) {

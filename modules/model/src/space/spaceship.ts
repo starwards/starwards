@@ -11,6 +11,11 @@ export class Spaceship extends SpaceObjectBase {
     @type('string')
     public targetId: string | null = null;
 
+    // server only, used for commands
+    public nextTargetCommand = false;
+    public rotationModeCommand = false;
+    public maneuveringModeCommand = false;
+
     constructor() {
         super();
         this.health = 1000;

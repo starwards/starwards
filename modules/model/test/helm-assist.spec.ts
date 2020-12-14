@@ -9,6 +9,8 @@ import {
     moveToTarget,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
+    setNumericProperty,
+    shipProperties as sp,
     toDegreesDelta,
 } from '../src';
 import { float, floatIn, xy } from './properties';
@@ -30,7 +32,7 @@ describe('helm assist', function () {
                     harness.shipState.useReserveSpeed = useReserveSpeed;
                     const time = (0.9 * harness.shipState.maxSpeed) / harness.shipState.boostCapacity; // 90% of the time it takes to break from max speed
                     harness.shipObj.velocity.x = -1 * time * harness.shipState.boostCapacity;
-                    harness.shipMgr.setSmartPilotBoost(1);
+                    setNumericProperty(harness.shipMgr, sp.smartPilotBoost, 1);
                     const metrics = new TimedTestMetrics(
                         iterationsPerSecond,
                         time,
@@ -48,7 +50,7 @@ describe('helm assist', function () {
                     harness.shipState.useReserveSpeed = useReserveSpeed;
                     const time = (0.9 * harness.shipState.maxSpeed) / harness.shipState.strafeCapacity; // 90% of the time it takes to break from max speed
                     harness.shipObj.velocity.y = -1 * time * harness.shipState.strafeCapacity;
-                    harness.shipMgr.setSmartPilotStrafe(1);
+                    setNumericProperty(harness.shipMgr, sp.smartPilotStrafe, 1);
                     const metrics = new TimedTestMetrics(
                         iterationsPerSecond,
                         time,
@@ -66,7 +68,7 @@ describe('helm assist', function () {
                     const time = 5;
                     harness.shipState.useReserveSpeed = useReserveSpeed;
                     harness.shipObj.turnSpeed = -1 * time * harness.shipState.rotationCapacity;
-                    harness.shipMgr.setSmartPilotRotation(1);
+                    setNumericProperty(harness.shipMgr, sp.smartPilotRotation, 1);
                     const metrics = new TimedTestMetrics(
                         iterationsPerSecond,
                         time,
@@ -99,7 +101,7 @@ describe('helm assist', function () {
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const rotation = rotateToTarget(time, harness.shipState, target, 0);
                         p?.addtoLine('rotation', rotation);
-                        harness.shipMgr.setSmartPilotRotation(rotation);
+                        setNumericProperty(harness.shipMgr, sp.smartPilotRotation, rotation);
                     };
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     harness.annotateGraph('test position');
@@ -131,7 +133,7 @@ describe('helm assist', function () {
                     });
                     harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
                         const rotation = rotationFromTargetTurnSpeed(time, harness.shipState, 0);
-                        harness.shipMgr.setSmartPilotRotation(rotation);
+                        setNumericProperty(harness.shipMgr, sp.smartPilotRotation, rotation);
                     });
                     expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.errorMargin);
                 })
@@ -156,7 +158,7 @@ describe('helm assist', function () {
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                         p?.addtoLine('boost', maneuvering.boost);
-                        harness.shipMgr.setSmartPilotBoost(maneuvering.boost);
+                        setNumericProperty(harness.shipMgr, sp.smartPilotBoost, maneuvering.boost);
                     };
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     harness.annotateGraph('test velocity');
@@ -194,8 +196,8 @@ describe('helm assist', function () {
                             const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                             p?.addtoLine('boost', maneuvering.boost);
                             p?.addtoLine('strafe', maneuvering.strafe);
-                            harness.shipMgr.setSmartPilotBoost(maneuvering.boost);
-                            harness.shipMgr.setSmartPilotStrafe(maneuvering.strafe);
+                            setNumericProperty(harness.shipMgr, sp.smartPilotBoost, maneuvering.boost);
+                            setNumericProperty(harness.shipMgr, sp.smartPilotStrafe, maneuvering.strafe);
                         };
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         harness.annotateGraph('test velocity');
@@ -230,7 +232,7 @@ describe('helm assist', function () {
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
                         p?.addtoLine('boost', maneuvering.boost);
-                        harness.shipMgr.setSmartPilotBoost(maneuvering.boost);
+                        setNumericProperty(harness.shipMgr, sp.smartPilotBoost, maneuvering.boost);
                     };
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     harness.annotateGraph('test position');
@@ -262,8 +264,8 @@ describe('helm assist', function () {
                         );
                         const iteration = (time: number) => {
                             const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
-                            harness.shipMgr.setSmartPilotBoost(maneuvering.boost);
-                            harness.shipMgr.setSmartPilotStrafe(maneuvering.strafe);
+                            setNumericProperty(harness.shipMgr, sp.smartPilotBoost, maneuvering.boost);
+                            setNumericProperty(harness.shipMgr, sp.smartPilotStrafe, maneuvering.strafe);
                         };
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.position), 'position').to.be.closeTo(0, metrics.errorMargin);
