@@ -83,6 +83,8 @@ export type ShipProperties = ReturnType<typeof shipProperties>;
 export function shipProperties(shipRoom: NamedGameRoom<'ship'>) {
     return {
         smartPilotRotation: wrapNumericProperty(shipRoom, sp.smartPilotRotation),
+        shellSecondsToLive: wrapNumericProperty(shipRoom, sp.shellSecondsToLive),
+        shellRange: wrapNumericProperty(shipRoom, sp.shellRange),
         rotation: wrapNumericProperty(shipRoom, sp.rotation),
         smartPilotStrafe: wrapNumericProperty(shipRoom, sp.smartPilotStrafe),
         smartPilotBoost: wrapNumericProperty(shipRoom, sp.smartPilotBoost),

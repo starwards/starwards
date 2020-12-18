@@ -45,4 +45,10 @@ export const inputConfig = {
         deadzone: [-0.01, 0.01] as [number, number],
         inverted: true,
     },
+    shellRange: {
+        gamepadIndex: 0,
+        axisIndex: 1,
+        deadzone: [-0.01, 0.01] as [number, number],
+        inverted: true,
+    },
 };

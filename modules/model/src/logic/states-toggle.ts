@@ -5,6 +5,8 @@ export class StatesToggle<S> {
     constructor(private callBack: (s: S) => unknown, private state: S, ...states: Array<S>) {
         this.states = [this.state, ...states];
         this.legalStates = new Set(this.states);
+        this.state = this.states[0];
+        this.callBack(this.state);
     }
 
     isState(s: S) {
@@ -16,6 +18,7 @@ export class StatesToggle<S> {
         const directionNumber = direction ? 1 : -1;
         const nextStateIdx = (this.states.indexOf(this.state) + directionNumber) % this.states.length;
         this.state = this.states[nextStateIdx];
+        this.callBack(this.state);
     }
 
     toggleState() {

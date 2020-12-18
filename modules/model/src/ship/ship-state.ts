@@ -17,9 +17,9 @@ export enum SmartPilotMode {
 }
 export class SmartPilotState extends Schema {
     @type('int8')
-    rotationMode = SmartPilotMode.VELOCITY;
+    rotationMode!: SmartPilotMode;
     @type('int8')
-    maneuveringMode = SmartPilotMode.VELOCITY;
+    maneuveringMode!: SmartPilotMode;
     @type('float32')
     rotation = 0;
     @type(Vec2)
@@ -58,6 +58,11 @@ export class ShipState extends Spaceship {
 
     @type('int8')
     targeted = TargetedStatus.NONE;
+
+    // server only, used for commands
+    public nextTargetCommand = false;
+    public rotationModeCommand = false;
+    public maneuveringModeCommand = false;
 
     public events = new EventEmitter();
     constructor(isClient = true) {

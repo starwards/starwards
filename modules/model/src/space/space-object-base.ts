@@ -47,4 +47,8 @@ export abstract class SpaceObjectBase extends Schema {
         this.position = position;
         return this;
     }
+
+    get directionAxis() {
+        return XY.rotate(XY.one, this.angle - 90);
+    }
 }

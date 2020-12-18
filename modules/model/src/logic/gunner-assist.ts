@@ -12,11 +12,11 @@ export function predictHitLocation(ship: ShipState, target: SpaceObject, targetA
         1
     );
     let time = 0;
-    let targetPos: XY = target.position;
+    let predictedPosition: XY = target.position;
     // this loop refines the time it will take for a bullet to reach the target
     // and from that it estimates when the target will be at the time of impact
     for (let i = 0; i < maxIterations; i++) {
-        const distance = Math.max(XY.lengthOf(XY.difference(targetPos, ship.position)), 1);
+        const distance = Math.max(XY.lengthOf(XY.difference(predictedPosition, ship.position)), 1);
         if (!isFinite(distance) || !Number.isSafeInteger(Math.trunc(distance))) {
             break;
         }
@@ -28,9 +28,16 @@ export function predictHitLocation(ship: ShipState, target: SpaceObject, targetA
         if (!XY.isFinite(newTargetPos)) {
             break;
         }
-        targetPos = newTargetPos;
+        predictedPosition = newTargetPos;
     }
-    return targetPos;
+    return predictedPosition;
+}
+
+export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPosition: XY) {
+    // calc projection of position delta on axis from ship to target
+    const direction = ship.directionAxis;
+    const posDelta = XY.difference(predictedPosition, target.position);
+    return XY.div(XY.projection(posDelta, direction), direction);
 }
 
 export function getKillZoneRadiusRange(ship: ShipState): [number, number] {
@@ -47,10 +54,9 @@ export function isTargetInKillZone(ship: ShipState, target: SpaceObject) {
     return aimingDistanceToTarget < shellDangerZoneRadius;
 }
 
-export function calcShellSecondsToLive(ship: ShipState, targetPos: XY) {
+export function calcShellSecondsToLive(ship: ShipState, distance: number) {
     const fireAngle = ship.angle + ship.chainGun.angle;
     const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: ship.chainGun.bulletSpeed, y: 0 }, fireAngle));
-    const distance = XY.lengthOf(XY.difference(targetPos, ship.position));
     return distance / XY.lengthOf(fireVelocity);
 }
 

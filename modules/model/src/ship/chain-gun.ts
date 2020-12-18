@@ -1,5 +1,7 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
+import { SmartPilotMode } from '.';
+
 export class ChainGun extends Schema {
     @type({ map: 'number' })
     constants!: MapSchema<number>;
@@ -18,6 +20,12 @@ export class ChainGun extends Schema {
 
     @type('float32')
     shellSecondsToLive = 10;
+
+    @type('float32')
+    shellRange = 0; // just used for command, not for firing
+
+    @type('int8')
+    shellRangeMode!: SmartPilotMode;
 
     // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
