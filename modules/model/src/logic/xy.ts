@@ -41,7 +41,6 @@ export namespace XY {
             y: limitPercision(vector.y - vector2.y),
         };
     }
-
     export function negate(vector: XY): XY {
         return { x: -vector.x, y: -vector.y };
     }
@@ -155,6 +154,10 @@ export namespace XY {
     // https://en.wikipedia.org/wiki/Dot_product
     export function dot(vector: XY, vector2: XY): number {
         return limitPercision(vector.x * vector2.x + vector.y * vector2.y);
+    }
+
+    export function div(vector: XY, vector2: XY): number {
+        return limitPercision((vector.x / vector2.x + vector.y / vector2.y) / 2);
     }
 
     // https://www.ck12.org/book/ck-12-college-precalculus/section/9.6/

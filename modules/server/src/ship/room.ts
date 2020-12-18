@@ -1,6 +1,5 @@
 import { Client, Room } from 'colyseus';
 import {
-    ShipCommands,
     ShipManager,
     ShipState,
     StatePropertyValue,
@@ -30,8 +29,5 @@ export class ShipRoom extends Room<ShipState> {
                 this.onMessage(prop.cmdName, c);
             }
         }
-        this.onMessage('setShellSecondsToLive', (_, msg: ShipCommands['setShellSecondsToLive']) =>
-            manager.setShellSecondsToLive(msg.value)
-        );
     }
 }

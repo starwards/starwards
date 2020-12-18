@@ -169,3 +169,15 @@ export const chainGunConstants = MSPC(
     },
     (state) => state.chainGun.constants
 );
+export const shellSecondsToLive = NSP(
+    (state) => state.chainGun.shellSecondsToLive,
+    (state) => [state.chainGun.minShellSecondsToLive, state.chainGun.maxShellSecondsToLive]
+);
+export const shellRange = NSPC(
+    'shellRange',
+    (state, value) => {
+        state.chainGun.shellRange = value;
+    },
+    (state) => state.chainGun.shellRange,
+    [-1, 1]
+);

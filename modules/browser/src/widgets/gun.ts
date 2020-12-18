@@ -1,28 +1,13 @@
-import { NumericProperty, shipProperties } from '../ship-properties';
-import { calcShellSecondsToLive, getTarget } from '@starwards/model';
-import { getGlobalRoom, getShipRoom } from '../client';
-
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { InputManager } from '../input-manager';
-import { Loop } from '../loop';
 import { PropertyPanel } from '../property-panel';
+import { getShipRoom } from '../client';
+import { shipProperties } from '../ship-properties';
 
 function gunComponent(container: Container, p: Props) {
     void (async () => {
-        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(p.shipId)]);
-        let manualShellSecondsToLive = shipRoom.state.chainGun.shellSecondsToLive;
-        const loop = new Loop(() => {
-            const target = getTarget(shipRoom.state, spaceRoom.state);
-            if (target) {
-                shipRoom.send('setShellSecondsToLive', {
-                    value: calcShellSecondsToLive(shipRoom.state, target.position),
-                });
-            } else {
-                shipRoom.send('setShellSecondsToLive', { value: manualShellSecondsToLive });
-            }
-        }, 1000 / 10);
-        loop.start();
+        const shipRoom = await getShipRoom(p.shipId);
         const panel = new PropertyPanel();
         const input = new InputManager();
         panel.init(container);
@@ -37,21 +22,8 @@ function gunComponent(container: Container, p: Props) {
         chainGunPanel.addProperty('chainGunCooldown', properties.chainGunCooldown);
         chainGunPanel.addText('chainGunFire', properties.chainGunIsFiring);
         panel.addText('target', properties.target);
-        // TODO fix and move to shipManager
-        const manualSSTL: NumericProperty = {
-            getValue: () => manualShellSecondsToLive,
-            range: [shipRoom.state.chainGun.minShellSecondsToLive, shipRoom.state.chainGun.maxShellSecondsToLive],
-            onChange: (value: number) => {
-                manualShellSecondsToLive = value;
-            },
-        };
-        panel.addProperty('manual shellSecondsToLive', manualSSTL);
-        input.addAxisAction(manualSSTL, {
-            gamepadIndex: 0,
-            axisIndex: 1,
-            deadzone: [-0.01, 0.01],
-            inverted: true,
-        });
+
+        panel.addProperty('shellSecondsToLive', properties.shellSecondsToLive);
         chainGunPanel.addProperty('shellSecondsToLive', properties.chainGunShellSecondsToLive);
     })();
 }

@@ -3,16 +3,17 @@ import {
     SmartPilotMode,
     SpaceState,
     XY,
-    calcShellSecondsToLive,
     getKillZoneRadiusRange,
     getShellAimVelocityCompensation,
     getTarget,
     isInRange,
     isTargetInKillZone,
+    lerp,
     matchGlobalSpeed,
     moveToTarget,
     shipProperties as p,
     predictHitLocation,
+    calcRangediff as predictHitRangeDifference,
     rotateToTarget,
     setNumericProperty,
 } from '../';
@@ -31,7 +32,9 @@ export function jouster(): Bot {
             const ship = shipManager.state;
             const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
             const hitLocation = predictHitLocation(shipManager.state, target, targetAccel);
-            shipManager.setShellSecondsToLive(calcShellSecondsToLive(ship, hitLocation));
+            const rangeDiff = predictHitRangeDifference(shipManager.state, target, hitLocation);
+            const range = shipManager.state.chainGun.maxShellRange - shipManager.state.chainGun.minShellRange;
+            setNumericProperty(shipManager, p.shellRange, lerp([-range / 2, range / 2], [-1, 1], rangeDiff));
             const rotation = rotateToTarget(
                 deltaSeconds,
                 ship,
