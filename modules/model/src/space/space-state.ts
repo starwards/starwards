@@ -5,7 +5,7 @@ import { Asteroid } from './asteroid';
 import { CannonShell } from './cannon-shell';
 import EventEmitter from 'eventemitter3';
 import { Explosion } from './explosion';
-import { MoveObjectsArg } from '../logic/space-properties';
+import { MoveObjectsArg } from './space-properties';
 import { Spaceship } from './spaceship';
 
 export class SpaceState extends Schema {

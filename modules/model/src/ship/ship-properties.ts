@@ -8,7 +8,7 @@ import {
 } from '../api/property-constructors';
 import { SmartPilotMode, TargetedStatus } from '..';
 
-import { XY } from '.';
+import { XY } from '../logic';
 
 export const smartPilotRotation = NumericStatePropertyCommand<'ship'>(
     'setSmartPilotRotation',

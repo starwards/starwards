@@ -1,7 +1,7 @@
 import { SpaceObjectBase, XY } from '..';
 
 import { PropertyCommand } from '../api/property-constructors';
-import { SpaceState } from '../space';
+import { SpaceState } from '.';
 
 export type MoveObjectsArg = {
     ids: Array<SpaceObjectBase['id']>;

@@ -1,4 +1,4 @@
-import { MappedPropertyCommand, NamedGameRoom, cmdSender, shipProperties } from '@starwards/model';
+import { GameRoom, MappedPropertyCommand, cmdSender, shipProperties } from '@starwards/model';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';
@@ -22,7 +22,7 @@ function shipConstantsComponent(container: Container, p: Props) {
     void makeShipComponent(container, p);
 }
 
-function addMapToPanel(panel: Panel, p: MappedPropertyCommand<'ship'>, shipRoom: NamedGameRoom<'ship'>) {
+function addMapToPanel(panel: Panel, p: MappedPropertyCommand<'ship'>, shipRoom: GameRoom<'ship'>) {
     const map = p.getValue(shipRoom.state);
     const initConst = (_: unknown, name: string) => {
         const sender = cmdSender(shipRoom, p);

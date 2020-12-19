@@ -1,17 +1,6 @@
 import { AdminState } from './admin';
-import { Schema } from '@colyseus/schema';
 import { ShipState } from './ship';
 import { SpaceState } from './space';
-
-export interface RoomApi<S extends Schema, C> {
-    state: S;
-    commands: C;
-}
-export interface Rooms {
-    space: RoomApi<SpaceState, unknown>;
-    admin: RoomApi<AdminState, unknown>;
-    ship: RoomApi<ShipState, unknown>;
-}
 
 export const schemaClasses = {
     space: SpaceState,
@@ -19,14 +8,13 @@ export const schemaClasses = {
     ship: ShipState,
 };
 
-export type RoomName = keyof Rooms;
-export type Commands<T extends RoomName> = Rooms[T]['commands'];
-export type CommandName<T extends RoomName> = keyof Commands<T>;
-export type State<T extends RoomName> = Rooms[T]['state'];
-export type NamedGameRoom<T extends RoomName> = GameRoom<State<T>, Commands<T>>;
-export interface GameRoom<S, C> {
-    state: S;
-    send<T extends keyof C>(type: T, message: C[T]): void;
+export type RoomName = keyof typeof schemaClasses;
+export type State<R extends RoomName> = typeof schemaClasses[R]['prototype'];
+export interface Stateful<R extends RoomName> {
+    state: State<R>;
+}
+export interface GameRoom<R extends RoomName> extends Stateful<R> {
+    send(type: string, message: unknown): void;
 }
 
 export * from './admin';

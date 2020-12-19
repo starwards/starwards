@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { NamedGameRoom, SpaceObject, degToRad } from '@starwards/model';
+import { GameRoom, SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { getGlobalRoom, getShipRoom } from '../client';
 
@@ -74,7 +74,7 @@ function tacticalRadarComponent(container: Container, state: Props) {
     });
 }
 
-function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: string) {
+function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
     let tracked = room.state.get(subjectId);
     if (tracked) {
         camera.followSpaceObject(tracked, room.state.events, true);
