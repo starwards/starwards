@@ -1,3 +1,4 @@
+import * as _adminProperties from './admin-properties';
 import * as _shipProperties from './ship-properties';
 
 import { SpaceObject, SpaceState, Spaceship } from '../space';
@@ -16,3 +17,4 @@ export * from './bot';
 export * from './states-toggle';
 export * from './properties';
 export const shipProperties = _shipProperties;
+export const adminProperties = _adminProperties;

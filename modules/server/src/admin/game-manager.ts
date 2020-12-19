@@ -5,16 +5,24 @@ import { MapSchema } from '@colyseus/schema';
 import { matchMaker } from 'colyseus';
 
 export class GameManager {
-    public adminState = new AdminState();
+    public state = new AdminState();
     private ships = new Map<string, ShipManager>();
     private spaceManager = new SpaceManager();
 
     constructor() {
-        this.adminState.points = new MapSchema();
+        this.state.points = new MapSchema();
+    }
+
+    update(_: number) {
+        if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
+            void this.stopGame();
+        } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
+            void this.startGame();
+        }
     }
 
     public async stopGame() {
-        if (this.adminState.isGameRunning) {
+        if (this.state.isGameRunning) {
             const shipRooms = await matchMaker.query({ name: 'ship' });
             for (const shipRoom of shipRooms) {
                 await matchMaker.remoteRoomCall(shipRoom.roomId, 'disconnect', []);
@@ -23,13 +31,13 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
-            this.adminState.isGameRunning = false;
+            this.state.isGameRunning = false;
         }
     }
 
     public async startGame() {
-        if (!this.adminState.isGameRunning) {
-            this.adminState.isGameRunning = true;
+        if (!this.state.isGameRunning) {
+            this.state.isGameRunning = true;
             this.spaceManager = new SpaceManager();
             this.addShip(this.spaceManager, 'A');
             const bManager = this.addShip(this.spaceManager, 'B');
@@ -47,9 +55,9 @@ export class GameManager {
 
     private addShip(spaceManager: SpaceManager, id: string) {
         const ship = newShip(id);
-        this.adminState.points.set(ship.id, 0);
+        this.state.points.set(ship.id, 0);
         const shipManager = new ShipManager(ship, spaceManager, this.ships, () => {
-            this.adminState.points.set(ship.id, this.adminState.points.get(ship.id) + 1);
+            this.state.points.set(ship.id, this.state.points.get(ship.id) + 1);
             resetShip(ship);
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);

@@ -6,6 +6,9 @@ export class AdminState extends Schema {
 
     @type({ map: 'uint8' })
     points!: MapSchema<number>;
+
+    // server only, used for commands
+    shouldGameBeRunning = false;
 }
 
 export * from './commands';
