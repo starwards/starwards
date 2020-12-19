@@ -1,15 +1,14 @@
-import { SpaceCommands, SpaceState } from './space';
-
 import { AdminState } from './admin';
 import { Schema } from '@colyseus/schema';
 import { ShipState } from './ship';
+import { SpaceState } from './space';
 
 export interface RoomApi<S extends Schema, C> {
     state: S;
     commands: C;
 }
 export interface Rooms {
-    space: RoomApi<SpaceState, SpaceCommands>;
+    space: RoomApi<SpaceState, unknown>;
     admin: RoomApi<AdminState, unknown>;
     ship: RoomApi<ShipState, unknown>;
 }
@@ -31,7 +30,8 @@ export interface GameRoom<S, C> {
 }
 
 export * from './admin';
-export * from './space';
-export * from './ship';
-export * from './logic';
 export * from './id';
+export * from './logic';
+export * from './ship';
+export * from './space';
+export * from './api';

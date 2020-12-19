@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { NamedGameRoom, SpaceObject, XY } from '@starwards/model';
+import { NamedGameRoom, SpaceObject, XY, cmdSender, spaceProperties } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
@@ -27,6 +27,7 @@ export class InteractiveLayer {
     private dragFrom: XY | null = null;
     private dragTo: XY | null = null;
     private stage = new PIXI.Container();
+    private commandMoveObjects = cmdSender(this.room, spaceProperties.moveObjects);
 
     constructor(
         private parent: CameraView,
@@ -120,7 +121,7 @@ export class InteractiveLayer {
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.room.send('moveObjects', {
+                this.commandMoveObjects({
                     ids: [...this.selectedItems.selectedItems].map((o) => o.id),
                     delta: worldMove,
                 });

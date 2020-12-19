@@ -26,7 +26,7 @@ export class SpaceManager {
             subject.velocity.y += delta.y;
         }
     }
-    public moveObjects(ids: string[], delta: XY) {
+    private moveObjects(ids: string[], delta: XY) {
         for (const id of ids) {
             const subject = this.state.get(id);
             if (subject && !subject.destroyed) {
@@ -45,6 +45,10 @@ export class SpaceManager {
     }
 
     public update(deltaSeconds: number) {
+        for (const moveCommand of this.state.moveCommands) {
+            this.moveObjects(moveCommand.ids, moveCommand.delta);
+        }
+        this.state.moveCommands = [];
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.untrackDestroyedObjects();

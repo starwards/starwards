@@ -4,8 +4,8 @@ import {
     NormalNumericStatePropertyCommand,
     NumericStateProperty,
     NumericStatePropertyCommand,
-    StringStateProperty,
-} from './property-constructors';
+    StateProperty,
+} from '../api/property-constructors';
 import { SmartPilotMode, TargetedStatus } from '..';
 
 import { XY } from '.';
@@ -85,7 +85,7 @@ export const chainGunIsFiring = IteratorStatePropertyCommand<'ship'>(
     },
     (state) => (state.chainGun.isFiring ? 'FIRE' : 'NONE')
 );
-export const targeted = StringStateProperty<'ship'>((state) => TargetedStatus[state.targeted]);
+export const targeted = StateProperty<string, 'ship'>((state) => TargetedStatus[state.targeted]);
 export const target = IteratorStatePropertyCommand<'ship'>(
     'target',
     (state, value) => {

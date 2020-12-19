@@ -5,6 +5,7 @@ import { Asteroid } from './asteroid';
 import { CannonShell } from './cannon-shell';
 import EventEmitter from 'eventemitter3';
 import { Explosion } from './explosion';
+import { MoveObjectsArg } from '../logic/space-properties';
 import { Spaceship } from './spaceship';
 
 export class SpaceState extends Schema {
@@ -19,6 +20,9 @@ export class SpaceState extends Schema {
 
     @type({ map: Spaceship })
     public spaceships = new MapSchema<Spaceship>();
+
+    // server only, used for commands
+    public moveCommands = Array.of<MoveObjectsArg>();
 
     public events = new EventEmitter();
 
