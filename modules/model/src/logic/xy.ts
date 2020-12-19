@@ -1,4 +1,4 @@
-import { degToRad, equasionOfMotion as eom, limitPercision, toDegreesDelta } from './formulas';
+import { degToRad, equasionOfMotion as eom, limitPercision, safeDiv, toDegreesDelta } from './formulas';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
@@ -157,7 +157,7 @@ export namespace XY {
     }
 
     export function div(vector: XY, vector2: XY): number {
-        return limitPercision((vector.x / vector2.x + vector.y / vector2.y) / 2);
+        return limitPercision((safeDiv(vector.x, vector2.x) + safeDiv(vector.y, vector2.y)) / 2);
     }
 
     // https://www.ck12.org/book/ck-12-college-precalculus/section/9.6/

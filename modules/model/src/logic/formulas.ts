@@ -92,4 +92,8 @@ export function negSign(x: number): Sign {
     return typeof x === 'number' && x ? (x < 0 ? 1 : -1) : 0;
 }
 
+export function safeDiv(a: number, b: number) {
+    return a === b ? 1 : b == 0 ? Number.POSITIVE_INFINITY * sign(a) : a / b;
+}
+
 export const degToRad = Math.PI / 180;
