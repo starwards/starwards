@@ -37,7 +37,8 @@ export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPos
     // calc projection of position delta on axis from ship to target
     const direction = ship.directionAxis;
     const posDelta = XY.difference(predictedPosition, target.position);
-    return XY.div(XY.projection(posDelta, direction), direction);
+    const posDeltaOnDirection = XY.projection(posDelta, direction);
+    return XY.div(posDeltaOnDirection, direction);
 }
 
 export function getKillZoneRadiusRange(ship: ShipState): [number, number] {
