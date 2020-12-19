@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { NamedGameRoom, SpaceObject } from '@starwards/model';
+import { GameRoom, SpaceObject } from '@starwards/model';
 
 import $ from 'jquery';
 import { Camera } from '../radar/camera';
@@ -42,7 +42,7 @@ function radarComponent(container: Container, state: Props) {
     });
 }
 
-function trackObject(camera: Camera, room: NamedGameRoom<'space'>, subjectId: string) {
+function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
     let tracked = room.state.get(subjectId);
     if (tracked) {
         camera.followSpaceObject(tracked, room.state.events);

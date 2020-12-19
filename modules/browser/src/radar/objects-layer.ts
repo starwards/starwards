@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject, SpaceState } from '@starwards/model';
+import { GameRoom, SpaceObject } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import EventEmitter from 'eventemitter3';
@@ -18,7 +18,7 @@ export class ObjectsLayer {
     private toReDraw = new Set<ObjectGraphics>();
     constructor(
         private parent: CameraView,
-        private room: GameRoom<SpaceState, unknown>,
+        private room: GameRoom<'space'>,
         private renderer: ObjectRenderer,
         private selectedItems: SelectionContainer
     ) {

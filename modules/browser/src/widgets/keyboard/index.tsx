@@ -1,4 +1,4 @@
-import { NamedGameRoom, SpaceObject } from '@starwards/model';
+import { GameRoom, SpaceObject } from '@starwards/model';
 
 import { ButtonKey } from './keyboard-display';
 import { DashboardWidget } from '../dashboard';
@@ -12,8 +12,8 @@ const buttons = new Set<ButtonKey>([32, 37, 38, 40, 39, 16]);
 class KeyboardCommands extends React.Component<Props & ReactProps, { pressed: Set<ButtonKey> }> {
     private pressedTime = new Map<ButtonKey, number>();
     private loop = new Loop(this.whilePressed.bind(this), 1000 / 10);
-    // private shipRoom: NamedGameRoom<'ship'> | null = null;
-    private spaceRoom: NamedGameRoom<'space'> | null = null;
+    // private shipRoom: GameRoom<'ship'> | null = null;
+    private spaceRoom: GameRoom<'space'> | null = null;
 
     constructor(p: Props & ReactProps) {
         super(p);

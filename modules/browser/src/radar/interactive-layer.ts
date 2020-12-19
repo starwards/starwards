@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { NamedGameRoom, SpaceObject, XY, cmdSender, spaceProperties } from '@starwards/model';
+import { GameRoom, SpaceObject, XY, cmdSender, spaceProperties } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
@@ -31,7 +31,7 @@ export class InteractiveLayer {
 
     constructor(
         private parent: CameraView,
-        private room: NamedGameRoom<'space'>,
+        private room: GameRoom<'space'>,
         private selectedItems: SelectionContainer
     ) {
         this.stage.cursor = 'crosshair';

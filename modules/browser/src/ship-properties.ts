@@ -1,6 +1,6 @@
 import {
+    GameRoom,
     IteratorStatePropertyCommand,
-    NamedGameRoom,
     NormalNumericStateProperty,
     NumericStateProperty,
     StateProperty,
@@ -17,7 +17,7 @@ export type NumericProperty = {
     getValue: () => number;
 };
 
-function wrapNumericProperty(shipRoom: NamedGameRoom<'ship'>, p: NumericStateProperty<'ship'>): NumericProperty {
+function wrapNumericProperty(shipRoom: GameRoom<'ship'>, p: NumericStateProperty<'ship'>): NumericProperty {
     const range = typeof p.range === 'function' ? p.range(shipRoom.state) : p.range;
     return {
         getValue: () => p.getValue(shipRoom.state),
@@ -27,7 +27,7 @@ function wrapNumericProperty(shipRoom: NamedGameRoom<'ship'>, p: NumericStatePro
 }
 
 function wrapNormalNumericProperty(
-    shipRoom: NamedGameRoom<'ship'>,
+    shipRoom: GameRoom<'ship'>,
     p: NormalNumericStateProperty<'ship'>
 ): NormalNumericProperty {
     let onChange: (v: number | boolean) => unknown;
@@ -54,7 +54,7 @@ export type NormalNumericProperty = {
 };
 
 function wrapIteratorStateProperty(
-    shipRoom: NamedGameRoom<'ship'>,
+    shipRoom: GameRoom<'ship'>,
     p: IteratorStatePropertyCommand<'ship'>
 ): TriggerProperty {
     return {
@@ -62,7 +62,7 @@ function wrapIteratorStateProperty(
         onChange: cmdSender(shipRoom, p),
     };
 }
-function wrapStringStateProperty(shipRoom: NamedGameRoom<'ship'>, p: StateProperty<string, 'ship'>): TriggerProperty {
+function wrapStringStateProperty(shipRoom: GameRoom<'ship'>, p: StateProperty<string, 'ship'>): TriggerProperty {
     return {
         getValue: () => p.getValue(shipRoom.state),
         onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p) : noop,
@@ -80,7 +80,7 @@ function textProperty(getValue: () => string, onChange = noop as (v: boolean) =>
 
 export type ShipProperties = ReturnType<typeof shipProperties>;
 
-export function shipProperties(shipRoom: NamedGameRoom<'ship'>) {
+export function shipProperties(shipRoom: GameRoom<'ship'>) {
     return {
         smartPilotRotation: wrapNumericProperty(shipRoom, sp.smartPilotRotation),
         shellSecondsToLive: wrapNumericProperty(shipRoom, sp.shellSecondsToLive),

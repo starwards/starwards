@@ -1,3 +1,5 @@
+import * as _adminProperties from './admin-properties';
+
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
 export class AdminState extends Schema {
@@ -11,4 +13,4 @@ export class AdminState extends Schema {
     shouldGameBeRunning = false;
 }
 
-export * from './commands';
+export const adminProperties = _adminProperties;

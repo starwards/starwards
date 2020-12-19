@@ -1,4 +1,4 @@
-import { GameRoom, NamedGameRoom, Rooms, schemaClasses } from '@starwards/model';
+import { GameRoom, RoomName, State, schemaClasses } from '@starwards/model';
 
 import { Client } from 'colyseus.js';
 import { waitForEvents } from './async-utils';
@@ -8,27 +8,27 @@ const ENDPOINT = 'ws://' + window.location.host + '/';
 
 export const client = new Client(ENDPOINT);
 
-const rooms: { [T in keyof Rooms]?: GameRoom<Rooms[T]['state'], Rooms[T]['commands']> } = {};
-const roomsById: { [k: string]: NamedGameRoom<'ship'> } = {};
+const rooms: { [R in RoomName]?: GameRoom<R> } = {};
+const roomsById: { [k: string]: GameRoom<'ship'> } = {};
 
-export async function getGlobalRoom<T extends keyof Rooms>(roomName: T): Promise<NamedGameRoom<T>> {
-    const room: NamedGameRoom<T> | undefined = rooms[roomName];
-    if (!room) {
-        const newRoom = await client.join<Rooms[T]['state']>(roomName, {}, schemaClasses[roomName]);
-        // TODO register by newRoom.id?
-        rooms[roomName] = newRoom as typeof rooms[T];
-        return newRoom as NamedGameRoom<T>;
+export async function getGlobalRoom<R extends RoomName>(roomName: R): Promise<GameRoom<R>> {
+    const room = rooms[roomName] as GameRoom<R> | undefined;
+    if (room) {
+        return room;
     }
-    return room;
+    const newRoom = await client.join<State<R>>(roomName, {}, schemaClasses[roomName]);
+    // TODO register by newRoom.id?
+    rooms[roomName] = newRoom as typeof rooms[R];
+    return newRoom as GameRoom<R>;
 }
-export async function getRoomById<T extends keyof Rooms>(roomName: T, id: string): Promise<NamedGameRoom<T>> {
-    const room: NamedGameRoom<T> | undefined = roomsById[id];
-    if (!room) {
-        const newRoom = await client.joinById<Rooms[T]['state']>(id, {}, schemaClasses[roomName]);
-        roomsById[roomName] = newRoom as typeof roomsById[T];
-        return newRoom as NamedGameRoom<T>;
+export async function getRoomById<R extends RoomName>(roomName: R, id: string): Promise<GameRoom<R>> {
+    const room = roomsById[id] as GameRoom<R> | undefined;
+    if (room) {
+        return room;
     }
-    return room;
+    const newRoom = await client.joinById<State<R>>(id, {}, schemaClasses[roomName]);
+    roomsById[roomName] = newRoom as typeof roomsById[R];
+    return newRoom as GameRoom<R>;
 }
 
 /**

@@ -1,9 +1,9 @@
-import { CommandName, RoomName, State, capToRange } from '..';
+import { RoomName, State, Stateful, capToRange } from '..';
 
 import { MapSchema } from '@colyseus/schema';
 
 export interface StateCommand<T, S extends RoomName> {
-    cmdName: CommandName<S>;
+    cmdName: string;
     setValue(state: State<S>, value: T): unknown;
 }
 
@@ -63,7 +63,7 @@ export interface MappedPropertyCommand<S extends RoomName>
         StateCommand<[string, number], S> {}
 
 export function setNumericProperty<R extends RoomName>(
-    manager: { state: State<R> },
+    manager: Stateful<R>,
     p: NumericStatePropertyCommand<R>,
     value: number
 ) {
@@ -74,7 +74,7 @@ export function setNumericProperty<R extends RoomName>(
 export type StatePropertyValue<T> = T extends StatePropertyCommand<infer R, never> ? R : never;
 
 export function cmdReceiver<T, R extends RoomName>(
-    manager: { state: State<R> },
+    manager: Stateful<R>,
     p: StateCommand<T, R>
 ): (_: unknown, m: { value: T }) => unknown {
     if (isNumericStatePropertyCommand(p)) {

@@ -1,7 +1,10 @@
+import * as _spaceProperties from './space-properties';
+
 import { Asteroid } from './asteroid';
 import { CannonShell } from './cannon-shell';
 import { Explosion } from './explosion';
 import { Spaceship } from './spaceship';
+
 export interface SpaceObjects {
     Spaceship: Spaceship;
     Asteroid: Asteroid;
@@ -18,5 +21,6 @@ export * from './cannon-shell';
 export * from './explosion';
 export * from './vec2';
 export * from './sectors';
-export * from './commands';
 export * from './space-state';
+
+export const spaceProperties = _spaceProperties;
