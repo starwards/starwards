@@ -1,4 +1,4 @@
-import { CommandName, Commands, NamedGameRoom, RoomName, State, capToRange } from '..';
+import { CommandName, RoomName, State, capToRange } from '..';
 
 import { MapSchema } from '@colyseus/schema';
 
@@ -37,7 +37,7 @@ export function isStatePropertyCommand<T, S extends RoomName>(
     );
 }
 
-export function isStateCommand<T, S extends RoomName>(v: unknown): v is StatePropertyCommand<T, S> {
+export function isStateCommand<T, S extends RoomName>(v: unknown): v is StateCommand<T, S> {
     return (
         !!v &&
         typeof (v as StatePropertyCommand<T, S>).cmdName === 'string' &&
@@ -72,9 +72,6 @@ export function setNumericProperty<R extends RoomName>(
 }
 
 export type StatePropertyValue<T> = T extends StatePropertyCommand<infer R, never> ? R : never;
-export function cmdSender<T, R extends 'ship' | 'admin'>(room: NamedGameRoom<R>, p: StateCommand<T, R>) {
-    return (value: T) => room.send(p.cmdName, ({ value } as unknown) as Commands<R>[typeof p.cmdName]);
-}
 
 export function cmdReceiver<T, R extends RoomName>(
     manager: { state: State<R> },
@@ -86,3 +83,4 @@ export function cmdReceiver<T, R extends RoomName>(
         return (_: unknown, { value }: { value: T }) => p.setValue(manager.state, value);
     }
 }
+export type CmdReceiver = ReturnType<typeof cmdReceiver>;

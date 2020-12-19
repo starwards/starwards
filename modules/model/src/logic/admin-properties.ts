@@ -1,7 +1,7 @@
 import { AdminState } from '..';
-import { BooleanPropertyCommand } from './property-constructors';
+import { PropertyCommand } from '../api/property-constructors';
 
-export const shouldGameBeRunning = BooleanPropertyCommand<'admin'>(
+export const shouldGameBeRunning = PropertyCommand<boolean, 'admin'>(
     'shouldGameBeRunning',
     (state: AdminState, value: boolean) => {
         state.shouldGameBeRunning = value;

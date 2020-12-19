@@ -1,12 +1,5 @@
 import { Client, Room } from 'colyseus';
-import {
-    ShipManager,
-    ShipState,
-    StatePropertyValue,
-    cmdReceiver,
-    isStatePropertyCommand,
-    shipProperties,
-} from '@starwards/model';
+import { ShipManager, ShipState, cmdReceivers, shipProperties } from '@starwards/model';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -23,11 +16,8 @@ export class ShipRoom extends Room<ShipState> {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
         this.setSimulationInterval((deltaMs) => manager.update(deltaMs / 1000));
-        for (const prop of Object.values(shipProperties)) {
-            if (isStatePropertyCommand<unknown, 'ship'>(prop)) {
-                const c = cmdReceiver<StatePropertyValue<typeof prop>, 'ship'>(manager, prop);
-                this.onMessage(prop.cmdName, c);
-            }
+        for (const [cmdName, handler] of cmdReceivers(shipProperties, manager)) {
+            this.onMessage(cmdName, handler);
         }
     }
 }
