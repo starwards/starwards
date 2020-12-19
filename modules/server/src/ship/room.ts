@@ -5,7 +5,7 @@ import {
     StatePropertyValue,
     cmdReceiver,
     isStatePropertyCommand,
-    shipProperties as sp,
+    shipProperties,
 } from '@starwards/model';
 
 export class ShipRoom extends Room<ShipState> {
@@ -23,9 +23,9 @@ export class ShipRoom extends Room<ShipState> {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
         this.setSimulationInterval((deltaMs) => manager.update(deltaMs / 1000));
-        for (const prop of Object.values(sp)) {
+        for (const prop of Object.values(shipProperties)) {
             if (isStatePropertyCommand<unknown, 'ship'>(prop)) {
-                const c = cmdReceiver<StatePropertyValue<typeof prop>>(manager, prop);
+                const c = cmdReceiver<StatePropertyValue<typeof prop>, 'ship'>(manager, prop);
                 this.onMessage(prop.cmdName, c);
             }
         }

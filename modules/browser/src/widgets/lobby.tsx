@@ -2,6 +2,7 @@ import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, cr
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect, useState } from 'react';
+import { adminProperties as ap, cmdSender } from '@starwards/model/src';
 import { client, getGlobalRoom } from '../client';
 
 import { DashboardWidget } from './dashboard';
@@ -13,6 +14,14 @@ WebFont.load({
         families: ['Electrolize', 'Titillium Web'],
     },
 });
+
+// TODO move into hooks (cmdSender should only run once)
+async function stopGame() {
+    cmdSender(await getGlobalRoom('admin'), ap.shouldGameBeRunning)(false);
+}
+async function startGame() {
+    cmdSender(await getGlobalRoom('admin'), ap.shouldGameBeRunning)(true);
+}
 
 const InGameMenu = () => {
     const [ships, setShips] = useState<string[]>([]);
@@ -35,7 +44,7 @@ const InGameMenu = () => {
     return (
         <ul>
             <li key="Stop Game">
-                <Button onClick={async () => (await getGlobalRoom('admin')).send('stopGame', undefined)} animate>
+                <Button onClick={stopGame} animate>
                     Stop Game
                 </Button>
             </li>
@@ -120,12 +129,7 @@ export const Lobby = () => {
                             )}
                             {!gamesCount && (
                                 <li key="startGame">
-                                    <Button
-                                        onClick={async () =>
-                                            (await getGlobalRoom('admin')).send('startGame', undefined)
-                                        }
-                                        animate
-                                    >
+                                    <Button onClick={startGame} animate>
                                         New Game
                                     </Button>
                                 </li>
