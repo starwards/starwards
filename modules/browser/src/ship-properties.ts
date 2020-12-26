@@ -97,7 +97,7 @@ export function shipProperties(shipRoom: GameRoom<'ship'>) {
         'speed direction': wrapNumericProperty(shipRoom, sp.velocityAngle),
         speed: wrapNumericProperty(shipRoom, sp.speed),
         chainGunCooldown: wrapNumericProperty(shipRoom, sp.chainGunCoolDown),
-        chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, sp.chainGunSellSecondsToLive),
+        chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, sp.shellSecondsToLive),
         useReserveSpeed: wrapNormalNumericProperty(shipRoom, sp.useReserveSpeed),
         antiDrift: wrapNormalNumericProperty(shipRoom, sp.antiDrift),
         breaks: wrapNormalNumericProperty(shipRoom, sp.breaks),

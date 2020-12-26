@@ -53,10 +53,7 @@ export const speed = NumericStateProperty<'ship'>(
     (state) => [0, state.maxMaxSpeed]
 );
 export const chainGunCoolDown = NumericStateProperty<'ship'>((state) => state.chainGun.cooldown, [0, 1]);
-export const chainGunSellSecondsToLive = NumericStateProperty<'ship'>(
-    (state) => state.chainGun.shellSecondsToLive,
-    (state) => [state.chainGun.minShellSecondsToLive, state.chainGun.maxShellSecondsToLive]
-);
+
 export const useReserveSpeed = NormalNumericStatePropertyCommand<'ship'>(
     'useReserveSpeed',
     (state, value) => {

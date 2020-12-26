@@ -238,13 +238,21 @@ export class ShipManager {
                 baseRange = this.state.chainGun.minShellRange + halfRange;
                 break;
             case SmartPilotMode.TARGET:
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                baseRange = XY.lengthOf(XY.difference(this.target!.position, this.state.position));
+                baseRange = capToRange(
+                    this.state.chainGun.minShellRange,
+                    this.state.chainGun.maxShellRange,
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    XY.lengthOf(XY.difference(this.target!.position, this.state.position))
+                );
                 break;
             default:
                 throw new Error(`unknown state ${SmartPilotMode[this.state.chainGun.shellRangeMode]}`);
         }
-        const range = baseRange + lerp([-1, 1], [-halfRange, halfRange], this.state.chainGun.shellRange);
+        const range = capToRange(
+            this.state.chainGun.minShellRange,
+            this.state.chainGun.maxShellRange,
+            baseRange + lerp([-1, 1], [-halfRange, halfRange], this.state.chainGun.shellRange)
+        );
         this.state.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, range);
     }
 
