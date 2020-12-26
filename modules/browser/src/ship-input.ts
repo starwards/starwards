@@ -1,4 +1,28 @@
-export const inputConfig = {
+export type GamepadAxisConfig = {
+    gamepadIndex: number;
+    axisIndex: number;
+    deadzone?: [number, number];
+    inverted?: boolean;
+};
+
+export type GamepadButtonConfig = {
+    gamepadIndex: number;
+    buttonIndex: number;
+};
+interface GamepadConfig {
+    chainGunIsFiring?: GamepadButtonConfig;
+    target?: GamepadButtonConfig;
+    useReserveSpeed?: GamepadButtonConfig;
+    antiDrift?: GamepadButtonConfig;
+    breaks?: GamepadButtonConfig;
+    rotationMode?: GamepadButtonConfig;
+    maneuveringMode?: GamepadButtonConfig;
+    smartPilotRotation?: GamepadAxisConfig;
+    smartPilotStrafe?: GamepadAxisConfig;
+    smartPilotBoost?: GamepadAxisConfig;
+    shellRange?: GamepadAxisConfig;
+}
+export const inputConfig: GamepadConfig = {
     // buttons
     chainGunIsFiring: {
         gamepadIndex: 0,

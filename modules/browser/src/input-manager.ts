@@ -1,19 +1,9 @@
 import '@maulingmonkey/gamepad';
 
-export type GamepadAxis = {
-    gamepadIndex: number;
-    axisIndex: number;
-    deadzone?: [number, number];
-    inverted?: boolean;
-};
+import { GamepadAxisConfig, GamepadButtonConfig } from './ship-input';
 
-export type GamepadButton = {
-    gamepadIndex: number;
-    buttonIndex: number;
-};
-
-type AxisListener = { axis: GamepadAxis; range: [number, number]; onChange: (v: number) => unknown };
-type ButtonListener = { button: GamepadButton; onChange: (v: boolean) => unknown };
+type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
+type ButtonListener = { button: GamepadButtonConfig; onChange: (v: boolean) => unknown };
 
 export function isInRange(from: number, to: number, value: number) {
     return value > from && value < to;
@@ -73,11 +63,15 @@ export class InputManager {
         removeEventListener('mmk-gamepad-button-value', this.onButton);
     }
 
-    addAxisAction(property: RangeAction, axis: GamepadAxis) {
-        this.axes.push({ axis, ...property });
+    addAxisAction(property: RangeAction, axis: GamepadAxisConfig | undefined) {
+        if (axis) {
+            this.axes.push({ axis, ...property });
+        }
     }
 
-    addButtonAction(property: TriggerAction, button: GamepadButton) {
-        this.buttons.push({ button, ...property });
+    addButtonAction(property: TriggerAction, button: GamepadButtonConfig | undefined) {
+        if (button) {
+            this.buttons.push({ button, ...property });
+        }
     }
 }
