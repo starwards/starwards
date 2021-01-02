@@ -1,6 +1,5 @@
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { InputManager } from '../input-manager';
 import { PropertyPanel } from '../property-panel';
 import { getShipRoom } from '../client';
 import { shipProperties } from '../ship-properties';
@@ -9,12 +8,9 @@ function gunComponent(container: Container, p: Props) {
     void (async () => {
         const shipRoom = await getShipRoom(p.shipId);
         const panel = new PropertyPanel();
-        const input = new InputManager();
         panel.init(container);
-        input.init();
         container.on('destroy', () => {
             panel.destroy();
-            input.destroy();
         });
         const properties = shipProperties(shipRoom);
         const chainGunPanel = panel.addFolder('chainGun');
