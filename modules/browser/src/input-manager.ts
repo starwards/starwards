@@ -1,9 +1,11 @@
 import '@maulingmonkey/gamepad';
 
-import { GamepadAxisConfig, GamepadButtonConfig } from './ship-input';
+import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig } from './ship-input';
+
+import { capToRange } from '@starwards/model/src';
 
 type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
-type ButtonListener = { button: GamepadButtonConfig; onChange: (v: boolean) => unknown };
+type ButtonListener = { button: GamepadButtonConfig; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
 
 export function isInRange(from: number, to: number, value: number) {
     return value > from && value < to;
@@ -33,7 +35,9 @@ export class InputManager {
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
-                listener.onChange(Boolean(e.buttonValue));
+                const value = Boolean(e.buttonValue);
+                listener.onChange && listener.onChange(value);
+                value && listener.onClick && listener.onClick();
             }
         }
     };
@@ -63,8 +67,20 @@ export class InputManager {
         removeEventListener('mmk-gamepad-button-value', this.onButton);
     }
 
-    addAxisAction(property: RangeAction, axis: GamepadAxisConfig | undefined) {
-        if (axis) {
+    addAxisAction(
+        property: RangeAction,
+        axis: GamepadAxisConfig | undefined,
+        buttons: GamepadButtonsRangeConfig | undefined
+    ) {
+        if (buttons) {
+            const callbacks = new AxisButtonsCallbacks(property, buttons.step);
+            this.buttons.push({ button: buttons.center, onClick: callbacks.center });
+            this.buttons.push({ button: buttons.up, onClick: callbacks.up });
+            this.buttons.push({ button: buttons.down, onClick: callbacks.down });
+            if (axis) {
+                this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
+            }
+        } else if (axis) {
             this.axes.push({ axis, ...property });
         }
     }
@@ -74,4 +90,39 @@ export class InputManager {
             this.buttons.push({ button, ...property });
         }
     }
+}
+
+class AxisButtonsCallbacks {
+    private readonly midRange = lerpAxisToRange(0, this.property.range);
+    private axisValue = this.midRange;
+    private buttonsValue = this.midRange;
+
+    constructor(private property: RangeAction, private stepSize: number) {}
+    private onChange() {
+        this.property.onChange(this.axisValue + this.buttonsValue);
+    }
+    center = () => {
+        this.buttonsValue = this.midRange;
+        this.onChange();
+    };
+    up = () => {
+        this.buttonsValue = capToRange(
+            this.property.range[0],
+            this.property.range[1],
+            this.buttonsValue + this.stepSize
+        );
+        this.onChange();
+    };
+    down = () => {
+        this.buttonsValue = capToRange(
+            this.property.range[0],
+            this.property.range[1],
+            this.buttonsValue - this.stepSize
+        );
+        this.onChange();
+    };
+    axis = (v: number) => {
+        this.axisValue = v;
+        this.onChange();
+    };
 }

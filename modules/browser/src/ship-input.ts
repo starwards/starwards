@@ -9,6 +9,13 @@ export type GamepadButtonConfig = {
     gamepadIndex: number;
     buttonIndex: number;
 };
+
+export type GamepadButtonsRangeConfig = {
+    up: GamepadButtonConfig;
+    down: GamepadButtonConfig;
+    center: GamepadButtonConfig;
+    step: number;
+};
 interface GamepadConfig {
     chainGunIsFiring?: GamepadButtonConfig;
     target?: GamepadButtonConfig;
@@ -21,6 +28,7 @@ interface GamepadConfig {
     smartPilotStrafe?: GamepadAxisConfig;
     smartPilotBoost?: GamepadAxisConfig;
     shellRange?: GamepadAxisConfig;
+    shellRangeButtons?: GamepadButtonsRangeConfig;
 }
 export const inputConfig: GamepadConfig = {
     // buttons
@@ -74,5 +82,20 @@ export const inputConfig: GamepadConfig = {
         axisIndex: 1,
         deadzone: [-0.01, 0.01] as [number, number],
         inverted: true,
+    },
+    shellRangeButtons: {
+        up: {
+            gamepadIndex: 0,
+            buttonIndex: 12,
+        },
+        down: {
+            gamepadIndex: 0,
+            buttonIndex: 13,
+        },
+        center: {
+            gamepadIndex: 0,
+            buttonIndex: 14,
+        },
+        step: 0.1,
     },
 };

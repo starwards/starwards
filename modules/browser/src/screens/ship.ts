@@ -57,10 +57,10 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     const shipRoom = await getShipRoom(shipId);
     const properties = shipProperties(shipRoom);
     const input = new InputManager();
-    input.addAxisAction(properties.shellRange, inputConfig.shellRange);
-    input.addAxisAction(properties.smartPilotRotation, inputConfig.smartPilotRotation);
-    input.addAxisAction(properties.smartPilotStrafe, inputConfig.smartPilotStrafe);
-    input.addAxisAction(properties.smartPilotBoost, inputConfig.smartPilotBoost);
+    input.addAxisAction(properties.shellRange, inputConfig.shellRange, inputConfig.shellRangeButtons);
+    input.addAxisAction(properties.smartPilotRotation, inputConfig.smartPilotRotation, undefined);
+    input.addAxisAction(properties.smartPilotStrafe, inputConfig.smartPilotStrafe, undefined);
+    input.addAxisAction(properties.smartPilotBoost, inputConfig.smartPilotBoost, undefined);
     input.addButtonAction(properties.rotationMode, inputConfig.rotationMode);
     input.addButtonAction(properties.maneuveringMode, inputConfig.maneuveringMode);
     input.addButtonAction(properties.useReserveSpeed, inputConfig.useReserveSpeed);
