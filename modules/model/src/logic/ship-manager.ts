@@ -63,6 +63,7 @@ export class ShipManager {
         this.setChainGunConstant('bulletDegreesDeviation', 1);
         this.setChainGunConstant('maxShellRange', 5000);
         this.setChainGunConstant('minShellRange', 500);
+        this.setChainGunConstant('shellRangeAim', 1000);
         this.setChainGunConstant('explosionRadius', 10);
         this.setChainGunConstant('explosionExpansionSpeed', 10);
         this.setChainGunConstant('explosionDamageFactor', 20);
@@ -231,11 +232,12 @@ export class ShipManager {
     }
 
     private calcShellRange() {
-        const halfRange = (this.state.chainGun.maxShellRange - this.state.chainGun.minShellRange) / 2;
         let baseRange: number;
         switch (this.state.chainGun.shellRangeMode) {
             case SmartPilotMode.DIRECT:
-                baseRange = this.state.chainGun.minShellRange + halfRange;
+                baseRange =
+                    this.state.chainGun.minShellRange +
+                    (this.state.chainGun.maxShellRange - this.state.chainGun.minShellRange) / 2;
                 break;
             case SmartPilotMode.TARGET:
                 baseRange = capToRange(
@@ -251,7 +253,12 @@ export class ShipManager {
         const range = capToRange(
             this.state.chainGun.minShellRange,
             this.state.chainGun.maxShellRange,
-            baseRange + lerp([-1, 1], [-halfRange, halfRange], this.state.chainGun.shellRange)
+            baseRange +
+                lerp(
+                    [-1, 1],
+                    [-this.state.chainGun.shellRangeAim, this.state.chainGun.shellRangeAim],
+                    this.state.chainGun.shellRange
+                )
         );
         this.state.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, range);
     }

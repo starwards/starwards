@@ -40,6 +40,9 @@ export class ChainGun extends Schema {
     get maxShellRange(): number {
         return this.constants.get('maxShellRange');
     }
+    get shellRangeAim(): number {
+        return this.constants.get('shellRangeAim');
+    }
     get explosionRadius(): number {
         return this.constants.get('explosionRadius');
     }
