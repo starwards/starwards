@@ -1,27 +1,16 @@
 import '@maulingmonkey/gamepad';
 
 import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig } from './ship-input';
-
-import { capToRange } from '@starwards/model/src';
+import { capToRange, isInRange } from '@starwards/model/src';
 
 type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
 
-export function isInRange(from: number, to: number, value: number) {
-    return value > from && value < to;
-}
-
-function lerpAxisToRange(axisValue: number, range: [number, number]) {
+// equiv. to lerp([-1, 1], range, axisValue)
+function lerpAxisToRange(range: [number, number], axisValue: number) {
     const t = (axisValue + 1) / 2;
     return (1 - t) * range[0] + t * range[1];
 }
-
-// function isGamepadAxis(v: unknown): v is GamepadAxis {
-//     return v && typeof (v as GamepadAxis).axisIndex === 'number';
-// }
-// function isGamepadButton(v: unknown): v is GamepadButton {
-//     return v && typeof (v as GamepadButton).buttonIndex === 'number';
-// }
 export interface RangeAction {
     range: [number, number];
     onChange: (v: number) => unknown;
@@ -36,8 +25,12 @@ export class InputManager {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
                 const value = Boolean(e.buttonValue);
-                listener.onChange && listener.onChange(value);
-                value && listener.onClick && listener.onClick();
+                if (listener.onChange) {
+                    listener.onChange(value);
+                }
+                if (value && listener.onClick) {
+                    listener.onClick();
+                }
             }
         }
     };
@@ -51,7 +44,7 @@ export class InputManager {
                 if (listener.axis.deadzone && isInRange(listener.axis.deadzone[0], listener.axis.deadzone[1], value)) {
                     value = 0;
                 }
-                value = lerpAxisToRange(value, listener.range);
+                value = lerpAxisToRange(listener.range, value);
                 listener.onChange(value);
             }
         }
@@ -93,7 +86,7 @@ export class InputManager {
 }
 
 class AxisButtonsCallbacks {
-    private readonly midRange = lerpAxisToRange(0, this.property.range);
+    private readonly midRange = lerpAxisToRange(this.property.range, 0);
     private axisValue = this.midRange;
     private buttonsValue = this.midRange;
 
