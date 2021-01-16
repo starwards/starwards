@@ -4,7 +4,8 @@ import { Client } from 'colyseus.js';
 import { waitForEvents } from './async-utils';
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
-const ENDPOINT = 'ws://' + window.location.host + '/';
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const ENDPOINT = protocol + '//' + window.location.host; // + '/';
 
 export const client = new Client(ENDPOINT);
 
