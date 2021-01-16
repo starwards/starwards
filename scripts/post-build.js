@@ -24,7 +24,6 @@ const modelModulePath = path.join(rootPath, 'modules', 'model');
         await ncp(path.join(rootPath, 'static'), staticDistPath);
         await ncp(path.join(rootPath, 'modules', 'browser', 'dist'), staticDistPath);
         await ncp(path.join(serverModulePath, 'cjs'), serverDistPath);
-        await ncp(path.join(rootPath, '.vscode', '.deployment'), path.join(distPath, '.deployment'));
         const { stdout, stderr } = await exec('npm pack ' + modelModulePath, { cwd: distPath });
         console.error(stderr);
         console.log(stdout);
