@@ -7,7 +7,7 @@
         "clean": "lerna run clean --stream --parallel",
         "pretty-quick": "pretty-quick --staged --pattern \"./modules/*/src/**/*.{ts,tsx,json}\"",
         "prettify": "prettier \"./modules/*/src/**/*.{ts,tsx,json}\" --write",
-        "build": "lerna run build --stream --parallel",
+        "build": "lerna run build --stream --parallel && node scripts/post-build.js",
         "lint": "eslint .",
         "test": "lerna run test --stream --parallel",
         "start": "yarn --cwd ./dist start",

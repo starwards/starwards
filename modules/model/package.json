@@ -10,8 +10,7 @@
         "clean": "rimraf ./cjs",
         "prebuild": "yarn clean",
         "build": "ts-build ./src --cjs",
-        "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors",
-        "prepack": "yarn build"
+        "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors"
     },
     "dependencies": {
         "@colyseus/schema": "^1.0.2",
