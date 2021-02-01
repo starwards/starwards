@@ -11,7 +11,7 @@ export type ObjectRenderer = (
     root: PIXI.Container,
     selected: boolean,
     parent: CameraView
-) => Set<string>;
+) => unknown;
 export class ObjectsLayer {
     private stage = new PIXI.Container();
     private graphics: { [id: string]: ObjectGraphics } = {};
@@ -28,20 +28,22 @@ export class ObjectsLayer {
         for (const spaceObject of room.state) {
             this.onNewSpaceObject(spaceObject);
         }
-        parent.ticker.add((_delta) => {
-            for (const objGraphics of this.toReDraw) {
-                if (objGraphics.isDestroyed()) {
-                    this.cleanupSpaceObject(objGraphics.spaceObject.id);
-                } else {
-                    objGraphics.updatePosition();
-                    if (objGraphics.shouldRedraw()) {
-                        objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
-                    }
+        parent.ticker.add(this.onRender);
+    }
+
+    private onRender = () => {
+        for (const objGraphics of this.toReDraw) {
+            if (objGraphics.isDestroyed()) {
+                this.cleanupSpaceObject(objGraphics.spaceObject.id);
+            } else {
+                objGraphics.updatePosition();
+                if (objGraphics.shouldRedraw()) {
+                    objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
                 }
             }
-            this.toReDraw.clear();
-        });
-    }
+        }
+        this.toReDraw.clear();
+    };
 
     get renderRoot(): PIXI.DisplayObject {
         return this.stage;
@@ -53,19 +55,15 @@ export class ObjectsLayer {
             this.graphics[spaceObject.id] = objGraphics;
             this.stage.addChild(objGraphics.stage);
             objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
-                objGraphics.markChanged('screen');
                 this.toReDraw.add(objGraphics);
             });
             objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
-                objGraphics.markChanged('parentAngle');
                 this.toReDraw.add(objGraphics);
             });
-            objGraphics.listen(this.room.state.events, spaceObject.id, (field: string) => {
-                objGraphics.markChanged(field);
+            objGraphics.listen(this.room.state.events, spaceObject.id, () => {
                 this.toReDraw.add(objGraphics);
             });
             objGraphics.listen(this.selectedItems.events, spaceObject.id, () => {
-                objGraphics.markChanged('selected');
                 this.toReDraw.add(objGraphics);
             });
         }
@@ -88,8 +86,6 @@ export class ObjectsLayer {
 class ObjectGraphics {
     public stage = new PIXI.Container();
     private drawRoot = new PIXI.Container();
-    private renderedProperties = new Set<string>();
-    private dirtyProperties = new Set<string>();
     private disposables: Array<() => void> = [];
     private destroyed = false;
     constructor(public spaceObject: SpaceObject, private renderer: ObjectRenderer, private parent: CameraView) {
@@ -102,10 +98,6 @@ class ObjectGraphics {
         return this.spaceObject.destroyed || this.destroyed;
     }
 
-    markChanged(field: string) {
-        this.dirtyProperties.add(field);
-    }
-
     shouldRedraw() {
         if (
             this.stage.x + this.stage.width < 0 &&
@@ -116,14 +108,7 @@ class ObjectGraphics {
             // outside of screen bounds, skip render (but keep dirtyProperties for when it enters the screen)
             return false;
         }
-        const dirtyProperties = this.dirtyProperties;
-        this.dirtyProperties = new Set();
-        for (const field of this.renderedProperties) {
-            if (dirtyProperties.has(field)) {
-                return true;
-            }
-        }
-        return false;
+        return true;
     }
 
     updatePosition() {
@@ -143,7 +128,7 @@ class ObjectGraphics {
         if (!this.isDestroyed()) {
             this.drawRoot = new PIXI.Container();
             this.stage.addChild(this.drawRoot);
-            this.renderedProperties = this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
+            this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
         }
     }
 

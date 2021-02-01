@@ -18,10 +18,10 @@ type DrawBlip<T extends keyof SpaceObjects> = (
     spaceObject: SpaceObjects[T],
     root: PIXI.Container,
     parent: CameraView
-) => Set<string>;
+) => void;
 
 const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
-    Spaceship(spaceObject: Spaceship, root: PIXI.Container, parent: CameraView): Set<string> {
+    Spaceship(spaceObject: Spaceship, root: PIXI.Container, parent: CameraView) {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/radar_fighter.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
@@ -43,20 +43,8 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         root.addChild(text);
         const body = renderShape(parent, spaceObject.radius);
         root.addChild(body);
-
-        return new Set([
-            'screen',
-            'radius',
-            'parentAngle',
-            'angle',
-            'turnSpeed',
-            'velocity',
-            'position',
-            'health',
-            'selected',
-        ]);
     },
-    Asteroid(spaceObject: Asteroid, root: PIXI.Container, parent: CameraView): Set<string> {
+    Asteroid(spaceObject: Asteroid, root: PIXI.Container, parent: CameraView) {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.scale = new PIXI.Point(0.5, 0.5);
@@ -72,9 +60,8 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         root.addChild(text);
         const body = renderShape(parent, spaceObject.radius);
         root.addChild(body);
-        return new Set(['screen', 'radius', 'selected']);
     },
-    CannonShell(spaceObject: CannonShell, root: PIXI.Container, parent: CameraView): Set<string> {
+    CannonShell(spaceObject: CannonShell, root: PIXI.Container, parent: CameraView) {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarArrow.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.scale = new PIXI.Point(0.1, 0.1);
@@ -85,9 +72,8 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         root.addChild(radarBlipSprite);
         const body = renderShape(parent, spaceObject.radius);
         root.addChild(body);
-        return new Set(['screen', 'radius', 'parentAngle', 'angle', 'selected']);
     },
-    Explosion(spaceObject: Explosion, root: PIXI.Container, parent: CameraView): Set<string> {
+    Explosion(spaceObject: Explosion, root: PIXI.Container, parent: CameraView) {
         const radarBlipTexture = PIXI.Loader.shared.resources['images/RadarBlip.png'].texture;
         const radarBlipSprite = new PIXI.Sprite(radarBlipTexture);
         radarBlipSprite.scale = new PIXI.Point(0.2, 0.2);
@@ -98,7 +84,6 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
         root.addChild(radarBlipSprite);
         const body = renderShape(parent, spaceObject.radius);
         root.addChild(body);
-        return new Set(['screen', 'radius', 'selected']);
     },
 };
 
@@ -131,21 +116,11 @@ function renderText(y: number, value: string[], color: number) {
  * @param parentAngle indicates the relative angle of the camera
  * @returns a set of property names of `spaceObject` that were used for the render
  */
-export function blipRenderer(
-    spaceObject: SpaceObject,
-    blip: PIXI.Container,
-    selected: boolean,
-    parent: CameraView
-): Set<string> {
-    const propsToTrack = (drawFunctions[spaceObject.type] as DrawBlip<typeof spaceObject.type>)(
-        spaceObject,
-        blip,
-        parent
-    );
+export function blipRenderer(spaceObject: SpaceObject, blip: PIXI.Container, selected: boolean, parent: CameraView) {
+    (drawFunctions[spaceObject.type] as DrawBlip<typeof spaceObject.type>)(spaceObject, blip, parent);
     if (selected) {
         selectionRenderer(blip);
     }
-    return propsToTrack;
 }
 
 export function selectionRenderer(root: PIXI.Container) {
