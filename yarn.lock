@@ -42,10 +42,48 @@
   dependencies:
     tslib ">=1.10.0"
 
+"@babylonjs/gui@5.0.0-alpha.8":
+  version "5.0.0-alpha.8"
+  resolved "https://registry.yarnpkg.com/@babylonjs/gui/-/gui-5.0.0-alpha.8.tgz#4de68711b1de2ede3f23d6f4970e7591e294b10d"
+  integrity sha512-bau7u9A4310YI8kRl+by6/AjYKMiOQgn/wnV/d4jcYXeyvWgI8dubIJVMP4LB7nwdNysOTFK9SEzTKAyuSxSHQ==
+  dependencies:
+    "@babylonjs/core" "5.0.0-alpha.8"
+    tslib ">=1.10.0"
+
+"@babylonjs/inspector@5.0.0-alpha.8":
+  version "5.0.0-alpha.8"
+  resolved "https://registry.yarnpkg.com/@babylonjs/inspector/-/inspector-5.0.0-alpha.8.tgz#92e0ce6c0aa415ecf7596469388d2477ee290be9"
+  integrity sha512-NBE3iqK4/ya9nhO6/Org2ESHEqxcfaQsPRijRP+7UNGDZJDTHHAzNr81cQIBmfIClgUPELbY1mYl/453o/u+MA==
+  dependencies:
+    "@babylonjs/core" "5.0.0-alpha.8"
+    "@babylonjs/gui" "5.0.0-alpha.8"
+    "@babylonjs/loaders" "5.0.0-alpha.8"
+    "@babylonjs/materials" "5.0.0-alpha.8"
+    "@babylonjs/serializers" "5.0.0-alpha.8"
+    babylonjs-gltf2interface "5.0.0-alpha.8"
+    tslib ">=1.10.0"
+
 "@babylonjs/loaders@5.0.0-alpha.8":
   version "5.0.0-alpha.8"
   resolved "https://registry.yarnpkg.com/@babylonjs/loaders/-/loaders-5.0.0-alpha.8.tgz#afe9c2988691f40bc2779ea3edba4b77f80d9cc2"
   integrity sha512-c807jTN3JFOvHeS+2yLmHpK7hxzj0w6L6mL+SUgSvQMkA1xVw3MtkPEAZv1v2kQ0CIlmuN2yrw0+t6aoVN3MdA==
+  dependencies:
+    "@babylonjs/core" "5.0.0-alpha.8"
+    babylonjs-gltf2interface "5.0.0-alpha.8"
+    tslib ">=1.10.0"
+
+"@babylonjs/materials@5.0.0-alpha.8":
+  version "5.0.0-alpha.8"
+  resolved "https://registry.yarnpkg.com/@babylonjs/materials/-/materials-5.0.0-alpha.8.tgz#9da52db09b31e90581128e8c0076efb95a3f57de"
+  integrity sha512-CSNL7Nsh92ZIJpIUjHIbQ4cyQyyQ8OCKzvA8AECZ/R3k916Ty/yWe+P6SZMM51GoKBjELTS02mz52YBXeW4MPw==
+  dependencies:
+    "@babylonjs/core" "5.0.0-alpha.8"
+    tslib ">=1.10.0"
+
+"@babylonjs/serializers@5.0.0-alpha.8":
+  version "5.0.0-alpha.8"
+  resolved "https://registry.yarnpkg.com/@babylonjs/serializers/-/serializers-5.0.0-alpha.8.tgz#d10eb99f0c32673fea383b97b47ba1ae1d2d1928"
+  integrity sha512-xqfLfQQ2eLUfKy2PIO6Y3vW7PpaKxrUUOXy2uw2HFrbyP+8WOI3Gw0mdTQ0X4YmCIr8HzukHUyWJDN9Y1tGh5Q==
   dependencies:
     "@babylonjs/core" "5.0.0-alpha.8"
     babylonjs-gltf2interface "5.0.0-alpha.8"

@@ -8,7 +8,6 @@ export function debugCamera(scene: Scene, canvas: HTMLCanvasElement) {
 
     // This attaches the camera to the canvas
     camera.attachControl(canvas, true);
-    window.$cam = camera;
 }
 
 export function universalCamera(scene: Scene, canvas: HTMLCanvasElement) {

@@ -41,7 +41,7 @@ if (shipUrlParam) {
     loop.start();
 } else {
     // eslint-disable-next-line no-console
-    console.error('missing "shipId" url query param');
+    console.error('missing "ship" url query param');
 }
 
 async function initScreen(dashboard: Dashboard, shipId: string) {

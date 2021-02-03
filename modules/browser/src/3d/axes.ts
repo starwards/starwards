@@ -1,4 +1,4 @@
-import { Color3, DynamicTexture, Mesh, Scene, StandardMaterial, Vector3 } from '@babylonjs/core';
+import { Color3, DynamicTexture, Mesh, MeshBuilder, Scene, StandardMaterial, Vector3 } from '@babylonjs/core';
 
 export function placeAxes(scene: Scene, size: number) {
     // show axis
@@ -60,4 +60,15 @@ export function placeAxes(scene: Scene, size: number) {
     axisZ.color = new Color3(0, 0, 1);
     const zChar = makeTextPlane('Z', 'blue', size / 10);
     zChar.position = new Vector3(0, arrowHeadWidth, charPos);
+
+    const root = MeshBuilder.CreateBox('axes root', { size: 1 }, scene);
+    root.isVisible = false;
+
+    axisX.parent = root;
+    axisY.parent = root;
+    axisZ.parent = root;
+    xChar.parent = root;
+    yChar.parent = root;
+    zChar.parent = root;
+    return root;
 }

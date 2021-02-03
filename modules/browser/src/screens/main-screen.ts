@@ -1,29 +1,46 @@
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core/Engines/engine';
-import { loadModelAndEnvScene } from '../3d/scenes/loadModelAndEnv';
+import { Objects3D } from '../3d/objects';
+import { getGlobalRoom } from '../client';
+import { placeSceneEnv } from '../3d/space-scene';
 
 export const babylonInit = async (): Promise<void> => {
-    // Get the canvas element
-    const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
-    // Generate the BABYLON 3D engine
-    const engine = new Engine(canvas, true);
+    // todo extract to configurable widget
 
-    // Create the scene
-    const scene = await loadModelAndEnvScene(engine, canvas);
+    const urlParams = new URLSearchParams(window.location.search);
+    const shipUrlParam = urlParams.get('ship');
+    if (shipUrlParam) {
+        // const shipRoom = await getShipRoom(shipUrlParam);
+        const spaceRoom = await getGlobalRoom('space');
+        // Get the canvas element
+        const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
+        // Generate the BABYLON 3D engine
+        const engine = new Engine(canvas, true);
 
-    // Register a render loop to repeatedly render the scene
-    engine.runRenderLoop(function () {
-        scene.render();
-    });
+        // Create the scene
+        const scene = await placeSceneEnv(engine, canvas);
 
-    // Watch for browser/canvas resize events
-    window.addEventListener('resize', function () {
-        engine.resize();
-    });
-    // scene started rendering, everything is initialized
+        const objects = new Objects3D(scene, spaceRoom, shipUrlParam);
+        // Register a render loop to repeatedly render the scene
+        engine.runRenderLoop(function () {
+            objects.onRender();
+            scene.render();
+        });
 
-    // eslint-disable-next-line no-console
-    console.log('loaded!');
+        // Watch for browser/canvas resize events
+        window.addEventListener('resize', function () {
+            engine.resize();
+        });
+        // scene started rendering, everything is initialized
+
+        await scene.debugLayer.show();
+
+        // eslint-disable-next-line no-console
+        console.log('loaded!');
+    } else {
+        // eslint-disable-next-line no-console
+        console.error('missing "ship" url query param');
+    }
 };
 
 void babylonInit();
