@@ -5,7 +5,7 @@ export class Spaceship extends SpaceObjectBase {
     public static isInstance(o: unknown): o is Spaceship {
         return !!o && (o as SpaceObjectBase).type === 'Spaceship';
     }
-
+    public static radius = 50;
     public readonly type = 'Spaceship';
 
     @type('string')
@@ -14,6 +14,6 @@ export class Spaceship extends SpaceObjectBase {
     constructor() {
         super();
         this.health = 1000;
-        this.radius = 50;
+        this.radius = Spaceship.radius;
     }
 }

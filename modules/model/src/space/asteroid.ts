@@ -1,7 +1,7 @@
 import { SpaceObjectBase } from './space-object-base';
 
 export class Asteroid extends SpaceObjectBase {
-    public static maxSize = 35;
+    public static maxSize = 350;
     public static isInstance(o: SpaceObjectBase): o is Asteroid {
         return o.type === 'Asteroid';
     }

@@ -2,11 +2,12 @@ import { AbstractMesh, Scene } from '@babylonjs/core';
 import { GameRoom, SpaceObject, degToRad } from '@starwards/model/src';
 
 import EventEmitter from 'eventemitter3';
+import { asteroid } from './asteroid';
 import { spaceship } from './spaceship';
 
 export class Objects3D {
     private toReDraw = new Set<ObjectGraphics>();
-    constructor(private scene: Scene, private room: GameRoom<'space'>, private shipId: string) {
+    constructor(private scene: Scene, private room: GameRoom<'space'>, _shipId: string) {
         room.state.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
         room.state.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
 
@@ -71,19 +72,28 @@ class ObjectGraphics {
     private disposables: Array<() => void> = [];
     private destroyed = false;
     private mesh: AbstractMesh | null = null;
+
     constructor(private scene: Scene, public spaceObject: SpaceObject) {
-        if (spaceObject.type === 'Spaceship') {
-            void (async () => {
-                try {
-                    this.mesh = await spaceship(this.scene, spaceObject.id);
-                } catch (e) {
-                    // eslint-disable-next-line no-console
-                    console.log('error adding 3d obj', e);
-                }
-                this.redraw();
-            })();
-        }
+        void this.loadMesh();
     }
+
+    private async loadMesh() {
+        try {
+            switch (this.spaceObject.type) {
+                case 'Spaceship':
+                    this.mesh = await spaceship(this.scene, this.spaceObject.id);
+                    break;
+                case 'Asteroid':
+                    this.mesh = await asteroid(this.scene, this.spaceObject.id, this.spaceObject.radius);
+                    break;
+            }
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.log('error adding 3d obj', e);
+        }
+        this.redraw();
+    }
+
     isDestroyed() {
         return this.spaceObject.destroyed || this.destroyed;
     }
@@ -93,7 +103,7 @@ class ObjectGraphics {
         if (this.mesh) {
             this.mesh.position.x = this.spaceObject.position.x;
             this.mesh.position.z = -this.spaceObject.position.y;
-            this.mesh.rotation.y = degToRad * this.spaceObject.angle;
+            this.mesh.rotation.y = degToRad * this.spaceObject.angle + Math.PI / 2;
         }
     }
 
