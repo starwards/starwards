@@ -23,8 +23,6 @@ if (shipUrlParam) {
     const layoutUrlParam = urlParams.get('layout');
     const dashboard = makeDashboard(shipUrlParam, layoutUrlParam);
 
-    dashboard.setDragContainer($('#menuContainer'));
-
     // constantly scan for new ships and add widgets when current ship is found
     const loop = new TaskLoop(async () => {
         const rooms = await client.getAvailableRooms('ship');
@@ -65,13 +63,13 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
         // load and auto save layout by name
         const layoutStorageKey = 'layout:' + layout;
         const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
-        dashboard = new Dashboard(JSON.parse(layoutStr, reviver), $('#layoutContainer'));
+        dashboard = new Dashboard(JSON.parse(layoutStr, reviver), $('#layoutContainer'), $('#menuContainer'));
         dashboard.on('stateChanged', function () {
             localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig(), replacer));
         });
     } else {
         // anonymous screen
-        dashboard = new Dashboard({ content: [] }, $('#layoutContainer'));
+        dashboard = new Dashboard({ content: [] }, $('#layoutContainer'), $('#menuContainer'));
     }
     return dashboard;
 }

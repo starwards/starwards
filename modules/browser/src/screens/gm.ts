@@ -16,9 +16,12 @@ import { targetRadarWidget } from '../widgets/target-radar';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 window.PIXI = PIXI;
-const dashboard = new Dashboard({ content: [getGoldenLayoutItemConfig(gmWidget)] }, $('#layoutContainer'));
+const dashboard = new Dashboard(
+    { content: [getGoldenLayoutItemConfig(gmWidget)] },
+    $('#layoutContainer'),
+    $('#menuContainer')
+);
 
-dashboard.setDragContainer($('#menuContainer'));
 dashboard.registerWidget(gmWidget);
 
 dashboard.setup();
