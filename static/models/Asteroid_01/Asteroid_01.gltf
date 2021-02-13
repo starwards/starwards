@@ -1,0 +1,69 @@
+{
+    "asset": { "version": "2.0", "generator": "babylon.js glTF exporter for Maya 2018 v20210201.13" },
+    "scene": 0,
+    "scenes": [{ "nodes": [0] }],
+    "nodes": [{ "mesh": 0, "name": "Asteroid_01_GEO" }],
+    "meshes": [
+        {
+            "primitives": [
+                {
+                    "attributes": { "POSITION": 1, "TANGENT": 2, "NORMAL": 3, "TEXCOORD_0": 4 },
+                    "indices": 0,
+                    "material": 0
+                }
+            ],
+            "name": "Asteroid_01_GEO"
+        }
+    ],
+    "accessors": [
+        { "bufferView": 0, "componentType": 5123, "count": 2280, "type": "SCALAR", "name": "accessorIndices" },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "count": 405,
+            "max": [0.01251821, 0.010542227, 0.0114751989],
+            "min": [-0.0113121578, -0.00862056, -0.0100361537],
+            "type": "VEC3",
+            "name": "accessorPositions"
+        },
+        { "bufferView": 2, "componentType": 5126, "count": 405, "type": "VEC4", "name": "accessorTangents" },
+        {
+            "bufferView": 1,
+            "byteOffset": 4860,
+            "componentType": 5126,
+            "count": 405,
+            "type": "VEC3",
+            "name": "accessorNormals"
+        },
+        { "bufferView": 3, "componentType": 5126, "count": 405, "type": "VEC2", "name": "accessorUVs" }
+    ],
+    "bufferViews": [
+        { "buffer": 0, "byteLength": 4560, "name": "bufferViewScalar" },
+        { "buffer": 0, "byteOffset": 4560, "byteLength": 9720, "byteStride": 12, "name": "bufferViewFloatVec3" },
+        { "buffer": 0, "byteOffset": 14280, "byteLength": 6480, "byteStride": 16, "name": "bufferViewFloatVec4" },
+        { "buffer": 0, "byteOffset": 20760, "byteLength": 3240, "byteStride": 8, "name": "bufferViewFloatVec2" }
+    ],
+    "buffers": [{ "uri": "Asteroid_01.bin", "byteLength": 24000 }],
+    "materials": [
+        {
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.8, 0.8, 0.8, 1.0],
+                "baseColorTexture": { "index": 1 },
+                "metallicRoughnessTexture": { "index": 2 }
+            },
+            "normalTexture": { "index": 0 },
+            "name": "Asteroid_MAT"
+        }
+    ],
+    "textures": [
+        { "sampler": 0, "source": 0, "name": "ground_0010_normal_4k.jpg" },
+        { "sampler": 0, "source": 1, "name": "ground_0010_base_color_4k.jpg" },
+        { "sampler": 0, "source": 2, "name": "file20.jpg" }
+    ],
+    "images": [
+        { "uri": "ground_0010_normal_4k.jpg" },
+        { "uri": "ground_0010_base_color_4k.jpg" },
+        { "uri": "file20.jpg" }
+    ],
+    "samplers": [{ "magFilter": 9729, "minFilter": 9987 }]
+}
