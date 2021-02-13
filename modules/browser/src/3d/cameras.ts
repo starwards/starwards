@@ -8,6 +8,8 @@ export function debugCamera(scene: Scene, canvas: HTMLCanvasElement) {
 
     // This attaches the camera to the canvas
     camera.attachControl(canvas, true);
+    camera.inputs.remove(camera.inputs.attached.gamepad);
+    return camera;
 }
 
 export function universalCamera(scene: Scene, canvas: HTMLCanvasElement) {
@@ -18,4 +20,6 @@ export function universalCamera(scene: Scene, canvas: HTMLCanvasElement) {
 
     // This attaches the camera to the canvas
     camera.attachControl(canvas, true);
+    camera.inputs.remove(camera.inputs.attached.gamepad);
+    return camera;
 }

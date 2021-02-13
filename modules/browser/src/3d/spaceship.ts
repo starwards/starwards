@@ -19,11 +19,6 @@ export async function spaceship(scene: Scene, id: string) {
     rootMesh.id = `mpid_${id}`;
     rootMesh.name = `Spaceship ${id}`;
 
-    for (const mesh of importResult.meshes) {
-        mesh.enableEdgesRendering();
-        mesh.edgesWidth = 5.0;
-        mesh.edgesColor = new Color4(1, 1, 0, 1);
-    }
     // resetting rotationQuaternion to null before updating rotation
     // https://doc.babylonjs.com/divingDeeper/mesh/transforms/center_origin/rotation_quaternions
     rootMesh.rotation = Vector3.Zero();
