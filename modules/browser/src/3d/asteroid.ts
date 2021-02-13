@@ -1,4 +1,7 @@
-import { Scene, SceneLoader, Vector3 } from '@babylonjs/core';
+import { Scene, SceneLoader } from '@babylonjs/core';
+
+import { initMesh } from './asset-utils';
+
 export async function asteroid(scene: Scene, id: string, radius: number) {
     // import model
     // TODO use LoadAssetContainerAsync
@@ -12,14 +15,7 @@ export async function asteroid(scene: Scene, id: string, radius: number) {
     );
 
     const rootMesh = importResult.meshes[0];
-    rootMesh.id = `mpid_${id}`;
-    rootMesh.name = `Asteroid ${id}`;
-    // 3D model "radius" is 1, scale it to fit game model
-    importResult.meshes[0].scaling.scaleInPlace(radius);
-
-    // resetting rotationQuaternion to null before updating rotation
-    // https://doc.babylonjs.com/divingDeeper/mesh/transforms/center_origin/rotation_quaternions
-    rootMesh.rotation = Vector3.Zero();
+    initMesh(rootMesh, id, 'Asteroid', radius);
 
     return rootMesh;
 }
