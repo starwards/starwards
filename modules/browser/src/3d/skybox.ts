@@ -1,6 +1,14 @@
 import { Color3, CubeTexture, MeshBuilder, Scene, StandardMaterial, Texture } from '@babylonjs/core';
 
 export function placeSkybox(scene: Scene, name: string, size: number) {
+    /* files order: [
+       "_px.jpg", // right.png
+       "_py.jpg", // top.png
+       "_pz.jpg", // front.png
+       "_nx.jpg", // left.png
+       "_ny.jpg", // bottom.png
+       "_nz.jpg" // back.png
+    ]; */
     const skyboxTexture = CubeTexture.CreateFromImages(
         [
             `environment/${name}/right.png`,

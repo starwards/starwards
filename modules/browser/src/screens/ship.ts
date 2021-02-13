@@ -1,17 +1,15 @@
 import * as PIXI from 'pixi.js';
 
-import { client, getShipRoom } from '../client';
-
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
 import { InputManager } from '../input-manager';
 import { TaskLoop } from '../task-loop';
+import { client } from '../client';
+import { gamepadInput } from '../gamepad-input';
 import { gunWidget } from '../widgets/gun';
-import { inputConfig } from '../ship-input';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
-import { shipProperties } from '../ship-properties';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 
@@ -53,21 +51,8 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(targetRadarWidget, { subjectId: shipId }, 'target radar');
     dashboard.setup();
 
-    // todo extract to configurable widget
-    const shipRoom = await getShipRoom(shipId);
-    const properties = shipProperties(shipRoom);
     const input = new InputManager();
-    input.addAxisAction(properties.shellRange, inputConfig.shellRange, inputConfig.shellRangeButtons);
-    input.addAxisAction(properties.smartPilotRotation, inputConfig.smartPilotRotation, undefined);
-    input.addAxisAction(properties.smartPilotStrafe, inputConfig.smartPilotStrafe, undefined);
-    input.addAxisAction(properties.smartPilotBoost, inputConfig.smartPilotBoost, undefined);
-    input.addButtonAction(properties.rotationMode, inputConfig.rotationMode);
-    input.addButtonAction(properties.maneuveringMode, inputConfig.maneuveringMode);
-    input.addButtonAction(properties.useReserveSpeed, inputConfig.useReserveSpeed);
-    input.addButtonAction(properties.antiDrift, inputConfig.antiDrift);
-    input.addButtonAction(properties.breaks, inputConfig.breaks);
-    input.addButtonAction(properties.chainGunIsFiring, inputConfig.chainGunIsFiring);
-    input.addButtonAction(properties.target, inputConfig.target);
+    await gamepadInput(input, shipId);
     input.init();
 }
 

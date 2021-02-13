@@ -7,10 +7,10 @@ import '@babylonjs/loaders/glTF';
 
 import { Engine, Scene } from '@babylonjs/core';
 
+import { debugCamera } from './cameras';
 import { placeAxes } from './axes';
 import { placeLights } from './lights';
 import { placeSkybox } from './skybox';
-import { universalCamera } from './cameras';
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function placeSceneEnv(engine: Engine, canvas: HTMLCanvasElement): Promise<Scene> {
@@ -18,9 +18,9 @@ export async function placeSceneEnv(engine: Engine, canvas: HTMLCanvasElement): 
     const scene = new Scene(engine);
 
     // universalCamera(scene, canvas);
-    universalCamera(scene, canvas);
+    debugCamera(scene, canvas);
     placeAxes(scene, 5);
-    placeSkybox(scene, 'space2', drawingDistance * 2);
+    placeSkybox(scene, 'space-engine-2', drawingDistance * 2);
     placeLights(scene, drawingDistance);
 
     // demo "nebula"

@@ -1,6 +1,8 @@
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core/Engines/engine';
+import { InputManager } from '../input-manager';
 import { Objects3D } from '../3d/objects';
+import { gamepadInput } from '../gamepad-input';
 import { getGlobalRoom } from '../client';
 import { placeSceneEnv } from '../3d/space-scene';
 
@@ -19,6 +21,10 @@ export const babylonInit = async (): Promise<void> => {
 
         // Create the scene
         const scene = await placeSceneEnv(engine, canvas);
+
+        const input = new InputManager();
+        await gamepadInput(input, shipUrlParam);
+        input.init();
 
         const objects = new Objects3D(scene, spaceRoom, shipUrlParam);
         // Register a render loop to repeatedly render the scene

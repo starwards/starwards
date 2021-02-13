@@ -6,7 +6,7 @@ export function newAsteroid() {
         makeId(),
         Vec2.Rotate({ x: Math.random() * sectorSize * 2, y: 0 }, Math.random() * 360)
     );
-    asteroid.velocity = Vec2.Rotate({ x: Math.random() * speedMax, y: 0 }, Math.random() * 360);
+    // asteroid.velocity = Vec2.Rotate({ x: Math.random() * speedMax, y: 0 }, Math.random() * 360);
     return asteroid;
 }
 

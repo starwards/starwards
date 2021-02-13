@@ -1,4 +1,4 @@
-import { AdminState, ShipManager, SpaceManager, jouster } from '@starwards/model';
+import { AdminState, ShipManager, SpaceManager } from '@starwards/model';
 import { newAsteroid, newShip, resetShip } from './map';
 
 import { MapSchema } from '@colyseus/schema';
@@ -45,8 +45,8 @@ export class GameManager {
             // aManager.setTarget('B');
             // aManager.bot = jouster();
             bManager.setTarget('A');
-            bManager.bot = jouster();
-            for (let i = 0; i < 1; i++) {
+            // bManager.bot = jouster();
+            for (let i = 0; i < 20; i++) {
                 this.spaceManager.insert(newAsteroid());
             }
             await matchMaker.createRoom('space', { manager: this.spaceManager });
