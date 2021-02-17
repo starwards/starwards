@@ -1,4 +1,4 @@
-import { Color4, Scene, SceneLoader, Vector3 } from '@babylonjs/core';
+import { Scene, SceneLoader } from '@babylonjs/core';
 
 import { Spaceship } from '@starwards/model';
 import { initMesh } from './asset-utils';
