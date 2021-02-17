@@ -20,7 +20,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "node scripts/pre-commit.js && yarn pretty-quick && lint-staged"
+            "pre-commit": "node scripts/pre-commit.js && yarn pretty-quick && npx lint-staged"
         }
     },
     "devDependencies": {

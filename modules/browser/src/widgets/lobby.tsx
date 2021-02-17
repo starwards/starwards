@@ -49,12 +49,17 @@ const InGameMenu = () => {
                 </Button>
             </li>
             <li key="Game Master">
-                <Button onClick={() => window.location.assign('gm.html')} animate>
+                <Button onClick={() => window.location.assign(`gm.html`)} animate>
                     Game Master
                 </Button>
             </li>
             {[...ships].flatMap((shipId: string) => [
                 <li key={`title-ship-${shipId}`}> Ship {shipId}</li>,
+                <li key="Main Screen">
+                    <Button onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)} animate>
+                        Main Screen
+                    </Button>
+                </li>,
                 ...[...layouts].map((layout) => (
                     <li key={`ship-${shipId}-layout-${layout}`}>
                         <Button

@@ -10,7 +10,7 @@ const ENDPOINT = protocol + '//' + window.location.host; // + '/';
 export const client = new Client(ENDPOINT);
 
 const rooms: { [R in RoomName]?: GameRoom<R> } = {};
-const roomsById: { [k: string]: GameRoom<'ship'> } = {};
+const roomsById: { [k: string]: Promise<GameRoom<'ship'>> } = {};
 
 export async function getGlobalRoom<R extends RoomName>(roomName: R): Promise<GameRoom<R>> {
     const room = rooms[roomName] as GameRoom<R> | undefined;
@@ -22,14 +22,21 @@ export async function getGlobalRoom<R extends RoomName>(roomName: R): Promise<Ga
     rooms[roomName] = newRoom as typeof rooms[R];
     return newRoom as GameRoom<R>;
 }
-export async function getRoomById<R extends RoomName>(roomName: R, id: string): Promise<GameRoom<R>> {
-    const room = roomsById[id] as GameRoom<R> | undefined;
+async function getRoomById<R extends RoomName>(
+    roomName: R,
+    id: string,
+    initPause: (r: GameRoom<R>) => Promise<unknown>
+): Promise<GameRoom<R>> {
+    const room = roomsById[id] as Promise<GameRoom<R>> | undefined;
     if (room) {
         return room;
     }
-    const newRoom = await client.joinById<State<R>>(id, {}, schemaClasses[roomName]);
+    const newRoom = client.joinById<State<R>>(id, {}, schemaClasses[roomName]).then(async (room) => {
+        await initPause(room);
+        return room;
+    });
     roomsById[roomName] = newRoom as typeof roomsById[R];
-    return newRoom as GameRoom<R>;
+    return newRoom;
 }
 
 /**
@@ -37,14 +44,14 @@ export async function getRoomById<R extends RoomName>(roomName: R, id: string): 
  * @param shipId ID of the ship
  */
 export async function getShipRoom(shipId: string) {
-    const shipRoom = await getRoomById('ship', shipId);
-    const pendingEvents = [];
-    if (!shipRoom.state.chainGun) {
-        pendingEvents.push('chainGun');
-    }
-    if (!shipRoom.state.constants) {
-        pendingEvents.push('constants');
-    }
-    await waitForEvents(shipRoom.state.events, pendingEvents);
-    return shipRoom;
+    return await getRoomById('ship', shipId, async (shipRoom) => {
+        const pendingEvents = [];
+        if (!shipRoom.state.chainGun) {
+            pendingEvents.push('chainGun');
+        }
+        if (!shipRoom.state.constants) {
+            pendingEvents.push('constants');
+        }
+        await waitForEvents(shipRoom.state.events, pendingEvents);
+    });
 }

@@ -14,6 +14,8 @@
         "@maulingmonkey/gamepad": "^0.0.5",
         "@starwards/model": "*",
         "arwes": "^1.0.0-alpha.5",
+        "@babylonjs/core": "5.0.0-alpha.8",
+        "@babylonjs/loaders": "5.0.0-alpha.8",
         "colyseus.js": "^0.14.0",
         "d3": "^6.3.0",
         "dat.gui": "^0.7.7",
@@ -28,6 +30,8 @@
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
+        "@babylonjs/gui": "5.0.0-alpha.8",
+        "@babylonjs/inspector": "5.0.0-alpha.8",
         "@types/d3": "^6.2.0",
         "@types/dat.gui": "^0.7.5"
     }

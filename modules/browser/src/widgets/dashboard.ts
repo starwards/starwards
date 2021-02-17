@@ -26,8 +26,21 @@ export interface DashboardWidget<T extends Obj = Obj> {
     makeHeaders?: MakeHeaders<T>;
 }
 export class Dashboard extends GoldenLayout {
-    private dragContainer: JQuery<HTMLElement> | null = null;
     private widgets: Array<DashboardWidget> = [];
+
+    constructor(
+        configuration: GoldenLayout.Config,
+        container: JQuery,
+        private dragContainer: JQuery<HTMLElement> | null
+    ) {
+        super(configuration, container);
+        if (!this.dragContainer?.length) {
+            this.dragContainer = null;
+        }
+        this.on('stackCreated', this.onNewStack);
+        this.container.on('resize', this.resize);
+        window.addEventListener('resize', this.resize);
+    }
 
     private readonly onNewStack = (stack: ContentItem & Tab) => {
         stack.on('activeContentItemChanged', (contentItem: ContentItem) => {
@@ -46,18 +59,15 @@ export class Dashboard extends GoldenLayout {
         });
     };
 
-    public setDragContainer(dragSource: JQuery<HTMLElement>) {
-        if (dragSource.length) {
-            this.dragContainer = dragSource;
-        }
-    }
+    private readonly resize = () => {
+        this.updateSize(this.container.width(), this.container.height());
+    };
 
     public setup(): void {
         this.destroy();
         if (this.dragContainer) {
             this.dragContainer.empty();
         }
-        this.on('stackCreated', this.onNewStack);
         try {
             super.init();
             for (const widget of this.widgets) {
