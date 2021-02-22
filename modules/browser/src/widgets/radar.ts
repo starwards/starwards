@@ -33,7 +33,7 @@ function radarComponent(container: Container, state: Props) {
         const grid = new GridLayer(root);
         root.addLayer(grid.renderRoot);
         const room = await getGlobalRoom('space');
-        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room.state));
+        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer().init(room.state));
         root.addLayer(blipLayer.renderRoot);
         trackObject(camera, room, state.subjectId);
     }

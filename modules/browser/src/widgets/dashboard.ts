@@ -16,9 +16,9 @@ window.ReactDOM = ReactDOM;
 
 export type MakeHeaders<T> = (container: Container, state: T) => Array<JQuery<HTMLElement>>;
 
-export type GLComponent<T> = (container: Container, state: T) => void;
+export type GLComponent<T> = { new (container: Container, state: T): unknown };
 
-export interface DashboardWidget<T extends Obj = Obj> {
+export interface DashboardWidget<T = Obj> {
     name: string;
     type: 'component' | 'react-component';
     component: GLComponent<T> | ComponentClass<T & ReactProps>;
@@ -78,7 +78,7 @@ export class Dashboard extends GoldenLayout {
         } catch (e) {}
     }
 
-    public registerWidget<T extends Obj>(
+    public registerWidget<T>(
         { name: wName, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
         props: Partial<T> = {},
         name?: string

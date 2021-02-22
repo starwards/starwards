@@ -3,9 +3,9 @@ import * as PIXI from 'pixi.js';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 
 import $ from 'jquery';
+import { GmWidgets } from '../widgets/gm';
 import { TaskLoop } from '../task-loop';
 import { client } from '../client';
-import { gmWidget } from '../widgets/gm';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -16,13 +16,14 @@ import { targetRadarWidget } from '../widgets/target-radar';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 window.PIXI = PIXI;
+const gmWidgets = new GmWidgets();
 const dashboard = new Dashboard(
-    { content: [getGoldenLayoutItemConfig(gmWidget)] },
+    { content: [getGoldenLayoutItemConfig(gmWidgets.radar)] },
     $('#layoutContainer'),
     $('#menuContainer')
 );
 
-dashboard.registerWidget(gmWidget);
+dashboard.registerWidget(gmWidgets.radar);
 
 dashboard.setup();
 // constantly scan for new ships and add widgets for them
