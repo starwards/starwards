@@ -20,26 +20,28 @@ WebFont.load({
     },
 });
 
-function radarComponent(container: Container, state: Props) {
-    const camera = new Camera();
-    camera.bindZoom(container, state);
-    container.getElement().bind('wheel', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-    });
-    async function init() {
-        const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
-        const grid = new GridLayer(root);
-        root.addLayer(grid.renderRoot);
-        const room = await getGlobalRoom('space');
-        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer().init(room.state));
-        root.addLayer(blipLayer.renderRoot);
-        trackObject(camera, room, state.subjectId);
+class RadarComponent {
+    constructor(container: Container, state: Props) {
+        const camera = new Camera();
+        camera.bindZoom(container, state);
+        container.getElement().bind('wheel', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+        });
+        async function init() {
+            const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+            const grid = new GridLayer(root);
+            root.addLayer(grid.renderRoot);
+            const room = await getGlobalRoom('space');
+            const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer().init(room.state));
+            root.addLayer(blipLayer.renderRoot);
+            trackObject(camera, room, state.subjectId);
+        }
+        PIXI.Loader.shared.load(() => {
+            void init();
+        });
     }
-    PIXI.Loader.shared.load(() => {
-        void init();
-    });
 }
 
 function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
@@ -77,7 +79,7 @@ export type Props = { zoom: number; subjectId: string };
 export const radarWidget: DashboardWidget<Props> = {
     name: 'radar',
     type: 'component',
-    component: radarComponent,
+    component: RadarComponent,
     defaultProps: { zoom: 1 },
     makeHeaders: makeRadarHeaders,
 };

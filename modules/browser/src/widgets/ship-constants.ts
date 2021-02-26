@@ -18,8 +18,10 @@ async function makeShipComponent(container: Container, p: Props) {
     };
     container.on('destroy', cleanup);
 }
-function shipConstantsComponent(container: Container, p: Props) {
-    void makeShipComponent(container, p);
+class ShipConstantsComponent {
+    constructor(container: Container, p: Props) {
+        void makeShipComponent(container, p);
+    }
 }
 
 function addMapToPanel(panel: Panel, p: MappedPropertyCommand<'ship'>, shipRoom: GameRoom<'ship'>) {
@@ -51,7 +53,7 @@ export type Props = { shipId: string };
 export const shipConstantsWidget: DashboardWidget<Props> = {
     name: 'ship constants',
     type: 'component',
-    component: shipConstantsComponent,
+    component: ShipConstantsComponent,
     makeHeaders: makeConstantsHeaders,
     defaultProps: {},
 };

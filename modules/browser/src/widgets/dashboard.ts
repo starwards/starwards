@@ -1,5 +1,5 @@
 import GoldenLayout, { Container, ContentItem, ReactProps, Tab } from 'golden-layout';
-import React, { ComponentClass } from 'react';
+import React, { ComponentType } from 'react';
 
 import $ from 'jquery';
 import ReactDOM from 'react-dom';
@@ -21,7 +21,7 @@ export type GLComponent<T> = { new (container: Container, state: T): unknown };
 export interface DashboardWidget<T = Obj> {
     name: string;
     type: 'component' | 'react-component';
-    component: GLComponent<T> | ComponentClass<T & ReactProps>;
+    component: GLComponent<T> | ComponentType<T & ReactProps>;
     defaultProps: Partial<T>;
     makeHeaders?: MakeHeaders<T>;
 }
