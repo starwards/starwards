@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject } from '@starwards/model';
+import { SpaceObject, State } from '@starwards/model';
 
 import $ from 'jquery';
 import { Camera } from '../radar/camera';
@@ -12,7 +12,7 @@ import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
-import { getGlobalRoom } from '../client';
+import { getSpaceDriver } from '../client';
 
 WebFont.load({
     custom: {
@@ -33,10 +33,15 @@ class RadarComponent {
             const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
             const grid = new GridLayer(root);
             root.addLayer(grid.renderRoot);
-            const room = await getGlobalRoom('space');
-            const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer().init(room.state));
+            const spaceDriver = await getSpaceDriver();
+            const blipLayer = new ObjectsLayer(
+                root,
+                spaceDriver.state,
+                blipRenderer,
+                new SelectionContainer().init(spaceDriver.state)
+            );
             root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, room, state.subjectId);
+            trackObject(camera, spaceDriver.state, state.subjectId);
         }
         PIXI.Loader.shared.load(() => {
             void init();
@@ -44,15 +49,15 @@ class RadarComponent {
     }
 }
 
-function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
-    let tracked = room.state.get(subjectId);
+function trackObject(camera: Camera, spaceState: State<'space'>, subjectId: string) {
+    let tracked = spaceState.get(subjectId);
     if (tracked) {
-        camera.followSpaceObject(tracked, room.state.events);
+        camera.followSpaceObject(tracked, spaceState.events);
     } else {
-        room.state.events.on('add', (spaceObject: SpaceObject) => {
+        spaceState.events.on('add', (spaceObject: SpaceObject) => {
             if (!tracked && spaceObject.id === subjectId) {
                 tracked = spaceObject;
-                camera.followSpaceObject(tracked, room.state.events);
+                camera.followSpaceObject(tracked, spaceState.events);
             }
         });
     }

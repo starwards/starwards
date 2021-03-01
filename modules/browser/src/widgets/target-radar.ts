@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { getGlobalRoom, getShipRoom } from '../client';
+import { getShipDriver, getSpaceDriver } from '../client';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -35,12 +35,12 @@ class TargetRadarComponent {
             const range = new RangeIndicators(root, state.range / 5);
             range.setSizeFactor(sizeFactor);
             root.addLayer(range.renderRoot);
-            const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
-            const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
-            root.addLayer(crosshairs(root, shipRoom.state, shipTarget));
-            const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
+            const [spaceDriver, shipDriver] = await Promise.all([getSpaceDriver(), getShipDriver(state.subjectId)]);
+            const shipTarget = trackTargetObject(spaceDriver.state, shipDriver.state);
+            root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
+            const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
             root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, spaceRoom.state, shipTarget);
+            trackObject(camera, spaceDriver.state, shipTarget);
         }
 
         PIXI.Loader.shared.load(() => {

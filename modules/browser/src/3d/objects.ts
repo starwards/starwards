@@ -1,5 +1,5 @@
 import { AbstractMesh, Scene } from '@babylonjs/core';
-import { GameRoom, SpaceObject, degToRad } from '@starwards/model/src';
+import { SpaceObject, State, degToRad } from '@starwards/model/src';
 
 import EventEmitter from 'eventemitter3';
 import { asteroid } from './asteroid';
@@ -7,11 +7,11 @@ import { spaceship } from './spaceship';
 
 export class Objects3D {
     private toReDraw = new Set<ObjectGraphics>();
-    constructor(private scene: Scene, private room: GameRoom<'space'>, _shipId: string) {
-        room.state.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        room.state.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
+    constructor(private scene: Scene, private spaceState: State<'space'>, _shipId: string) {
+        spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
+        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
 
-        for (const spaceObject of room.state) {
+        for (const spaceObject of spaceState) {
             this.onNewSpaceObject(spaceObject);
         }
     }
@@ -31,7 +31,7 @@ export class Objects3D {
         if (!spaceObject.destroyed) {
             //  && spaceObject.id !== this.shipId
             const objGraphics = new ObjectGraphics(this.scene, spaceObject);
-            objGraphics.listen(this.room.state.events, spaceObject.id, (_field: string) => {
+            objGraphics.listen(this.spaceState.events, spaceObject.id, (_field: string) => {
                 this.toReDraw.add(objGraphics);
             });
             // this.graphics[spaceObject.id] = objGraphics;

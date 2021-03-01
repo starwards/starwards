@@ -1,9 +1,10 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject, XY, cmdSender, spaceProperties } from '@starwards/model';
+import { SpaceObject, XY } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
+import { SpaceDriver } from '../drivers/space-driver';
 
 enum MouseButton {
     none = -1,
@@ -27,13 +28,8 @@ export class InteractiveLayer {
     private dragFrom: XY | null = null;
     private dragTo: XY | null = null;
     private stage = new PIXI.Container();
-    private commandMoveObjects = cmdSender(this.room, spaceProperties.moveObjects);
 
-    constructor(
-        private parent: CameraView,
-        private room: GameRoom<'space'>,
-        private selectedItems: SelectionContainer
-    ) {
+    constructor(private parent: CameraView, private driver: SpaceDriver, private selectedItems: SelectionContainer) {
         this.stage.cursor = 'crosshair';
         this.stage.interactive = true;
         this.stage.hitArea = new PIXI.Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
@@ -53,7 +49,7 @@ export class InteractiveLayer {
     }
 
     onSelectPoint(point: XY) {
-        const spaceObject = this.getObjectAtPoint(this.room.state, point);
+        const spaceObject = this.getObjectAtPoint(this.driver.state, point);
         if (spaceObject) {
             this.selectedItems.set([spaceObject]);
         } else {
@@ -64,7 +60,7 @@ export class InteractiveLayer {
     onSelectArea(a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
-        const selected = [...this.room.state].filter((spaceObject) => XY.inRange(spaceObject.position, from, to));
+        const selected = [...this.driver.state].filter((spaceObject) => XY.inRange(spaceObject.position, from, to));
         this.selectedItems.set(selected);
     }
 
@@ -121,7 +117,7 @@ export class InteractiveLayer {
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.commandMoveObjects({
+                this.driver.commandMoveObjects({
                     ids: [...this.selectedItems.selectedItems].map((o) => o.id),
                     delta: worldMove,
                 });

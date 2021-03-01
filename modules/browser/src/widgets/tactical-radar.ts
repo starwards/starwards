@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject, degToRad } from '@starwards/model';
+import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
-import { getGlobalRoom, getShipRoom } from '../client';
+import { getShipDriver, getSpaceDriver } from '../client';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -11,6 +11,7 @@ import { DashboardWidget } from './dashboard';
 import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
+import { SpaceDriver } from '../drivers/space-driver';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
@@ -36,7 +37,7 @@ class TacticalRadarComponent {
         async function init() {
             const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
             root.setSquare();
-            const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
+            const [spaceDriver, shipDriver] = await Promise.all([getSpaceDriver(), getShipDriver(state.subjectId)]);
             const background = new MovementAnchorLayer(
                 root,
                 {
@@ -58,16 +59,16 @@ class TacticalRadarComponent {
                     tint: 0xaaffaa,
                     radiusMeters: 6000,
                 },
-                () => shipRoom.state.position,
-                () => degToRad * -shipRoom.state.angle
+                () => shipDriver.state.position,
+                () => degToRad * -shipDriver.state.angle
             );
             root.addLayer(asimuthCircle.renderRoot);
-            const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
-            root.addLayer(crosshairs(root, shipRoom.state, shipTarget));
-            root.addLayer(speedLines(root, shipRoom.state, shipTarget));
-            const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
+            const shipTarget = trackTargetObject(spaceDriver.state, shipDriver.state);
+            root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
+            root.addLayer(speedLines(root, shipDriver.state, shipTarget));
+            const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
             root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, spaceRoom, state.subjectId);
+            trackObject(camera, spaceDriver, state.subjectId);
         }
 
         PIXI.Loader.shared.load(() => {
@@ -76,15 +77,15 @@ class TacticalRadarComponent {
     }
 }
 
-function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
-    let tracked = room.state.get(subjectId);
+function trackObject(camera: Camera, spaceDriver: SpaceDriver, subjectId: string) {
+    let tracked = spaceDriver.state.get(subjectId);
     if (tracked) {
-        camera.followSpaceObject(tracked, room.state.events, true);
+        camera.followSpaceObject(tracked, spaceDriver.state.events, true);
     } else {
-        room.state.events.on('add', (spaceObject: SpaceObject) => {
+        spaceDriver.state.events.on('add', (spaceObject: SpaceObject) => {
             if (!tracked && spaceObject.id === subjectId) {
                 tracked = spaceObject;
-                camera.followSpaceObject(tracked, room.state.events, true);
+                camera.followSpaceObject(tracked, spaceDriver.state.events, true);
             }
         });
     }

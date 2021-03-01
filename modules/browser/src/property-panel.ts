@@ -1,12 +1,16 @@
-import { NumericProperty, TextProperty } from './ship-properties';
-
 import { Container } from 'golden-layout';
 import { Dictionary } from 'lodash';
+import { DriverNumericApi } from './drivers/utils';
 import { EmitterLoop } from './loop';
 import { GUI } from 'dat.gui';
 
+export type TextProperty = {
+    getValue: () => string;
+    onChange: (v: boolean) => unknown;
+};
+
 export interface Panel {
-    addProperty(name: string, property: NumericProperty): this;
+    addProperty(name: string, property: DriverNumericApi): this;
     addText(name: string, property: TextProperty): this;
 }
 
@@ -28,7 +32,7 @@ export class PropertyPanel implements Panel {
         guiFolder: GUI,
         viewModel: Dictionary<number | string>,
         name: string,
-        property: NumericProperty
+        property: DriverNumericApi
     ) {
         const { getValue, range, onChange } = property;
         viewModel[name] = getValue();
@@ -54,7 +58,7 @@ export class PropertyPanel implements Panel {
         guiController.onChange(onChange);
     }
 
-    addProperty(name: string, property: NumericProperty) {
+    addProperty(name: string, property: DriverNumericApi) {
         this.contextAddProperty(this.rootGui, this.rootViewModel, name, property);
         return this;
     }
@@ -69,7 +73,7 @@ export class PropertyPanel implements Panel {
         guiFolder.open();
         const folderViewModel: Dictionary<number | string> = {};
         const folder: Panel = {
-            addProperty: (name: string, property: NumericProperty) => {
+            addProperty: (name: string, property: DriverNumericApi) => {
                 this.contextAddProperty(guiFolder, folderViewModel, name, property);
                 return folder;
             },

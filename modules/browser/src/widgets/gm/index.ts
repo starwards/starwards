@@ -1,12 +1,12 @@
 import { SelectionContainer } from '../../radar/selection-container';
-import { getGlobalRoom } from '../../client';
 import { getGmRadarComponent } from './radar';
+import { getSpaceDriver } from '../../client';
 
 export class GmWidgets {
     public selectionContainer = new SelectionContainer();
     public radar = getGmRadarComponent(this.selectionContainer);
     constructor() {
         // todo make lazy
-        void getGlobalRoom('space').then((spaceRoom) => this.selectionContainer.init(spaceRoom.state));
+        void getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver.state));
     }
 }

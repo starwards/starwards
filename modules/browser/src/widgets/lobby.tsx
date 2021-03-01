@@ -2,12 +2,12 @@ import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, cr
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect, useState } from 'react';
-import { adminProperties as ap, cmdSender } from '@starwards/model/src';
-import { client, getGlobalRoom } from '../client';
 
+import { AdminDriver } from '../drivers/admin-driver';
 import { DashboardWidget } from './dashboard';
 import { TaskLoop } from '../task-loop';
 import WebFont from 'webfontloader';
+import { client } from '../client';
 
 WebFont.load({
     custom: {
@@ -15,15 +15,7 @@ WebFont.load({
     },
 });
 
-// TODO move into hooks (cmdSender should only run once)
-async function stopGame() {
-    cmdSender(await getGlobalRoom('admin'), ap.shouldGameBeRunning)(false);
-}
-async function startGame() {
-    cmdSender(await getGlobalRoom('admin'), ap.shouldGameBeRunning)(true);
-}
-
-const InGameMenu = () => {
+const InGameMenu = (p: Props) => {
     const [ships, setShips] = useState<string[]>([]);
 
     useEffect(() => {
@@ -44,7 +36,7 @@ const InGameMenu = () => {
     return (
         <ul>
             <li key="Stop Game">
-                <Button onClick={stopGame} animate>
+                <Button onClick={p.adminDriver.stopGame} animate>
                     Stop Game
                 </Button>
             </li>
@@ -80,7 +72,7 @@ const InGameMenu = () => {
     );
 };
 
-export const Lobby = () => {
+export const Lobby = (p: Props) => {
     const [gamesCount, setgamesCount] = useState(0);
 
     useEffect(() => {
@@ -129,12 +121,12 @@ export const Lobby = () => {
                         <ul>
                             {!!gamesCount && (
                                 <li key="InGameMenu">
-                                    <InGameMenu></InGameMenu>
+                                    <InGameMenu adminDriver={p.adminDriver}></InGameMenu>
                                 </li>
                             )}
                             {!gamesCount && (
                                 <li key="startGame">
-                                    <Button onClick={startGame} animate>
+                                    <Button onClick={p.adminDriver.startGame} animate>
                                         New Game
                                     </Button>
                                 </li>
@@ -152,7 +144,8 @@ export const Lobby = () => {
     );
 };
 
-export const lobbyWidget: DashboardWidget<Record<string, unknown>> = {
+export type Props = { adminDriver: AdminDriver };
+export const lobbyWidget: DashboardWidget<Props> = {
     name: 'lobby',
     type: 'react-component',
     component: Lobby,

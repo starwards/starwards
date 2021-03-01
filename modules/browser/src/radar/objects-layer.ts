@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject } from '@starwards/model';
+import { SpaceObject, State } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import EventEmitter from 'eventemitter3';
@@ -18,14 +18,14 @@ export class ObjectsLayer {
     private toReDraw = new Set<ObjectGraphics>();
     constructor(
         private parent: CameraView,
-        private room: GameRoom<'space'>,
+        private spaceState: State<'space'>,
         private renderer: ObjectRenderer,
         private selectedItems: SelectionContainer
     ) {
-        room.state.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        room.state.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
+        spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
+        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
 
-        for (const spaceObject of room.state) {
+        for (const spaceObject of spaceState) {
             this.onNewSpaceObject(spaceObject);
         }
         parent.ticker.add(this.onRender);
@@ -60,7 +60,7 @@ export class ObjectsLayer {
             objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
                 this.toReDraw.add(objGraphics);
             });
-            objGraphics.listen(this.room.state.events, spaceObject.id, () => {
+            objGraphics.listen(this.spaceState.events, spaceObject.id, () => {
                 this.toReDraw.add(objGraphics);
             });
             objGraphics.listen(this.selectedItems.events, spaceObject.id, () => {

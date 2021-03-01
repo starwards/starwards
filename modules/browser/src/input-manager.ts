@@ -1,7 +1,9 @@
 import '@maulingmonkey/gamepad';
 
-import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig } from './ship-input';
+import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig, KeysRangeConfig } from './input-config';
 import { capToRange, isInRange } from '@starwards/model/src';
+
+import hotkeys from 'hotkeys-js';
 
 type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
@@ -58,18 +60,27 @@ export class InputManager {
     destroy() {
         removeEventListener('mmk-gamepad-axis-value', this.onAxis);
         removeEventListener('mmk-gamepad-button-value', this.onButton);
+        hotkeys.unbind(); // unbind everything
     }
 
     addAxisAction(
         property: RangeAction,
         axis: GamepadAxisConfig | undefined,
-        buttons: GamepadButtonsRangeConfig | undefined
+        buttons: GamepadButtonsRangeConfig | undefined,
+        keys: KeysRangeConfig | undefined
     ) {
-        if (buttons) {
-            const callbacks = new AxisButtonsCallbacks(property, buttons.step);
-            this.buttons.push({ button: buttons.center, onClick: callbacks.center });
-            this.buttons.push({ button: buttons.up, onClick: callbacks.up });
-            this.buttons.push({ button: buttons.down, onClick: callbacks.down });
+        if (buttons || keys) {
+            const callbacks = new AxisButtonsCallbacks(property);
+            if (buttons) {
+                this.buttons.push({ button: buttons.center, onClick: callbacks.center });
+                this.buttons.push({ button: buttons.up, onClick: callbacks.up(buttons.step) });
+                this.buttons.push({ button: buttons.down, onClick: callbacks.down(buttons.step) });
+            }
+            if (keys) {
+                hotkeys(keys.center, callbacks.center);
+                hotkeys(keys.up, callbacks.up(keys.step));
+                hotkeys(keys.down, callbacks.down(keys.step));
+            }
             if (axis) {
                 this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
             }
@@ -90,7 +101,7 @@ class AxisButtonsCallbacks {
     private axisValue = this.midRange;
     private buttonsValue = this.midRange;
 
-    constructor(private property: RangeAction, private stepSize: number) {}
+    constructor(private property: RangeAction) {}
     private onChange() {
         this.property.onChange(this.axisValue + this.buttonsValue);
     }
@@ -98,22 +109,26 @@ class AxisButtonsCallbacks {
         this.buttonsValue = this.midRange;
         this.onChange();
     };
-    up = () => {
-        this.buttonsValue = capToRange(
-            this.property.range[0],
-            this.property.range[1],
-            this.buttonsValue + this.stepSize
-        );
-        this.onChange();
-    };
-    down = () => {
-        this.buttonsValue = capToRange(
-            this.property.range[0],
-            this.property.range[1],
-            this.buttonsValue - this.stepSize
-        );
-        this.onChange();
-    };
+    up(stepSize: number) {
+        return () => {
+            this.buttonsValue = capToRange(
+                this.property.range[0],
+                this.property.range[1],
+                this.buttonsValue + stepSize
+            );
+            this.onChange();
+        };
+    }
+    down(stepSize: number) {
+        return () => {
+            this.buttonsValue = capToRange(
+                this.property.range[0],
+                this.property.range[1],
+                this.buttonsValue - stepSize
+            );
+            this.onChange();
+        };
+    }
     axis = (v: number) => {
         this.axisValue = v;
         this.onChange();

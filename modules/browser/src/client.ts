@@ -1,6 +1,9 @@
-import { GameRoom, RoomName, State, schemaClasses } from '@starwards/model';
+import { AdminDriver, makeAdminDriver } from './drivers/admin-driver';
+import { ShipDriver, makeShipDriver } from './drivers/ship-driver';
+import { SpaceDriver, makeSpaceDriver } from './drivers/space-driver';
 
 import { Client } from 'colyseus.js';
+import { schemaClasses } from '@starwards/model';
 import { waitForEvents } from './async-utils';
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
@@ -9,49 +12,45 @@ const ENDPOINT = protocol + '//' + window.location.host; // + '/';
 
 export const client = new Client(ENDPOINT);
 
-const rooms: { [R in RoomName]?: GameRoom<R> } = {};
-const roomsById: { [k: string]: Promise<GameRoom<'ship'>> } = {};
+let adminDriver: Promise<AdminDriver> | null = null;
+export async function getAdminDriver() {
+    if (adminDriver) {
+        return await adminDriver;
+    }
+    adminDriver = client.join('admin', {}, schemaClasses.admin).then(makeAdminDriver);
+    return await adminDriver;
+}
 
-export async function getGlobalRoom<R extends RoomName>(roomName: R): Promise<GameRoom<R>> {
-    const room = rooms[roomName] as GameRoom<R> | undefined;
-    if (room) {
-        return room;
+let spaceDriver: Promise<SpaceDriver> | null = null;
+export async function getSpaceDriver() {
+    if (spaceDriver) {
+        return await spaceDriver;
     }
-    const newRoom = await client.join<State<R>>(roomName, {}, schemaClasses[roomName]);
-    // TODO register by newRoom.id?
-    rooms[roomName] = newRoom as typeof rooms[R];
-    return newRoom as GameRoom<R>;
+    spaceDriver = client.join('space', {}, schemaClasses.space).then(makeSpaceDriver);
+    return await spaceDriver;
 }
-async function getRoomById<R extends RoomName>(
-    roomName: R,
-    id: string,
-    initPause: (r: GameRoom<R>) => Promise<unknown>
-): Promise<GameRoom<R>> {
-    const room = roomsById[id] as Promise<GameRoom<R>> | undefined;
-    if (room) {
-        return room;
-    }
-    const newRoom = client.joinById<State<R>>(id, {}, schemaClasses[roomName]).then(async (room) => {
-        await initPause(room);
-        return room;
-    });
-    roomsById[roomName] = newRoom as typeof roomsById[R];
-    return newRoom;
-}
+
+const shipDrivers = new Map<string, ShipDriver>();
 
 /**
  * return a ship room after state initialization
  * @param shipId ID of the ship
  */
-export async function getShipRoom(shipId: string) {
-    return await getRoomById('ship', shipId, async (shipRoom) => {
-        const pendingEvents = [];
-        if (!shipRoom.state.chainGun) {
-            pendingEvents.push('chainGun');
-        }
-        if (!shipRoom.state.constants) {
-            pendingEvents.push('constants');
-        }
-        await waitForEvents(shipRoom.state.events, pendingEvents);
-    });
+export async function getShipDriver(shipId: string) {
+    if (shipDrivers.has(shipId)) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return shipDrivers.get(shipId)!;
+    }
+    const room = await client.joinById(shipId, {}, schemaClasses.ship);
+    const pendingEvents = [];
+    if (!room.state.chainGun) {
+        pendingEvents.push('chainGun');
+    }
+    if (!room.state.constants) {
+        pendingEvents.push('constants');
+    }
+    await waitForEvents(room.state.events, pendingEvents);
+    const shipDriver = makeShipDriver(room);
+    shipDrivers.set(shipId, shipDriver);
+    return shipDriver;
 }

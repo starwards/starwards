@@ -1,11 +1,11 @@
 import * as PIXI from 'pixi.js';
 
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
+import { client, getShipDriver } from '../client';
 
 import $ from 'jquery';
 import { GmWidgets } from '../widgets/gm';
 import { TaskLoop } from '../task-loop';
-import { client } from '../client';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -34,11 +34,12 @@ const loop = new TaskLoop(async () => {
         const shipId = room.roomId;
         if (!ships.has(shipId)) {
             ships.add(shipId);
+            const shipDriver = await getShipDriver(shipId);
             dashboard.registerWidget(radarWidget, { subjectId: shipId }, shipId + ' radar');
             dashboard.registerWidget(tacticalRadarWidget, { subjectId: shipId }, shipId + ' tactical radar');
             dashboard.registerWidget(pilotWidget, { shipId }, shipId + ' helm');
             dashboard.registerWidget(gunWidget, { shipId }, shipId + ' gun');
-            dashboard.registerWidget(shipConstantsWidget, { shipId }, shipId + ' constants');
+            dashboard.registerWidget(shipConstantsWidget, { shipDriver }, shipId + ' constants');
             dashboard.registerWidget(targetRadarWidget, { subjectId: shipId }, shipId + ' target radar');
             dashboard.setup();
         }

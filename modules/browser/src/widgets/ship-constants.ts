@@ -1,17 +1,18 @@
-import { GameRoom, MappedPropertyCommand, cmdSender, shipProperties } from '@starwards/model';
+import { DriverNumericApi, NumberMapDriver } from '../drivers/utils';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { getShipRoom } from '../client';
+import { ShipDriver } from '../drivers/ship-driver';
 
-async function makeShipComponent(container: Container, p: Props) {
-    const shipRoom = await getShipRoom(p.shipId);
+function makeShipComponent(container: Container, p: Props) {
+    const driver = p.shipDriver;
     const rootPanel = new PropertyPanel();
     rootPanel.init(container);
-    addMapToPanel(rootPanel.addFolder('main'), shipProperties.constants, shipRoom);
-    addMapToPanel(rootPanel.addFolder('chainGun'), shipProperties.chainGunConstants, shipRoom);
+    driver.constants;
+    addMapToPanel(rootPanel.addFolder('main'), driver.constants);
+    addMapToPanel(rootPanel.addFolder('chainGun'), driver.chainGunConstants);
     const cleanup = () => {
         container.off('destroy', cleanup);
         rootPanel.destroy();
@@ -24,20 +25,13 @@ class ShipConstantsComponent {
     }
 }
 
-function addMapToPanel(panel: Panel, p: MappedPropertyCommand<'ship'>, shipRoom: GameRoom<'ship'>) {
-    const map = p.getValue(shipRoom.state);
-    const initConst = (_: unknown, name: string) => {
-        const sender = cmdSender(shipRoom, p);
-        const val = map.get(name);
-        panel.addProperty(name, {
-            getValue: () => map.get(name),
-            range: [val / 2, val * 2],
-            onChange: (value: number) => sender([name, value]),
-        });
+function addMapToPanel(panel: Panel, p: NumberMapDriver) {
+    const initConst = (name: string, api: DriverNumericApi) => {
+        panel.addProperty(name, api);
     };
-    map.onAdd = initConst;
-    for (const constName of map.keys()) {
-        initConst(0, constName);
+    p.onAdd = initConst;
+    for (const constName of p.map.keys()) {
+        initConst(constName, p.getApi(constName));
     }
 }
 
@@ -49,7 +43,7 @@ export function makeConstantsHeaders(container: Container, p: Props): Array<JQue
     });
     return [refresh];
 }
-export type Props = { shipId: string };
+export type Props = { shipDriver: ShipDriver };
 export const shipConstantsWidget: DashboardWidget<Props> = {
     name: 'ship constants',
     type: 'component',
