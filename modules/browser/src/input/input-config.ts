@@ -20,7 +20,12 @@ export class GamepadButtonsRangeConfig {
     ) {}
 }
 export class KeysRangeConfig {
-    constructor(public up: string, public down: string, public center: string, public step: number) {}
+    constructor(
+        public up: string | null,
+        public down: string | null,
+        public center: string | null,
+        public step: number
+    ) {}
 }
 export interface ShipInputConfig {
     chainGunIsFiring?: GamepadButtonConfig;
@@ -35,6 +40,9 @@ export interface ShipInputConfig {
     boostCommand?: GamepadAxisConfig;
     shellRange?: GamepadAxisConfig;
     shellRangeButtons?: GamepadButtonsRangeConfig;
+    rotationCommandKeys?: KeysRangeConfig;
+    strafeCommandKeys?: KeysRangeConfig;
+    boostCommandKeys?: KeysRangeConfig;
 }
 
 export const inputConfig: ShipInputConfig = {
@@ -58,4 +66,7 @@ export const inputConfig: ShipInputConfig = {
         new GamepadButtonConfig(0, 14),
         0.1
     ),
+    rotationCommandKeys: new KeysRangeConfig('e', 'q', 'e+q', 0.05),
+    strafeCommandKeys: new KeysRangeConfig('a', 'd', 'a+d', 0.05),
+    boostCommandKeys: new KeysRangeConfig('w', 's', 'w+s', 0.05),
 };

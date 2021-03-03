@@ -1,17 +1,11 @@
 import * as PIXI from 'pixi.js';
 
-import {
-    GamepadAxisConfig,
-    GamepadButtonConfig,
-    GamepadButtonsRangeConfig,
-    ShipInputConfig,
-} from '../input/input-config';
-
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
 import { InputManager } from '../input/input-manager';
 import { gunWidget } from '../widgets/gun';
+import { inputConfig } from '../input/input-config';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
@@ -28,33 +22,15 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const layoutUrlParam = urlParams.get('layout');
     const dashboard = makeDashboard(shipUrlParam, layoutUrlParam);
-    void driver.waitForShip(shipUrlParam).then(() => initScreen(dashboard, shipUrlParam));
+    void driver.waitForShip(shipUrlParam).then(
+        () => initScreen(dashboard, shipUrlParam),
+        // eslint-disable-next-line no-console
+        (e) => console.error(e)
+    );
 } else {
     // eslint-disable-next-line no-console
     console.error('missing "ship" url query param');
 }
-export const inputConfig: ShipInputConfig = {
-    // buttons
-    chainGunIsFiring: new GamepadButtonConfig(0, 4),
-    target: new GamepadButtonConfig(0, 2),
-    useReserveSpeed: new GamepadButtonConfig(0, 6),
-    antiDrift: new GamepadButtonConfig(0, 7),
-    breaks: new GamepadButtonConfig(0, 5),
-    rotationMode: new GamepadButtonConfig(0, 10),
-    maneuveringMode: new GamepadButtonConfig(0, 11),
-    // axes
-    rotationCommand: new GamepadAxisConfig(0, 0, [-0.01, 0.01]),
-    strafeCommand: new GamepadAxisConfig(0, 2, [-0.01, 0.01]),
-    boostCommand: new GamepadAxisConfig(0, 3, [-0.01, 0.01], true),
-    shellRange: new GamepadAxisConfig(0, 1, [-0.01, 0.01], true),
-    // range buttons
-    shellRangeButtons: new GamepadButtonsRangeConfig(
-        new GamepadButtonConfig(0, 12),
-        new GamepadButtonConfig(0, 13),
-        new GamepadButtonConfig(0, 14),
-        0.1
-    ),
-};
 
 async function initScreen(dashboard: Dashboard, shipId: string) {
     const shipDriver = await driver.getShipDriver(shipId);
@@ -70,9 +46,14 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
 
     const input = new InputManager();
     input.addAxisAction(shipDriver.shellRange, inputConfig.shellRange, inputConfig.shellRangeButtons, undefined);
-    input.addAxisAction(shipDriver.rotationCommand, inputConfig.rotationCommand, undefined, undefined);
-    input.addAxisAction(shipDriver.strafeCommand, inputConfig.strafeCommand, undefined, undefined);
-    input.addAxisAction(shipDriver.boostCommand, inputConfig.boostCommand, undefined, undefined);
+    input.addAxisAction(
+        shipDriver.rotationCommand,
+        inputConfig.rotationCommand,
+        undefined,
+        inputConfig.rotationCommandKeys
+    );
+    input.addAxisAction(shipDriver.strafeCommand, inputConfig.strafeCommand, undefined, inputConfig.strafeCommandKeys);
+    input.addAxisAction(shipDriver.boostCommand, inputConfig.boostCommand, undefined, inputConfig.boostCommandKeys);
     input.addButtonAction(shipDriver.rotationMode, inputConfig.rotationMode);
     input.addButtonAction(shipDriver.maneuveringMode, inputConfig.maneuveringMode);
     input.addButtonAction(shipDriver.useReserveSpeed, inputConfig.useReserveSpeed);

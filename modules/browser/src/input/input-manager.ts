@@ -77,9 +77,9 @@ export class InputManager {
                 this.buttons.push({ button: buttons.down, onClick: callbacks.down(buttons.step) });
             }
             if (keys) {
-                hotkeys(keys.center, callbacks.center);
-                hotkeys(keys.up, callbacks.up(keys.step));
-                hotkeys(keys.down, callbacks.down(keys.step));
+                keys.center && hotkeys(keys.center, callbacks.center);
+                keys.up && hotkeys(keys.up, callbacks.up(keys.step));
+                keys.down && hotkeys(keys.down, callbacks.down(keys.step));
             }
             if (axis) {
                 this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
