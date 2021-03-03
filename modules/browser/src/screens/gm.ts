@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
-import { client, getShipDriver } from '../client';
+import { client, getShipDriver } from '../driver';
 
 import $ from 'jquery';
 import { GmWidgets } from '../widgets/gm';

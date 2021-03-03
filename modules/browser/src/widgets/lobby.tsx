@@ -1,13 +1,12 @@
+import { AdminDriver, client } from '../driver';
 import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect, useState } from 'react';
 
-import { AdminDriver } from '../drivers/admin-driver';
 import { DashboardWidget } from './dashboard';
 import { TaskLoop } from '../task-loop';
 import WebFont from 'webfontloader';
-import { client } from '../client';
 
 WebFont.load({
     custom: {

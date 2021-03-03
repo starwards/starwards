@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig, ShipInputConfig } from '../input-config';
-import { client, getShipDriver } from '../client';
+import { client, getShipDriver } from '../driver';
 
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';

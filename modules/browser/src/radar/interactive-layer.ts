@@ -4,7 +4,7 @@ import { SpaceObject, XY } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
-import { SpaceDriver } from '../drivers/space-driver';
+import { SpaceDriver } from '../driver';
 
 enum MouseButton {
     none = -1,

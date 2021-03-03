@@ -1,10 +1,10 @@
-import { DriverNumericApi, NumberMapDriver } from '../drivers/utils';
+import { DriverNumericApi, NumberMapDriver } from '../driver/utils';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { ShipDriver } from '../drivers/ship-driver';
+import { ShipDriver } from '../driver';
 
 function makeShipComponent(container: Container, p: Props) {
     const driver = p.shipDriver;

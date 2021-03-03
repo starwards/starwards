@@ -7,8 +7,7 @@ import {
     wrapStringStateProperty,
 } from './utils';
 
-export type ShipDriver = ReturnType<typeof makeShipDriver>;
-export function makeShipDriver(shipRoom: GameRoom<'ship'>) {
+export function ShipDriver(shipRoom: GameRoom<'ship'>) {
     return {
         state: shipRoom.state,
         constants: new NumberMapDriver(shipRoom, shipProperties.constants),

@@ -1,7 +1,7 @@
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Objects3D } from '../3d/objects';
-import { getSpaceDriver } from '../client';
+import { getSpaceDriver } from '../driver';
 import { placeSceneEnv } from '../3d/space-scene';
 
 export const babylonInit = async (): Promise<void> => {

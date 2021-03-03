@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 
+import { SpaceDriver, getShipDriver, getSpaceDriver } from '../driver';
 import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
-import { getShipDriver, getSpaceDriver } from '../client';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -11,7 +11,6 @@ import { DashboardWidget } from './dashboard';
 import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
-import { SpaceDriver } from '../drivers/space-driver';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';

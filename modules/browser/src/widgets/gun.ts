@@ -1,7 +1,7 @@
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../property-panel';
-import { getShipDriver } from '../client';
+import { getShipDriver } from '../driver';
 
 class GunComponent {
     constructor(container: Container, p: Props) {

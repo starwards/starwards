@@ -1,6 +1,6 @@
 import { SelectionContainer } from '../../radar/selection-container';
 import { getGmRadarComponent } from './radar';
-import { getSpaceDriver } from '../../client';
+import { getSpaceDriver } from '../../driver';
 
 export class GmWidgets {
     public selectionContainer = new SelectionContainer();

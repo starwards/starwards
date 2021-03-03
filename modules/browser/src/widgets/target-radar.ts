@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { getShipDriver, getSpaceDriver } from '../client';
+import { getShipDriver, getSpaceDriver } from '../driver';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';

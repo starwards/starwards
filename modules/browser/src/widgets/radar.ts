@@ -12,7 +12,7 @@ import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
-import { getSpaceDriver } from '../client';
+import { getSpaceDriver } from '../driver';
 
 WebFont.load({
     custom: {
