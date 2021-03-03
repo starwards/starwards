@@ -3,7 +3,7 @@ import { Client } from 'colyseus.js';
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
 import { schemaClasses } from '@starwards/model';
-import { waitForEvents } from '../async-utils';
+import { waitForEvents } from './async-utils';
 
 export { DriverNumericApi, NumberMapDriver } from './utils';
 

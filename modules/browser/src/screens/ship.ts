@@ -1,11 +1,16 @@
 import * as PIXI from 'pixi.js';
 
-import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig, ShipInputConfig } from '../input-config';
+import {
+    GamepadAxisConfig,
+    GamepadButtonConfig,
+    GamepadButtonsRangeConfig,
+    ShipInputConfig,
+} from '../input/input-config';
 
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
-import { InputManager } from '../input-manager';
+import { InputManager } from '../input/input-manager';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';

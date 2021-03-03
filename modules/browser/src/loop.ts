@@ -25,11 +25,6 @@ abstract class BaseLoop {
         this.t0 = t1;
     };
 }
-export class Loop extends BaseLoop {
-    constructor(protected body: (deltaSeconds: number) => void, protected interval = 1000 / 60) {
-        super();
-    }
-}
 
 export class EmitterLoop extends BaseLoop {
     private bodies: Array<(deltaSeconds: number) => void> = [];
