@@ -1,6 +1,6 @@
 import { Container } from 'golden-layout';
 import { Dictionary } from 'lodash';
-import { DriverNumericApi } from './driver/utils';
+import { DriverNumericApi } from './driver';
 import { EmitterLoop } from './loop';
 import { GUI } from 'dat.gui';
 

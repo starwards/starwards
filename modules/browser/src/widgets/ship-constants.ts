@@ -1,4 +1,4 @@
-import { DriverNumericApi, NumberMapDriver } from '../driver/utils';
+import { DriverNumericApi, NumberMapDriver } from '../driver';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';

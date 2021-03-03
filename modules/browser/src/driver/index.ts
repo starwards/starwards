@@ -5,15 +5,17 @@ import { SpaceDriver } from './space';
 import { schemaClasses } from '@starwards/model';
 import { waitForEvents } from '../async-utils';
 
+export { DriverNumericApi, NumberMapDriver } from './utils';
+
+export type AdminDriver = ReturnType<typeof AdminDriver>;
+export type ShipDriver = ReturnType<typeof ShipDriver>;
+export type SpaceDriver = ReturnType<typeof SpaceDriver>;
+
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const ENDPOINT = protocol + '//' + window.location.host; // + '/';
 
 export const client = new Client(ENDPOINT);
-
-export type AdminDriver = ReturnType<typeof AdminDriver>;
-export type ShipDriver = ReturnType<typeof ShipDriver>;
-export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
 let adminDriver: Promise<AdminDriver> | null = null;
 export async function getAdminDriver(): Promise<AdminDriver> {
