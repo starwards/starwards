@@ -43,9 +43,9 @@ export const inputConfig: ShipInputConfig = {
     rotationMode: new GamepadButtonConfig(0, 10),
     maneuveringMode: new GamepadButtonConfig(0, 11),
     // axes
-    smartPilotRotation: new GamepadAxisConfig(0, 0, [-0.01, 0.01]),
-    smartPilotStrafe: new GamepadAxisConfig(0, 2, [-0.01, 0.01]),
-    smartPilotBoost: new GamepadAxisConfig(0, 3, [-0.01, 0.01], true),
+    rotationCommand: new GamepadAxisConfig(0, 0, [-0.01, 0.01]),
+    strafeCommand: new GamepadAxisConfig(0, 2, [-0.01, 0.01]),
+    boostCommand: new GamepadAxisConfig(0, 3, [-0.01, 0.01], true),
     shellRange: new GamepadAxisConfig(0, 1, [-0.01, 0.01], true),
     // range buttons
     shellRangeButtons: new GamepadButtonsRangeConfig(
@@ -60,19 +60,19 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
-    dashboard.registerWidget(radarWidget, { subjectId: shipId, spaceDriver }, 'radar');
-    dashboard.registerWidget(tacticalRadarWidget, { shipDriver, spaceDriver }, 'tactical radar');
-    dashboard.registerWidget(pilotWidget, { shipDriver }, 'helm');
-    dashboard.registerWidget(gunWidget, { shipDriver }, 'gun');
-    dashboard.registerWidget(shipConstantsWidget, { shipDriver }, 'constants');
-    dashboard.registerWidget(targetRadarWidget, { shipDriver, spaceDriver }, 'target radar');
+    dashboard.registerWidget(radarWidget(spaceDriver), { subjectId: shipId }, 'radar');
+    dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, 'tactical radar');
+    dashboard.registerWidget(pilotWidget(shipDriver), {}, 'helm');
+    dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');
+    dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, 'constants');
+    dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');
     dashboard.setup();
 
     const input = new InputManager();
     input.addAxisAction(shipDriver.shellRange, inputConfig.shellRange, inputConfig.shellRangeButtons, undefined);
-    input.addAxisAction(shipDriver.smartPilotRotation, inputConfig.smartPilotRotation, undefined, undefined);
-    input.addAxisAction(shipDriver.smartPilotStrafe, inputConfig.smartPilotStrafe, undefined, undefined);
-    input.addAxisAction(shipDriver.smartPilotBoost, inputConfig.smartPilotBoost, undefined, undefined);
+    input.addAxisAction(shipDriver.rotationCommand, inputConfig.rotationCommand, undefined, undefined);
+    input.addAxisAction(shipDriver.strafeCommand, inputConfig.strafeCommand, undefined, undefined);
+    input.addAxisAction(shipDriver.boostCommand, inputConfig.boostCommand, undefined, undefined);
     input.addButtonAction(shipDriver.rotationMode, inputConfig.rotationMode);
     input.addButtonAction(shipDriver.maneuveringMode, inputConfig.maneuveringMode);
     input.addButtonAction(shipDriver.useReserveSpeed, inputConfig.useReserveSpeed);

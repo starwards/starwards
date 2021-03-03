@@ -31,12 +31,12 @@ void (async () => {
     const spaceDriver = await driver.getSpaceDriver();
     for await (const shipId of driver.getUniqueShipIds()) {
         const shipDriver = await driver.getShipDriver(shipId);
-        dashboard.registerWidget(radarWidget, { subjectId: shipId, spaceDriver }, shipId + ' radar');
-        dashboard.registerWidget(tacticalRadarWidget, { shipDriver, spaceDriver }, shipId + ' tactical radar');
-        dashboard.registerWidget(pilotWidget, { shipDriver }, shipId + ' helm');
-        dashboard.registerWidget(gunWidget, { shipDriver }, shipId + ' gun');
-        dashboard.registerWidget(shipConstantsWidget, { shipDriver }, shipId + ' constants');
-        dashboard.registerWidget(targetRadarWidget, { shipDriver, spaceDriver }, shipId + ' target radar');
+        dashboard.registerWidget(radarWidget(spaceDriver), { subjectId: shipId }, shipId + ' radar');
+        dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
+        dashboard.registerWidget(pilotWidget(shipDriver), {}, shipId + ' helm');
+        dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
+        dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, shipId + ' constants');
+        dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, shipId + ' target radar');
         dashboard.setup();
     }
 })();

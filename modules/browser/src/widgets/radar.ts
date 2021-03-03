@@ -20,45 +20,6 @@ WebFont.load({
     },
 });
 
-class RadarComponent {
-    constructor(container: Container, p: Props) {
-        const camera = new Camera();
-        camera.bindZoom(container, p);
-        container.getElement().bind('wheel', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-        });
-        PIXI.Loader.shared.load(() => {
-            const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
-            const grid = new GridLayer(root);
-            root.addLayer(grid.renderRoot);
-            const blipLayer = new ObjectsLayer(
-                root,
-                p.spaceDriver.state,
-                blipRenderer,
-                new SelectionContainer().init(p.spaceDriver.state)
-            );
-            root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, p.spaceDriver.state, p.subjectId);
-        });
-    }
-}
-
-function trackObject(camera: Camera, spaceState: State<'space'>, subjectId: string) {
-    let tracked = spaceState.get(subjectId);
-    if (tracked) {
-        camera.followSpaceObject(tracked, spaceState.events);
-    } else {
-        spaceState.events.on('add', (spaceObject: SpaceObject) => {
-            if (!tracked && spaceObject.id === subjectId) {
-                tracked = spaceObject;
-                camera.followSpaceObject(tracked, spaceState.events);
-            }
-        });
-    }
-}
-
 export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery<HTMLElement>> {
     const zoomIn = $('<i class="lm_controls tiny material-icons">zoom_in</i>');
     const zoomOut = $('<i class="lm_controls tiny material-icons">zoom_out</i>');
@@ -76,11 +37,53 @@ export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery
     });
     return [zoomIn, zoomOut];
 }
-export type Props = { zoom: number; subjectId: string; spaceDriver: SpaceDriver };
-export const radarWidget: DashboardWidget<Props> = {
-    name: 'radar',
-    type: 'component',
-    component: RadarComponent,
-    defaultProps: { zoom: 1 },
-    makeHeaders: makeRadarHeaders,
-};
+
+export type Props = { zoom: number; subjectId: string };
+export function radarWidget(spaceDriver: SpaceDriver): DashboardWidget<Props> {
+    class RadarComponent {
+        constructor(container: Container, p: Props) {
+            const camera = new Camera();
+            camera.bindZoom(container, p);
+            container.getElement().bind('wheel', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+            });
+            PIXI.Loader.shared.load(() => {
+                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const grid = new GridLayer(root);
+                root.addLayer(grid.renderRoot);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    blipRenderer,
+                    new SelectionContainer().init(spaceDriver.state)
+                );
+                root.addLayer(blipLayer.renderRoot);
+                trackObject(camera, spaceDriver.state, p.subjectId);
+            });
+        }
+    }
+
+    function trackObject(camera: Camera, spaceState: State<'space'>, subjectId: string) {
+        let tracked = spaceState.get(subjectId);
+        if (tracked) {
+            camera.followSpaceObject(tracked, spaceState.events);
+        } else {
+            spaceState.events.on('add', (spaceObject: SpaceObject) => {
+                if (!tracked && spaceObject.id === subjectId) {
+                    tracked = spaceObject;
+                    camera.followSpaceObject(tracked, spaceState.events);
+                }
+            });
+        }
+    }
+
+    return {
+        name: 'radar',
+        type: 'component',
+        component: RadarComponent,
+        defaultProps: { zoom: 1 },
+        makeHeaders: makeRadarHeaders,
+    };
+}

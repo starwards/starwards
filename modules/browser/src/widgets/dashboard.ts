@@ -74,8 +74,10 @@ export class Dashboard extends GoldenLayout {
                 const newItemConfig = getGoldenLayoutItemConfig(widget);
                 this.registerWidgetMenuItem(widget.name, newItemConfig);
             }
-            // eslint-disable-next-line no-empty
-        } catch (e) {}
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.log(e);
+        }
     }
 
     public registerWidget<T>(

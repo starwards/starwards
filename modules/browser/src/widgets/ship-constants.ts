@@ -1,29 +1,9 @@
-import { DriverNumericApi, NumberMapDriver } from '../driver';
+import { DriverNumericApi, NumberMapDriver, ShipDriver } from '../driver';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { ShipDriver } from '../driver';
-
-function makeShipComponent(container: Container, p: Props) {
-    const driver = p.shipDriver;
-    const rootPanel = new PropertyPanel();
-    rootPanel.init(container);
-    driver.constants;
-    addMapToPanel(rootPanel.addFolder('main'), driver.constants);
-    addMapToPanel(rootPanel.addFolder('chainGun'), driver.chainGunConstants);
-    const cleanup = () => {
-        container.off('destroy', cleanup);
-        rootPanel.destroy();
-    };
-    container.on('destroy', cleanup);
-}
-class ShipConstantsComponent {
-    constructor(container: Container, p: Props) {
-        void makeShipComponent(container, p);
-    }
-}
 
 function addMapToPanel(panel: Panel, p: NumberMapDriver) {
     const initConst = (name: string, api: DriverNumericApi) => {
@@ -35,19 +15,38 @@ function addMapToPanel(panel: Panel, p: NumberMapDriver) {
     }
 }
 
-export function makeConstantsHeaders(container: Container, p: Props): Array<JQuery<HTMLElement>> {
-    const refresh = $('<i class="lm_controls tiny material-icons">refresh</i>');
-    refresh.mousedown(() => {
-        container.emit('destroy');
-        void makeShipComponent(container, p);
-    });
-    return [refresh];
+export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
+    function makeShipComponent(container: Container) {
+        const rootPanel = new PropertyPanel();
+        rootPanel.init(container);
+        shipDriver.constants;
+        addMapToPanel(rootPanel.addFolder('main'), shipDriver.constants);
+        addMapToPanel(rootPanel.addFolder('chainGun'), shipDriver.chainGunConstants);
+        const cleanup = () => {
+            container.off('destroy', cleanup);
+            rootPanel.destroy();
+        };
+        container.on('destroy', cleanup);
+    }
+    function makeConstantsHeaders(container: Container): Array<JQuery<HTMLElement>> {
+        const refresh = $('<i class="lm_controls tiny material-icons">refresh</i>');
+        refresh.mousedown(() => {
+            container.emit('destroy');
+            void makeShipComponent(container);
+        });
+        return [refresh];
+    }
+    class ShipConstantsComponent {
+        constructor(container: Container, _: unknown) {
+            void makeShipComponent(container);
+        }
+    }
+
+    return {
+        name: 'ship constants',
+        type: 'component',
+        component: ShipConstantsComponent,
+        makeHeaders: makeConstantsHeaders,
+        defaultProps: {},
+    };
 }
-export type Props = { shipDriver: ShipDriver };
-export const shipConstantsWidget: DashboardWidget<Props> = {
-    name: 'ship constants',
-    type: 'component',
-    component: ShipConstantsComponent,
-    makeHeaders: makeConstantsHeaders,
-    defaultProps: {},
-};

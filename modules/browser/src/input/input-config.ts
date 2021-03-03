@@ -30,9 +30,9 @@ export interface ShipInputConfig {
     breaks?: GamepadButtonConfig;
     rotationMode?: GamepadButtonConfig;
     maneuveringMode?: GamepadButtonConfig;
-    smartPilotRotation?: GamepadAxisConfig;
-    smartPilotStrafe?: GamepadAxisConfig;
-    smartPilotBoost?: GamepadAxisConfig;
+    rotationCommand?: GamepadAxisConfig;
+    strafeCommand?: GamepadAxisConfig;
+    boostCommand?: GamepadAxisConfig;
     shellRange?: GamepadAxisConfig;
     shellRangeButtons?: GamepadButtonsRangeConfig;
 }
@@ -47,9 +47,9 @@ export const inputConfig: ShipInputConfig = {
     rotationMode: new GamepadButtonConfig(0, 10),
     maneuveringMode: new GamepadButtonConfig(0, 11),
     // axes
-    smartPilotRotation: new GamepadAxisConfig(0, 0, [-0.01, 0.01]),
-    smartPilotStrafe: new GamepadAxisConfig(0, 2, [-0.01, 0.01]),
-    smartPilotBoost: new GamepadAxisConfig(0, 3, [-0.01, 0.01], true),
+    rotationCommand: new GamepadAxisConfig(0, 0, [-0.01, 0.01]),
+    strafeCommand: new GamepadAxisConfig(0, 2, [-0.01, 0.01]),
+    boostCommand: new GamepadAxisConfig(0, 3, [-0.01, 0.01], true),
     shellRange: new GamepadAxisConfig(0, 1, [-0.01, 0.01], true),
     // range buttons
     shellRangeButtons: new GamepadButtonsRangeConfig(

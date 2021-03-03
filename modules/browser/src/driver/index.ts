@@ -1,3 +1,5 @@
+import { DriverNumericApi as _DriverNumericApi, NumberMapDriver as _NumberMapDriver } from './utils';
+
 import { AdminDriver } from './admin';
 import { Client } from 'colyseus.js';
 import { ShipDriver } from './ship';
@@ -5,7 +7,8 @@ import { SpaceDriver } from './space';
 import { schemaClasses } from '@starwards/model';
 import { waitForEvents } from './async-utils';
 
-export { DriverNumericApi, NumberMapDriver } from './utils';
+export type DriverNumericApi = _DriverNumericApi;
+export type NumberMapDriver = _NumberMapDriver;
 
 export type AdminDriver = ReturnType<typeof AdminDriver>;
 export type ShipDriver = ReturnType<typeof ShipDriver>;

@@ -9,15 +9,17 @@ import {
 
 export function ShipDriver(shipRoom: GameRoom<'ship'>) {
     return {
-        state: shipRoom.state,
+        get state() {
+            return shipRoom.state;
+        },
         constants: new NumberMapDriver(shipRoom, shipProperties.constants),
         chainGunConstants: new NumberMapDriver(shipRoom, shipProperties.chainGunConstants),
-        smartPilotRotation: wrapNumericProperty(shipRoom, shipProperties.smartPilotRotation),
+        rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand),
         shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive),
         shellRange: wrapNumericProperty(shipRoom, shipProperties.shellRange),
         rotation: wrapNumericProperty(shipRoom, shipProperties.rotation),
-        smartPilotStrafe: wrapNumericProperty(shipRoom, shipProperties.smartPilotStrafe),
-        smartPilotBoost: wrapNumericProperty(shipRoom, shipProperties.smartPilotBoost),
+        strafeCommand: wrapNumericProperty(shipRoom, shipProperties.strafeCommand),
+        boostCommand: wrapNumericProperty(shipRoom, shipProperties.boostCommand),
         strafe: wrapNumericProperty(shipRoom, shipProperties.strafe),
         boost: wrapNumericProperty(shipRoom, shipProperties.boost),
         energy: wrapNumericProperty(shipRoom, shipProperties.energy),

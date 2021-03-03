@@ -10,24 +10,24 @@ import { SmartPilotMode, TargetedStatus } from '..';
 
 import { XY } from '../logic';
 
-export const smartPilotRotation = NumericStatePropertyCommand<'ship'>(
-    'setSmartPilotRotation',
+export const rotationCommand = NumericStatePropertyCommand<'ship'>(
+    'rotationCommand',
     (state, value) => {
         state.smartPilot.rotation = value;
     },
     (state) => state.smartPilot.rotation,
     [-1, 1]
 );
-export const smartPilotStrafe = NumericStatePropertyCommand<'ship'>(
-    'smartPilotStrafe',
+export const strafeCommand = NumericStatePropertyCommand<'ship'>(
+    'strafeCommand',
     (state, value) => {
         state.smartPilot.maneuvering.y = value;
     },
     (state) => state.smartPilot.maneuvering.y,
     [-1, 1]
 );
-export const smartPilotBoost = NumericStatePropertyCommand<'ship'>(
-    'smartPilotBoost',
+export const boostCommand = NumericStatePropertyCommand<'ship'>(
+    'boostCommand',
     (state, value) => {
         state.smartPilot.maneuvering.x = value;
     },
