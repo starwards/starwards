@@ -1,11 +1,10 @@
 import * as PIXI from 'pixi.js';
 
-import { getAdminDriver, getSpaceDriver } from '../../driver';
-
 import { Camera } from '../../radar/camera';
 import { CameraView } from '../../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from '../dashboard';
+import { Driver } from '../../driver';
 import { FragCounter } from '../frag';
 import { GridLayer } from '../../radar/grid-layer';
 import { InteractiveLayer } from '../../radar/interactive-layer';
@@ -18,7 +17,7 @@ export interface State {
     zoom: number;
 }
 
-export function getGmRadarComponent(selectionContainer: SelectionContainer): DashboardWidget<State> {
+export function getGmRadarComponent(selectionContainer: SelectionContainer, driver: Driver): DashboardWidget<State> {
     class GmRadarComponent {
         constructor(container: Container, state: State) {
             const camera = new Camera();
@@ -37,7 +36,11 @@ export function getGmRadarComponent(selectionContainer: SelectionContainer): Das
         // the async part of initializing
         private async init(root: CameraView) {
             const pixiLoaded = new Promise((res) => PIXI.Loader.shared.load(res));
-            const [spaceDriver, adminDriver] = await Promise.all([getSpaceDriver(), getAdminDriver(), pixiLoaded]);
+            const [spaceDriver, adminDriver] = await Promise.all([
+                driver.getSpaceDriver(),
+                driver.getAdminDriver(),
+                pixiLoaded,
+            ]);
             const fragCounter = new FragCounter(adminDriver.state);
             const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
             const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, selectionContainer);

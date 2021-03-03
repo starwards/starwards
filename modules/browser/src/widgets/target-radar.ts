@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { getShipDriver, getSpaceDriver } from '../driver';
+import { ShipDriver, SpaceDriver } from '../driver';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -25,26 +25,21 @@ const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
 class TargetRadarComponent {
-    constructor(container: Container, state: Props) {
+    constructor(container: Container, p: Props) {
         const camera = new Camera();
-        camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
-
-        async function init() {
-            const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
-            root.setSquare();
-            const range = new RangeIndicators(root, state.range / 5);
-            range.setSizeFactor(sizeFactor);
-            root.addLayer(range.renderRoot);
-            const [spaceDriver, shipDriver] = await Promise.all([getSpaceDriver(), getShipDriver(state.subjectId)]);
-            const shipTarget = trackTargetObject(spaceDriver.state, shipDriver.state);
-            root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
-            const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
-            root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, spaceDriver.state, shipTarget);
-        }
+        camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
 
         PIXI.Loader.shared.load(() => {
-            void init();
+            const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+            root.setSquare();
+            const range = new RangeIndicators(root, p.range / 5);
+            range.setSizeFactor(sizeFactor);
+            root.addLayer(range.renderRoot);
+            const shipTarget = trackTargetObject(p.spaceDriver.state, p.shipDriver.state);
+            root.addLayer(crosshairs(root, p.shipDriver.state, shipTarget));
+            const blipLayer = new ObjectsLayer(root, p.spaceDriver.state, blipRenderer, shipTarget);
+            root.addLayer(blipLayer.renderRoot);
+            trackObject(camera, p.spaceDriver.state, shipTarget);
         });
     }
 }
@@ -60,7 +55,7 @@ function trackObject(camera: Camera, space: SpaceState, target: SelectionContain
     });
 }
 
-export type Props = { range: number; subjectId: string };
+export type Props = { range: number; spaceDriver: SpaceDriver; shipDriver: ShipDriver };
 export const targetRadarWidget: DashboardWidget<Props> = {
     name: 'target radar',
     type: 'component',

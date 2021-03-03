@@ -10,9 +10,9 @@ import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
+import { SpaceDriver } from '../driver';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
-import { getSpaceDriver } from '../driver';
 
 WebFont.load({
     custom: {
@@ -21,30 +21,26 @@ WebFont.load({
 });
 
 class RadarComponent {
-    constructor(container: Container, state: Props) {
+    constructor(container: Container, p: Props) {
         const camera = new Camera();
-        camera.bindZoom(container, state);
+        camera.bindZoom(container, p);
         container.getElement().bind('wheel', (e) => {
             e.stopPropagation();
             e.preventDefault();
             camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
         });
-        async function init() {
+        PIXI.Loader.shared.load(() => {
             const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
             const grid = new GridLayer(root);
             root.addLayer(grid.renderRoot);
-            const spaceDriver = await getSpaceDriver();
             const blipLayer = new ObjectsLayer(
                 root,
-                spaceDriver.state,
+                p.spaceDriver.state,
                 blipRenderer,
-                new SelectionContainer().init(spaceDriver.state)
+                new SelectionContainer().init(p.spaceDriver.state)
             );
             root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, spaceDriver.state, state.subjectId);
-        }
-        PIXI.Loader.shared.load(() => {
-            void init();
+            trackObject(camera, p.spaceDriver.state, p.subjectId);
         });
     }
 }
@@ -80,7 +76,7 @@ export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery
     });
     return [zoomIn, zoomOut];
 }
-export type Props = { zoom: number; subjectId: string };
+export type Props = { zoom: number; subjectId: string; spaceDriver: SpaceDriver };
 export const radarWidget: DashboardWidget<Props> = {
     name: 'radar',
     type: 'component',

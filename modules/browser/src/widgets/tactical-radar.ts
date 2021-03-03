@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { SpaceDriver, getShipDriver, getSpaceDriver } from '../driver';
+import { ShipDriver, SpaceDriver } from '../driver';
 import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 
@@ -30,13 +30,13 @@ const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
 class TacticalRadarComponent {
-    constructor(container: Container, state: Props) {
+    constructor(container: Container, p: Props) {
         const camera = new Camera();
-        camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
-        async function init() {
+        camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
+        PIXI.Loader.shared.load(() => {
             const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
             root.setSquare();
-            const [spaceDriver, shipDriver] = await Promise.all([getSpaceDriver(), getShipDriver(state.subjectId)]);
+            const { spaceDriver, shipDriver } = p;
             const background = new MovementAnchorLayer(
                 root,
                 {
@@ -45,10 +45,10 @@ class TacticalRadarComponent {
                     alpha: 0.1,
                 },
                 1000,
-                state.range
+                p.range
             );
             root.addLayer(background.renderRoot);
-            const range = new RangeIndicators(root, state.range / 5);
+            const range = new RangeIndicators(root, p.range / 5);
             range.setSizeFactor(sizeFactor);
             root.addLayer(range.renderRoot);
             const asimuthCircle = new SpriteLayer(
@@ -67,11 +67,7 @@ class TacticalRadarComponent {
             root.addLayer(speedLines(root, shipDriver.state, shipTarget));
             const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
             root.addLayer(blipLayer.renderRoot);
-            trackObject(camera, spaceDriver, state.subjectId);
-        }
-
-        PIXI.Loader.shared.load(() => {
-            void init();
+            trackObject(camera, spaceDriver, shipDriver.state.id);
         });
     }
 }
@@ -90,7 +86,7 @@ function trackObject(camera: Camera, spaceDriver: SpaceDriver, subjectId: string
     }
 }
 
-export type Props = { range: number; subjectId: string };
+export type Props = { range: number; spaceDriver: SpaceDriver; shipDriver: ShipDriver };
 export const tacticalRadarWidget: DashboardWidget<Props> = {
     name: 'tactical radar',
     type: 'component',

@@ -1,12 +1,13 @@
+import { Driver } from '../../driver';
 import { SelectionContainer } from '../../radar/selection-container';
 import { getGmRadarComponent } from './radar';
-import { getSpaceDriver } from '../../driver';
 
 export class GmWidgets {
     public selectionContainer = new SelectionContainer();
-    public radar = getGmRadarComponent(this.selectionContainer);
-    constructor() {
+    public radar: ReturnType<typeof getGmRadarComponent>;
+    constructor(driver: Driver) {
         // todo make lazy
-        void getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver.state));
+        this.radar = getGmRadarComponent(this.selectionContainer, driver);
+        void driver.getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver.state));
     }
 }

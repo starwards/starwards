@@ -15,47 +15,90 @@ export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const ENDPOINT = protocol + '//' + window.location.host; // + '/';
 
-export const client = new Client(ENDPOINT);
+export class Driver {
+    private adminDriver: Promise<AdminDriver> | null = null;
+    private spaceDriver: Promise<SpaceDriver> | null = null;
+    private shipDrivers = new Map<string, Promise<ShipDriver>>();
 
-let adminDriver: Promise<AdminDriver> | null = null;
-export async function getAdminDriver(): Promise<AdminDriver> {
-    if (adminDriver) {
-        return await adminDriver;
-    }
-    adminDriver = client.join('admin', {}, schemaClasses.admin).then(AdminDriver);
-    return await adminDriver;
-}
+    private client = new Client(ENDPOINT);
 
-let spaceDriver: Promise<SpaceDriver> | null = null;
-export async function getSpaceDriver(): Promise<SpaceDriver> {
-    if (spaceDriver) {
-        return await spaceDriver;
+    async isActiveGame() {
+        const rooms = await this.client.getAvailableRooms('space');
+        return !!rooms.length;
     }
-    spaceDriver = client.join('space', {}, schemaClasses.space).then(SpaceDriver);
-    return await spaceDriver;
-}
 
-const shipDrivers = new Map<string, ShipDriver>();
+    /**
+     * Returns a finite iterator for the IDs of the ships currently active
+     */
+    async getCurrentShipIds(): Promise<Iterable<string>> {
+        const rooms = await this.client.getAvailableRooms('ship');
+        return rooms.map((r) => r.roomId);
+    }
 
-/**
- * return a ship room after state initialization
- * @param shipId ID of the ship
- */
-export async function getShipDriver(shipId: string): Promise<ShipDriver> {
-    if (shipDrivers.has(shipId)) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return shipDrivers.get(shipId)!;
+    /**
+     * infinite iterator
+     */
+    async *getUniqueShipIds() {
+        const ships = new Set<string>();
+        while (true) {
+            for (const shipId of await this.getCurrentShipIds()) {
+                if (!ships.has(shipId)) {
+                    ships.add(shipId);
+                    yield shipId;
+                }
+            }
+            await new Promise((res) => setTimeout(res, 500));
+        }
     }
-    const room = await client.joinById(shipId, {}, schemaClasses.ship);
-    const pendingEvents = [];
-    if (!room.state.chainGun) {
-        pendingEvents.push('chainGun');
+
+    /**
+     * constantly scan for new ships and return when current ship is found
+     * @param shipToWaitFor id of the ship to wait for
+     */
+    async waitForShip(shipToWaitFor: string): Promise<void> {
+        for await (const shipId of this.getUniqueShipIds()) {
+            if (shipToWaitFor === shipId) {
+                return;
+            }
+        }
     }
-    if (!room.state.constants) {
-        pendingEvents.push('constants');
+
+    async getShipDriver(shipId: string): Promise<ShipDriver> {
+        if (this.shipDrivers.has(shipId)) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            return this.shipDrivers.get(shipId)!;
+        }
+        const shipDriver = this.makeShipDriver(shipId);
+        this.shipDrivers.set(shipId, shipDriver);
+        return shipDriver;
     }
-    await waitForEvents(room.state.events, pendingEvents);
-    const shipDriver = ShipDriver(room);
-    shipDrivers.set(shipId, shipDriver);
-    return shipDriver;
+
+    private async makeShipDriver(shipId: string) {
+        const room = await this.client.joinById(shipId, {}, schemaClasses.ship);
+        const pendingEvents = [];
+        if (!room.state.chainGun) {
+            pendingEvents.push('chainGun');
+        }
+        if (!room.state.constants) {
+            pendingEvents.push('constants');
+        }
+        await waitForEvents(room.state.events, pendingEvents);
+        return ShipDriver(room);
+    }
+
+    async getSpaceDriver(): Promise<SpaceDriver> {
+        if (this.spaceDriver) {
+            return await this.spaceDriver;
+        }
+        this.spaceDriver = this.client.join('space', {}, schemaClasses.space).then(SpaceDriver);
+        return await this.spaceDriver;
+    }
+
+    async getAdminDriver(): Promise<AdminDriver> {
+        if (this.adminDriver) {
+            return await this.adminDriver;
+        }
+        this.adminDriver = this.client.join('admin', {}, schemaClasses.admin).then(AdminDriver);
+        return await this.adminDriver;
+    }
 }

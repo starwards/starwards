@@ -1,8 +1,10 @@
+import { Driver } from '../driver';
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Objects3D } from '../3d/objects';
-import { getSpaceDriver } from '../driver';
 import { placeSceneEnv } from '../3d/space-scene';
+
+const driver = new Driver();
 
 export const babylonInit = async (): Promise<void> => {
     // todo extract to configurable widget
@@ -11,7 +13,7 @@ export const babylonInit = async (): Promise<void> => {
     const shipUrlParam = urlParams.get('ship');
     if (shipUrlParam) {
         // const shipRoom = await getShipRoom(shipUrlParam);
-        const spaceDriver = await getSpaceDriver();
+        const spaceDriver = await driver.getSpaceDriver();
         // Get the canvas element
         const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
         // Generate the BABYLON 3D engine

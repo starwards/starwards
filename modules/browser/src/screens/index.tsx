@@ -1,8 +1,7 @@
+import { Driver } from '../driver';
 import { Lobby } from '../widgets/lobby';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { getAdminDriver } from '../driver';
 
-void getAdminDriver().then((adminDriver) => {
-    ReactDOM.render(<Lobby adminDriver={adminDriver} />, document.querySelector('#wrapper'));
-});
+const driver = new Driver();
+ReactDOM.render(<Lobby driver={driver} />, document.querySelector('#wrapper'));

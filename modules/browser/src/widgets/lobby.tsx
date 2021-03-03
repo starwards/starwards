@@ -1,4 +1,4 @@
-import { AdminDriver, client } from '../driver';
+import { AdminDriver, Driver } from '../driver';
 import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -16,11 +16,14 @@ WebFont.load({
 
 const InGameMenu = (p: Props) => {
     const [ships, setShips] = useState<string[]>([]);
+    const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
+    useEffect(() => {
+        void p.driver.getAdminDriver().then(setAdminDriver);
+    }, [p.driver]);
 
     useEffect(() => {
         const loop = new TaskLoop(async () => {
-            const rooms = await client.getAvailableRooms('ship');
-            setShips(rooms.map((r) => r.roomId));
+            setShips([...(await p.driver.getCurrentShipIds())]);
         }, 500);
         loop.start();
         return loop.stop;
@@ -34,11 +37,13 @@ const InGameMenu = (p: Props) => {
     }
     return (
         <ul>
-            <li key="Stop Game">
-                <Button onClick={p.adminDriver.stopGame} animate>
-                    Stop Game
-                </Button>
-            </li>
+            {adminDriver && (
+                <li key="Stop Game">
+                    <Button onClick={adminDriver?.stopGame} animate>
+                        Stop Game
+                    </Button>
+                </li>
+            )}
             <li key="Game Master">
                 <Button onClick={() => window.location.assign(`gm.html`)} animate>
                     Game Master
@@ -72,12 +77,16 @@ const InGameMenu = (p: Props) => {
 };
 
 export const Lobby = (p: Props) => {
-    const [gamesCount, setgamesCount] = useState(0);
+    const [gamesCount, setgamesCount] = useState(false);
+    const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
+
+    useEffect(() => {
+        void p.driver.getAdminDriver().then(setAdminDriver);
+    }, [p.driver]);
 
     useEffect(() => {
         const loop = new TaskLoop(async () => {
-            const rooms = await client.getAvailableRooms('space');
-            setgamesCount(rooms.length);
+            setgamesCount(await p.driver.isActiveGame());
         }, 500);
         loop.start();
         return loop.stop;
@@ -118,14 +127,14 @@ export const Lobby = (p: Props) => {
                             <p>Starwards</p>
                         </Heading>
                         <ul>
-                            {!!gamesCount && (
+                            {gamesCount && adminDriver && (
                                 <li key="InGameMenu">
-                                    <InGameMenu adminDriver={p.adminDriver}></InGameMenu>
+                                    <InGameMenu driver={p.driver}></InGameMenu>
                                 </li>
                             )}
-                            {!gamesCount && (
+                            {!gamesCount && adminDriver && (
                                 <li key="startGame">
-                                    <Button onClick={p.adminDriver.startGame} animate>
+                                    <Button onClick={adminDriver.startGame} animate>
                                         New Game
                                     </Button>
                                 </li>
@@ -143,7 +152,7 @@ export const Lobby = (p: Props) => {
     );
 };
 
-export type Props = { adminDriver: AdminDriver };
+export type Props = { driver: Driver };
 export const lobbyWidget: DashboardWidget<Props> = {
     name: 'lobby',
     type: 'react-component',

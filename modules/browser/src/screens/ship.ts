@@ -1,12 +1,11 @@
 import * as PIXI from 'pixi.js';
 
 import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig, ShipInputConfig } from '../input-config';
-import { client, getShipDriver } from '../driver';
 
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
+import { Driver } from '../driver';
 import { InputManager } from '../input-manager';
-import { TaskLoop } from '../task-loop';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -17,25 +16,14 @@ import { targetRadarWidget } from '../widgets/target-radar';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 window.PIXI = PIXI;
+const driver = new Driver();
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const layoutUrlParam = urlParams.get('layout');
     const dashboard = makeDashboard(shipUrlParam, layoutUrlParam);
-
-    // constantly scan for new ships and add widgets when current ship is found
-    const loop = new TaskLoop(async () => {
-        const rooms = await client.getAvailableRooms('ship');
-        for (const room of rooms) {
-            const shipId = room.roomId;
-            if (shipUrlParam === shipId) {
-                loop.stop();
-                await initScreen(dashboard, shipId);
-            }
-        }
-    }, 500);
-    loop.start();
+    void driver.waitForShip(shipUrlParam).then(() => initScreen(dashboard, shipUrlParam));
 } else {
     // eslint-disable-next-line no-console
     console.error('missing "ship" url query param');
@@ -64,14 +52,15 @@ export const inputConfig: ShipInputConfig = {
 };
 
 async function initScreen(dashboard: Dashboard, shipId: string) {
-    const shipDriver = await getShipDriver(shipId);
+    const shipDriver = await driver.getShipDriver(shipId);
+    const spaceDriver = await driver.getSpaceDriver();
 
-    dashboard.registerWidget(radarWidget, { subjectId: shipId }, 'radar');
-    dashboard.registerWidget(tacticalRadarWidget, { subjectId: shipId }, 'tactical radar');
-    dashboard.registerWidget(pilotWidget, { shipId }, 'helm');
-    dashboard.registerWidget(gunWidget, { shipId }, 'gun');
+    dashboard.registerWidget(radarWidget, { subjectId: shipId, spaceDriver }, 'radar');
+    dashboard.registerWidget(tacticalRadarWidget, { shipDriver, spaceDriver }, 'tactical radar');
+    dashboard.registerWidget(pilotWidget, { shipDriver }, 'helm');
+    dashboard.registerWidget(gunWidget, { shipDriver }, 'gun');
     dashboard.registerWidget(shipConstantsWidget, { shipDriver }, 'constants');
-    dashboard.registerWidget(targetRadarWidget, { subjectId: shipId }, 'target radar');
+    dashboard.registerWidget(targetRadarWidget, { shipDriver, spaceDriver }, 'target radar');
     dashboard.setup();
 
     const input = new InputManager();
