@@ -66,7 +66,7 @@ export const inputConfig: ShipInputConfig = {
         new GamepadButtonConfig(0, 14),
         0.1
     ),
-    rotationCommandKeys: new KeysRangeConfig('e', 'q', 'e+q', 0.05),
-    strafeCommandKeys: new KeysRangeConfig('a', 'd', 'a+d', 0.05),
-    boostCommandKeys: new KeysRangeConfig('w', 's', 'w+s', 0.05),
+    rotationCommandKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
+    strafeCommandKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
+    boostCommandKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
 };
