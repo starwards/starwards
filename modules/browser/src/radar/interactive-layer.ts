@@ -29,7 +29,11 @@ export class InteractiveLayer {
     private dragTo: XY | null = null;
     private stage = new PIXI.Container();
 
-    constructor(private parent: CameraView, private driver: SpaceDriver, private selectedItems: SelectionContainer) {
+    constructor(
+        private parent: CameraView,
+        private spaceDriver: SpaceDriver,
+        private selectedItems: SelectionContainer
+    ) {
         this.stage.cursor = 'crosshair';
         this.stage.interactive = true;
         this.stage.hitArea = new PIXI.Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
@@ -49,7 +53,7 @@ export class InteractiveLayer {
     }
 
     onSelectPoint(point: XY) {
-        const spaceObject = this.getObjectAtPoint(this.driver.state, point);
+        const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, point);
         if (spaceObject) {
             this.selectedItems.set([spaceObject]);
         } else {
@@ -60,7 +64,9 @@ export class InteractiveLayer {
     onSelectArea(a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
-        const selected = [...this.driver.state].filter((spaceObject) => XY.inRange(spaceObject.position, from, to));
+        const selected = [...this.spaceDriver.state].filter((spaceObject) =>
+            XY.inRange(spaceObject.position, from, to)
+        );
         this.selectedItems.set(selected);
     }
 
@@ -117,7 +123,7 @@ export class InteractiveLayer {
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.driver.commandMoveObjects({
+                this.spaceDriver.commandMoveObjects({
                     ids: [...this.selectedItems.selectedItems].map((o) => o.id),
                     delta: worldMove,
                 });
