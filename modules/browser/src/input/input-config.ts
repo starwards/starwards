@@ -85,9 +85,9 @@ export const shipInputConfig: ShipInputConfig = {
 };
 export interface GmInputConfig {
     rotate?: KeysStepsConfig;
-    toggleLockObjects?: string;
+    toggleZeroSpeed?: string;
 }
 export const gmInputConfig: GmInputConfig = {
     rotate: new KeysStepsConfig('e', 'q', 5),
-    toggleLockObjects: 'l',
+    toggleZeroSpeed: 'l',
 };

@@ -49,9 +49,9 @@ export class SpaceManager {
 
     private toggleLockObjects(ids: string[]) {
         const allObjects = this.state.getBatch(ids);
-        const isAllLocked = allObjects.every((so) => so.spaceLocked);
+        const isAllLocked = allObjects.every((so) => so.zeroSpeed);
         for (const subject of allObjects) {
-            subject.spaceLocked = !isAllLocked;
+            subject.zeroSpeed = !isAllLocked;
         }
     }
 
@@ -74,8 +74,8 @@ export class SpaceManager {
         }
         this.state.rotateCommands = [];
 
-        this.toggleLockObjects(this.state.toggleLockCommands);
-        this.state.toggleLockCommands = [];
+        this.toggleLockObjects(this.state.toggleZeroSpeedCommand);
+        this.state.toggleZeroSpeedCommand = [];
 
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
@@ -147,7 +147,7 @@ export class SpaceManager {
     private applySpaceLock() {
         // loop over objects and apply velocity
         for (const object of this.state) {
-            if (object.spaceLocked) {
+            if (object.zeroSpeed) {
                 object.velocity.x = object.velocity.y = object.turnSpeed = 0;
             }
         }

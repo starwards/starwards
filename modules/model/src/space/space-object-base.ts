@@ -13,7 +13,7 @@ export abstract class SpaceObjectBase extends Schema {
     @type('boolean')
     public destroyed = false;
     @type('boolean')
-    public spaceLocked = false;
+    public zeroSpeed = false;
 
     @type('string')
     public id = '';

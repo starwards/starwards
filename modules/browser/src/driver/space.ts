@@ -9,7 +9,7 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         },
         commandMoveObjects: cmdSender(spaceRoom, spaceProperties.moveObjects),
         commandRotateObjects: cmdSender(spaceRoom, spaceProperties.rotateObjects),
-        commandToggleLockObjects: cmdSender(spaceRoom, spaceProperties.toggleLockObjects),
+        commandToggleZeroSpeed: cmdSender(spaceRoom, spaceProperties.toggleZeroSpeed),
         selectionActions(selectionContainer: SelectionContainer) {
             return {
                 rotate: {
@@ -19,10 +19,10 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                             delta,
                         }),
                 },
-                toggleLockObjects: {
+                toggleZeroSpeed: {
                     onChange: (v: boolean) =>
                         v &&
-                        spaceDriver.commandToggleLockObjects({
+                        spaceDriver.commandToggleZeroSpeed({
                             ids: selectionContainer.selectedItemsIds,
                         }),
                 },

@@ -35,7 +35,7 @@ void (async () => {
 
     const input = new InputManager();
     input.addStepsAction(spaceActions.rotate, gmInputConfig.rotate);
-    input.addKeyAction(spaceActions.toggleLockObjects, gmInputConfig.toggleLockObjects);
+    input.addKeyAction(spaceActions.toggleZeroSpeed, gmInputConfig.toggleZeroSpeed);
 
     input.init();
 
