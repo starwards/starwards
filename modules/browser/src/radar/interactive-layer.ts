@@ -32,7 +32,7 @@ export class InteractiveLayer {
     constructor(
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
-        private selectedItems: SelectionContainer
+        private selectionContainer: SelectionContainer
     ) {
         this.stage.cursor = 'crosshair';
         this.stage.interactive = true;
@@ -55,9 +55,9 @@ export class InteractiveLayer {
     onSelectPoint(point: XY) {
         const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, point);
         if (spaceObject) {
-            this.selectedItems.set([spaceObject]);
+            this.selectionContainer.set([spaceObject]);
         } else {
-            this.selectedItems.clear();
+            this.selectionContainer.clear();
         }
     }
 
@@ -67,7 +67,7 @@ export class InteractiveLayer {
         const selected = [...this.spaceDriver.state].filter((spaceObject) =>
             XY.inRange(spaceObject.position, from, to)
         );
-        this.selectedItems.set(selected);
+        this.selectionContainer.set(selected);
     }
 
     getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
@@ -91,8 +91,11 @@ export class InteractiveLayer {
             if (event.data.button === MouseButton.main) {
                 this.dragFrom = event.data.getLocalPosition(this.stage);
                 if (
-                    this.selectedItems.selectedItems.size > 0 &&
-                    this.getObjectAtPoint(this.selectedItems.selectedItems, this.parent.screenToWorld(this.dragFrom))
+                    this.selectionContainer.selectedItems.size > 0 &&
+                    this.getObjectAtPoint(
+                        this.selectionContainer.selectedItems,
+                        this.parent.screenToWorld(this.dragFrom)
+                    )
                 ) {
                     this.actionType = ActionType.dragObjects;
                 } else {
@@ -124,7 +127,7 @@ export class InteractiveLayer {
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
                 this.spaceDriver.commandMoveObjects({
-                    ids: [...this.selectedItems.selectedItems].map((o) => o.id),
+                    ids: this.selectionContainer.selectedItemsIds,
                     delta: worldMove,
                 });
                 // set next drag origin to current mouse position

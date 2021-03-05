@@ -1,12 +1,13 @@
 import '@maulingmonkey/gamepad';
 
-import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig, KeysRangeConfig } from './input-config';
+import { GamepadAxisConfig, GamepadButtonConfig, KeysStepsConfig, RangeConfig } from './input-config';
 import { capToRange, isInRange } from '@starwards/model/src';
-import hotkeys, { KeyHandler } from 'hotkeys-js';
+
+import hotkeys from 'hotkeys-js';
 
 type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
-type KeyListener = { key: string; method: KeyHandler };
+type KeyListener = { key: string; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
 
 // equiv. to lerp([-1, 1], range, axisValue)
 function lerpAxisToRange(range: [number, number], axisValue: number) {
@@ -19,6 +20,9 @@ export interface RangeAction {
 }
 export interface TriggerAction {
     onChange: (v: boolean) => unknown;
+}
+export interface StepAction {
+    onChange: (v: number) => unknown;
 }
 export class InputManager {
     private axes: AxisListener[] = [];
@@ -57,7 +61,15 @@ export class InputManager {
         addEventListener('mmk-gamepad-button-value', this.onButton);
         addEventListener('mmk-gamepad-axis-value', this.onAxis);
         for (const key of this.keys) {
-            hotkeys(key.key, key.method);
+            hotkeys(key.key, { keyup: true }, (e) => {
+                const value = e.type === 'keydown';
+                if (value && key.onClick) {
+                    key.onClick();
+                }
+                if (key.onChange) {
+                    key.onChange(value);
+                }
+            });
         }
     }
 
@@ -67,29 +79,29 @@ export class InputManager {
         hotkeys.unbind(); // unbind everything
     }
 
-    addAxisAction(
-        property: RangeAction,
-        axis: GamepadAxisConfig | undefined,
-        buttons: GamepadButtonsRangeConfig | undefined,
-        keys: KeysRangeConfig | undefined
-    ) {
-        if (buttons || keys) {
-            const callbacks = new AxisButtonsCallbacks(property);
-            if (buttons) {
-                this.buttons.push({ button: buttons.center, onClick: callbacks.center });
-                this.buttons.push({ button: buttons.up, onClick: callbacks.up(buttons.step) });
-                this.buttons.push({ button: buttons.down, onClick: callbacks.down(buttons.step) });
+    addRangeAction(property: RangeAction, range: RangeConfig | undefined) {
+        if (range) {
+            const { axis, buttons, keys } = range;
+            if (buttons || keys) {
+                const callbacks = new CombinedRangeCallbacks(property);
+                if (buttons) {
+                    const step = getStepOfRange(buttons.step, property.range);
+                    this.buttons.push({ button: buttons.center, onClick: callbacks.center });
+                    this.buttons.push({ button: buttons.up, onClick: callbacks.up(step) });
+                    this.buttons.push({ button: buttons.down, onClick: callbacks.down(step) });
+                }
+                if (keys) {
+                    const step = getStepOfRange(keys.step, property.range);
+                    keys.center && this.keys.push({ key: keys.center, onClick: callbacks.center });
+                    keys.up && this.keys.push({ key: keys.up, onClick: callbacks.up(step) });
+                    keys.down && this.keys.push({ key: keys.down, onClick: callbacks.down(step) });
+                }
+                if (axis) {
+                    this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
+                }
+            } else if (axis) {
+                this.axes.push({ axis, ...property });
             }
-            if (keys) {
-                keys.center && this.keys.push({ key: keys.center, method: callbacks.center });
-                keys.up && this.keys.push({ key: keys.up, method: callbacks.up(keys.step) });
-                keys.down && this.keys.push({ key: keys.down, method: callbacks.down(keys.step) });
-            }
-            if (axis) {
-                this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
-            }
-        } else if (axis) {
-            this.axes.push({ axis, ...property });
         }
     }
 
@@ -98,9 +110,25 @@ export class InputManager {
             this.buttons.push({ button, ...property });
         }
     }
+
+    addKeyAction(property: TriggerAction, key: string | undefined) {
+        if (key) {
+            this.keys.push({ key, onChange: property.onChange });
+        }
+    }
+
+    addStepsAction(property: StepAction, key: KeysStepsConfig | undefined) {
+        if (key) {
+            this.keys.push({ key: key.up, onClick: () => void property.onChange(key.step) });
+            this.keys.push({ key: key.down, onClick: () => void property.onChange(-key.step) });
+        }
+    }
 }
 
-class AxisButtonsCallbacks {
+function getStepOfRange(step: number, range: [number, number]) {
+    return (step * (range[1] - range[0])) / 2;
+}
+class CombinedRangeCallbacks {
     private readonly midRange = lerpAxisToRange(this.property.range, 0);
     private axisValue = this.midRange;
     private buttonsValue = this.midRange;

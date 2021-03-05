@@ -5,6 +5,8 @@ import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import $ from 'jquery';
 import { Driver } from '../driver';
 import { GmWidgets } from '../widgets/gm';
+import { InputManager } from '../input/input-manager';
+import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -29,6 +31,14 @@ dashboard.setup();
 // constantly scan for new ships and add widgets for them
 void (async () => {
     const spaceDriver = await driver.getSpaceDriver();
+    const spaceActions = spaceDriver.selectionActions(gmWidgets.selectionContainer);
+
+    const input = new InputManager();
+    input.addStepsAction(spaceActions.rotate, gmInputConfig.rotate);
+    input.addKeyAction(spaceActions.toggleLockObjects, gmInputConfig.toggleLockObjects);
+
+    input.init();
+
     for await (const shipId of driver.getUniqueShipIds()) {
         const shipDriver = await driver.getShipDriver(shipId);
         dashboard.registerWidget(radarWidget(spaceDriver), { subjectId: shipId }, shipId + ' radar');

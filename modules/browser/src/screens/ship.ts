@@ -5,10 +5,10 @@ import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
 import { InputManager } from '../input/input-manager';
 import { gunWidget } from '../widgets/gun';
-import { inputConfig } from '../input/input-config';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
+import { shipInputConfig } from '../input/input-config';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 
@@ -45,22 +45,17 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.setup();
 
     const input = new InputManager();
-    input.addAxisAction(shipDriver.shellRange, inputConfig.shellRange, inputConfig.shellRangeButtons, undefined);
-    input.addAxisAction(
-        shipDriver.rotationCommand,
-        inputConfig.rotationCommand,
-        undefined,
-        inputConfig.rotationCommandKeys
-    );
-    input.addAxisAction(shipDriver.strafeCommand, inputConfig.strafeCommand, undefined, inputConfig.strafeCommandKeys);
-    input.addAxisAction(shipDriver.boostCommand, inputConfig.boostCommand, undefined, inputConfig.boostCommandKeys);
-    input.addButtonAction(shipDriver.rotationMode, inputConfig.rotationMode);
-    input.addButtonAction(shipDriver.maneuveringMode, inputConfig.maneuveringMode);
-    input.addButtonAction(shipDriver.useReserveSpeed, inputConfig.useReserveSpeed);
-    input.addButtonAction(shipDriver.antiDrift, inputConfig.antiDrift);
-    input.addButtonAction(shipDriver.breaks, inputConfig.breaks);
-    input.addButtonAction(shipDriver.chainGunIsFiring, inputConfig.chainGunIsFiring);
-    input.addButtonAction(shipDriver.target, inputConfig.target);
+    input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
+    input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
+    input.addRangeAction(shipDriver.strafeCommand, shipInputConfig.strafeCommand);
+    input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
+    input.addButtonAction(shipDriver.rotationMode, shipInputConfig.rotationMode);
+    input.addButtonAction(shipDriver.maneuveringMode, shipInputConfig.maneuveringMode);
+    input.addButtonAction(shipDriver.useReserveSpeed, shipInputConfig.useReserveSpeed);
+    input.addButtonAction(shipDriver.antiDrift, shipInputConfig.antiDrift);
+    input.addButtonAction(shipDriver.breaks, shipInputConfig.breaks);
+    input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
+    input.addButtonAction(shipDriver.target, shipInputConfig.target);
     input.init();
 }
 
