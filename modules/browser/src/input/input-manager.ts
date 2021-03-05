@@ -2,11 +2,11 @@ import '@maulingmonkey/gamepad';
 
 import { GamepadAxisConfig, GamepadButtonConfig, GamepadButtonsRangeConfig, KeysRangeConfig } from './input-config';
 import { capToRange, isInRange } from '@starwards/model/src';
-
-import hotkeys from 'hotkeys-js';
+import hotkeys, { KeyHandler } from 'hotkeys-js';
 
 type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
+type KeyListener = { key: string; method: KeyHandler };
 
 // equiv. to lerp([-1, 1], range, axisValue)
 function lerpAxisToRange(range: [number, number], axisValue: number) {
@@ -23,6 +23,7 @@ export interface TriggerAction {
 export class InputManager {
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
+    private keys: KeyListener[] = [];
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
@@ -55,6 +56,9 @@ export class InputManager {
     init() {
         addEventListener('mmk-gamepad-button-value', this.onButton);
         addEventListener('mmk-gamepad-axis-value', this.onAxis);
+        for (const key of this.keys) {
+            hotkeys(key.key, key.method);
+        }
     }
 
     destroy() {
@@ -77,9 +81,9 @@ export class InputManager {
                 this.buttons.push({ button: buttons.down, onClick: callbacks.down(buttons.step) });
             }
             if (keys) {
-                keys.center && hotkeys(keys.center, callbacks.center);
-                keys.up && hotkeys(keys.up, callbacks.up(keys.step));
-                keys.down && hotkeys(keys.down, callbacks.down(keys.step));
+                keys.center && this.keys.push({ key: keys.center, method: callbacks.center });
+                keys.up && this.keys.push({ key: keys.up, method: callbacks.up(keys.step) });
+                keys.down && this.keys.push({ key: keys.down, method: callbacks.down(keys.step) });
             }
             if (axis) {
                 this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
