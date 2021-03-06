@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject } from '@starwards/model';
+import { SpaceObject, State } from '@starwards/model';
 
 import $ from 'jquery';
 import { Camera } from '../radar/camera';
@@ -10,51 +10,15 @@ import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
+import { SpaceDriver } from '../driver';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
-import { getGlobalRoom } from '../client';
 
 WebFont.load({
     custom: {
         families: ['Bebas'],
     },
 });
-
-function radarComponent(container: Container, state: Props) {
-    const camera = new Camera();
-    camera.bindZoom(container, state);
-    container.getElement().bind('wheel', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-    });
-    async function init() {
-        const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
-        const grid = new GridLayer(root);
-        root.addLayer(grid.renderRoot);
-        const room = await getGlobalRoom('space');
-        const blipLayer = new ObjectsLayer(root, room, blipRenderer, new SelectionContainer(room.state));
-        root.addLayer(blipLayer.renderRoot);
-        trackObject(camera, room, state.subjectId);
-    }
-    PIXI.Loader.shared.load(() => {
-        void init();
-    });
-}
-
-function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
-    let tracked = room.state.get(subjectId);
-    if (tracked) {
-        camera.followSpaceObject(tracked, room.state.events);
-    } else {
-        room.state.events.on('add', (spaceObject: SpaceObject) => {
-            if (!tracked && spaceObject.id === subjectId) {
-                tracked = spaceObject;
-                camera.followSpaceObject(tracked, room.state.events);
-            }
-        });
-    }
-}
 
 export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery<HTMLElement>> {
     const zoomIn = $('<i class="lm_controls tiny material-icons">zoom_in</i>');
@@ -73,11 +37,53 @@ export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery
     });
     return [zoomIn, zoomOut];
 }
+
 export type Props = { zoom: number; subjectId: string };
-export const radarWidget: DashboardWidget<Props> = {
-    name: 'radar',
-    type: 'component',
-    component: radarComponent,
-    defaultProps: { zoom: 1 },
-    makeHeaders: makeRadarHeaders,
-};
+export function radarWidget(spaceDriver: SpaceDriver): DashboardWidget<Props> {
+    class RadarComponent {
+        constructor(container: Container, p: Props) {
+            const camera = new Camera();
+            camera.bindZoom(container, p);
+            container.getElement().bind('wheel', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+            });
+            PIXI.Loader.shared.load(() => {
+                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const grid = new GridLayer(root);
+                root.addLayer(grid.renderRoot);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    blipRenderer,
+                    new SelectionContainer().init(spaceDriver.state)
+                );
+                root.addLayer(blipLayer.renderRoot);
+                trackObject(camera, spaceDriver.state, p.subjectId);
+            });
+        }
+    }
+
+    function trackObject(camera: Camera, spaceState: State<'space'>, subjectId: string) {
+        let tracked = spaceState.get(subjectId);
+        if (tracked) {
+            camera.followSpaceObject(tracked, spaceState.events);
+        } else {
+            spaceState.events.on('add', (spaceObject: SpaceObject) => {
+                if (!tracked && spaceObject.id === subjectId) {
+                    tracked = spaceObject;
+                    camera.followSpaceObject(tracked, spaceState.events);
+                }
+            });
+        }
+    }
+
+    return {
+        name: 'radar',
+        type: 'component',
+        component: RadarComponent,
+        defaultProps: { zoom: 1 },
+        makeHeaders: makeRadarHeaders,
+    };
+}

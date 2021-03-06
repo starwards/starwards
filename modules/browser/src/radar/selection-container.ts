@@ -13,12 +13,17 @@ export class SelectionContainer {
      */
     public selectedItems = new Set<SpaceObject>();
 
-    constructor(space: SpaceState) {
+    public get selectedItemsIds() {
+        return [...this.selectedItems].map((o) => o.id);
+    }
+
+    init(space: SpaceState) {
         space.events.on('remove', (spaceObject: SpaceObject) => {
             if (this.selectedItems.delete(spaceObject)) {
                 this.events.emit(spaceObject.id);
             }
         });
+        return this;
     }
 
     public clear() {

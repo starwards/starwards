@@ -1,9 +1,8 @@
+import { AdminDriver, Driver } from '../driver';
 import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect, useState } from 'react';
-import { adminProperties as ap, cmdSender } from '@starwards/model/src';
-import { client, getGlobalRoom } from '../client';
 
 import { DashboardWidget } from './dashboard';
 import { TaskLoop } from '../task-loop';
@@ -15,21 +14,16 @@ WebFont.load({
     },
 });
 
-// TODO move into hooks (cmdSender should only run once)
-async function stopGame() {
-    cmdSender(await getGlobalRoom('admin'), ap.shouldGameBeRunning)(false);
-}
-async function startGame() {
-    cmdSender(await getGlobalRoom('admin'), ap.shouldGameBeRunning)(true);
-}
-
-const InGameMenu = () => {
+const InGameMenu = (p: Props) => {
     const [ships, setShips] = useState<string[]>([]);
+    const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
+    useEffect(() => {
+        void p.driver.getAdminDriver().then(setAdminDriver);
+    }, [p.driver]);
 
     useEffect(() => {
         const loop = new TaskLoop(async () => {
-            const rooms = await client.getAvailableRooms('ship');
-            setShips(rooms.map((r) => r.roomId));
+            setShips([...(await p.driver.getCurrentShipIds())]);
         }, 500);
         loop.start();
         return loop.stop;
@@ -43,11 +37,13 @@ const InGameMenu = () => {
     }
     return (
         <ul>
-            <li key="Stop Game">
-                <Button onClick={stopGame} animate>
-                    Stop Game
-                </Button>
-            </li>
+            {adminDriver && (
+                <li key="Stop Game">
+                    <Button onClick={adminDriver?.stopGame} animate>
+                        Stop Game
+                    </Button>
+                </li>
+            )}
             <li key="Game Master">
                 <Button onClick={() => window.location.assign(`gm.html`)} animate>
                     Game Master
@@ -80,13 +76,17 @@ const InGameMenu = () => {
     );
 };
 
-export const Lobby = () => {
-    const [gamesCount, setgamesCount] = useState(0);
+export const Lobby = (p: Props) => {
+    const [gamesCount, setgamesCount] = useState(false);
+    const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
+
+    useEffect(() => {
+        void p.driver.getAdminDriver().then(setAdminDriver);
+    }, [p.driver]);
 
     useEffect(() => {
         const loop = new TaskLoop(async () => {
-            const rooms = await client.getAvailableRooms('space');
-            setgamesCount(rooms.length);
+            setgamesCount(await p.driver.isActiveGame());
         }, 500);
         loop.start();
         return loop.stop;
@@ -127,14 +127,14 @@ export const Lobby = () => {
                             <p>Starwards</p>
                         </Heading>
                         <ul>
-                            {!!gamesCount && (
+                            {gamesCount && adminDriver && (
                                 <li key="InGameMenu">
-                                    <InGameMenu></InGameMenu>
+                                    <InGameMenu driver={p.driver}></InGameMenu>
                                 </li>
                             )}
-                            {!gamesCount && (
+                            {!gamesCount && adminDriver && (
                                 <li key="startGame">
-                                    <Button onClick={startGame} animate>
+                                    <Button onClick={adminDriver.startGame} animate>
                                         New Game
                                     </Button>
                                 </li>
@@ -152,7 +152,8 @@ export const Lobby = () => {
     );
 };
 
-export const lobbyWidget: DashboardWidget<Record<string, unknown>> = {
+export type Props = { driver: Driver };
+export const lobbyWidget: DashboardWidget<Props> = {
     name: 'lobby',
     type: 'react-component',
     component: Lobby,

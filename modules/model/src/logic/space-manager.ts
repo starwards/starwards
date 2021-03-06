@@ -4,6 +4,7 @@ import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
+
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new Collisions();
@@ -26,6 +27,7 @@ export class SpaceManager {
             subject.velocity.y += delta.y;
         }
     }
+
     private moveObjects(ids: string[], delta: XY) {
         for (const id of ids) {
             const subject = this.state.get(id);
@@ -33,6 +35,23 @@ export class SpaceManager {
                 Vec2.add(subject.position, delta, subject.position);
                 this.updateObjectCollision(subject);
             }
+        }
+    }
+
+    private rotateObjects(ids: string[], delta: number) {
+        for (const id of ids) {
+            const subject = this.state.get(id);
+            if (subject && !subject.destroyed) {
+                subject.angle = (360 + subject.angle + delta) % 360;
+            }
+        }
+    }
+
+    private toggleLockObjects(ids: string[]) {
+        const allObjects = this.state.getBatch(ids);
+        const isAllLocked = allObjects.every((so) => so.zeroSpeed);
+        for (const subject of allObjects) {
+            subject.zeroSpeed = !isAllLocked;
         }
     }
 
@@ -49,9 +68,19 @@ export class SpaceManager {
             this.moveObjects(moveCommand.ids, moveCommand.delta);
         }
         this.state.moveCommands = [];
+
+        for (const rotateCommand of this.state.rotateCommands) {
+            this.rotateObjects(rotateCommand.ids, rotateCommand.delta);
+        }
+        this.state.rotateCommands = [];
+
+        this.toggleLockObjects(this.state.toggleZeroSpeedCommand);
+        this.state.toggleZeroSpeedCommand = [];
+
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.untrackDestroyedObjects();
+        this.applySpaceLock();
         this.applyPhysics(deltaSeconds);
         this.handleCollisions(deltaSeconds);
         this.handleToInsert();
@@ -112,6 +141,15 @@ export class SpaceManager {
                 this.stateToCollision.set(object, body);
             }
             this.toInsert = [];
+        }
+    }
+
+    private applySpaceLock() {
+        // loop over objects and apply velocity
+        for (const object of this.state) {
+            if (object.zeroSpeed) {
+                object.velocity.x = object.velocity.y = object.turnSpeed = 0;
+            }
         }
     }
 

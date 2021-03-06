@@ -1,12 +1,16 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { SpaceObject, SpaceObjects } from '.';
+import { MoveObjectsArg, RotataObjectsArg } from './space-properties';
+import { SpaceObject, SpaceObjectBase, SpaceObjects } from '.';
 
 import { Asteroid } from './asteroid';
 import { CannonShell } from './cannon-shell';
 import EventEmitter from 'eventemitter3';
 import { Explosion } from './explosion';
-import { MoveObjectsArg } from './space-properties';
 import { Spaceship } from './spaceship';
+
+function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
+    return !!k;
+}
 
 export class SpaceState extends Schema {
     @type({ map: CannonShell })
@@ -23,6 +27,8 @@ export class SpaceState extends Schema {
 
     // server only, used for commands
     public moveCommands = Array.of<MoveObjectsArg>();
+    public rotateCommands = Array.of<RotataObjectsArg>();
+    public toggleZeroSpeedCommand = Array.of<SpaceObjectBase['id']>();
 
     public events = new EventEmitter();
 
@@ -51,6 +57,10 @@ export class SpaceState extends Schema {
         return (
             this.cannonShells.get(id) ?? this.asteroids.get(id) ?? this.spaceships.get(id) ?? this.explosions.get(id)
         );
+    }
+
+    public getBatch(ids: Array<string>): Array<SpaceObject> {
+        return ids.map((id) => this.get(id)).filter<SpaceObject>(isSpaceObject);
     }
 
     public set(obj: SpaceObject) {

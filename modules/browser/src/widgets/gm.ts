@@ -4,49 +4,63 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { Driver } from '../driver';
 import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { blipRenderer } from '../radar/blip-renderer';
-import { getGlobalRoom } from '../client';
 import { makeRadarHeaders } from './radar';
 
-// import { velocityRenderer } from '../radar/velocity-renderer';
-
-// TODO: use https://github.com/dataarts/dat.gui
-function gmComponent(container: Container, state: { zoom: number }) {
-    const camera = new Camera();
-    camera.bindZoom(container, state);
-    container.getElement().bind('wheel', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
-    });
-    async function init() {
-        const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
-        const grid = new GridLayer(root);
-        root.addLayer(grid.renderRoot);
-        const [spaceRoom, adminRoom] = await Promise.all([getGlobalRoom('space'), getGlobalRoom('admin')]);
-        const fragCounter = new FragCounter(adminRoom.state);
-        const selectionContainer = new SelectionContainer(spaceRoom.state);
-        const selection = new InteractiveLayer(root, spaceRoom, selectionContainer);
-        const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, selectionContainer);
-        root.addLayer(blipLayer.renderRoot);
-        root.addLayer(selection.renderRoot);
-        root.addLayer(fragCounter);
-    }
-
-    PIXI.Loader.shared.load(() => {
-        void init();
-    });
+export interface RadarState {
+    zoom: number;
 }
+export class GmWidgets {
+    public radar: DashboardWidget<RadarState>;
+    public selectionContainer: SelectionContainer;
+    constructor(driver: Driver) {
+        const selectionContainer = new SelectionContainer();
+        this.selectionContainer = selectionContainer;
+        class GmRadarComponent {
+            constructor(container: Container, state: RadarState) {
+                const camera = new Camera();
+                camera.bindZoom(container, state);
+                container.getElement().bind('wheel', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
+                });
+                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const grid = new GridLayer(root);
+                root.addLayer(grid.renderRoot);
+                void this.init(root);
+            }
 
-export const gmWidget: DashboardWidget<{ zoom: number }> = {
-    name: 'GM',
-    type: 'component',
-    component: gmComponent,
-    defaultProps: { zoom: 1 },
-    makeHeaders: makeRadarHeaders,
-};
+            // the async part of initializing
+            private async init(root: CameraView) {
+                const pixiLoaded = new Promise((res) => PIXI.Loader.shared.load(res));
+                const [spaceDriver, adminDriver] = await Promise.all([
+                    driver.getSpaceDriver(),
+                    driver.getAdminDriver(),
+                    pixiLoaded,
+                ]);
+                const fragCounter = new FragCounter(adminDriver.state);
+                const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
+                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, selectionContainer);
+                root.addLayer(blipLayer.renderRoot);
+                root.addLayer(selection.renderRoot);
+                root.addLayer(fragCounter);
+            }
+        }
+        // todo make lazy
+        this.radar = {
+            name: 'GM Radar',
+            type: 'component',
+            defaultProps: { zoom: 1 },
+            makeHeaders: makeRadarHeaders,
+            component: GmRadarComponent,
+        };
+        void driver.getSpaceDriver().then((spaceDriver) => selectionContainer.init(spaceDriver.state));
+    }
+}

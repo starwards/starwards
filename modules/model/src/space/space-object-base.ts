@@ -12,6 +12,8 @@ export abstract class SpaceObjectBase extends Schema {
     public abstract readonly type: keyof SpaceObjects;
     @type('boolean')
     public destroyed = false;
+    @type('boolean')
+    public zeroSpeed = false;
 
     @type('string')
     public id = '';

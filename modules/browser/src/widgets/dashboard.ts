@@ -1,5 +1,5 @@
 import GoldenLayout, { Container, ContentItem, ReactProps, Tab } from 'golden-layout';
-import React, { ComponentClass } from 'react';
+import React, { ComponentType } from 'react';
 
 import $ from 'jquery';
 import ReactDOM from 'react-dom';
@@ -16,12 +16,12 @@ window.ReactDOM = ReactDOM;
 
 export type MakeHeaders<T> = (container: Container, state: T) => Array<JQuery<HTMLElement>>;
 
-export type GLComponent<T> = (container: Container, state: T) => void;
+export type GLComponent<T> = { new (container: Container, state: T): unknown };
 
-export interface DashboardWidget<T extends Obj = Obj> {
+export interface DashboardWidget<T = Obj> {
     name: string;
     type: 'component' | 'react-component';
-    component: GLComponent<T> | ComponentClass<T & ReactProps>;
+    component: GLComponent<T> | ComponentType<T & ReactProps>;
     defaultProps: Partial<T>;
     makeHeaders?: MakeHeaders<T>;
 }
@@ -74,11 +74,13 @@ export class Dashboard extends GoldenLayout {
                 const newItemConfig = getGoldenLayoutItemConfig(widget);
                 this.registerWidgetMenuItem(widget.name, newItemConfig);
             }
-            // eslint-disable-next-line no-empty
-        } catch (e) {}
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.log(e);
+        }
     }
 
-    public registerWidget<T extends Obj>(
+    public registerWidget<T>(
         { name: wName, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
         props: Partial<T> = {},
         name?: string

@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject, degToRad } from '@starwards/model';
+import { ShipDriver, SpaceDriver } from '../driver';
+import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
-import { getGlobalRoom, getShipRoom } from '../client';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -29,69 +29,68 @@ PIXI.Loader.shared.add(preloadList);
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
-function tacticalRadarComponent(container: Container, state: Props) {
-    const camera = new Camera();
-    camera.bindRange(container, sizeFactor - sizeFactorGrace, state);
-    async function init() {
-        const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
-        root.setSquare();
-        const [spaceRoom, shipRoom] = await Promise.all([getGlobalRoom('space'), getShipRoom(state.subjectId)]);
-        const background = new MovementAnchorLayer(
-            root,
-            {
-                width: 2,
-                color: 0xaaffaa,
-                alpha: 0.1,
-            },
-            1000,
-            state.range
-        );
-        root.addLayer(background.renderRoot);
-        const range = new RangeIndicators(root, state.range / 5);
-        range.setSizeFactor(sizeFactor);
-        root.addLayer(range.renderRoot);
-        const asimuthCircle = new SpriteLayer(
-            root,
-            {
-                fileName: 'images/asimuth-circle.svg',
-                tint: 0xaaffaa,
-                radiusMeters: 6000,
-            },
-            () => shipRoom.state.position,
-            () => degToRad * -shipRoom.state.angle
-        );
-        root.addLayer(asimuthCircle.renderRoot);
-        const shipTarget = trackTargetObject(spaceRoom.state, shipRoom.state);
-        root.addLayer(crosshairs(root, shipRoom.state, shipTarget));
-        root.addLayer(speedLines(root, shipRoom.state, shipTarget));
-        const blipLayer = new ObjectsLayer(root, spaceRoom, blipRenderer, shipTarget);
-        root.addLayer(blipLayer.renderRoot);
-        trackObject(camera, spaceRoom, state.subjectId);
-    }
-
-    PIXI.Loader.shared.load(() => {
-        void init();
-    });
-}
-
-function trackObject(camera: Camera, room: GameRoom<'space'>, subjectId: string) {
-    let tracked = room.state.get(subjectId);
+function trackObject(camera: Camera, spaceDriver: SpaceDriver, subjectId: string) {
+    let tracked = spaceDriver.state.get(subjectId);
     if (tracked) {
-        camera.followSpaceObject(tracked, room.state.events, true);
+        camera.followSpaceObject(tracked, spaceDriver.state.events, true);
     } else {
-        room.state.events.on('add', (spaceObject: SpaceObject) => {
+        spaceDriver.state.events.on('add', (spaceObject: SpaceObject) => {
             if (!tracked && spaceObject.id === subjectId) {
                 tracked = spaceObject;
-                camera.followSpaceObject(tracked, room.state.events, true);
+                camera.followSpaceObject(tracked, spaceDriver.state.events, true);
             }
         });
     }
 }
 
-export type Props = { range: number; subjectId: string };
-export const tacticalRadarWidget: DashboardWidget<Props> = {
-    name: 'tactical radar',
-    type: 'component',
-    component: tacticalRadarComponent,
-    defaultProps: { range: 5000 },
-};
+export type Props = { range: number };
+export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
+    class TacticalRadarComponent {
+        constructor(container: Container, p: Props) {
+            const camera = new Camera();
+            camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
+            PIXI.Loader.shared.load(() => {
+                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                root.setSquare();
+                const background = new MovementAnchorLayer(
+                    root,
+                    {
+                        width: 2,
+                        color: 0xaaffaa,
+                        alpha: 0.1,
+                    },
+                    1000,
+                    p.range
+                );
+                root.addLayer(background.renderRoot);
+                const range = new RangeIndicators(root, p.range / 5);
+                range.setSizeFactor(sizeFactor);
+                root.addLayer(range.renderRoot);
+                const asimuthCircle = new SpriteLayer(
+                    root,
+                    {
+                        fileName: 'images/asimuth-circle.svg',
+                        tint: 0xaaffaa,
+                        radiusMeters: 6000,
+                    },
+                    () => shipDriver.state.position,
+                    () => degToRad * -shipDriver.state.angle
+                );
+                root.addLayer(asimuthCircle.renderRoot);
+                const shipTarget = trackTargetObject(spaceDriver.state, shipDriver.state);
+                root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
+                root.addLayer(speedLines(root, shipDriver.state, shipTarget));
+                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
+                root.addLayer(blipLayer.renderRoot);
+                trackObject(camera, spaceDriver, shipDriver.state.id);
+            });
+        }
+    }
+
+    return {
+        name: 'tactical radar',
+        type: 'component',
+        component: TacticalRadarComponent,
+        defaultProps: { range: 5000 },
+    };
+}

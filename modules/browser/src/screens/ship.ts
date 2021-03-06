@@ -2,55 +2,60 @@ import * as PIXI from 'pixi.js';
 
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
-import { InputManager } from '../input-manager';
-import { TaskLoop } from '../task-loop';
-import { client } from '../client';
-import { gamepadInput } from '../gamepad-input';
+import { Driver } from '../driver';
+import { InputManager } from '../input/input-manager';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
+import { shipInputConfig } from '../input/input-config';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 window.PIXI = PIXI;
+const driver = new Driver();
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const layoutUrlParam = urlParams.get('layout');
     const dashboard = makeDashboard(shipUrlParam, layoutUrlParam);
-
-    // constantly scan for new ships and add widgets when current ship is found
-    const loop = new TaskLoop(async () => {
-        const rooms = await client.getAvailableRooms('ship');
-        for (const room of rooms) {
-            const shipId = room.roomId;
-            if (shipUrlParam === shipId) {
-                loop.stop();
-                await initScreen(dashboard, shipId);
-            }
-        }
-    }, 500);
-    loop.start();
+    void driver.waitForShip(shipUrlParam).then(
+        () => initScreen(dashboard, shipUrlParam),
+        // eslint-disable-next-line no-console
+        (e) => console.error(e)
+    );
 } else {
     // eslint-disable-next-line no-console
     console.error('missing "ship" url query param');
 }
 
 async function initScreen(dashboard: Dashboard, shipId: string) {
-    dashboard.registerWidget(radarWidget, { subjectId: shipId }, 'radar');
-    dashboard.registerWidget(tacticalRadarWidget, { subjectId: shipId }, 'tactical radar');
-    dashboard.registerWidget(pilotWidget, { shipId }, 'helm');
-    dashboard.registerWidget(gunWidget, { shipId }, 'gun');
-    dashboard.registerWidget(shipConstantsWidget, { shipId }, 'constants');
-    dashboard.registerWidget(targetRadarWidget, { subjectId: shipId }, 'target radar');
+    const shipDriver = await driver.getShipDriver(shipId);
+    const spaceDriver = await driver.getSpaceDriver();
+
+    dashboard.registerWidget(radarWidget(spaceDriver), { subjectId: shipId }, 'radar');
+    dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, 'tactical radar');
+    dashboard.registerWidget(pilotWidget(shipDriver), {}, 'helm');
+    dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');
+    dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, 'constants');
+    dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');
     dashboard.setup();
 
     const input = new InputManager();
-    await gamepadInput(input, shipId);
+    input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
+    input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
+    input.addRangeAction(shipDriver.strafeCommand, shipInputConfig.strafeCommand);
+    input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
+    input.addButtonAction(shipDriver.rotationMode, shipInputConfig.rotationMode);
+    input.addButtonAction(shipDriver.maneuveringMode, shipInputConfig.maneuveringMode);
+    input.addButtonAction(shipDriver.useReserveSpeed, shipInputConfig.useReserveSpeed);
+    input.addButtonAction(shipDriver.antiDrift, shipInputConfig.antiDrift);
+    input.addButtonAction(shipDriver.breaks, shipInputConfig.breaks);
+    input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
+    input.addButtonAction(shipDriver.target, shipInputConfig.target);
     input.init();
 }
 

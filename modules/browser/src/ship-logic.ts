@@ -4,7 +4,7 @@ import { SelectionContainer } from './radar/selection-container';
 
 // TODO: move to model? (along with SelectionContainer)
 export function trackTargetObject(space: SpaceState, ship: ShipState): SelectionContainer {
-    const result = new SelectionContainer(space);
+    const result = new SelectionContainer().init(space);
     const updateSelectedTarget = () => {
         const targetObj = ship.targetId && space.get(ship.targetId);
         result.set(targetObj ? [targetObj] : []);

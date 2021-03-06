@@ -1,45 +1,42 @@
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../property-panel';
-import { getShipRoom } from '../client';
-import { shipProperties } from '../ship-properties';
+import { ShipDriver } from '../driver';
 
-function pilotComponent(container: Container, p: Props) {
-    void (async () => {
-        const shipRoom = await getShipRoom(p.shipId);
-        const panel = new PropertyPanel();
-        panel.init(container);
-        container.on('destroy', () => {
-            panel.destroy();
-        });
-        const properties = shipProperties(shipRoom);
+export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
+    class PilotComponent {
+        constructor(container: Container, _: unknown) {
+            const panel = new PropertyPanel();
+            panel.init(container);
+            container.on('destroy', () => {
+                panel.destroy();
+            });
 
-        panel.addText('rotationMode', properties.rotationMode);
-        panel.addProperty('smartPilotRotation', properties.smartPilotRotation);
-        panel.addProperty('rotation', properties.rotation);
-        panel.addText('maneuveringMode', properties.maneuveringMode);
-        panel.addProperty('smartPilotStrafe', properties.smartPilotStrafe);
-        panel.addProperty('smartPilotBoost', properties.smartPilotBoost);
-        panel.addProperty('strafe', properties.strafe);
-        panel.addProperty('boost', properties.boost);
+            panel.addText('rotationMode', shipDriver.rotationMode);
+            panel.addProperty('rotationCommand', shipDriver.rotationCommand);
+            panel.addProperty('rotation', shipDriver.rotation);
+            panel.addText('maneuveringMode', shipDriver.maneuveringMode);
+            panel.addProperty('strafeCommand', shipDriver.strafeCommand);
+            panel.addProperty('boostCommand', shipDriver.boostCommand);
+            panel.addProperty('strafe', shipDriver.strafe);
+            panel.addProperty('boost', shipDriver.boost);
 
-        panel.addProperty('energy', properties.energy);
-        panel.addProperty('reserveSpeed', properties.reserveSpeed);
-        panel.addProperty('useReserveSpeed', properties.useReserveSpeed);
-        panel.addProperty('antiDrift', properties.antiDrift);
-        panel.addProperty('breaks', properties.breaks);
-        panel.addProperty('turnSpeed', properties.turnSpeed);
-        panel.addProperty('angle', properties.angle);
-        panel.addProperty('speed direction', properties['speed direction']);
-        panel.addProperty('speed', properties.speed);
-        panel.addText('targeted', properties.targeted);
-    })();
+            panel.addProperty('energy', shipDriver.energy);
+            panel.addProperty('reserveSpeed', shipDriver.reserveSpeed);
+            panel.addProperty('useReserveSpeed', shipDriver.useReserveSpeed);
+            panel.addProperty('antiDrift', shipDriver.antiDrift);
+            panel.addProperty('breaks', shipDriver.breaks);
+            panel.addProperty('turnSpeed', shipDriver.turnSpeed);
+            panel.addProperty('angle', shipDriver.angle);
+            panel.addProperty('speed direction', shipDriver['speed direction']);
+            panel.addProperty('speed', shipDriver.speed);
+            panel.addText('targeted', shipDriver.targeted);
+        }
+    }
+    return {
+        name: 'pilot',
+        type: 'component',
+        component: PilotComponent,
+        defaultProps: {},
+    };
 }
-
-export type Props = { shipId: string };
-export const pilotWidget: DashboardWidget<Props> = {
-    name: 'pilot',
-    type: 'component',
-    component: pilotComponent,
-    defaultProps: {},
-};

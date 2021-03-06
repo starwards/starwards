@@ -1,9 +1,10 @@
 import * as PIXI from 'pixi.js';
 
-import { GameRoom, SpaceObject, XY, cmdSender, spaceProperties } from '@starwards/model';
+import { SpaceObject, XY } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
+import { SpaceDriver } from '../driver';
 
 enum MouseButton {
     none = -1,
@@ -27,12 +28,11 @@ export class InteractiveLayer {
     private dragFrom: XY | null = null;
     private dragTo: XY | null = null;
     private stage = new PIXI.Container();
-    private commandMoveObjects = cmdSender(this.room, spaceProperties.moveObjects);
 
     constructor(
         private parent: CameraView,
-        private room: GameRoom<'space'>,
-        private selectedItems: SelectionContainer
+        private spaceDriver: SpaceDriver,
+        private selectionContainer: SelectionContainer
     ) {
         this.stage.cursor = 'crosshair';
         this.stage.interactive = true;
@@ -53,19 +53,21 @@ export class InteractiveLayer {
     }
 
     onSelectPoint(point: XY) {
-        const spaceObject = this.getObjectAtPoint(this.room.state, point);
+        const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, point);
         if (spaceObject) {
-            this.selectedItems.set([spaceObject]);
+            this.selectionContainer.set([spaceObject]);
         } else {
-            this.selectedItems.clear();
+            this.selectionContainer.clear();
         }
     }
 
     onSelectArea(a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
-        const selected = [...this.room.state].filter((spaceObject) => XY.inRange(spaceObject.position, from, to));
-        this.selectedItems.set(selected);
+        const selected = [...this.spaceDriver.state].filter((spaceObject) =>
+            XY.inRange(spaceObject.position, from, to)
+        );
+        this.selectionContainer.set(selected);
     }
 
     getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
@@ -89,8 +91,11 @@ export class InteractiveLayer {
             if (event.data.button === MouseButton.main) {
                 this.dragFrom = event.data.getLocalPosition(this.stage);
                 if (
-                    this.selectedItems.selectedItems.size > 0 &&
-                    this.getObjectAtPoint(this.selectedItems.selectedItems, this.parent.screenToWorld(this.dragFrom))
+                    this.selectionContainer.selectedItems.size > 0 &&
+                    this.getObjectAtPoint(
+                        this.selectionContainer.selectedItems,
+                        this.parent.screenToWorld(this.dragFrom)
+                    )
                 ) {
                     this.actionType = ActionType.dragObjects;
                 } else {
@@ -121,8 +126,8 @@ export class InteractiveLayer {
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.commandMoveObjects({
-                    ids: [...this.selectedItems.selectedItems].map((o) => o.id),
+                this.spaceDriver.commandMoveObjects({
+                    ids: this.selectionContainer.selectedItemsIds,
                     delta: worldMove,
                 });
                 // set next drag origin to current mouse position

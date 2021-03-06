@@ -41,25 +41,25 @@ export function jouster(): Bot {
                 XY.add(hitLocation, getShellAimVelocityCompensation(ship)),
                 0
             );
-            setNumericProperty(shipManager, p.smartPilotRotation, rotation);
+            setNumericProperty(shipManager, p.rotationCommand, rotation);
             const shipToTarget = XY.difference(hitLocation, ship.position);
             const distanceToTarget = XY.lengthOf(shipToTarget);
             const killRadius = getKillZoneRadiusRange(ship);
             if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
                 // if close enough to target, tail it
                 const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
-                setNumericProperty(shipManager, p.smartPilotBoost, maneuvering.boost);
-                setNumericProperty(shipManager, p.smartPilotStrafe, maneuvering.strafe);
+                setNumericProperty(shipManager, p.boostCommand, maneuvering.boost);
+                setNumericProperty(shipManager, p.strafeCommand, maneuvering.strafe);
             } else {
                 const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
                 // close distance to target
                 if (distanceToTarget > killRadius[1]) {
-                    setNumericProperty(shipManager, p.smartPilotBoost, maneuvering.boost);
-                    setNumericProperty(shipManager, p.smartPilotStrafe, maneuvering.strafe);
+                    setNumericProperty(shipManager, p.boostCommand, maneuvering.boost);
+                    setNumericProperty(shipManager, p.strafeCommand, maneuvering.strafe);
                 } else {
                     // distanceToTarget < killRadius[0]
-                    setNumericProperty(shipManager, p.smartPilotBoost, -maneuvering.boost);
-                    setNumericProperty(shipManager, p.smartPilotStrafe, -maneuvering.strafe);
+                    setNumericProperty(shipManager, p.boostCommand, -maneuvering.boost);
+                    setNumericProperty(shipManager, p.strafeCommand, -maneuvering.strafe);
                 }
             }
             lastTargetVelocity = XY.clone(target.velocity);
