@@ -47,11 +47,11 @@ export class SpaceManager {
         }
     }
 
-    private toggleLockObjects(ids: string[]) {
+    private toggleFreezeObjects(ids: string[]) {
         const allObjects = this.state.getBatch(ids);
-        const isAllLocked = allObjects.every((so) => so.zeroSpeed);
+        const isAllFrozen = allObjects.every((so) => so.freeze);
         for (const subject of allObjects) {
-            subject.zeroSpeed = !isAllLocked;
+            subject.freeze = !isAllFrozen;
         }
     }
 
@@ -74,13 +74,13 @@ export class SpaceManager {
         }
         this.state.rotateCommands = [];
 
-        this.toggleLockObjects(this.state.toggleZeroSpeedCommand);
-        this.state.toggleZeroSpeedCommand = [];
+        this.toggleFreezeObjects(this.state.toggleFreezeCommand);
+        this.state.toggleFreezeCommand = [];
 
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.untrackDestroyedObjects();
-        this.applySpaceLock();
+        this.applyFreeze();
         this.applyPhysics(deltaSeconds);
         this.handleCollisions(deltaSeconds);
         this.handleToInsert();
@@ -92,22 +92,28 @@ export class SpaceManager {
 
     private growExplosions(deltaSeconds: number) {
         for (const explosion of this.state.getAll('Explosion')) {
-            explosion.radius += explosion.expansionSpeed * deltaSeconds;
-            this.updateObjectCollision(explosion);
+            if (!explosion.freeze) {
+                explosion.radius += explosion.expansionSpeed * deltaSeconds;
+                this.updateObjectCollision(explosion);
+            }
         }
     }
 
     private destroyTimedOut(deltaSeconds: number) {
         for (const explosion of this.state.getAll('Explosion')) {
-            explosion.secondsToLive -= deltaSeconds;
-            if (explosion.secondsToLive <= 0) {
-                explosion.destroyed = true;
+            if (!explosion.freeze) {
+                explosion.secondsToLive -= deltaSeconds;
+                if (explosion.secondsToLive <= 0) {
+                    explosion.destroyed = true;
+                }
             }
         }
         for (const shell of this.state.getAll('CannonShell')) {
-            shell.secondsToLive -= deltaSeconds;
-            if (shell.secondsToLive <= 0) {
-                this.explodeCannonShell(shell);
+            if (!shell.freeze) {
+                shell.secondsToLive -= deltaSeconds;
+                if (shell.secondsToLive <= 0) {
+                    this.explodeCannonShell(shell);
+                }
             }
         }
     }
@@ -144,10 +150,10 @@ export class SpaceManager {
         }
     }
 
-    private applySpaceLock() {
+    private applyFreeze() {
         // loop over objects and apply velocity
         for (const object of this.state) {
-            if (object.zeroSpeed) {
+            if (object.freeze) {
                 object.velocity.x = object.velocity.y = object.turnSpeed = 0;
             }
         }
@@ -222,20 +228,22 @@ export class SpaceManager {
         const toUpdate = new Set<SpaceObject>();
         // for every moving object
         for (const object of this.state) {
-            const body = this.stateToCollision.get(object);
-            if (body) {
-                // Get any potential collisions
-                for (const potential of body.potentials()) {
-                    const otherObjext = this.collisionToState.get(potential);
-                    if (otherObjext && !otherObjext.destroyed && body.collides(potential, result)) {
-                        this.resolveCollision(object, otherObjext, result, deltaSeconds);
-                        toUpdate.add(object);
-                        toUpdate.add(otherObjext);
+            if (!object.freeze) {
+                const body = this.stateToCollision.get(object);
+                if (body) {
+                    // Get any potential collisions
+                    for (const potential of body.potentials()) {
+                        const otherObjext = this.collisionToState.get(potential);
+                        if (otherObjext && !otherObjext.destroyed && body.collides(potential, result)) {
+                            this.resolveCollision(object, otherObjext, result, deltaSeconds);
+                            toUpdate.add(object);
+                            toUpdate.add(otherObjext);
+                        }
                     }
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error(`object leak! ${object.id} has no collision body`);
                 }
-            } else {
-                // eslint-disable-next-line no-console
-                console.error(`object leak! ${object.id} has no collision body`);
             }
         }
 

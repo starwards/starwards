@@ -28,7 +28,7 @@ export class SpaceState extends Schema {
     // server only, used for commands
     public moveCommands = Array.of<MoveObjectsArg>();
     public rotateCommands = Array.of<RotataObjectsArg>();
-    public toggleZeroSpeedCommand = Array.of<SpaceObjectBase['id']>();
+    public toggleFreezeCommand = Array.of<SpaceObjectBase['id']>();
 
     public events = new EventEmitter();
 
