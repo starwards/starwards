@@ -7,11 +7,11 @@ export async function asteroid(scene: Scene, id: string, radius: number) {
     // TODO use LoadAssetContainerAsync
     const importResult = await SceneLoader.ImportMeshAsync(
         '',
-        'models/meteor_01/Meteor_01.babylon',
+        'models/Asteroid_01/Asteroid_01.gltf',
         '',
         scene,
         undefined,
-        '.babylon'
+        '.gltf'
     );
 
     const rootMesh = importResult.meshes[0];
