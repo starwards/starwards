@@ -15,11 +15,9 @@
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"
     },
     "dependencies": {
-        "@colyseus/monitor": "^0.12.2",
-        "@colyseus/schema": "^1.0.2",
+        "@colyseus/monitor": "^0.14.0",
         "@starwards/model": "*",
-        "colyseus": "^0.14.1",
-        "connect": "^3.7.0",
+        "colyseus": "^0.14.7",
         "detect-collisions": "^2.4.4",
         "express": "^4.17.1",
         "express-basic-auth": "^1.2.0",
@@ -29,10 +27,5 @@
     "pkg": {
         "scripts": "build/**/*.js",
         "assets": "views/**/*"
-    },
-    "devDependencies": {
-        "webpack": "^4.42.1",
-        "webpack-dev-middleware": "^3.7.2",
-        "webpack-hot-middleware": "^2.25.0"
     }
 }

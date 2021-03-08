@@ -1,6 +1,7 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
 import { SmartPilotMode } from '.';
+import { getConstant } from '../utils';
 
 export class ChainGun extends Schema {
     @type({ map: 'number' })
@@ -29,34 +30,34 @@ export class ChainGun extends Schema {
 
     // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
-        return this.constants.get('bulletSpeed');
+        return getConstant(this.constants, 'bulletSpeed');
     }
     get bulletsPerSecond(): number {
-        return this.constants.get('bulletsPerSecond');
+        return getConstant(this.constants, 'bulletsPerSecond');
     }
     get minShellRange(): number {
-        return this.constants.get('minShellRange');
+        return getConstant(this.constants, 'minShellRange');
     }
     get maxShellRange(): number {
-        return this.constants.get('maxShellRange');
+        return getConstant(this.constants, 'maxShellRange');
     }
     get shellRangeAim(): number {
-        return this.constants.get('shellRangeAim');
+        return getConstant(this.constants, 'shellRangeAim');
     }
     get explosionRadius(): number {
-        return this.constants.get('explosionRadius');
+        return getConstant(this.constants, 'explosionRadius');
     }
     get explosionExpansionSpeed(): number {
-        return this.constants.get('explosionExpansionSpeed');
+        return getConstant(this.constants, 'explosionExpansionSpeed');
     }
     get explosionDamageFactor(): number {
-        return this.constants.get('explosionDamageFactor');
+        return getConstant(this.constants, 'explosionDamageFactor');
     }
     get explosionBlastFactor(): number {
-        return this.constants.get('explosionBlastFactor');
+        return getConstant(this.constants, 'explosionBlastFactor');
     }
     get bulletDegreesDeviation(): number {
-        return this.constants.get('bulletDegreesDeviation');
+        return getConstant(this.constants, 'bulletDegreesDeviation');
     }
     get explosionSecondsToLive(): number {
         return this.explosionRadius / this.explosionExpansionSpeed;

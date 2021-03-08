@@ -6,6 +6,7 @@ import {
     NumericStateProperty,
     StateProperty,
     cmdSender,
+    getConstant,
     isStatePropertyCommand,
 } from '@starwards/model';
 
@@ -85,9 +86,9 @@ export class NumberMapDriver {
     }
     getApi(name: string): DriverNumericApi {
         const sender = cmdSender(this.shipRoom, this.p);
-        const val = this._map.get(name);
+        const val = getConstant(this.map, name);
         return {
-            getValue: () => this._map.get(name),
+            getValue: () => getConstant(this.map, name),
             range: [val / 2, val * 2],
             onChange: (value: number) => sender([name, value]),
         };

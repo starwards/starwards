@@ -49,10 +49,62 @@ try {
                     tasks: [
                         {
                             label: 'build:model',
-                            type: 'shell',
-                            command: 'yarn build',
-                            group: 'build',
-                            options: { cwd: './modules/model' },
+                            options: {
+                                cwd: './modules/model',
+                            },
+                            type: 'npm',
+                            script: 'build:watch',
+                            isBackground: true,
+                            problemMatcher: {
+                                owner: 'typescript',
+                                fileLocation: 'relative',
+                                pattern: {
+                                    regexp:
+                                        '^([^\\s].*)\\((\\d+|\\d+,\\d+|\\d+,\\d+,\\d+,\\d+)\\):\\s+(error|warning|info)\\s+(TS\\d+)\\s*:\\s*(.*)$',
+                                    file: 1,
+                                    location: 2,
+                                    severity: 3,
+                                    code: 4,
+                                    message: 5,
+                                },
+                                background: {
+                                    activeOnStart: true,
+                                    beginsPattern: 'File change detected',
+                                    endsPattern: 'Watching for file changes',
+                                },
+                            },
+                        },
+                        {
+                            type: 'npm',
+                            label: 'webpack: dev server',
+                            script: 'start',
+                            promptOnClose: true,
+                            isBackground: true,
+                            options: {
+                                cwd: './modules/browser',
+                            },
+                            problemMatcher: {
+                                owner: 'webpack',
+                                severity: 'error',
+                                fileLocation: 'absolute',
+                                pattern: [
+                                    {
+                                        regexp: 'ERROR in (.*)',
+                                        file: 1,
+                                    },
+                                    {
+                                        regexp: '\\((\\d+),(\\d+)\\):(.*)',
+                                        line: 1,
+                                        column: 2,
+                                        message: 3,
+                                    },
+                                ],
+                                background: {
+                                    activeOnStart: true,
+                                    beginsPattern: 'Built at',
+                                    endsPattern: 'Compiled successfully',
+                                },
+                            },
                         },
                     ],
                 },
@@ -110,8 +162,10 @@ function launchJson(moduleNames) {
                         name: 'debug chrome',
                         type: 'chrome',
                         request: 'launch',
-                        url: 'http://localhost:8080/',
+                        preLaunchTask: 'webpack: dev server',
+                        url: 'http://localhost/',
                         sourceMaps: true,
+                        trace: true,
                         webRoot: '${workspaceFolder}',
                         sourceMapPathOverrides: {
                             'webpack:///./*': '${webRoot}/*',

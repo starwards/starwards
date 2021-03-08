@@ -3,6 +3,7 @@ import { Spaceship, Vec2 } from '../space';
 
 import { ChainGun } from './chain-gun';
 import EventEmitter from 'eventemitter3';
+import { getConstant } from '../utils';
 
 export enum TargetedStatus {
     NONE,
@@ -106,46 +107,46 @@ export class ShipState extends Spaceship {
     }
 
     // TODO: move to logic (not part of state)
-    get maxEnergy() {
-        return this.constants.get('maxEnergy');
+    get maxEnergy(): number {
+        return getConstant(this.constants, 'maxEnergy');
     }
-    get maxReserveSpeed() {
-        return this.constants.get('maxReserveSpeed');
+    get maxReserveSpeed(): number {
+        return getConstant(this.constants, 'maxReserveSpeed');
     }
-    get reserveSpeedCharge() {
-        return this.constants.get('reserveSpeedCharge');
+    get reserveSpeedCharge(): number {
+        return getConstant(this.constants, 'reserveSpeedCharge');
     }
-    get reserveSpeedEnergyCost() {
-        return this.constants.get('reserveSpeedEnergyCost');
+    get reserveSpeedEnergyCost(): number {
+        return getConstant(this.constants, 'reserveSpeedEnergyCost');
     }
-    get reserveSpeedUsagePerSecond() {
-        return this.constants.get('reserveSpeedUsagePerSecond');
+    get reserveSpeedUsagePerSecond(): number {
+        return getConstant(this.constants, 'reserveSpeedUsagePerSecond');
     }
-    get energyPerSecond() {
-        return this.constants.get('energyPerSecond');
+    get energyPerSecond(): number {
+        return getConstant(this.constants, 'energyPerSecond');
     }
-    get maneuveringCapacity() {
-        return this.constants.get('maneuveringCapacity');
+    get maneuveringCapacity(): number {
+        return getConstant(this.constants, 'maneuveringCapacity');
     }
-    get maneuveringEnergyCost() {
-        return this.constants.get('maneuveringEnergyCost');
+    get maneuveringEnergyCost(): number {
+        return getConstant(this.constants, 'maneuveringEnergyCost');
     }
-    get antiDriftEffectFactor() {
-        return this.constants.get('antiDriftEffectFactor');
+    get antiDriftEffectFactor(): number {
+        return getConstant(this.constants, 'antiDriftEffectFactor');
     }
-    get breaksEffectFactor() {
-        return this.constants.get('breaksEffectFactor');
+    get breaksEffectFactor(): number {
+        return getConstant(this.constants, 'breaksEffectFactor');
     }
-    get rotationEffectFactor() {
-        return this.constants.get('rotationEffectFactor');
+    get rotationEffectFactor(): number {
+        return getConstant(this.constants, 'rotationEffectFactor');
     }
-    get boostEffectFactor() {
-        return this.constants.get('boostEffectFactor');
+    get boostEffectFactor(): number {
+        return getConstant(this.constants, 'boostEffectFactor');
     }
-    get strafeEffectFactor() {
-        return this.constants.get('strafeEffectFactor');
+    get strafeEffectFactor(): number {
+        return getConstant(this.constants, 'strafeEffectFactor');
     }
-    get rotationCapacity() {
+    get rotationCapacity(): number {
         return (
             this.maneuveringCapacity * this.rotationEffectFactor +
             this.useReserveSpeed * this.reserveSpeedUsagePerSecond
@@ -162,9 +163,12 @@ export class ShipState extends Spaceship {
         );
     }
     get maxSpeed() {
-        return this.constants.get('maxSpeed') + this.useReserveSpeed * this.constants.get('maxReservedSpeed');
+        return (
+            getConstant(this.constants, 'maxSpeed') +
+            this.useReserveSpeed * getConstant(this.constants, 'maxReservedSpeed')
+        );
     }
     get maxMaxSpeed() {
-        return this.constants.get('maxSpeed') + this.constants.get('maxReservedSpeed');
+        return getConstant(this.constants, 'maxSpeed') + getConstant(this.constants, 'maxReservedSpeed');
     }
 }
