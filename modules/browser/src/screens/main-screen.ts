@@ -2,6 +2,7 @@ import { Driver } from '../driver';
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Objects3D } from '../3d/objects';
+import { loadMeshes } from '../3d/meshes';
 import { placeSceneEnv } from '../3d/space-scene';
 
 const driver = new Driver();
@@ -21,8 +22,8 @@ export const babylonInit = async (): Promise<void> => {
 
         // Create the scene
         const scene = await placeSceneEnv(engine, canvas);
-
-        const objects = new Objects3D(scene, spaceDriver.state, shipUrlParam);
+        const meshes = await loadMeshes(scene);
+        const objects = new Objects3D(spaceDriver.state, meshes, shipUrlParam);
         // Register a render loop to repeatedly render the scene
         engine.runRenderLoop(function () {
             objects.onRender();
