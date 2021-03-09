@@ -1,13 +1,13 @@
-import { AbstractMesh, Scene } from '@babylonjs/core';
 import { SpaceObject, State, degToRad } from '@starwards/model/src';
 
+import { AbstractMesh } from '@babylonjs/core';
 import EventEmitter from 'eventemitter3';
-import { asteroid } from './asteroid';
-import { spaceship } from './spaceship';
+import { Meshes } from './meshes';
 
 export class Objects3D {
+    private graphics: { [id: string]: ObjectGraphics } = {};
     private toReDraw = new Set<ObjectGraphics>();
-    constructor(private scene: Scene, private spaceState: State<'space'>, _shipId: string) {
+    constructor(private spaceState: State<'space'>, private meshes: Meshes, _shipId: string) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
         spaceState.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
 
@@ -21,20 +21,46 @@ export class Objects3D {
             if (objGraphics.isDestroyed()) {
                 this.cleanupSpaceObject(objGraphics.spaceObject.id);
             } else {
+                if (!this.spaceState.get(objGraphics.spaceObject.id)) {
+                    // eslint-disable-next-line no-console
+                    console.warn(`found zombie object! ${objGraphics.spaceObject.id}`);
+                }
                 objGraphics.redraw();
             }
         }
-        this.toReDraw.clear();
+        // this.toReDraw.clear();
     };
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
         if (!spaceObject.destroyed) {
+            let mesh: AbstractMesh;
+            try {
+                switch (spaceObject.type) {
+                    case 'Spaceship':
+                        mesh = this.meshes.spaceship(spaceObject.id);
+                        break;
+                    case 'Asteroid':
+                        mesh = this.meshes.asteroid(spaceObject.id, spaceObject.radius);
+                        break;
+                    case 'CannonShell':
+                        mesh = this.meshes.cannonShell(spaceObject.id, spaceObject.radius);
+                        break;
+                    default:
+                        return;
+                }
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.log('error adding 3d obj', e);
+                return;
+            }
             //  && spaceObject.id !== this.shipId
-            const objGraphics = new ObjectGraphics(this.scene, spaceObject);
-            objGraphics.listen(this.spaceState.events, spaceObject.id, (_field: string) => {
-                this.toReDraw.add(objGraphics);
-            });
-            // this.graphics[spaceObject.id] = objGraphics;
+            const objGraphics = new ObjectGraphics(spaceObject, mesh);
+            this.toReDraw.add(objGraphics);
+
+            // objGraphics.listen(this.spaceState.events, spaceObject.id, (_field: string) => {
+            //     this.toReDraw.add(objGraphics);
+            // });
+            this.graphics[spaceObject.id] = objGraphics;
             // this.stage.addChild(objGraphics.stage);
             // objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
             //     objGraphics.markChanged('screen');
@@ -55,13 +81,13 @@ export class Objects3D {
         }
     }
 
-    private cleanupSpaceObject(_id: string) {
-        // const objGraphics = this.graphics[id];
-        // if (objGraphics) {
-        //     delete this.graphics[id];
-        //     objGraphics.destroy();
-        //     this.toReDraw.delete(objGraphics);
-        // }
+    private cleanupSpaceObject(id: string) {
+        const objGraphics = this.graphics[id];
+        if (objGraphics) {
+            delete this.graphics[id];
+            objGraphics.destroy();
+            this.toReDraw.delete(objGraphics);
+        }
     }
 }
 /**
@@ -71,28 +97,9 @@ export class Objects3D {
 class ObjectGraphics {
     private disposables: Array<() => void> = [];
     private destroyed = false;
-    private mesh: AbstractMesh | null = null;
+    // private mesh: AbstractMesh | null = null;
 
-    constructor(private scene: Scene, public spaceObject: SpaceObject) {
-        void this.loadMesh();
-    }
-
-    private async loadMesh() {
-        try {
-            switch (this.spaceObject.type) {
-                case 'Spaceship':
-                    this.mesh = await spaceship(this.scene, this.spaceObject.id);
-                    break;
-                case 'Asteroid':
-                    this.mesh = await asteroid(this.scene, this.spaceObject.id, this.spaceObject.radius);
-                    break;
-            }
-        } catch (e) {
-            // eslint-disable-next-line no-console
-            console.log('error adding 3d obj', e);
-        }
-        this.redraw();
-    }
+    constructor(public spaceObject: SpaceObject, private mesh: AbstractMesh) {}
 
     isDestroyed() {
         return this.spaceObject.destroyed || this.destroyed;
@@ -100,11 +107,11 @@ class ObjectGraphics {
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     redraw() {
-        if (this.mesh) {
-            this.mesh.position.x = this.spaceObject.position.x;
-            this.mesh.position.z = -this.spaceObject.position.y;
-            this.mesh.rotation.y = degToRad * this.spaceObject.angle + Math.PI / 2;
-        }
+        // if (this.mesh) {
+        this.mesh.position.x = this.spaceObject.position.x;
+        this.mesh.position.z = -this.spaceObject.position.y;
+        this.mesh.rotation.y = degToRad * this.spaceObject.angle + Math.PI / 2;
+        // }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

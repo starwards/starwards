@@ -16,7 +16,7 @@ export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const ENDPOINT = protocol + '//' + window.location.host; // + '/';
+const ENDPOINT = protocol + '//' + window.location.host + '/api';
 
 export class Driver {
     private adminDriver: Promise<AdminDriver> | null = null;

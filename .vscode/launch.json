@@ -81,8 +81,10 @@
       "name": "debug chrome",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:8080/",
+      "preLaunchTask": "webpack: dev server",
+      "url": "http://localhost/",
       "sourceMaps": true,
+      "trace": true,
       "webRoot": "${workspaceFolder}",
       "sourceMapPathOverrides": {
         "webpack:///./*": "${webRoot}/*"

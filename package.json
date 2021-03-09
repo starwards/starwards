@@ -11,6 +11,7 @@
         "lint": "eslint .",
         "test": "lerna run test --stream --parallel",
         "start": "yarn --cwd ./dist start",
+        "browser": "yarn --cwd ./modules/browser start",
         "pkg": "node scripts/pkg.js"
     },
     "lint-staged": {
@@ -23,8 +24,11 @@
             "pre-commit": "node scripts/pre-commit.js && yarn pretty-quick && npx lint-staged"
         }
     },
+    "dependencies": {
+        "@colyseus/schema": "^1.0.13"
+    },
     "devDependencies": {
-        "@colyseus/loadtest": "^0.13.1",
+        "@colyseus/loadtest": "^0.14.2",
         "@ts-tools/build": "^2.1.1",
         "@ts-tools/node": "^2.1.1",
         "@ts-tools/webpack-loader": "^2.1.1",
@@ -68,7 +72,7 @@
         "tsconfig-paths-webpack-plugin": "^3.3.0",
         "typescript": "~4.0.2",
         "webpack": "^4.33.0",
-        "webpack-cli": "^3.3.3",
+        "webpack-cli": "^4.5.0",
         "webpack-dev-middleware": "^3.7.0",
         "webpack-dev-server": "^3.7.1",
         "webpack-hot-middleware": "^2.25.0",

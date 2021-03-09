@@ -2,21 +2,25 @@ export class TaskLoop {
     private handle: ReturnType<typeof setTimeout> | null = null;
     constructor(private task: () => Promise<unknown>, private pause: number) {}
 
-    private runTask = () => {
-        this.task().then(
-            () => {
+    private runTask = async () => {
+        while (this.handle !== null) {
+            try {
+                await this.task();
                 if (this.handle !== null) {
-                    this.handle = setTimeout(this.runTask, this.pause);
+                    await new Promise((res) => {
+                        this.handle = setTimeout(res, this.pause);
+                    });
                 }
-            },
-            // eslint-disable-next-line no-console
-            (e) => console.error(`Error running task`, e)
-        );
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error(`Error running task`, e);
+            }
+        }
     };
 
     start = () => {
         if (this.handle === null) {
-            this.handle = setTimeout(this.runTask, this.pause);
+            this.handle = setTimeout(() => void this.runTask(), this.pause);
         }
     };
 

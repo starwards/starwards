@@ -10,10 +10,10 @@
         "clean": "rimraf ./cjs",
         "prebuild": "yarn clean",
         "build": "ts-build ./src --cjs",
+        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch",
         "test": "mocha -r @ts-tools/node/r test/**/*.spec.ts --watch-extensions ts --colors"
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.2",
         "eventemitter3": "^4.0.5"
     },
     "devDependencies": {

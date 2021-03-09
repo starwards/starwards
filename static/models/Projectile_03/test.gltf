@@ -1,0 +1,58 @@
+{
+    "asset": { "version": "2.0", "generator": "babylon.js glTF exporter for Maya 2018 v20210201.13" },
+    "scene": 0,
+    "scenes": [{ "nodes": [0] }],
+    "nodes": [{ "mesh": 0, "scale": [0.01, 0.01, 1.0], "name": "pCube1" }],
+    "meshes": [
+        {
+            "primitives": [
+                {
+                    "attributes": { "POSITION": 1, "TANGENT": 2, "NORMAL": 3, "TEXCOORD_0": 4 },
+                    "indices": 0,
+                    "material": 0
+                }
+            ],
+            "name": "pCube1"
+        }
+    ],
+    "accessors": [
+        { "bufferView": 0, "componentType": 5123, "count": 36, "type": "SCALAR", "name": "accessorIndices" },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "count": 24,
+            "max": [0.005, 0.005, 0.005],
+            "min": [-0.005, -0.005, -0.005],
+            "type": "VEC3",
+            "name": "accessorPositions"
+        },
+        { "bufferView": 2, "componentType": 5126, "count": 24, "type": "VEC4", "name": "accessorTangents" },
+        {
+            "bufferView": 1,
+            "byteOffset": 288,
+            "componentType": 5126,
+            "count": 24,
+            "type": "VEC3",
+            "name": "accessorNormals"
+        },
+        { "bufferView": 3, "componentType": 5126, "count": 24, "type": "VEC2", "name": "accessorUVs" }
+    ],
+    "bufferViews": [
+        { "buffer": 0, "byteLength": 72, "name": "bufferViewScalar" },
+        { "buffer": 0, "byteOffset": 72, "byteLength": 576, "byteStride": 12, "name": "bufferViewFloatVec3" },
+        { "buffer": 0, "byteOffset": 648, "byteLength": 384, "byteStride": 16, "name": "bufferViewFloatVec4" },
+        { "buffer": 0, "byteOffset": 1032, "byteLength": 192, "byteStride": 8, "name": "bufferViewFloatVec2" }
+    ],
+    "buffers": [{ "uri": "test.bin", "byteLength": 1224 }],
+    "materials": [
+        {
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.8, 0.8, 0.8, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.2
+            },
+            "emissiveFactor": [1.0, 1.0, 0.0],
+            "name": "aiStandardSurface1"
+        }
+    ]
+}

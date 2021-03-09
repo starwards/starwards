@@ -8,7 +8,6 @@ import { Server, matchMaker } from 'colyseus';
 
 import { AdminRoom } from './admin/room';
 import { GameManager } from './admin/game-manager';
-import { NextHandleFunction } from 'connect';
 import { ShipRoom } from './ship/room';
 import { SpaceRoom } from './space/room';
 import { monitor } from '@colyseus/monitor';
@@ -22,7 +21,7 @@ process.on('uncaughtException', function (err) {
     // process.exit(1);
 });
 
-export async function server(port: number, staticDir: string, handlers?: NextHandleFunction[]) {
+export async function server(port: number, staticDir: string) {
     const app = express();
     app.use(express.json());
     const gameServer = new Server({ server: http.createServer(app) });
@@ -30,10 +29,6 @@ export async function server(port: number, staticDir: string, handlers?: NextHan
     gameServer.define('space', SpaceRoom);
     gameServer.define('admin', AdminRoom);
     gameServer.define('ship', ShipRoom).enableRealtimeListing();
-
-    if (handlers) {
-        app.use(...handlers);
-    }
 
     app.use('/', express.static(staticDir));
 

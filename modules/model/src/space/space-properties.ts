@@ -13,7 +13,7 @@ export type RotataObjectsArg = {
     delta: number;
 };
 
-export type ZeroSpeedArg = {
+export type FreezeArg = {
     ids: Array<SpaceObjectBase['id']>;
 };
 
@@ -31,9 +31,9 @@ export const rotateObjects = PropertyCommand<RotataObjectsArg, 'space'>(
     }
 );
 
-export const toggleZeroSpeed = PropertyCommand<ZeroSpeedArg, 'space'>(
-    'toggleZeroSpeed',
-    (state: SpaceState, value: ZeroSpeedArg) => {
-        state.toggleZeroSpeedCommand.push(...value.ids);
+export const toggleFreeze = PropertyCommand<FreezeArg, 'space'>(
+    'toggleFreeze',
+    (state: SpaceState, value: FreezeArg) => {
+        state.toggleFreezeCommand.push(...value.ids);
     }
 );

@@ -18,8 +18,9 @@ export interface GameRoom<R extends RoomName> extends Stateful<R> {
 }
 
 export * from './admin';
+export * from './api';
 export * from './id';
 export * from './logic';
 export * from './ship';
 export * from './space';
-export * from './api';
+export { getConstant } from './utils';

@@ -7,16 +7,16 @@
         "prebuild": "yarn clean",
         "build": "webpack --config webpack.prod.js",
         "test": "echo \"No tests\"",
-        "prepack": "yarn build"
+        "prepack": "yarn build",
+        "start": "webpack serve -c ./webpack.dev.js  --inline --hot"
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.2",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@starwards/model": "*",
         "arwes": "^1.0.0-alpha.5",
         "@babylonjs/core": "5.0.0-alpha.8",
         "@babylonjs/loaders": "5.0.0-alpha.8",
-        "colyseus.js": "^0.14.0",
+        "colyseus.js": "^0.14.1",
         "d3": "^6.3.0",
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.5",
