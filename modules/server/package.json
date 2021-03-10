@@ -1,7 +1,6 @@
 {
     "name": "@starwards/server",
     "version": "0.0.0",
-    "bin": "cjs/prod.js",
     "files": [
         "cjs"
     ],
