@@ -16,7 +16,7 @@
         "eventemitter3": "^4.0.5",
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.8.2",
-        "jquery": "^3.5.1",
+        "jquery": "^3.6.0",
         "lodash": "^4.17.20",
         "pixi.js": "^5.3.3",
         "react": "^16.13.1",
