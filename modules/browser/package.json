@@ -7,7 +7,7 @@
     },
     "dependencies": {
         "@babylonjs/core": "5.0.0-alpha.8",
-        "@babylonjs/loaders": "5.0.0-alpha.8",
+        "@babylonjs/loaders": "5.0.0-alpha.14",
         "@maulingmonkey/gamepad": "^0.0.5",
         "arwes": "^1.0.0-alpha.5",
         "colyseus.js": "^0.14.1",
