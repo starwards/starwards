@@ -1,4 +1,4 @@
-import { GameRoom, adminProperties, cmdSender } from '@starwards/model/src';
+import { GameRoom, adminProperties, cmdSender } from '@starwards/model';
 
 export function AdminDriver(adminRoom: GameRoom<'admin'>) {
     const shouldGameBeRunning = cmdSender(adminRoom, adminProperties.shouldGameBeRunning);

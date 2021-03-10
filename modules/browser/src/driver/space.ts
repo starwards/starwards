@@ -1,4 +1,4 @@
-import { GameRoom, cmdSender, spaceProperties } from '@starwards/model/src';
+import { GameRoom, cmdSender, spaceProperties } from '@starwards/model';
 
 import { SelectionContainer } from '../radar/selection-container';
 

@@ -1,4 +1,4 @@
-import { SpaceObject, State, degToRad } from '@starwards/model/src';
+import { SpaceObject, State, degToRad } from '@starwards/model';
 
 import { AbstractMesh } from '@babylonjs/core';
 import EventEmitter from 'eventemitter3';

@@ -1,7 +1,7 @@
 import '@maulingmonkey/gamepad';
 
 import { GamepadAxisConfig, GamepadButtonConfig, KeysStepsConfig, RangeConfig } from './input-config';
-import { capToRange, isInRange } from '@starwards/model/src';
+import { capToRange, isInRange } from '@starwards/model';
 
 import hotkeys from 'hotkeys-js';
 
