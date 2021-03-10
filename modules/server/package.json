@@ -6,17 +6,11 @@
         "cjs"
     ],
     "scripts": {
-        "clean": "rimraf ./cjs",
-        "prebuild": "yarn clean",
-        "build": "ts-build ./src --cjs",
-        "test": "echo \"No tests\"",
-        "start": "nodemon -r @ts-tools/node/r ./src/dev.ts",
-        "prepack": "yarn build",
+        "start": "nodemon -r ts-node/register/transpile-only ./src/dev.ts",
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"
     },
     "dependencies": {
         "@colyseus/monitor": "^0.14.0",
-        "@starwards/model": "*",
         "colyseus": "^0.14.7",
         "detect-collisions": "^2.4.4",
         "express": "^4.17.1",

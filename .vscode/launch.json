@@ -1,106 +1,69 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "browser Mocha Tests",
-      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-      "cwd": "${workspaceFolder}/modules/browser",
-      "args": [
-        "-r",
-        "@ts-tools/node/r",
-        "--timeout",
-        "999999",
-        "--colors",
-        "${workspaceFolder}/modules/browser/test/**/**.spec.ts"
-      ],
-      "internalConsoleOptions": "openOnSessionStart"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "model Mocha Tests",
-      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-      "cwd": "${workspaceFolder}/modules/model",
-      "args": [
-        "-r",
-        "@ts-tools/node/r",
-        "--timeout",
-        "999999",
-        "--colors",
-        "${workspaceFolder}/modules/model/test/**/**.spec.ts"
-      ],
-      "internalConsoleOptions": "openOnSessionStart"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "server Mocha Tests",
-      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-      "cwd": "${workspaceFolder}/modules/server",
-      "args": [
-        "-r",
-        "@ts-tools/node/r",
-        "--timeout",
-        "999999",
-        "--colors",
-        "${workspaceFolder}/modules/server/test/**/**.spec.ts"
-      ],
-      "internalConsoleOptions": "openOnSessionStart"
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Mocha Current",
-      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-      "args": [
-        "-r",
-        "@ts-tools/node/r",
-        "--timeout",
-        "999999",
-        "--colors",
-        "${file}"
-      ],
-      "internalConsoleOptions": "openOnSessionStart"
-    },
-    {
-      "name": "run server",
-      "type": "node",
-      "request": "launch",
-      "preLaunchTask": "build:model",
-      "cwd": "${workspaceFolder}",
-      "args": [
-        "-r",
-        "@ts-tools/node/r",
-        "${workspaceFolder}/modules/server/src/dev.ts"
-      ],
-      "internalConsoleOptions": "openOnSessionStart"
-    },
-    {
-      "name": "debug chrome",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "webpack: dev server",
-      "url": "http://localhost/",
-      "sourceMaps": true,
-      "trace": true,
-      "webRoot": "${workspaceFolder}",
-      "sourceMapPathOverrides": {
-        "webpack:///./*": "${webRoot}/*"
-      }
-    },
-    {
-      "name": "attach to chrome",
-      "type": "chrome",
-      "request": "attach",
-      "url": "http://localhost:8080/gm.html",
-      "port": 9222,
-      "sourceMaps": true,
-      "webRoot": "${workspaceFolder}",
-      "sourceMapPathOverrides": {
-        "webpack:///./*": "${webRoot}/*"
-      }
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "model tests",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "cwd": "${workspaceFolder}/modules/model",
+            "args": [
+                "-r",
+                "ts-node/register/transpile-only",
+                "--timeout",
+                "999999",
+                "--colors",
+                "${workspaceFolder}/modules/model/test/**/**.spec.ts"
+            ],
+            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+            "skipFiles": ["<node_internals>/**"],
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "Mocha Current",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "args": ["-r", "ts-node/register/transpile-only", "--timeout", "999999", "--colors", "${file}"],
+            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+            "skipFiles": ["<node_internals>/**"],
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "run server",
+            "type": "pwa-node",
+            "request": "launch",
+            "preLaunchTask": "build:model",
+            "cwd": "${workspaceFolder}",
+            "args": ["-r", "ts-node/register/transpile-only", "${workspaceFolder}/modules/server/src/dev.ts"],
+            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+            "skipFiles": ["<node_internals>/**"],
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "debug chrome",
+            "type": "chrome",
+            "request": "launch",
+            "preLaunchTask": "webpack: dev server",
+            "url": "http://localhost/",
+            "sourceMaps": true,
+            "trace": true,
+            "webRoot": "${workspaceFolder}",
+            "sourceMapPathOverrides": {
+                "webpack:///./*": "${webRoot}/*"
+            }
+        },
+        {
+            "name": "attach to chrome",
+            "type": "chrome",
+            "request": "attach",
+            "url": "http://localhost:8080/gm.html",
+            "port": 9222,
+            "sourceMaps": true,
+            "webRoot": "${workspaceFolder}",
+            "sourceMapPathOverrides": {
+                "webpack:///./*": "${webRoot}/*"
+            }
+        }
+    ]
 }

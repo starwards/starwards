@@ -9,11 +9,11 @@ jobs:
             - checkout
             - node/with-cache:
                   steps:
-                      - run: yarn install
-                      - run: yarn lint
-                      - run: yarn build
-                      - run: yarn test
-                      - run: yarn pkg
+                      - run: npm ci
+                      - run: npm run lint
+                      - run: npm run build
+                      - run: npm test
+                      - run: npm run pkg
 
 workflows:
     build-and-test:

@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 module.exports = {
     entry: {
@@ -14,7 +15,12 @@ module.exports = {
         rules: [
             {
                 test: /\.tsx?$/,
-                loader: '@ts-tools/webpack-loader',
+                loader: 'ts-loader',
+                exclude: /node_modules/,
+                options: {
+                    // disable type checker - we will use it in fork plugin
+                    transpileOnly: true,
+                },
             },
             {
                 test: /\.(png|woff|woff2|eot|ttf|svg)$/,
@@ -48,6 +54,7 @@ module.exports = {
             template: path.resolve(__dirname, 'templates', 'input.html'),
             chunks: ['input'],
         }),
+        new ForkTsCheckerWebpackPlugin(),
     ],
     resolve: {
         extensions: ['.ts', '.tsx', '.mjs', '.js', '.json'],
