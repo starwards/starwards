@@ -10,7 +10,7 @@
         "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
     },
     "dependencies": {
-        "eventemitter3": "^4.0.5"
+        "eventemitter3": "^4.0.7"
     },
     "devDependencies": {
         "fast-check": "^2.3.0"
