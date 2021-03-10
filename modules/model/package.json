@@ -13,6 +13,6 @@
         "eventemitter3": "^4.0.5"
     },
     "devDependencies": {
-        "fast-check": "^2.3.0"
+        "fast-check": "^2.13.0"
     }
 }
