@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+// import * as PIXI from 'pixi.js';
 
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
@@ -14,7 +14,7 @@ import { targetRadarWidget } from '../widgets/target-radar';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
-window.PIXI = PIXI;
+// window.PIXI = PIXI;
 const driver = new Driver();
 
 const urlParams = new URLSearchParams(window.location.search);

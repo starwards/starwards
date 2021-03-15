@@ -1,11 +1,10 @@
-import * as PIXI from 'pixi.js';
-
 import { ShipDriver, SpaceDriver } from '../driver';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
@@ -42,7 +41,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
             const camera = new Camera();
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
 
-            PIXI.Loader.shared.load(() => {
+            Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
                 root.setSquare();
                 const range = new RangeIndicators(root, p.range / 5);

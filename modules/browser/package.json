@@ -6,27 +6,28 @@
         "start": "webpack serve -c ./webpack.dev.js  --inline --hot"
     },
     "dependencies": {
-        "@babylonjs/core": "5.0.0-alpha.8",
-        "@babylonjs/loaders": "5.0.0-alpha.8",
+        "@babylonjs/core": "5.0.0-alpha.14",
+        "@babylonjs/loaders": "5.0.0-alpha.14",
         "@maulingmonkey/gamepad": "^0.0.5",
+        "@pixi/graphics-extras": "^5.3.8",
         "arwes": "^1.0.0-alpha.5",
-        "colyseus.js": "^0.14.1",
-        "d3": "^6.3.0",
+        "colyseus.js": "^0.14.4",
+        "d3": "^6.6.0",
         "dat.gui": "^0.7.7",
-        "eventemitter3": "^4.0.5",
+        "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.8.2",
-        "jquery": "^3.5.1",
-        "lodash": "^4.17.20",
-        "pixi.js": "^5.3.3",
-        "react": "^16.13.1",
-        "react-dom": "^16.13.1",
+        "jquery": "^3.6.0",
+        "lodash": "^4.17.21",
+        "pixi.js": "^5.3.8",
+        "react": "^16.14.0",
+        "react-dom": "^16.14.0",
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.0.0-alpha.8",
-        "@babylonjs/inspector": "5.0.0-alpha.8",
+        "@babylonjs/gui": "5.0.0-alpha.14",
+        "@babylonjs/inspector": "5.0.0-alpha.14",
         "@types/d3-selection": "^2.0.0",
-        "@types/dat.gui": "^0.7.5"
+        "@types/dat.gui": "^0.7.6"
     }
 }

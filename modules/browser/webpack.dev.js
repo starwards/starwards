@@ -1,4 +1,4 @@
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
 const webpack = require('webpack');
 const common = require('./webpack.common.js');
 
@@ -29,7 +29,7 @@ module.exports = merge(common, {
         },
     },
     entry: {
-        mainScreen: ['webpack-hot-middleware/client?reload=true'],
+        // mainScreen: ['webpack-hot-middleware/client?reload=true'],
         index: ['webpack-hot-middleware/client?reload=true'],
         ship: ['webpack-hot-middleware/client?reload=true'],
         gm: ['webpack-hot-middleware/client?reload=true'],

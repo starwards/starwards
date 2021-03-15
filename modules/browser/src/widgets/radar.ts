@@ -1,5 +1,3 @@
-import * as PIXI from 'pixi.js';
-
 import { SpaceObject, State } from '@starwards/model';
 
 import $ from 'jquery';
@@ -8,6 +6,7 @@ import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
+import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceDriver } from '../driver';
@@ -49,7 +48,7 @@ export function radarWidget(spaceDriver: SpaceDriver): DashboardWidget<Props> {
                 e.preventDefault();
                 camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
             });
-            PIXI.Loader.shared.load(() => {
+            Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);

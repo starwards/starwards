@@ -1,5 +1,3 @@
-import * as PIXI from 'pixi.js';
-
 import { ShipDriver, SpaceDriver } from '../driver';
 import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
@@ -8,6 +6,7 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { Loader } from 'pixi.js';
 import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
@@ -24,7 +23,7 @@ WebFont.load({
 
 export const preloadList = ['images/crosshair1.png', 'images/asimuth-circle.svg'];
 
-PIXI.Loader.shared.add(preloadList);
+Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
@@ -49,7 +48,7 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
         constructor(container: Container, p: Props) {
             const camera = new Camera();
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
-            PIXI.Loader.shared.load(() => {
+            Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
                 root.setSquare();
                 const background = new MovementAnchorLayer(

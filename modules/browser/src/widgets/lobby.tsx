@@ -39,37 +39,28 @@ const InGameMenu = (p: Props) => {
         <ul>
             {adminDriver && (
                 <li key="Stop Game">
-                    <Button onClick={adminDriver?.stopGame} animate>
-                        Stop Game
-                    </Button>
+                    <Button onClick={adminDriver?.stopGame}>Stop Game</Button>
                 </li>
             )}
             <li key="Game Master">
-                <Button onClick={() => window.location.assign(`gm.html`)} animate>
-                    Game Master
-                </Button>
+                <Button onClick={() => window.location.assign(`gm.html`)}>Game Master</Button>
             </li>
             {[...ships].flatMap((shipId: string) => [
                 <li key={`title-ship-${shipId}`}> Ship {shipId}</li>,
                 <li key="Main Screen">
-                    <Button onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)} animate>
+                    <Button onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}>
                         Main Screen
                     </Button>
                 </li>,
                 ...[...layouts].map((layout) => (
                     <li key={`ship-${shipId}-layout-${layout}`}>
-                        <Button
-                            onClick={() => window.location.assign(`ship.html?ship=${shipId}&layout=${layout}`)}
-                            animate
-                        >
+                        <Button onClick={() => window.location.assign(`ship.html?ship=${shipId}&layout=${layout}`)}>
                             {layout}
                         </Button>
                     </li>
                 )),
                 <li key={`empty-${shipId}`}>
-                    <Button onClick={() => window.location.assign(`ship.html?ship=${shipId}`)} animate>
-                        Empty Screen
-                    </Button>
+                    <Button onClick={() => window.location.assign(`ship.html?ship=${shipId}`)}>Empty Screen</Button>
                 </li>,
             ])}
         </ul>
@@ -91,7 +82,6 @@ export const Lobby = (p: Props) => {
         loop.start();
         return loop.stop;
     });
-
     return (
         <ThemeProvider
             theme={createTheme({
@@ -134,13 +124,11 @@ export const Lobby = (p: Props) => {
                             )}
                             {!gamesCount && adminDriver && (
                                 <li key="startGame">
-                                    <Button onClick={adminDriver.startGame} animate>
-                                        New Game
-                                    </Button>
+                                    <Button onClick={adminDriver.startGame}>New Game</Button>
                                 </li>
                             )}
                             <li key="input">
-                                <Button key="input" onClick={() => window.location.assign('input.html')} animate>
+                                <Button key="input" onClick={() => window.location.assign('input.html')}>
                                     Input
                                 </Button>
                             </li>

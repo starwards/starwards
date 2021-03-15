@@ -1,8 +1,8 @@
-import * as PIXI from 'pixi.js';
+import { Container, Text, TextStyle } from 'pixi.js';
 
 export class TextsPool {
-    private instances: PIXI.Text[] = [];
-    constructor(private parent: PIXI.Container) {}
+    private instances: Text[] = [];
+    constructor(private parent: Container) {}
     public [Symbol.iterator] = () => new TextsPoolIterator(this.parent, this.instances);
 }
 
@@ -10,16 +10,16 @@ export class TextsPool {
 class TextsPoolIterator {
     private nextElement = 0;
 
-    constructor(private parent: PIXI.Container, private instances: PIXI.Text[]) {}
+    constructor(private parent: Container, private instances: Text[]) {}
 
     public next() {
         if (this.nextElement < this.instances.length) {
             return { value: this.instances[this.nextElement++] };
         } else {
             // ctx.font = "24px bebas_neue_regularregular, Impact, Arial, sans-serif";
-            const value = new PIXI.Text(
+            const value = new Text(
                 '',
-                new PIXI.TextStyle({
+                new TextStyle({
                     fontFamily: 'Bebas',
                     fontSize: 18,
                     align: 'center',

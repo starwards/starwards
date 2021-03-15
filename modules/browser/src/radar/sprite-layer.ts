@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import { DisplayObject, Loader, Sprite, Texture } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
@@ -17,7 +17,7 @@ function isSpriteStylePx(style: SpriteStylePx | SpriteStyleMeters): style is Spr
     return typeof (style as SpriteStylePx).sizePx === 'number';
 }
 export class SpriteLayer {
-    public sprite: PIXI.Sprite;
+    public sprite: Sprite;
     private resized = true;
 
     constructor(
@@ -26,8 +26,8 @@ export class SpriteLayer {
         getLocation: () => XY | undefined,
         getRotation: () => number
     ) {
-        const texture = PIXI.Loader.shared.resources[style.fileName].texture; // assumed to be pre-loaded
-        this.sprite = new PIXI.Sprite(texture);
+        const texture = Loader.shared.resources[style.fileName].texture; // assumed to be pre-loaded
+        this.sprite = new Sprite(texture);
         this.sprite.anchor.set(0.5);
         if (isSpriteStylePx(style)) {
             this.sprite.height = style.sizePx;
@@ -60,7 +60,7 @@ export class SpriteLayer {
             }
         });
     }
-    get renderRoot(): PIXI.DisplayObject {
+    get renderRoot(): DisplayObject {
         return this.sprite;
     }
 }

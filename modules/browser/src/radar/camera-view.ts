@@ -1,4 +1,4 @@
-import * as PIXI from 'pixi.js';
+import { Application, DisplayObject } from 'pixi.js';
 
 import { Camera } from './camera';
 import { Container } from 'golden-layout';
@@ -6,9 +6,9 @@ import EventEmitter from 'eventemitter3';
 import { XY } from '@starwards/model';
 
 // extract options argument from application constructor
-type AppOptions = typeof PIXI.Application extends new (options?: infer T) => PIXI.Application ? T : never;
+type AppOptions = typeof Application extends new (options?: infer T) => Application ? T : never;
 
-export class CameraView extends PIXI.Application {
+export class CameraView extends Application {
     public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
     private square = false;
 
@@ -52,7 +52,7 @@ export class CameraView extends PIXI.Application {
         this.events.emit('screenChanged');
     }
 
-    public addLayer(child: PIXI.DisplayObject) {
+    public addLayer(child: DisplayObject) {
         this.stage.addChild(child);
     }
 

@@ -1,26 +1,26 @@
-import * as PIXI from 'pixi.js';
+import { DisplayObject, Graphics, ILineStyleOptions } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
 
 // extract line style argument from lineStyle method
-export type Linestyle = Parameters<PIXI.Graphics['lineStyle']>;
+export type Linestyle = Parameters<Graphics['lineStyle']>;
 
 export class LineLayer {
-    private readonly graphics = new PIXI.Graphics();
-    constructor(parent: CameraView, getPoints: () => [XY | undefined, XY | undefined], style: Linestyle) {
+    private readonly graphics = new Graphics();
+    constructor(parent: CameraView, getPoints: () => [XY | undefined, XY | undefined], style: ILineStyleOptions) {
         parent.ticker.add((_delta) => {
             this.graphics.clear();
             const [from, to] = getPoints();
             if (from && to) {
                 const fromScreen = parent.worldToScreen(from);
                 const toScreen = parent.worldToScreen(to);
-                this.graphics.lineStyle(...style);
+                this.graphics.lineStyle(style);
                 this.graphics.moveTo(fromScreen.x, fromScreen.y).lineTo(toScreen.x, toScreen.y);
             }
         });
     }
-    get renderRoot(): PIXI.DisplayObject {
+    get renderRoot(): DisplayObject {
         return this.graphics;
     }
 }
