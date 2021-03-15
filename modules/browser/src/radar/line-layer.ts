@@ -1,4 +1,4 @@
-import { DisplayObject, Graphics, ILineStyleOptions } from 'pixi.js';
+import { DisplayObject, Graphics } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
@@ -8,14 +8,14 @@ export type Linestyle = Parameters<Graphics['lineStyle']>;
 
 export class LineLayer {
     private readonly graphics = new Graphics();
-    constructor(parent: CameraView, getPoints: () => [XY | undefined, XY | undefined], style: ILineStyleOptions) {
+    constructor(parent: CameraView, getPoints: () => [XY | undefined, XY | undefined], style: Linestyle) {
         parent.ticker.add((_delta) => {
             this.graphics.clear();
             const [from, to] = getPoints();
             if (from && to) {
                 const fromScreen = parent.worldToScreen(from);
                 const toScreen = parent.worldToScreen(to);
-                this.graphics.lineStyle(style);
+                this.graphics.lineStyle(...style);
                 this.graphics.moveTo(fromScreen.x, fromScreen.y).lineTo(toScreen.x, toScreen.y);
             }
         });

@@ -1,4 +1,4 @@
-import { DisplayObject, Loader, Sprite, Texture } from 'pixi.js';
+import { DisplayObject, Loader, Sprite } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';

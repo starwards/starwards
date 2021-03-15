@@ -1,9 +1,8 @@
 import '@pixi/graphics-extras';
 
-import { Container, DisplayObject } from 'pixi.js';
+import { Container, DisplayObject, Graphics } from 'pixi.js';
 
 import { CameraView } from './camera-view';
-import { Graphics } from '@pixi/graphics';
 import { XY } from '@starwards/model';
 
 export type Style = {
