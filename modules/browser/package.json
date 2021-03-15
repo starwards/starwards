@@ -9,7 +9,7 @@
         "@babylonjs/core": "5.0.0-alpha.14",
         "@babylonjs/loaders": "5.0.0-alpha.14",
         "@maulingmonkey/gamepad": "^0.0.5",
-        "@pixi/graphics-extras": "^5.3.8",
+        "@pixi/graphics-extras": "^6.0.0",
         "arwes": "^1.0.0-alpha.5",
         "colyseus.js": "^0.14.4",
         "d3": "^6.6.0",
