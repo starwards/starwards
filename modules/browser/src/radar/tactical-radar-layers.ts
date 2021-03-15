@@ -1,13 +1,14 @@
 import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/model';
 
 import { CameraView } from './camera-view';
+import { Container } from 'pixi.js';
 import { InteractiveLayer } from './interactive-layer';
 import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
 
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
-    const stage = new PIXI.Container();
+    const stage = new Container();
     const shellCrosshairLayer = new SpriteLayer(
         root,
         {
@@ -36,7 +37,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
     return stage;
 }
 export function speedLines(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
-    const stage = new PIXI.Container();
+    const stage = new Container();
     const targetLineLayer = new LineLayer(root, () => [shipState.position, shipTarget.getSingle()?.position], [
         2,
         InteractiveLayer.selectionColor,

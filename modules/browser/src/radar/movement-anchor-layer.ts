@@ -1,4 +1,6 @@
-import * as PIXI from 'pixi.js';
+import '@pixi/graphics-extras';
+
+import { Container, DisplayObject, Graphics } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
@@ -9,9 +11,9 @@ export type Style = {
     alpha: number;
 };
 export class MovementAnchorLayer {
-    private stage = new PIXI.Container();
+    private stage = new Container();
 
-    private readonly anchors = new PIXI.Graphics();
+    private readonly anchors = new Graphics();
     private shouldRender = true;
 
     constructor(private parent: CameraView, private style: Style, private spacing: number, private range: number) {
@@ -26,7 +28,7 @@ export class MovementAnchorLayer {
         });
     }
 
-    get renderRoot(): PIXI.DisplayObject {
+    get renderRoot(): DisplayObject {
         return this.stage;
     }
 
@@ -53,7 +55,7 @@ export class MovementAnchorLayer {
         this.anchors.clear();
         for (const anchorPosition of this.anchorPositions()) {
             this.anchors.lineStyle(this.style.width, this.style.color, this.style.alpha);
-            this.anchors.drawStar(anchorPosition.x, anchorPosition.y, 3, 1);
+            this.anchors.drawStar && this.anchors.drawStar(anchorPosition.x, anchorPosition.y, 3, 1, 0);
         }
         this.shouldRender = false;
     }

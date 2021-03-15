@@ -21,31 +21,31 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-import * as PIXI from 'pixi.js';
+import { Container, Text, TextStyle, Ticker } from 'pixi.js';
 
-export class PixiFps extends PIXI.Container {
+export class PixiFps extends Container {
     private static readonly DEFAULT_FONT_SIZE: number = 30;
     private static readonly DEFAULT_FONT_COLOR: number = 0xff0000;
 
-    private _fpsTextField: PIXI.Text;
-    private _fpsTicker: PIXI.Ticker;
+    private _fpsTextField: Text;
+    private _fpsTicker: Ticker;
 
     private _timeValues: number[];
     private _lastTime: number;
 
-    constructor(style?: PIXI.TextStyle) {
+    constructor(style?: TextStyle) {
         super();
 
-        const defaultStyle = new PIXI.TextStyle({
+        const defaultStyle = new TextStyle({
             fontSize: PixiFps.DEFAULT_FONT_SIZE,
             fill: PixiFps.DEFAULT_FONT_COLOR,
         });
 
         this._timeValues = [];
         this._lastTime = new Date().getTime();
-        this._fpsTextField = new PIXI.Text('', { ...defaultStyle, ...style } as PIXI.TextStyle);
+        this._fpsTextField = new Text('', { ...defaultStyle, ...style } as TextStyle);
 
-        this._fpsTicker = new PIXI.Ticker();
+        this._fpsTicker = new Ticker();
         this._fpsTicker.add(() => {
             this.measureFPS();
         });
@@ -54,7 +54,7 @@ export class PixiFps extends PIXI.Container {
         this.addChild(this._fpsTextField);
     }
 
-    set style(style: PIXI.TextStyle) {
+    set style(style: TextStyle) {
         this._fpsTextField.style = style;
     }
 

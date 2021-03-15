@@ -1,5 +1,3 @@
-import * as PIXI from 'pixi.js';
-
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
@@ -8,6 +6,7 @@ import { Driver } from '../driver';
 import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
+import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { blipRenderer } from '../radar/blip-renderer';
@@ -39,7 +38,7 @@ export class GmWidgets {
 
             // the async part of initializing
             private async init(root: CameraView) {
-                const pixiLoaded = new Promise((res) => PIXI.Loader.shared.load(res));
+                const pixiLoaded = new Promise((res) => Loader.shared.load(res));
                 const [spaceDriver, adminDriver] = await Promise.all([
                     driver.getSpaceDriver(),
                     driver.getAdminDriver(),

@@ -15,16 +15,27 @@ module.exports = {
         rules: [
             {
                 test: /\.tsx?$/,
-                loader: 'ts-loader',
-                exclude: /node_modules/,
-                options: {
-                    // disable type checker - we will use it in fork plugin
-                    transpileOnly: true,
-                },
+                use: [
+                    {
+                        loader: 'ts-loader',
+                        options: {
+                            // disable type checker - we will use it in fork plugin
+                            transpileOnly: true,
+                            onlyCompileBundledFiles: true,
+                            configFile: path.resolve(__dirname, 'tsconfig.json'),
+                        },
+                    },
+                ],
             },
             {
                 test: /\.(png|woff|woff2|eot|ttf|svg)$/,
                 use: 'file-loader?limit=1024&name=[path][name].[ext]',
+            },
+            {
+                test: /\.m?js/,
+                resolve: {
+                    fullySpecified: false,
+                },
             },
         ],
     },
@@ -57,7 +68,7 @@ module.exports = {
         new ForkTsCheckerWebpackPlugin(),
     ],
     resolve: {
-        extensions: ['.ts', '.tsx', '.mjs', '.js', '.json'],
+        extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'], // ,
         plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('../../tsconfig.json') })],
     },
 };

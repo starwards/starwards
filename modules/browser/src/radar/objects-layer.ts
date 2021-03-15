@@ -1,5 +1,4 @@
-import * as PIXI from 'pixi.js';
-
+import { Container, DisplayObject } from 'pixi.js';
 import { SpaceObject, State } from '@starwards/model';
 
 import { CameraView } from './camera-view';
@@ -8,12 +7,12 @@ import { SelectionContainer } from './selection-container';
 
 export type ObjectRenderer = (
     spaceObject: SpaceObject,
-    root: PIXI.Container,
+    root: Container,
     selected: boolean,
     parent: CameraView
 ) => unknown;
 export class ObjectsLayer {
-    private stage = new PIXI.Container();
+    private stage = new Container();
     private graphics: { [id: string]: ObjectGraphics } = {};
     private toReDraw = new Set<ObjectGraphics>();
     constructor(
@@ -45,7 +44,7 @@ export class ObjectsLayer {
         this.toReDraw.clear();
     };
 
-    get renderRoot(): PIXI.DisplayObject {
+    get renderRoot(): DisplayObject {
         return this.stage;
     }
 
@@ -84,8 +83,8 @@ export class ObjectsLayer {
  */
 // eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics {
-    public stage = new PIXI.Container();
-    private drawRoot = new PIXI.Container();
+    public stage = new Container();
+    private drawRoot = new Container();
     private disposables: Array<() => void> = [];
     private destroyed = false;
     constructor(public spaceObject: SpaceObject, private renderer: ObjectRenderer, private parent: CameraView) {
@@ -126,7 +125,7 @@ class ObjectGraphics {
             children: true,
         });
         if (!this.isDestroyed()) {
-            this.drawRoot = new PIXI.Container();
+            this.drawRoot = new Container();
             this.stage.addChild(this.drawRoot);
             this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
         }

@@ -4,7 +4,7 @@ module.exports = {
         es6: true,
         node: true,
     },
-    extends: ['eslint:recommended', 'plugin:react/recommended', 'prettier', 'prettier/react'],
+    extends: ['eslint:recommended', 'plugin:react/recommended', 'prettier'],
     parser: '@typescript-eslint/parser',
     plugins: ['react-hooks', 'no-only-tests', 'prettier'],
     settings: {
@@ -32,7 +32,6 @@ module.exports = {
                 'plugin:@typescript-eslint/recommended',
                 'plugin:@typescript-eslint/recommended-requiring-type-checking',
                 'prettier',
-                'prettier/@typescript-eslint',
             ],
             rules: {
                 '@typescript-eslint/explicit-module-boundary-types': 'off',

@@ -1,25 +1,25 @@
-import * as PIXI from 'pixi.js';
+import { Container, Text, TextStyle, Ticker } from 'pixi.js';
 
 import { AdminState } from '@starwards/model';
 
-export class FragCounter extends PIXI.Container {
+export class FragCounter extends Container {
     private static readonly DEFAULT_FONT_SIZE: number = 30;
     private static readonly DEFAULT_FONT_COLOR: number = 0xff0000;
 
-    private _fpsTextField: PIXI.Text;
-    private _fpsTicker: PIXI.Ticker;
+    private _fpsTextField: Text;
+    private _fpsTicker: Ticker;
 
-    constructor(state: AdminState, style?: PIXI.TextStyle) {
+    constructor(state: AdminState, style?: TextStyle) {
         super();
 
-        const defaultStyle = new PIXI.TextStyle({
+        const defaultStyle = new TextStyle({
             fontSize: FragCounter.DEFAULT_FONT_SIZE,
             fill: FragCounter.DEFAULT_FONT_COLOR,
         });
 
-        this._fpsTextField = new PIXI.Text('', { ...defaultStyle, ...style } as PIXI.TextStyle);
+        this._fpsTextField = new Text('', { ...defaultStyle, ...style } as TextStyle);
 
-        this._fpsTicker = new PIXI.Ticker();
+        this._fpsTicker = new Ticker();
         this._fpsTicker.add(() => {
             if (state.points) {
                 this._fpsTextField.text =
@@ -33,7 +33,7 @@ export class FragCounter extends PIXI.Container {
         this.addChild(this._fpsTextField);
     }
 
-    set style(style: PIXI.TextStyle) {
+    set style(style: TextStyle) {
         this._fpsTextField.style = style;
     }
 }

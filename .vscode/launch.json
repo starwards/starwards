@@ -48,9 +48,9 @@
             "url": "http://localhost/",
             "sourceMaps": true,
             "trace": true,
-            "webRoot": "${workspaceFolder}",
+            "webRoot": "${workspaceFolder}/modules",
             "sourceMapPathOverrides": {
-                "webpack:///./*": "${webRoot}/*"
+                "webpack://@starwards/*": "${webRoot}/*"
             }
         },
         {

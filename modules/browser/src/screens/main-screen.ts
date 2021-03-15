@@ -1,6 +1,6 @@
 import { Driver } from '../driver';
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
-import { Engine } from '@babylonjs/core/Engines/engine';
+import { Engine } from '@babylonjs/core';
 import { Objects3D } from '../3d/objects';
 import { loadMeshes } from '../3d/meshes';
 import { placeSceneEnv } from '../3d/space-scene';

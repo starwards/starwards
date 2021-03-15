@@ -1,12 +1,12 @@
-import * as PIXI from 'pixi.js';
+import { Container, DisplayObject, Graphics, TextStyle } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
 
 const TEXT_MARGIN = 5;
 export class RangeIndicators {
-    private stage = new PIXI.Container();
-    private readonly rangeIndicators = new PIXI.Graphics();
+    private stage = new Container();
+    private readonly rangeIndicators = new Graphics();
     private readonly rangeNames = new TextsPool(this.stage);
     private sizeFactor = 1;
     private shouldRender = true;
@@ -31,7 +31,7 @@ export class RangeIndicators {
         this.stepSize = Math.max(1, this.stepSize * (1.0 + delta / 1000.0));
     }
 
-    get renderRoot(): PIXI.DisplayObject {
+    get renderRoot(): DisplayObject {
         return this.stage;
     }
 
@@ -48,7 +48,7 @@ export class RangeIndicators {
             this.rangeIndicators.drawCircle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, radius);
             const text = textsIterator.next().value;
             text.text = circleSize.toString() + 'M';
-            (text.style as PIXI.TextStyle).fill = 0xffffff;
+            (text.style as TextStyle).fill = 0xffffff;
             text.alpha = 0.1;
             text.x = this.parent.renderer.width / 2 - text.width / 2;
             text.y = this.parent.renderer.height / 2 - text.height - radius - TEXT_MARGIN;

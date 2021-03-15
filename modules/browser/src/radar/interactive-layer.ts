@@ -1,5 +1,4 @@
-import * as PIXI from 'pixi.js';
-
+import { Container, DisplayObject, Graphics, InteractionEvent, Rectangle } from 'pixi.js';
 import { SpaceObject, XY } from '@starwards/model';
 
 import { CameraView } from './camera-view';
@@ -27,7 +26,7 @@ export class InteractiveLayer {
     private actionType: ActionType = ActionType.none;
     private dragFrom: XY | null = null;
     private dragTo: XY | null = null;
-    private stage = new PIXI.Container();
+    private stage = new Container();
 
     constructor(
         private parent: CameraView,
@@ -36,9 +35,9 @@ export class InteractiveLayer {
     ) {
         this.stage.cursor = 'crosshair';
         this.stage.interactive = true;
-        this.stage.hitArea = new PIXI.Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
+        this.stage.hitArea = new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
         this.parent.events.on('screenChanged', () => {
-            this.stage.hitArea = new PIXI.Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
+            this.stage.hitArea = new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
             this.drawSelection();
         });
         // there are issues with click events from multiple mouse buttons: https://github.com/pixijs/pixi.js/issues/5384
@@ -48,7 +47,7 @@ export class InteractiveLayer {
         this.parent.renderer.plugins.interaction.on('pointerup', this.onPointerup); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     }
 
-    get renderRoot(): PIXI.DisplayObject {
+    get renderRoot(): DisplayObject {
         return this.stage;
     }
 
@@ -86,7 +85,7 @@ export class InteractiveLayer {
         return null;
     }
 
-    onPointerDown = (event: PIXI.InteractionEvent) => {
+    onPointerDown = (event: InteractionEvent) => {
         if (this.actionType === ActionType.none) {
             if (event.data.button === MouseButton.main) {
                 this.dragFrom = event.data.getLocalPosition(this.stage);
@@ -110,7 +109,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointermove = (event: PIXI.InteractionEvent) => {
+    onPointermove = (event: InteractionEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 this.dragTo = event.data.getLocalPosition(this.stage);
@@ -136,7 +135,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointerup = (_event: PIXI.InteractionEvent) => {
+    onPointerup = (_event: InteractionEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 if (this.dragTo == null) {
@@ -165,7 +164,7 @@ export class InteractiveLayer {
     private drawSelectionArea(from: XY, to: XY) {
         const min = XY.min(from, to);
         const absDifference = XY.absDifference(from, to);
-        const graphics = new PIXI.Graphics();
+        const graphics = new Graphics();
         graphics.lineStyle(1, InteractiveLayer.selectionColor, 1);
         graphics.beginFill(InteractiveLayer.selectionColor, 0.2);
         graphics.drawRect(min.x, min.y, absDifference.x, absDifference.y);
