@@ -9,12 +9,12 @@
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080"
     },
     "dependencies": {
-        "@colyseus/monitor": "^0.14.0",
-        "colyseus": "^0.14.8",
+        "@colyseus/monitor": "^0.14.3",
+        "colyseus": "^0.14.9",
         "detect-collisions": "^2.5.2",
         "express": "^4.17.1",
         "express-basic-auth": "^1.2.0",
-        "nanoid": "^3.1.20",
+        "nanoid": "^3.1.22",
         "tslib": "^2.1.0"
     },
     "pkg": {
