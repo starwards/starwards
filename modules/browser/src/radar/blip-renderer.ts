@@ -1,5 +1,5 @@
 import { Asteroid, CannonShell, Explosion, SpaceObject, SpaceObjects, Spaceship, Vec2 } from '@starwards/model';
-import { Container, Graphics, Loader, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js';
+import { Container, Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { InteractiveLayer } from './interactive-layer';
@@ -126,7 +126,7 @@ export function blipRenderer(spaceObject: SpaceObject, blip: Container, selected
 }
 
 export function selectionRenderer(root: Container) {
-    const radarBlipTexture = Loader.shared.resources['images/redicule.png'].data as Texture;
+    const radarBlipTexture = Loader.shared.resources['images/redicule.png'].texture;
     const radarBlipSprite = new Sprite(radarBlipTexture);
     radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
     radarBlipSprite.pivot.y = radarBlipSprite.height / 2;

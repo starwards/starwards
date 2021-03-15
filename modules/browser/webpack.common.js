@@ -1,11 +1,11 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
-// const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 module.exports = {
     entry: {
-        // mainScreen: [path.resolve(__dirname, 'src', 'screens', 'main-screen.ts')],
+        mainScreen: [path.resolve(__dirname, 'src', 'screens', 'main-screen.ts')],
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
         ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
@@ -31,14 +31,20 @@ module.exports = {
                 test: /\.(png|woff|woff2|eot|ttf|svg)$/,
                 use: 'file-loader?limit=1024&name=[path][name].[ext]',
             },
+            {
+                test: /\.m?js/,
+                resolve: {
+                    fullySpecified: false,
+                },
+            },
         ],
     },
     plugins: [
-        // new HtmlWebpackPlugin({
-        //     filename: 'main-screen.html',
-        //     template: path.resolve(__dirname, 'templates', '3d.html'),
-        //     chunks: ['mainScreen'],
-        // }),
+        new HtmlWebpackPlugin({
+            filename: 'main-screen.html',
+            template: path.resolve(__dirname, 'templates', '3d.html'),
+            chunks: ['mainScreen'],
+        }),
         new HtmlWebpackPlugin({
             filename: 'ship.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
@@ -59,10 +65,10 @@ module.exports = {
             template: path.resolve(__dirname, 'templates', 'input.html'),
             chunks: ['input'],
         }),
-        // new ForkTsCheckerWebpackPlugin(),
+        new ForkTsCheckerWebpackPlugin(),
     ],
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json'], // '.mjs',
+        extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'], // ,
         plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('../../tsconfig.json') })],
     },
 };
