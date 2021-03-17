@@ -28,7 +28,7 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
             panel.addProperty('breaks', shipDriver.breaks);
             panel.addProperty('turnSpeed', shipDriver.turnSpeed);
             panel.addProperty('angle', shipDriver.angle);
-            panel.addProperty('speed direction', shipDriver['speed direction']);
+            panel.addProperty('speedDirection', shipDriver.speedDirection);
             panel.addProperty('speed', shipDriver.speed);
             panel.addText('targeted', shipDriver.targeted);
         }
