@@ -81,14 +81,9 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
 }
 
 export type ShipDriver = ReturnType<typeof newShipDriverObj>;
-export type ShipDriverRead = {
-    state: ShipState;
-    events: EventEmitter;
-};
 
-function newShipDriverObj(shipRoom: GameRoom<'ship'>) {
+function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     const commands = wireCommands(shipRoom);
-    const events = wireEvents(shipRoom.state);
     return {
         events,
         get state() {
@@ -99,14 +94,15 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>) {
 }
 
 export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
-    const driver = newShipDriverObj(shipRoom);
+    const events = wireEvents(shipRoom.state);
     const pendingEvents = [];
-    if (!driver.state.chainGun) {
+    if (!shipRoom.state.chainGun) {
         pendingEvents.push('chainGun');
     }
-    if (!driver.state.constants) {
+    if (!shipRoom.state.constants) {
         pendingEvents.push('constants');
     }
-    await waitForEvents(driver.events, pendingEvents);
+    await waitForEvents(events, pendingEvents);
+    const driver = newShipDriverObj(shipRoom, events);
     return driver;
 }

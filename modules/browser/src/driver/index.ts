@@ -6,7 +6,8 @@ import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
 import { schemaClasses } from '@starwards/model';
 
-export { ShipDriver, ShipDriverRead } from './ship';
+export { ShipDriver } from './ship';
+export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
 export type DriverNumericApi = _DriverNumericApi;
 export type NumberMapDriver = _NumberMapDriver;

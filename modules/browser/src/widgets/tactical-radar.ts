@@ -76,7 +76,7 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                     () => degToRad * -shipDriver.state.angle
                 );
                 root.addLayer(asimuthCircle.renderRoot);
-                const shipTarget = trackTargetObject(spaceDriver.state, shipDriver.state);
+                const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
                 root.addLayer(speedLines(root, shipDriver.state, shipTarget));
                 const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
