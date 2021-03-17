@@ -47,7 +47,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 const range = new RangeIndicators(root, p.range / 5);
                 range.setSizeFactor(sizeFactor);
                 root.addLayer(range.renderRoot);
-                const shipTarget = trackTargetObject(spaceDriver.state, shipDriver.state);
+                const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
                 const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
                 root.addLayer(blipLayer.renderRoot);

@@ -19,15 +19,59 @@ import {
     matchLocalSpeed,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
-} from '../';
+} from '..';
 
-import { Bot } from './bot';
+import { Bot } from '../logic/bot';
 import { MapSchema } from '@colyseus/schema';
-import { SpaceManager } from './space-manager';
+import { SpaceManager } from '../logic/space-manager';
 import { uniqueId } from '../id';
 
+function setConstant(state: ShipState, name: string, value: number) {
+    state.constants.set(name, value);
+}
+
+function setChainGunConstant(state: ShipState, name: string, value: number) {
+    state.chainGun.constants.set(name, value);
+}
+
+function makeShipState(id: string) {
+    const state = new ShipState();
+    state.id = id;
+    state.constants = new MapSchema<number>();
+    setConstant(state, 'energyPerSecond', 5);
+    setConstant(state, 'maxEnergy', 1000);
+    setConstant(state, 'maxReserveSpeed', 5000);
+    setConstant(state, 'reserveSpeedCharge', 20);
+    setConstant(state, 'reserveSpeedUsagePerSecond', 300);
+    setConstant(state, 'reserveSpeedEnergyCost', 0.07);
+    setConstant(state, 'maneuveringCapacity', 50);
+    setConstant(state, 'maneuveringEnergyCost', 0.07);
+    setConstant(state, 'antiDriftEffectFactor', 1);
+    setConstant(state, 'breaksEffectFactor', 1);
+    setConstant(state, 'rotationEffectFactor', 0.1);
+    setConstant(state, 'strafeEffectFactor', 5);
+    setConstant(state, 'boostEffectFactor', 1);
+    setConstant(state, 'maxSpeed', 150);
+    setConstant(state, 'maxReservedSpeed', 200);
+    state.chainGun = new ChainGun();
+    state.chainGun.constants = new MapSchema<number>();
+    setChainGunConstant(state, 'bulletsPerSecond', 20);
+    setChainGunConstant(state, 'bulletSpeed', 1000);
+    setChainGunConstant(state, 'bulletDegreesDeviation', 1);
+    setChainGunConstant(state, 'maxShellRange', 5000);
+    setChainGunConstant(state, 'minShellRange', 500);
+    setChainGunConstant(state, 'shellRangeAim', 1000);
+    setChainGunConstant(state, 'explosionRadius', 10);
+    setChainGunConstant(state, 'explosionExpansionSpeed', 10);
+    setChainGunConstant(state, 'explosionDamageFactor', 20);
+    setChainGunConstant(state, 'explosionBlastFactor', 1);
+    state.smartPilot = new SmartPilotState();
+    state.chainGun.shellSecondsToLive = 0;
+    return state;
+}
+
 export class ShipManager {
-    public state = new ShipState(false); // this state tree should only be exposed by the ship room
+    public state = makeShipState(this.spaceObject.id);
     public bot: Bot | null = null;
     private target: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
@@ -39,37 +83,6 @@ export class ShipManager {
         private ships?: Map<string, ShipManager>,
         private onDestroy?: () => void
     ) {
-        this.state.id = this.spaceObject.id;
-        this.state.constants = new MapSchema<number>();
-        this.setConstant('energyPerSecond', 5);
-        this.setConstant('maxEnergy', 1000);
-        this.setConstant('maxReserveSpeed', 5000);
-        this.setConstant('reserveSpeedCharge', 20);
-        this.setConstant('reserveSpeedUsagePerSecond', 300);
-        this.setConstant('reserveSpeedEnergyCost', 0.07);
-        this.setConstant('maneuveringCapacity', 50);
-        this.setConstant('maneuveringEnergyCost', 0.07);
-        this.setConstant('antiDriftEffectFactor', 1);
-        this.setConstant('breaksEffectFactor', 1);
-        this.setConstant('rotationEffectFactor', 0.1);
-        this.setConstant('strafeEffectFactor', 5);
-        this.setConstant('boostEffectFactor', 1);
-        this.setConstant('maxSpeed', 150);
-        this.setConstant('maxReservedSpeed', 200);
-        this.state.chainGun = new ChainGun();
-        this.state.chainGun.constants = new MapSchema<number>();
-        this.setChainGunConstant('bulletsPerSecond', 20);
-        this.setChainGunConstant('bulletSpeed', 1000);
-        this.setChainGunConstant('bulletDegreesDeviation', 1);
-        this.setChainGunConstant('maxShellRange', 5000);
-        this.setChainGunConstant('minShellRange', 500);
-        this.setChainGunConstant('shellRangeAim', 1000);
-        this.setChainGunConstant('explosionRadius', 10);
-        this.setChainGunConstant('explosionExpansionSpeed', 10);
-        this.setChainGunConstant('explosionDamageFactor', 20);
-        this.setChainGunConstant('explosionBlastFactor', 1);
-        this.state.smartPilot = new SmartPilotState();
-        this.state.chainGun.shellSecondsToLive = 0;
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotManeuveringMode(s),
             SmartPilotMode.VELOCITY,
@@ -96,14 +109,6 @@ export class ShipManager {
     // used by smartPilot
     private setRotation(value: number) {
         this.state.rotation = capToRange(-1, 1, value);
-    }
-
-    private setConstant(name: string, value: number) {
-        this.state.constants.set(name, value);
-    }
-
-    private setChainGunConstant(name: string, value: number) {
-        this.state.chainGun.constants.set(name, value);
     }
 
     public chainGun(isFiring: boolean) {
