@@ -2,7 +2,6 @@ import { MapSchema, Schema, type } from '@colyseus/schema';
 import { Spaceship, Vec2 } from '../space';
 
 import { ChainGun } from './chain-gun';
-import EventEmitter from 'eventemitter3';
 import { getConstant } from '../utils';
 
 export enum TargetedStatus {
@@ -64,47 +63,6 @@ export class ShipState extends Spaceship {
     public nextTargetCommand = false;
     public rotationModeCommand = false;
     public maneuveringModeCommand = false;
-
-    public events = new EventEmitter();
-    constructor(isClient = true) {
-        super();
-        if (isClient) {
-            this.onChange = (changes) => {
-                for (const { field, value } of changes) {
-                    this.events.emit(field, value);
-                }
-            };
-            this.events.once('constants', () => {
-                this.constants.onChange = (value: number, key: string) => {
-                    this.events.emit('constants.' + key, value);
-                    this.events.emit('constants');
-                };
-            });
-            this.position.onChange = (_) => this.events.emit('position', this.position);
-            this.velocity.onChange = (_) => this.events.emit('velocity', this.velocity);
-            this.events.once('chainGun', () => {
-                this.chainGun.onChange = (changes) => {
-                    changes.forEach((c) => {
-                        this.events.emit('chainGun.' + c.field, c.value);
-                    });
-                };
-                this.chainGun.constants.onChange = (value: number, key: string) => {
-                    this.events.emit('chainGun.constants.' + key, value);
-                    this.events.emit('chainGun.constants');
-                };
-            });
-            this.events.once('smartPilot', () => {
-                this.smartPilot.onChange = (changes) => {
-                    changes.forEach((c) => {
-                        this.events.emit('smartPilot.' + c.field, c.value);
-                    });
-                };
-
-                this.smartPilot.maneuvering.onChange = (_) =>
-                    this.events.emit('smartPilot.maneuvering', this.smartPilot.maneuvering);
-            });
-        }
-    }
 
     // TODO: move to logic (not part of state)
     get maxEnergy(): number {

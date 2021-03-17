@@ -5,13 +5,14 @@ import { Client } from 'colyseus.js';
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
 import { schemaClasses } from '@starwards/model';
-import { waitForEvents } from './async-utils';
+
+export { ShipDriver, ShipDriverRead } from './ship';
 
 export type DriverNumericApi = _DriverNumericApi;
 export type NumberMapDriver = _NumberMapDriver;
 
 export type AdminDriver = ReturnType<typeof AdminDriver>;
-export type ShipDriver = ReturnType<typeof ShipDriver>;
+
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
@@ -78,15 +79,7 @@ export class Driver {
 
     private async makeShipDriver(shipId: string) {
         const room = await this.client.joinById(shipId, {}, schemaClasses.ship);
-        const pendingEvents = [];
-        if (!room.state.chainGun) {
-            pendingEvents.push('chainGun');
-        }
-        if (!room.state.constants) {
-            pendingEvents.push('constants');
-        }
-        await waitForEvents(room.state.events, pendingEvents);
-        return ShipDriver(room);
+        return await ShipDriver(room);
     }
 
     async getSpaceDriver(): Promise<SpaceDriver> {
