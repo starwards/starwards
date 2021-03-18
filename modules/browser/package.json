@@ -6,7 +6,7 @@
         "start": "webpack serve -c ./webpack.dev.js  --inline --hot"
     },
     "dependencies": {
-        "@babylonjs/core": "5.0.0-alpha.14",
+        "@babylonjs/core": "5.0.0-alpha.15",
         "@babylonjs/loaders": "5.0.0-alpha.14",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pixi/graphics-extras": "^5.3.8",
