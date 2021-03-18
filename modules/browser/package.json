@@ -25,7 +25,7 @@
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.0.0-alpha.14",
+        "@babylonjs/gui": "5.0.0-alpha.15",
         "@babylonjs/inspector": "5.0.0-alpha.14",
         "@types/d3-selection": "^2.0.0",
         "@types/dat.gui": "^0.7.6"
