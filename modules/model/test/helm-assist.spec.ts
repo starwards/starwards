@@ -27,9 +27,9 @@ describe('helm assist', function () {
         const iterationsPerSecond = 5;
         it('boostCapacity is max speed per second in boost', () => {
             fc.assert(
-                fc.property(float(0, 0.5), (useReserveSpeed: number) => {
+                fc.property(float(0, 0.5), (useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     const time = (0.9 * harness.shipState.maxSpeed) / harness.shipState.boostCapacity; // 90% of the time it takes to break from max speed
                     harness.shipObj.velocity.x = -1 * time * harness.shipState.boostCapacity;
                     setNumericProperty(harness.shipMgr, sp.boostCommand, 1);
@@ -45,9 +45,9 @@ describe('helm assist', function () {
         });
         it('strafeCapacity is max speed per second in strafe', () => {
             fc.assert(
-                fc.property(float(0, 0.5), (useReserveSpeed: number) => {
+                fc.property(float(0, 0.5), (useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     const time = (0.9 * harness.shipState.maxSpeed) / harness.shipState.strafeCapacity; // 90% of the time it takes to break from max speed
                     harness.shipObj.velocity.y = -1 * time * harness.shipState.strafeCapacity;
                     setNumericProperty(harness.shipMgr, sp.strafeCommand, 1);
@@ -63,10 +63,10 @@ describe('helm assist', function () {
         });
         it('rotationCapacity is max speed per second in turnSpeed', () => {
             fc.assert(
-                fc.property(float(0, 0.5), (useReserveSpeed: number) => {
+                fc.property(float(0, 0.5), (useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
                     const time = 5;
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     harness.shipObj.turnSpeed = -1 * time * harness.shipState.rotationCapacity;
                     setNumericProperty(harness.shipMgr, sp.rotationCommand, 1);
                     const metrics = new TimedTestMetrics(
@@ -85,9 +85,9 @@ describe('helm assist', function () {
         const target = XY.byLengthAndDirection(100, 0); // always aim at (100, 0), meaning target angle is 0
         it.skip('acheives target direction in a reasonable time', () => {
             fc.assert(
-                fc.property(floatIn(179, 30), float(0, 0.5), (originalAngle: number, useReserveSpeed: number) => {
+                fc.property(floatIn(179, 30), float(0, 0.5), (originalAngle: number, useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     harness.shipObj.angle = originalAngle;
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
@@ -118,9 +118,9 @@ describe('helm assist', function () {
     describe('rotationFromTargetTurnSpeed', () => {
         it.skip('acheives target turnSpeed in a reasonable time', () => {
             fc.assert(
-                fc.property(floatIn(100), float(0, 0.5), (turnSpeed: number, useReserveSpeed: number) => {
+                fc.property(floatIn(100), float(0, 0.5), (turnSpeed: number, useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(turnSpeed),
@@ -143,9 +143,9 @@ describe('helm assist', function () {
     describe('matchGlobalSpeed', () => {
         it('(boost only) reach target speed in good time from 0 speed', () => {
             fc.assert(
-                fc.property(floatIn(1000, 250), float(0, 0.5), (fromX: number, useReserveSpeed: number) => {
+                fc.property(floatIn(1000, 250), float(0, 0.5), (fromX: number, useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     harness.shipObj.velocity.x = fromX;
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
@@ -177,9 +177,9 @@ describe('helm assist', function () {
                     xy(1000, 250),
                     floatIn(180),
                     float(0, 0.5),
-                    (from: XY, angle: number, useReserveSpeed: number) => {
+                    (from: XY, angle: number, useAfterBurner: number) => {
                         const harness = new ShipTestHarness();
-                        harness.shipState.useReserveSpeed = useReserveSpeed;
+                        harness.shipState.useAfterBurner = useAfterBurner;
                         harness.shipObj.angle = angle;
                         harness.shipObj.velocity = Vec2.make(from);
                         const metrics = new SpeedTestMetrics(
@@ -215,9 +215,9 @@ describe('helm assist', function () {
     describe('moveToTarget', () => {
         it('(boost only) reach target in good time from 0 speed', () => {
             fc.assert(
-                fc.property(floatIn(2000, 500), float(0, 0.5), (fromX: number, useReserveSpeed: number) => {
+                fc.property(floatIn(2000, 500), float(0, 0.5), (fromX: number, useAfterBurner: number) => {
                     const harness = new ShipTestHarness();
-                    harness.shipState.useReserveSpeed = useReserveSpeed;
+                    harness.shipState.useAfterBurner = useAfterBurner;
                     harness.shipObj.position.x = fromX;
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
@@ -251,9 +251,9 @@ describe('helm assist', function () {
                     xy(2000, 500),
                     floatIn(179),
                     float(0, 0.5),
-                    (from: XY, angle: number, useReserveSpeed: number) => {
+                    (from: XY, angle: number, useAfterBurner: number) => {
                         const harness = new ShipTestHarness();
-                        harness.shipState.useReserveSpeed = useReserveSpeed;
+                        harness.shipState.useAfterBurner = useAfterBurner;
                         harness.shipObj.angle = angle;
                         harness.shipObj.position = Vec2.make(from);
                         const metrics = new MovementTestMetrics(
