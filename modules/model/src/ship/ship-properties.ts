@@ -90,6 +90,13 @@ export const target = IteratorStatePropertyCommand<'ship'>(
     },
     (state) => String(state.targetId)
 );
+export const clearTarget = IteratorStatePropertyCommand<'ship'>(
+    'clearTarget',
+    (state, value) => {
+        state.clearTargetCommand = value;
+    },
+    (state) => String(state.targetId)
+);
 export const rotationMode = IteratorStatePropertyCommand<'ship'>(
     'rotationMode',
     (state, value) => {

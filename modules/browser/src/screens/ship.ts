@@ -56,6 +56,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     input.addButtonAction(shipDriver.breaks, shipInputConfig.breaks);
     input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
     input.addButtonAction(shipDriver.target, shipInputConfig.target);
+    input.addButtonAction(shipDriver.clearTarget, shipInputConfig.clearTarget);
     input.init();
 }
 

@@ -75,6 +75,7 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
         targeted: wrapStringStateProperty(shipRoom, shipProperties.targeted),
         chainGunIsFiring: wrapIteratorStateProperty(shipRoom, shipProperties.chainGunIsFiring),
         target: wrapIteratorStateProperty(shipRoom, shipProperties.target),
+        clearTarget: wrapIteratorStateProperty(shipRoom, shipProperties.clearTarget),
         rotationMode: wrapIteratorStateProperty(shipRoom, shipProperties.rotationMode),
         maneuveringMode: wrapIteratorStateProperty(shipRoom, shipProperties.maneuveringMode),
     };
