@@ -28,10 +28,13 @@ export class SmartPilotState extends Schema {
     readonly maxTargetAimOffset = 30;
     readonly maxTurnSpeed = 90;
 }
+export class Malfunctions extends Schema {}
 export class ShipState extends Spaceship {
     @type({ map: 'float32' })
     constants!: MapSchema<number>;
 
+    @type(Malfunctions)
+    malfunctions!: Malfunctions;
     @type(ChainGun)
     chainGun!: ChainGun;
 

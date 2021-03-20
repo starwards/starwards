@@ -2,6 +2,7 @@ import {
     CannonShell,
     ChainGun,
     Explosion,
+    Malfunctions,
     ManeuveringCommand,
     ShipState,
     SmartPilotMode,
@@ -48,21 +49,22 @@ function makeShipState(id: string) {
     setConstant(state, 'maneuveringEnergyCost', 0.07);
     setConstant(state, 'antiDriftEffectFactor', 1);
     setConstant(state, 'breaksEffectFactor', 1);
-    setConstant(state, 'rotationEffectFactor', 0.1);
-    setConstant(state, 'strafeEffectFactor', 5);
-    setConstant(state, 'boostEffectFactor', 1);
-    setConstant(state, 'maxSpeed', 150);
-    setConstant(state, 'maxReservedSpeed', 200);
+    setConstant(state, 'rotationEffectFactor', 0.5);
+    setConstant(state, 'strafeEffectFactor', 3);
+    setConstant(state, 'boostEffectFactor', 6);
+    setConstant(state, 'maxSpeed', 300);
+    setConstant(state, 'maxReservedSpeed', 300);
+    state.malfunctions = new Malfunctions();
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
     setChainGunConstant(state, 'bulletsPerSecond', 20);
     setChainGunConstant(state, 'bulletSpeed', 1000);
     setChainGunConstant(state, 'bulletDegreesDeviation', 1);
     setChainGunConstant(state, 'maxShellRange', 5000);
-    setChainGunConstant(state, 'minShellRange', 500);
+    setChainGunConstant(state, 'minShellRange', 1000);
     setChainGunConstant(state, 'shellRangeAim', 1000);
     setChainGunConstant(state, 'explosionRadius', 10);
-    setChainGunConstant(state, 'explosionExpansionSpeed', 10);
+    setChainGunConstant(state, 'explosionExpansionSpeed', 40);
     setChainGunConstant(state, 'explosionDamageFactor', 20);
     setChainGunConstant(state, 'explosionBlastFactor', 1);
     state.smartPilot = new SmartPilotState();
