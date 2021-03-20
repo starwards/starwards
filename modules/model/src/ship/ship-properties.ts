@@ -41,9 +41,9 @@ export const energy = NumericStateProperty<'ship'>(
     (state) => state.energy,
     (state) => [0, state.maxEnergy]
 );
-export const reserveSpeed = NumericStateProperty<'ship'>(
-    (state) => state.reserveSpeed,
-    (state) => [0, state.maxReserveSpeed]
+export const afterBurner = NumericStateProperty<'ship'>(
+    (state) => state.afterBurner,
+    (state) => [0, state.maxAfterBurner]
 );
 export const turnSpeed = NumericStateProperty<'ship'>((state) => state.turnSpeed, [-90, 90]);
 export const angle = NumericStateProperty<'ship'>((state) => state.angle, [0, 360]);
@@ -54,12 +54,12 @@ export const speed = NumericStateProperty<'ship'>(
 );
 export const chainGunCoolDown = NumericStateProperty<'ship'>((state) => state.chainGun.cooldown, [0, 1]);
 
-export const useReserveSpeed = NormalNumericStatePropertyCommand<'ship'>(
-    'useReserveSpeed',
+export const useAfterBurner = NormalNumericStatePropertyCommand<'ship'>(
+    'useAfterBurner',
     (state, value) => {
-        state.useReserveSpeed = value;
+        state.useAfterBurner = value;
     },
-    (state) => state.useReserveSpeed
+    (state) => state.useAfterBurner
 );
 export const antiDrift = NormalNumericStatePropertyCommand<'ship'>(
     'antiDrift',

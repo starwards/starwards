@@ -41,10 +41,11 @@ function makeShipState(id: string) {
     state.constants = new MapSchema<number>();
     setConstant(state, 'energyPerSecond', 5);
     setConstant(state, 'maxEnergy', 1000);
-    setConstant(state, 'maxReserveSpeed', 5000);
-    setConstant(state, 'reserveSpeedCharge', 20);
-    setConstant(state, 'reserveSpeedUsagePerSecond', 300);
-    setConstant(state, 'reserveSpeedEnergyCost', 0.07);
+    setConstant(state, 'maxAfterBurner', 5000);
+    setConstant(state, 'afterBurnerCharge', 20);
+    setConstant(state, 'afterBurnerCapacity', 300);
+    setConstant(state, 'afterBurnerEffectFactor', 1);
+    setConstant(state, 'afterBurnerEnergyCost', 0.07);
     setConstant(state, 'maneuveringCapacity', 50);
     setConstant(state, 'maneuveringEnergyCost', 0.07);
     setConstant(state, 'antiDriftEffectFactor', 1);
@@ -53,7 +54,7 @@ function makeShipState(id: string) {
     setConstant(state, 'strafeEffectFactor', 3);
     setConstant(state, 'boostEffectFactor', 6);
     setConstant(state, 'maxSpeed', 300);
-    setConstant(state, 'maxReservedSpeed', 300);
+    setConstant(state, 'maxSpeeFromAfterBurner', 300);
     state.malfunctions = new Malfunctions();
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
@@ -204,7 +205,7 @@ export class ShipManager {
             this.changeVelocity(maneuveringAction, deltaSeconds);
 
             this.updateChainGun(deltaSeconds);
-            this.chargeReserveSpeed(deltaSeconds);
+            this.chargeAfterBurner(deltaSeconds);
             this.fireChainGun();
         }
     }
@@ -326,12 +327,12 @@ export class ShipManager {
     }
 
     private usePotentialVelocity(desiredSpeed: XY, deltaSeconds: number) {
-        if (this.state.useReserveSpeed) {
+        if (this.state.useAfterBurner) {
             const velocityLength = XY.lengthOf(desiredSpeed);
-            const speedCapacity = this.state.reserveSpeedUsagePerSecond * deltaSeconds;
-            const emergencySpeed = Math.min(velocityLength * this.state.useReserveSpeed, 1) * speedCapacity;
-            if (this.trySpendReserveSpeed(emergencySpeed)) {
-                return XY.scale(XY.normalize(desiredSpeed), emergencySpeed);
+            const afterBurnerToSpend =
+                Math.min(velocityLength * this.state.useAfterBurner, 1) * this.state.afterBurnerCapacity * deltaSeconds;
+            if (this.trySpendAfterBurner(afterBurnerToSpend)) {
+                return XY.scale(XY.normalize(desiredSpeed), afterBurnerToSpend * this.state.afterBurnerEffectFactor);
             }
         }
         return XY.zero;
@@ -356,14 +357,14 @@ export class ShipManager {
         return XY.zero;
     }
 
-    private chargeReserveSpeed(deltaSeconds: number) {
-        if (this.state.reserveSpeed < this.state.maxReserveSpeed) {
+    private chargeAfterBurner(deltaSeconds: number) {
+        if (this.state.afterBurner < this.state.maxAfterBurner) {
             const speedToChange = Math.min(
-                this.state.maxReserveSpeed - this.state.reserveSpeed,
-                this.state.reserveSpeedCharge * deltaSeconds
+                this.state.maxAfterBurner - this.state.afterBurner,
+                this.state.afterBurnerCharge * deltaSeconds
             );
-            if (this.trySpendEnergy(speedToChange * this.state.reserveSpeedEnergyCost)) {
-                this.state.reserveSpeed += speedToChange;
+            if (this.trySpendEnergy(speedToChange * this.state.afterBurnerEnergyCost)) {
+                this.state.afterBurner += speedToChange;
             }
         }
     }
@@ -423,16 +424,16 @@ export class ShipManager {
         return false;
     }
 
-    trySpendReserveSpeed(value: number): boolean {
+    trySpendAfterBurner(value: number): boolean {
         if (value < 0) {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
         }
-        if (this.state.reserveSpeed > value) {
-            this.state.reserveSpeed = this.state.reserveSpeed - value;
+        if (this.state.afterBurner > value) {
+            this.state.afterBurner = this.state.afterBurner - value;
             return true;
         }
-        this.state.reserveSpeed = 0;
+        this.state.afterBurner = 0;
         return false;
     }
 
@@ -493,11 +494,10 @@ export class ShipManager {
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }
-            if (this.state.useReserveSpeed) {
-                const emergencySpeed =
-                    rotateFactor * this.state.useReserveSpeed * this.state.reserveSpeedUsagePerSecond;
-                if (this.trySpendReserveSpeed(Math.abs(emergencySpeed))) {
-                    speedToChange += emergencySpeed;
+            if (this.state.useAfterBurner) {
+                const emergencySpeed = rotateFactor * this.state.useAfterBurner * this.state.afterBurnerCapacity;
+                if (this.trySpendAfterBurner(Math.abs(emergencySpeed))) {
+                    speedToChange += emergencySpeed * this.state.afterBurnerEffectFactor;
                 }
             }
             this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);

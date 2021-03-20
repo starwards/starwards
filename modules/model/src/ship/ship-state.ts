@@ -55,9 +55,9 @@ export class ShipState extends Spaceship {
     @type('number')
     energy = 1000;
     @type('number')
-    reserveSpeed = 1000;
+    afterBurner = 1000;
     @type('float32')
-    useReserveSpeed = 0;
+    useAfterBurner = 0;
 
     @type('int8')
     targeted = TargetedStatus.NONE;
@@ -71,17 +71,20 @@ export class ShipState extends Spaceship {
     get maxEnergy(): number {
         return getConstant(this.constants, 'maxEnergy');
     }
-    get maxReserveSpeed(): number {
-        return getConstant(this.constants, 'maxReserveSpeed');
+    get maxAfterBurner(): number {
+        return getConstant(this.constants, 'maxAfterBurner');
     }
-    get reserveSpeedCharge(): number {
-        return getConstant(this.constants, 'reserveSpeedCharge');
+    get afterBurnerCharge(): number {
+        return getConstant(this.constants, 'afterBurnerCharge');
     }
-    get reserveSpeedEnergyCost(): number {
-        return getConstant(this.constants, 'reserveSpeedEnergyCost');
+    get afterBurnerEnergyCost(): number {
+        return getConstant(this.constants, 'afterBurnerEnergyCost');
     }
-    get reserveSpeedUsagePerSecond(): number {
-        return getConstant(this.constants, 'reserveSpeedUsagePerSecond');
+    get afterBurnerCapacity(): number {
+        return getConstant(this.constants, 'afterBurnerCapacity');
+    }
+    get afterBurnerEffectFactor(): number {
+        return getConstant(this.constants, 'afterBurnerEffectFactor');
     }
     get energyPerSecond(): number {
         return getConstant(this.constants, 'energyPerSecond');
@@ -110,26 +113,28 @@ export class ShipState extends Spaceship {
     get rotationCapacity(): number {
         return (
             this.maneuveringCapacity * this.rotationEffectFactor +
-            this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+            this.useAfterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
     get boostCapacity() {
         return (
-            this.maneuveringCapacity * this.boostEffectFactor + this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+            this.maneuveringCapacity * this.boostEffectFactor +
+            this.useAfterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
     get strafeCapacity() {
         return (
-            this.maneuveringCapacity * this.strafeEffectFactor + this.useReserveSpeed * this.reserveSpeedUsagePerSecond
+            this.maneuveringCapacity * this.strafeEffectFactor +
+            this.useAfterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
     get maxSpeed() {
         return (
             getConstant(this.constants, 'maxSpeed') +
-            this.useReserveSpeed * getConstant(this.constants, 'maxReservedSpeed')
+            this.useAfterBurner * getConstant(this.constants, 'maxSpeeFromAfterBurner')
         );
     }
     get maxMaxSpeed() {
-        return getConstant(this.constants, 'maxSpeed') + getConstant(this.constants, 'maxReservedSpeed');
+        return getConstant(this.constants, 'maxSpeed') + getConstant(this.constants, 'maxSpeeFromAfterBurner');
     }
 }
