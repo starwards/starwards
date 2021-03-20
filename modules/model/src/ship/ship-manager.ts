@@ -146,7 +146,10 @@ export class ShipManager {
     }
 
     public handleNextTargetCommand() {
-        if (this.state.nextTargetCommand) {
+        if (this.state.clearTargetCommand) {
+            this.state.clearTargetCommand = false;
+            this.setTarget(null);
+        } else if (this.state.nextTargetCommand) {
             this.state.nextTargetCommand = false;
             // currently only iterate
             let currentFound = false;
@@ -299,8 +302,12 @@ export class ShipManager {
         this.setRotation(rotationCommand);
     }
 
+    isOverMaxSpeed() {
+        return XY.lengthOf(this.spaceObject.velocity) > this.state.maxSpeed;
+    }
+
     private calcManeuveringAction() {
-        if (XY.lengthOf(this.spaceObject.velocity) > this.state.maxSpeed) {
+        if (this.isOverMaxSpeed()) {
             return XY.normalize(XY.negate(this.spaceObject.velocity));
         } else {
             const boostFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle), this.state.boost);
@@ -335,6 +342,7 @@ export class ShipManager {
                 return XY.scale(XY.normalize(desiredSpeed), afterBurnerToSpend * this.state.afterBurnerEffectFactor);
             }
         }
+        // else if (this.isOverMaxSpeed()) {}
         return XY.zero;
     }
 

@@ -64,6 +64,7 @@ export class ShipState extends Spaceship {
 
     // server only, used for commands
     public nextTargetCommand = false;
+    public clearTargetCommand = false;
     public rotationModeCommand = false;
     public maneuveringModeCommand = false;
 
