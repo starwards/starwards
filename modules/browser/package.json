@@ -11,7 +11,7 @@
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pixi/graphics-extras": "^5.3.8",
         "arwes": "^1.0.0-alpha.5",
-        "colyseus.js": "^0.14.4",
+        "colyseus.js": "^0.14.5",
         "d3": "^6.6.0",
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.7",
