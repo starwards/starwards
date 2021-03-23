@@ -55,14 +55,15 @@ export class ShipState extends Spaceship {
     @type('number')
     energy = 1000;
     @type('number')
-    afterBurner = 1000;
+    afterBurnerFuel = 1000;
     @type('float32')
-    useAfterBurner = 0;
+    afterBurner = 0;
 
     @type('int8')
     targeted = TargetedStatus.NONE;
 
     // server only, used for commands
+    public afterBurnerCommand = 0;
     public nextTargetCommand = false;
     public clearTargetCommand = false;
     public rotationModeCommand = false;
@@ -114,25 +115,25 @@ export class ShipState extends Spaceship {
     get rotationCapacity(): number {
         return (
             this.maneuveringCapacity * this.rotationEffectFactor +
-            this.useAfterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
+            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
     get boostCapacity() {
         return (
             this.maneuveringCapacity * this.boostEffectFactor +
-            this.useAfterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
+            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
     get strafeCapacity() {
         return (
             this.maneuveringCapacity * this.strafeEffectFactor +
-            this.useAfterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
+            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
     get maxSpeed() {
         return (
             getConstant(this.constants, 'maxSpeed') +
-            this.useAfterBurner * getConstant(this.constants, 'maxSpeeFromAfterBurner')
+            this.afterBurner * getConstant(this.constants, 'maxSpeeFromAfterBurner')
         );
     }
     get maxMaxSpeed() {

@@ -40,7 +40,7 @@ export interface ShipInputConfig {
     chainGunIsFiring?: GamepadButtonConfig;
     target?: GamepadButtonConfig;
     clearTarget?: GamepadButtonConfig;
-    useAfterBurner?: GamepadButtonConfig;
+    afterBurner?: GamepadButtonConfig;
     antiDrift?: GamepadButtonConfig;
     breaks?: GamepadButtonConfig;
     rotationMode?: GamepadButtonConfig;
@@ -57,7 +57,7 @@ export const shipInputConfig: ShipInputConfig = {
     chainGunIsFiring: new GamepadButtonConfig(0, 4),
     target: new GamepadButtonConfig(0, 2),
     clearTarget: new GamepadButtonConfig(0, 0),
-    useAfterBurner: new GamepadButtonConfig(0, 6),
+    afterBurner: new GamepadButtonConfig(0, 6),
     antiDrift: new GamepadButtonConfig(0, 7),
     breaks: new GamepadButtonConfig(0, 5),
     rotationMode: new GamepadButtonConfig(0, 10),

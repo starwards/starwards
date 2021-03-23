@@ -191,6 +191,9 @@ export class ShipManager {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
+            if (this.state.afterBurnerCommand != this.state.afterBurner) {
+                this.state.afterBurner = this.state.afterBurnerCommand;
+            }
             this.handleNextTargetCommand();
             this.handleToggleSmartPilotRotationMode();
             this.handleToggleSmartPilotManeuveringMode();
@@ -334,10 +337,10 @@ export class ShipManager {
     }
 
     private usePotentialVelocity(desiredSpeed: XY, deltaSeconds: number) {
-        if (this.state.useAfterBurner) {
+        if (this.state.afterBurner) {
             const velocityLength = XY.lengthOf(desiredSpeed);
             const afterBurnerToSpend =
-                Math.min(velocityLength * this.state.useAfterBurner, 1) * this.state.afterBurnerCapacity * deltaSeconds;
+                Math.min(velocityLength * this.state.afterBurner, 1) * this.state.afterBurnerCapacity * deltaSeconds;
             if (this.trySpendAfterBurner(afterBurnerToSpend)) {
                 return XY.scale(XY.normalize(desiredSpeed), afterBurnerToSpend * this.state.afterBurnerEffectFactor);
             }
@@ -366,13 +369,13 @@ export class ShipManager {
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.afterBurner < this.state.maxAfterBurner) {
+        if (this.state.afterBurnerFuel < this.state.maxAfterBurner) {
             const speedToChange = Math.min(
-                this.state.maxAfterBurner - this.state.afterBurner,
+                this.state.maxAfterBurner - this.state.afterBurnerFuel,
                 this.state.afterBurnerCharge * deltaSeconds
             );
             if (this.trySpendEnergy(speedToChange * this.state.afterBurnerEnergyCost)) {
-                this.state.afterBurner += speedToChange;
+                this.state.afterBurnerFuel += speedToChange;
             }
         }
     }
@@ -437,11 +440,11 @@ export class ShipManager {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
         }
-        if (this.state.afterBurner > value) {
-            this.state.afterBurner = this.state.afterBurner - value;
+        if (this.state.afterBurnerFuel > value) {
+            this.state.afterBurnerFuel = this.state.afterBurnerFuel - value;
             return true;
         }
-        this.state.afterBurner = 0;
+        this.state.afterBurnerFuel = 0;
         return false;
     }
 
@@ -502,8 +505,8 @@ export class ShipManager {
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }
-            if (this.state.useAfterBurner) {
-                const emergencySpeed = rotateFactor * this.state.useAfterBurner * this.state.afterBurnerCapacity;
+            if (this.state.afterBurner) {
+                const emergencySpeed = rotateFactor * this.state.afterBurner * this.state.afterBurnerCapacity;
                 if (this.trySpendAfterBurner(Math.abs(emergencySpeed))) {
                     speedToChange += emergencySpeed * this.state.afterBurnerEffectFactor;
                 }

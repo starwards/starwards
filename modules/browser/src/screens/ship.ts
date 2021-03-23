@@ -51,7 +51,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
     input.addButtonAction(shipDriver.rotationMode, shipInputConfig.rotationMode);
     input.addButtonAction(shipDriver.maneuveringMode, shipInputConfig.maneuveringMode);
-    input.addButtonAction(shipDriver.useAfterBurner, shipInputConfig.useAfterBurner);
+    input.addButtonAction(shipDriver.afterBurner, shipInputConfig.afterBurner);
     input.addButtonAction(shipDriver.antiDrift, shipInputConfig.antiDrift);
     input.addButtonAction(shipDriver.breaks, shipInputConfig.breaks);
     input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
