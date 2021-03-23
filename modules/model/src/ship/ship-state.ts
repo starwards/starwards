@@ -130,13 +130,17 @@ export class ShipState extends Spaceship {
             this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
-    get maxSpeed() {
+    getMaxSpeedForAfterburner(afterBurner: number) {
         return (
             getConstant(this.constants, 'maxSpeed') +
-            this.afterBurner * getConstant(this.constants, 'maxSpeeFromAfterBurner')
+            afterBurner * getConstant(this.constants, 'maxSpeeFromAfterBurner')
         );
     }
+
+    get maxSpeed() {
+        return this.getMaxSpeedForAfterburner(this.afterBurner);
+    }
     get maxMaxSpeed() {
-        return getConstant(this.constants, 'maxSpeed') + getConstant(this.constants, 'maxSpeeFromAfterBurner');
+        return this.getMaxSpeedForAfterburner(1);
     }
 }
