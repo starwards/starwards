@@ -191,9 +191,7 @@ export class ShipManager {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
-            if (this.state.afterBurnerCommand != this.state.afterBurner) {
-                this.state.afterBurner = this.state.afterBurnerCommand;
-            }
+            this.handleAfterburnerCommand();
             this.handleNextTargetCommand();
             this.handleToggleSmartPilotRotationMode();
             this.handleToggleSmartPilotManeuveringMode();
@@ -213,6 +211,15 @@ export class ShipManager {
             this.updateChainGun(deltaSeconds);
             this.chargeAfterBurner(deltaSeconds);
             this.fireChainGun();
+        }
+    }
+
+    private handleAfterburnerCommand() {
+        if (
+            this.state.afterBurner !== this.state.afterBurnerCommand &&
+            (!this.shouldEnforceMaxSpeed() || this.state.afterBurner < this.state.afterBurnerCommand)
+        ) {
+            this.state.afterBurner = this.state.afterBurnerCommand;
         }
     }
 
@@ -305,12 +312,16 @@ export class ShipManager {
         this.setRotation(rotationCommand);
     }
 
-    isOverMaxSpeed() {
-        return XY.lengthOf(this.spaceObject.velocity) > this.state.maxSpeed;
+    shouldEnforceMaxSpeed() {
+        const maxSpeed = this.state.getMaxSpeedForAfterburner(this.state.afterBurnerCommand);
+        return (
+            this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT &&
+            XY.lengthOf(this.spaceObject.velocity) > maxSpeed
+        );
     }
 
     private calcManeuveringAction() {
-        if (this.isOverMaxSpeed()) {
+        if (this.shouldEnforceMaxSpeed()) {
             return XY.normalize(XY.negate(this.spaceObject.velocity));
         } else {
             const boostFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle), this.state.boost);
@@ -328,7 +339,7 @@ export class ShipManager {
     private changeVelocity(maneuveringAction: XY, deltaSeconds: number) {
         if (!XY.isZero(maneuveringAction)) {
             const maneuveringVelocity = this.useManeuvering(maneuveringAction, deltaSeconds);
-            const velocityFromPotential = this.usePotentialVelocity(maneuveringAction, deltaSeconds);
+            const velocityFromPotential = this.useAfterBurner(maneuveringAction, deltaSeconds);
             const speedToChange = XY.sum(maneuveringVelocity, velocityFromPotential);
             if (!XY.isZero(speedToChange)) {
                 this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
@@ -336,7 +347,7 @@ export class ShipManager {
         }
     }
 
-    private usePotentialVelocity(desiredSpeed: XY, deltaSeconds: number) {
+    private useAfterBurner(desiredSpeed: XY, deltaSeconds: number) {
         if (this.state.afterBurner) {
             const velocityLength = XY.lengthOf(desiredSpeed);
             const afterBurnerToSpend =
@@ -504,12 +515,6 @@ export class ShipManager {
             const enginePower = rotateFactor * this.state.maneuveringCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
-            }
-            if (this.state.afterBurner) {
-                const emergencySpeed = rotateFactor * this.state.afterBurner * this.state.afterBurnerCapacity;
-                if (this.trySpendAfterBurner(Math.abs(emergencySpeed))) {
-                    speedToChange += emergencySpeed * this.state.afterBurnerEffectFactor;
-                }
             }
             this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);
         }
