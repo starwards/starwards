@@ -103,7 +103,7 @@ export class ShipTestHarness {
         this.graphBuilder?.newPoint(0);
         for (let i = 0; i < iterations; i++) {
             const p = this.graphBuilder?.newPoint(iterationTimeInSeconds);
-            this.shipState.afterBurner = this.shipState.maxAfterBurner;
+            this.shipState.afterBurnerFuel = this.shipState.maxAfterBurner;
             this.shipState.energy = this.shipState.maxEnergy;
             body && body(iterationTimeInSeconds, p);
             this.shipMgr.update(iterationTimeInSeconds);
