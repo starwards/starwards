@@ -10,8 +10,8 @@ declare module 'mini-signals' {
         handlers(exists: true): boolean;
         handlers(exists?: false): MiniSignal.MiniSignalBinding[];
         has(node: MiniSignal.MiniSignalBinding): boolean;
-        add(fn: CbType, thisArg?: any): MiniSignal.MiniSignalBinding;
-        once(fn: CbType, thisArg?: any): MiniSignal.MiniSignalBinding;
+        add(fn: CbType, thisArg?: unknown): MiniSignal.MiniSignalBinding;
+        once(fn: CbType, thisArg?: unknown): MiniSignal.MiniSignalBinding;
         detach(node: MiniSignal.MiniSignalBinding): MiniSignal<CbType>;
         detachAll(): MiniSignal<CbType>;
 

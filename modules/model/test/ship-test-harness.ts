@@ -43,10 +43,8 @@ export class MovementTestMetrics extends AbsTestMetrics {
         super(iterationsPerSecond, distance);
     }
     get timeToReach() {
-        return (
-            Math.max(1, timeToReachDistanceByAccelerationWithMaxSpeed(this.distance, this.capacity, this.maxSpeed)) *
-            stabilizationFactor
-        );
+        const time = timeToReachDistanceByAccelerationWithMaxSpeed(this.distance, this.capacity, this.maxSpeed);
+        return Math.max(1, time) * stabilizationFactor;
     }
 }
 export class SpeedTestMetrics extends AbsTestMetrics {
