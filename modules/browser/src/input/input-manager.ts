@@ -1,8 +1,15 @@
 import '@maulingmonkey/gamepad';
 
-import { GamepadAxisConfig, GamepadButtonConfig, KeysStepsConfig, RangeConfig } from './input-config';
+import {
+    GamepadAxisConfig,
+    GamepadButtonConfig,
+    KeysStepsConfig,
+    RangeConfig,
+    isGamepadButtonsRangeConfig,
+} from './input-config';
 import { capToRange, isInRange } from '@starwards/model';
 
+import { EmitterLoop } from '../loop';
 import hotkeys from 'hotkeys-js';
 
 type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
@@ -28,6 +35,7 @@ export class InputManager {
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
     private keys: KeyListener[] = [];
+    private loop = new EmitterLoop(1000 / 10);
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
@@ -58,6 +66,7 @@ export class InputManager {
     };
 
     init() {
+        this.loop.start();
         addEventListener('mmk-gamepad-button-value', this.onButton);
         addEventListener('mmk-gamepad-axis-value', this.onAxis);
         for (const key of this.keys) {
@@ -77,27 +86,38 @@ export class InputManager {
         removeEventListener('mmk-gamepad-axis-value', this.onAxis);
         removeEventListener('mmk-gamepad-button-value', this.onButton);
         hotkeys.unbind(); // unbind everything
+        this.loop.stop();
     }
 
     addRangeAction(property: RangeAction, range: RangeConfig | undefined) {
         if (range) {
             const { axis, buttons, keys } = range;
-            if (buttons || keys) {
+            if (buttons || keys || axis?.velocity) {
                 const callbacks = new CombinedRangeCallbacks(property);
                 if (buttons) {
-                    const step = getStepOfRange(buttons.step, property.range);
-                    this.buttons.push({ button: buttons.center, onClick: callbacks.center });
-                    this.buttons.push({ button: buttons.up, onClick: callbacks.up(step) });
-                    this.buttons.push({ button: buttons.down, onClick: callbacks.down(step) });
+                    buttons.center && this.buttons.push({ button: buttons.center, onClick: callbacks.centerOffset });
+                    if (isGamepadButtonsRangeConfig(buttons)) {
+                        const step = getStepOfRange(buttons.step, property.range);
+                        this.buttons.push({ button: buttons.up, onClick: callbacks.upOffset(step) });
+                        this.buttons.push({ button: buttons.down, onClick: callbacks.downOffset(step) });
+                    }
                 }
                 if (keys) {
                     const step = getStepOfRange(keys.step, property.range);
-                    keys.center && this.keys.push({ key: keys.center, onClick: callbacks.center });
-                    keys.up && this.keys.push({ key: keys.up, onClick: callbacks.up(step) });
-                    keys.down && this.keys.push({ key: keys.down, onClick: callbacks.down(step) });
+                    this.keys.push({ key: keys.center, onClick: callbacks.centerOffset });
+                    this.keys.push({ key: keys.up, onClick: callbacks.upOffset(step) });
+                    this.keys.push({ key: keys.down, onClick: callbacks.downOffset(step) });
                 }
                 if (axis) {
-                    this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
+                    if (axis.velocity) {
+                        this.axes.push({
+                            axis,
+                            range: property.range,
+                            onChange: callbacks.offsetVelocity(this.loop),
+                        });
+                    } else {
+                        this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
+                    }
                 }
             } else if (axis) {
                 this.axes.push({ axis, ...property });
@@ -131,33 +151,25 @@ function getStepOfRange(step: number, range: [number, number]) {
 class CombinedRangeCallbacks {
     private readonly midRange = lerpAxisToRange(this.property.range, 0);
     private axisValue = this.midRange;
-    private buttonsValue = this.midRange;
+    private offsetValue = this.midRange;
 
     constructor(private property: RangeAction) {}
     private onChange() {
-        this.property.onChange(this.axisValue + this.buttonsValue);
+        this.property.onChange(this.axisValue + this.offsetValue);
     }
-    center = () => {
-        this.buttonsValue = this.midRange;
+    centerOffset = () => {
+        this.offsetValue = this.midRange;
         this.onChange();
     };
-    up(stepSize: number) {
+    upOffset(stepSize: number) {
         return () => {
-            this.buttonsValue = capToRange(
-                this.property.range[0],
-                this.property.range[1],
-                this.buttonsValue + stepSize
-            );
+            this.offsetValue = capToRange(this.property.range[0], this.property.range[1], this.offsetValue + stepSize);
             this.onChange();
         };
     }
-    down(stepSize: number) {
+    downOffset(stepSize: number) {
         return () => {
-            this.buttonsValue = capToRange(
-                this.property.range[0],
-                this.property.range[1],
-                this.buttonsValue - stepSize
-            );
+            this.offsetValue = capToRange(this.property.range[0], this.property.range[1], this.offsetValue - stepSize);
             this.onChange();
         };
     }
@@ -165,4 +177,21 @@ class CombinedRangeCallbacks {
         this.axisValue = v;
         this.onChange();
     };
+
+    offsetVelocity(loop: EmitterLoop) {
+        let velocity = 0;
+        loop.onLoop((deltaSeconds) => {
+            if (velocity != 0) {
+                this.offsetValue = capToRange(
+                    this.property.range[0],
+                    this.property.range[1],
+                    this.offsetValue + velocity * deltaSeconds
+                );
+                this.onChange();
+            }
+        });
+        return (v: number) => {
+            velocity = v;
+        };
+    }
 }

@@ -43,12 +43,12 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, 'constants');
     dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');
     dashboard.setup();
-
     const input = new InputManager();
     input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
     input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
     input.addRangeAction(shipDriver.strafeCommand, shipInputConfig.strafeCommand);
     input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
+    input.addButtonAction(shipDriver.rotationTargetOffset, shipInputConfig.resetRotatioTargetOffset);
     input.addButtonAction(shipDriver.rotationMode, shipInputConfig.rotationMode);
     input.addButtonAction(shipDriver.maneuveringMode, shipInputConfig.maneuveringMode);
     input.addButtonAction(shipDriver.afterBurner, shipInputConfig.afterBurner);

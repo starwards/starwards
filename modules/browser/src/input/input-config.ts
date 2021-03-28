@@ -3,16 +3,19 @@ export class GamepadAxisConfig {
         public gamepadIndex: number,
         public axisIndex: number,
         public deadzone?: [number, number],
-        public inverted?: boolean
+        public inverted?: boolean,
+        public velocity?: number
     ) {}
 }
-
 export class GamepadButtonConfig {
     constructor(public gamepadIndex: number, public buttonIndex: number) {}
 }
 
 export class KeysStepsConfig {
     constructor(public up: string, public down: string, public step: number) {}
+}
+export class GamepadButtonsCenterConfig {
+    constructor(public center: GamepadButtonConfig) {}
 }
 export class GamepadButtonsRangeConfig {
     constructor(
@@ -23,17 +26,17 @@ export class GamepadButtonsRangeConfig {
     ) {}
 }
 
+export function isGamepadButtonsRangeConfig(
+    v: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig
+): v is GamepadButtonsRangeConfig {
+    return !!(v as GamepadButtonsRangeConfig).step;
+}
 export class KeysRangeConfig {
-    constructor(
-        public up: string | null,
-        public down: string | null,
-        public center: string | null,
-        public step: number
-    ) {}
+    constructor(public up: string, public down: string, public center: string, public step: number) {}
 }
 export interface RangeConfig {
     axis?: GamepadAxisConfig;
-    buttons?: GamepadButtonsRangeConfig;
+    buttons?: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig;
     keys?: KeysRangeConfig;
 }
 export interface ShipInputConfig {
@@ -47,6 +50,7 @@ export interface ShipInputConfig {
     maneuveringMode?: GamepadButtonConfig;
     // ranges
     rotationCommand?: RangeConfig;
+    resetRotatioTargetOffset?: GamepadButtonConfig;
     strafeCommand?: RangeConfig;
     boostCommand?: RangeConfig;
     shellRange?: RangeConfig;
@@ -64,26 +68,22 @@ export const shipInputConfig: ShipInputConfig = {
     maneuveringMode: new GamepadButtonConfig(0, 11),
     // ranges
     rotationCommand: {
-        axis: new GamepadAxisConfig(0, 0, [-0.01, 0.01]),
+        axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
         keys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
     },
     strafeCommand: {
-        axis: new GamepadAxisConfig(0, 2, [-0.01, 0.01]),
+        axis: new GamepadAxisConfig(0, 2, [-0.1, 0.1]),
         keys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
     },
     boostCommand: {
-        axis: new GamepadAxisConfig(0, 3, [-0.01, 0.01], true),
+        axis: new GamepadAxisConfig(0, 3, [-0.1, 0.1], true),
         keys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
     },
     shellRange: {
-        axis: new GamepadAxisConfig(0, 1, [-0.01, 0.01], true),
-        buttons: new GamepadButtonsRangeConfig(
-            new GamepadButtonConfig(0, 12),
-            new GamepadButtonConfig(0, 13),
-            new GamepadButtonConfig(0, 14),
-            0.1
-        ),
+        axis: new GamepadAxisConfig(0, 1, [-0.1, 0.1], true, 0.33),
+        buttons: { center: new GamepadButtonConfig(0, 14) },
     },
+    resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
 };
 export interface GmInputConfig {
     rotate?: KeysStepsConfig;
