@@ -18,6 +18,13 @@ export const rotationCommand = NumericStatePropertyCommand<'ship'>(
     (state) => state.smartPilot.rotation,
     [-1, 1]
 );
+export const rotationTargetOffset = NormalNumericStatePropertyCommand<'ship'>(
+    'rotationTargetOffset',
+    (state, value) => {
+        state.smartPilot.rotationTargetOffset = value;
+    },
+    (state) => state.smartPilot.rotationTargetOffset
+);
 export const strafeCommand = NumericStatePropertyCommand<'ship'>(
     'strafeCommand',
     (state, value) => {

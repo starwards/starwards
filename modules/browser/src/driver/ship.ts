@@ -69,6 +69,7 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
         speed: wrapNumericProperty(shipRoom, shipProperties.speed),
         chainGunCooldown: wrapNumericProperty(shipRoom, shipProperties.chainGunCoolDown),
         chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive),
+        rotationTargetOffset: wrapNormalNumericProperty(shipRoom, shipProperties.rotationTargetOffset),
         afterBurner: wrapNormalNumericProperty(shipRoom, shipProperties.afterBurner),
         antiDrift: wrapNormalNumericProperty(shipRoom, shipProperties.antiDrift),
         breaks: wrapNormalNumericProperty(shipRoom, shipProperties.breaks),

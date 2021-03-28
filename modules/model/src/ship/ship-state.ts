@@ -22,10 +22,13 @@ export class SmartPilotState extends Schema {
     maneuveringMode!: SmartPilotMode;
     @type('float32')
     rotation = 0;
+    @type('float32')
+    rotationTargetOffset = 0;
     @type(Vec2)
     maneuvering: Vec2 = new Vec2(0, 0);
 
     readonly maxTargetAimOffset = 30;
+    readonly aimOffsetSpeed = 15;
     readonly maxTurnSpeed = 90;
 }
 export class Malfunctions extends Schema {}

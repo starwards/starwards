@@ -130,6 +130,7 @@ export class ShipManager {
         if (value !== this.state.smartPilot.rotationMode) {
             this.state.smartPilot.rotationMode = value;
             this.state.smartPilot.rotation = 0;
+            this.state.smartPilot.rotationTargetOffset = 0;
         }
     }
 
@@ -253,12 +254,11 @@ export class ShipManager {
     }
 
     private calcShellRange() {
+        const aimRange = (this.state.chainGun.maxShellRange - this.state.chainGun.minShellRange) / 2;
         let baseRange: number;
         switch (this.state.chainGun.shellRangeMode) {
             case SmartPilotMode.DIRECT:
-                baseRange =
-                    this.state.chainGun.minShellRange +
-                    (this.state.chainGun.maxShellRange - this.state.chainGun.minShellRange) / 2;
+                baseRange = this.state.chainGun.minShellRange + aimRange;
                 break;
             case SmartPilotMode.TARGET:
                 baseRange = capToRange(
@@ -274,12 +274,7 @@ export class ShipManager {
         const range = capToRange(
             this.state.chainGun.minShellRange,
             this.state.chainGun.maxShellRange,
-            baseRange +
-                lerp(
-                    [-1, 1],
-                    [-this.state.chainGun.shellRangeAim, this.state.chainGun.shellRangeAim],
-                    this.state.chainGun.shellRange
-                )
+            baseRange + lerp([-1, 1], [-aimRange, aimRange], this.state.chainGun.shellRange)
         );
         this.state.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, range);
     }
@@ -291,12 +286,19 @@ export class ShipManager {
                 rotationCommand = this.state.smartPilot.rotation;
                 break;
             case SmartPilotMode.TARGET: {
+                this.state.smartPilot.rotationTargetOffset = capToRange(
+                    -1,
+                    1,
+                    this.state.smartPilot.rotationTargetOffset +
+                        (this.state.smartPilot.rotation * deltaSeconds * this.state.smartPilot.aimOffsetSpeed) /
+                            this.state.smartPilot.maxTargetAimOffset
+                );
                 rotationCommand = rotateToTarget(
                     deltaSeconds,
                     this.state,
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     this.target!.position,
-                    this.state.smartPilot.rotation * this.state.smartPilot.maxTargetAimOffset
+                    this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.maxTargetAimOffset
                 );
                 break;
             }
