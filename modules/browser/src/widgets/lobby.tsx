@@ -1,9 +1,12 @@
 import { AdminDriver, Driver } from '../driver';
-import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
+import { Animator, AnimatorGeneralProvider } from '@arwes/animation';
+// import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
+import { ArwesThemeProvider, Button, StylesBaseline } from '@arwes/core';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect, useState } from 'react';
 
+import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
 import { TaskLoop } from '../task-loop';
 import WebFont from 'webfontloader';
@@ -13,6 +16,17 @@ WebFont.load({
         families: ['Electrolize', 'Titillium Web'],
     },
 });
+
+const audioSettings = { common: { volume: 0.25 } };
+const playersSettings = {
+    object: { src: ['/sound/click.mp3'] },
+    type: { src: ['/sound/typing.mp3'], loop: true },
+};
+const bleepsSettings = {
+    object: { player: 'object' },
+    type: { player: 'type' },
+};
+const generalAnimator = { duration: { enter: 200, exit: 200 } };
 
 const InGameMenu = (p: Props) => {
     const [ships, setShips] = useState<string[]>([]);
@@ -33,37 +47,48 @@ const InGameMenu = (p: Props) => {
         if (key.startsWith('layout:')) {
             layouts.add(key.substring('layout:'.length));
         }
-        // console.log(localStorage.getItem(key));
     }
     return (
-        <ul>
+        <>
             {adminDriver && (
-                <li key="Stop Game">
-                    <Button onClick={adminDriver?.stopGame}>Stop Game</Button>
-                </li>
+                <Button key="Stop Game" palette="error" onClick={adminDriver?.stopGame}>
+                    Stop Game
+                </Button>
             )}
-            <li key="Game Master">
-                <Button onClick={() => window.location.assign(`gm.html`)}>Game Master</Button>
-            </li>
-            {[...ships].flatMap((shipId: string) => [
-                <li key={`title-ship-${shipId}`}> Ship {shipId}</li>,
-                <li key="Main Screen">
-                    <Button onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}>
+            <pre key="Game Master">
+                <h2 key={`title-gm`}>GM</h2>
+                <Button key="Game Master" onClick={() => window.location.assign(`gm.html`)}>
+                    Game Master
+                </Button>
+            </pre>
+            {[...ships].flatMap((shipId: string) => (
+                <pre key={`ship-${shipId}`}>
+                    <h2 key={`title-ship-${shipId}`}> Ship {shipId}</h2>
+                    <Button
+                        key="Main Screen"
+                        palette="secondary"
+                        onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}
+                    >
                         Main Screen
                     </Button>
-                </li>,
-                ...[...layouts].map((layout) => (
-                    <li key={`ship-${shipId}-layout-${layout}`}>
-                        <Button onClick={() => window.location.assign(`ship.html?ship=${shipId}&layout=${layout}`)}>
+                    {[...layouts].map((layout) => (
+                        <Button
+                            key={`ship-${shipId}-layout-${layout}`}
+                            onClick={() => window.location.assign(`ship.html?ship=${shipId}&layout=${layout}`)}
+                        >
                             {layout}
                         </Button>
-                    </li>
-                )),
-                <li key={`empty-${shipId}`}>
-                    <Button onClick={() => window.location.assign(`ship.html?ship=${shipId}`)}>Empty Screen</Button>
-                </li>,
-            ])}
-        </ul>
+                    ))}
+                    <Button
+                        key={`empty-${shipId}`}
+                        palette="secondary"
+                        onClick={() => window.location.assign(`ship.html?ship=${shipId}`)}
+                    >
+                        Empty Screen
+                    </Button>
+                </pre>
+            ))}
+        </>
     );
 };
 
@@ -83,60 +108,37 @@ export const Lobby = (p: Props) => {
         return loop.stop;
     });
     return (
-        <ThemeProvider
-            theme={createTheme({
-                typography: {
-                    headerFontFamily: '"Electrolize"',
-                    fontFamily: '"Titillium Web"',
-                },
-            })}
-        >
-            <SoundsProvider
-                sounds={createSounds({
-                    shared: { volume: 1 }, // Shared sound settings
-                    players: {
-                        // The player settings
-                        click: {
-                            // With the name the player is created
-                            sound: { src: ['/sound/click.mp3'] }, // The settings to pass to Howler
-                        },
-                        typing: {
-                            sound: { src: ['/sound/typing.mp3'] },
-                            settings: { oneAtATime: true }, // The custom app settings
-                        },
-                        deploy: {
-                            sound: { src: ['/sound/deploy.mp3'] },
-                            settings: { oneAtATime: true },
-                        },
-                    },
-                })}
+        <ArwesThemeProvider>
+            <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />
+            <BleepsProvider
+                audioSettings={audioSettings}
+                playersSettings={playersSettings}
+                bleepsSettings={bleepsSettings}
             >
-                <Arwes pattern="images/glow.png" style={{ padding: 20 }}>
+                <AnimatorGeneralProvider animator={generalAnimator}>
                     <div style={{ padding: 20, textAlign: 'center' }}>
-                        <Heading>
-                            <p>Starwards</p>
-                        </Heading>
-                        <ul>
-                            {gamesCount && adminDriver && (
-                                <li key="InGameMenu">
-                                    <InGameMenu driver={p.driver}></InGameMenu>
-                                </li>
-                            )}
-                            {!gamesCount && adminDriver && (
-                                <li key="startGame">
-                                    <Button onClick={adminDriver.startGame}>New Game</Button>
-                                </li>
-                            )}
-                            <li key="input">
-                                <Button key="input" onClick={() => window.location.assign('input.html')}>
-                                    Input
-                                </Button>
-                            </li>
-                        </ul>
+                        <h1>Starwards</h1>
+                        {gamesCount && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
+
+                        {!gamesCount && adminDriver && (
+                            <Button key="new game" palette="success" onClick={adminDriver.startGame}>
+                                New Game
+                            </Button>
+                        )}
+                        <pre key="Utilities">
+                            <h2>Utilities</h2>
+                            <Button
+                                key="input"
+                                palette="secondary"
+                                onClick={() => window.location.assign('input.html')}
+                            >
+                                Input
+                            </Button>
+                        </pre>
                     </div>
-                </Arwes>
-            </SoundsProvider>
-        </ThemeProvider>
+                </AnimatorGeneralProvider>
+            </BleepsProvider>
+        </ArwesThemeProvider>
     );
 };
 

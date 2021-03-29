@@ -48,7 +48,7 @@
 .material-icons.md-inactive { color: rgba(255, 255, 255, 0.3); }
 
 h2 {
-  font: 14px Arial, sans-serif;
+  /* font: 14px Arial, sans-serif; */
   color: #fff;
   padding: 10px;
   text-align: center;
@@ -89,7 +89,7 @@ body {
   padding: 10px 5px;
   color: #bbb;
   background: #1a1a1a;
-  font: 12px Arial, sans-serif;
+  /* font: 12px Arial, sans-serif; */
 }
 
 #menuContainer li:hover {
