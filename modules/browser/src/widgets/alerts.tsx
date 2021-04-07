@@ -2,9 +2,8 @@
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import React, { Component } from 'react';
+import React, { Component, useEffect, useState } from 'react';
 
-import { AnimatorGeneralProvider } from '@arwes/animation';
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '../driver';
@@ -25,9 +24,33 @@ const bleepsSettings = {
     object: { player: 'object' },
     type: { player: 'type' },
 };
-const generalAnimator = { duration: { enter: 200, exit: 200 } };
+type Palette = 'primary' | 'secondary' | 'success' | 'error';
+type Props = {
+    shipDriver: ShipDriver;
+    metricName: string;
+    warn: number;
+    error: number;
+};
 
-export function alertsWidget(_shipDriver: ShipDriver): DashboardWidget {
+function Metric({ shipDriver, metricName, warn, error }: Props) {
+    const [metricValue, setMetric] = useState<number>(shipDriver.state.energy);
+    useEffect(() => {
+        shipDriver.events.on(metricName, setMetric);
+        return () => {
+            shipDriver.events.off(metricName, setMetric);
+        };
+    }, [metricName, setMetric, shipDriver]);
+    const palette: Palette = metricValue > warn ? 'success' : metricValue > error ? 'primary' : 'error';
+    return (
+        <Blockquote palette={palette} animator={{ animate: false }}>
+            <Text>
+                {metricName} : {String(Math.round(metricValue)).padStart(4, '0')}
+            </Text>
+        </Blockquote>
+    );
+}
+
+export function alertsWidget(shipDriver: ShipDriver): DashboardWidget {
     class Alerts extends Component {
         render() {
             return (
@@ -38,13 +61,10 @@ export function alertsWidget(_shipDriver: ShipDriver): DashboardWidget {
                         playersSettings={playersSettings}
                         bleepsSettings={bleepsSettings}
                     >
-                        <AnimatorGeneralProvider animator={generalAnimator}>
-                            <div style={{ padding: 20, textAlign: 'center' }}>
-                                <Blockquote palette="error">
-                                    <Text>Lorem ipsum dolor sit amet</Text>
-                                </Blockquote>
-                            </div>
-                        </AnimatorGeneralProvider>
+                        <div style={{ padding: 20, textAlign: 'center' }}>
+                            <Metric shipDriver={shipDriver} metricName="energy" error={100} warn={300} />
+                            <Metric shipDriver={shipDriver} metricName="afterBurnerFuel" error={500} warn={2000} />
+                        </div>
                     </BleepsProvider>
                 </ArwesThemeProvider>
             );

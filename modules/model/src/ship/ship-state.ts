@@ -58,7 +58,7 @@ export class ShipState extends Spaceship {
     @type('number')
     energy = 1000;
     @type('number')
-    afterBurnerFuel = 1000;
+    afterBurnerFuel = 0;
     @type('float32')
     afterBurner = 0;
 
