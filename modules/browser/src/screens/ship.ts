@@ -72,8 +72,16 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
         const layoutStorageKey = 'layout:' + layout;
         const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
         dashboard = new Dashboard(JSON.parse(layoutStr, reviver), $('#layoutContainer'), $('#menuContainer'));
+        let canSaveState = true;
         dashboard.on('stateChanged', function () {
-            localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig(), replacer));
+            if (canSaveState) {
+                try {
+                    canSaveState = false;
+                    localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig(), replacer));
+                } finally {
+                    canSaveState = true;
+                }
+            }
         });
     } else {
         // anonymous screen
