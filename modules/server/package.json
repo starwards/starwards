@@ -10,7 +10,7 @@
     },
     "dependencies": {
         "@colyseus/monitor": "^0.14.3",
-        "colyseus": "^0.14.9",
+        "colyseus": "^0.14.13",
         "detect-collisions": "^2.5.2",
         "express": "^4.17.1",
         "express-basic-auth": "^1.2.0",
