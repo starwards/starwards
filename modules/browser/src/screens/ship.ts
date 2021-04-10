@@ -4,6 +4,7 @@ import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
 import { InputManager } from '../input/input-manager';
+import { alertsWidget } from '../widgets/alerts';
 import { gunWidget } from '../widgets/gun';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
@@ -42,6 +43,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');
     dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, 'constants');
     dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');
+    dashboard.registerWidget(alertsWidget(shipDriver), {}, 'alerts');
     dashboard.setup();
     const input = new InputManager();
     input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
