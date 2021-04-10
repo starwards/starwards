@@ -1,11 +1,11 @@
 import { AdminDriver, Driver } from '../driver';
-import { Animator, AnimatorGeneralProvider } from '@arwes/animation';
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, Button, StylesBaseline } from '@arwes/core';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { useEffect, useState } from 'react';
 
+import { AnimatorGeneralProvider } from '@arwes/animation';
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
 import { TaskLoop } from '../task-loop';
