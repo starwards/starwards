@@ -40,7 +40,7 @@ function Metric({ shipDriver, metricName, warn, error }: Props) {
             shipDriver.events.off(metricName, setMetric);
         };
     }, [metricName, setMetric, shipDriver]);
-    const palette: Palette = metricValue > warn ? 'success' : metricValue > error ? 'primary' : 'error';
+    const palette: Palette = metricValue > warn ? 'success' : metricValue > error ? 'secondary' : 'error';
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>
             <Text>
@@ -50,8 +50,8 @@ function Metric({ shipDriver, metricName, warn, error }: Props) {
     );
 }
 
-export function alertsWidget(shipDriver: ShipDriver): DashboardWidget {
-    class Alerts extends Component {
+export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
+    class Monitor extends Component {
         render() {
             return (
                 <ArwesThemeProvider>
@@ -72,9 +72,9 @@ export function alertsWidget(shipDriver: ShipDriver): DashboardWidget {
     }
 
     return {
-        name: 'alerts',
+        name: 'monitor',
         type: 'react-component',
-        component: Alerts,
+        component: Monitor,
         defaultProps: {},
     };
 }
