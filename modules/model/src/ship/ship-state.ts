@@ -1,7 +1,8 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 import { Spaceship, Vec2 } from '../space';
 
 import { ChainGun } from './chain-gun';
+import { Thruster } from './thruster';
 import { getConstant } from '../utils';
 
 export enum TargetedStatus {
@@ -31,13 +32,13 @@ export class SmartPilotState extends Schema {
     readonly aimOffsetSpeed = 15;
     readonly maxTurnSpeed = 90;
 }
-export class Malfunctions extends Schema {}
 export class ShipState extends Spaceship {
     @type({ map: 'float32' })
     constants!: MapSchema<number>;
 
-    @type(Malfunctions)
-    malfunctions!: Malfunctions;
+    @type([Thruster])
+    thrusters!: ArraySchema<Thruster>;
+
     @type(ChainGun)
     chainGun!: ChainGun;
 
