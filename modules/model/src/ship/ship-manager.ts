@@ -1,8 +1,8 @@
+import { ArraySchema, MapSchema } from '@colyseus/schema';
 import {
     CannonShell,
     ChainGun,
     Explosion,
-    Malfunctions,
     ManeuveringCommand,
     ShipState,
     SmartPilotMode,
@@ -21,9 +21,7 @@ import {
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '..';
-
 import { Bot } from '../logic/bot';
-import { MapSchema } from '@colyseus/schema';
 import { SpaceManager } from '../logic/space-manager';
 import { uniqueId } from '../id';
 
@@ -55,7 +53,7 @@ function makeShipState(id: string) {
     setConstant(state, 'boostEffectFactor', 6);
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
-    state.malfunctions = new Malfunctions();
+    state.thrusters = new ArraySchema();
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
     setChainGunConstant(state, 'bulletsPerSecond', 20);
