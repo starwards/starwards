@@ -201,7 +201,6 @@ module.exports = {
     //    next();
     //},
 
-
     // The following property can be used to add a custom middleware function
     // in front of all admin http routes. For example, to set custom http
     // headers. It can be a single function or an array of middleware functions.
@@ -293,12 +292,12 @@ module.exports = {
             // debug - record information which is more verbose than info + info + warn + error + fatal errors
             // trace - record very detailed logging + debug + info + warn + error + fatal errors
             // off - turn off all logging (doesn't affect metrics or audit)
-            level: "info",
+            level: 'info',
             // Whether or not to include metric events in the log output
             metrics: false,
             // Whether or not to include audit events in the log output
-            audit: false
-        }
+            audit: false,
+        },
     },
 
     // Configure how the runtime will handle external npm modules.
@@ -335,8 +334,8 @@ module.exports = {
                 //  - auto - changes are automatically committed
                 // This can be overridden per-user from the 'Git config'
                 // section of 'User Settings' within the editor
-                mode: "manual"
-            }
-        }
-    }
-}
+                mode: 'manual',
+            },
+        },
+    },
+};
