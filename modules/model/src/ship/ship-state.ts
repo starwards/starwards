@@ -98,8 +98,8 @@ export class ShipState extends Spaceship {
     get maneuveringCapacity(): number {
         return getConstant(this.constants, 'maneuveringCapacity');
     }
-    get maneuveringEnergyCost(): number {
-        return getConstant(this.constants, 'maneuveringEnergyCost');
+    get rotationEnergyCost(): number {
+        return getConstant(this.constants, 'rotationEnergyCost');
     }
     get antiDriftEffectFactor(): number {
         return getConstant(this.constants, 'antiDriftEffectFactor');
@@ -122,12 +122,14 @@ export class ShipState extends Spaceship {
             this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
+    // TODO remove
     get boostCapacity() {
         return (
             this.maneuveringCapacity * this.boostEffectFactor +
             this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
+    // TODO remove
     get strafeCapacity() {
         return (
             this.maneuveringCapacity * this.strafeEffectFactor +

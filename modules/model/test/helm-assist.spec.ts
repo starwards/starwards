@@ -23,7 +23,7 @@ const iterationsPerSecond = 20;
 describe('helm assist', function () {
     this.timeout(60 * 1000);
 
-    describe('assumptions', () => {
+    describe.only('assumptions', () => {
         const iterationsPerSecond = 5;
         it('boostCapacity is max speed per second in boost', () => {
             fc.assert(

@@ -21,18 +21,28 @@ import {
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '..';
+
 import { Bot } from '../logic/bot';
 import { SpaceManager } from '../logic/space-manager';
+import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
-function setConstant(state: ShipState, name: string, value: number) {
+interface WithConstants {
+    constants: MapSchema<number>;
+}
+function setConstant(state: WithConstants, name: string, value: number) {
     state.constants.set(name, value);
 }
 
-function setChainGunConstant(state: ShipState, name: string, value: number) {
-    state.chainGun.constants.set(name, value);
+function makeThruster(angle: number): Thruster {
+    const thruster = new Thruster();
+    thruster.constants = new MapSchema<number>();
+    setConstant(thruster, 'angle', angle);
+    setConstant(thruster, 'capacity', 50);
+    setConstant(thruster, 'energyCost', 0.07);
+    setConstant(thruster, 'speedFactor', 3);
+    return thruster;
 }
-
 function makeShipState(id: string) {
     const state = new ShipState();
     state.id = id;
@@ -44,28 +54,34 @@ function makeShipState(id: string) {
     setConstant(state, 'afterBurnerCapacity', 300);
     setConstant(state, 'afterBurnerEffectFactor', 1);
     setConstant(state, 'afterBurnerEnergyCost', 0.07);
-    setConstant(state, 'maneuveringCapacity', 50);
-    setConstant(state, 'maneuveringEnergyCost', 0.07);
+    setConstant(state, 'maneuveringCapacity', 50); // TODO remove
+    setConstant(state, 'rotationEnergyCost', 0.07);
     setConstant(state, 'antiDriftEffectFactor', 1);
     setConstant(state, 'breaksEffectFactor', 1);
     setConstant(state, 'rotationEffectFactor', 0.5);
-    setConstant(state, 'strafeEffectFactor', 3);
-    setConstant(state, 'boostEffectFactor', 6);
+    setConstant(state, 'strafeEffectFactor', 3); // TODO remove
+    setConstant(state, 'boostEffectFactor', 6); // TODO remove
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     state.thrusters = new ArraySchema();
+    state.thrusters.push(makeThruster(0));
+    state.thrusters.push(makeThruster(0));
+    state.thrusters.push(makeThruster(180));
+    state.thrusters.push(makeThruster(180));
+    state.thrusters.push(makeThruster(90));
+    state.thrusters.push(makeThruster(-90));
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
-    setChainGunConstant(state, 'bulletsPerSecond', 20);
-    setChainGunConstant(state, 'bulletSpeed', 1000);
-    setChainGunConstant(state, 'bulletDegreesDeviation', 1);
-    setChainGunConstant(state, 'maxShellRange', 5000);
-    setChainGunConstant(state, 'minShellRange', 1000);
-    setChainGunConstant(state, 'shellRangeAim', 1000);
-    setChainGunConstant(state, 'explosionRadius', 10);
-    setChainGunConstant(state, 'explosionExpansionSpeed', 40);
-    setChainGunConstant(state, 'explosionDamageFactor', 20);
-    setChainGunConstant(state, 'explosionBlastFactor', 1);
+    setConstant(state.chainGun, 'bulletsPerSecond', 20);
+    setConstant(state.chainGun, 'bulletSpeed', 1000);
+    setConstant(state.chainGun, 'bulletDegreesDeviation', 1);
+    setConstant(state.chainGun, 'maxShellRange', 5000);
+    setConstant(state.chainGun, 'minShellRange', 1000);
+    setConstant(state.chainGun, 'shellRangeAim', 1000);
+    setConstant(state.chainGun, 'explosionRadius', 10);
+    setConstant(state.chainGun, 'explosionExpansionSpeed', 40);
+    setConstant(state.chainGun, 'explosionDamageFactor', 20);
+    setConstant(state.chainGun, 'explosionBlastFactor', 1);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
     return state;
@@ -361,22 +377,23 @@ export class ShipManager {
     }
 
     private useManeuvering(maneuveringAction: XY, deltaSeconds: number) {
-        const axisCapacity = this.state.maneuveringCapacity * deltaSeconds;
-        const desiredLocalSpeed = XY.rotate(maneuveringAction, -this.spaceObject.angle);
-        const cappedSpeed = {
-            x: capToRange(-1, 1, desiredLocalSpeed.x) * axisCapacity,
-            y: capToRange(-1, 1, desiredLocalSpeed.y) * axisCapacity,
-        };
-        const sumSpeed = Math.abs(cappedSpeed.x) + Math.abs(cappedSpeed.y);
-        if (this.trySpendEnergy(sumSpeed * this.state.maneuveringEnergyCost)) {
-            const effectiveLocalSpeedChange = {
-                x: cappedSpeed.x * this.state.boostEffectFactor,
-                y: cappedSpeed.y * this.state.strafeEffectFactor,
-            };
-            const globalSpeedChange = XY.rotate(effectiveLocalSpeedChange, this.spaceObject.angle);
-            return globalSpeedChange;
+        for (const thruster of this.state.thrusters) {
+            const globalAngle = thruster.angle + this.state.angle;
+            const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
+            const axisCapacity = thruster.capacity * deltaSeconds;
+            if (this.trySpendEnergy(desiredAction * axisCapacity * thruster.energyCost)) {
+                thruster.active = desiredAction;
+            }
         }
-        return XY.zero;
+
+        return XY.sum(
+            ...this.state.thrusters.map((thruster) =>
+                XY.byLengthAndDirection(
+                    thruster.active * thruster.capacity * thruster.speedFactor * deltaSeconds,
+                    thruster.angle + this.state.angle
+                )
+            )
+        );
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
@@ -513,7 +530,7 @@ export class ShipManager {
             let speedToChange = 0;
             const rotateFactor = this.state.rotation * deltaSeconds;
             const enginePower = rotateFactor * this.state.maneuveringCapacity;
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }
             this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);
