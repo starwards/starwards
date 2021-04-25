@@ -22,7 +22,7 @@ process.on('uncaughtException', function (err) {
     // process.exit(1);
 });
 
-export async function server(port: number, staticDir: string, mqttUrl: string, mqttPort: number) {
+export async function server(port: number, staticDir: string, mqttUrl = 'http://localhost', mqttPort = 1883) {
     const app = express();
     app.use(express.json());
     const gameServer = new Server({ server: http.createServer(app) });
