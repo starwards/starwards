@@ -97,8 +97,8 @@ export class ShipState extends Spaceship {
     get energyPerSecond(): number {
         return getConstant(this.constants, 'energyPerSecond');
     }
-    get maneuveringCapacity(): number {
-        return getConstant(this.constants, 'maneuveringCapacity');
+    get rotationCapacity(): number {
+        return getConstant(this.constants, 'rotationCapacity');
     }
     get rotationEnergyCost(): number {
         return getConstant(this.constants, 'rotationEnergyCost');
@@ -112,18 +112,10 @@ export class ShipState extends Spaceship {
     get rotationEffectFactor(): number {
         return getConstant(this.constants, 'rotationEffectFactor');
     }
-    get boostEffectFactor(): number {
-        return getConstant(this.constants, 'boostEffectFactor');
+    get turnSpeedCapacity(): number {
+        return this.rotationCapacity * this.rotationEffectFactor;
     }
-    get strafeEffectFactor(): number {
-        return getConstant(this.constants, 'strafeEffectFactor');
-    }
-    get rotationCapacity(): number {
-        return (
-            this.maneuveringCapacity * this.rotationEffectFactor +
-            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
-        );
-    }
+
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {
             if (toDegreesDelta(direction) === toDegreesDelta(thruster.angle)) {
@@ -132,7 +124,7 @@ export class ShipState extends Spaceship {
         }
     }
 
-    thrusterCapacity(direction: ShipDirection) {
+    velocityCapacity(direction: ShipDirection) {
         const afterBurnerFactor = this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor;
         return (
             [...this.angleThrusters(direction)].reduce((s, t) => s + t.capacity * t.speedFactor, 0) + afterBurnerFactor

@@ -55,13 +55,11 @@ function makeShipState(id: string) {
     setConstant(state, 'afterBurnerCapacity', 300);
     setConstant(state, 'afterBurnerEffectFactor', 1);
     setConstant(state, 'afterBurnerEnergyCost', 0.07);
-    setConstant(state, 'maneuveringCapacity', 50); // TODO remove
+    setConstant(state, 'rotationCapacity', 50);
     setConstant(state, 'rotationEnergyCost', 0.07);
     setConstant(state, 'antiDriftEffectFactor', 1);
     setConstant(state, 'breaksEffectFactor', 1);
     setConstant(state, 'rotationEffectFactor', 0.5);
-    setConstant(state, 'strafeEffectFactor', 3); // TODO remove
-    setConstant(state, 'boostEffectFactor', 6); // TODO remove
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     state.thrusters = new ArraySchema();
@@ -530,7 +528,7 @@ export class ShipManager {
         if (this.state.rotation) {
             let speedToChange = 0;
             const rotateFactor = this.state.rotation * deltaSeconds;
-            const enginePower = rotateFactor * this.state.maneuveringCapacity;
+            const enginePower = rotateFactor * this.state.rotationCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }

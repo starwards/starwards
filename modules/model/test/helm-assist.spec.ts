@@ -39,7 +39,7 @@ describe('helm assist', function () {
                             }
                             const startVelocity = harness.shipState.maxSpeed;
                             harness.shipObj.velocity = Vec2.make(XY.rotate({ x: -startVelocity, y: 0 }, direction));
-                            const thrusterCapacity = harness.shipState.thrusterCapacity(direction);
+                            const thrusterCapacity = harness.shipState.velocityCapacity(direction);
                             setNumericProperty(harness.shipMgr, sp.boostCommand, maneuveringCommand.boost);
                             setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuveringCommand.strafe);
                             const metrics = new TimedTestMetrics(
@@ -62,10 +62,10 @@ describe('helm assist', function () {
             testDirectionThruster(ShipDirection.PORT, { boost: 0, strafe: -1 });
         });
 
-        it('rotationCapacity is max speed per second in turnSpeed', () => {
+        it('turnSpeedCapacity is max speed per second in turnSpeed', () => {
             const harness = new ShipTestHarness();
             const time = 5;
-            harness.shipObj.turnSpeed = -1 * time * harness.shipState.rotationCapacity;
+            harness.shipObj.turnSpeed = -1 * time * harness.shipState.turnSpeedCapacity;
             setNumericProperty(harness.shipMgr, sp.rotationCommand, 1);
             const metrics = new TimedTestMetrics(iterationsPerSecond, time, Math.abs(harness.shipObj.turnSpeed));
             harness.simulate(metrics.timeToReach, metrics.iterations);
@@ -82,7 +82,7 @@ describe('helm assist', function () {
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(originalAngle),
-                        harness.shipState.rotationCapacity
+                        harness.shipState.turnSpeedCapacity
                     );
                     harness.initGraph({
                         angle: () => toDegreesDelta(harness.shipState.angle),
@@ -113,7 +113,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(turnSpeed),
-                        harness.shipState.rotationCapacity
+                        harness.shipState.turnSpeedCapacity
                     );
                     harness.shipObj.turnSpeed = turnSpeed;
                     harness.initGraph({
@@ -139,7 +139,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.thrusterCapacity(ShipDirection.FORE)
+                        harness.shipState.velocityCapacity(ShipDirection.FORE)
                     );
                     harness.initGraph({
                         velocity: () => harness.shipState.velocity.x,
@@ -174,7 +174,7 @@ describe('helm assist', function () {
                         const metrics = new SpeedTestMetrics(
                             20,
                             XY.lengthOf(from),
-                            Math.min(...ShipDirections.map((d) => harness.shipState.thrusterCapacity(d)))
+                            Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d)))
                         );
                         harness.initGraph({
                             velocityX: () => harness.shipState.velocity.x,
@@ -211,7 +211,7 @@ describe('helm assist', function () {
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.thrusterCapacity(ShipDirection.FORE),
+                        harness.shipState.velocityCapacity(ShipDirection.FORE),
                         harness.shipState.maxSpeed
                     );
                     harness.initGraph({
@@ -248,7 +248,7 @@ describe('helm assist', function () {
                         const metrics = new MovementTestMetrics(
                             20,
                             XY.lengthOf(from),
-                            Math.min(...ShipDirections.map((d) => harness.shipState.thrusterCapacity(d))),
+                            Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d))),
                             harness.shipState.maxSpeed
                         );
                         const iteration = (time: number) => {

@@ -7,7 +7,7 @@ import { vector2ShipDirections } from '../ship/ship-direction';
 export type ManeuveringCommand = { strafe: number; boost: number };
 
 export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipState, targetTurnSpeed: number) {
-    return accelerateToSpeed(deltaSeconds, ship.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
+    return accelerateToSpeed(deltaSeconds, ship.turnSpeedCapacity, targetTurnSpeed - ship.turnSpeed);
 }
 
 export function matchGlobalSpeed(deltaSeconds: number, ship: ShipState, globalVelocity: XY): ManeuveringCommand {
@@ -18,8 +18,8 @@ export function matchLocalSpeed(deltaSeconds: number, ship: ShipState, localVelo
     const relTargetSpeed = XY.difference(localVelocity, ship.globalToLocal(ship.velocity));
     const velocityDirection = vector2ShipDirections(relTargetSpeed);
     return {
-        strafe: accelerateToSpeed(deltaSeconds, ship.thrusterCapacity(velocityDirection.y), relTargetSpeed.y),
-        boost: accelerateToSpeed(deltaSeconds, ship.thrusterCapacity(velocityDirection.x), relTargetSpeed.x),
+        strafe: accelerateToSpeed(deltaSeconds, ship.velocityCapacity(velocityDirection.y), relTargetSpeed.y),
+        boost: accelerateToSpeed(deltaSeconds, ship.velocityCapacity(velocityDirection.x), relTargetSpeed.x),
     };
 }
 
@@ -28,14 +28,14 @@ export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: X
     const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
     const velocityDirection = vector2ShipDirections(velocity);
     return {
-        strafe: accelerateToPosition(deltaSeconds, ship.thrusterCapacity(velocityDirection.y), velocity.y, posDiff.y),
-        boost: accelerateToPosition(deltaSeconds, ship.thrusterCapacity(velocityDirection.x), velocity.x, posDiff.x),
+        strafe: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.y), velocity.y, posDiff.y),
+        boost: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.x), velocity.x, posDiff.x),
     };
 }
 
 export function rotateToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, offset: number): number {
     const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
-    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff + offset);
+    return accelerateToPosition(deltaSeconds, ship.turnSpeedCapacity, ship.turnSpeed, angleDiff + offset);
 }
 
 function calcTargetPositionDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
