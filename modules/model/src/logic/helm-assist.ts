@@ -2,6 +2,7 @@ import { capToRange, lerp, sign, toDegreesDelta, whereWillItStop } from './formu
 
 import { ShipState } from '../ship';
 import { XY } from './xy';
+import { vector2ShipDirections } from '../ship/ship-direction';
 
 export type ManeuveringCommand = { strafe: number; boost: number };
 
@@ -15,18 +16,20 @@ export function matchGlobalSpeed(deltaSeconds: number, ship: ShipState, globalVe
 
 export function matchLocalSpeed(deltaSeconds: number, ship: ShipState, localVelocity: XY): ManeuveringCommand {
     const relTargetSpeed = XY.difference(localVelocity, ship.globalToLocal(ship.velocity));
+    const velocityDirection = vector2ShipDirections(relTargetSpeed);
     return {
-        strafe: accelerateToSpeed(deltaSeconds, ship.strafeCapacity, relTargetSpeed.y),
-        boost: accelerateToSpeed(deltaSeconds, ship.boostCapacity, relTargetSpeed.x),
+        strafe: accelerateToSpeed(deltaSeconds, ship.thrusterCapacity(velocityDirection.y), relTargetSpeed.y),
+        boost: accelerateToSpeed(deltaSeconds, ship.thrusterCapacity(velocityDirection.x), relTargetSpeed.x),
     };
 }
 
 export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY): ManeuveringCommand {
     const posDiff = calcTargetPositionDiff(deltaSeconds, ship, targetPos); // TODO cap to range maxMovementInTime
     const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
+    const velocityDirection = vector2ShipDirections(velocity);
     return {
-        strafe: accelerateToPosition(deltaSeconds, ship.strafeCapacity, velocity.y, posDiff.y),
-        boost: accelerateToPosition(deltaSeconds, ship.boostCapacity, velocity.x, posDiff.x),
+        strafe: accelerateToPosition(deltaSeconds, ship.thrusterCapacity(velocityDirection.y), velocity.y, posDiff.y),
+        boost: accelerateToPosition(deltaSeconds, ship.thrusterCapacity(velocityDirection.x), velocity.x, posDiff.x),
     };
 }
 

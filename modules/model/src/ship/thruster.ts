@@ -1,5 +1,6 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
+import { ShipDirection } from './ship-direction';
 import { ShipState } from './';
 import { getConstant } from '../utils';
 
@@ -20,7 +21,7 @@ export class Thruster extends Schema {
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
-    get angle(): number {
+    get angle(): ShipDirection {
         return getConstant(this.constants, 'angle');
     }
     get capacity(): number {

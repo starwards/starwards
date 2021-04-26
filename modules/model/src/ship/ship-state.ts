@@ -2,8 +2,10 @@ import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 import { Spaceship, Vec2 } from '../space';
 
 import { ChainGun } from './chain-gun';
+import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
 import { getConstant } from '../utils';
+import { toDegreesDelta } from '..';
 
 export enum TargetedStatus {
     NONE,
@@ -122,18 +124,18 @@ export class ShipState extends Spaceship {
             this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
         );
     }
-    // TODO remove
-    get boostCapacity() {
-        return (
-            this.maneuveringCapacity * this.boostEffectFactor +
-            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
-        );
+    *angleThrusters(direction: ShipDirection) {
+        for (const thruster of this.thrusters) {
+            if (toDegreesDelta(direction) === toDegreesDelta(thruster.angle)) {
+                yield thruster;
+            }
+        }
     }
-    // TODO remove
-    get strafeCapacity() {
+
+    thrusterCapacity(direction: ShipDirection) {
+        const afterBurnerFactor = this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor;
         return (
-            this.maneuveringCapacity * this.strafeEffectFactor +
-            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
+            [...this.angleThrusters(direction)].reduce((s, t) => s + t.capacity * t.speedFactor, 0) + afterBurnerFactor
         );
     }
     getMaxSpeedForAfterburner(afterBurner: number) {

@@ -23,6 +23,7 @@ import {
 } from '..';
 
 import { Bot } from '../logic/bot';
+import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { uniqueId } from '../id';
@@ -34,7 +35,7 @@ function setConstant(state: WithConstants, name: string, value: number) {
     state.constants.set(name, value);
 }
 
-function makeThruster(angle: number): Thruster {
+function makeThruster(angle: ShipDirection): Thruster {
     const thruster = new Thruster();
     thruster.constants = new MapSchema<number>();
     setConstant(thruster, 'angle', angle);
@@ -64,12 +65,12 @@ function makeShipState(id: string) {
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     state.thrusters = new ArraySchema();
-    state.thrusters.push(makeThruster(0));
-    state.thrusters.push(makeThruster(0));
-    state.thrusters.push(makeThruster(180));
-    state.thrusters.push(makeThruster(180));
-    state.thrusters.push(makeThruster(90));
-    state.thrusters.push(makeThruster(-90));
+    state.thrusters.push(makeThruster(ShipDirection.FORE));
+    state.thrusters.push(makeThruster(ShipDirection.FORE));
+    state.thrusters.push(makeThruster(ShipDirection.AFT));
+    state.thrusters.push(makeThruster(ShipDirection.AFT));
+    state.thrusters.push(makeThruster(ShipDirection.PORT));
+    state.thrusters.push(makeThruster(ShipDirection.STARBOARD));
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
     setConstant(state.chainGun, 'bulletsPerSecond', 20);
