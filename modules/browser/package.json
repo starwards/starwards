@@ -17,7 +17,7 @@
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pixi/graphics-extras": "^5.3.8",
         "animejs": "^3.2.1",
-        "colyseus.js": "^0.14.9",
+        "colyseus.js": "^0.14.12",
         "d3": "^6.6.0",
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.7",
