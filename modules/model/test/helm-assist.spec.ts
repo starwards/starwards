@@ -1,7 +1,8 @@
 import 'mocha';
 
+import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
+import { ShipDirection, ShipDirections } from '../src/ship/ship-direction';
 import {
-    ManeuveringCommand,
     Vec2,
     XY,
     limitPercision,
@@ -13,8 +14,6 @@ import {
     shipProperties as sp,
     toDegreesDelta,
 } from '../src';
-import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
-import { ShipDirection, ShipDirections } from '../src/ship/ship-direction';
 import { float, floatIn, xy } from './properties';
 
 import { GraphPointInput } from './ploty-graph-builder';

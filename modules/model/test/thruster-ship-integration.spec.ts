@@ -1,27 +1,13 @@
 import 'mocha';
 
-import {
-    ManeuveringCommand,
-    Vec2,
-    XY,
-    limitPercision,
-    matchGlobalSpeed,
-    moveToTarget,
-    rotateToTarget,
-    rotationFromTargetTurnSpeed,
-    setNumericProperty,
-    shipProperties as sp,
-    toDegreesDelta,
-} from '../src';
-import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
-import { ShipDirection, ShipDirections } from '../src/ship/ship-direction';
-import { float, floatIn, xy } from './properties';
+import { ManeuveringCommand, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
+import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
 
-import { GraphPointInput } from './ploty-graph-builder';
+import { ShipDirection } from '../src/ship/ship-direction';
 import { expect } from 'chai';
 import fc from 'fast-check';
+import { float } from './properties';
 
-const iterationsPerSecond = 20;
 describe('thrusters-ship integration', function () {
     this.timeout(60 * 1000);
     const iterationsPerSecond = 5;
