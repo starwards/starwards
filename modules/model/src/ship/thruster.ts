@@ -9,13 +9,27 @@ export class Thruster extends Schema {
     constants!: MapSchema<number>;
 
     /**
-     * the measure of current engione activity
+     * the measure of current engine activity
      */
     @type('float32')
     active = 0;
+    /**
+     * the measure of current afterburner activity
+     */
+    @type('float32')
+    afterBurnerActive = 0;
+
+    @type('boolean')
+    broken = false;
 
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
+    }
+    getVelocityCapacity(parent: ShipState): number {
+        return (
+            this.capacity * this.speedFactor +
+            parent.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
+        );
     }
 
     /*
@@ -25,7 +39,7 @@ export class Thruster extends Schema {
         return getConstant(this.constants, 'angle');
     }
     get capacity(): number {
-        return getConstant(this.constants, 'capacity');
+        return this.broken ? 0 : getConstant(this.constants, 'capacity');
     }
 
     get energyCost(): number {
@@ -34,5 +48,11 @@ export class Thruster extends Schema {
 
     get speedFactor(): number {
         return getConstant(this.constants, 'speedFactor');
+    }
+    get afterBurnerCapacity(): number {
+        return this.broken ? 0 : getConstant(this.constants, 'afterBurnerCapacity');
+    }
+    get afterBurnerEffectFactor(): number {
+        return getConstant(this.constants, 'afterBurnerEffectFactor');
     }
 }

@@ -88,12 +88,6 @@ export class ShipState extends Spaceship {
     get afterBurnerEnergyCost(): number {
         return getConstant(this.constants, 'afterBurnerEnergyCost');
     }
-    get afterBurnerCapacity(): number {
-        return getConstant(this.constants, 'afterBurnerCapacity');
-    }
-    get afterBurnerEffectFactor(): number {
-        return getConstant(this.constants, 'afterBurnerEffectFactor');
-    }
     get energyPerSecond(): number {
         return getConstant(this.constants, 'energyPerSecond');
     }
@@ -125,10 +119,7 @@ export class ShipState extends Spaceship {
     }
 
     velocityCapacity(direction: ShipDirection) {
-        const afterBurnerFactor = this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor;
-        return (
-            [...this.angleThrusters(direction)].reduce((s, t) => s + t.capacity * t.speedFactor, 0) + afterBurnerFactor
-        );
+        return [...this.angleThrusters(direction)].reduce((s, t) => s + t.getVelocityCapacity(this), 0);
     }
     getMaxSpeedForAfterburner(afterBurner: number) {
         return (

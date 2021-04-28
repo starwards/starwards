@@ -11,7 +11,7 @@ import { float } from './properties';
 describe('thrusters-ship integration', function () {
     this.timeout(60 * 1000);
     const iterationsPerSecond = 5;
-    describe('thrusterCapacity() is max speed per second', () => {
+    describe('velocityCapacity() is max speed per second', () => {
         function testDirectionThruster(direction: ShipDirection, maneuveringCommand: ManeuveringCommand) {
             it(ShipDirection[direction], () => {
                 fc.assert(
@@ -41,5 +41,34 @@ describe('thrusters-ship integration', function () {
         testDirectionThruster(ShipDirection.STARBOARD, { boost: 0, strafe: 1 });
         testDirectionThruster(ShipDirection.AFT, { boost: -1, strafe: 0 });
         testDirectionThruster(ShipDirection.PORT, { boost: 0, strafe: -1 });
+
+        it(`(FORE only) 0 for broken thruster`, () => {
+            const direction = ShipDirection.FORE;
+            fc.assert(
+                fc.property(float(0, 0.5), (afterBurner: number) => {
+                    const harness = new ShipTestHarness();
+                    harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
+                    for (const thruster of harness.shipState.angleThrusters(direction)) {
+                        thruster.broken = true;
+                    }
+                    expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.eql(0);
+                })
+            );
+        });
+    });
+
+    it(`(FORE only) broken thruster does not work`, () => {
+        fc.assert(
+            fc.property(float(0, 0.5), (afterBurner: number) => {
+                const harness = new ShipTestHarness();
+                harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
+                for (const thruster of harness.shipState.angleThrusters(ShipDirection.FORE)) {
+                    thruster.broken = true;
+                }
+                setNumericProperty(harness.shipMgr, sp.boostCommand, 1);
+                harness.simulate(1, iterationsPerSecond);
+                expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.eql(0);
+            })
+        );
     });
 });
