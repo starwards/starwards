@@ -1,8 +1,9 @@
 import 'mocha';
 
 import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
-import { ShipDirection, ShipDirections } from '../src/ship/ship-direction';
 import {
+    ShipDirection,
+    ShipDirections,
     Vec2,
     XY,
     limitPercision,

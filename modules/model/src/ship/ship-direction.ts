@@ -2,9 +2,9 @@ import { XY } from '..';
 
 export enum ShipDirection {
     FORE = 0,
-    STARBOARD = 90,
+    STARBOARD = -90,
     AFT = 180,
-    PORT = -90,
+    PORT = 90,
 }
 
 export const ShipDirections = Object.values(ShipDirection).filter<ShipDirection>(
