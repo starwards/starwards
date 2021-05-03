@@ -20,12 +20,25 @@ import { targetRadarWidget } from '../widgets/target-radar';
 const driver = new Driver();
 const gmWidgets = new GmWidgets(driver);
 const dashboard = new Dashboard(
-    { content: [getGoldenLayoutItemConfig(gmWidgets.radar)] },
+    {
+        content: [
+            {
+                content: [
+                    { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80 },
+                    { ...getGoldenLayoutItemConfig(gmWidgets.tweak), width: 20 },
+                ],
+                isClosable: true,
+                title: '',
+                type: 'row',
+            },
+        ],
+    },
     $('#layoutContainer'),
     $('#menuContainer')
 );
 
 dashboard.registerWidget(gmWidgets.radar);
+dashboard.registerWidget(gmWidgets.tweak);
 
 dashboard.setup();
 // constantly scan for new ships and add widgets for them
