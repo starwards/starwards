@@ -14,7 +14,8 @@ export class GameManager {
         this.state.points = new MapSchema();
     }
 
-    update(_: number) {
+    update(deltaSeconds: number) {
+        this.shipMessenger.update(deltaSeconds);
         if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
             void this.stopGame();
         } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
@@ -32,6 +33,7 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
+            this.shipMessenger.unRegisterAll();
             this.state.isGameRunning = false;
         }
     }

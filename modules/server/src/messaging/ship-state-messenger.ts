@@ -1,21 +1,22 @@
 import { NumericStateProperty, ShipState, shipProperties } from '@starwards/model';
 
-import { MqttClient } from './mqtt-client';
-
 function getShipNamespace(shipId: string) {
     return `ship/${shipId}`;
 }
+type Mqtt = {
+    publish(topic: string, message: string): unknown;
+};
 export class ShipStateMessenger {
     private shipStates = new Map<string, ShipMonitor>();
 
-    constructor(private mqttClient: MqttClient, public updateInterval = 1) {}
+    constructor(private mqttClient: Mqtt, public updateInterval = 1) {}
 
     public registerShip(state: ShipState) {
         this.shipStates.set(state.id, new ShipMonitor(this.mqttClient, state));
         void this.mqttClient.publish(getShipNamespace(state.id), `shipId ${state.id} registered`);
     }
 
-    public deRegisterShip(id: string) {
+    public unRegisterShip(id: string) {
         if (!this.shipStates.has(id)) {
             throw new Error(`ship ${id} not registered`);
         }
@@ -23,9 +24,15 @@ export class ShipStateMessenger {
         void this.mqttClient.publish(getShipNamespace(id), `shipId ${id} unregistered`);
     }
 
-    public update(_: number) {
+    public unRegisterAll() {
+        for (const shipId of this.shipStates.keys()) {
+            this.unRegisterShip(shipId);
+        }
+    }
+
+    public update(deltaSeconds: number) {
         for (const shipMonitor of this.shipStates.values()) {
-            shipMonitor.update();
+            shipMonitor.update(deltaSeconds);
         }
     }
 }
@@ -37,14 +44,13 @@ type ExtractNumeric<T extends keyof ShipProperties> = ShipProperties[T] extends 
 
 class ShipMonitor {
     private monitoredAttributes = new Map<string, number>();
-    private lastUpdate = Date.now();
     readonly forceMessageInterval = 1000;
+    private secondsSinceUpdate = Number.MAX_SAFE_INTEGER;
 
-    constructor(private mqttClient: MqttClient, private shipState: ShipState) {
-        this.update();
-    }
+    constructor(private mqttClient: Mqtt, private shipState: ShipState) {}
 
-    public update() {
+    public update(deltaSeconds: number) {
+        this.secondsSinceUpdate += deltaSeconds;
         this.updateAndReportAttribute('energy');
     }
 
@@ -52,11 +58,10 @@ class ShipMonitor {
         const getter = shipProperties[attrName] as NumericStateProperty<'ship'>;
         const startingState = this.monitoredAttributes.get(attrName);
         const currentState = getter.getValue(this.shipState);
-        const now = Date.now();
-        if (currentState !== startingState || now - this.lastUpdate >= this.forceMessageInterval) {
+        if (currentState !== startingState || this.secondsSinceUpdate >= this.forceMessageInterval) {
+            this.secondsSinceUpdate = 0;
             this.monitoredAttributes.set(attrName, currentState);
             void this.mqttClient.publish(`${getShipNamespace(this.shipState.id)}/${attrName}`, `${currentState}`);
-            this.lastUpdate = now;
         }
     }
 }
