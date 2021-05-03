@@ -2,7 +2,6 @@ import { AdminState, ShipManager, SpaceManager } from '@starwards/model';
 import { newAsteroid, newShip, resetShip } from './map';
 
 import { MapSchema } from '@colyseus/schema';
-import { MqttClient } from '../messaging/mqtt-client';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 
@@ -10,13 +9,9 @@ export class GameManager {
     public state = new AdminState();
     private ships = new Map<string, ShipManager>();
     private spaceManager = new SpaceManager();
-    private mqttClient: MqttClient;
-    private shipMessenger: ShipStateMessenger;
 
-    constructor(mqttClient: MqttClient) {
+    constructor(private shipMessenger: ShipStateMessenger) {
         this.state.points = new MapSchema();
-        this.mqttClient = mqttClient;
-        this.shipMessenger = new ShipStateMessenger(this.mqttClient, 'ship-state');
     }
 
     update(_: number) {
@@ -68,7 +63,7 @@ export class GameManager {
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);
         if (sendMessages) {
-            void this.shipMessenger.registerShip(id, shipManager.state);
+            this.shipMessenger.registerShip(shipManager.state);
         }
         void matchMaker.createRoom('ship', { manager: shipManager });
         spaceManager.insert(ship);

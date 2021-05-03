@@ -33,7 +33,8 @@
         ]
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.21"
+        "@colyseus/schema": "^1.0.21",
+        "@types/prettier": "^2.2.3"
     },
     "devDependencies": {
         "@colyseus/loadtest": "^0.14.3",

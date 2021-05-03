@@ -1,125 +1,62 @@
-import { NumericStateProperty, ShipState } from '@starwards/model/src';
+import { NumericStateProperty, ShipState, shipProperties } from '@starwards/model';
 
-import { MapSchema } from '@colyseus/schema';
 import { MqttClient } from './mqtt-client';
-import { energy } from '../../../model/src/ship/ship-properties';
 
-export enum ReportableAttributes {
-    Energy = 'ENERGY',
+function getShipNamespace(shipId: string) {
+    return `ship/${shipId}`;
 }
-
 export class ShipStateMessenger {
-    public updateInterval: number;
-    private mqttClient: MqttClient;
     private shipStates = new Map<string, ShipMonitor>();
-    private publishTopic: string;
 
-    constructor(mqttClient: MqttClient, publishTopic: string, updateInterval = 1) {
-        this.mqttClient = mqttClient;
-        this.publishTopic = publishTopic;
-        this.updateInterval = updateInterval;
+    constructor(private mqttClient: MqttClient, public updateInterval = 1) {}
+
+    public registerShip(state: ShipState) {
+        this.shipStates.set(state.id, new ShipMonitor(this.mqttClient, state));
+        void this.mqttClient.publish(getShipNamespace(state.id), `shipId ${state.id} registered`);
     }
 
-    public async registerShip(
-        id: string,
-        state: ShipState,
-        updateInterval = this.updateInterval,
-        monitoredAttributes = [ReportableAttributes.Energy]
-    ) {
-        this.shipStates.set(
-            id,
-            new ShipMonitor(this.mqttClient, this.publishTopic, state, monitoredAttributes, updateInterval)
-        );
-        await this.mqttClient.publish(`shipId ${id} registered`, this.publishTopic);
-    }
-
-    public async deRegisterShip(id: string) {
+    public deRegisterShip(id: string) {
         if (!this.shipStates.has(id)) {
             throw new Error(`ship ${id} not registered`);
         }
         this.shipStates.delete(id);
-        await this.mqttClient.publish(`shipId ${id} unregistered`, this.publishTopic);
+        void this.mqttClient.publish(getShipNamespace(id), `shipId ${id} unregistered`);
     }
 
     public update(_: number) {
-        this.shipStates.forEach((shipMonitor) => shipMonitor.update());
+        for (const shipMonitor of this.shipStates.values()) {
+            shipMonitor.update();
+        }
     }
 }
 
-function makeAttributeToPropertyMapper() {
-    const mapper = new MapSchema<NumericStateProperty<'ship'>>();
-    mapper.set(ReportableAttributes.Energy, energy);
-    return mapper;
-}
+type ShipProperties = typeof shipProperties;
+type ExtractNumeric<T extends keyof ShipProperties> = ShipProperties[T] extends NumericStateProperty<'ship'>
+    ? T
+    : never;
 
 class ShipMonitor {
-    public topic: string;
-    public updateInterval: number;
-    private shipState: ShipState;
-    private monitoredAttributes = new MapSchema<number>();
-    private mqttClient: MqttClient;
-    private attributeToPropertyMapper = makeAttributeToPropertyMapper();
+    private monitoredAttributes = new Map<string, number>();
+    private lastUpdate = Date.now();
+    readonly forceMessageInterval = 1000;
 
-    constructor(
-        mqttClient: MqttClient,
-        topic: string,
-        shipState: ShipState,
-        monitoredAttributes: ReportableAttributes[],
-        updateInterval = 1
-    ) {
-        this.shipState = shipState;
-        this.updateInterval = updateInterval;
-        this.mqttClient = mqttClient;
-        this.topic = topic;
-        monitoredAttributes.forEach((attr) => this.addMonitoredAttribute(attr));
-    }
-
-    public addMonitoredAttribute(attribute: ReportableAttributes) {
-        if (!this.attributeToPropertyMapper.has(attribute)) {
-            throw new Error(`no attribute getter for ${attribute}`);
-        }
-        this.monitoredAttributes.set(attribute, this.getAttributeValue(attribute));
-    }
-
-    public removeMonitoredAttribute(attribute: ReportableAttributes) {
-        this.monitoredAttributes.delete(attribute);
+    constructor(private mqttClient: MqttClient, private shipState: ShipState) {
+        this.update();
     }
 
     public update() {
-        this.monitoredAttributes.forEach((_, attribute) => {
-            try {
-                this.updateAndReportAttribute(attribute);
-            } catch (e) {
-                // eslint-disable-next-line no-console
-                console.log(e);
-            }
-        });
+        this.updateAndReportAttribute('energy');
     }
 
-    private getAttributeValue(attribute: string): number {
-        const maybeAttrGetter = this.attributeToPropertyMapper.get(attribute);
-        if (maybeAttrGetter === undefined) {
-            throw new Error(`no attribute getter for ${attribute}`);
-        }
-        return maybeAttrGetter.getValue(this.shipState);
-    }
-
-    private updateAndReportAttribute(attribute: string) {
-        const maybeAttrGetter = this.attributeToPropertyMapper.get(attribute);
-        if (maybeAttrGetter === undefined) {
-            throw new Error(`no attribute getter for ${attribute}`);
-        }
-        const startingState = this.monitoredAttributes.get(attribute);
-        if (startingState === undefined) {
-            throw Error(`Unexpected undefined state for ${attribute}`);
-        }
-        const currentState = this.getAttributeValue(attribute);
-        this.monitoredAttributes.set(attribute, currentState);
-        if (currentState !== startingState) {
-            void this.mqttClient.publish(
-                `${this.shipState.id} ${attribute} changed: ${startingState} -> ${currentState}`,
-                this.topic
-            );
+    private updateAndReportAttribute<T extends keyof ShipProperties>(attrName: ExtractNumeric<T>) {
+        const getter = shipProperties[attrName] as NumericStateProperty<'ship'>;
+        const startingState = this.monitoredAttributes.get(attrName);
+        const currentState = getter.getValue(this.shipState);
+        const now = Date.now();
+        if (currentState !== startingState || now - this.lastUpdate >= this.forceMessageInterval) {
+            this.monitoredAttributes.set(attrName, currentState);
+            void this.mqttClient.publish(`${getShipNamespace(this.shipState.id)}/${attrName}`, `${currentState}`);
+            this.lastUpdate = now;
         }
     }
 }

@@ -10,6 +10,7 @@ import { AdminRoom } from './admin/room';
 import { GameManager } from './admin/game-manager';
 import { MqttClient } from './messaging/mqtt-client';
 import { ShipRoom } from './ship/room';
+import { ShipStateMessenger } from './messaging/ship-state-messenger';
 import { SpaceRoom } from './space/room';
 import { monitor } from '@colyseus/monitor';
 
@@ -40,7 +41,7 @@ export async function server(port: number, staticDir: string, mqttUrl = 'http://
     await gameServer.listen(port);
     console.log(`Listening on port ${port}`);
 
-    const mqttClient = new MqttClient(mqttUrl, mqttPort);
-    const gameManager = new GameManager(mqttClient);
+    const shipMessenger = new ShipStateMessenger(new MqttClient(mqttUrl, mqttPort));
+    const gameManager = new GameManager(shipMessenger);
     await matchMaker.createRoom('admin', { manager: gameManager }); // create a room
 }

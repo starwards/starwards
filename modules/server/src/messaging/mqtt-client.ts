@@ -6,7 +6,7 @@ export class MqttClient {
         this.client = mqtt.connect(`${serverUrl}:${serverPort}`);
     }
 
-    public async publish(message: string, topic: string) {
+    public async publish(topic: string, message: string) {
         try {
             await this.client.publish(topic, message);
         } catch (e) {
