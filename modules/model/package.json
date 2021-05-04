@@ -7,7 +7,8 @@
         "cjs"
     ],
     "scripts": {
-        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
+        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch",
+        "test": "mocha -r ts-node/register/transpile-only ./test/**/*.spec.ts --watch-extensions ts --colors"
     },
     "dependencies": {
         "eventemitter3": "^4.0.7"

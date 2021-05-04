@@ -10,4 +10,4 @@ workflows:
                   version: '15.11'
                   setup:
                       - node/install-npm:
-                            version: 7.6.0
+                            version: 7.11.2

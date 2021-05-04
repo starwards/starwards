@@ -8,7 +8,9 @@ import { Server, matchMaker } from 'colyseus';
 
 import { AdminRoom } from './admin/room';
 import { GameManager } from './admin/game-manager';
+import { MqttClient } from './messaging/mqtt-client';
 import { ShipRoom } from './ship/room';
+import { ShipStateMessenger } from './messaging/ship-state-messenger';
 import { SpaceRoom } from './space/room';
 import { monitor } from '@colyseus/monitor';
 
@@ -21,7 +23,7 @@ process.on('uncaughtException', function (err) {
     // process.exit(1);
 });
 
-export async function server(port: number, staticDir: string) {
+export async function server(port: number, staticDir: string, mqttUrl = 'http://localhost', mqttPort = 1883) {
     const app = express();
     app.use(express.json());
     const gameServer = new Server({ server: http.createServer(app) });
@@ -39,6 +41,7 @@ export async function server(port: number, staticDir: string) {
     await gameServer.listen(port);
     console.log(`Listening on port ${port}`);
 
-    const gameManager = new GameManager();
+    const shipMessenger = new ShipStateMessenger(new MqttClient(mqttUrl, mqttPort));
+    const gameManager = new GameManager(shipMessenger);
     await matchMaker.createRoom('admin', { manager: gameManager }); // create a room
 }

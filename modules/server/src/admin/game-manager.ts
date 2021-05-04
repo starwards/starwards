@@ -2,6 +2,7 @@ import { AdminState, ShipManager, SpaceManager } from '@starwards/model';
 import { newAsteroid, newShip, resetShip } from './map';
 
 import { MapSchema } from '@colyseus/schema';
+import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 
 export class GameManager {
@@ -9,11 +10,12 @@ export class GameManager {
     private ships = new Map<string, ShipManager>();
     private spaceManager = new SpaceManager();
 
-    constructor() {
+    constructor(private shipMessenger: ShipStateMessenger) {
         this.state.points = new MapSchema();
     }
 
-    update(_: number) {
+    update(deltaSeconds: number) {
+        this.shipMessenger.update(deltaSeconds);
         if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
             void this.stopGame();
         } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
@@ -31,6 +33,7 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
+            this.shipMessenger.unRegisterAll();
             this.state.isGameRunning = false;
         }
     }
@@ -53,7 +56,7 @@ export class GameManager {
         }
     }
 
-    private addShip(spaceManager: SpaceManager, id: string) {
+    private addShip(spaceManager: SpaceManager, id: string, sendMessages = false) {
         const ship = newShip(id);
         this.state.points.set(ship.id, 0);
         const shipManager = new ShipManager(ship, spaceManager, this.ships, () => {
@@ -61,6 +64,9 @@ export class GameManager {
             resetShip(ship);
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);
+        if (sendMessages) {
+            this.shipMessenger.registerShip(shipManager.state);
+        }
         void matchMaker.createRoom('ship', { manager: shipManager });
         spaceManager.insert(ship);
         return shipManager;
