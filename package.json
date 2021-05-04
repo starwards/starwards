@@ -21,7 +21,7 @@
         "build": "npm run build:model && npm run build:browser && npm run build:server && node scripts/post-build.js",
         "lint": "eslint .",
         "pretest": "tsc --noEmit --skipLibCheck && npm run lint",
-        "test": "mocha -r ts-node/register/transpile-only ./modules/model/test/**/*.spec.ts --watch-extensions ts --colors",
+        "test": "npm test --workspaces",
         "start": "npm --cwd ./dist run start",
         "browser": "npm --cwd ./modules/browser run start",
         "prepack": "npm run build",
