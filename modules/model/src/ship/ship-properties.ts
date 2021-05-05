@@ -8,139 +8,140 @@ import {
 } from '../api/property-constructors';
 import { SmartPilotMode, TargetedStatus } from '..';
 
+import { ShipState } from './ship-state';
 import { XY } from '../logic';
 
-export const rotationCommand = NumericStatePropertyCommand<'ship'>(
+export const rotationCommand = NumericStatePropertyCommand(
     'rotationCommand',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.smartPilot.rotation = value;
     },
-    (state) => state.smartPilot.rotation,
+    (state: ShipState) => state.smartPilot.rotation,
     [-1, 1]
 );
-export const rotationTargetOffset = NormalNumericStatePropertyCommand<'ship'>(
+export const rotationTargetOffset = NormalNumericStatePropertyCommand(
     'rotationTargetOffset',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.smartPilot.rotationTargetOffset = value;
     },
-    (state) => state.smartPilot.rotationTargetOffset
+    (state: ShipState) => state.smartPilot.rotationTargetOffset
 );
-export const strafeCommand = NumericStatePropertyCommand<'ship'>(
+export const strafeCommand = NumericStatePropertyCommand(
     'strafeCommand',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.smartPilot.maneuvering.y = value;
     },
-    (state) => state.smartPilot.maneuvering.y,
+    (state: ShipState) => state.smartPilot.maneuvering.y,
     [-1, 1]
 );
-export const boostCommand = NumericStatePropertyCommand<'ship'>(
+export const boostCommand = NumericStatePropertyCommand(
     'boostCommand',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.smartPilot.maneuvering.x = value;
     },
-    (state) => state.smartPilot.maneuvering.x,
+    (state: ShipState) => state.smartPilot.maneuvering.x,
     [-1, 1]
 );
-export const rotation = NumericStateProperty<'ship'>((state) => state.rotation, [-1, 1]);
-export const strafe = NumericStateProperty<'ship'>((state) => state.strafe, [-1, 1]);
-export const boost = NumericStateProperty<'ship'>((state) => state.boost, [-1, 1]);
-export const energy = NumericStateProperty<'ship'>(
-    (state) => state.energy,
-    (state) => [0, state.maxEnergy]
+export const rotation = NumericStateProperty((state: ShipState) => state.rotation, [-1, 1]);
+export const strafe = NumericStateProperty((state: ShipState) => state.strafe, [-1, 1]);
+export const boost = NumericStateProperty((state: ShipState) => state.boost, [-1, 1]);
+export const energy = NumericStateProperty(
+    (state: ShipState) => state.energy,
+    (state: ShipState) => [0, state.maxEnergy]
 );
-export const afterBurnerFuel = NumericStateProperty<'ship'>(
-    (state) => state.afterBurnerFuel,
-    (state) => [0, state.maxAfterBurner]
+export const afterBurnerFuel = NumericStateProperty(
+    (state: ShipState) => state.afterBurnerFuel,
+    (state: ShipState) => [0, state.maxAfterBurner]
 );
-export const turnSpeed = NumericStateProperty<'ship'>((state) => state.turnSpeed, [-90, 90]);
-export const angle = NumericStateProperty<'ship'>((state) => state.angle, [0, 360]);
-export const velocityAngle = NumericStateProperty<'ship'>((state) => XY.angleOf(state.velocity), [0, 360]);
-export const speed = NumericStateProperty<'ship'>(
-    (state) => XY.lengthOf(state.velocity),
-    (state) => [0, state.maxMaxSpeed]
+export const turnSpeed = NumericStateProperty((state: ShipState) => state.turnSpeed, [-90, 90]);
+export const angle = NumericStateProperty((state: ShipState) => state.angle, [0, 360]);
+export const velocityAngle = NumericStateProperty((state: ShipState) => XY.angleOf(state.velocity), [0, 360]);
+export const speed = NumericStateProperty(
+    (state: ShipState) => XY.lengthOf(state.velocity),
+    (state: ShipState) => [0, state.maxMaxSpeed]
 );
-export const chainGunCoolDown = NumericStateProperty<'ship'>((state) => state.chainGun.cooldown, [0, 1]);
+export const chainGunCoolDown = NumericStateProperty((state: ShipState) => state.chainGun.cooldown, [0, 1]);
 
-export const afterBurner = NormalNumericStatePropertyCommand<'ship'>(
+export const afterBurner = NormalNumericStatePropertyCommand(
     'afterBurner',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.afterBurnerCommand = value;
     },
-    (state) => state.afterBurner
+    (state: ShipState) => state.afterBurner
 );
-export const antiDrift = NormalNumericStatePropertyCommand<'ship'>(
+export const antiDrift = NormalNumericStatePropertyCommand(
     'antiDrift',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.antiDrift = value;
     },
-    (state) => state.antiDrift
+    (state: ShipState) => state.antiDrift
 );
-export const breaks = NormalNumericStatePropertyCommand<'ship'>(
+export const breaks = NormalNumericStatePropertyCommand(
     'breaks',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.breaks = value;
     },
-    (state) => state.breaks
+    (state: ShipState) => state.breaks
 );
-export const chainGunIsFiring = IteratorStatePropertyCommand<'ship'>(
+export const chainGunIsFiring = IteratorStatePropertyCommand(
     'chainGunIsFiring',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.chainGun.isFiring = value;
     },
-    (state) => (state.chainGun.isFiring ? 'FIRE' : 'NONE')
+    (state: ShipState) => (state.chainGun.isFiring ? 'FIRE' : 'NONE')
 );
-export const targeted = StateProperty<string, 'ship'>((state) => TargetedStatus[state.targeted]);
-export const target = IteratorStatePropertyCommand<'ship'>(
+export const targeted = StateProperty((state: ShipState) => TargetedStatus[state.targeted]);
+export const target = IteratorStatePropertyCommand(
     'target',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.nextTargetCommand = value;
     },
-    (state) => String(state.targetId)
+    (state: ShipState) => String(state.targetId)
 );
-export const clearTarget = IteratorStatePropertyCommand<'ship'>(
+export const clearTarget = IteratorStatePropertyCommand(
     'clearTarget',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.clearTargetCommand = value;
     },
-    (state) => String(state.targetId)
+    (state: ShipState) => String(state.targetId)
 );
-export const rotationMode = IteratorStatePropertyCommand<'ship'>(
+export const rotationMode = IteratorStatePropertyCommand(
     'rotationMode',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.rotationModeCommand = value;
     },
-    (state) => SmartPilotMode[state.smartPilot.rotationMode]
+    (state: ShipState) => SmartPilotMode[state.smartPilot.rotationMode]
 );
-export const maneuveringMode = IteratorStatePropertyCommand<'ship'>(
+export const maneuveringMode = IteratorStatePropertyCommand(
     'maneuveringMode',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.maneuveringModeCommand = value;
     },
-    (state) => SmartPilotMode[state.smartPilot.maneuveringMode]
+    (state: ShipState) => SmartPilotMode[state.smartPilot.maneuveringMode]
 );
-export const constants = MappedPropertyCommand<'ship'>(
+export const constants = MappedPropertyCommand(
     'constants',
-    (state, [name, value]) => {
+    (state: ShipState, [name, value]) => {
         state.constants.set(name, value);
     },
-    (state) => state.constants
+    (state: ShipState) => state.constants
 );
-export const chainGunConstants = MappedPropertyCommand<'ship'>(
+export const chainGunConstants = MappedPropertyCommand(
     'chainGunConstants',
-    (state, [name, value]) => {
+    (state: ShipState, [name, value]) => {
         state.chainGun.constants.set(name, value);
     },
-    (state) => state.chainGun.constants
+    (state: ShipState) => state.chainGun.constants
 );
-export const shellSecondsToLive = NumericStateProperty<'ship'>(
-    (state) => state.chainGun.shellSecondsToLive,
-    (state) => [state.chainGun.minShellSecondsToLive, state.chainGun.maxShellSecondsToLive]
+export const shellSecondsToLive = NumericStateProperty(
+    (state: ShipState) => state.chainGun.shellSecondsToLive,
+    (state: ShipState) => [state.chainGun.minShellSecondsToLive, state.chainGun.maxShellSecondsToLive]
 );
-export const shellRange = NumericStatePropertyCommand<'ship'>(
+export const shellRange = NumericStatePropertyCommand(
     'shellRange',
-    (state, value) => {
+    (state: ShipState, value) => {
         state.chainGun.shellRange = value;
     },
-    (state) => state.chainGun.shellRange,
+    (state: ShipState) => state.chainGun.shellRange,
     [-1, 1]
 );
