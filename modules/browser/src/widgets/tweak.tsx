@@ -1,9 +1,9 @@
-import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
+import { ArwesThemeProvider, LoadingBars, StylesBaseline, Text } from '@arwes/core';
+import { Driver, ShipDriver } from '../driver';
 import React, { Component, useEffect, useState } from 'react';
+import { SpaceObject, Spaceship } from '@starwards/model';
 
-import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
-import { Driver } from '../driver';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 
@@ -13,33 +13,47 @@ WebFont.load({
     },
 });
 
-const audioSettings = { common: { volume: 0.25 } };
-const playersSettings = {
-    object: { src: ['/sound/click.mp3'] },
-    type: { src: ['/sound/typing.mp3'], loop: true },
-};
-const bleepsSettings = {
-    object: { player: 'object' },
-    type: { player: 'type' },
-};
 type Props = {
     driver: Driver;
     selectionContainer: SelectionContainer;
 };
 
-function Tweak({ driver: _f, selectionContainer }: Props) {
-    const [selected, setSelected] = useState(0);
+function useSelectedSingle(selectionContainer: SelectionContainer): SpaceObject | undefined {
+    const [selected, setSelected] = useState(selectionContainer.getSingle());
 
     useEffect(() => {
         const handleSelectionChange = () => {
-            setSelected(selectionContainer.selectedItems.size);
+            setSelected(selectionContainer.getSingle());
         };
         selectionContainer.events.addListener('changed', handleSelectionChange);
         return () => {
             window.removeEventListener('changed', handleSelectionChange);
         };
     }, [selectionContainer]);
-    return <Text>Selected : {selected}</Text>;
+    return selected;
+}
+
+function Tweak({ driver, selectionContainer }: Props) {
+    const selected = useSelectedSingle(selectionContainer);
+    const shipDriver = useShipDriver(selected, driver);
+
+    if (Spaceship.isInstance(selected)) {
+        if (shipDriver) {
+            return <> </>;
+        } else {
+            return <LoadingBars animator={{ animate: false }} />;
+        }
+    } else return <Text>Selected : {selected?.type || 'None'}</Text>;
+}
+
+function useShipDriver(selected: SpaceObject | undefined, driver: Driver): ShipDriver | undefined {
+    const [shipDriver, setShipDriver] = useState<ShipDriver | undefined>(undefined);
+    useEffect(() => {
+        if (Spaceship.isInstance(selected)) {
+            void driver.getShipDriver(selected.id).then(setShipDriver);
+        }
+    }, [driver, selected]);
+    return shipDriver;
 }
 
 export function tweakWidget(driver: Driver, selectionContainer: SelectionContainer): DashboardWidget {
@@ -48,13 +62,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             return (
                 <ArwesThemeProvider>
                     <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />
-                    <BleepsProvider
-                        audioSettings={audioSettings}
-                        playersSettings={playersSettings}
-                        bleepsSettings={bleepsSettings}
-                    >
-                        <Tweak driver={driver} selectionContainer={selectionContainer} />
-                    </BleepsProvider>
+                    <Tweak driver={driver} selectionContainer={selectionContainer} />
                 </ArwesThemeProvider>
             );
         }
