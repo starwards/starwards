@@ -30,7 +30,7 @@ describe('helm assist', function () {
             const harness = new ShipTestHarness();
             const time = 5;
             harness.shipObj.turnSpeed = -1 * time * harness.shipState.turnSpeedCapacity;
-            setNumericProperty(harness.shipMgr, sp.rotationCommand, 1);
+            setNumericProperty(harness.shipMgr, sp.rotationCommand, 1, undefined);
             const metrics = new TimedTestMetrics(iterationsPerSecond, time, Math.abs(harness.shipObj.turnSpeed));
             harness.simulate(metrics.timeToReach, metrics.iterations);
             expect(harness.shipObj.turnSpeed, 'turnSpeed').to.be.closeTo(0, metrics.errorMargin);
@@ -55,7 +55,7 @@ describe('helm assist', function () {
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const rotation = rotateToTarget(time, harness.shipState, target, 0);
                         p?.addtoLine('rotation', rotation);
-                        setNumericProperty(harness.shipMgr, sp.rotationCommand, rotation);
+                        setNumericProperty(harness.shipMgr, sp.rotationCommand, rotation, undefined);
                     };
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     harness.annotateGraph('test position');
@@ -86,7 +86,7 @@ describe('helm assist', function () {
                     });
                     harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
                         const rotation = rotationFromTargetTurnSpeed(time, harness.shipState, 0);
-                        setNumericProperty(harness.shipMgr, sp.rotationCommand, rotation);
+                        setNumericProperty(harness.shipMgr, sp.rotationCommand, rotation, undefined);
                     });
                     expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.errorMargin);
                 })
@@ -111,7 +111,7 @@ describe('helm assist', function () {
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                         p?.addtoLine('boost', maneuvering.boost);
-                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost);
+                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost, undefined);
                     };
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     harness.annotateGraph('test velocity');
@@ -149,8 +149,8 @@ describe('helm assist', function () {
                             const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
                             p?.addtoLine('boost', maneuvering.boost);
                             p?.addtoLine('strafe', maneuvering.strafe);
-                            setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost);
-                            setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuvering.strafe);
+                            setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost, undefined);
+                            setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuvering.strafe, undefined);
                         };
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         harness.annotateGraph('test velocity');
@@ -185,7 +185,7 @@ describe('helm assist', function () {
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
                         p?.addtoLine('boost', maneuvering.boost);
-                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost);
+                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost, undefined);
                     };
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     harness.annotateGraph('test position');
@@ -217,8 +217,8 @@ describe('helm assist', function () {
                         );
                         const iteration = (time: number) => {
                             const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
-                            setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost);
-                            setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuvering.strafe);
+                            setNumericProperty(harness.shipMgr, sp.boostCommand, maneuvering.boost, undefined);
+                            setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuvering.strafe, undefined);
                         };
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.position), 'position').to.be.closeTo(0, metrics.errorMargin);

@@ -7,9 +7,9 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         get state() {
             return spaceRoom.state;
         },
-        commandMoveObjects: cmdSender(spaceRoom, spaceProperties.moveObjects),
-        commandRotateObjects: cmdSender(spaceRoom, spaceProperties.rotateObjects),
-        commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.toggleFreeze),
+        commandMoveObjects: cmdSender(spaceRoom, spaceProperties.moveObjects, undefined),
+        commandRotateObjects: cmdSender(spaceRoom, spaceProperties.rotateObjects, undefined),
+        commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.toggleFreeze, undefined),
         selectionActions(selectionContainer: SelectionContainer) {
             return {
                 rotate: {

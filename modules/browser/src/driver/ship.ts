@@ -61,8 +61,19 @@ function wireEvents(state: ShipState) {
     return events;
 }
 
+export class ThrustersDriver {
+    public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters);
+    constructor(private shipRoom: GameRoom<'ship'>) {}
+    getApi(idx: number) {
+        return {
+            brokenThruster: wrapIteratorStateProperty(this.shipRoom, shipProperties.brokenThruster, idx),
+        };
+    }
+}
+
 function wireCommands(shipRoom: GameRoom<'ship'>) {
     return {
+        thrusters: new ThrustersDriver(shipRoom),
         constants: new NumberMapDriver(shipRoom, shipProperties.constants),
         chainGunConstants: new NumberMapDriver(shipRoom, shipProperties.chainGunConstants),
         rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand),
@@ -86,11 +97,11 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
         antiDrift: wrapNormalNumericProperty(shipRoom, shipProperties.antiDrift),
         breaks: wrapNormalNumericProperty(shipRoom, shipProperties.breaks),
         targeted: wrapStringStateProperty(shipRoom, shipProperties.targeted),
-        chainGunIsFiring: wrapIteratorStateProperty(shipRoom, shipProperties.chainGunIsFiring),
-        target: wrapIteratorStateProperty(shipRoom, shipProperties.target),
-        clearTarget: wrapIteratorStateProperty(shipRoom, shipProperties.clearTarget),
-        rotationMode: wrapIteratorStateProperty(shipRoom, shipProperties.rotationMode),
-        maneuveringMode: wrapIteratorStateProperty(shipRoom, shipProperties.maneuveringMode),
+        chainGunIsFiring: wrapIteratorStateProperty(shipRoom, shipProperties.chainGunIsFiring, undefined),
+        target: wrapIteratorStateProperty(shipRoom, shipProperties.target, undefined),
+        clearTarget: wrapIteratorStateProperty(shipRoom, shipProperties.clearTarget, undefined),
+        rotationMode: wrapIteratorStateProperty(shipRoom, shipProperties.rotationMode, undefined),
+        maneuveringMode: wrapIteratorStateProperty(shipRoom, shipProperties.maneuveringMode, undefined),
     };
 }
 
@@ -115,6 +126,9 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
     }
     if (!shipRoom.state.constants) {
         pendingEvents.push('constants');
+    }
+    if (!shipRoom.state.thrusters) {
+        pendingEvents.push('thrusters');
     }
     await waitForEvents(events, pendingEvents);
     const driver = newShipDriverObj(shipRoom, events);

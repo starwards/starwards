@@ -24,8 +24,8 @@ describe('thrusters-ship integration', function () {
                         const startVelocity = harness.shipState.maxSpeed;
                         harness.shipObj.velocity = Vec2.make(XY.rotate({ x: -startVelocity, y: 0 }, direction));
                         const thrusterCapacity = harness.shipState.velocityCapacity(direction);
-                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuveringCommand.boost);
-                        setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuveringCommand.strafe);
+                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuveringCommand.boost, undefined);
+                        setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuveringCommand.strafe, undefined);
                         const metrics = new TimedTestMetrics(
                             iterationsPerSecond,
                             startVelocity / thrusterCapacity,
@@ -65,7 +65,7 @@ describe('thrusters-ship integration', function () {
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FORE)) {
                     thruster.broken = true;
                 }
-                setNumericProperty(harness.shipMgr, sp.boostCommand, 1);
+                setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
                 harness.simulate(1, iterationsPerSecond);
                 expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.eql(0);
             })

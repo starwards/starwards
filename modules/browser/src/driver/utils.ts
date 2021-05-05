@@ -32,22 +32,25 @@ export type TriggerApi = {
     onChange: (v: boolean) => unknown;
 };
 
-export function wrapNumericProperty(shipRoom: GameRoom<'ship'>, p: NumericStateProperty<ShipState>): DriverNumericApi {
+export function wrapNumericProperty(
+    shipRoom: GameRoom<'ship'>,
+    p: NumericStateProperty<ShipState, void>
+): DriverNumericApi {
     const range = typeof p.range === 'function' ? p.range(shipRoom.state) : p.range;
     return {
         getValue: () => p.getValue(shipRoom.state),
         range,
-        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p) : noop,
+        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
     };
 }
 
 export function wrapNormalNumericProperty(
     shipRoom: GameRoom<'ship'>,
-    p: NormalNumericStateProperty<ShipState>
+    p: NormalNumericStateProperty<ShipState, void>
 ): DriverNormalNumericApi {
     let onChange: (v: number | boolean) => unknown;
     if (isStatePropertyCommand(p)) {
-        const sender = cmdSender(shipRoom, p);
+        const sender = cmdSender(shipRoom, p, undefined);
         onChange = (v: number | boolean) => {
             if (v === true) return sender(1);
             if (v === false) return sender(0);
@@ -62,31 +65,35 @@ export function wrapNormalNumericProperty(
         onChange,
     };
 }
-export function wrapIteratorStateProperty(
+export function wrapIteratorStateProperty<P>(
     shipRoom: GameRoom<'ship'>,
-    p: IteratorStatePropertyCommand<ShipState>
+    p: IteratorStatePropertyCommand<ShipState, P>,
+    path: P
 ): TriggerApi {
     return {
-        getValue: () => p.getValue(shipRoom.state),
-        onChange: cmdSender(shipRoom, p),
+        getValue: () => p.getValue(shipRoom.state, path),
+        onChange: cmdSender(shipRoom, p, path),
     };
 }
 
-export function wrapStringStateProperty(shipRoom: GameRoom<'ship'>, p: StateProperty<string, ShipState>): TriggerApi {
+export function wrapStringStateProperty(
+    shipRoom: GameRoom<'ship'>,
+    p: StateProperty<string, ShipState, void>
+): TriggerApi {
     return {
         getValue: () => p.getValue(shipRoom.state),
-        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p) : noop,
+        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
     };
 }
 
 export class NumberMapDriver {
     private _map: MapSchema<number>;
     public map: Map<string, number>;
-    constructor(private shipRoom: GameRoom<'ship'>, private p: MappedPropertyCommand<ShipState>) {
+    constructor(private shipRoom: GameRoom<'ship'>, private p: MappedPropertyCommand<ShipState, void>) {
         this.map = this._map = p.getValue(shipRoom.state);
     }
     getApi(name: string): DriverNumericApi {
-        const sender = cmdSender(this.shipRoom, this.p);
+        const sender = cmdSender(this.shipRoom, this.p, undefined);
         const val = getConstant(this.map, name);
         return {
             getValue: () => getConstant(this.map, name),
