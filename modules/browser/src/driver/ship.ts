@@ -4,6 +4,7 @@ import {
     wrapIteratorStateProperty,
     wrapNormalNumericProperty,
     wrapNumericProperty,
+    wrapStateProperty,
     wrapStringStateProperty,
 } from './utils';
 
@@ -61,13 +62,21 @@ function wireEvents(state: ShipState) {
     return events;
 }
 
+export type ThrusterDriver = ReturnType<ThrustersDriver['getApi']>;
 export class ThrustersDriver {
     public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters);
     constructor(private shipRoom: GameRoom<'ship'>) {}
-    getApi(idx: number) {
+    getApi(index: number) {
         return {
-            brokenThruster: wrapIteratorStateProperty(this.shipRoom, shipProperties.brokenThruster, idx),
+            index,
+            broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
+            angle: wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
         };
+    }
+    public *[Symbol.iterator](): IterableIterator<ThrusterDriver> {
+        for (let i = 0; i < this.numThrusters.getValue(); i++) {
+            yield this.getApi(i);
+        }
     }
 }
 
