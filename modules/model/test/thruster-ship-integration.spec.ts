@@ -38,9 +38,9 @@ describe('thrusters-ship integration', function () {
             });
         }
         testDirectionThruster(ShipDirection.FORE, { boost: 1, strafe: 0 });
-        testDirectionThruster(ShipDirection.STARBOARD, { boost: 0, strafe: 1 });
+        testDirectionThruster(ShipDirection.STARBOARD, { boost: 0, strafe: -1 });
         testDirectionThruster(ShipDirection.AFT, { boost: -1, strafe: 0 });
-        testDirectionThruster(ShipDirection.PORT, { boost: 0, strafe: -1 });
+        testDirectionThruster(ShipDirection.PORT, { boost: 0, strafe: 1 });
 
         it(`(FORE only) 0 for broken thruster`, () => {
             const direction = ShipDirection.FORE;
