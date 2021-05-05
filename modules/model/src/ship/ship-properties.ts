@@ -145,3 +145,12 @@ export const shellRange = NumericStatePropertyCommand(
     (state: ShipState) => state.chainGun.shellRange,
     [-1, 1]
 );
+
+export const numThrusters = NumericStateProperty((state: ShipState) => state.thrusters.length, [0, 64]);
+export const brokenThruster = IteratorStatePropertyCommand(
+    'brokenThruster',
+    (state: ShipState, value: boolean, idx: number) => {
+        state.thrusters[idx].broken = value;
+    },
+    (state: ShipState, idx: number) => (state.thrusters[idx].broken ? 'ERROR' : 'OK')
+);
