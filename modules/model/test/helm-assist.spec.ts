@@ -26,7 +26,6 @@ describe('helm assist', function () {
     this.timeout(60 * 1000);
 
     describe('assumptions', () => {
-        const iterationsPerSecond = 5;
         it('turnSpeedCapacity is max speed per second in turnSpeed', () => {
             const harness = new ShipTestHarness();
             const time = 5;

@@ -14,6 +14,7 @@ module.exports = {
     },
 
     rules: {
+        'no-shadow': 'error',
         'sort-imports': 'error',
         'no-only-tests/no-only-tests': 'error',
         'no-console': 'error',
@@ -34,6 +35,8 @@ module.exports = {
                 'prettier',
             ],
             rules: {
+                'no-shadow': 'off',
+                '@typescript-eslint/no-shadow': 'error',
                 '@typescript-eslint/explicit-module-boundary-types': 'off',
                 '@typescript-eslint/no-use-before-define': 'off',
                 '@typescript-eslint/no-unused-vars': 'off',
