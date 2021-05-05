@@ -2,7 +2,9 @@ import * as types from './properties';
 
 import { MapSchema, Schema } from '@colyseus/schema';
 
-export function StateProperty<T, S extends Schema>(getValue: (state: S) => T): types.StateProperty<T, S, void> {
+export function StateProperty<T, S extends Schema, P>(
+    getValue: (state: S, path: P) => T
+): types.StateProperty<T, S, P> {
     return { getValue };
 }
 export function PropertyCommand<T, S extends Schema>(
@@ -10,6 +12,13 @@ export function PropertyCommand<T, S extends Schema>(
     setValue: (state: S, value: T) => unknown
 ): types.StateCommand<T, S, void> {
     return { cmdName, setValue };
+}
+export function StatePropertyCommand<T, S extends Schema, P>(
+    cmdName: string,
+    setValue: (state: S, value: T, path: P) => unknown,
+    getValue: (state: S, path: P) => T
+): types.StatePropertyCommand<T, S, P> {
+    return { cmdName, setValue, getValue };
 }
 export function NumericStateProperty<S extends Schema>(
     getValue: (state: S) => number,

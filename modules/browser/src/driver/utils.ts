@@ -27,10 +27,26 @@ export type DriverNormalNumericApi = {
     getValue: () => number;
 };
 
+export type BaseApi<T> = {
+    getValue: () => T;
+    onChange: (v: T) => unknown;
+};
+
 export type TriggerApi = {
     getValue: () => string;
     onChange: (v: boolean) => unknown;
 };
+
+export function wrapStateProperty<T, P>(
+    shipRoom: GameRoom<'ship'>,
+    p: StateProperty<T, ShipState, P>,
+    path: P
+): BaseApi<T> {
+    return {
+        getValue: () => p.getValue(shipRoom.state, path),
+        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
+    };
+}
 
 export function wrapNumericProperty(
     shipRoom: GameRoom<'ship'>,
@@ -65,6 +81,7 @@ export function wrapNormalNumericProperty(
         onChange,
     };
 }
+
 export function wrapIteratorStateProperty<P>(
     shipRoom: GameRoom<'ship'>,
     p: IteratorStatePropertyCommand<ShipState, P>,

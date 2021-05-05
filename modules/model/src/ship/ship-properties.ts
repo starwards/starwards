@@ -5,6 +5,7 @@ import {
     NumericStateProperty,
     NumericStatePropertyCommand,
     StateProperty,
+    StatePropertyCommand,
 } from '../api/property-constructors';
 import { SmartPilotMode, TargetedStatus } from '..';
 
@@ -147,10 +148,11 @@ export const shellRange = NumericStatePropertyCommand(
 );
 
 export const numThrusters = NumericStateProperty((state: ShipState) => state.thrusters.length, [0, 64]);
-export const brokenThruster = IteratorStatePropertyCommand(
-    'brokenThruster',
+export const thrusterAngle = StateProperty((state: ShipState, idx: number) => state.thrusters[idx].angle);
+export const thrusterBroken = StatePropertyCommand(
+    'thrusterBroken',
     (state: ShipState, value: boolean, idx: number) => {
         state.thrusters[idx].broken = value;
     },
-    (state: ShipState, idx: number) => (state.thrusters[idx].broken ? 'ERROR' : 'OK')
+    (state: ShipState, idx: number) => state.thrusters[idx].broken
 );
