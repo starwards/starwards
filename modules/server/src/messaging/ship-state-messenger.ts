@@ -38,7 +38,7 @@ export class ShipStateMessenger {
 }
 
 type ShipProperties = typeof shipProperties;
-type ExtractNumeric<T extends keyof ShipProperties> = ShipProperties[T] extends NumericStateProperty<'ship'>
+type ExtractNumeric<T extends keyof ShipProperties> = ShipProperties[T] extends NumericStateProperty<ShipState>
     ? T
     : never;
 
@@ -55,7 +55,7 @@ class ShipMonitor {
     }
 
     private updateAndReportAttribute<T extends keyof ShipProperties>(attrName: ExtractNumeric<T>) {
-        const getter = shipProperties[attrName] as NumericStateProperty<'ship'>;
+        const getter = shipProperties[attrName] as NumericStateProperty<ShipState>;
         const startingState = this.monitoredAttributes.get(attrName);
         const currentState = getter.getValue(this.shipState);
         if (currentState !== startingState || this.secondsSinceUpdate >= this.forceMessageInterval) {

@@ -4,6 +4,7 @@ import {
     MappedPropertyCommand,
     NormalNumericStateProperty,
     NumericStateProperty,
+    ShipState,
     StateProperty,
     cmdSender,
     getConstant,
@@ -31,7 +32,7 @@ export type TriggerApi = {
     onChange: (v: boolean) => unknown;
 };
 
-export function wrapNumericProperty(shipRoom: GameRoom<'ship'>, p: NumericStateProperty<'ship'>): DriverNumericApi {
+export function wrapNumericProperty(shipRoom: GameRoom<'ship'>, p: NumericStateProperty<ShipState>): DriverNumericApi {
     const range = typeof p.range === 'function' ? p.range(shipRoom.state) : p.range;
     return {
         getValue: () => p.getValue(shipRoom.state),
@@ -42,7 +43,7 @@ export function wrapNumericProperty(shipRoom: GameRoom<'ship'>, p: NumericStateP
 
 export function wrapNormalNumericProperty(
     shipRoom: GameRoom<'ship'>,
-    p: NormalNumericStateProperty<'ship'>
+    p: NormalNumericStateProperty<ShipState>
 ): DriverNormalNumericApi {
     let onChange: (v: number | boolean) => unknown;
     if (isStatePropertyCommand(p)) {
@@ -63,7 +64,7 @@ export function wrapNormalNumericProperty(
 }
 export function wrapIteratorStateProperty(
     shipRoom: GameRoom<'ship'>,
-    p: IteratorStatePropertyCommand<'ship'>
+    p: IteratorStatePropertyCommand<ShipState>
 ): TriggerApi {
     return {
         getValue: () => p.getValue(shipRoom.state),
@@ -71,7 +72,7 @@ export function wrapIteratorStateProperty(
     };
 }
 
-export function wrapStringStateProperty(shipRoom: GameRoom<'ship'>, p: StateProperty<string, 'ship'>): TriggerApi {
+export function wrapStringStateProperty(shipRoom: GameRoom<'ship'>, p: StateProperty<string, ShipState>): TriggerApi {
     return {
         getValue: () => p.getValue(shipRoom.state),
         onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p) : noop,
@@ -81,7 +82,7 @@ export function wrapStringStateProperty(shipRoom: GameRoom<'ship'>, p: StateProp
 export class NumberMapDriver {
     private _map: MapSchema<number>;
     public map: Map<string, number>;
-    constructor(private shipRoom: GameRoom<'ship'>, private p: MappedPropertyCommand<'ship'>) {
+    constructor(private shipRoom: GameRoom<'ship'>, private p: MappedPropertyCommand<ShipState>) {
         this.map = this._map = p.getValue(shipRoom.state);
     }
     getApi(name: string): DriverNumericApi {

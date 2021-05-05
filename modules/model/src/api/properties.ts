@@ -1,34 +1,33 @@
-import { RoomName, State, Stateful, capToRange } from '..';
+import { MapSchema, Schema } from '@colyseus/schema';
+import { Stateful, capToRange } from '..';
 
-import { MapSchema } from '@colyseus/schema';
-
-export interface StateCommand<T, S extends RoomName> {
+export interface StateCommand<T, S extends Schema> {
     cmdName: string;
-    setValue(state: State<S>, value: T): unknown;
+    setValue(state: S, value: T): unknown;
 }
 
-export interface StateProperty<T, S extends RoomName> {
-    getValue(state: State<S>): T;
+export interface StateProperty<T, S extends Schema> {
+    getValue(state: S): T;
 }
 
-export interface IteratorStatePropertyCommand<S extends RoomName>
+export interface IteratorStatePropertyCommand<S extends Schema>
     extends StateProperty<string, S>,
         StateCommand<boolean, S> {}
 
-export interface StatePropertyCommand<T, S extends RoomName> extends StateProperty<T, S>, StateCommand<T, S> {}
-export interface NumericStateProperty<S extends RoomName> extends StateProperty<number, S> {
-    range: [number, number] | ((state: State<S>) => [number, number]);
+export interface StatePropertyCommand<T, S extends Schema> extends StateProperty<T, S>, StateCommand<T, S> {}
+export interface NumericStateProperty<S extends Schema> extends StateProperty<number, S> {
+    range: [number, number] | ((state: S) => [number, number]);
 }
-export interface NormalNumericStateProperty<S extends RoomName> extends NumericStateProperty<S> {
+export interface NormalNumericStateProperty<S extends Schema> extends NumericStateProperty<S> {
     range: [0, 1];
 }
 
-export function isNormalNumericStateProperty<S extends RoomName>(
+export function isNormalNumericStateProperty<S extends Schema>(
     v: NumericStateProperty<S>
 ): v is NormalNumericStateProperty<S> {
     return typeof v.range === 'object' && v.range[0] === 0 && v.range[1] === 1;
 }
-export function isStatePropertyCommand<T, S extends RoomName>(
+export function isStatePropertyCommand<T, S extends Schema>(
     v: StateProperty<unknown, S>
 ): v is StatePropertyCommand<T, S> {
     return (
@@ -37,7 +36,7 @@ export function isStatePropertyCommand<T, S extends RoomName>(
     );
 }
 
-export function isStateCommand<T, S extends RoomName>(v: unknown): v is StateCommand<T, S> {
+export function isStateCommand<T, S extends Schema>(v: unknown): v is StateCommand<T, S> {
     return (
         !!v &&
         typeof (v as StatePropertyCommand<T, S>).cmdName === 'string' &&
@@ -45,26 +44,26 @@ export function isStateCommand<T, S extends RoomName>(v: unknown): v is StateCom
     );
 }
 
-export function isNumericStatePropertyCommand<S extends RoomName>(v: unknown): v is NumericStatePropertyCommand<S> {
+export function isNumericStatePropertyCommand<S extends Schema>(v: unknown): v is NumericStatePropertyCommand<S> {
     return isNumericStateProperty(v) && isStatePropertyCommand(v);
 }
 
-export function isNumericStateProperty<S extends RoomName>(v: unknown): v is NumericStateProperty<S> {
+export function isNumericStateProperty<S extends Schema>(v: unknown): v is NumericStateProperty<S> {
     return (
         !!v && typeof (v as NumericStateProperty<S>).getValue === 'function' && !!(v as NumericStateProperty<S>).range
     );
 }
-export interface NumericStatePropertyCommand<S extends RoomName>
+export interface NumericStatePropertyCommand<S extends Schema>
     extends NumericStateProperty<S>,
         StatePropertyCommand<number, S> {}
 
-export interface MappedPropertyCommand<S extends RoomName>
+export interface MappedPropertyCommand<S extends Schema>
     extends StateProperty<MapSchema<number>, S>,
         StateCommand<[string, number], S> {}
 
-export function setNumericProperty<R extends RoomName>(
-    manager: Stateful<R>,
-    p: NumericStatePropertyCommand<R>,
+export function setNumericProperty<S extends Schema>(
+    manager: Stateful<S>,
+    p: NumericStatePropertyCommand<S>,
     value: number
 ) {
     const range = typeof p.range === 'function' ? p.range(manager.state) : p.range;
@@ -73,9 +72,9 @@ export function setNumericProperty<R extends RoomName>(
 
 export type StatePropertyValue<T> = T extends StatePropertyCommand<infer R, never> ? R : never;
 
-export function cmdReceiver<T, R extends RoomName>(
-    manager: Stateful<R>,
-    p: StateCommand<T, R>
+export function cmdReceiver<T, S extends Schema>(
+    manager: Stateful<S>,
+    p: StateCommand<T, S>
 ): (_: unknown, m: { value: T }) => unknown {
     if (isNumericStatePropertyCommand(p)) {
         return (_: unknown, { value }: { value: T }) => setNumericProperty(manager, p, (value as unknown) as number);
