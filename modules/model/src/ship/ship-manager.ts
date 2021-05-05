@@ -21,18 +21,31 @@ import {
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '..';
+
 import { Bot } from '../logic/bot';
+import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
+import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
-function setConstant(state: ShipState, name: string, value: number) {
+interface WithConstants {
+    constants: MapSchema<number>;
+}
+function setConstant(state: WithConstants, name: string, value: number) {
     state.constants.set(name, value);
 }
 
-function setChainGunConstant(state: ShipState, name: string, value: number) {
-    state.chainGun.constants.set(name, value);
+function makeThruster(angle: ShipDirection): Thruster {
+    const thruster = new Thruster();
+    thruster.constants = new MapSchema<number>();
+    setConstant(thruster, 'angle', angle);
+    setConstant(thruster, 'capacity', 50);
+    setConstant(thruster, 'energyCost', 0.07);
+    setConstant(thruster, 'speedFactor', 3);
+    setConstant(thruster, 'afterBurnerCapacity', 300);
+    setConstant(thruster, 'afterBurnerEffectFactor', 1);
+    return thruster;
 }
-
 function makeShipState(id: string) {
     const state = new ShipState();
     state.id = id;
@@ -41,31 +54,33 @@ function makeShipState(id: string) {
     setConstant(state, 'maxEnergy', 1000);
     setConstant(state, 'maxAfterBurner', 5000);
     setConstant(state, 'afterBurnerCharge', 20);
-    setConstant(state, 'afterBurnerCapacity', 300);
-    setConstant(state, 'afterBurnerEffectFactor', 1);
     setConstant(state, 'afterBurnerEnergyCost', 0.07);
-    setConstant(state, 'maneuveringCapacity', 50);
-    setConstant(state, 'maneuveringEnergyCost', 0.07);
+    setConstant(state, 'rotationCapacity', 50);
+    setConstant(state, 'rotationEnergyCost', 0.07);
     setConstant(state, 'antiDriftEffectFactor', 1);
     setConstant(state, 'breaksEffectFactor', 1);
     setConstant(state, 'rotationEffectFactor', 0.5);
-    setConstant(state, 'strafeEffectFactor', 3);
-    setConstant(state, 'boostEffectFactor', 6);
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     state.thrusters = new ArraySchema();
+    state.thrusters.push(makeThruster(ShipDirection.FORE));
+    state.thrusters.push(makeThruster(ShipDirection.FORE));
+    state.thrusters.push(makeThruster(ShipDirection.AFT));
+    state.thrusters.push(makeThruster(ShipDirection.AFT));
+    state.thrusters.push(makeThruster(ShipDirection.PORT));
+    state.thrusters.push(makeThruster(ShipDirection.STARBOARD));
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
-    setChainGunConstant(state, 'bulletsPerSecond', 20);
-    setChainGunConstant(state, 'bulletSpeed', 1000);
-    setChainGunConstant(state, 'bulletDegreesDeviation', 1);
-    setChainGunConstant(state, 'maxShellRange', 5000);
-    setChainGunConstant(state, 'minShellRange', 1000);
-    setChainGunConstant(state, 'shellRangeAim', 1000);
-    setChainGunConstant(state, 'explosionRadius', 10);
-    setChainGunConstant(state, 'explosionExpansionSpeed', 40);
-    setChainGunConstant(state, 'explosionDamageFactor', 20);
-    setChainGunConstant(state, 'explosionBlastFactor', 1);
+    setConstant(state.chainGun, 'bulletsPerSecond', 20);
+    setConstant(state.chainGun, 'bulletSpeed', 1000);
+    setConstant(state.chainGun, 'bulletDegreesDeviation', 1);
+    setConstant(state.chainGun, 'maxShellRange', 5000);
+    setConstant(state.chainGun, 'minShellRange', 1000);
+    setConstant(state.chainGun, 'shellRangeAim', 1000);
+    setConstant(state.chainGun, 'explosionRadius', 10);
+    setConstant(state.chainGun, 'explosionExpansionSpeed', 40);
+    setConstant(state.chainGun, 'explosionDamageFactor', 20);
+    setConstant(state.chainGun, 'explosionBlastFactor', 1);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
     return state;
@@ -205,7 +220,8 @@ export class ShipManager {
             this.calcSmartPilotManeuvering(deltaSeconds);
             this.calcSmartPilotRotation(deltaSeconds);
             const maneuveringAction = this.calcManeuveringAction();
-            this.changeVelocity(maneuveringAction, deltaSeconds);
+            this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
+            this.updateVelocityFromThrusters(deltaSeconds);
 
             this.updateChainGun(deltaSeconds);
             this.chargeAfterBurner(deltaSeconds);
@@ -336,47 +352,37 @@ export class ShipManager {
         }
     }
 
-    private changeVelocity(maneuveringAction: XY, deltaSeconds: number) {
-        if (!XY.isZero(maneuveringAction)) {
-            const maneuveringVelocity = this.useManeuvering(maneuveringAction, deltaSeconds);
-            const velocityFromPotential = this.useAfterBurner(maneuveringAction, deltaSeconds);
-            const speedToChange = XY.sum(maneuveringVelocity, velocityFromPotential);
-            if (!XY.isZero(speedToChange)) {
-                this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
+    private updateThrustersFromManeuvering(maneuveringAction: XY, deltaSeconds: number) {
+        for (const thruster of this.state.thrusters) {
+            thruster.afterBurnerActive = 0;
+            thruster.active = 0;
+            const globalAngle = thruster.angle + this.state.angle;
+            const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
+            const axisCapacity = thruster.capacity * deltaSeconds;
+            if (this.trySpendEnergy(desiredAction * axisCapacity * thruster.energyCost)) {
+                thruster.active = desiredAction;
+            }
+            if (this.state.afterBurner) {
+                const axisAfterBurnerCapacity = thruster.afterBurnerCapacity * deltaSeconds;
+                const desireAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
+                if (this.trySpendAfterBurner(desireAfterBurnedAction * axisAfterBurnerCapacity)) {
+                    thruster.afterBurnerActive = desireAfterBurnedAction;
+                }
             }
         }
     }
 
-    private useAfterBurner(desiredSpeed: XY, deltaSeconds: number) {
-        if (this.state.afterBurner) {
-            const velocityLength = XY.lengthOf(desiredSpeed);
-            const afterBurnerToSpend =
-                Math.min(velocityLength * this.state.afterBurner, 1) * this.state.afterBurnerCapacity * deltaSeconds;
-            if (this.trySpendAfterBurner(afterBurnerToSpend)) {
-                return XY.scale(XY.normalize(desiredSpeed), afterBurnerToSpend * this.state.afterBurnerEffectFactor);
-            }
+    private updateVelocityFromThrusters(deltaSeconds: number) {
+        const speedToChange = XY.sum(
+            ...this.state.thrusters.map((thruster) => {
+                const mvEffect = thruster.active * thruster.capacity * thruster.speedFactor * deltaSeconds;
+                const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;
+                return XY.byLengthAndDirection(mvEffect + abEffect, thruster.angle + this.state.angle);
+            })
+        );
+        if (!XY.isZero(speedToChange)) {
+            this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
         }
-        // else if (this.isOverMaxSpeed()) {}
-        return XY.zero;
-    }
-
-    private useManeuvering(maneuveringAction: XY, deltaSeconds: number) {
-        const axisCapacity = this.state.maneuveringCapacity * deltaSeconds;
-        const desiredLocalSpeed = XY.rotate(maneuveringAction, -this.spaceObject.angle);
-        const cappedSpeed = {
-            x: capToRange(-1, 1, desiredLocalSpeed.x) * axisCapacity,
-            y: capToRange(-1, 1, desiredLocalSpeed.y) * axisCapacity,
-        };
-        const sumSpeed = Math.abs(cappedSpeed.x) + Math.abs(cappedSpeed.y);
-        if (this.trySpendEnergy(sumSpeed * this.state.maneuveringEnergyCost)) {
-            const effectiveLocalSpeedChange = {
-                x: cappedSpeed.x * this.state.boostEffectFactor,
-                y: cappedSpeed.y * this.state.strafeEffectFactor,
-            };
-            const globalSpeedChange = XY.rotate(effectiveLocalSpeedChange, this.spaceObject.angle);
-            return globalSpeedChange;
-        }
-        return XY.zero;
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
@@ -512,8 +518,8 @@ export class ShipManager {
         if (this.state.rotation) {
             let speedToChange = 0;
             const rotateFactor = this.state.rotation * deltaSeconds;
-            const enginePower = rotateFactor * this.state.maneuveringCapacity;
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.maneuveringEnergyCost)) {
+            const enginePower = rotateFactor * this.state.rotationCapacity;
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
                 speedToChange += enginePower * this.state.rotationEffectFactor;
             }
             this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);

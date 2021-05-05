@@ -27,9 +27,9 @@ function wireEvents(state: ShipState) {
     state.velocity.onChange = (_) => events.emit('velocity', state.velocity);
     events.once('chainGun', () => {
         state.chainGun.onChange = (changes) => {
-            changes.forEach((c) => {
-                events.emit('chainGun.' + c.field, c.value);
-            });
+            for (const { field, value } of changes) {
+                events.emit(`chainGun.${field}`, value);
+            }
         };
         state.chainGun.constants.onChange = (value: number, key: string) => {
             events.emit('chainGun.constants.' + key, value);
@@ -38,13 +38,25 @@ function wireEvents(state: ShipState) {
     });
     events.once('smartPilot', () => {
         state.smartPilot.onChange = (changes) => {
-            changes.forEach((c) => {
-                events.emit('smartPilot.' + c.field, c.value);
-            });
+            for (const { field, value } of changes) {
+                events.emit(`smartPilot.${field}`, value);
+            }
         };
-
         state.smartPilot.maneuvering.onChange = (_) =>
             events.emit('smartPilot.maneuvering', state.smartPilot.maneuvering);
+    });
+    events.once('thrusters', () => {
+        state.thrusters.onAdd = (thruster, key) => {
+            thruster.onChange = (changes) => {
+                for (const { field, value } of changes) {
+                    events.emit(`thrusters.${key}.${field}`, value);
+                }
+            };
+            thruster.constants.onChange = (value: number, constKey: string) => {
+                events.emit(`thrusters.${key}.constants.${constKey}`, value);
+                events.emit(`thrusters.${key}.constants`);
+            };
+        };
     });
     return events;
 }

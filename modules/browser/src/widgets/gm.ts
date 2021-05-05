@@ -11,12 +11,14 @@ import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { blipRenderer } from '../radar/blip-renderer';
 import { makeRadarHeaders } from './radar';
+import { tweakWidget } from './tweak';
 
 export interface RadarState {
     zoom: number;
 }
 export class GmWidgets {
     public radar: DashboardWidget<RadarState>;
+    public tweak: DashboardWidget;
     public selectionContainer: SelectionContainer;
     constructor(driver: Driver) {
         const selectionContainer = new SelectionContainer();
@@ -60,6 +62,7 @@ export class GmWidgets {
             makeHeaders: makeRadarHeaders,
             component: GmRadarComponent,
         };
+        this.tweak = tweakWidget(driver, selectionContainer);
         void driver.getSpaceDriver().then((spaceDriver) => selectionContainer.init(spaceDriver.state));
     }
 }

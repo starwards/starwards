@@ -2,11 +2,11 @@ import { Color3, DynamicTexture, Mesh, MeshBuilder, Scene, StandardMaterial, Vec
 
 export function placeAxes(scene: Scene, size: number) {
     // show axis
-    function makeTextPlane(text: string, color: string | null, size: number) {
+    function makeTextPlane(text: string, color: string | null, textSize: number) {
         const dynamicTexture = new DynamicTexture('DynamicTexture', 50, scene, true);
         dynamicTexture.hasAlpha = true;
         dynamicTexture.drawText(text, 5, 40, 'bold 36px Arial', color, 'transparent', true);
-        const plane = Mesh.CreatePlane('TextPlane', size, scene, true);
+        const plane = Mesh.CreatePlane('TextPlane', textSize, scene, true);
         const material = new StandardMaterial('TextPlaneMaterial', scene);
         material.backFaceCulling = false;
         material.specularColor = new Color3(0, 0, 0);

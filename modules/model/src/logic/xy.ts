@@ -9,7 +9,7 @@ export namespace XY {
     export const one = Object.freeze({ x: 1, y: 0 });
     export const zero = Object.freeze({ x: 0, y: 0 });
     export function byLengthAndDirection(length: number, degrees: number) {
-        return XY.rotate({ x: length, y: 0 }, toDegreesDelta(degrees));
+        return length ? XY.rotate({ x: length, y: 0 }, toDegreesDelta(degrees)) : XY.zero;
     }
     export function clone(vector: XY): XY {
         return {

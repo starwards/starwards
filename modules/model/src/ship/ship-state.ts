@@ -2,8 +2,10 @@ import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 import { Spaceship, Vec2 } from '../space';
 
 import { ChainGun } from './chain-gun';
+import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
 import { getConstant } from '../utils';
+import { toDegreesDelta } from '..';
 
 export enum TargetedStatus {
     NONE,
@@ -86,20 +88,14 @@ export class ShipState extends Spaceship {
     get afterBurnerEnergyCost(): number {
         return getConstant(this.constants, 'afterBurnerEnergyCost');
     }
-    get afterBurnerCapacity(): number {
-        return getConstant(this.constants, 'afterBurnerCapacity');
-    }
-    get afterBurnerEffectFactor(): number {
-        return getConstant(this.constants, 'afterBurnerEffectFactor');
-    }
     get energyPerSecond(): number {
         return getConstant(this.constants, 'energyPerSecond');
     }
-    get maneuveringCapacity(): number {
-        return getConstant(this.constants, 'maneuveringCapacity');
+    get rotationCapacity(): number {
+        return getConstant(this.constants, 'rotationCapacity');
     }
-    get maneuveringEnergyCost(): number {
-        return getConstant(this.constants, 'maneuveringEnergyCost');
+    get rotationEnergyCost(): number {
+        return getConstant(this.constants, 'rotationEnergyCost');
     }
     get antiDriftEffectFactor(): number {
         return getConstant(this.constants, 'antiDriftEffectFactor');
@@ -110,29 +106,20 @@ export class ShipState extends Spaceship {
     get rotationEffectFactor(): number {
         return getConstant(this.constants, 'rotationEffectFactor');
     }
-    get boostEffectFactor(): number {
-        return getConstant(this.constants, 'boostEffectFactor');
+    get turnSpeedCapacity(): number {
+        return this.rotationCapacity * this.rotationEffectFactor;
     }
-    get strafeEffectFactor(): number {
-        return getConstant(this.constants, 'strafeEffectFactor');
+
+    *angleThrusters(direction: ShipDirection) {
+        for (const thruster of this.thrusters) {
+            if (toDegreesDelta(direction) === toDegreesDelta(thruster.angle)) {
+                yield thruster;
+            }
+        }
     }
-    get rotationCapacity(): number {
-        return (
-            this.maneuveringCapacity * this.rotationEffectFactor +
-            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
-        );
-    }
-    get boostCapacity() {
-        return (
-            this.maneuveringCapacity * this.boostEffectFactor +
-            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
-        );
-    }
-    get strafeCapacity() {
-        return (
-            this.maneuveringCapacity * this.strafeEffectFactor +
-            this.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
-        );
+
+    velocityCapacity(direction: ShipDirection) {
+        return [...this.angleThrusters(direction)].reduce((s, t) => s + t.getVelocityCapacity(this), 0);
     }
     getMaxSpeedForAfterburner(afterBurner: number) {
         return (

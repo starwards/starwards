@@ -2,6 +2,8 @@ import 'mocha';
 
 import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
 import {
+    ShipDirection,
+    ShipDirections,
     Vec2,
     XY,
     limitPercision,
@@ -24,45 +26,10 @@ describe('helm assist', function () {
     this.timeout(60 * 1000);
 
     describe('assumptions', () => {
-        const iterationsPerSecond = 5;
-        it('boostCapacity is max speed per second in boost', () => {
-            fc.assert(
-                fc.property(float(0, 0.5), (afterBurner: number) => {
-                    const harness = new ShipTestHarness();
-                    harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
-                    harness.shipObj.velocity.x = -1 * harness.shipState.maxSpeed;
-                    setNumericProperty(harness.shipMgr, sp.boostCommand, 1);
-                    const metrics = new TimedTestMetrics(
-                        iterationsPerSecond,
-                        harness.shipState.maxSpeed / harness.shipState.boostCapacity,
-                        Math.abs(harness.shipObj.velocity.x)
-                    );
-                    harness.simulate(metrics.timeToReach, metrics.iterations);
-                    expect(harness.shipObj.velocity.x, 'velocity').to.be.closeTo(0, metrics.errorMargin);
-                })
-            );
-        });
-        it('strafeCapacity is max speed per second in strafe', () => {
-            fc.assert(
-                fc.property(float(0, 0.5), (afterBurner: number) => {
-                    const harness = new ShipTestHarness();
-                    harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
-                    harness.shipObj.velocity.y = -1 * harness.shipState.maxSpeed;
-                    setNumericProperty(harness.shipMgr, sp.strafeCommand, 1);
-                    const metrics = new TimedTestMetrics(
-                        iterationsPerSecond,
-                        harness.shipState.maxSpeed / harness.shipState.strafeCapacity,
-                        Math.abs(harness.shipObj.velocity.y)
-                    );
-                    harness.simulate(metrics.timeToReach, metrics.iterations);
-                    expect(harness.shipObj.velocity.y, 'velocity').to.be.closeTo(0, metrics.errorMargin);
-                })
-            );
-        });
-        it('rotationCapacity is max speed per second in turnSpeed', () => {
+        it('turnSpeedCapacity is max speed per second in turnSpeed', () => {
             const harness = new ShipTestHarness();
             const time = 5;
-            harness.shipObj.turnSpeed = -1 * time * harness.shipState.rotationCapacity;
+            harness.shipObj.turnSpeed = -1 * time * harness.shipState.turnSpeedCapacity;
             setNumericProperty(harness.shipMgr, sp.rotationCommand, 1);
             const metrics = new TimedTestMetrics(iterationsPerSecond, time, Math.abs(harness.shipObj.turnSpeed));
             harness.simulate(metrics.timeToReach, metrics.iterations);
@@ -79,7 +46,7 @@ describe('helm assist', function () {
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(originalAngle),
-                        harness.shipState.rotationCapacity
+                        harness.shipState.turnSpeedCapacity
                     );
                     harness.initGraph({
                         angle: () => toDegreesDelta(harness.shipState.angle),
@@ -110,7 +77,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(turnSpeed),
-                        harness.shipState.rotationCapacity
+                        harness.shipState.turnSpeedCapacity
                     );
                     harness.shipObj.turnSpeed = turnSpeed;
                     harness.initGraph({
@@ -127,16 +94,16 @@ describe('helm assist', function () {
         });
     });
     describe('matchGlobalSpeed', () => {
-        it('(boost only) reach target speed in good time from 0 speed', () => {
+        it('(FORE only) reach target speed in good time from 0 speed', () => {
             fc.assert(
                 fc.property(floatIn(1000, 250), float(0, 0.5), (fromX: number, afterBurner: number) => {
                     const harness = new ShipTestHarness();
                     harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
-                    harness.shipObj.velocity.x = fromX;
+                    harness.shipObj.velocity.x = -fromX;
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.boostCapacity
+                        harness.shipState.velocityCapacity(ShipDirection.FORE)
                     );
                     harness.initGraph({
                         velocity: () => harness.shipState.velocity.x,
@@ -171,7 +138,7 @@ describe('helm assist', function () {
                         const metrics = new SpeedTestMetrics(
                             20,
                             XY.lengthOf(from),
-                            Math.min(harness.shipState.boostCapacity, harness.shipState.strafeCapacity)
+                            Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d)))
                         );
                         harness.initGraph({
                             velocityX: () => harness.shipState.velocity.x,
@@ -199,16 +166,16 @@ describe('helm assist', function () {
         });
     });
     describe('moveToTarget', () => {
-        it('(boost only) reach target in good time from 0 speed', () => {
+        it('(FORE only) reach target in good time from 0 speed', () => {
             fc.assert(
                 fc.property(floatIn(2000, 500), float(0, 0.5), (fromX: number, afterBurner: number) => {
                     const harness = new ShipTestHarness();
                     harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
-                    harness.shipObj.position.x = fromX;
+                    harness.shipObj.position.x = -fromX;
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.boostCapacity,
+                        harness.shipState.velocityCapacity(ShipDirection.FORE),
                         harness.shipState.maxSpeed
                     );
                     harness.initGraph({
@@ -245,7 +212,7 @@ describe('helm assist', function () {
                         const metrics = new MovementTestMetrics(
                             20,
                             XY.lengthOf(from),
-                            Math.min(harness.shipState.boostCapacity, harness.shipState.strafeCapacity),
+                            Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d))),
                             harness.shipState.maxSpeed
                         );
                         const iteration = (time: number) => {
