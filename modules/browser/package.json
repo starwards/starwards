@@ -7,10 +7,10 @@
         "test": "echo \"no tests here\" && exit 0"
     },
     "dependencies": {
-        "@arwes/animation": "^1.0.0-alpha.18",
-        "@arwes/core": "^1.0.0-alpha.18",
-        "@arwes/design": "^1.0.0-alpha.18",
-        "@arwes/sounds": "^1.0.0-alpha.18",
+        "@arwes/animation": "^1.0.0-alpha.19",
+        "@arwes/core": "^1.0.0-alpha.19",
+        "@arwes/design": "^1.0.0-alpha.19",
+        "@arwes/sounds": "^1.0.0-alpha.19",
         "@babylonjs/core": "5.0.0-alpha.14",
         "@babylonjs/loaders": "5.0.0-alpha.14",
         "@emotion/css": "^11.1.3",
@@ -41,7 +41,7 @@
         "@types/d3-selection": "^2.0.0",
         "@types/dat.gui": "^0.7.6",
         "@types/howler": "2.2",
-        "@types/react": "^17.0.3",
+        "@types/react": "^17.0.5",
         "@types/react-dom": "^17.0.3"
     }
 }
