@@ -46,6 +46,7 @@
         "@types/nanoid": "^2.1.0",
         "@types/node": "15.0.2",
         "@types/plotly.js": "^1.54.9",
+        "@types/pluralize": "^0.0.29",
         "@types/react": "^17.0.3",
         "@types/react-dom": "^17.0.3",
         "@types/sinon": "~9.0.11",

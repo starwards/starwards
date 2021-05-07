@@ -7,6 +7,7 @@ import { DashboardWidget } from './dashboard';
 import { SelectionContainer } from '../radar/selection-container';
 import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
+import pluralize from 'pluralize';
 
 WebFont.load({
     custom: {
@@ -20,12 +21,12 @@ type Props = {
     selectionContainer: SelectionContainer;
 };
 
-function useSelectedSingle(selectionContainer: SelectionContainer): SpaceObject | undefined {
-    const [selected, setSelected] = useState(selectionContainer.getSingle());
+function useSelected(selectionContainer: SelectionContainer): Array<SpaceObject> {
+    const [selected, setSelected] = useState([...selectionContainer.selectedItems]);
 
     useEffect(() => {
         const handleSelectionChange = () => {
-            setSelected(selectionContainer.getSingle());
+            setSelected([...selectionContainer.selectedItems]);
         };
         selectionContainer.events.addListener('changed', handleSelectionChange);
         return () => {
@@ -74,29 +75,37 @@ function ThrusterTweak({ driver }: { driver: ThrusterDriver }) {
     );
 }
 
-const SelectionTitle = ({ selected }: { selected: SpaceObject | undefined }) => (
-    <pre> Selected : {selected?.type || 'None'}</pre>
-);
+const SelectionTitle = ({ selectionContainer }: { selectionContainer: SelectionContainer }) => {
+    const counts = {} as Record<SpaceObject['type'], number>;
+    const selected = useSelected(selectionContainer);
+    for (const { type } of selected) {
+        counts[type] = (counts[type] || 0) + 1;
+    }
+    const message = Object.entries(counts)
+        .map(([type, count]) => pluralize(type, count, true))
+        .join(', ');
+    return <pre>{message || 'None'} Selected</pre>;
+};
 function Tweak({ driver, selectionContainer }: Props) {
-    const selected = useSelectedSingle(selectionContainer);
-    const shipDriver = useShipDriver(selected, driver);
-    if (Spaceship.isInstance(selected)) {
+    const selected = useSelected(selectionContainer);
+    const shipDriver = useShipDriver(selected[0], driver);
+    if (selected.length === 1 && Spaceship.isInstance(selected[0])) {
         if (shipDriver) {
             return (
                 <>
-                    <SelectionTitle selected={selected} />
+                    <SelectionTitle selectionContainer={selectionContainer} />
                     <Repeater data={shipDriver.thrusters}>{(t) => <ThrusterTweak driver={t} />}</Repeater>
                 </>
             );
         } else {
             return (
                 <>
-                    <SelectionTitle selected={selected} />
+                    <SelectionTitle selectionContainer={selectionContainer} />
                     <LoadingBars animator={{ animate: false }} />
                 </>
             );
         }
-    } else return <SelectionTitle selected={selected} />;
+    } else return <SelectionTitle selectionContainer={selectionContainer} />;
 }
 
 function useShipDriver(selected: SpaceObject | undefined, driver: Driver): ShipDriver | undefined {
