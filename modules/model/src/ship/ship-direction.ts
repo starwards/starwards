@@ -1,8 +1,8 @@
 import { XY } from '..';
 
 export enum ShipDirection {
-    FORE = 0,
-    STARBOARD = -90,
+    FWD = 0,
+    STBD = -90,
     AFT = 180,
     PORT = 90,
 }
@@ -13,7 +13,7 @@ export const ShipDirections = Object.values(ShipDirection).filter<ShipDirection>
 
 export function vector2ShipDirections(xy: XY) {
     return {
-        x: xy.x > 0 ? ShipDirection.FORE : ShipDirection.AFT,
-        y: xy.y > 0 ? ShipDirection.PORT : ShipDirection.STARBOARD,
+        x: xy.x > 0 ? ShipDirection.FWD : ShipDirection.AFT,
+        y: xy.y > 0 ? ShipDirection.PORT : ShipDirection.STBD,
     };
 }
