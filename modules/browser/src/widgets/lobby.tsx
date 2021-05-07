@@ -1,8 +1,5 @@
 import { AdminDriver, Driver } from '../driver';
-// import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
-import { ArwesThemeProvider, Button, StylesBaseline } from '@arwes/core';
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from '@arwes/core';
 import React, { useEffect, useState } from 'react';
 
 import { AnimatorGeneralProvider } from '@arwes/animation';
@@ -42,6 +39,39 @@ const InGameMenu = (p: Props) => {
         loop.start();
         return loop.stop;
     });
+    return (
+        <>
+            {adminDriver && (
+                <pre key="Stop Game">
+                    <Button palette="error" onClick={adminDriver?.stopGame}>
+                        Stop Game
+                    </Button>
+                </pre>
+            )}
+            <Card
+                key="Game Master"
+                title="Game Master"
+                image={{
+                    src: '/images/photos/nebula.jpg',
+                }}
+                options={
+                    <Button key="Game Master" onClick={() => window.location.assign(`gm.html`)}>
+                        Game Master
+                    </Button>
+                }
+                style={{ maxWidth: 400, display: 'inline-block', padding: '10px' }}
+                hover
+            >
+                Manage the game
+            </Card>
+            {[...ships].flatMap((shipId: string) => (
+                <ShipOptions key={`ship-${shipId}`} shipId={shipId} />
+            ))}
+        </>
+    );
+};
+
+function ShipOptions({ shipId }: { shipId: string }) {
     const layouts = new Set<string>();
     for (const key in localStorage) {
         if (key.startsWith('layout:')) {
@@ -49,28 +79,13 @@ const InGameMenu = (p: Props) => {
         }
     }
     return (
-        <>
-            {adminDriver && (
-                <Button key="Stop Game" palette="error" onClick={adminDriver?.stopGame}>
-                    Stop Game
-                </Button>
-            )}
-            <pre key="Game Master">
-                <h2 key={`title-gm`}>GM</h2>
-                <Button key="Game Master" onClick={() => window.location.assign(`gm.html`)}>
-                    Game Master
-                </Button>
-            </pre>
-            {[...ships].flatMap((shipId: string) => (
-                <pre key={`ship-${shipId}`}>
-                    <h2 key={`title-ship-${shipId}`}> Ship {shipId}</h2>
-                    <Button
-                        key="Main Screen"
-                        palette="secondary"
-                        onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}
-                    >
-                        Main Screen
-                    </Button>
+        <Card
+            image={{
+                src: '/images/photos/fighter-2.png',
+            }}
+            title={`Ship ${shipId}`}
+            options={
+                <>
                     {[...layouts].map((layout) => (
                         <Button
                             key={`ship-${shipId}-layout-${layout}`}
@@ -86,12 +101,22 @@ const InGameMenu = (p: Props) => {
                     >
                         Empty Screen
                     </Button>
-                </pre>
-            ))}
-        </>
+                    <Button
+                        key="Main Screen"
+                        palette="secondary"
+                        onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}
+                    >
+                        Main Screen
+                    </Button>
+                </>
+            }
+            style={{ maxWidth: 400, display: 'inline-block', padding: '10px' }}
+            hover
+        >
+            <Text>Play as a fighter ship</Text>
+        </Card>
     );
-};
-
+}
 export const Lobby = (p: Props) => {
     const [gamesCount, setgamesCount] = useState(false);
     const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
@@ -121,9 +146,11 @@ export const Lobby = (p: Props) => {
                         {gamesCount && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
 
                         {!gamesCount && adminDriver && (
-                            <Button key="new game" palette="success" onClick={adminDriver.startGame}>
-                                New Game
-                            </Button>
+                            <pre key="new game">
+                                <Button palette="success" onClick={adminDriver.startGame}>
+                                    New Game
+                                </Button>
+                            </pre>
                         )}
                         <pre key="Utilities">
                             <h2>Utilities</h2>

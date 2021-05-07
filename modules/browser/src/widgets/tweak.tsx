@@ -75,7 +75,7 @@ function ThrusterTweak({ driver }: { driver: ThrusterDriver }) {
 }
 
 const SelectionTitle = ({ selected }: { selected: SpaceObject | undefined }) => (
-    <Text>Selected : {selected?.type || 'None'}</Text>
+    <pre> Selected : {selected?.type || 'None'}</pre>
 );
 function Tweak({ driver, selectionContainer }: Props) {
     const selected = useSelectedSingle(selectionContainer);
