@@ -94,7 +94,7 @@ describe('helm assist', function () {
         });
     });
     describe('matchGlobalSpeed', () => {
-        it('(FORE only) reach target speed in good time from 0 speed', () => {
+        it('(FWD only) reach target speed in good time from 0 speed', () => {
             fc.assert(
                 fc.property(floatIn(1000, 250), float(0, 0.5), (fromX: number, afterBurner: number) => {
                     const harness = new ShipTestHarness();
@@ -103,7 +103,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.velocityCapacity(ShipDirection.FORE)
+                        harness.shipState.velocityCapacity(ShipDirection.FWD)
                     );
                     harness.initGraph({
                         velocity: () => harness.shipState.velocity.x,
@@ -166,7 +166,7 @@ describe('helm assist', function () {
         });
     });
     describe('moveToTarget', () => {
-        it('(FORE only) reach target in good time from 0 speed', () => {
+        it('(FWD only) reach target in good time from 0 speed', () => {
             fc.assert(
                 fc.property(floatIn(2000, 500), float(0, 0.5), (fromX: number, afterBurner: number) => {
                     const harness = new ShipTestHarness();
@@ -175,7 +175,7 @@ describe('helm assist', function () {
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.velocityCapacity(ShipDirection.FORE),
+                        harness.shipState.velocityCapacity(ShipDirection.FWD),
                         harness.shipState.maxSpeed
                     );
                     harness.initGraph({

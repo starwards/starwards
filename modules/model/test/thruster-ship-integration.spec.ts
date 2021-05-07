@@ -37,13 +37,13 @@ describe('thrusters-ship integration', function () {
                 );
             });
         }
-        testDirectionThruster(ShipDirection.FORE, { boost: 1, strafe: 0 });
-        testDirectionThruster(ShipDirection.STARBOARD, { boost: 0, strafe: -1 });
+        testDirectionThruster(ShipDirection.FWD, { boost: 1, strafe: 0 });
+        testDirectionThruster(ShipDirection.STBD, { boost: 0, strafe: -1 });
         testDirectionThruster(ShipDirection.AFT, { boost: -1, strafe: 0 });
         testDirectionThruster(ShipDirection.PORT, { boost: 0, strafe: 1 });
 
-        it(`(FORE only) 0 for broken thruster`, () => {
-            const direction = ShipDirection.FORE;
+        it(`(FWD only) 0 for broken thruster`, () => {
+            const direction = ShipDirection.FWD;
             fc.assert(
                 fc.property(float(0, 0.5), (afterBurner: number) => {
                     const harness = new ShipTestHarness();
@@ -57,12 +57,12 @@ describe('thrusters-ship integration', function () {
         });
     });
 
-    it(`(FORE only) broken thruster does not work`, () => {
+    it(`(FWD only) broken thruster does not work`, () => {
         fc.assert(
             fc.property(float(0, 0.5), (afterBurner: number) => {
                 const harness = new ShipTestHarness();
                 harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
-                for (const thruster of harness.shipState.angleThrusters(ShipDirection.FORE)) {
+                for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
                     thruster.broken = true;
                 }
                 setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
