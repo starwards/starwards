@@ -1,4 +1,4 @@
-import { ArwesThemeProvider, Button, LoadingBars, StylesBaseline, Text } from '@arwes/core';
+import { ArwesThemeProvider, Button, FrameCorners, List, LoadingBars, StylesBaseline, Text } from '@arwes/core';
 import { Driver, ShipDriver } from '../driver';
 import React, { Component, ReactNode, useEffect, useState } from 'react';
 import { ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
@@ -64,34 +64,39 @@ function ThrusterTweak({ driver }: { driver: ThrusterDriver }) {
     const palette = broken ? 'error' : 'primary';
     const onClick = () => driver.broken.onChange(!broken);
     return (
-        <>
-            Thruster {driver.index}. Direction : {ShipDirection[angle]}. Status:
-            <Button palette={palette} onClick={onClick}>
-                {broken ? 'Broken' : 'OK'}
-            </Button>
-        </>
+        <FrameCorners key={driver.index} palette={palette} hover>
+            <Text>Thruster {driver.index}</Text>
+            <List>
+                <li> Direction : {ShipDirection[angle]}</li>
+            </List>
+            <Button onClick={onClick}>{broken ? 'Fix' : 'Break'}</Button>
+        </FrameCorners>
     );
 }
 
+const SelectionTitle = ({ selected }: { selected: SpaceObject | undefined }) => (
+    <Text>Selected : {selected?.type || 'None'}</Text>
+);
 function Tweak({ driver, selectionContainer }: Props) {
     const selected = useSelectedSingle(selectionContainer);
     const shipDriver = useShipDriver(selected, driver);
     if (Spaceship.isInstance(selected)) {
         if (shipDriver) {
             return (
-                <Repeater data={shipDriver.thrusters}>
-                    {(t) => (
-                        <div key={t.index}>
-                            <ThrusterTweak driver={t} />
-                            <br />
-                        </div>
-                    )}
-                </Repeater>
+                <>
+                    <SelectionTitle selected={selected} />
+                    <Repeater data={shipDriver.thrusters}>{(t) => <ThrusterTweak driver={t} />}</Repeater>
+                </>
             );
         } else {
-            return <LoadingBars animator={{ animate: false }} />;
+            return (
+                <>
+                    <SelectionTitle selected={selected} />
+                    <LoadingBars animator={{ animate: false }} />
+                </>
+            );
         }
-    } else return <Text>Selected : {selected?.type || 'None'}</Text>;
+    } else return <SelectionTitle selected={selected} />;
 }
 
 function useShipDriver(selected: SpaceObject | undefined, driver: Driver): ShipDriver | undefined {
