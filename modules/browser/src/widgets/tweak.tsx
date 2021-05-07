@@ -1,6 +1,6 @@
 import { ArwesThemeProvider, Button, LoadingBars, StylesBaseline, Text } from '@arwes/core';
 import { Driver, ShipDriver } from '../driver';
-import React, { Component, useEffect, useState } from 'react';
+import React, { Component, ReactNode, useEffect, useState } from 'react';
 import { ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
 
 import { DashboardWidget } from './dashboard';
@@ -37,7 +37,7 @@ function useSelectedSingle(selectionContainer: SelectionContainer): SpaceObject 
 
 type RepeaterProps<T> = {
     data: Iterable<T>;
-    children: (i: T) => JSX.Element;
+    children: (i: T) => ReactNode;
 };
 function Repeater<T>({ data, children }: RepeaterProps<T>) {
     const elements = [];
@@ -47,11 +47,11 @@ function Repeater<T>({ data, children }: RepeaterProps<T>) {
     return <>{elements}</>;
 }
 
-function useProperty<T>(property: { getValue: () => T }) {
-    const [value, updateValue] = useState(property.getValue());
+function usePoll<T>(property: () => T) {
+    const [value, updateValue] = useState(property());
     useEffect(() => {
         const interval = setInterval(() => {
-            updateValue(property.getValue());
+            updateValue(property());
         }, REFRESH_MILLI);
         return () => clearInterval(interval);
     }, [property]);
@@ -59,8 +59,8 @@ function useProperty<T>(property: { getValue: () => T }) {
 }
 
 function ThrusterTweak({ driver }: { driver: ThrusterDriver }) {
-    const angle = useProperty(driver.angle);
-    const broken = useProperty(driver.broken);
+    const angle = usePoll(driver.angle.getValue);
+    const broken = usePoll(driver.broken.getValue);
     const palette = broken ? 'error' : 'primary';
     const onClick = () => driver.broken.onChange(!broken);
     return (
