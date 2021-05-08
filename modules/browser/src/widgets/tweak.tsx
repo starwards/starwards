@@ -1,9 +1,10 @@
 import { ArwesThemeProvider, Button, FrameCorners, List, LoadingBars, StylesBaseline, Text } from '@arwes/core';
-import { Driver, ShipDriver } from '../driver';
 import React, { Component, ReactNode, useEffect, useState } from 'react';
 import { ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
+import { useSelected, useShipDriver } from '../react/hooks';
 
 import { DashboardWidget } from './dashboard';
+import { Driver } from '../driver';
 import { SelectionContainer } from '../radar/selection-container';
 import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
@@ -20,21 +21,6 @@ type Props = {
     driver: Driver;
     selectionContainer: SelectionContainer;
 };
-
-function useSelected(selectionContainer: SelectionContainer): Array<SpaceObject> {
-    const [selected, setSelected] = useState([...selectionContainer.selectedItems]);
-
-    useEffect(() => {
-        const handleSelectionChange = () => {
-            setSelected([...selectionContainer.selectedItems]);
-        };
-        selectionContainer.events.addListener('changed', handleSelectionChange);
-        return () => {
-            window.removeEventListener('changed', handleSelectionChange);
-        };
-    }, [selectionContainer]);
-    return selected;
-}
 
 type RepeaterProps<T> = {
     data: Iterable<T>;
@@ -86,6 +72,7 @@ const SelectionTitle = ({ selectionContainer }: { selectionContainer: SelectionC
         .join(', ');
     return <pre>{message || 'None'} Selected</pre>;
 };
+
 function Tweak({ driver, selectionContainer }: Props) {
     const selected = useSelected(selectionContainer);
     const shipDriver = useShipDriver(selected[0], driver);
@@ -106,16 +93,6 @@ function Tweak({ driver, selectionContainer }: Props) {
             );
         }
     } else return <SelectionTitle selectionContainer={selectionContainer} />;
-}
-
-function useShipDriver(selected: SpaceObject | undefined, driver: Driver): ShipDriver | undefined {
-    const [shipDriver, setShipDriver] = useState<ShipDriver | undefined>(undefined);
-    useEffect(() => {
-        if (Spaceship.isInstance(selected)) {
-            void driver.getShipDriver(selected.id).then(setShipDriver);
-        }
-    }, [driver, selected]);
-    return shipDriver;
 }
 
 export function tweakWidget(driver: Driver, selectionContainer: SelectionContainer): DashboardWidget {

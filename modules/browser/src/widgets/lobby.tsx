@@ -1,11 +1,11 @@
-import { AdminDriver, Driver } from '../driver';
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from '@arwes/core';
-import React, { useEffect, useState } from 'react';
+import { useAdminDriver, useIsGameRunning, useShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from '@arwes/animation';
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
-import { TaskLoop } from '../task-loop';
+import { Driver } from '../driver';
+import React from 'react';
 import WebFont from 'webfontloader';
 
 WebFont.load({
@@ -26,19 +26,9 @@ const bleepsSettings = {
 const generalAnimator = { duration: { enter: 200, exit: 200 } };
 
 const InGameMenu = (p: Props) => {
-    const [ships, setShips] = useState<string[]>([]);
-    const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
-    useEffect(() => {
-        void p.driver.getAdminDriver().then(setAdminDriver);
-    }, [p.driver]);
+    const ships = useShips(p.driver);
+    const adminDriver = useAdminDriver(p.driver);
 
-    useEffect(() => {
-        const loop = new TaskLoop(async () => {
-            setShips([...(await p.driver.getCurrentShipIds())]);
-        }, 500);
-        loop.start();
-        return loop.stop;
-    });
     return (
         <>
             {adminDriver && (
@@ -118,20 +108,9 @@ function ShipOptions({ shipId }: { shipId: string }) {
     );
 }
 export const Lobby = (p: Props) => {
-    const [gamesCount, setgamesCount] = useState(false);
-    const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
+    const isGameRunning = useIsGameRunning(p.driver);
+    const adminDriver = useAdminDriver(p.driver);
 
-    useEffect(() => {
-        void p.driver.getAdminDriver().then(setAdminDriver);
-    }, [p.driver]);
-
-    useEffect(() => {
-        const loop = new TaskLoop(async () => {
-            setgamesCount(await p.driver.isActiveGame());
-        }, 500);
-        loop.start();
-        return loop.stop;
-    });
     return (
         <ArwesThemeProvider>
             <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />
@@ -143,9 +122,9 @@ export const Lobby = (p: Props) => {
                 <AnimatorGeneralProvider animator={generalAnimator}>
                     <div style={{ padding: 20, textAlign: 'center' }}>
                         <h1>Starwards</h1>
-                        {gamesCount && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
+                        {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
 
-                        {!gamesCount && adminDriver && (
+                        {!isGameRunning && adminDriver && (
                             <pre key="new game">
                                 <Button palette="success" onClick={adminDriver.startGame}>
                                     New Game

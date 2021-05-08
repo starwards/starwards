@@ -2,7 +2,8 @@
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import React, { Component, useEffect, useState } from 'react';
+import React, { Component } from 'react';
+import { ReadProperty, useProperty } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
@@ -26,25 +27,19 @@ const bleepsSettings = {
 };
 type Palette = 'primary' | 'secondary' | 'success' | 'error';
 type Props = {
-    shipDriver: ShipDriver;
+    property: ReadProperty<number>;
     metricName: string;
     warn: number;
     error: number;
 };
 
-function Metric({ shipDriver, metricName, warn, error }: Props) {
-    const [metricValue, setMetric] = useState<number>(shipDriver.state.energy);
-    useEffect(() => {
-        shipDriver.events.on(metricName, setMetric);
-        return () => {
-            shipDriver.events.off(metricName, setMetric);
-        };
-    }, [metricName, setMetric, shipDriver]);
-    const palette: Palette = metricValue > warn ? 'success' : metricValue > error ? 'secondary' : 'error';
+function Metric({ property, metricName, warn, error }: Props) {
+    const propertyValue = useProperty(property, 100);
+    const palette: Palette = propertyValue > warn ? 'success' : propertyValue > error ? 'secondary' : 'error';
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>
             <Text>
-                {metricName} : {String(Math.round(metricValue)).padStart(4, '0')}
+                {metricName} : {String(Math.round(propertyValue)).padStart(4, '0')}
             </Text>
         </Blockquote>
     );
@@ -62,8 +57,13 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                         bleepsSettings={bleepsSettings}
                     >
                         <div style={{ padding: 20, textAlign: 'center' }}>
-                            <Metric shipDriver={shipDriver} metricName="energy" error={100} warn={300} />
-                            <Metric shipDriver={shipDriver} metricName="afterBurnerFuel" error={500} warn={2000} />
+                            <Metric property={shipDriver.energy} metricName="Energy" error={100} warn={300} />
+                            <Metric
+                                property={shipDriver.afterBurnerFuel}
+                                metricName="Afterburner"
+                                error={500}
+                                warn={2000}
+                            />
                         </div>
                     </BleepsProvider>
                 </ArwesThemeProvider>

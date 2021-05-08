@@ -1,6 +1,6 @@
 export class TaskLoop {
     private handle: ReturnType<typeof setTimeout> | null = null;
-    constructor(private task: () => Promise<unknown>, private pause: number) {}
+    constructor(private task: () => unknown, private pause: number) {}
 
     private runTask = async () => {
         while (this.handle !== null) {
