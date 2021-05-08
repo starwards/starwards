@@ -2,45 +2,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
-            "name": "vscode-jest-tests",
+            "type": "pwa-node",
             "request": "launch",
-            "program": "${workspaceFolder}/node_modules/jest/bin/jest",
-            "args": [
-                "--runInBand"
-            ],
-            "cwd": "${workspaceFolder}/modules/server",
+            "name": "test all",
+            "program": "${workspaceFolder}/node_modules/jest/.bin/jest",
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            },
+            "args": ["--runInBand"],
+            "cwd": "${workspaceRoot}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "disableOptimisticBPs": true
-        },
-        {
-            "type": "pwa-node",
-            "request": "launch",
-            "name": "model tests",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "cwd": "${workspaceFolder}/modules/model",
-            "args": [
-                "-r",
-                "ts-node/register/transpile-only",
-                "--timeout",
-                "999999",
-                "--colors",
-                "${workspaceFolder}/modules/model/test/**/**.spec.ts"
-            ],
             "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-            "skipFiles": ["<node_internals>/**"],
-            "internalConsoleOptions": "openOnSessionStart"
-        },
-        {
-            "type": "pwa-node",
-            "request": "launch",
-            "name": "Mocha Current",
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "args": ["-r", "ts-node/register/transpile-only", "--timeout", "999999", "--colors", "${file}"],
-            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-            "skipFiles": ["<node_internals>/**"],
-            "internalConsoleOptions": "openOnSessionStart"
+            "skipFiles": ["<node_internals>/**"]
         },
         {
             "name": "run server",

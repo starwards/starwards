@@ -1,5 +1,3 @@
-import 'mocha';
-
 import { ManeuveringCommand, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
 import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
 
@@ -9,7 +7,7 @@ import fc from 'fast-check';
 import { float } from './properties';
 
 describe('thrusters-ship integration', function () {
-    this.timeout(60 * 1000);
+    jest.setTimeout(60 * 1000);
     const iterationsPerSecond = 5;
     describe('velocityCapacity() is max speed per second', () => {
         function testDirectionThruster(direction: ShipDirection, maneuveringCommand: ManeuveringCommand) {

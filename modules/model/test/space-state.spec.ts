@@ -1,5 +1,3 @@
-import 'mocha';
-
 import { Asteroid, SpaceObject, SpaceState, Spaceship, Vec2, compareSpaceObjects } from '../src';
 
 import { expect } from 'chai';

@@ -7,13 +7,10 @@
         "cjs"
     ],
     "scripts": {
-        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch",
-        "test": "mocha -r ts-node/register/transpile-only ./test/**/*.spec.ts --watch-extensions ts --colors"
+        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
     },
     "dependencies": {
-        "eventemitter3": "^4.0.7"
-    },
-    "devDependencies": {
-        "fast-check": "^2.13.0"
+        "eventemitter3": "^4.0.7",
+        "nanoid": "^3.1.22"
     }
 }

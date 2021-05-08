@@ -1,5 +1,3 @@
-import 'mocha';
-
 import { differentSignTuple2, floatIn, orderedTuple2, orderedTuple3, safeFloat } from './properties';
 import { equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
 

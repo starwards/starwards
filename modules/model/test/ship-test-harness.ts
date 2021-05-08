@@ -1,5 +1,3 @@
-import 'mocha';
-
 import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 import {
     MAX_SAFE_FLOAT,

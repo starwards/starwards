@@ -9,6 +9,7 @@
         "msjsdiag.debugger-for-chrome",
         "eamodio.gitlens",
         "coenraads.bracket-pair-colorizer",
-        "pflannery.vscode-versionlens"
+        "pflannery.vscode-versionlens",
+        "orta.vscode-jest"
     ]
 }

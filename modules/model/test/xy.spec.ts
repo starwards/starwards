@@ -1,5 +1,3 @@
-import 'mocha';
-
 import { XY, limitPercision, toDegreesDelta } from '../src';
 
 import { expect } from 'chai';

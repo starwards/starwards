@@ -15,27 +15,10 @@
         "colyseus": "^0.14.13",
         "detect-collisions": "^2.5.2",
         "express": "^4.17.1",
-        "express-basic-auth": "^1.2.0",
-        "nanoid": "^3.1.22",
-        "tslib": "^2.2.0"
-    },
-    "devDependencies": {
-        "@types/jest": "^26.0.23",
-        "jest": "^26.6.3",
-        "mockdate": "^3.0.5",
-        "ts-jest": "^26.5.5"
+        "express-basic-auth": "^1.2.0"
     },
     "pkg": {
         "scripts": "build/**/*.js",
         "assets": "views/**/*"
-    },
-    "jest": {
-        "transform": {
-            "^.+\\.ts$": "ts-jest"
-        },
-        "testEnvironment": "node",
-        "moduleNameMapper": {
-            "^@starwards/(.+)": "<rootDir>/../$1/src"
-        }
     }
 }

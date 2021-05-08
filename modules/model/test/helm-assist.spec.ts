@@ -1,5 +1,3 @@
-import 'mocha';
-
 import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetrics } from './ship-test-harness';
 import {
     ShipDirection,
@@ -23,8 +21,7 @@ import fc from 'fast-check';
 
 const iterationsPerSecond = 20;
 describe('helm assist', function () {
-    this.timeout(60 * 1000);
-
+    jest.setTimeout(60 * 1000);
     describe('assumptions', () => {
         it('turnSpeedCapacity is max speed per second in turnSpeed', () => {
             const harness = new ShipTestHarness();
