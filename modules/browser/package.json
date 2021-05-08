@@ -27,7 +27,7 @@
         "howler": "2.2",
         "jquery": "^3.6.0",
         "lodash": "^4.17.21",
-        "pixi.js": "^5.3.8",
+        "pixi.js": "^6.0.2",
         "pluralize": "^8.0.0",
         "polished": "^4.1.1",
         "prop-types": "^15.7.2",
