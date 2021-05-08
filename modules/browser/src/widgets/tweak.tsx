@@ -1,10 +1,11 @@
 import { ArwesThemeProvider, Button, FrameCorners, List, LoadingBars, StylesBaseline, Text } from '@arwes/core';
-import React, { Component, ReactNode, useEffect, useState } from 'react';
+import React, { Component } from 'react';
 import { ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
-import { useSelected, useShipDriver } from '../react/hooks';
+import { useProperty, useSelected, useShipDriver } from '../react/hooks';
 
 import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
+import { Repeater } from '../react/repeater';
 import { SelectionContainer } from '../radar/selection-container';
 import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
@@ -16,38 +17,14 @@ WebFont.load({
     },
 });
 
-const REFRESH_MILLI = 100;
 type Props = {
     driver: Driver;
     selectionContainer: SelectionContainer;
 };
 
-type RepeaterProps<T> = {
-    data: Iterable<T>;
-    children: (i: T) => ReactNode;
-};
-function Repeater<T>({ data, children }: RepeaterProps<T>) {
-    const elements = [];
-    for (const item of data) {
-        elements.push(children(item));
-    }
-    return <>{elements}</>;
-}
-
-function usePoll<T>(property: () => T) {
-    const [value, updateValue] = useState(property());
-    useEffect(() => {
-        const interval = setInterval(() => {
-            updateValue(property());
-        }, REFRESH_MILLI);
-        return () => clearInterval(interval);
-    }, [property]);
-    return value;
-}
-
 function ThrusterTweak({ driver }: { driver: ThrusterDriver }) {
-    const angle = usePoll(driver.angle.getValue);
-    const broken = usePoll(driver.broken.getValue);
+    const angle = useProperty(driver.angle);
+    const broken = useProperty(driver.broken);
     const palette = broken ? 'error' : 'primary';
     const onClick = () => driver.broken.onChange(!broken);
     return (

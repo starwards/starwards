@@ -52,8 +52,9 @@ export function useLoop(callback: () => unknown, intervalMs: number) {
     });
 }
 
+const REFRESH_MILLI = 100;
 export type ReadProperty<T> = { getValue: () => T };
-export function useProperty<T>(property: ReadProperty<T>, intervalMs: number) {
+export function useProperty<T>(property: ReadProperty<T>, intervalMs: number = REFRESH_MILLI) {
     const [value, setValue] = React.useState(property.getValue());
     useLoop(() => setValue(property.getValue()), intervalMs);
     return value;

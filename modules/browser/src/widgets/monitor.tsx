@@ -7,7 +7,10 @@ import { ReadProperty, useProperty } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
+import { Repeater } from '../react/repeater';
+import { ShipDirection } from '@starwards/model';
 import { ShipDriver } from '../driver';
+import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
 
 WebFont.load({
@@ -26,20 +29,34 @@ const bleepsSettings = {
     type: { player: 'type' },
 };
 type Palette = 'primary' | 'secondary' | 'success' | 'error';
-type Props = {
+type MetricProps = {
     property: ReadProperty<number>;
     metricName: string;
     warn: number;
     error: number;
 };
 
-function Metric({ property, metricName, warn, error }: Props) {
+function Metric({ property, metricName, warn, error }: MetricProps) {
     const propertyValue = useProperty(property, 100);
     const palette: Palette = propertyValue > warn ? 'success' : propertyValue > error ? 'secondary' : 'error';
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>
             <Text>
                 {metricName} : {String(Math.round(propertyValue)).padStart(4, '0')}
+            </Text>
+        </Blockquote>
+    );
+}
+
+function ThrusterMonitor({ driver }: { driver: ThrusterDriver }) {
+    const angle = useProperty(driver.angle);
+    const broken = useProperty(driver.broken);
+    const palette: Palette = broken ? 'error' : 'success';
+    const status = broken ? 'ERROR' : 'OK';
+    return (
+        <Blockquote palette={palette} animator={{ animate: false }}>
+            <Text>
+                Thruster {driver.index} ({ShipDirection[angle]}) : {status}
             </Text>
         </Blockquote>
     );
@@ -64,6 +81,7 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                                 error={500}
                                 warn={2000}
                             />
+                            <Repeater data={shipDriver.thrusters}>{(t) => <ThrusterMonitor driver={t} />}</Repeater>
                         </div>
                     </BleepsProvider>
                 </ArwesThemeProvider>
