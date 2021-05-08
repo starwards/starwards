@@ -5,7 +5,6 @@ import { useProperty, useSelected, useShipDriver } from '../react/hooks';
 
 import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
-import { Repeater } from '../react/repeater';
 import { SelectionContainer } from '../radar/selection-container';
 import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
@@ -58,7 +57,9 @@ function Tweak({ driver, selectionContainer }: Props) {
             return (
                 <>
                     <SelectionTitle selectionContainer={selectionContainer} />
-                    <Repeater data={shipDriver.thrusters}>{(t) => <ThrusterTweak driver={t} />}</Repeater>
+                    {[...shipDriver.thrusters].map((t) => (
+                        <ThrusterTweak key={t.index} driver={t} />
+                    ))}
                 </>
             );
         } else {

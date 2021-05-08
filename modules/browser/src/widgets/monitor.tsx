@@ -1,13 +1,10 @@
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import React, { Component } from 'react';
 import { ReadProperty, useProperty } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
-import { Repeater } from '../react/repeater';
 import { ShipDirection } from '@starwards/model';
 import { ShipDriver } from '../driver';
 import { ThrusterDriver } from '../driver/ship';
@@ -81,7 +78,9 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                                 error={500}
                                 warn={2000}
                             />
-                            <Repeater data={shipDriver.thrusters}>{(t) => <ThrusterMonitor driver={t} />}</Repeater>
+                            {[...shipDriver.thrusters].map((t) => (
+                                <ThrusterMonitor key={t.index} driver={t} />
+                            ))}
                         </div>
                     </BleepsProvider>
                 </ArwesThemeProvider>
