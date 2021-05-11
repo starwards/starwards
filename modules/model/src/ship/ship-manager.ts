@@ -205,6 +205,11 @@ export class ShipManager {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
+            this.handleDamage();
+            if (this.state.health <= 0) {
+                this.onDestroy && this.onDestroy();
+                return;
+            }
             this.handleAfterburnerCommand();
             this.handleNextTargetCommand();
             this.handleToggleSmartPilotRotationMode();
@@ -226,6 +231,16 @@ export class ShipManager {
             this.updateChainGun(deltaSeconds);
             this.chargeAfterBurner(deltaSeconds);
             this.fireChainGun();
+        }
+    }
+
+    private handleDamage() {
+        for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
+            // temporarily we just reduce health.
+            this.state.health -= damage.amount;
+            if (this.state.health <= 0) {
+                return;
+            }
         }
     }
 

@@ -5,11 +5,18 @@ import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 
+type Damage = {
+    amount: number;
+    x: number;
+    y: number;
+};
+
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new Collisions();
     private collisionToState = new WeakMap<Body, SpaceObject>();
-    private stateToCollision = new WeakMap<SpaceObject, Circle>();
+    public stateToCollision = new WeakMap<SpaceObject, Circle>();
+    private objectDamage = new WeakMap<SpaceObject, Damage[]>();
     private toInsert: SpaceObject[] = [];
 
     private secondsSinceLastGC = 0;
@@ -202,9 +209,29 @@ export class SpaceManager {
         object.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
     }
 
+    private addDamageToObject(object: SpaceObject, damage: Damage) {
+        const objectDamage = this.objectDamage.get(object);
+        if (objectDamage === undefined) {
+            this.objectDamage.set(object, [damage]);
+        } else {
+            objectDamage.push(damage);
+        }
+    }
+
+    public resolveObjectDamage(object: SpaceObject): Damage[] {
+        const damageArr = this.objectDamage.get(object) || ([] as Damage[]);
+        this.objectDamage.delete(object);
+        return damageArr;
+    }
+
     private resolveExplosionEffect(object: SpaceObject, explosion: Explosion, result: Result, deltaSeconds: number) {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
-        object.health -= explosion.damageFactor * exposure;
+        // object.health -= explosion.damageFactor * exposure;
+        this.addDamageToObject(object, {
+            amount: explosion.damageFactor * exposure,
+            x: result.overlap_x,
+            y: result.overlap_y,
+        });
         object.velocity.x -= result.overlap_x * exposure * explosion.blastFactor;
         object.velocity.y -= result.overlap_y * exposure * explosion.blastFactor;
     }
