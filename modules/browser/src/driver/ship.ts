@@ -1,5 +1,5 @@
-import { GameRoom, ShipState, shipProperties } from '@starwards/model';
 import {
+    BaseApi,
     NumberMapDriver,
     wrapIteratorStateProperty,
     wrapNormalNumericProperty,
@@ -7,6 +7,7 @@ import {
     wrapStateProperty,
     wrapStringStateProperty,
 } from './utils';
+import { GameRoom, ShipDirection, ShipState, shipProperties } from '@starwards/model';
 
 import EventEmitter from 'eventemitter3';
 import { waitForEvents } from './async-utils';
@@ -62,16 +63,28 @@ function wireEvents(state: ShipState) {
     return events;
 }
 
-export type ThrusterDriver = ReturnType<ThrustersDriver['getApi']>;
+export type ThrusterDriver = {
+    index: number;
+    broken: BaseApi<boolean>;
+    angle: BaseApi<ShipDirection>;
+};
 export class ThrustersDriver {
     public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters);
+    private cache = new Map<number, ThrusterDriver>();
     constructor(private shipRoom: GameRoom<'ship'>) {}
     getApi(index: number) {
-        return {
-            index,
-            broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
-            angle: wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
-        };
+        const result = this.cache.get(index);
+        if (result) {
+            return result;
+        } else {
+            const newValue: ThrusterDriver = {
+                index,
+                broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
+                angle: wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
+            };
+            this.cache.set(index, newValue);
+            return newValue;
+        }
     }
     public *[Symbol.iterator](): IterableIterator<ThrusterDriver> {
         for (let i = 0; i < this.numThrusters.getValue(); i++) {

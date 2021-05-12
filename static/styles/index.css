@@ -105,3 +105,7 @@ body {
   left: 20%;
   box-shadow: -3px 0px 9px 0px rgba(0, 0, 0, 0.4);
 }
+
+.lm_content {
+  overflow-y: auto;
+}

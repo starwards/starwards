@@ -4,6 +4,7 @@ import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
 import { InputManager } from '../input/input-manager';
+import { damageReportWidget } from '../widgets/damage-report';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotWidget } from '../widgets/pilot';
@@ -44,6 +45,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, 'constants');
     dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');
     dashboard.registerWidget(monitorWidget(shipDriver), {}, 'monitor');
+    dashboard.registerWidget(damageReportWidget(shipDriver), {}, 'damage report');
     dashboard.setup();
     const input = new InputManager();
     input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
@@ -74,7 +76,7 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
         dashboard = new Dashboard(JSON.parse(layoutStr, reviver), $('#layoutContainer'), $('#menuContainer'));
         let canSaveState = true;
         dashboard.on('stateChanged', function () {
-            if (canSaveState) {
+            if (canSaveState && dashboard.isInitialised) {
                 try {
                     canSaveState = false;
                     localStorage.setItem(layoutStorageKey, JSON.stringify(dashboard.toConfig(), replacer));
