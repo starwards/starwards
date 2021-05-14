@@ -6,7 +6,7 @@ import { GUI } from 'dat.gui';
 
 export type TextProperty = {
     getValue: () => string;
-    onChange: (v: boolean) => unknown;
+    setValue: (v: boolean) => unknown;
 };
 
 export interface Panel {
@@ -34,7 +34,7 @@ export class PropertyPanel implements Panel {
         name: string,
         property: DriverNumericApi
     ) {
-        const { getValue, range, onChange } = property;
+        const { getValue, range, setValue } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name, ...range);
         if (range[1] === 1) {
@@ -44,18 +44,18 @@ export class PropertyPanel implements Panel {
             viewModel[name] = getValue();
             guiController.updateDisplay();
         });
-        guiController.onChange(onChange);
+        guiController.onChange(setValue);
     }
 
     contextAddText(guiFolder: GUI, viewModel: Dictionary<number | string>, name: string, property: TextProperty) {
-        const { getValue, onChange } = property;
+        const { getValue, setValue } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name);
         this.viewLoop.onLoop(() => {
             viewModel[name] = getValue();
             guiController.updateDisplay();
         });
-        guiController.onChange(onChange);
+        guiController.onChange(setValue);
     }
 
     addProperty(name: string, property: DriverNumericApi) {

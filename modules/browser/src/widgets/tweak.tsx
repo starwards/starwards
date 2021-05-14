@@ -25,7 +25,7 @@ function ThrusterTweak({ driver }: { driver: ThrusterDriver }) {
     const angle = useProperty(driver.angle);
     const broken = useProperty(driver.broken);
     const palette = broken ? 'error' : 'primary';
-    const onClick = () => driver.broken.onChange(!broken);
+    const onClick = () => driver.broken.setValue(!broken);
     return (
         <FrameCorners key={driver.index} palette={palette} hover>
             <Text>Thruster {driver.index}</Text>

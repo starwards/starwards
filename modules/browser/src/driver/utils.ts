@@ -17,24 +17,24 @@ const noop = () => void 0;
 
 export type DriverNumericApi = {
     range: [number, number];
-    onChange: (v: number) => unknown;
+    setValue: (v: number) => unknown;
     getValue: () => number;
 };
 
 export type DriverNormalNumericApi = {
     range: [0, 1];
-    onChange: (v: number | boolean) => unknown;
+    setValue: (v: number | boolean) => unknown;
     getValue: () => number;
 };
 
 export type BaseApi<T> = {
     getValue: () => T;
-    onChange: (v: T) => unknown;
+    setValue: (v: T) => unknown;
 };
 
 export type TriggerApi = {
     getValue: () => string;
-    onChange: (v: boolean) => unknown;
+    setValue: (v: boolean) => unknown;
 };
 
 export function wrapStateProperty<T, P>(
@@ -44,7 +44,7 @@ export function wrapStateProperty<T, P>(
 ): BaseApi<T> {
     return {
         getValue: () => p.getValue(shipRoom.state, path),
-        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
+        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
     };
 }
 
@@ -56,7 +56,7 @@ export function wrapNumericProperty(
     return {
         getValue: () => p.getValue(shipRoom.state),
         range,
-        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
+        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
     };
 }
 
@@ -64,21 +64,21 @@ export function wrapNormalNumericProperty(
     shipRoom: GameRoom<'ship'>,
     p: NormalNumericStateProperty<ShipState, void>
 ): DriverNormalNumericApi {
-    let onChange: (v: number | boolean) => unknown;
+    let setValue: (v: number | boolean) => unknown;
     if (isStatePropertyCommand(p)) {
         const sender = cmdSender(shipRoom, p, undefined);
-        onChange = (v: number | boolean) => {
+        setValue = (v: number | boolean) => {
             if (v === true) return sender(1);
             if (v === false) return sender(0);
             return sender(v);
         };
     } else {
-        onChange = noop;
+        setValue = noop;
     }
     return {
         getValue: () => p.getValue(shipRoom.state),
         range: [0, 1],
-        onChange,
+        setValue,
     };
 }
 
@@ -89,7 +89,7 @@ export function wrapIteratorStateProperty<P>(
 ): TriggerApi {
     return {
         getValue: () => p.getValue(shipRoom.state, path),
-        onChange: cmdSender(shipRoom, p, path),
+        setValue: cmdSender(shipRoom, p, path),
     };
 }
 
@@ -99,7 +99,7 @@ export function wrapStringStateProperty(
 ): TriggerApi {
     return {
         getValue: () => p.getValue(shipRoom.state),
-        onChange: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
+        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
     };
 }
 
@@ -115,7 +115,7 @@ export class NumberMapDriver {
         return {
             getValue: () => getConstant(this.map, name),
             range: [val / 2, val * 2],
-            onChange: (value: number) => sender([name, value]),
+            setValue: (value: number) => sender([name, value]),
         };
     }
     set onAdd(cb: (name: string, api: DriverNumericApi) => unknown) {

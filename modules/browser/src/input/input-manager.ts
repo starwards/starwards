@@ -12,9 +12,9 @@ import { capToRange, isInRange } from '@starwards/model';
 import { EmitterLoop } from '../loop';
 import hotkeys from 'hotkeys-js';
 
-type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; onChange: (v: number) => unknown };
-type ButtonListener = { button: GamepadButtonConfig; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
-type KeyListener = { key: string; onChange?: (v: boolean) => unknown; onClick?: () => unknown };
+type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; setValue: (v: number) => unknown };
+type ButtonListener = { button: GamepadButtonConfig; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
+type KeyListener = { key: string; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 
 // equiv. to lerp([-1, 1], range, axisValue)
 function lerpAxisToRange(range: [number, number], axisValue: number) {
@@ -23,13 +23,13 @@ function lerpAxisToRange(range: [number, number], axisValue: number) {
 }
 export interface RangeAction {
     range: [number, number];
-    onChange: (v: number) => unknown;
+    setValue: (v: number) => unknown;
 }
 export interface TriggerAction {
-    onChange: (v: boolean) => unknown;
+    setValue: (v: boolean) => unknown;
 }
 export interface StepAction {
-    onChange: (v: number) => unknown;
+    setValue: (v: number) => unknown;
 }
 export class InputManager {
     private axes: AxisListener[] = [];
@@ -40,8 +40,8 @@ export class InputManager {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
                 const value = Boolean(e.buttonValue);
-                if (listener.onChange) {
-                    listener.onChange(value);
+                if (listener.setValue) {
+                    listener.setValue(value);
                 }
                 if (value && listener.onClick) {
                     listener.onClick();
@@ -60,7 +60,7 @@ export class InputManager {
                     value = 0;
                 }
                 value = lerpAxisToRange(listener.range, value);
-                listener.onChange(value);
+                listener.setValue(value);
             }
         }
     };
@@ -75,8 +75,8 @@ export class InputManager {
                 if (value && key.onClick) {
                     key.onClick();
                 }
-                if (key.onChange) {
-                    key.onChange(value);
+                if (key.setValue) {
+                    key.setValue(value);
                 }
             });
         }
@@ -113,10 +113,10 @@ export class InputManager {
                         this.axes.push({
                             axis,
                             range: property.range,
-                            onChange: callbacks.offsetVelocity(this.loop),
+                            setValue: callbacks.offsetVelocity(this.loop),
                         });
                     } else {
-                        this.axes.push({ axis, range: property.range, onChange: callbacks.axis });
+                        this.axes.push({ axis, range: property.range, setValue: callbacks.axis });
                     }
                 }
             } else if (axis) {
@@ -133,14 +133,14 @@ export class InputManager {
 
     addKeyAction(property: TriggerAction, key: string | undefined) {
         if (key) {
-            this.keys.push({ key, onChange: property.onChange });
+            this.keys.push({ key, setValue: property.setValue });
         }
     }
 
     addStepsAction(property: StepAction, key: KeysStepsConfig | undefined) {
         if (key) {
-            this.keys.push({ key: key.up, onClick: () => void property.onChange(key.step) });
-            this.keys.push({ key: key.down, onClick: () => void property.onChange(-key.step) });
+            this.keys.push({ key: key.up, onClick: () => void property.setValue(key.step) });
+            this.keys.push({ key: key.down, onClick: () => void property.setValue(-key.step) });
         }
     }
 }
@@ -155,7 +155,7 @@ class CombinedRangeCallbacks {
 
     constructor(private property: RangeAction) {}
     private onChange() {
-        this.property.onChange(this.axisValue + this.offsetValue);
+        this.property.setValue(this.axisValue + this.offsetValue);
     }
     centerOffset = () => {
         this.offsetValue = this.midRange;

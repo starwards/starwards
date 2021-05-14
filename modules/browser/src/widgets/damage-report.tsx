@@ -1,6 +1,6 @@
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
-import React, { Component, useEffect, useRef, useState } from 'react';
+import React, { Component, useEffect, useRef } from 'react';
 import { useConstant, useLoop, useProperty, useSorted } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';

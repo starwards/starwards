@@ -13,14 +13,14 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         selectionActions(selectionContainer: SelectionContainer) {
             return {
                 rotate: {
-                    onChange: (delta: number) =>
+                    setValue: (delta: number) =>
                         spaceDriver.commandRotateObjects({
                             ids: selectionContainer.selectedItemsIds,
                             delta,
                         }),
                 },
                 toggleFreeze: {
-                    onChange: (v: boolean) =>
+                    setValue: (v: boolean) =>
                         v &&
                         spaceDriver.commandToggleFreeze({
                             ids: selectionContainer.selectedItemsIds,
