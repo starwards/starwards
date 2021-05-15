@@ -1,14 +1,16 @@
 import { Body, Circle, Collisions, Result } from 'detect-collisions';
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 
+import { Spaceship } from '../space';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 
 type Damage = {
     amount: number;
-    x: number;
-    y: number;
+    position: XY;
+    // x: number;
+    // y: number;
 };
 
 export class SpaceManager {
@@ -218,20 +220,25 @@ export class SpaceManager {
         }
     }
 
-    public resolveObjectDamage(object: SpaceObject): Damage[] {
-        const damageArr = this.objectDamage.get(object) || ([] as Damage[]);
-        this.objectDamage.delete(object);
-        return damageArr;
+    public *resolveObjectDamage(object: SpaceObject): IterableIterator<Damage> {
+        const damageArr = this.objectDamage.get(object);
+        if (damageArr !== undefined) {
+            yield* damageArr;
+            this.objectDamage.delete(object);
+        }
     }
 
     private resolveExplosionEffect(object: SpaceObject, explosion: Explosion, result: Result, deltaSeconds: number) {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
-        // object.health -= explosion.damageFactor * exposure;
-        this.addDamageToObject(object, {
-            amount: explosion.damageFactor * exposure,
-            x: result.overlap_x,
-            y: result.overlap_y,
-        });
+        const damageAmount = explosion.damageFactor * exposure;
+        if (Spaceship.isInstance(object)) {
+            this.addDamageToObject(object, {
+                amount: damageAmount,
+                position: explosion.position,
+            });
+        } else {
+            object.health -= damageAmount;
+        }
         object.velocity.x -= result.overlap_x * exposure * explosion.blastFactor;
         object.velocity.y -= result.overlap_y * exposure * explosion.blastFactor;
     }

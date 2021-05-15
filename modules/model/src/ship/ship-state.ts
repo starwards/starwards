@@ -68,6 +68,11 @@ export class ShipState extends Spaceship {
     @type('int8')
     targeted = TargetedStatus.NONE;
 
+    @type('uint16')
+    frontHealth = 1000;
+    @type('uint16')
+    rearHealth = 1000;
+
     // server only, used for commands
     public afterBurnerCommand = 0;
     public nextTargetCommand = false;

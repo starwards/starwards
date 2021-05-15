@@ -199,16 +199,12 @@ export class ShipManager {
     }
 
     update(deltaSeconds: number) {
-        if (this.spaceObject.health <= 0) {
+        this.handleDamage();
+        if (this.state.frontHealth <= 0 || this.state.rearHealth <= 0) {
             this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
-            }
-            this.handleDamage();
-            if (this.state.health <= 0) {
-                this.onDestroy && this.onDestroy();
-                return;
             }
             this.handleAfterburnerCommand();
             this.handleNextTargetCommand();
@@ -237,9 +233,11 @@ export class ShipManager {
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
             // temporarily we just reduce health.
-            this.state.health -= damage.amount;
-            if (this.state.health <= 0) {
-                return;
+            const local = this.state.globalToLocal(damage.position);
+            if (XY.angleOf(local) < 180) {
+                this.state.frontHealth -= damage.amount;
+            } else {
+                this.state.rearHealth -= damage.amount;
             }
         }
     }
