@@ -18,6 +18,7 @@ export class CameraView extends Application {
      */
     constructor(pixiOptions: AppOptions, public camera: Camera, container: Container) {
         super(pixiOptions);
+        this.ticker.maxFPS = 30; // if no limit, then GPU and CPU start heating up and FPS reach ~250
         camera.events.on('view', () => this.events.emit('screenChanged'));
         camera.events.on('angle', () => this.events.emit('angleChanged'));
         container.on('resize', () => {

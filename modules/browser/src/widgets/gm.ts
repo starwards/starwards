@@ -47,10 +47,12 @@ export class GmWidgets {
                     pixiLoaded,
                 ]);
                 const fragCounter = new FragCounter(adminDriver.state);
+                // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
                 const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, selectionContainer);
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
+                // root.addLayer(fps.renderRoot);
                 root.addLayer(fragCounter);
             }
         }
