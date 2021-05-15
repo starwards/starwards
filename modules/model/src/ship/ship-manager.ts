@@ -253,6 +253,9 @@ export class ShipManager {
 
     private calcSmartPilotManeuvering(deltaSeconds: number) {
         let maneuveringCommand: ManeuveringCommand;
+        if (this.state.smartPilot.broken && this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT) {
+            return;
+        }
         switch (this.state.smartPilot.maneuveringMode) {
             case SmartPilotMode.DIRECT: {
                 maneuveringCommand = {

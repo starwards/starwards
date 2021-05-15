@@ -29,6 +29,8 @@ export class SmartPilotState extends Schema {
     rotationTargetOffset = 0;
     @type(Vec2)
     maneuvering: Vec2 = new Vec2(0, 0);
+    @type('boolean')
+    broken = false;
 
     readonly maxTargetAimOffset = 30;
     readonly aimOffsetSpeed = 15;
