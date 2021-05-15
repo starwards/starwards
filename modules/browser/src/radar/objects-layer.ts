@@ -1,16 +1,12 @@
 import { Container, DisplayObject } from 'pixi.js';
+import { ObjectData, SpaceObjectRenderer } from './blip-renderer';
 import { SpaceObject, State } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import EventEmitter from 'eventemitter3';
 import { SelectionContainer } from './selection-container';
 
-export type ObjectRenderer = (
-    spaceObject: SpaceObject,
-    root: Container,
-    selected: boolean,
-    parent: CameraView
-) => unknown;
+export type MakeRenderer = (data: ObjectData<SpaceObject>) => SpaceObjectRenderer;
 export class ObjectsLayer {
     private stage = new Container();
     private graphics: { [id: string]: ObjectGraphics } = {};
@@ -18,7 +14,7 @@ export class ObjectsLayer {
     constructor(
         private parent: CameraView,
         private spaceState: State<'space'>,
-        private renderer: ObjectRenderer,
+        private makeRenderer: MakeRenderer,
         private selectedItems: SelectionContainer
     ) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
@@ -50,7 +46,7 @@ export class ObjectsLayer {
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
         if (!spaceObject.destroyed) {
-            const objGraphics = new ObjectGraphics(spaceObject, this.renderer, this.parent);
+            const objGraphics = new ObjectGraphics(spaceObject, this.makeRenderer, this.parent);
             this.graphics[spaceObject.id] = objGraphics;
             this.stage.addChild(objGraphics.stage);
             objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
@@ -82,15 +78,15 @@ export class ObjectsLayer {
  * internal class
  */
 // eslint-disable-next-line: max-classes-per-file
-class ObjectGraphics {
+class ObjectGraphics implements ObjectData<SpaceObject> {
     public stage = new Container();
-    private drawRoot = new Container();
     private disposables: Array<() => void> = [];
     private destroyed = false;
-    constructor(public spaceObject: SpaceObject, private renderer: ObjectRenderer, private parent: CameraView) {
-        this.stage.addChild(this.drawRoot);
+    public isSelected = false;
+    private renderer: SpaceObjectRenderer;
+    constructor(public spaceObject: SpaceObject, makeRenderer: MakeRenderer, public parent: CameraView) {
         this.updatePosition();
-        this.redraw(false);
+        this.renderer = makeRenderer(this);
     }
 
     isDestroyed() {
@@ -99,12 +95,12 @@ class ObjectGraphics {
 
     shouldRedraw() {
         if (
-            this.stage.x + this.stage.width < 0 &&
-            this.stage.y + this.stage.height < 0 &&
-            this.stage.x > this.parent.renderer.width &&
+            this.stage.x + this.stage.width < 0 ||
+            this.stage.y + this.stage.height < 0 ||
+            this.stage.x > this.parent.renderer.width ||
             this.stage.y > this.parent.renderer.height
         ) {
-            // outside of screen bounds, skip render (but keep dirtyProperties for when it enters the screen)
+            // outside of screen bounds, skip render
             return false;
         }
         return true;
@@ -119,15 +115,9 @@ class ObjectGraphics {
     }
 
     redraw(isSelected: boolean) {
-        // TODO only apply changes (dont re-create)
-        this.stage.removeChildren();
-        this.drawRoot.destroy({
-            children: true,
-        });
+        this.isSelected = isSelected;
         if (!this.isDestroyed()) {
-            this.drawRoot = new Container();
-            this.stage.addChild(this.drawRoot);
-            this.renderer(this.spaceObject, this.drawRoot, isSelected, this.parent);
+            this.renderer.redraw();
         }
     }
 

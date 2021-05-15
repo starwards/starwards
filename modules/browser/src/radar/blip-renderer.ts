@@ -1,4 +1,4 @@
-import { Asteroid, CannonShell, Explosion, SpaceObject, SpaceObjects, Spaceship, Vec2 } from '@starwards/model';
+import { Asteroid, CannonShell, Explosion, SpaceObject, SpaceObjects, Spaceship } from '@starwards/model';
 import { Container, Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
 
 import { CameraView } from './camera-view';
@@ -15,11 +15,19 @@ const textures = {
 
 Loader.shared.add(Object.values(textures));
 
-type DrawBlip<T extends keyof SpaceObjects> = (
-    spaceObject: SpaceObjects[T],
-    root: Container,
-    parent: CameraView
-) => void;
+export interface ObjectData<T extends SpaceObject> {
+    parent: CameraView;
+    spaceObject: T;
+    stage: Container;
+    isSelected: boolean;
+}
+
+interface ObjectRendererFactory<T extends SpaceObject> {
+    new (data: ObjectData<T>): SpaceObjectRenderer;
+}
+export interface SpaceObjectRenderer {
+    redraw(): void;
+}
 
 const blipSize = 128;
 const halfBlipSize = blipSize / 2;
@@ -36,57 +44,106 @@ function blipSprite(t: keyof typeof textures, color: number) {
     return radarBlipSprite;
 }
 
-const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
-    Spaceship(spaceObject: Spaceship, root: Container, parent: CameraView) {
-        root.addChild(blipSprite('circleBase', white));
-        root.addChild(blipSprite('circleBevel', white));
-        const directionSprite = blipSprite('direction', white);
-        directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-        root.addChild(directionSprite);
-        const fighterSprite = blipSprite('fighter', white);
-        root.addChild(fighterSprite);
-        const text = renderText(
-            halfBlipSize,
-            [`ID: ${spaceObject.id}`, `health: ${spaceObject.health.toFixed(0)}`],
-            white
-        );
-        root.addChild(text);
-        const body = renderCollisionOutline(parent, spaceObject.radius);
-        root.addChild(body);
-    },
-    Asteroid(spaceObject: Asteroid, root: Container, parent: CameraView) {
-        root.addChild(blipSprite('circleBase', white));
-        root.addChild(blipSprite('circleBevel', white));
-        root.addChild(blipSprite('asteroid', white));
-        const body = renderCollisionOutline(parent, spaceObject.radius);
-        root.addChild(body);
-    },
-    CannonShell(spaceObject: CannonShell, root: Container, parent: CameraView) {
+class SpaceshipRenderer implements SpaceObjectRenderer {
+    private selectionSprite = blipSprite('select', InteractiveLayer.selectionColor);
+    private directionSprite = blipSprite('direction', white);
+    private circleBaseSprite = blipSprite('circleBase', white);
+    private circleBevelSprite = blipSprite('circleBevel', white);
+    private fighterSprite = blipSprite('fighter', white);
+    private text = renderText(halfBlipSize, [], white);
+    private collisionOutline = new Graphics();
+
+    constructor(private data: ObjectData<Spaceship>) {
+        const { stage } = this.data;
+        stage.addChild(this.directionSprite);
+        stage.addChild(this.circleBaseSprite);
+        stage.addChild(this.circleBevelSprite);
+        stage.addChild(this.fighterSprite);
+        stage.addChild(this.text);
+        stage.addChild(this.collisionOutline);
+        stage.addChild(this.selectionSprite);
+        this.redraw();
+    }
+
+    redraw(): void {
+        const { parent, spaceObject, isSelected } = this.data;
+        this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
+        this.text.text = [`ID: ${spaceObject.id}`, `health: ${spaceObject.health.toFixed(0)}`].join('\n');
+        this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
+        this.collisionOutline.clear();
+        this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
+        this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
+        this.selectionSprite.visible = isSelected;
+    }
+}
+class AsteroidRenderer implements SpaceObjectRenderer {
+    private selectionSprite = blipSprite('select', InteractiveLayer.selectionColor);
+    private circleBaseSprite = blipSprite('circleBase', white);
+    private circleBevelSprite = blipSprite('circleBevel', white);
+    private asteroidSprite = blipSprite('asteroid', white);
+    private collisionOutline = new Graphics();
+    constructor(private data: ObjectData<Asteroid>) {
+        const { stage } = this.data;
+        stage.addChild(this.circleBaseSprite);
+        stage.addChild(this.circleBevelSprite);
+        stage.addChild(this.asteroidSprite);
+        stage.addChild(this.collisionOutline);
+        stage.addChild(this.selectionSprite);
+        this.redraw();
+    }
+    redraw(): void {
+        const { parent, spaceObject, isSelected } = this.data;
+        this.collisionOutline.clear();
+        this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
+        this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
+        this.selectionSprite.visible = isSelected;
+    }
+}
+class CannonShellRenderer implements SpaceObjectRenderer {
+    constructor(private data: ObjectData<CannonShell>) {
+        this.redraw();
+    }
+    redraw(): void {
+        const { stage, parent, spaceObject, isSelected } = this.data;
+        stage.removeChildren();
         const radius = parent.metersToPixles(spaceObject.radius);
         if (radius >= minShapePixles) {
             const shellCircle = new Graphics();
             shellCircle.beginFill(0xffff0b);
             shellCircle.drawCircle(0, 0, radius);
-            root.addChild(shellCircle);
+            stage.addChild(shellCircle);
         }
-    },
-    Explosion(spaceObject: Explosion, root: Container, parent: CameraView) {
+        if (isSelected) {
+            selectionRenderer(stage);
+        }
+    }
+}
+class ExplosionRenderer implements SpaceObjectRenderer {
+    constructor(private data: ObjectData<Explosion>) {
+        this.redraw();
+    }
+    redraw(): void {
+        const { stage, parent, spaceObject, isSelected } = this.data;
+        stage.removeChildren();
         const radius = parent.metersToPixles(spaceObject.radius);
         if (radius >= minShapePixles) {
             const explosionCircle = new Graphics();
             explosionCircle.beginFill(0xe74c3c);
             explosionCircle.drawCircle(0, 0, radius);
-            root.addChild(explosionCircle);
+            stage.addChild(explosionCircle);
         }
-    },
-};
-
-function renderCollisionOutline(parent: CameraView, radius: number) {
-    const body = new Graphics();
-    body.lineStyle(1, 0x4ce73c, 0.5);
-    body.drawCircle(0, 0, parent.metersToPixles(radius));
-    return body;
+        if (isSelected) {
+            selectionRenderer(stage);
+        }
+    }
 }
+
+const drawFunctions: { [T in keyof SpaceObjects]: ObjectRendererFactory<SpaceObjects[T]> } = {
+    Spaceship: SpaceshipRenderer,
+    Asteroid: AsteroidRenderer,
+    CannonShell: CannonShellRenderer,
+    Explosion: ExplosionRenderer,
+};
 
 function renderText(y: number, value: string[], color: number) {
     const result = new Text(
@@ -110,13 +167,11 @@ function renderText(y: number, value: string[], color: number) {
  * @param parentAngle indicates the relative angle of the camera
  * @returns a set of property names of `spaceObject` that were used for the render
  */
-export function blipRenderer(spaceObject: SpaceObject, blip: Container, selected: boolean, parent: CameraView) {
-    (drawFunctions[spaceObject.type] as DrawBlip<typeof spaceObject.type>)(spaceObject, blip, parent);
-    if (selected) {
-        selectionRenderer(blip);
-    }
+export function blipRenderer<T extends SpaceObject>(data: ObjectData<T>) {
+    const renderer = new (drawFunctions[data.spaceObject.type] as ObjectRendererFactory<T>)(data);
+    return renderer;
 }
 
-export function selectionRenderer(root: Container) {
-    root.addChild(blipSprite('select', InteractiveLayer.selectionColor));
+export function selectionRenderer(stage: Container) {
+    stage.addChild(blipSprite('select', InteractiveLayer.selectionColor));
 }
