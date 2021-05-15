@@ -12,9 +12,9 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
     const shellCrosshairLayer = new SpriteLayer(
         root,
         {
-            fileName: 'images/crosshair1.png',
+            fileName: 'images/radar/target.png',
             tint: 0xffaaaa,
-            sizePx: 32,
+            sizePx: 128,
         },
         () => getShellExplosionLocation(shipState),
         () => 0
@@ -22,9 +22,9 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
         {
-            fileName: 'images/crosshair1.png',
+            fileName: 'images/radar/deflection.png',
             tint: 0xaaaaff,
-            sizePx: 32,
+            sizePx: 128,
         },
         () => {
             const target = shipTarget.getSingle();

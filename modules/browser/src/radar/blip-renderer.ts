@@ -4,14 +4,16 @@ import { Container, Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 
 import { CameraView } from './camera-view';
 import { InteractiveLayer } from './interactive-layer';
 
-export const preloadList = [
-    'images/RadarBlip.png',
-    'images/radar_fighter.png',
-    'images/redicule.png',
-    'images/RadarArrow.png',
-];
+const textures = {
+    fighter: 'images/radar/fighter.png',
+    asteroid: 'images/radar/asteroid.png',
+    circleBase: 'images/radar/circle-base.png',
+    circleBevel: 'images/radar/circle-bevel.png',
+    direction: 'images/radar/direction.png',
+    select: 'images/radar/select.png',
+};
 
-Loader.shared.add(preloadList);
+Loader.shared.add(Object.values(textures));
 
 type DrawBlip<T extends keyof SpaceObjects> = (
     spaceObject: SpaceObjects[T],
@@ -19,77 +21,67 @@ type DrawBlip<T extends keyof SpaceObjects> = (
     parent: CameraView
 ) => void;
 
+const blipSize = 128;
+const halfBlipSize = blipSize / 2;
+const minShapePixles = 0.5;
+const white = 0xffffff;
+function blipSprite(t: keyof typeof textures, color: number) {
+    const texturePath = textures[t];
+    const radarBlipTexture = Loader.shared.resources[texturePath].texture;
+    const radarBlipSprite = new Sprite(radarBlipTexture);
+    radarBlipSprite.height = blipSize;
+    radarBlipSprite.tint = color;
+    radarBlipSprite.width = blipSize;
+    radarBlipSprite.anchor.set(0.5);
+    return radarBlipSprite;
+}
+
 const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
     Spaceship(spaceObject: Spaceship, root: Container, parent: CameraView) {
-        const radarBlipTexture = Loader.shared.resources['images/radar_fighter.png'].texture;
-        const radarBlipSprite = new Sprite(radarBlipTexture);
-        radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
-        radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
-        radarBlipSprite.tint = 0xff0000;
-        radarBlipSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-        root.addChild(radarBlipSprite);
+        root.addChild(blipSprite('circleBase', white));
+        root.addChild(blipSprite('circleBevel', white));
+        const directionSprite = blipSprite('direction', white);
+        directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
+        root.addChild(directionSprite);
+        const fighterSprite = blipSprite('fighter', white);
+        root.addChild(fighterSprite);
         const text = renderText(
-            radarBlipSprite.height / 2,
-            [
-                `ID: ${spaceObject.id}`,
-                `[${spaceObject.position.x.toFixed(0)}:${spaceObject.position.y.toFixed(0)}]`,
-                `speed: ${Vec2.lengthOf(spaceObject.velocity).toFixed()}`,
-                `turn speed: ${spaceObject.turnSpeed.toFixed()}`,
-                `health: ${spaceObject.health.toFixed(0)}`,
-            ],
-            0xff0000
+            halfBlipSize,
+            [`ID: ${spaceObject.id}`, `health: ${spaceObject.health.toFixed(0)}`],
+            white
         );
         root.addChild(text);
-        const body = renderShape(parent, spaceObject.radius);
+        const body = renderCollisionOutline(parent, spaceObject.radius);
         root.addChild(body);
     },
     Asteroid(spaceObject: Asteroid, root: Container, parent: CameraView) {
-        const radarBlipTexture = Loader.shared.resources['images/RadarBlip.png'].texture;
-        const radarBlipSprite = new Sprite(radarBlipTexture);
-        radarBlipSprite.scale.x = 0.5;
-        radarBlipSprite.scale.y = 0.5;
-        radarBlipSprite.x = -radarBlipSprite.width / 2;
-        radarBlipSprite.y = -radarBlipSprite.height / 2;
-        radarBlipSprite.tint = 0xffff0b;
-        root.addChild(radarBlipSprite);
-        const text = renderText(
-            radarBlipSprite.height,
-            [`Asteroid\nradius: ${spaceObject.radius.toFixed()}`],
-            0xffff0b
-        );
-        root.addChild(text);
-        const body = renderShape(parent, spaceObject.radius);
+        root.addChild(blipSprite('circleBase', white));
+        root.addChild(blipSprite('circleBevel', white));
+        root.addChild(blipSprite('asteroid', white));
+        const body = renderCollisionOutline(parent, spaceObject.radius);
         root.addChild(body);
     },
     CannonShell(spaceObject: CannonShell, root: Container, parent: CameraView) {
-        const radarBlipTexture = Loader.shared.resources['images/RadarArrow.png'].texture;
-        const radarBlipSprite = new Sprite(radarBlipTexture);
-        radarBlipSprite.scale.x = 0.1;
-        radarBlipSprite.scale.y = 0.1;
-        radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
-        radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
-        radarBlipSprite.tint = 0xffff0b;
-        radarBlipSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-        root.addChild(radarBlipSprite);
-        const body = renderShape(parent, spaceObject.radius);
-        root.addChild(body);
+        const radius = parent.metersToPixles(spaceObject.radius);
+        if (radius >= minShapePixles) {
+            const shellCircle = new Graphics();
+            shellCircle.beginFill(0xffff0b);
+            shellCircle.drawCircle(0, 0, radius);
+            root.addChild(shellCircle);
+        }
     },
     Explosion(spaceObject: Explosion, root: Container, parent: CameraView) {
-        const radarBlipTexture = Loader.shared.resources['images/RadarBlip.png'].texture;
-        const radarBlipSprite = new Sprite(radarBlipTexture);
-        radarBlipSprite.scale.x = 0.2;
-        radarBlipSprite.scale.y = 0.2;
-        radarBlipSprite.x = -radarBlipSprite.width / 2;
-        radarBlipSprite.y = -radarBlipSprite.height / 2;
-        radarBlipSprite.tint = 0xe74c3c;
-        radarBlipSprite.alpha = 0.3;
-        root.addChild(radarBlipSprite);
-        const body = renderShape(parent, spaceObject.radius);
-        root.addChild(body);
+        const radius = parent.metersToPixles(spaceObject.radius);
+        if (radius >= minShapePixles) {
+            const explosionCircle = new Graphics();
+            explosionCircle.beginFill(0xe74c3c);
+            explosionCircle.drawCircle(0, 0, radius);
+            root.addChild(explosionCircle);
+        }
     },
 };
 
-function renderShape(parent: CameraView, radius: number) {
+function renderCollisionOutline(parent: CameraView, radius: number) {
     const body = new Graphics();
     body.lineStyle(1, 0x4ce73c, 0.5);
     body.drawCircle(0, 0, parent.metersToPixles(radius));
@@ -126,10 +118,5 @@ export function blipRenderer(spaceObject: SpaceObject, blip: Container, selected
 }
 
 export function selectionRenderer(root: Container) {
-    const radarBlipTexture = Loader.shared.resources['images/redicule.png'].texture;
-    const radarBlipSprite = new Sprite(radarBlipTexture);
-    radarBlipSprite.pivot.x = radarBlipSprite.width / 2;
-    radarBlipSprite.pivot.y = radarBlipSprite.height / 2;
-    radarBlipSprite.tint = InteractiveLayer.selectionColor;
-    root.addChild(radarBlipSprite);
+    root.addChild(blipSprite('select', InteractiveLayer.selectionColor));
 }

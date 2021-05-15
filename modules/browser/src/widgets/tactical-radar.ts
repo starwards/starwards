@@ -21,7 +21,7 @@ WebFont.load({
     },
 });
 
-export const preloadList = ['images/crosshair1.png', 'images/asimuth-circle.svg'];
+export const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
 
 Loader.shared.add(preloadList);
 
