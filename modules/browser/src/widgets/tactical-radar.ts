@@ -1,5 +1,6 @@
+import { Faction, SpaceObject, degToRad } from '@starwards/model';
 import { ShipDriver, SpaceDriver } from '../driver';
-import { SpaceObject, degToRad } from '@starwards/model';
+import { blue, red, yellow } from '../colors';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 
 import { Camera } from '../radar/camera';
@@ -13,6 +14,7 @@ import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
+import { dradisDrawFunctions } from '../radar/dradis-blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -79,7 +81,21 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
                 root.addLayer(speedLines(root, shipDriver.state, shipTarget));
-                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    blipRenderer(
+                        dradisDrawFunctions({
+                            blipSize: () => 64,
+                            factionsColor: (f: Faction) => {
+                                if (f === Faction.none) return yellow;
+                                if (f === shipDriver.faction.getValue()) return blue;
+                                return red;
+                            },
+                        })
+                    ),
+                    shipTarget
+                );
                 root.addLayer(blipLayer.renderRoot);
                 trackObject(camera, spaceDriver, shipDriver.state.id);
             });

@@ -38,7 +38,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
-    dashboard.registerWidget(radarWidget(spaceDriver), { subjectId: shipId }, 'radar');
+    dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, 'radar');
     dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, 'tactical radar');
     dashboard.registerWidget(pilotWidget(shipDriver), {}, 'helm');
     dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');

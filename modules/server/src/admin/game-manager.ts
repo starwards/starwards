@@ -1,4 +1,4 @@
-import { AdminState, ShipManager, SpaceManager } from '@starwards/model';
+import { AdminState, Faction, ShipManager, SpaceManager } from '@starwards/model';
 import { newAsteroid, newShip, resetShip } from './map';
 
 import { MapSchema } from '@colyseus/schema';
@@ -42,12 +42,12 @@ export class GameManager {
         if (!this.state.isGameRunning) {
             this.state.isGameRunning = true;
             this.spaceManager = new SpaceManager();
-            this.addShip(this.spaceManager, 'A');
-            const bManager = this.addShip(this.spaceManager, 'B');
+            this.addShip(this.spaceManager, 'GVTS', Faction.Gravitas);
+            const bManager = this.addShip(this.spaceManager, 'R2D2', Faction.Raiders);
             this.spaceManager.forceFlushEntities();
             // aManager.setTarget('B');
             // aManager.bot = jouster();
-            bManager.setTarget('A');
+            bManager.setTarget('GVTS');
             // bManager.bot = jouster();
             for (let i = 0; i < 20; i++) {
                 this.spaceManager.insert(newAsteroid());
@@ -56,8 +56,9 @@ export class GameManager {
         }
     }
 
-    private addShip(spaceManager: SpaceManager, id: string, sendMessages = false) {
+    private addShip(spaceManager: SpaceManager, id: string, faction: Faction, sendMessages = false) {
         const ship = newShip(id);
+        ship.faction = faction;
         this.state.points.set(ship.id, 0);
         const shipManager = new ShipManager(ship, spaceManager, this.ships, () => {
             this.state.points.set(ship.id, (this.state.points.get(ship.id) || 0) + 1);

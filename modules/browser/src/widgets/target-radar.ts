@@ -1,4 +1,6 @@
+import { Faction, SpaceState } from '@starwards/model';
 import { ShipDriver, SpaceDriver } from '../driver';
+import { blue, red, yellow } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -8,10 +10,10 @@ import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
-import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
 import { crosshairs } from '../radar/tactical-radar-layers';
+import { dradisDrawFunctions } from '../radar/dradis-blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -49,7 +51,21 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 root.addLayer(range.renderRoot);
                 const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
-                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    blipRenderer(
+                        dradisDrawFunctions({
+                            blipSize: () => 64,
+                            factionsColor: (f: Faction) => {
+                                if (f === Faction.none) return yellow;
+                                if (f === shipDriver.faction.getValue()) return blue;
+                                return red;
+                            },
+                        })
+                    ),
+                    shipTarget
+                );
                 root.addLayer(blipLayer.renderRoot);
                 trackObject(camera, spaceDriver.state, shipTarget);
             });
