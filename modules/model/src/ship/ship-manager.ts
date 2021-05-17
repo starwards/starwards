@@ -4,6 +4,7 @@ import {
     ChainGun,
     Explosion,
     ManeuveringCommand,
+    ShipHealth,
     ShipState,
     SmartPilotMode,
     SmartPilotState,
@@ -62,6 +63,8 @@ function makeShipState(id: string) {
     setConstant(state, 'rotationEffectFactor', 0.5);
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
+    setConstant(state, 'maxFrontHealth', 1000);
+    setConstant(state, 'maxRearHealth', 1000);
     state.thrusters = new ArraySchema();
     state.thrusters.push(makeThruster(ShipDirection.FWD));
     state.thrusters.push(makeThruster(ShipDirection.FWD));
@@ -83,7 +86,19 @@ function makeShipState(id: string) {
     setConstant(state.chainGun, 'explosionBlastFactor', 1);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
+    state.health = new ShipHealth();
+    state.health.constants = new MapSchema<number>();
+    setConstant(state.health, 'maxFrontHealth', 1000);
+    setConstant(state.health, 'maxRearHealth', 1000);
+    state.health.frontHealth = 1000;
+    state.health.rearHealth = 1000;
     return state;
+}
+
+export function resetShipState(state: ShipState) {
+    state.health.frontHealth = state.health.maxFrontHealth;
+    state.health.rearHealth = state.health.maxRearHealth;
+    state.energy = state.maxEnergy;
 }
 
 export class ShipManager {
@@ -200,7 +215,7 @@ export class ShipManager {
 
     update(deltaSeconds: number) {
         this.handleDamage();
-        if (this.state.frontHealth <= 0 || this.state.rearHealth <= 0) {
+        if (this.state.health.frontHealth <= 0 || this.state.health.rearHealth <= 0) {
             this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
@@ -233,11 +248,11 @@ export class ShipManager {
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
             // temporarily we just reduce health.
-            const local = this.state.globalToLocal(damage.position);
+            const local = this.state.globalToLocal(XY.difference(damage.position, this.spaceObject.position));
             if (XY.angleOf(local) < 180) {
-                this.state.frontHealth -= damage.amount;
+                this.state.health.frontHealth -= damage.amount;
             } else {
-                this.state.rearHealth -= damage.amount;
+                this.state.health.rearHealth -= damage.amount;
             }
         }
     }

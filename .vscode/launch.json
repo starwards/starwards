@@ -9,12 +9,19 @@
             "windows": {
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             },
-            "args": ["--runInBand"],
+            "args": [
+                "--runInBand"
+            ],
             "cwd": "${workspaceRoot}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-            "skipFiles": ["<node_internals>/**"]
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         },
         {
             "name": "run server",
@@ -22,9 +29,18 @@
             "request": "launch",
             "preLaunchTask": "build:model",
             "cwd": "${workspaceFolder}",
-            "args": ["-r", "ts-node/register/transpile-only", "${workspaceFolder}/modules/server/src/dev.ts"],
-            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-            "skipFiles": ["<node_internals>/**"],
+            "args": [
+                "-r",
+                "ts-node/register/transpile-only",
+                "${workspaceFolder}/modules/server/src/dev.ts"
+            ],
+            "resolveSourceMapLocations": [
+                "${workspaceFolder}/**",
+                "!**/node_modules/**"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
@@ -51,6 +67,13 @@
             "sourceMapPathOverrides": {
                 "webpack:///./*": "${webRoot}/*"
             }
+        },
+        {
+            "type": "node-terminal",
+            "name": "Run Script: start",
+            "request": "launch",
+            "command": "npm run start",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

@@ -57,6 +57,8 @@ function Tweak({ driver, selectionContainer }: Props) {
             return (
                 <>
                     <SelectionTitle selectionContainer={selectionContainer} />
+                    FrontHealth: {shipDriver.frontHealth.getValue()} <br />
+                    RearHealth: {shipDriver.rearHealth.getValue()} <br />
                     {[...shipDriver.thrusters].map((t) => (
                         <ThrusterTweak key={t.index} driver={t} />
                     ))}

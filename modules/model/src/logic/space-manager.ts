@@ -9,8 +9,6 @@ const GC_TIMEOUT = 5;
 type Damage = {
     amount: number;
     position: XY;
-    // x: number;
-    // y: number;
 };
 
 export class SpaceManager {
@@ -228,7 +226,12 @@ export class SpaceManager {
         }
     }
 
-    private resolveExplosionEffect(object: SpaceObject, explosion: Explosion, result: Result, deltaSeconds: number) {
+    private resolveExplosionEffect(
+        object: Exclude<SpaceObject, Explosion>,
+        explosion: Explosion,
+        result: Result,
+        deltaSeconds: number
+    ) {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
         const damageAmount = explosion.damageFactor * exposure;
         if (Spaceship.isInstance(object)) {

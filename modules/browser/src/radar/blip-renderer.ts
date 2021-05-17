@@ -35,7 +35,6 @@ const drawFunctions: { [T in keyof SpaceObjects]: DrawBlip<T> } = {
                 `[${spaceObject.position.x.toFixed(0)}:${spaceObject.position.y.toFixed(0)}]`,
                 `speed: ${Vec2.lengthOf(spaceObject.velocity).toFixed()}`,
                 `turn speed: ${spaceObject.turnSpeed.toFixed()}`,
-                `health: ${spaceObject.health.toFixed(0)}`,
             ],
             0xff0000
         );

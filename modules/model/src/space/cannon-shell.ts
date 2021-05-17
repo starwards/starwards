@@ -11,6 +11,8 @@ export class CannonShell extends SpaceObjectBase {
     public secondsToLive = 0;
 
     public readonly type = 'CannonShell';
+    @type('uint16')
+    public health = 0;
 
     constructor(public _explosion?: Explosion) {
         super();

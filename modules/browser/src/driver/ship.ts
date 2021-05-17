@@ -107,6 +107,8 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
         strafe: wrapNumericProperty(shipRoom, shipProperties.strafe),
         boost: wrapNumericProperty(shipRoom, shipProperties.boost),
         energy: wrapNumericProperty(shipRoom, shipProperties.energy),
+        frontHealth: wrapNumericProperty(shipRoom, shipProperties.frontHealth),
+        rearHealth: wrapNumericProperty(shipRoom, shipProperties.rearHealth),
         afterBurnerFuel: wrapNumericProperty(shipRoom, shipProperties.afterBurnerFuel),
         turnSpeed: wrapNumericProperty(shipRoom, shipProperties.turnSpeed),
         angle: wrapNumericProperty(shipRoom, shipProperties.angle),

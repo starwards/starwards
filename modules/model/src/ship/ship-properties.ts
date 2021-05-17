@@ -50,6 +50,14 @@ export const energy = NumericStateProperty(
     (state: ShipState) => state.energy,
     (state: ShipState) => [0, state.maxEnergy]
 );
+export const frontHealth = NumericStateProperty(
+    (state: ShipState) => state.health.frontHealth,
+    (state: ShipState) => [0, state.health.maxFrontHealth]
+);
+export const rearHealth = NumericStateProperty(
+    (state: ShipState) => state.health.rearHealth,
+    (state: ShipState) => [0, state.health.maxRearHealth]
+);
 export const afterBurnerFuel = NumericStateProperty(
     (state: ShipState) => state.afterBurnerFuel,
     (state: ShipState) => [0, state.maxAfterBurner]
