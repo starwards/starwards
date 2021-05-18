@@ -1,6 +1,4 @@
-import { Faction, SpaceState } from '@starwards/model';
 import { ShipDriver, SpaceDriver } from '../driver';
-import { blue, red, yellow } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -10,10 +8,12 @@ import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
+import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { blipRenderer } from '../radar/blip-renderer';
 import { crosshairs } from '../radar/tactical-radar-layers';
-import { dradisDrawFunctions } from '../radar/dradis-blip-renderer';
+import { green } from '../colors';
+import { tacticalDrawFunctions } from '../radar/tactical-blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -55,13 +55,9 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                     root,
                     spaceDriver.state,
                     blipRenderer(
-                        dradisDrawFunctions({
+                        tacticalDrawFunctions({
                             blipSize: () => 64,
-                            factionsColor: (f: Faction) => {
-                                if (f === Faction.none) return yellow;
-                                if (f === shipDriver.faction.getValue()) return blue;
-                                return red;
-                            },
+                            getColor: () => green,
                         })
                     ),
                     shipTarget

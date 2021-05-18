@@ -10,7 +10,7 @@ export interface ObjectData<T extends SpaceObject> {
     isSelected: boolean;
 }
 
-interface ObjectRendererFactory<T extends SpaceObject> {
+export interface ObjectRendererFactory<T extends SpaceObject> {
     new (data: ObjectData<T>): SpaceObjectRenderer;
 }
 export interface SpaceObjectRenderer {

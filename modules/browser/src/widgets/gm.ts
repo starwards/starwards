@@ -1,3 +1,4 @@
+import { Faction, SpaceObject } from '@starwards/model';
 import { blue, red, yellow } from '../colors';
 
 import { Camera } from '../radar/camera';
@@ -5,7 +6,6 @@ import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
-import { Faction } from '@starwards/model';
 import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
@@ -13,8 +13,8 @@ import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { blipRenderer } from '../radar/blip-renderer';
-import { dradisDrawFunctions } from '../radar/dradis-blip-renderer';
 import { makeRadarHeaders } from './radar';
+import { tacticalDrawFunctions } from '../radar/tactical-blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {
@@ -57,10 +57,10 @@ export class GmWidgets {
                     root,
                     spaceDriver.state,
                     blipRenderer(
-                        dradisDrawFunctions({
+                        tacticalDrawFunctions({
                             blipSize: () => 64,
-                            factionsColor: (f: Faction) => {
-                                switch (f) {
+                            getColor: (s: SpaceObject) => {
+                                switch (s.faction) {
                                     case Faction.none:
                                         return yellow;
                                     case Faction.Gravitas:

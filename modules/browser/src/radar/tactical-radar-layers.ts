@@ -14,7 +14,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
         {
             fileName: 'images/radar/target.png',
             tint: 0xffaaaa,
-            sizePx: 128,
+            sizePx: 64,
         },
         () => getShellExplosionLocation(shipState),
         () => 0
@@ -24,7 +24,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
         {
             fileName: 'images/radar/deflection.png',
             tint: 0xaaaaff,
-            sizePx: 128,
+            sizePx: 64,
         },
         () => {
             const target = shipTarget.getSingle();

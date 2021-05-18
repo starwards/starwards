@@ -1,3 +1,4 @@
+import { Faction, SpaceObject } from '@starwards/model';
 import { ShipDriver, SpaceDriver } from '../driver';
 import { blue, red, yellow } from '../colors';
 
@@ -6,7 +7,6 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { Faction } from '@starwards/model';
 import { GridLayer } from '../radar/grid-layer';
 import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/objects-layer';
@@ -63,9 +63,9 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                     blipRenderer(
                         dradisDrawFunctions({
                             blipSize: () => 64,
-                            factionsColor: (f: Faction) => {
-                                if (f === Faction.none) return yellow;
-                                if (f === shipDriver.faction.getValue()) return blue;
+                            getColor: (s: SpaceObject) => {
+                                if (s.faction === Faction.none) return yellow;
+                                if (s.faction === shipDriver.faction.getValue()) return blue;
                                 return red;
                             },
                         })

@@ -1,4 +1,4 @@
-import { Asteroid, CannonShell, Explosion, Faction, Spaceship } from '@starwards/model';
+import { Asteroid, CannonShell, Explosion, SpaceObject, Spaceship } from '@starwards/model';
 import { Container, Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
 import { DrawFunctions, ObjectData, SpaceObjectRenderer, renderText } from './blip-renderer';
 
@@ -6,18 +6,18 @@ import { InteractiveLayer } from './interactive-layer';
 import { white } from '../colors';
 
 const textures = {
-    fighter: 'images/radar/fighter.png',
-    asteroid: 'images/radar/asteroid.png',
-    circleBase: 'images/radar/circle-base.png',
-    circleBevel: 'images/radar/circle-bevel.png',
-    direction: 'images/radar/direction.png',
-    select: 'images/radar/select.png',
+    fighter: 'images/dradis/fighter.png',
+    asteroid: 'images/dradis/asteroid.png',
+    circleBase: 'images/dradis/circle-base.png',
+    circleBevel: 'images/dradis/circle-bevel.png',
+    direction: 'images/dradis/direction.png',
+    select: 'images/dradis/select.png',
 };
 
 Loader.shared.add(Object.values(textures));
 
-export type Argument = { blipSize: () => number; factionsColor: (f: Faction) => number };
-export function dradisDrawFunctions({ blipSize, factionsColor }: Argument): DrawFunctions {
+export type Argument = { blipSize: () => number; getColor: (s: SpaceObject) => number };
+export function dradisDrawFunctions({ blipSize, getColor }: Argument): DrawFunctions {
     const minShapePixles = 0.5;
 
     function selectionRenderer(stage: Container) {
@@ -65,8 +65,8 @@ export function dradisDrawFunctions({ blipSize, factionsColor }: Argument): Draw
             this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
             this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
             this.selectionSprite.visible = isSelected;
-            this.circleBevelSprite.tint = factionsColor(spaceObject.faction);
-            this.fighterSprite.tint = factionsColor(spaceObject.faction);
+            this.circleBevelSprite.tint = getColor(spaceObject);
+            this.fighterSprite.tint = getColor(spaceObject);
         }
     }
     class AsteroidRenderer implements SpaceObjectRenderer {
@@ -90,8 +90,8 @@ export function dradisDrawFunctions({ blipSize, factionsColor }: Argument): Draw
             this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
             this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
             this.selectionSprite.visible = isSelected;
-            this.circleBevelSprite.tint = factionsColor(spaceObject.faction);
-            this.asteroidSprite.tint = factionsColor(spaceObject.faction);
+            this.circleBevelSprite.tint = getColor(spaceObject);
+            this.asteroidSprite.tint = getColor(spaceObject);
         }
     }
     class CannonShellRenderer implements SpaceObjectRenderer {
