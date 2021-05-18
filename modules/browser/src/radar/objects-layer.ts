@@ -79,7 +79,7 @@ export class ObjectsLayer {
  */
 // eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics implements ObjectData<SpaceObject> {
-    public stage = new Container();
+    public stage = new Container(); // stage's position is the object's position
     private disposables: Array<() => void> = [];
     private destroyed = false;
     public isSelected = false;
@@ -97,8 +97,8 @@ class ObjectGraphics implements ObjectData<SpaceObject> {
         if (
             this.stage.x + this.stage.width < 0 ||
             this.stage.y + this.stage.height < 0 ||
-            this.stage.x > this.parent.renderer.width ||
-            this.stage.y > this.parent.renderer.height
+            this.stage.x - this.stage.width > this.parent.renderer.width ||
+            this.stage.y - this.stage.height > this.parent.renderer.height
         ) {
             // outside of screen bounds, skip render
             return false;
