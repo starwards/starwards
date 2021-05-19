@@ -1,8 +1,8 @@
-import { Container, DisplayObject } from 'pixi.js';
 import { ObjectData, SpaceObjectRenderer } from './blip-renderer';
 import { SpaceObject, State } from '@starwards/model';
 
 import { CameraView } from './camera-view';
+import { Container } from 'pixi.js';
 import EventEmitter from 'eventemitter3';
 import { SelectionContainer } from './selection-container';
 
@@ -40,7 +40,7 @@ export class ObjectsLayer {
         this.toReDraw.clear();
     };
 
-    get renderRoot(): DisplayObject {
+    get renderRoot(): Container {
         return this.stage;
     }
 
