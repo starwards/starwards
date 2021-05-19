@@ -1,9 +1,17 @@
-import { DrawFunctions, ObjectData, ObjectRendererFactory, SpaceObjectRenderer } from './blip-renderer';
-import { SpaceObject, State } from '@starwards/model';
+import { SpaceObject, SpaceObjects, State } from '@starwards/model';
 
 import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
+import { ObjectGraphics } from './object-graphics';
 import { SelectionContainer } from '../selection-container';
+
+export interface SpaceObjectRenderer {
+    redraw(): void;
+}
+export interface ObjectRendererFactory<T extends SpaceObject> {
+    new (data: ObjectGraphics<T>): SpaceObjectRenderer;
+}
+export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererFactory<SpaceObjects[T]> };
 
 export class ObjectsLayer {
     private stage = new Container();
@@ -11,6 +19,8 @@ export class ObjectsLayer {
     constructor(
         private parent: CameraView,
         spaceState: State<'space'>,
+        private blipSize: number,
+        private getColor: (s: SpaceObject) => number,
         private drawFunctions: DrawFunctions,
         private selectedItems: SelectionContainer
     ) {
@@ -36,60 +46,16 @@ export class ObjectsLayer {
     private onNewSpaceObject<T extends SpaceObject>(spaceObject: T) {
         const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererFactory<T>;
         if (!spaceObject.destroyed && rendererCtor) {
-            const objGraphics = new ObjectGraphics<typeof spaceObject>(spaceObject, rendererCtor, this.parent, () =>
-                this.graphics.delete(spaceObject.id)
+            const objGraphics = new ObjectGraphics<typeof spaceObject>(
+                spaceObject,
+                rendererCtor,
+                this.parent,
+                () => this.graphics.delete(spaceObject.id),
+                this.blipSize,
+                this.getColor(spaceObject)
             );
             this.graphics.set(spaceObject.id, objGraphics);
             this.stage.addChild(objGraphics.stage);
         }
-    }
-}
-
-/**
- * internal class
- */
-// eslint-disable-next-line: max-classes-per-file
-class ObjectGraphics<T extends SpaceObject> implements ObjectData<T> {
-    public stage = new Container(); // stage's position is the object's position
-    public isSelected = false;
-    private renderer: SpaceObjectRenderer;
-    constructor(
-        public spaceObject: T,
-        rendererCtor: ObjectRendererFactory<T>,
-        public parent: CameraView,
-        private onDestroyed: () => unknown
-    ) {
-        this.renderer = new rendererCtor(this);
-    }
-
-    private isInStage() {
-        return (
-            this.stage.x + this.stage.width > 0 &&
-            this.stage.y + this.stage.height > 0 &&
-            this.stage.x - this.stage.width < this.parent.renderer.width &&
-            this.stage.y - this.stage.height < this.parent.renderer.height
-        );
-    }
-
-    redraw(isSelected: boolean) {
-        if (this.spaceObject.destroyed) {
-            this.destroy();
-        } else {
-            this.isSelected = isSelected;
-            const { x, y } = this.parent.worldToScreen(this.spaceObject.position);
-            this.stage.x = x;
-            this.stage.y = y;
-            if (this.isInStage()) {
-                this.renderer.redraw();
-            }
-        }
-    }
-
-    destroy() {
-        this.onDestroyed();
-        this.stage.parent.removeChild(this.stage);
-        this.stage.destroy({
-            children: true,
-        });
     }
 }

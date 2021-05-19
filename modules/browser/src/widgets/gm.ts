@@ -13,7 +13,7 @@ import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { makeRadarHeaders } from './radar';
-import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {
@@ -55,19 +55,18 @@ export class GmWidgets {
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    tacticalDrawFunctions({
-                        blipSize: () => 64,
-                        getColor: (s: SpaceObject) => {
-                            switch (s.faction) {
-                                case Faction.none:
-                                    return yellow;
-                                case Faction.Gravitas:
-                                    return red;
-                                case Faction.Raiders:
-                                    return blue;
-                            }
-                        },
-                    }),
+                    64,
+                    (s: SpaceObject) => {
+                        switch (s.faction) {
+                            case Faction.none:
+                                return yellow;
+                            case Faction.Gravitas:
+                                return red;
+                            case Faction.Raiders:
+                                return blue;
+                        }
+                    },
+                    tacticalDrawFunctions,
                     selectionContainer
                 );
                 root.addLayer(blipLayer.renderRoot);

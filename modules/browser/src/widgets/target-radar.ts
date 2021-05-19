@@ -12,7 +12,7 @@ import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { green } from '../colors';
-import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -53,10 +53,9 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    tacticalDrawFunctions({
-                        blipSize: () => 64,
-                        getColor: () => green,
-                    }),
+                    64,
+                    () => green,
+                    tacticalDrawFunctions,
                     shipTarget
                 );
                 root.addLayer(blipLayer.renderRoot);

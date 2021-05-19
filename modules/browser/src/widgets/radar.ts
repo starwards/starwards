@@ -12,7 +12,7 @@ import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
-import { dradisDrawFunctions } from '../radar/blips/dradis-blip-renderer';
+import { dradisDrawFunctions } from '../radar/blips/blip-renderer';
 
 WebFont.load({
     custom: {
@@ -59,14 +59,13 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    dradisDrawFunctions({
-                        blipSize: () => 64,
-                        getColor: (s: SpaceObject) => {
-                            if (s.faction === Faction.none) return yellow;
-                            if (s.faction === shipDriver.faction.getValue()) return blue;
-                            return red;
-                        },
-                    }),
+                    64,
+                    (s: SpaceObject) => {
+                        if (s.faction === Faction.none) return yellow;
+                        if (s.faction === shipDriver.faction.getValue()) return blue;
+                        return red;
+                    },
+                    dradisDrawFunctions,
                     new SelectionContainer().init(spaceDriver.state)
                 );
                 root.addLayer(blipLayer.renderRoot);
