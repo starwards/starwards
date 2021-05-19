@@ -1,9 +1,7 @@
 import { DrawFunctions, ObjectData, ObjectRendererFactory, SpaceObjectRenderer, renderText } from './blip-renderer';
 import { Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
 import { SpaceObject, Spaceship } from '@starwards/model';
-
-import { InteractiveLayer } from '../interactive-layer';
-import { white } from '../../colors';
+import { selectionColor, white } from '../../colors';
 
 const textures = {
     fighter: 'images/tactical_radar/dragonfly.png',
@@ -29,7 +27,7 @@ function circleRenderer(
 ): ObjectRendererFactory<SpaceObject> {
     return class CircleRenderer implements SpaceObjectRenderer {
         private shellCircle = new Graphics();
-        private selectionSprite = blipSprite('select', blipSize(), InteractiveLayer.selectionColor);
+        private selectionSprite = blipSprite('select', blipSize(), selectionColor);
         constructor(private data: ObjectData<SpaceObject>) {
             const { stage } = this.data;
             stage.addChild(this.shellCircle);
@@ -52,7 +50,7 @@ function circleRenderer(
 export type Argument = { blipSize: () => number; getColor: (s: SpaceObject) => number };
 export function tacticalDrawFunctions({ blipSize, getColor }: Argument): DrawFunctions {
     class SpaceshipRenderer implements SpaceObjectRenderer {
-        private selectionSprite = blipSprite('select', blipSize(), InteractiveLayer.selectionColor);
+        private selectionSprite = blipSprite('select', blipSize(), selectionColor);
         private fighterSprite = blipSprite('fighter', blipSize(), white);
         private text = renderText(blipSize() / 2, [], white);
         private collisionOutline = new Graphics();

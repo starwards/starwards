@@ -2,10 +2,10 @@ import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplo
 
 import { CameraView } from './camera-view';
 import { Container } from 'pixi.js';
-import { InteractiveLayer } from './interactive-layer';
 import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
+import { selectionColor } from '../colors';
 
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new Container();
@@ -40,7 +40,7 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
     const stage = new Container();
     const targetLineLayer = new LineLayer(root, () => [shipState.position, shipTarget.getSingle()?.position], [
         2,
-        InteractiveLayer.selectionColor,
+        selectionColor,
         0.5,
     ]);
     root.addLayer(targetLineLayer.renderRoot);

@@ -1,9 +1,7 @@
 import { Asteroid, CannonShell, Explosion, SpaceObject, Spaceship } from '@starwards/model';
 import { Container, Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
 import { DrawFunctions, ObjectData, SpaceObjectRenderer, renderText } from './blip-renderer';
-
-import { InteractiveLayer } from '../interactive-layer';
-import { white } from '../../colors';
+import { selectionColor, white } from '../../colors';
 
 const textures = {
     fighter: 'images/dradis/fighter.png',
@@ -21,7 +19,7 @@ export function dradisDrawFunctions({ blipSize, getColor }: Argument): DrawFunct
     const minShapePixles = 0.5;
 
     function selectionRenderer(stage: Container) {
-        stage.addChild(blipSprite('select', InteractiveLayer.selectionColor));
+        stage.addChild(blipSprite('select', selectionColor));
     }
 
     function blipSprite(t: keyof typeof textures, color: number) {
@@ -36,7 +34,7 @@ export function dradisDrawFunctions({ blipSize, getColor }: Argument): DrawFunct
     }
 
     class SpaceshipRenderer implements SpaceObjectRenderer {
-        private selectionSprite = blipSprite('select', InteractiveLayer.selectionColor);
+        private selectionSprite = blipSprite('select', selectionColor);
         private directionSprite = blipSprite('direction', white);
         private circleBaseSprite = blipSprite('circleBase', white);
         private circleBevelSprite = blipSprite('circleBevel', white);
@@ -70,7 +68,7 @@ export function dradisDrawFunctions({ blipSize, getColor }: Argument): DrawFunct
         }
     }
     class AsteroidRenderer implements SpaceObjectRenderer {
-        private selectionSprite = blipSprite('select', InteractiveLayer.selectionColor);
+        private selectionSprite = blipSprite('select', selectionColor);
         private circleBaseSprite = blipSprite('circleBase', white);
         private circleBevelSprite = blipSprite('circleBevel', white);
         private asteroidSprite = blipSprite('asteroid', white);
