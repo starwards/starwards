@@ -12,7 +12,6 @@ import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blips/blip-renderer';
 import { green } from '../colors';
 import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
 import { trackTargetObject } from '../ship-logic';
@@ -84,12 +83,10 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    blipRenderer(
-                        tacticalDrawFunctions({
-                            blipSize: () => 32,
-                            getColor: () => green,
-                        })
-                    ),
+                    tacticalDrawFunctions({
+                        blipSize: () => 32,
+                        getColor: () => green,
+                    }),
                     shipTarget
                 );
                 root.addLayer(blipLayer.renderRoot);

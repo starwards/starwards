@@ -1,6 +1,6 @@
-import { Asteroid, CannonShell, Explosion, SpaceObject, Spaceship } from '@starwards/model';
-import { Container, Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
+import { Asteroid, SpaceObject, Spaceship } from '@starwards/model';
 import { DrawFunctions, ObjectData, SpaceObjectRenderer, renderText } from './blip-renderer';
+import { Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
 import { selectionColor, white } from '../../colors';
 
 const textures = {
@@ -16,12 +16,6 @@ Loader.shared.add(Object.values(textures));
 
 export type Argument = { blipSize: () => number; getColor: (s: SpaceObject) => number };
 export function dradisDrawFunctions({ blipSize, getColor }: Argument): DrawFunctions {
-    const minShapePixles = 0.5;
-
-    function selectionRenderer(stage: Container) {
-        stage.addChild(blipSprite('select', selectionColor));
-    }
-
     function blipSprite(t: keyof typeof textures, color: number) {
         const texturePath = textures[t];
         const radarBlipTexture = Loader.shared.resources[texturePath].texture;
@@ -92,49 +86,9 @@ export function dradisDrawFunctions({ blipSize, getColor }: Argument): DrawFunct
             this.asteroidSprite.tint = getColor(spaceObject);
         }
     }
-    class CannonShellRenderer implements SpaceObjectRenderer {
-        constructor(private data: ObjectData<CannonShell>) {
-            this.redraw();
-        }
-        redraw(): void {
-            const { stage, parent, spaceObject, isSelected } = this.data;
-            stage.removeChildren();
-            const radius = parent.metersToPixles(spaceObject.radius);
-            if (radius >= minShapePixles) {
-                const shellCircle = new Graphics();
-                shellCircle.beginFill(0xffff0b);
-                shellCircle.drawCircle(0, 0, radius);
-                stage.addChild(shellCircle);
-            }
-            if (isSelected) {
-                selectionRenderer(stage);
-            }
-        }
-    }
-    class ExplosionRenderer implements SpaceObjectRenderer {
-        constructor(private data: ObjectData<Explosion>) {
-            this.redraw();
-        }
-        redraw(): void {
-            const { stage, parent, spaceObject, isSelected } = this.data;
-            stage.removeChildren();
-            const radius = parent.metersToPixles(spaceObject.radius);
-            if (radius >= minShapePixles) {
-                const explosionCircle = new Graphics();
-                explosionCircle.beginFill(0xe74c3c);
-                explosionCircle.drawCircle(0, 0, radius);
-                stage.addChild(explosionCircle);
-            }
-            if (isSelected) {
-                selectionRenderer(stage);
-            }
-        }
-    }
 
     return {
         Spaceship: SpaceshipRenderer,
         Asteroid: AsteroidRenderer,
-        CannonShell: CannonShellRenderer,
-        Explosion: ExplosionRenderer,
     };
 }

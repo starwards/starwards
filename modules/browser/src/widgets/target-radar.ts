@@ -10,7 +10,6 @@ import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blips/blip-renderer';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { green } from '../colors';
 import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
@@ -54,12 +53,10 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    blipRenderer(
-                        tacticalDrawFunctions({
-                            blipSize: () => 64,
-                            getColor: () => green,
-                        })
-                    ),
+                    tacticalDrawFunctions({
+                        blipSize: () => 64,
+                        getColor: () => green,
+                    }),
                     shipTarget
                 );
                 root.addLayer(blipLayer.renderRoot);

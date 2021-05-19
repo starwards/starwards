@@ -1,18 +1,17 @@
-import { ObjectData, SpaceObjectRenderer } from './blip-renderer';
+import { DrawFunctions, ObjectData, ObjectRendererFactory, SpaceObjectRenderer } from './blip-renderer';
 import { SpaceObject, State } from '@starwards/model';
 
 import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
 import { SelectionContainer } from '../selection-container';
 
-export type MakeRenderer = (data: ObjectData<SpaceObject>) => SpaceObjectRenderer;
 export class ObjectsLayer {
     private stage = new Container();
     private graphics = new Map<string, ObjectGraphics>();
     constructor(
         private parent: CameraView,
         spaceState: State<'space'>,
-        private makeRenderer: MakeRenderer,
+        private drawFunctions: DrawFunctions,
         private selectedItems: SelectionContainer
     ) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
@@ -39,8 +38,8 @@ export class ObjectsLayer {
     }
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
-        if (!spaceObject.destroyed) {
-            const objGraphics = new ObjectGraphics(spaceObject, this.makeRenderer, this.parent);
+        if (!spaceObject.destroyed && this.drawFunctions[spaceObject.type]) {
+            const objGraphics = new ObjectGraphics(spaceObject, this.drawFunctions[spaceObject.type], this.parent);
             this.graphics.set(spaceObject.id, objGraphics);
             this.stage.addChild(objGraphics.stage);
         }
@@ -64,8 +63,8 @@ class ObjectGraphics implements ObjectData<SpaceObject> {
     private destroyed = false;
     public isSelected = false;
     private renderer: SpaceObjectRenderer;
-    constructor(public spaceObject: SpaceObject, makeRenderer: MakeRenderer, public parent: CameraView) {
-        this.renderer = makeRenderer(this);
+    constructor(public spaceObject: SpaceObject, rendererCtor: ObjectRendererFactory, public parent: CameraView) {
+        this.renderer = new rendererCtor(this);
     }
 
     isDestroyed() {

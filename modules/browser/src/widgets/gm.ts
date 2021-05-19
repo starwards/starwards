@@ -12,7 +12,6 @@ import { InteractiveLayer } from '../radar/interactive-layer';
 import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { blipRenderer } from '../radar/blips/blip-renderer';
 import { makeRadarHeaders } from './radar';
 import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
 import { tweakWidget } from './tweak';
@@ -56,21 +55,19 @@ export class GmWidgets {
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    blipRenderer(
-                        tacticalDrawFunctions({
-                            blipSize: () => 64,
-                            getColor: (s: SpaceObject) => {
-                                switch (s.faction) {
-                                    case Faction.none:
-                                        return yellow;
-                                    case Faction.Gravitas:
-                                        return red;
-                                    case Faction.Raiders:
-                                        return blue;
-                                }
-                            },
-                        })
-                    ),
+                    tacticalDrawFunctions({
+                        blipSize: () => 64,
+                        getColor: (s: SpaceObject) => {
+                            switch (s.faction) {
+                                case Faction.none:
+                                    return yellow;
+                                case Faction.Gravitas:
+                                    return red;
+                                case Faction.Raiders:
+                                    return blue;
+                            }
+                        },
+                    }),
                     selectionContainer
                 );
                 root.addLayer(blipLayer.renderRoot);
