@@ -2,8 +2,8 @@ import { Asteroid, CannonShell, Explosion, SpaceObject, Spaceship } from '@starw
 import { Container, Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
 import { DrawFunctions, ObjectData, SpaceObjectRenderer, renderText } from './blip-renderer';
 
-import { InteractiveLayer } from './interactive-layer';
-import { white } from '../colors';
+import { InteractiveLayer } from '../interactive-layer';
+import { white } from '../../colors';
 
 const textures = {
     fighter: 'images/dradis/fighter.png',

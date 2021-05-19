@@ -5,15 +5,15 @@ import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Loader } from 'pixi.js';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blip-renderer';
+import { blipRenderer } from '../radar/blips/blip-renderer';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { green } from '../colors';
-import { tacticalDrawFunctions } from '../radar/tactical-blip-renderer';
+import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({

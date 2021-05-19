@@ -10,11 +10,11 @@ import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { Loader } from 'pixi.js';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { blipRenderer } from '../radar/blip-renderer';
+import { blipRenderer } from '../radar/blips/blip-renderer';
 import { makeRadarHeaders } from './radar';
-import { tacticalDrawFunctions } from '../radar/tactical-blip-renderer';
+import { tacticalDrawFunctions } from '../radar/blips/tactical-blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {

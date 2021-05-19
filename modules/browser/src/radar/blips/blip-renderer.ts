@@ -1,7 +1,7 @@
 import { Container, Rectangle, Text, TextStyle } from 'pixi.js';
 import { SpaceObject, SpaceObjects } from '@starwards/model';
 
-import { CameraView } from './camera-view';
+import { CameraView } from '../camera-view';
 
 export interface ObjectData<T extends SpaceObject> {
     parent: CameraView;

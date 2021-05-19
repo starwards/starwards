@@ -9,11 +9,11 @@ import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { Loader } from 'pixi.js';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blip-renderer';
-import { dradisDrawFunctions } from '../radar/dradis-blip-renderer';
+import { blipRenderer } from '../radar/blips/blip-renderer';
+import { dradisDrawFunctions } from '../radar/blips/dradis-blip-renderer';
 
 WebFont.load({
     custom: {

@@ -2,8 +2,8 @@ import { DrawFunctions, ObjectData, ObjectRendererFactory, SpaceObjectRenderer, 
 import { Graphics, Loader, Rectangle, Sprite } from 'pixi.js';
 import { SpaceObject, Spaceship } from '@starwards/model';
 
-import { InteractiveLayer } from './interactive-layer';
-import { white } from '../colors';
+import { InteractiveLayer } from '../interactive-layer';
+import { white } from '../../colors';
 
 const textures = {
     fighter: 'images/tactical_radar/dragonfly.png',

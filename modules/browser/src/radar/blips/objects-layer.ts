@@ -1,9 +1,9 @@
 import { ObjectData, SpaceObjectRenderer } from './blip-renderer';
 import { SpaceObject, State } from '@starwards/model';
 
-import { CameraView } from './camera-view';
+import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
-import { SelectionContainer } from './selection-container';
+import { SelectionContainer } from '../selection-container';
 
 export type MakeRenderer = (data: ObjectData<SpaceObject>) => SpaceObjectRenderer;
 export class ObjectsLayer {
@@ -29,10 +29,7 @@ export class ObjectsLayer {
             if (objGraphics.isDestroyed()) {
                 this.cleanupSpaceObject(objGraphics.spaceObject.id);
             } else {
-                objGraphics.updatePosition();
-                if (objGraphics.shouldRedraw()) {
-                    objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
-                }
+                objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
             }
         }
     };
@@ -68,7 +65,6 @@ class ObjectGraphics implements ObjectData<SpaceObject> {
     public isSelected = false;
     private renderer: SpaceObjectRenderer;
     constructor(public spaceObject: SpaceObject, makeRenderer: MakeRenderer, public parent: CameraView) {
-        this.updatePosition();
         this.renderer = makeRenderer(this);
     }
 
@@ -76,30 +72,21 @@ class ObjectGraphics implements ObjectData<SpaceObject> {
         return this.spaceObject.destroyed || this.destroyed;
     }
 
-    shouldRedraw() {
-        if (
-            this.stage.x + this.stage.width < 0 ||
-            this.stage.y + this.stage.height < 0 ||
-            this.stage.x - this.stage.width > this.parent.renderer.width ||
-            this.stage.y - this.stage.height > this.parent.renderer.height
-        ) {
-            // outside of screen bounds, skip render
-            return false;
-        }
-        return true;
-    }
-
-    updatePosition() {
-        if (!this.isDestroyed()) {
-            const pos = this.parent.worldToScreen(this.spaceObject.position);
-            this.stage.x = pos.x;
-            this.stage.y = pos.y;
-        }
+    isInStage() {
+        return (
+            this.stage.x + this.stage.width > 0 &&
+            this.stage.y + this.stage.height > 0 &&
+            this.stage.x - this.stage.width < this.parent.renderer.width &&
+            this.stage.y - this.stage.height < this.parent.renderer.height
+        );
     }
 
     redraw(isSelected: boolean) {
         this.isSelected = isSelected;
-        if (!this.isDestroyed()) {
+        const pos = this.parent.worldToScreen(this.spaceObject.position);
+        this.stage.x = pos.x;
+        this.stage.y = pos.y;
+        if (this.isInStage()) {
             this.renderer.redraw();
         }
     }
