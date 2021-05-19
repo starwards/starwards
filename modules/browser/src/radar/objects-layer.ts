@@ -3,17 +3,15 @@ import { SpaceObject, State } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { Container } from 'pixi.js';
-import EventEmitter from 'eventemitter3';
 import { SelectionContainer } from './selection-container';
 
 export type MakeRenderer = (data: ObjectData<SpaceObject>) => SpaceObjectRenderer;
 export class ObjectsLayer {
     private stage = new Container();
-    private graphics: { [id: string]: ObjectGraphics } = {};
-    private toReDraw = new Set<ObjectGraphics>();
+    private graphics = new Map<string, ObjectGraphics>();
     constructor(
         private parent: CameraView,
-        private spaceState: State<'space'>,
+        spaceState: State<'space'>,
         private makeRenderer: MakeRenderer,
         private selectedItems: SelectionContainer
     ) {
@@ -23,11 +21,11 @@ export class ObjectsLayer {
         for (const spaceObject of spaceState) {
             this.onNewSpaceObject(spaceObject);
         }
-        parent.ticker.add(this.onRender);
+        parent.ticker.add(this.render);
     }
 
-    private onRender = () => {
-        for (const objGraphics of this.toReDraw) {
+    private render = () => {
+        for (const objGraphics of this.graphics.values()) {
             if (objGraphics.isDestroyed()) {
                 this.cleanupSpaceObject(objGraphics.spaceObject.id);
             } else {
@@ -37,7 +35,6 @@ export class ObjectsLayer {
                 }
             }
         }
-        this.toReDraw.clear();
     };
 
     get renderRoot(): Container {
@@ -47,29 +44,16 @@ export class ObjectsLayer {
     private onNewSpaceObject(spaceObject: SpaceObject) {
         if (!spaceObject.destroyed) {
             const objGraphics = new ObjectGraphics(spaceObject, this.makeRenderer, this.parent);
-            this.graphics[spaceObject.id] = objGraphics;
+            this.graphics.set(spaceObject.id, objGraphics);
             this.stage.addChild(objGraphics.stage);
-            objGraphics.listen(this.parent.events as EventEmitter, 'screenChanged', () => {
-                this.toReDraw.add(objGraphics);
-            });
-            objGraphics.listen(this.parent.events as EventEmitter, 'angleChanged', () => {
-                this.toReDraw.add(objGraphics);
-            });
-            objGraphics.listen(this.spaceState.events, spaceObject.id, () => {
-                this.toReDraw.add(objGraphics);
-            });
-            objGraphics.listen(this.selectedItems.events, spaceObject.id, () => {
-                this.toReDraw.add(objGraphics);
-            });
         }
     }
 
     private cleanupSpaceObject(id: string) {
-        const objGraphics = this.graphics[id];
+        const objGraphics = this.graphics.get(id);
         if (objGraphics) {
-            delete this.graphics[id];
+            this.graphics.delete(id);
             objGraphics.destroy();
-            this.toReDraw.delete(objGraphics);
         }
     }
 }
@@ -80,7 +64,6 @@ export class ObjectsLayer {
 // eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics implements ObjectData<SpaceObject> {
     public stage = new Container(); // stage's position is the object's position
-    private disposables: Array<() => void> = [];
     private destroyed = false;
     public isSelected = false;
     private renderer: SpaceObjectRenderer;
@@ -121,23 +104,12 @@ class ObjectGraphics implements ObjectData<SpaceObject> {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    listen(events: EventEmitter, event: string, listener: (...args: any[]) => any) {
-        if (!this.isDestroyed()) {
-            events.on(event, listener);
-            this.disposables.push(() => events.off(event, listener));
-        }
-    }
-
     destroy() {
         if (!this.destroyed) {
             this.stage.parent.removeChild(this.stage);
             this.stage.destroy({
                 children: true,
             });
-            for (const d of this.disposables) {
-                d();
-            }
             this.destroyed = true;
         }
     }
