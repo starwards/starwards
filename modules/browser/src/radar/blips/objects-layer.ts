@@ -7,7 +7,7 @@ import { SelectionContainer } from '../selection-container';
 
 export class ObjectsLayer {
     private stage = new Container();
-    private graphics = new Map<string, ObjectGraphics>();
+    private graphics = new Map<string, ObjectGraphics<SpaceObject>>();
     constructor(
         private parent: CameraView,
         spaceState: State<'space'>,
@@ -15,7 +15,7 @@ export class ObjectsLayer {
         private selectedItems: SelectionContainer
     ) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.cleanupSpaceObject(spaceObject.id));
+        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
 
         for (const spaceObject of spaceState) {
             this.onNewSpaceObject(spaceObject);
@@ -25,11 +25,7 @@ export class ObjectsLayer {
 
     private render = () => {
         for (const objGraphics of this.graphics.values()) {
-            if (objGraphics.isDestroyed()) {
-                this.cleanupSpaceObject(objGraphics.spaceObject.id);
-            } else {
-                objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
-            }
+            objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
         }
     };
 
@@ -37,19 +33,14 @@ export class ObjectsLayer {
         return this.stage;
     }
 
-    private onNewSpaceObject(spaceObject: SpaceObject) {
-        if (!spaceObject.destroyed && this.drawFunctions[spaceObject.type]) {
-            const objGraphics = new ObjectGraphics(spaceObject, this.drawFunctions[spaceObject.type], this.parent);
+    private onNewSpaceObject<T extends SpaceObject>(spaceObject: T) {
+        const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererFactory<T>;
+        if (!spaceObject.destroyed && rendererCtor) {
+            const objGraphics = new ObjectGraphics<typeof spaceObject>(spaceObject, rendererCtor, this.parent, () =>
+                this.graphics.delete(spaceObject.id)
+            );
             this.graphics.set(spaceObject.id, objGraphics);
             this.stage.addChild(objGraphics.stage);
-        }
-    }
-
-    private cleanupSpaceObject(id: string) {
-        const objGraphics = this.graphics.get(id);
-        if (objGraphics) {
-            this.graphics.delete(id);
-            objGraphics.destroy();
         }
     }
 }
@@ -58,20 +49,20 @@ export class ObjectsLayer {
  * internal class
  */
 // eslint-disable-next-line: max-classes-per-file
-class ObjectGraphics implements ObjectData<SpaceObject> {
+class ObjectGraphics<T extends SpaceObject> implements ObjectData<T> {
     public stage = new Container(); // stage's position is the object's position
-    private destroyed = false;
     public isSelected = false;
     private renderer: SpaceObjectRenderer;
-    constructor(public spaceObject: SpaceObject, rendererCtor: ObjectRendererFactory, public parent: CameraView) {
+    constructor(
+        public spaceObject: T,
+        rendererCtor: ObjectRendererFactory<T>,
+        public parent: CameraView,
+        private onDestroyed: () => unknown
+    ) {
         this.renderer = new rendererCtor(this);
     }
 
-    isDestroyed() {
-        return this.spaceObject.destroyed || this.destroyed;
-    }
-
-    isInStage() {
+    private isInStage() {
         return (
             this.stage.x + this.stage.width > 0 &&
             this.stage.y + this.stage.height > 0 &&
@@ -81,22 +72,24 @@ class ObjectGraphics implements ObjectData<SpaceObject> {
     }
 
     redraw(isSelected: boolean) {
-        this.isSelected = isSelected;
-        const pos = this.parent.worldToScreen(this.spaceObject.position);
-        this.stage.x = pos.x;
-        this.stage.y = pos.y;
-        if (this.isInStage()) {
-            this.renderer.redraw();
+        if (this.spaceObject.destroyed) {
+            this.destroy();
+        } else {
+            this.isSelected = isSelected;
+            const { x, y } = this.parent.worldToScreen(this.spaceObject.position);
+            this.stage.x = x;
+            this.stage.y = y;
+            if (this.isInStage()) {
+                this.renderer.redraw();
+            }
         }
     }
 
     destroy() {
-        if (!this.destroyed) {
-            this.stage.parent.removeChild(this.stage);
-            this.stage.destroy({
-                children: true,
-            });
-            this.destroyed = true;
-        }
+        this.onDestroyed();
+        this.stage.parent.removeChild(this.stage);
+        this.stage.destroy({
+            children: true,
+        });
     }
 }
