@@ -15,11 +15,12 @@ export function useConstant<T>(init: () => T): T {
 
 export function useSorted<T>(elements: T[]): [T[], (t: T) => void] {
     const [sorted, setThrusters] = useState(elements);
-    const pushToEnd = useConstant(() => (t: T) =>
-        setThrusters((s) => {
-            const idx = s.indexOf(t);
-            return [...s.slice(0, idx), ...s.slice(idx + 1), s[idx]];
-        })
+    const pushToEnd = useConstant(
+        () => (t: T) =>
+            setThrusters((s) => {
+                const idx = s.indexOf(t);
+                return [...s.slice(0, idx), ...s.slice(idx + 1), s[idx]];
+            })
     );
     return [sorted, pushToEnd];
 }

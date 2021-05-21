@@ -35,12 +35,13 @@ export class SpaceState extends Schema {
     constructor(isClient = true) {
         super();
         if (isClient) {
-            this.cannonShells.onAdd = this.asteroids.onAdd = this.spaceships.onAdd = this.explosions.onAdd = (
-                so: SpaceObject
-            ) => this.events.emit('add', so);
-            this.cannonShells.onRemove = this.asteroids.onRemove = this.spaceships.onRemove = this.explosions.onRemove = (
-                so: SpaceObject
-            ) => this.events.emit('remove', so);
+            const collections = [this.cannonShells, this.asteroids, this.spaceships, this.explosions];
+            const onAdd = (so: SpaceObject) => this.events.emit('add', so);
+            const onRemove = (so: SpaceObject) => this.events.emit('remove', so);
+            for (const c of collections) {
+                c.onAdd = onAdd;
+                c.onRemove = onRemove;
+            }
             this.events.on('add', (so: SpaceObject) => {
                 so.onChange = (changes) => {
                     for (const { field } of changes) {
