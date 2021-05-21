@@ -1,3 +1,6 @@
+import { Faction, SpaceObject } from '@starwards/model';
+import { blue, red, yellow } from '../colors';
+
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
@@ -7,10 +10,10 @@ import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { Loader } from 'pixi.js';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { blipRenderer } from '../radar/blip-renderer';
 import { makeRadarHeaders } from './radar';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {
@@ -47,10 +50,28 @@ export class GmWidgets {
                     pixiLoaded,
                 ]);
                 const fragCounter = new FragCounter(adminDriver.state);
+                // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
-                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, selectionContainer);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    64,
+                    (s: SpaceObject) => {
+                        switch (s.faction) {
+                            case Faction.none:
+                                return yellow;
+                            case Faction.Gravitas:
+                                return red;
+                            case Faction.Raiders:
+                                return blue;
+                        }
+                    },
+                    tacticalDrawFunctions,
+                    selectionContainer
+                );
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
+                // root.addLayer(fps.renderRoot);
                 root.addLayer(fragCounter);
             }
         }

@@ -1,3 +1,4 @@
+import { Faction } from './faction';
 import { SpaceObjectBase } from './space-object-base';
 import { type } from '@colyseus/schema';
 
@@ -10,6 +11,9 @@ export class Spaceship extends SpaceObjectBase {
 
     @type('string')
     public targetId: string | null = null;
+
+    @type('int8')
+    public faction: Faction = Faction.none;
 
     constructor() {
         super();

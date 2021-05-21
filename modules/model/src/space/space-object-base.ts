@@ -1,5 +1,6 @@
 import { Schema, type } from '@colyseus/schema';
 
+import { Faction } from './faction';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
@@ -23,6 +24,9 @@ export abstract class SpaceObjectBase extends Schema {
     public radius = 0;
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
+
+    // default placeholder for all space obejcts. children can replace with dynamic field.
+    public readonly faction: Faction = Faction.none;
 
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)
