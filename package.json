@@ -67,7 +67,7 @@
         "lint-staged": "^10.5.4",
         "ncp": "^2.0.0",
         "nodemon": "^2.0.7",
-        "pkg": "^4.4.9",
+        "pkg": "^5.2.0",
         "prettier": "^2.2.1",
         "pretty-quick": "^3.1.0",
         "rimraf": "^3.0.2",
