@@ -1,12 +1,12 @@
 import { ArwesThemeProvider, Button, FrameCorners, List, LoadingBars, StylesBaseline, Text } from '@arwes/core';
 import React, { Component } from 'react';
 import { ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
+import { ShipDriver, ThrusterDriver } from '../driver/ship';
 import { useProperty, useSelected, useShipDriver } from '../react/hooks';
 
 import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
 import { SelectionContainer } from '../radar/selection-container';
-import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
 import pluralize from 'pluralize';
 
@@ -59,6 +59,17 @@ const SingleSelectionDetails = ({ subject }: { subject: SpaceObject }) => {
     );
 };
 
+function ShipDetails({ shipDriver }: { shipDriver: ShipDriver }) {
+    const frontHealth = useProperty(shipDriver.frontHealth);
+    const rearHealth = useProperty(shipDriver.rearHealth);
+    return (
+        <>
+            FrontHealth: {frontHealth} <br />
+            RearHealth: {rearHealth} <br />
+        </>
+    );
+}
+
 function Tweak({ driver, selectionContainer }: Props) {
     const selected = useSelected(selectionContainer);
     const shipDriver = useShipDriver(selected[0], driver);
@@ -69,8 +80,7 @@ function Tweak({ driver, selectionContainer }: Props) {
                     <>
                         <SelectionTitle selectionContainer={selectionContainer} />
                         <SingleSelectionDetails subject={selected[0]} />
-                        FrontHealth: {shipDriver.frontHealth.getValue()} <br />
-                        RearHealth: {shipDriver.rearHealth.getValue()} <br />
+                        <ShipDetails shipDriver={shipDriver} />
                         {[...shipDriver.thrusters].map((t) => (
                             <ThrusterTweak key={t.index} driver={t} />
                         ))}
