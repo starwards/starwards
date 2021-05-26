@@ -4,6 +4,7 @@ import { SpaceObject, XY } from '@starwards/model';
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 import { SpaceDriver } from '../driver';
+import { selectionColor } from '../colors';
 
 enum MouseButton {
     none = -1,
@@ -20,7 +21,6 @@ enum ActionType {
     dragObjects,
 }
 export class InteractiveLayer {
-    static readonly selectionColor = 0x26dafd;
     private static readonly selectPointGrace = 32;
 
     private actionType: ActionType = ActionType.none;
@@ -165,8 +165,8 @@ export class InteractiveLayer {
         const min = XY.min(from, to);
         const absDifference = XY.absDifference(from, to);
         const graphics = new Graphics();
-        graphics.lineStyle(1, InteractiveLayer.selectionColor, 1);
-        graphics.beginFill(InteractiveLayer.selectionColor, 0.2);
+        graphics.lineStyle(1, selectionColor, 1);
+        graphics.beginFill(selectionColor, 0.2);
         graphics.drawRect(min.x, min.y, absDifference.x, absDifference.y);
         graphics.endFill();
         return graphics;

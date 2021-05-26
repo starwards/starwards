@@ -8,11 +8,12 @@ import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Loader } from 'pixi.js';
 import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blip-renderer';
+import { green } from '../colors';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -21,7 +22,7 @@ WebFont.load({
     },
 });
 
-export const preloadList = ['images/crosshair1.png', 'images/asimuth-circle.svg'];
+export const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
 
 Loader.shared.add(preloadList);
 
@@ -79,7 +80,14 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
                 root.addLayer(speedLines(root, shipDriver.state, shipTarget));
-                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    32,
+                    () => green,
+                    tacticalDrawFunctions,
+                    shipTarget
+                );
                 root.addLayer(blipLayer.renderRoot);
                 trackObject(camera, spaceDriver, shipDriver.state.id);
             });

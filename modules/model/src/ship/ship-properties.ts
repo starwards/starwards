@@ -1,3 +1,4 @@
+import { Faction, SmartPilotMode, TargetedStatus } from '..';
 import {
     IteratorStatePropertyCommand,
     MappedPropertyCommand,
@@ -7,7 +8,6 @@ import {
     StateProperty,
     StatePropertyCommand,
 } from '../api/property-constructors';
-import { SmartPilotMode, TargetedStatus } from '..';
 
 import { ShipState } from './ship-state';
 import { XY } from '../logic';
@@ -163,4 +163,11 @@ export const thrusterBroken = StatePropertyCommand(
         state.thrusters[idx].broken = value;
     },
     (state: ShipState, idx: number) => state.thrusters[idx].broken
+);
+export const faction = StatePropertyCommand(
+    'faction',
+    (state: ShipState, value: Faction) => {
+        state.faction = value;
+    },
+    (state: ShipState) => state.faction
 );

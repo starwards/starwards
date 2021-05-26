@@ -2,19 +2,19 @@ import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplo
 
 import { CameraView } from './camera-view';
 import { Container } from 'pixi.js';
-import { InteractiveLayer } from './interactive-layer';
 import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
+import { selectionColor } from '../colors';
 
 export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new Container();
     const shellCrosshairLayer = new SpriteLayer(
         root,
         {
-            fileName: 'images/crosshair1.png',
+            fileName: 'images/radar/target.png',
             tint: 0xffaaaa,
-            sizePx: 32,
+            sizePx: 64,
         },
         () => getShellExplosionLocation(shipState),
         () => 0
@@ -22,9 +22,9 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
         {
-            fileName: 'images/crosshair1.png',
+            fileName: 'images/radar/deflection.png',
             tint: 0xaaaaff,
-            sizePx: 32,
+            sizePx: 64,
         },
         () => {
             const target = shipTarget.getSingle();
@@ -40,7 +40,7 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
     const stage = new Container();
     const targetLineLayer = new LineLayer(root, () => [shipState.position, shipTarget.getSingle()?.position], [
         2,
-        InteractiveLayer.selectionColor,
+        selectionColor,
         0.5,
     ]);
     root.addLayer(targetLineLayer.renderRoot);

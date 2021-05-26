@@ -21,11 +21,7 @@ export class MovementAnchorLayer {
             this.shouldRender = true;
         });
         this.stage.addChild(this.anchors);
-        parent.ticker.add((_delta) => {
-            if (this.shouldRender) {
-                this.drawSectorGrid();
-            }
-        });
+        parent.ticker.add((_delta) => this.draw());
     }
 
     get renderRoot(): DisplayObject {
@@ -51,12 +47,14 @@ export class MovementAnchorLayer {
         }
     }
 
-    private drawSectorGrid() {
-        this.anchors.clear();
-        for (const anchorPosition of this.anchorPositions()) {
-            this.anchors.lineStyle(this.style.width, this.style.color, this.style.alpha);
-            this.anchors.drawStar && this.anchors.drawStar(anchorPosition.x, anchorPosition.y, 3, 1, 0);
+    private draw() {
+        if (this.shouldRender) {
+            this.anchors.clear();
+            for (const anchorPosition of this.anchorPositions()) {
+                this.anchors.lineStyle(this.style.width, this.style.color, this.style.alpha);
+                this.anchors.drawStar && this.anchors.drawStar(anchorPosition.x, anchorPosition.y, 3, 1, 0);
+            }
+            this.shouldRender = false;
         }
-        this.shouldRender = false;
     }
 }

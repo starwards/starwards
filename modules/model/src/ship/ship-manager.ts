@@ -468,6 +468,7 @@ export class ShipManager {
         this.state.velocity.y = this.spaceObject.velocity.y;
         this.state.turnSpeed = this.spaceObject.turnSpeed;
         this.state.angle = this.spaceObject.angle;
+        this.state.faction = this.spaceObject.faction;
     }
 
     trySpendEnergy(value: number): boolean {

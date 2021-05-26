@@ -49,26 +49,47 @@ const SelectionTitle = ({ selectionContainer }: { selectionContainer: SelectionC
     return <pre>{message || 'None'} Selected</pre>;
 };
 
+const SingleSelectionDetails = ({ subject }: { subject: SpaceObject }) => {
+    const frozen = useProperty({ getValue: () => subject.freeze });
+    return (
+        <List>
+            <li> ID : {subject.id}</li>
+            <li> frozen : {String(frozen)}</li>
+        </List>
+    );
+};
+
 function Tweak({ driver, selectionContainer }: Props) {
     const selected = useSelected(selectionContainer);
     const shipDriver = useShipDriver(selected[0], driver);
-    if (selected.length === 1 && Spaceship.isInstance(selected[0])) {
-        if (shipDriver) {
-            return (
-                <>
-                    <SelectionTitle selectionContainer={selectionContainer} />
-                    FrontHealth: {shipDriver.frontHealth.getValue()} <br />
-                    RearHealth: {shipDriver.rearHealth.getValue()} <br />
-                    {[...shipDriver.thrusters].map((t) => (
-                        <ThrusterTweak key={t.index} driver={t} />
-                    ))}
-                </>
-            );
+    if (selected.length === 1) {
+        if (Spaceship.isInstance(selected[0])) {
+            if (shipDriver) {
+                return (
+                    <>
+                        <SelectionTitle selectionContainer={selectionContainer} />
+                        <SingleSelectionDetails subject={selected[0]} />
+                        FrontHealth: {shipDriver.frontHealth.getValue()} <br />
+                        RearHealth: {shipDriver.rearHealth.getValue()} <br />
+                        {[...shipDriver.thrusters].map((t) => (
+                            <ThrusterTweak key={t.index} driver={t} />
+                        ))}
+                    </>
+                );
+            } else {
+                return (
+                    <>
+                        <SelectionTitle selectionContainer={selectionContainer} />
+                        <SingleSelectionDetails subject={selected[0]} />
+                        <LoadingBars animator={{ animate: false }} />
+                    </>
+                );
+            }
         } else {
             return (
                 <>
                     <SelectionTitle selectionContainer={selectionContainer} />
-                    <LoadingBars animator={{ animate: false }} />
+                    <SingleSelectionDetails subject={selected[0]} />
                 </>
             );
         }

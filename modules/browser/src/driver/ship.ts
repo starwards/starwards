@@ -126,6 +126,7 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
         clearTarget: wrapIteratorStateProperty(shipRoom, shipProperties.clearTarget, undefined),
         rotationMode: wrapIteratorStateProperty(shipRoom, shipProperties.rotationMode, undefined),
         maneuveringMode: wrapIteratorStateProperty(shipRoom, shipProperties.maneuveringMode, undefined),
+        faction: wrapStateProperty(shipRoom, shipProperties.faction, undefined),
     };
 }
 
@@ -135,6 +136,7 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     const commands = wireCommands(shipRoom);
     return {
         events,
+        id: shipRoom.state.id,
         get state() {
             return shipRoom.state;
         },

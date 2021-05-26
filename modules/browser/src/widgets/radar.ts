@@ -1,4 +1,6 @@
-import { SpaceObject, State } from '@starwards/model';
+import { Faction, SpaceObject } from '@starwards/model';
+import { ShipDriver, SpaceDriver } from '../driver';
+import { blue, red, yellow } from '../colors';
 
 import $ from 'jquery';
 import { Camera } from '../radar/camera';
@@ -7,11 +9,10 @@ import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { Loader } from 'pixi.js';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { SpaceDriver } from '../driver';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blip-renderer';
+import { dradisDrawFunctions } from '../radar/blips/blip-renderer';
 
 WebFont.load({
     custom: {
@@ -37,8 +38,8 @@ export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery
     return [zoomIn, zoomOut];
 }
 
-export type Props = { zoom: number; subjectId: string };
-export function radarWidget(spaceDriver: SpaceDriver): DashboardWidget<Props> {
+export type Props = { zoom: number };
+export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
     class RadarComponent {
         constructor(container: Container, p: Props) {
             const camera = new Camera();
@@ -48,6 +49,9 @@ export function radarWidget(spaceDriver: SpaceDriver): DashboardWidget<Props> {
                 e.preventDefault();
                 camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
             });
+            void spaceDriver
+                .waitForObjecr(shipDriver.id)
+                .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.state.events));
             Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
                 const grid = new GridLayer(root);
@@ -55,25 +59,16 @@ export function radarWidget(spaceDriver: SpaceDriver): DashboardWidget<Props> {
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
-                    blipRenderer,
+                    64,
+                    (s: SpaceObject) => {
+                        if (s.faction === Faction.none) return yellow;
+                        if (s.faction === shipDriver.faction.getValue()) return blue;
+                        return red;
+                    },
+                    dradisDrawFunctions,
                     new SelectionContainer().init(spaceDriver.state)
                 );
                 root.addLayer(blipLayer.renderRoot);
-                trackObject(camera, spaceDriver.state, p.subjectId);
-            });
-        }
-    }
-
-    function trackObject(camera: Camera, spaceState: State<'space'>, subjectId: string) {
-        let tracked = spaceState.get(subjectId);
-        if (tracked) {
-            camera.followSpaceObject(tracked, spaceState.events);
-        } else {
-            spaceState.events.on('add', (spaceObject: SpaceObject) => {
-                if (!tracked && spaceObject.id === subjectId) {
-                    tracked = spaceObject;
-                    camera.followSpaceObject(tracked, spaceState.events);
-                }
             });
         }
     }

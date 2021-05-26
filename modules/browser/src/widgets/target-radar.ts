@@ -5,13 +5,14 @@ import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Loader } from 'pixi.js';
-import { ObjectsLayer } from '../radar/objects-layer';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
 import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
-import { blipRenderer } from '../radar/blip-renderer';
 import { crosshairs } from '../radar/tactical-radar-layers';
+import { green } from '../colors';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -49,7 +50,14 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 root.addLayer(range.renderRoot);
                 const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
-                const blipLayer = new ObjectsLayer(root, spaceDriver.state, blipRenderer, shipTarget);
+                const blipLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    64,
+                    () => green,
+                    tacticalDrawFunctions,
+                    shipTarget
+                );
                 root.addLayer(blipLayer.renderRoot);
                 trackObject(camera, spaceDriver.state, shipTarget);
             });
