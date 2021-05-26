@@ -35,7 +35,7 @@ export function cmdReceiver<T, S extends Schema, P>(
 ): (_: unknown, m: { value: T; path: P }) => unknown {
     if (isNumericStatePropertyCommand(p)) {
         return (_: unknown, { value, path }: { value: T; path: P }) =>
-            setNumericProperty(manager, p, (value as unknown) as number, path);
+            setNumericProperty(manager, p, value as unknown as number, path);
     } else {
         return (_: unknown, { value, path }: { value: T; path: P }) => p.setValue(manager.state, value, path);
     }
