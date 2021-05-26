@@ -68,7 +68,7 @@ class DradisSpaceshipRenderer implements SpaceObjectRenderer {
     redraw(): void {
         const { parent, spaceObject, isSelected, color } = this.data;
         this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-        this.text.text = [`ID: ${spaceObject.id}`, `health: ${spaceObject.health.toFixed(0)}`].join('\n');
+        this.text.text = `ID: ${spaceObject.id}`;
         this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
         this.collisionOutline.clear();
         this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
@@ -145,7 +145,7 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
         this.fighterSprite.tint = color;
         this.fighterSprite.height = blipSize;
         this.fighterSprite.width = blipSize;
-        this.text.text = [`ID: ${spaceObject.id}`, `health: ${spaceObject.health.toFixed(0)}`].join('\n');
+        this.text.text = `ID: ${spaceObject.id}`;
         this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
         this.collisionOutline.clear();
         this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);

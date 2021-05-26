@@ -17,7 +17,6 @@ export class Spaceship extends SpaceObjectBase {
 
     constructor() {
         super();
-        this.health = 1000;
         this.radius = Spaceship.radius;
     }
 }

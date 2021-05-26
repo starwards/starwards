@@ -40,9 +40,6 @@ export abstract class SpaceObjectBase extends Schema {
     @type('float32')
     public turnSpeed = 0;
 
-    @type('uint16')
-    public health = 0;
-
     // can later add globalToLocalPosition, globalToLocalVelocity etc.
     globalToLocal(global: XY) {
         return XY.rotate(global, -this.angle);

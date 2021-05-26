@@ -29,10 +29,30 @@ export class SmartPilotState extends Schema {
     rotationTargetOffset = 0;
     @type(Vec2)
     maneuvering: Vec2 = new Vec2(0, 0);
+    @type('boolean')
+    broken = false;
 
     readonly maxTargetAimOffset = 30;
     readonly aimOffsetSpeed = 15;
     readonly maxTurnSpeed = 90;
+}
+
+export class ShipHealth extends Schema {
+    @type({ map: 'number' })
+    constants!: MapSchema<number>;
+
+    @type('uint16')
+    frontHealth = 1000;
+    @type('uint16')
+    rearHealth = 1000;
+
+    get maxFrontHealth(): number {
+        return getConstant(this.constants, 'maxFrontHealth');
+    }
+
+    get maxRearHealth(): number {
+        return getConstant(this.constants, 'maxRearHealth');
+    }
 }
 export class ShipState extends Spaceship {
     @type({ map: 'float32' })
@@ -46,6 +66,9 @@ export class ShipState extends Spaceship {
 
     @type(SmartPilotState)
     smartPilot!: SmartPilotState;
+
+    @type(ShipHealth)
+    health!: ShipHealth;
 
     @type('float32')
     rotation = 0;

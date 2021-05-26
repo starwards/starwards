@@ -1,4 +1,5 @@
 import { SpaceObjectBase } from './space-object-base';
+import { type } from '@colyseus/schema';
 
 export class Asteroid extends SpaceObjectBase {
     public static maxSize = 350;
@@ -7,6 +8,9 @@ export class Asteroid extends SpaceObjectBase {
     }
 
     public readonly type = 'Asteroid';
+
+    @type('uint16')
+    public health = 0;
 
     constructor() {
         super();

@@ -1,4 +1,4 @@
-import { AdminState, Faction, ShipManager, SpaceManager } from '@starwards/model';
+import { AdminState, Faction, ShipManager, SpaceManager, resetShipState } from '@starwards/model';
 import { newAsteroid, newShip, resetShip } from './map';
 
 import { MapSchema } from '@colyseus/schema';
@@ -62,6 +62,10 @@ export class GameManager {
         this.state.points.set(ship.id, 0);
         const shipManager = new ShipManager(ship, spaceManager, this.ships, () => {
             this.state.points.set(ship.id, (this.state.points.get(ship.id) || 0) + 1);
+            const shipState = this.ships.get(ship.id);
+            if (shipState !== undefined) {
+                resetShipState(shipState.state);
+            }
             resetShip(ship);
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);

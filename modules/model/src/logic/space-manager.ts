@@ -1,15 +1,22 @@
 import { Body, Circle, Collisions, Result } from 'detect-collisions';
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 
+import { Spaceship } from '../space';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
+
+type Damage = {
+    amount: number;
+    position: XY;
+};
 
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new Collisions();
     private collisionToState = new WeakMap<Body, SpaceObject>();
-    private stateToCollision = new WeakMap<SpaceObject, Circle>();
+    public stateToCollision = new WeakMap<SpaceObject, Circle>();
+    private objectDamage = new WeakMap<SpaceObject, Damage[]>();
     private toInsert: SpaceObject[] = [];
 
     private secondsSinceLastGC = 0;
@@ -202,9 +209,39 @@ export class SpaceManager {
         object.velocity.y += (elasticityFactor * collisionVector.y) / deltaSeconds;
     }
 
-    private resolveExplosionEffect(object: SpaceObject, explosion: Explosion, result: Result, deltaSeconds: number) {
+    private addDamageToObject(object: SpaceObject, damage: Damage) {
+        const objectDamage = this.objectDamage.get(object);
+        if (objectDamage === undefined) {
+            this.objectDamage.set(object, [damage]);
+        } else {
+            objectDamage.push(damage);
+        }
+    }
+
+    public *resolveObjectDamage(object: SpaceObject): IterableIterator<Damage> {
+        const damageArr = this.objectDamage.get(object);
+        if (damageArr !== undefined) {
+            yield* damageArr;
+            this.objectDamage.delete(object);
+        }
+    }
+
+    private resolveExplosionEffect(
+        object: Exclude<SpaceObject, Explosion>,
+        explosion: Explosion,
+        result: Result,
+        deltaSeconds: number
+    ) {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
-        object.health -= explosion.damageFactor * exposure;
+        const damageAmount = explosion.damageFactor * exposure;
+        if (Spaceship.isInstance(object)) {
+            this.addDamageToObject(object, {
+                amount: damageAmount,
+                position: explosion.position,
+            });
+        } else {
+            object.health -= damageAmount;
+        }
         object.velocity.x -= result.overlap_x * exposure * explosion.blastFactor;
         object.velocity.y -= result.overlap_y * exposure * explosion.blastFactor;
     }

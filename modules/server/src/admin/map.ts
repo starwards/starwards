@@ -23,6 +23,5 @@ export function resetShip(ship: Spaceship) {
     // ship.angle = Math.random() * 360;
     // ship.velocity = Vec2.Rotate({ x: speedMax / 2, y: 0 }, ship.angle);
     ship.velocity = Vec2.Rotate({ x: Math.random() * speedMax, y: 0 }, Math.random() * 360);
-    ship.health = 1000;
     return ship;
 }
