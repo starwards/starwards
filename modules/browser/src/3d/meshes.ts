@@ -54,7 +54,7 @@ export class Meshes {
     cannonShell(id: string, radius: number) {
         const entries = this.cannonShellCont.instantiateModelsToScene((name) => `CannonShell ${id} ${name}`);
         const rootMesh = getMesh(entries);
-        initMesh(rootMesh, id, radius * 100);
+        initMesh(rootMesh, id, radius * 5);
         return rootMesh;
     }
 }
