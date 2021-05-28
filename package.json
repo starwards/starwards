@@ -43,7 +43,7 @@
         "@types/jest": "^26.0.23",
         "@types/jquery": "^3.5.5",
         "@types/lodash": "^4.14.168",
-        "@types/node": "15.0.2",
+        "@types/node": "15.6.1",
         "@types/pluralize": "^0.0.29",
         "@types/react": "^17.0.3",
         "@types/react-dom": "^17.0.3",
