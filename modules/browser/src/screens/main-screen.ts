@@ -4,6 +4,7 @@ import { Engine } from '@babylonjs/core';
 import { Objects3D } from '../3d/objects';
 import { loadMeshes } from '../3d/meshes';
 import { placeSceneEnv } from '../3d/space-scene';
+import { wireSinglePilotInput } from '../input/wiring';
 
 const driver = new Driver();
 
@@ -11,9 +12,9 @@ export const babylonInit = async (): Promise<void> => {
     // todo extract to configurable widget
 
     const urlParams = new URLSearchParams(window.location.search);
-    const shipUrlParam = urlParams.get('ship');
-    if (shipUrlParam) {
-        // const shipRoom = await getShipRoom(shipUrlParam);
+    const shipId = urlParams.get('ship');
+    if (shipId) {
+        const shipDriver = await driver.getShipDriver(shipId);
         const spaceDriver = await driver.getSpaceDriver();
         // Get the canvas element
         const canvas = document.getElementById('renderCanvas') as HTMLCanvasElement;
@@ -23,7 +24,7 @@ export const babylonInit = async (): Promise<void> => {
         // Create the scene
         const scene = await placeSceneEnv(engine, canvas);
         const meshes = await loadMeshes(scene);
-        const objects = new Objects3D(spaceDriver.state, meshes, shipUrlParam);
+        const objects = new Objects3D(spaceDriver.state, meshes, shipId);
         // Register a render loop to repeatedly render the scene
         engine.runRenderLoop(function () {
             objects.onRender();
@@ -35,6 +36,8 @@ export const babylonInit = async (): Promise<void> => {
             engine.resize();
         });
         // scene started rendering, everything is initialized
+
+        wireSinglePilotInput(shipDriver);
 
         await scene.debugLayer.show();
 

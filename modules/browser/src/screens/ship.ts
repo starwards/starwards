@@ -3,16 +3,15 @@ import * as PIXI from 'pixi.js';
 import $ from 'jquery';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
-import { InputManager } from '../input/input-manager';
 import { damageReportWidget } from '../widgets/damage-report';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
-import { shipInputConfig } from '../input/input-config';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { wireSinglePilotInput } from '../input/wiring';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -47,21 +46,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(monitorWidget(shipDriver), {}, 'monitor');
     dashboard.registerWidget(damageReportWidget(shipDriver), {}, 'damage report');
     dashboard.setup();
-    const input = new InputManager();
-    input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
-    input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
-    input.addRangeAction(shipDriver.strafeCommand, shipInputConfig.strafeCommand);
-    input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
-    input.addButtonAction(shipDriver.rotationTargetOffset, shipInputConfig.resetRotatioTargetOffset);
-    input.addButtonAction(shipDriver.rotationMode, shipInputConfig.rotationMode);
-    input.addButtonAction(shipDriver.maneuveringMode, shipInputConfig.maneuveringMode);
-    input.addButtonAction(shipDriver.afterBurner, shipInputConfig.afterBurner);
-    input.addButtonAction(shipDriver.antiDrift, shipInputConfig.antiDrift);
-    input.addButtonAction(shipDriver.breaks, shipInputConfig.breaks);
-    input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
-    input.addButtonAction(shipDriver.target, shipInputConfig.target);
-    input.addButtonAction(shipDriver.clearTarget, shipInputConfig.clearTarget);
-    input.init();
+    wireSinglePilotInput(shipDriver);
 }
 
 function makeDashboard(shipId: string, layout: string | null): Dashboard {
