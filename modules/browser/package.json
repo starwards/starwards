@@ -23,7 +23,7 @@
         "d3": "^6.6.0",
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.7",
-        "golden-layout": "^1.5.9",
+        "golden-layout": "^2.2.0",
         "hotkeys-js": "^3.8.5",
         "howler": "2.2",
         "jquery": "^3.6.0",
