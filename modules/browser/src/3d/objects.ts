@@ -1,11 +1,11 @@
 import { SpaceObject, State, degToRad } from '@starwards/model';
 
-import { AbstractMesh } from '@babylonjs/core';
 import { Meshes } from './meshes';
+import { Vector3 } from '@babylonjs/core';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();
-    constructor(spaceState: State<'space'>, private meshes: Meshes, _shipId: string) {
+    constructor(spaceState: State<'space'>, private meshes: Meshes, private shipId: string) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
         spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
 
@@ -22,20 +22,24 @@ export class Objects3D {
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
         if (!spaceObject.destroyed) {
-            let mesh: AbstractMesh;
+            let mesh: Mesh;
             try {
-                switch (spaceObject.type) {
-                    case 'Spaceship':
-                        mesh = this.meshes.spaceship(spaceObject.id);
-                        break;
-                    case 'Asteroid':
-                        mesh = this.meshes.asteroid(spaceObject.id, spaceObject.radius);
-                        break;
-                    case 'CannonShell':
-                        mesh = this.meshes.cannonShell(spaceObject.id, spaceObject.radius);
-                        break;
-                    default:
-                        return;
+                if (spaceObject.id === this.shipId) {
+                    mesh = this.meshes.pov(spaceObject.id);
+                } else {
+                    switch (spaceObject.type) {
+                        case 'Spaceship':
+                            mesh = this.meshes.spaceship(spaceObject.id);
+                            break;
+                        case 'Asteroid':
+                            mesh = this.meshes.asteroid(spaceObject.id, spaceObject.radius);
+                            break;
+                        case 'CannonShell':
+                            mesh = this.meshes.cannonShell(spaceObject.id, spaceObject.radius);
+                            break;
+                        default:
+                            return;
+                    }
                 }
             } catch (e) {
                 // eslint-disable-next-line no-console
@@ -47,12 +51,17 @@ export class Objects3D {
         }
     }
 }
+type Mesh = {
+    position: Vector3;
+    rotation: Vector3;
+    dispose: () => unknown;
+};
 /**
  * internal class
  */
 // eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics {
-    constructor(public spaceObject: SpaceObject, private mesh: AbstractMesh, private onDestroyed: () => unknown) {}
+    constructor(public spaceObject: SpaceObject, private mesh: Mesh, private onDestroyed: () => unknown) {}
 
     redraw() {
         if (this.spaceObject.destroyed) {
@@ -66,6 +75,6 @@ class ObjectGraphics {
 
     destroy() {
         this.onDestroyed();
-        this.mesh && this.mesh.dispose();
+        this.mesh?.dispose();
     }
 }

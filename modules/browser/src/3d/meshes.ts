@@ -1,4 +1,13 @@
-import { AbstractMesh, AssetContainer, InstantiatedEntries, Mesh, Scene, SceneLoader, Vector3 } from '@babylonjs/core';
+import {
+    AbstractMesh,
+    AssetContainer,
+    FreeCamera,
+    InstantiatedEntries,
+    Mesh,
+    Scene,
+    SceneLoader,
+    Vector3,
+} from '@babylonjs/core';
 
 import { Spaceship } from '@starwards/model';
 
@@ -31,14 +40,19 @@ export async function loadMeshes(scene: Scene) {
         SceneLoader.LoadAssetContainerAsync('models/Asteroid_01/Asteroid_01.gltf', '', scene, undefined, '.gltf'),
         SceneLoader.LoadAssetContainerAsync('models/Projectile_03/test.gltf', '', scene, undefined, '.gltf'),
     ]);
-    return new Meshes(spaceship, asteroid, cannonShell);
+    return new Meshes(scene, spaceship, asteroid, cannonShell);
 }
 export class Meshes {
     constructor(
+        private scene: Scene,
         private spaceshipCont: AssetContainer,
         private asteroidCont: AssetContainer,
         private cannonShellCont: AssetContainer
     ) {}
+    pov(id: string) {
+        const camera = new FreeCamera(`Camera ${id}`, Vector3.Zero(), this.scene);
+        return camera;
+    }
     spaceship(id: string) {
         const entries = this.spaceshipCont.instantiateModelsToScene((name) => `Spaceship ${id} ${name}`);
         const rootMesh = getMesh(entries);
