@@ -22,11 +22,13 @@ export class Objects3D {
 
     private onNewSpaceObject(spaceObject: SpaceObject) {
         if (!spaceObject.destroyed) {
-            let mesh: Mesh;
             try {
                 if (spaceObject.id === this.shipId) {
-                    mesh = this.meshes.pov(spaceObject.id);
+                    const skybox = this.makeGraphics('skybox', spaceObject, this.meshes.skybox());
+                    skybox.trackRotation = false;
+                    this.makeGraphics(spaceObject.id, spaceObject, this.meshes.pov(spaceObject.id));
                 } else {
+                    let mesh: Mesh;
                     switch (spaceObject.type) {
                         case 'Spaceship':
                             mesh = this.meshes.spaceship(spaceObject.id);
@@ -40,15 +42,20 @@ export class Objects3D {
                         default:
                             return;
                     }
+                    this.makeGraphics(spaceObject.id, spaceObject, mesh);
                 }
             } catch (e) {
                 // eslint-disable-next-line no-console
                 console.log('error adding 3d obj', e);
                 return;
             }
-            const objGraphics = new ObjectGraphics(spaceObject, mesh, () => this.graphics.delete(spaceObject.id));
-            this.graphics.set(spaceObject.id, objGraphics);
         }
+    }
+
+    private makeGraphics(id: string, spaceObject: SpaceObject, mesh: Mesh) {
+        const objGraphics = new ObjectGraphics(spaceObject, mesh, () => this.graphics.delete(id));
+        this.graphics.set(id, objGraphics);
+        return objGraphics;
     }
 }
 type Mesh = {
@@ -61,6 +68,7 @@ type Mesh = {
  */
 // eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics {
+    public trackRotation = true;
     constructor(public spaceObject: SpaceObject, private mesh: Mesh, private onDestroyed: () => unknown) {}
 
     redraw() {
@@ -69,7 +77,9 @@ class ObjectGraphics {
         } else {
             this.mesh.position.x = this.spaceObject.position.x;
             this.mesh.position.z = -this.spaceObject.position.y;
-            this.mesh.rotation.y = degToRad * this.spaceObject.angle + Math.PI / 2;
+            if (this.trackRotation) {
+                this.mesh.rotation.y = degToRad * this.spaceObject.angle + Math.PI / 2;
+            }
         }
     }
 

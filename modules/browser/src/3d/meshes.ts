@@ -10,6 +10,7 @@ import {
 } from '@babylonjs/core';
 
 import { Spaceship } from '@starwards/model';
+import { placeSkybox } from './skybox';
 
 function initMesh(mesh: AbstractMesh, id: string, radius: number) {
     mesh.id = `mpid_${id}`;
@@ -42,6 +43,8 @@ export async function loadMeshes(scene: Scene) {
     ]);
     return new Meshes(scene, spaceship, asteroid, cannonShell);
 }
+const drawingDistance = 10_000;
+const distanceEpsilon = 100;
 export class Meshes {
     constructor(
         private scene: Scene,
@@ -49,9 +52,13 @@ export class Meshes {
         private asteroidCont: AssetContainer,
         private cannonShellCont: AssetContainer
     ) {}
+    skybox() {
+        return placeSkybox(this.scene, 'space-engine-2', drawingDistance * 2);
+    }
     pov(id: string) {
-        const camera = new FreeCamera(`Camera ${id}`, Vector3.Zero(), this.scene);
-        return camera;
+        const cam = new FreeCamera(`Camera ${id}`, Vector3.Zero(), this.scene, true);
+        cam.maxZ = distanceEpsilon + Math.sqrt(2 * drawingDistance * drawingDistance);
+        return cam;
     }
     spaceship(id: string) {
         const entries = this.spaceshipCont.instantiateModelsToScene((name) => `Spaceship ${id} ${name}`);
