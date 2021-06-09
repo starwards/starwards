@@ -37,7 +37,7 @@ function getMesh(entries: InstantiatedEntries): AbstractMesh {
 }
 export async function loadMeshes(scene: Scene) {
     const [spaceship, asteroid, cannonShell] = await Promise.all([
-        SceneLoader.LoadAssetContainerAsync('models/spaceship_nortend/scene.gltf', '', scene, undefined, '.gltf'),
+        SceneLoader.LoadAssetContainerAsync('models/dragonfly/scene.gltf', '', scene, undefined, '.gltf'),
         SceneLoader.LoadAssetContainerAsync('models/Asteroid_01/Asteroid_01.gltf', '', scene, undefined, '.gltf'),
         SceneLoader.LoadAssetContainerAsync('models/Projectile_03/test.gltf', '', scene, undefined, '.gltf'),
     ]);
