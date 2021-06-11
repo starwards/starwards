@@ -24,7 +24,7 @@
         "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
-        "hotkeys-js": "^3.8.5",
+        "hotkeys-js": "^3.8.6",
         "howler": "2.2",
         "jquery": "^3.6.0",
         "lodash": "^4.17.21",
