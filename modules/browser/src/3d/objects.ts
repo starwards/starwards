@@ -1,7 +1,7 @@
 import { SpaceObject, State, degToRad } from '@starwards/model';
+import { TransformNode, Vector3 } from '@babylonjs/core';
 
 import { Meshes } from './meshes';
-import { Vector3 } from '@babylonjs/core';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();
@@ -28,10 +28,16 @@ export class Objects3D {
                     skybox.trackRotation = false;
                     this.makeGraphics(spaceObject.id, spaceObject, this.meshes.pov(spaceObject.id));
                 } else {
-                    let mesh: Mesh;
+                    let mesh: TransformNode;
                     switch (spaceObject.type) {
                         case 'Spaceship':
-                            mesh = this.meshes.spaceship(spaceObject.id);
+                            {
+                                mesh = this.meshes.spaceship(spaceObject.id);
+                                // todo: per thruster
+                                // TODO: add parameters & wiring
+                                // const thruster = this.meshes.thruster({ x: -21, y: -0.38, z: -28 });
+                                // thruster.parent = mesh;
+                            }
                             break;
                         case 'Asteroid':
                             mesh = this.meshes.asteroid(spaceObject.id, spaceObject.radius);

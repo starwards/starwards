@@ -6,11 +6,13 @@ import {
     Mesh,
     Scene,
     SceneLoader,
+    TransformNode,
     Vector3,
 } from '@babylonjs/core';
 
 import { Spaceship } from '@starwards/model';
 import { placeSkybox } from './skybox';
+import { thruster } from './particles-config';
 
 function initMesh(mesh: AbstractMesh, id: string, radius: number) {
     mesh.id = `mpid_${id}`;
@@ -43,8 +45,10 @@ export async function loadMeshes(scene: Scene) {
     ]);
     return new Meshes(scene, spaceship, asteroid, cannonShell);
 }
+
 const drawingDistance = 10_000;
 const distanceEpsilon = 100;
+
 export class Meshes {
     constructor(
         private scene: Scene,
@@ -62,9 +66,19 @@ export class Meshes {
     }
     spaceship(id: string) {
         const entries = this.spaceshipCont.instantiateModelsToScene((name) => `Spaceship ${id} ${name}`);
-        const rootMesh = getMesh(entries);
-        initMesh(rootMesh, id, Spaceship.radius);
-        return rootMesh;
+        const shipMesh = getMesh(entries);
+        initMesh(shipMesh, id, Spaceship.radius);
+        const rootNode = new TransformNode(`Spaceship ${id}`);
+        shipMesh.parent = rootNode;
+        for (const i of Array(6).keys()) {
+            const thruster_emit_1 = shipMesh.getChildMeshes(true, (c) => c.id.endsWith(`thruster_emit_${i}`))[0];
+            if (thruster_emit_1) {
+                const d = thruster_emit_1.getDirection(Vector3.Right());
+                thruster(`${i}`, this.scene, thruster_emit_1, d);
+                thruster_emit_1.isVisible = false;
+            }
+        }
+        return rootNode;
     }
     asteroid(id: string, radius: number) {
         const entries = this.asteroidCont.instantiateModelsToScene((name) => `Asteroid ${id} ${name}`);
@@ -76,6 +90,7 @@ export class Meshes {
         const entries = this.cannonShellCont.instantiateModelsToScene((name) => `CannonShell ${id} ${name}`);
         const rootMesh = getMesh(entries);
         initMesh(rootMesh, id, radius * 5);
+        // TODO: disable lighing (like with skybox)
         return rootMesh;
     }
 }
