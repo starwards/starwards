@@ -26,6 +26,7 @@ import { ShipAreas, ShipSystem } from './ship-system';
 
 import { Armor } from './armor';
 import { Bot } from '../logic/bot';
+import { ShipAreas } from './ship-system';
 import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
