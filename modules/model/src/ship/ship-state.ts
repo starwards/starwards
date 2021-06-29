@@ -1,4 +1,5 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
+import { ShipAreas, ShipSystem } from './ship-system';
 import { Spaceship, Vec2 } from '../space';
 
 import { ChainGun } from './chain-gun';
@@ -91,6 +92,9 @@ export class ShipState extends Spaceship {
     @type('int8')
     targeted = TargetedStatus.NONE;
 
+    @type(['boolean'])
+    armour!: boolean[];
+
     // server only, used for commands
     public afterBurnerCommand = 0;
     public nextTargetCommand = false;
@@ -156,5 +160,18 @@ export class ShipState extends Spaceship {
     }
     get maxMaxSpeed() {
         return this.getMaxSpeedForAfterburner(1);
+    }
+
+    getDamageRegionSystems(region: ShipAreas): ShipSystem[] {
+        const shipSystems = new Array<ShipSystem>();
+        if (this.chainGun.damageArea === region) {
+            shipSystems.push(this.chainGun);
+        }
+        for (const thruster of this.thrusters) {
+            if (thruster.damageArea === region) {
+                shipSystems.push(thruster);
+            }
+        }
+        return shipSystems;
     }
 }

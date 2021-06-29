@@ -24,6 +24,7 @@ import {
 } from '..';
 
 import { Bot } from '../logic/bot';
+import { ShipAreas } from './ship-system';
 import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
@@ -45,6 +46,11 @@ function makeThruster(angle: ShipDirection): Thruster {
     setConstant(thruster, 'speedFactor', 3);
     setConstant(thruster, 'afterBurnerCapacity', 300);
     setConstant(thruster, 'afterBurnerEffectFactor', 1);
+    if (angle === ShipDirection.FWD) {
+        thruster.damageArea = ShipAreas.front;
+    } else {
+        thruster.damageArea = ShipAreas.rear;
+    }
     return thruster;
 }
 function makeShipState(id: string) {
@@ -65,6 +71,7 @@ function makeShipState(id: string) {
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     setConstant(state, 'maxFrontHealth', 1000);
     setConstant(state, 'maxRearHealth', 1000);
+    setConstant(state, 'armourRegions', 360);
     state.thrusters = new ArraySchema();
     state.thrusters.push(makeThruster(ShipDirection.STBD));
     state.thrusters.push(makeThruster(ShipDirection.PORT));
@@ -73,6 +80,7 @@ function makeShipState(id: string) {
     state.thrusters.push(makeThruster(ShipDirection.AFT));
     state.thrusters.push(makeThruster(ShipDirection.AFT));
     state.chainGun = new ChainGun();
+    state.chainGun.damageArea = ShipAreas.rear;
     state.chainGun.constants = new MapSchema<number>();
     setConstant(state.chainGun, 'bulletsPerSecond', 20);
     setConstant(state.chainGun, 'bulletSpeed', 1000);
@@ -92,6 +100,7 @@ function makeShipState(id: string) {
     setConstant(state.health, 'maxRearHealth', 1000);
     state.health.frontHealth = 1000;
     state.health.rearHealth = 1000;
+    state.armour = new Array<boolean>(360).fill(true);
     return state;
 }
 
@@ -99,6 +108,11 @@ export function resetShipState(state: ShipState) {
     state.health.frontHealth = state.health.maxFrontHealth;
     state.health.rearHealth = state.health.maxRearHealth;
     state.energy = state.maxEnergy;
+    state.armour.fill(true);
+    state.chainGun.broken = false;
+    for (const thruster of state.thrusters) {
+        thruster.broken = false;
+    }
 }
 
 export class ShipManager {
@@ -107,6 +121,13 @@ export class ShipManager {
     private target: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
+    private frontSystems: (Thruster | ChainGun)[] = [
+        this.state.chainGun,
+        this.state.thrusters[0],
+        this.state.thrusters[1],
+    ];
+
+    private rearSystems = [this.state.thrusters[2], this.state.thrusters[3], this.state.thrusters[4]];
 
     constructor(
         public spaceObject: Spaceship,
@@ -250,9 +271,11 @@ export class ShipManager {
             // temporarily we just reduce health.
             const local = this.state.globalToLocal(XY.difference(damage.position, this.spaceObject.position));
             if (XY.angleOf(local) < 180) {
-                this.state.health.frontHealth -= damage.amount;
+                this.frontSystems[Math.floor(Math.random() * this.frontSystems.length)].broken = true;
+                // this.state.health.frontHealth -= damage.amount;
             } else {
-                this.state.health.rearHealth -= damage.amount;
+                this.rearSystems[Math.floor(Math.random() * this.rearSystems.length)].broken = true;
+                // this.state.health.rearHealth -= damage.amount;
             }
         }
     }

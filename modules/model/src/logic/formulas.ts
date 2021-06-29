@@ -36,6 +36,74 @@ export function isInRange(from: number, to: number, value: number) {
 export function gaussianRandom(mean: number, stdev: number): number {
     return mean + 2.0 * stdev * (Math.random() + Math.random() + Math.random() - 1.5);
 }
+
+// generanes a random number with normal distribution using the Marsaglia polar method
+export function normalMarsagliaRandomPair(mean = 0.0, stdev = 1.0): [number, number] {
+    let u, v, s: number;
+    do {
+        u = Math.random();
+        v = Math.random();
+        s = u * u + v * v;
+    } while (s === 0 || s >= 1);
+
+    s = Math.sqrt((-2.0 * Math.log(s)) / s);
+
+    return [mean + stdev * u * s, mean + stdev * v * s];
+}
+
+// returns the first number of the generated pair
+export function normalMarsagliaRandom(mean = 0.0, stdev = 1.0): number {
+    return normalMarsagliaRandomPair(mean, stdev)[0];
+}
+
+/**
+ * generates a random number with a skew normal distribution.
+ * location correlates to mean, scale correlates to standard deviation and shape is the parameter for skewness.
+ * for further information start here: https://en.wikipedia.org/wiki/Skew_normal_distribution
+ */
+export function skewNormalRandom(location: number, scale: number, shape = 0.0): number {
+    if (shape === 0.0) {
+        return normalMarsagliaRandom(location, scale);
+    }
+    const [u0, v] = normalMarsagliaRandomPair();
+    const delta = shape / Math.sqrt(1 + shape * shape);
+    const u1 = delta * u0 + Math.sqrt(1 - delta * delta) * v;
+    const z = u0 >= 0 ? u1 : -u1;
+    return location + scale * z;
+}
+
+export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: number): [XY, XY] | undefined {
+    const dx = centre1.x - centre1.x;
+    const dy = centre1.y - centre0.y;
+
+    const distance = Math.sqrt(dy * dy + dx * dx);
+
+    // check whether the cirles do not intersect of one is completely confined within another
+    if (distance > r0 + r1 || distance < Math.abs(r0 - r1)) {
+        return undefined;
+    }
+
+    /**
+     * point2 is the intersection between the chord between the intersection points
+     * and a line that passes through both circle centres.
+     */
+    const a = (r0 * r0 - r1 * r1 + distance * distance) / (2.0 * distance);
+    const p2 = { x: centre0.x + (dx * a) / distance, y: centre0.y + (dy * a) / distance };
+
+    // h is the distance from p2 and either of the circle intersection points
+    const h = Math.sqrt(r0 * r0 - a * a);
+
+    // ox and oy are the offsets of the intersection points from p2
+    const ox = -dy * (h / distance);
+    const oy = dx * (h / distance);
+
+    // i0 and i1 are the intersection points
+    const i0 = { x: p2.x + ox, y: p2.y + oy };
+    const i1 = { x: p2.x - ox, y: p2.y - oy };
+
+    return [i0, i1];
+}
+
 export function addScale(orig: XY, deriv: XY, time: number) {
     return XY.add(orig, XY.scale(deriv, time));
 }

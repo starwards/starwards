@@ -2,13 +2,15 @@ import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Circle, Response, System, TBody } from 'detect-collisions';
 
 import { Spaceship } from '../space';
+import { circlesIntersection } from '.';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 
 type Damage = {
     amount: number;
-    position: XY;
+    explosionCentre: XY;
+    damageBoundries: [XY, XY];
 };
 
 export class SpaceManager {
@@ -238,10 +240,22 @@ export class SpaceManager {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
         const damageAmount = explosion.damageFactor * exposure;
         if (Spaceship.isInstance(object)) {
-            this.addDamageToObject(object, {
-                amount: damageAmount,
-                position: explosion.position,
-            });
+            const damageBoundries = circlesIntersection(
+                object.position,
+                explosion.position,
+                object.radius,
+                explosion.radius
+            );
+            if (damageBoundries) {
+                this.addDamageToObject(object, {
+                    amount: damageAmount,
+                    explosionCentre: explosion.position,
+                    damageBoundries: damageBoundries,
+                });
+            } else {
+                // eslint-disable-next-line no-console
+                console.error(`unexpected undefined intersection between explosion and object.`);
+            }
         } else {
             object.health -= damageAmount;
         }

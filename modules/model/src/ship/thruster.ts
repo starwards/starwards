@@ -1,13 +1,10 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { ShipState, ShipSystem } from './';
 
 import { ShipDirection } from './ship-direction';
-import { ShipState } from './';
 import { getConstant } from '../utils';
+import { type } from '@colyseus/schema';
 
-export class Thruster extends Schema {
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
-
+export class Thruster extends ShipSystem {
     /**
      * the measure of current engine activity
      */
@@ -18,9 +15,6 @@ export class Thruster extends Schema {
      */
     @type('float32')
     afterBurnerActive = 0;
-
-    @type('boolean')
-    broken = false;
 
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
