@@ -13,7 +13,7 @@
         "@colyseus/monitor": "^0.14.3",
         "async-mqtt": "^2.6.1",
         "colyseus": "^0.14.14",
-        "detect-collisions": "^2.5.4",
+        "detect-collisions": "^2.5.6",
         "express": "^4.17.1",
         "express-basic-auth": "^1.2.0"
     },
