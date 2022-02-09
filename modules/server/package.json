@@ -11,6 +11,7 @@
     },
     "dependencies": {
         "@colyseus/monitor": "^0.14.22",
+        "@colyseus/ws-transport": "^0.14.21",
         "async-mqtt": "^2.6.2",
         "colyseus": "^0.14.23",
         "detect-collisions": "^2.5.4",
