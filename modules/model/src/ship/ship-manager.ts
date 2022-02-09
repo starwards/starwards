@@ -66,12 +66,12 @@ function makeShipState(id: string) {
     setConstant(state, 'maxFrontHealth', 1000);
     setConstant(state, 'maxRearHealth', 1000);
     state.thrusters = new ArraySchema();
-    state.thrusters.push(makeThruster(ShipDirection.FWD));
-    state.thrusters.push(makeThruster(ShipDirection.FWD));
-    state.thrusters.push(makeThruster(ShipDirection.AFT));
-    state.thrusters.push(makeThruster(ShipDirection.AFT));
-    state.thrusters.push(makeThruster(ShipDirection.PORT));
     state.thrusters.push(makeThruster(ShipDirection.STBD));
+    state.thrusters.push(makeThruster(ShipDirection.PORT));
+    state.thrusters.push(makeThruster(ShipDirection.FWD));
+    state.thrusters.push(makeThruster(ShipDirection.FWD));
+    state.thrusters.push(makeThruster(ShipDirection.AFT));
+    state.thrusters.push(makeThruster(ShipDirection.AFT));
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
     setConstant(state.chainGun, 'bulletsPerSecond', 20);

@@ -34,7 +34,10 @@
             "promptOnClose": true,
             "isBackground": true,
             "options": {
-                "cwd": "./modules/browser"
+                "cwd": "./modules/browser",
+                "env": {
+                    "NODE_OPTIONS": "--openssl-legacy-provider"
+                }
             },
             "problemMatcher": {
                 "owner": "webpack",
