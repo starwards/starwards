@@ -59,14 +59,10 @@ export class TimedTestMetrics extends AbsTestMetrics {
         super(iterationsPerSecond, distance);
     }
 }
-declare global {
-    // eslint-disable-next-line @typescript-eslint/no-namespace
-    namespace NodeJS {
-        interface Global {
-            harness?: ShipTestHarness;
-        }
-    }
-}
+
+declare let global: typeof globalThis & {
+    harness?: ShipTestHarness;
+};
 export class ShipTestHarness {
     public spaceMgr = new SpaceManager();
     public shipObj = new Spaceship();

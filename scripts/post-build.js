@@ -46,7 +46,7 @@ const modelModulePath = path.join(rootPath, 'modules', 'model');
                     },
                     pkg: {
                         assets: 'static/**/*',
-                        targets: ['node10-win-x64', 'node10-linux-x64', 'node10-osx-x64'],
+                        targets: ['node16-win-x64', 'node16-linux-x64', 'node16-osx-x64'],
                     },
                     dependencies,
                 },

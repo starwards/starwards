@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import $ from 'jquery';
+import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
 import { damageReportWidget } from '../widgets/damage-report';
@@ -14,8 +15,11 @@ import { targetRadarWidget } from '../widgets/target-radar';
 import { wireSinglePilotInput } from '../input/wiring';
 
 // enable pixi dev-tools
-// https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
-window.PIXI = PIXI;
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+//@ts-ignore
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
+
 const driver = new Driver();
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -58,7 +62,7 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
         // load and auto save layout by name
         const layoutStorageKey = 'layout:' + layout;
         const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
-        dashboard = new Dashboard(JSON.parse(layoutStr, reviver), $('#layoutContainer'), $('#menuContainer'));
+        dashboard = new Dashboard(JSON.parse(layoutStr, reviver) as Config, $('#layoutContainer'), $('#menuContainer'));
         let canSaveState = true;
         dashboard.on('stateChanged', function () {
             if (canSaveState && dashboard.isInitialised) {

@@ -25,7 +25,7 @@ process.on('uncaughtException', function (err) {
 
 export async function server(port: number, staticDir: string, mqttUrl = 'http://localhost', mqttPort = 1883) {
     const app = express();
-    app.use(express.json());
+    app.use(express.json() as express.RequestHandler);
     const gameServer = new Server({ server: http.createServer(app) });
 
     gameServer.define('space', SpaceRoom);
