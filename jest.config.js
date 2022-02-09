@@ -1,4 +1,5 @@
 const baseConfig = {
+    testPathIgnorePatterns: ['/node_modules/', '/cjs/'],
     testEnvironment: 'node',
     transform: {
         '^.+\\.(ts|js|tsx|jsx)$': 'ts-jest',
