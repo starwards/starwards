@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import $ from 'jquery';
+import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
 import { damageReportWidget } from '../widgets/damage-report';
@@ -61,7 +62,7 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
         // load and auto save layout by name
         const layoutStorageKey = 'layout:' + layout;
         const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
-        dashboard = new Dashboard(JSON.parse(layoutStr, reviver), $('#layoutContainer'), $('#menuContainer'));
+        dashboard = new Dashboard(JSON.parse(layoutStr, reviver) as Config, $('#layoutContainer'), $('#menuContainer'));
         let canSaveState = true;
         dashboard.on('stateChanged', function () {
             if (canSaveState && dashboard.isInitialised) {
