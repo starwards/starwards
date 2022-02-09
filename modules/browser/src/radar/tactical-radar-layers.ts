@@ -38,16 +38,20 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
 }
 export function speedLines(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new Container();
-    const targetLineLayer = new LineLayer(root, () => [shipState.position, shipTarget.getSingle()?.position], [
-        2,
-        selectionColor,
-        0.5,
-    ]);
+    const targetLineLayer = new LineLayer(root, () => [shipState.position, shipTarget.getSingle()?.position], {
+        width: 2,
+        color: selectionColor,
+        alpha: 0.5,
+    });
     root.addLayer(targetLineLayer.renderRoot);
     const speedLineLayer = new LineLayer(
         root,
         () => [shipState.position, XY.add(shipState.position, shipState.velocity)],
-        [2, 0x26fd9a, 0.5]
+        {
+            width: 2,
+            color: 0x26fd9a,
+            alpha: 0.5,
+        }
     );
     const targetSpeedLineLayer = new LineLayer(
         root,
@@ -58,7 +62,11 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
                 target && XY.add(shipState.position, XY.difference(shipState.velocity, target.velocity)),
             ];
         },
-        [2, 0x26cbcb, 0.5]
+        {
+            width: 2,
+            color: 0x26cbcb,
+            alpha: 0.5,
+        }
     );
     stage.addChild(speedLineLayer.renderRoot);
     stage.addChild(targetSpeedLineLayer.renderRoot);

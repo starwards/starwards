@@ -14,8 +14,11 @@ import { targetRadarWidget } from '../widgets/target-radar';
 import { wireSinglePilotInput } from '../input/wiring';
 
 // enable pixi dev-tools
-// https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
-window.PIXI = PIXI;
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+//@ts-ignore
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
+
 const driver = new Driver();
 
 const urlParams = new URLSearchParams(window.location.search);
