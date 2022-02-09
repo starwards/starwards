@@ -8,7 +8,7 @@ module.exports = merge(common, {
         // index: '',
         hot: false,
         port: 80,
-        disableHostCheck: true,
+        allowedHosts: 'all',
         // contentBase: ''
         proxy: {
             '/api': {
