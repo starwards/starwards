@@ -12,6 +12,7 @@ import { MqttClient } from './messaging/mqtt-client';
 import { ShipRoom } from './ship/room';
 import { ShipStateMessenger } from './messaging/ship-state-messenger';
 import { SpaceRoom } from './space/room';
+import { WebSocketTransport } from '@colyseus/ws-transport';
 import { monitor } from '@colyseus/monitor';
 
 import express = require('express');
@@ -26,7 +27,7 @@ process.on('uncaughtException', function (err) {
 export async function server(port: number, staticDir: string, mqttUrl = 'http://localhost', mqttPort = 1883) {
     const app = express();
     app.use(express.json() as express.RequestHandler);
-    const gameServer = new Server({ server: http.createServer(app) });
+    const gameServer = new Server({ transport: new WebSocketTransport({ server: http.createServer(app) }) });
 
     gameServer.define('space', SpaceRoom);
     gameServer.define('admin', AdminRoom);

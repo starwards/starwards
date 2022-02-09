@@ -1,5 +1,4 @@
 import { Container } from 'golden-layout';
-import { Dictionary } from 'lodash';
 import { DriverNumericApi } from './driver';
 import { EmitterLoop } from './loop';
 import { GUI } from 'dat.gui';
@@ -13,9 +12,9 @@ export interface Panel {
     addProperty(name: string, property: DriverNumericApi): this;
     addText(name: string, property: TextProperty): this;
 }
-
+type ViewModel = Record<string, number | string>;
 export class PropertyPanel implements Panel {
-    private rootViewModel: Dictionary<number | string> = {};
+    private rootViewModel: ViewModel = {};
     private rootGui = new GUI({ autoPlace: false, hideable: false });
     private viewLoop = new EmitterLoop();
     init(container: Container) {
@@ -28,12 +27,7 @@ export class PropertyPanel implements Panel {
         this.viewLoop.stop();
     }
 
-    private contextAddProperty(
-        guiFolder: GUI,
-        viewModel: Dictionary<number | string>,
-        name: string,
-        property: DriverNumericApi
-    ) {
+    private contextAddProperty(guiFolder: GUI, viewModel: ViewModel, name: string, property: DriverNumericApi) {
         const { getValue, range, setValue } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name, ...range);
@@ -47,7 +41,7 @@ export class PropertyPanel implements Panel {
         guiController.onChange(setValue);
     }
 
-    contextAddText(guiFolder: GUI, viewModel: Dictionary<number | string>, name: string, property: TextProperty) {
+    contextAddText(guiFolder: GUI, viewModel: ViewModel, name: string, property: TextProperty) {
         const { getValue, setValue } = property;
         viewModel[name] = getValue();
         const guiController = guiFolder.add(viewModel, name);
@@ -71,7 +65,7 @@ export class PropertyPanel implements Panel {
     addFolder(folderName: string): Panel {
         const guiFolder = this.rootGui.addFolder(folderName);
         guiFolder.open();
-        const folderViewModel: Dictionary<number | string> = {};
+        const folderViewModel: ViewModel = {};
         const folder: Panel = {
             addProperty: (name: string, property: DriverNumericApi) => {
                 this.contextAddProperty(guiFolder, folderViewModel, name, property);
