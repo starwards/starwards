@@ -1,6 +1,6 @@
-import { ShipState, ShipSystem } from './';
-
 import { ShipDirection } from './ship-direction';
+import { ShipState } from '.';
+import { ShipSystem } from './ship-system';
 import { getConstant } from '../utils';
 import { type } from '@colyseus/schema';
 
