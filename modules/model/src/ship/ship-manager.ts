@@ -103,6 +103,7 @@ function makeShipState(id: string) {
     state.health.frontHealth = 1000;
     state.health.rearHealth = 1000;
     state.armour = new Armour();
+    state.armour.constants = new MapSchema<number>();
     setConstant(state.armour, 'numberOfPlates', 360);
     setConstant(state.armour, 'plateDestructionProbability', 0.5);
     return state;
