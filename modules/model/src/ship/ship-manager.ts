@@ -48,6 +48,7 @@ function makeThruster(angle: ShipDirection): Thruster {
     setConstant(thruster, 'speedFactor', 3);
     setConstant(thruster, 'afterBurnerCapacity', 300);
     setConstant(thruster, 'afterBurnerEffectFactor', 1);
+    setConstant(thruster, 'damageProbability', 0.4);
     if (angle === ShipDirection.FWD) {
         thruster.damageArea = ShipAreas.front;
     } else {
@@ -94,6 +95,7 @@ function makeShipState(id: string) {
     setConstant(state.chainGun, 'explosionExpansionSpeed', 40);
     setConstant(state.chainGun, 'explosionDamageFactor', 20);
     setConstant(state.chainGun, 'explosionBlastFactor', 1);
+    setConstant(state.chainGun, 'damageProbability', 0.3);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
     state.health = new ShipHealth();
@@ -166,7 +168,9 @@ export class ShipManager {
     }
 
     public chainGun(isFiring: boolean) {
-        this.state.chainGun.isFiring = isFiring;
+        if (!this.state.chainGun.broken) {
+            this.state.chainGun.isFiring = isFiring;
+        }
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
@@ -605,7 +609,7 @@ export class ShipManager {
 
     private fireChainGun() {
         const chaingun = this.state.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0) {
+        if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken) {
             chaingun.cooldown += 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 

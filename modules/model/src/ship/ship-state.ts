@@ -86,8 +86,10 @@ export class Armour extends Schema {
 
     modifyRangeByMask(mask: BitSet, start = 0) {
         const bitState = this.platesBitSate;
-        for (let i = start; i <= start + mask.msb(); i++) {
-            bitState.set(i, mask.get(i - start) | bitState.get(i));
+        let i = start;
+        for (const plateState of mask) {
+            bitState.set(i, plateState | bitState.get(i));
+            i++;
         }
         this.platesBitState = bitState;
     }
