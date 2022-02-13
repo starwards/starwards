@@ -22,9 +22,11 @@ import {
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '..';
+import { ShipAreas, ShipSystem } from './ship-system';
 
+import { Armour } from './ship-state';
+import { BitSet } from 'bitset';
 import { Bot } from '../logic/bot';
-import { ShipAreas } from './ship-system';
 import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
@@ -100,7 +102,9 @@ function makeShipState(id: string) {
     setConstant(state.health, 'maxRearHealth', 1000);
     state.health.frontHealth = 1000;
     state.health.rearHealth = 1000;
-    state.armour = new Array<boolean>(360).fill(true);
+    state.armour = new Armour();
+    setConstant(state.armour, 'numberOfPlates', 360);
+    setConstant(state.armour, 'plateDestructionProbability', 0.5);
     return state;
 }
 
@@ -108,7 +112,7 @@ export function resetShipState(state: ShipState) {
     state.health.frontHealth = state.health.maxFrontHealth;
     state.health.rearHealth = state.health.maxRearHealth;
     state.energy = state.maxEnergy;
-    state.armour.fill(true);
+    state.armour.resetArmour();
     state.chainGun.broken = false;
     for (const thruster of state.thrusters) {
         thruster.broken = false;
@@ -121,13 +125,10 @@ export class ShipManager {
     private target: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
-    private frontSystems: (Thruster | ChainGun)[] = [
-        this.state.chainGun,
-        this.state.thrusters[0],
-        this.state.thrusters[1],
-    ];
-
-    private rearSystems = [this.state.thrusters[2], this.state.thrusters[3], this.state.thrusters[4]];
+    private systemsByAreas = new Map<number, ShipSystem[]>([
+        [ShipAreas.front, [this.state.chainGun]],
+        [ShipAreas.rear, this.state.thrusters.toArray()],
+    ]);
 
     constructor(
         public spaceObject: Spaceship,
@@ -268,16 +269,69 @@ export class ShipManager {
 
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
-            // temporarily we just reduce health.
-            const local = this.state.globalToLocal(XY.difference(damage.position, this.spaceObject.position));
-            if (XY.angleOf(local) < 180) {
-                this.frontSystems[Math.floor(Math.random() * this.frontSystems.length)].broken = true;
-                // this.state.health.frontHealth -= damage.amount;
-            } else {
-                this.rearSystems[Math.floor(Math.random() * this.rearSystems.length)].broken = true;
-                // this.state.health.rearHealth -= damage.amount;
+            const localDamageArc = [
+                this.state.globalToLocal(XY.difference(damage.damageBoundries[0], this.spaceObject.position)),
+                this.state.globalToLocal(XY.difference(damage.damageBoundries[1], this.spaceObject.position)),
+            ];
+            const hitRanges: [number, number][] =
+                XY.angleOf(localDamageArc[0]) > XY.angleOf(localDamageArc[1])
+                    ? [[XY.angleOf(localDamageArc[0]), XY.angleOf(localDamageArc[1])]]
+                    : [
+                          [0, XY.angleOf(localDamageArc[0])],
+                          [XY.angleOf(localDamageArc[1]), 359],
+                      ];
+            for (const hitRange of hitRanges) {
+                const hitMask = this.generateHitMask(hitRange[1] - hitRange[0]);
+                // first we check which of the hits penetrated through already broken armour
+                const unarmouredHits = this.calculateUnarmouredHits(hitMask, hitRange[0]);
+                unarmouredHits.forEach((hits, area) => {
+                    if (hits > 0) {
+                        const areaSystems = this.systemsByAreas.get(area);
+                        if (areaSystems) {
+                            for (let i = 0; i < hits; i++) {
+                                areaSystems[Math.floor(Math.random() * areaSystems.length)].damageSystem();
+                            }
+                        }
+                    }
+                });
+                // and now we hit the intact armour
+                this.state.armour.modifyRangeByMask(hitMask, hitRange[0]);
             }
         }
+    }
+
+    // method generates pseudo-random hits per area. Each 1 in the BitSet signifies a destroyed plate
+    private generateHitMask(size: number): BitSet {
+        const hitMask = new BitSet();
+        for (let i = 0; i < size; i++) {
+            if (Math.random() >= this.state.armour.plateDestructionProbability) {
+                hitMask.set(i, 1);
+            }
+        }
+        return hitMask;
+    }
+
+    // Method checks which of the hits in the given hitMask occured in area unshielded by armour
+    private calculateUnarmouredHits(hitMask: BitSet, start = 0): Map<ShipAreas, number> {
+        const numberOfAreas = Object.keys(ShipAreas).length / 2;
+        const platesPerArea = Math.floor(this.state.armour.numberOfPlates / numberOfAreas);
+        const hitMap = new Map<ShipAreas, number>();
+        Array.from(this.systemsByAreas.keys()).forEach((area, i) => {
+            if (start > platesPerArea * i) {
+                hitMap.set(area, 0);
+            } else {
+                const relevantMask = hitMask.slice(
+                    start - (i + 1) * platesPerArea,
+                    Math.min(hitMask.msb(), start - (i + 2) * platesPerArea)
+                );
+                const relevantPlates = this.state.armour.platesBitSate.slice(
+                    start + i * platesPerArea,
+                    start + (i + 1) * platesPerArea
+                );
+                hitMap.set(area, relevantPlates.and(relevantMask).cardinality());
+            }
+        });
+        return hitMap;
     }
 
     private handleAfterburnerCommand() {
