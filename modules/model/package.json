@@ -12,6 +12,6 @@
     "dependencies": {
         "eventemitter3": "^4.0.7",
         "nanoid": "^3.2.0",
-        "bitset": "5.1.1"
+        "normal-distribution": "^1.1.1"
     }
 }

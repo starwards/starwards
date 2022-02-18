@@ -2,7 +2,7 @@ import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 import { ShipAreas, ShipSystem } from './ship-system';
 import { Spaceship, Vec2 } from '../space';
 
-import { BitSet } from 'bitset';
+import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
@@ -56,44 +56,6 @@ export class ShipHealth extends Schema {
         return getConstant(this.constants, 'maxRearHealth');
     }
 }
-
-export class Armour extends Schema {
-    @type('string')
-    platesState = '';
-
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
-
-    get numberOfPlates(): number {
-        return getConstant(this.constants, 'numberOfPlates');
-    }
-
-    get plateDestructionProbability(): number {
-        return getConstant(this.constants, 'plateDestructionProbability');
-    }
-
-    get platesBitSate(): BitSet {
-        return BitSet.fromHexString(this.platesState);
-    }
-
-    set platesBitState(plateState: BitSet) {
-        this.platesState = plateState.toString(16);
-    }
-
-    resetArmour() {
-        this.platesState = '';
-    }
-
-    modifyRangeByMask(mask: BitSet, start = 0) {
-        const bitState = this.platesBitSate;
-        let i = start;
-        for (const plateState of mask) {
-            bitState.set(i, plateState | bitState.get(i));
-            i++;
-        }
-        this.platesBitState = bitState;
-    }
-}
 export class ShipState extends Spaceship {
     @type({ map: 'float32' })
     constants!: MapSchema<number>;
@@ -131,8 +93,8 @@ export class ShipState extends Spaceship {
     @type('int8')
     targeted = TargetedStatus.NONE;
 
-    @type(Armour)
-    armour!: Armour;
+    @type(Armor)
+    armor!: Armor;
 
     // server only, used for commands
     public afterBurnerCommand = 0;

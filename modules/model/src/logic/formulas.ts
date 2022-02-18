@@ -41,8 +41,8 @@ export function gaussianRandom(mean: number, stdev: number): number {
 export function normalMarsagliaRandomPair(mean = 0.0, stdev = 1.0): [number, number] {
     let u, v, s: number;
     do {
-        u = Math.random();
-        v = Math.random();
+        u = Math.random() * 2 - 1;
+        v = Math.random() * 2 - 1;
         s = u * u + v * v;
     } while (s === 0 || s >= 1);
 
@@ -72,6 +72,11 @@ export function skewNormalRandom(location: number, scale: number, shape = 0.0): 
     return location + scale * z;
 }
 
+/**
+ * The method calculates the two intersection points between circles with given centres and given radii.
+ * It returns the points in the order that the arc for circle0 is from the first to the second returned point.
+ * The arc for circle1 is from the second to the first intersection point
+ */
 export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: number): [XY, XY] | undefined {
     const dx = centre1.x - centre1.x;
     const dy = centre1.y - centre0.y;
@@ -100,6 +105,14 @@ export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: nu
     // i0 and i1 are the intersection points
     const i0 = { x: p2.x + ox, y: p2.y + oy };
     const i1 = { x: p2.x - ox, y: p2.y - oy };
+
+    if (
+        (centre1.x > centre0.x && i0.y > i1.y) ||
+        (centre0.x > centre1.x && i1.y > i0.y) ||
+        (centre0.x === centre1.x && ((centre1.y > centre0.y && i1.x > i0.x) || (centre0.y > centre1.y && i0.x > i1.x)))
+    ) {
+        return [i1, i0];
+    }
 
     return [i0, i1];
 }

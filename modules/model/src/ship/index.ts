@@ -1,3 +1,4 @@
+export * from './armor';
 export * from './ship-state';
 export * from './chain-gun';
 export * from './ship-manager';

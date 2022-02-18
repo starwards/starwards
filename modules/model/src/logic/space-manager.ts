@@ -9,8 +9,8 @@ const GC_TIMEOUT = 5;
 
 type Damage = {
     amount: number;
-    explosionCentre: XY;
-    damageBoundries: [XY, XY];
+    damageSurfaceArcs: [number, number][];
+    damageDuration: number;
 };
 
 export class SpaceManager {
@@ -247,14 +247,36 @@ export class SpaceManager {
                 explosion.radius
             );
             if (damageBoundries) {
+                const shipLocalDamageBoundries: [XY, XY] = [
+                    object.globalToLocal(XY.difference(damageBoundries[0], object.position)),
+                    object.globalToLocal(XY.difference(damageBoundries[1], object.position)),
+                ];
+                const shipLocalDamageAngles: [number, number] = [
+                    XY.angleOf(shipLocalDamageBoundries[0]),
+                    XY.angleOf(shipLocalDamageBoundries[1]),
+                ];
+                // since circlesIntersection gives the arc from first to second member, we can know
+                // that if shipLocalDamageAngles[1] > shipLocalDamageAngles[0] the arc passes through 0
+                // in that case we want to split it to [0, shipLocalDamage[0]], [shipLocalDamage[1], 364]
+                const normalizedLocalDamageArc: [number, number][] =
+                    shipLocalDamageAngles[1] > shipLocalDamageAngles[0]
+                        ? [
+                              [0, shipLocalDamageAngles[1]],
+                              [shipLocalDamageAngles[0], 364],
+                          ]
+                        : [[shipLocalDamageAngles[0], shipLocalDamageAngles[1]]];
                 this.addDamageToObject(object, {
                     amount: damageAmount,
-                    explosionCentre: explosion.position,
-                    damageBoundries: damageBoundries,
+                    damageSurfaceArcs: normalizedLocalDamageArc,
+                    damageDuration: deltaSeconds,
                 });
             } else {
                 // eslint-disable-next-line no-console
-                console.error(`unexpected undefined intersection between explosion and object.`);
+                console.error(`unexpected undefined intersection between explosion and object.
+                object data: centre: ${JSON.stringify(object.position)} radius: ${JSON.stringify(object.radius)}
+                explosion data: centre: ${JSON.stringify(explosion.position)} radius: ${JSON.stringify(
+                    explosion.radius
+                )}`);
             }
         } else {
             object.health -= damageAmount;
