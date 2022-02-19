@@ -28,7 +28,7 @@ export class Objects3D {
                     skybox.trackRotation = false;
                     this.makeGraphics(spaceObject.id, spaceObject, this.meshes.pov(spaceObject.id));
                 } else {
-                    let mesh: TransformNode;
+                    let mesh: TransformNode | null = null;
                     switch (spaceObject.type) {
                         case 'Spaceship':
                             {
@@ -45,10 +45,10 @@ export class Objects3D {
                         case 'CannonShell':
                             mesh = this.meshes.cannonShell(spaceObject.id, spaceObject.radius);
                             break;
-                        default:
-                            return;
                     }
-                    this.makeGraphics(spaceObject.id, spaceObject, mesh);
+                    if (mesh) {
+                        this.makeGraphics(spaceObject.id, spaceObject, mesh);
+                    }
                 }
             } catch (e) {
                 // eslint-disable-next-line no-console

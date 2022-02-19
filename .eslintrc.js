@@ -22,7 +22,6 @@ module.exports = {
         'react-hooks/exhaustive-deps': 'error',
         'react/prop-types': 'off',
         'prettier/prettier': 'error',
-        'init-declarations': ['error', 'always'],
     },
     overrides: [
         {
@@ -51,6 +50,9 @@ module.exports = {
                         functions: 'never',
                     },
                 ],
+                // note you must disable the base rule as it can report incorrect errors
+                'init-declarations': 'off',
+                '@typescript-eslint/init-declarations': ['error', 'always'],
             },
         },
     ],

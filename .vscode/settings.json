@@ -16,5 +16,6 @@
         "maulingmonkey",
         "nortend",
         "skybox"
-    ]
+    ],
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
