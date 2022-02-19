@@ -22,6 +22,7 @@ module.exports = {
         'react-hooks/exhaustive-deps': 'error',
         'react/prop-types': 'off',
         'prettier/prettier': 'error',
+        'init-declarations': ['error', 'always'],
     },
     overrides: [
         {
