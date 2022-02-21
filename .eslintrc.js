@@ -50,6 +50,9 @@ module.exports = {
                         functions: 'never',
                     },
                 ],
+                // note you must disable the base rule as it can report incorrect errors
+                'init-declarations': 'off',
+                '@typescript-eslint/init-declarations': ['error', 'always'],
             },
         },
     ],

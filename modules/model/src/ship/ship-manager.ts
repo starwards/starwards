@@ -267,10 +267,10 @@ export class ShipManager {
     }
 
     private calcSmartPilotManeuvering(deltaSeconds: number) {
-        let maneuveringCommand: ManeuveringCommand;
         if (this.state.smartPilot.broken && this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT) {
             return;
         }
+        let maneuveringCommand: ManeuveringCommand | undefined = undefined;
         switch (this.state.smartPilot.maneuveringMode) {
             case SmartPilotMode.DIRECT: {
                 maneuveringCommand = {
@@ -300,7 +300,7 @@ export class ShipManager {
 
     private calcShellRange() {
         const aimRange = (this.state.chainGun.maxShellRange - this.state.chainGun.minShellRange) / 2;
-        let baseRange: number;
+        let baseRange: number | undefined = undefined;
         switch (this.state.chainGun.shellRangeMode) {
             case SmartPilotMode.DIRECT:
                 baseRange = this.state.chainGun.minShellRange + aimRange;
@@ -325,7 +325,7 @@ export class ShipManager {
     }
 
     private calcSmartPilotRotation(deltaSeconds: number) {
-        let rotationCommand: number;
+        let rotationCommand: number | undefined = undefined;
         switch (this.state.smartPilot.rotationMode) {
             case SmartPilotMode.DIRECT:
                 rotationCommand = this.state.smartPilot.rotation;

@@ -1,6 +1,6 @@
 import '@arwes/core';
 declare module '@arwes/core' {
-    export const FrameCorners: import('react').ForwardRefExoticComponent<
+    declare const FrameCorners: import('react').ForwardRefExoticComponent<
         Pick<
             FrameCornersProps<unknown> &
                 import('@arwes/animation/lib/withAnimator/withAnimator').WithAnimatorInputProps,

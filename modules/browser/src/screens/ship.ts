@@ -55,14 +55,17 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
 
 function makeDashboard(shipId: string, layout: string | null): Dashboard {
     const shipIdPlaceHolder = '< ship id >';
-    let dashboard: Dashboard;
     if (layout) {
         const reviver = (_: unknown, val: unknown) => (val === shipIdPlaceHolder ? shipId : val);
         const replacer = (_: unknown, val: unknown) => (val === shipId ? shipIdPlaceHolder : val);
         // load and auto save layout by name
         const layoutStorageKey = 'layout:' + layout;
         const layoutStr = localStorage.getItem(layoutStorageKey) || JSON.stringify({ content: [] });
-        dashboard = new Dashboard(JSON.parse(layoutStr, reviver) as Config, $('#layoutContainer'), $('#menuContainer'));
+        const dashboard = new Dashboard(
+            JSON.parse(layoutStr, reviver) as Config,
+            $('#layoutContainer'),
+            $('#menuContainer')
+        );
         let canSaveState = true;
         dashboard.on('stateChanged', function () {
             if (canSaveState && dashboard.isInitialised) {
@@ -74,9 +77,9 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
                 }
             }
         });
+        return dashboard;
     } else {
         // anonymous screen
-        dashboard = new Dashboard({ content: [] }, $('#layoutContainer'), $('#menuContainer'));
+        return new Dashboard({ content: [] }, $('#layoutContainer'), $('#menuContainer'));
     }
-    return dashboard;
 }
