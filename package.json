@@ -33,7 +33,7 @@
         ]
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.32",
+        "@colyseus/schema": "^1.0.34",
         "tslib": "^2.3.1"
     },
     "devDependencies": {
