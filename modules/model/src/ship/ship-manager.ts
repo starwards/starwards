@@ -18,6 +18,7 @@ import {
     capToRange,
     gaussianRandom,
     lerp,
+    limitPercision,
     matchLocalSpeed,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
@@ -105,7 +106,7 @@ function makeShipState(id: string) {
     setConstant(state.health, 'maxRearHealth', 1000);
     state.health.frontHealth = 1000;
     state.health.rearHealth = 1000;
-    state.armor = new Armor(360);
+    state.armor = new Armor(2);
     return state;
 }
 
@@ -150,7 +151,7 @@ export class ShipManager {
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET
         );
-        this.degreesPerArea = Math.round((shipAreas / 360 + Number.EPSILON) * 1000) / 1000;
+        this.degreesPerArea = limitPercision(360 / shipAreas);
     }
 
     // used by smartPilot

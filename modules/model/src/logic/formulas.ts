@@ -57,22 +57,6 @@ export function normalMarsagliaRandom(mean = 0.0, stdev = 1.0): number {
 }
 
 /**
- * generates a random number with a skew normal distribution.
- * location correlates to mean, scale correlates to standard deviation and shape is the parameter for skewness.
- * for further information start here: https://en.wikipedia.org/wiki/Skew_normal_distribution
- */
-export function skewNormalRandom(location: number, scale: number, shape = 0.0): number {
-    if (shape === 0.0) {
-        return normalMarsagliaRandom(location, scale);
-    }
-    const [u0, v] = normalMarsagliaRandomPair();
-    const delta = shape / Math.sqrt(1 + shape * shape);
-    const u1 = delta * u0 + Math.sqrt(1 - delta * delta) * v;
-    const z = u0 >= 0 ? u1 : -u1;
-    return location + scale * z;
-}
-
-/**
  * The method calculates the two intersection points between circles with given centres and given radii.
  * It returns the points in the order that the arc for circle0 is from the first to the second returned point.
  * The arc for circle1 is from the second to the first intersection point

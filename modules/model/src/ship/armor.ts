@@ -89,6 +89,8 @@ export class Armor extends Schema {
         for (const plate of this.armorPlates.slice(hitPlatesRange[0], hitPlatesRange[1])) {
             if (!plate.broken) {
                 plate.health -= damageFactor * normalMarsagliaRandom(20, 4);
+                // eslint-disable-next-line no-console
+                console.log(`plate hit curHealth = ${plate.health}`);
                 if (plate.health <= 0) {
                     plate.broken = true;
                 }

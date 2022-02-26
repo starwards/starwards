@@ -262,7 +262,7 @@ export class SpaceManager {
                     shipLocalDamageAngles[1] > shipLocalDamageAngles[0]
                         ? [
                               [0, shipLocalDamageAngles[1]],
-                              [shipLocalDamageAngles[0], 364],
+                              [shipLocalDamageAngles[0], 360],
                           ]
                         : [[shipLocalDamageAngles[0], shipLocalDamageAngles[1]]];
                 this.addDamageToObject(object, {
