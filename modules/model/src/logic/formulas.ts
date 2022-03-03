@@ -39,7 +39,9 @@ export function gaussianRandom(mean: number, stdev: number): number {
 
 // generanes a random number with normal distribution using the Marsaglia polar method
 export function normalMarsagliaRandomPair(mean = 0.0, stdev = 1.0): [number, number] {
-    let u, v, s: number;
+    let u = 0;
+    let v = 0;
+    let s = 0;
     do {
         u = Math.random() * 2 - 1;
         v = Math.random() * 2 - 1;
@@ -62,13 +64,17 @@ export function normalMarsagliaRandom(mean = 0.0, stdev = 1.0): number {
  * The arc for circle1 is from the second to the first intersection point
  */
 export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: number): [XY, XY] | undefined {
-    const dx = centre1.x - centre1.x;
+    const dx = centre1.x - centre0.x;
     const dy = centre1.y - centre0.y;
 
     const distance = Math.sqrt(dy * dy + dx * dx);
 
     // check whether the cirles do not intersect of one is completely confined within another
     if (distance > r0 + r1 || distance < Math.abs(r0 - r1)) {
+        // eslint-disable-next-line no-console
+        console.log(
+            `no intersection distance: ${distance}, (x0, y0): ${centre0.x}, ${centre0.y}, r0 = ${r0}, (x1, y1): ${centre1.x}, ${centre1.y}, r1 = ${r1}`
+        );
         return undefined;
     }
 

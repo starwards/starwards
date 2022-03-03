@@ -1,3 +1,4 @@
+import { Armor, ArmorPlate } from './armor';
 import { ArraySchema, MapSchema } from '@colyseus/schema';
 import {
     CannonShell,
@@ -20,16 +21,16 @@ import {
     lerp,
     limitPercision,
     matchLocalSpeed,
+    normalMarsagliaRandom,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '..';
+import { Damage, SpaceManager } from '../logic/space-manager';
 import { ShipAreas, ShipSystem } from './ship-system';
 
-import { Armor } from './armor';
 import { Bot } from '../logic/bot';
-import { ShipAreas } from './ship-system';
+import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
-import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
@@ -50,12 +51,37 @@ function makeThruster(angle: ShipDirection): Thruster {
     setConstant(thruster, 'afterBurnerCapacity', 300);
     setConstant(thruster, 'afterBurnerEffectFactor', 1);
     setConstant(thruster, 'damageProbability', 0.4);
+    setConstant(thruster, 'dps50', 250);
     if (angle === ShipDirection.FWD) {
         thruster.damageArea = ShipAreas.front;
     } else {
         thruster.damageArea = ShipAreas.rear;
     }
     return thruster;
+}
+
+function makeArmor(numberOfPlates = 360, plateMaxHealth = 200, healRate = 3.33): Armor {
+    const armor = new Armor();
+    armor.armorPlates = new ArraySchema<ArmorPlate>();
+    armor.constants = new MapSchema<number>();
+    setConstant(armor, 'numberOfPlates', numberOfPlates);
+    setConstant(armor, 'healRate', healRate);
+    setConstant(armor, 'plateMaxHealth', plateMaxHealth);
+    const degreesPerPlate = limitPercision(360 / numberOfPlates);
+    setConstant(armor, 'degreesPerPlate', degreesPerPlate);
+    for (let i = 0; i < numberOfPlates; i++) {
+        const plate = new ArmorPlate();
+        plate.health = plateMaxHealth;
+        armor.armorPlates.push(plate);
+    }
+    return armor;
+}
+
+export function fixArmor(armor: Armor) {
+    const plateMaxHealth = armor.plateMaxHealth;
+    for (const plate of armor.armorPlates) {
+        plate.health = plateMaxHealth;
+    }
 }
 function makeShipState(id: string) {
     const state = new ShipState();
@@ -97,7 +123,7 @@ function makeShipState(id: string) {
     setConstant(state.chainGun, 'explosionExpansionSpeed', 40);
     setConstant(state.chainGun, 'explosionDamageFactor', 20);
     setConstant(state.chainGun, 'explosionBlastFactor', 1);
-    setConstant(state.chainGun, 'damageProbability', 0.3);
+    setConstant(state.chainGun, 'dps50', 300);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
     state.health = new ShipHealth();
@@ -106,7 +132,7 @@ function makeShipState(id: string) {
     setConstant(state.health, 'maxRearHealth', 1000);
     state.health.frontHealth = 1000;
     state.health.rearHealth = 1000;
-    state.armor = new Armor(2);
+    state.armor = makeArmor(2);
     return state;
 }
 
@@ -114,7 +140,7 @@ export function resetShipState(state: ShipState) {
     state.health.frontHealth = state.health.maxFrontHealth;
     state.health.rearHealth = state.health.maxRearHealth;
     state.energy = state.maxEnergy;
-    state.armor.fixAllPlates();
+    fixArmor(state.armor);
     state.chainGun.broken = false;
     for (const thruster of state.thrusters) {
         thruster.broken = false;
@@ -243,7 +269,7 @@ export class ShipManager {
     }
 
     update(deltaSeconds: number) {
-        this.state.armor.healPlates(deltaSeconds);
+        this.healPlates(deltaSeconds);
         this.handleDamage();
         if (this.state.health.frontHealth <= 0 || this.state.health.rearHealth <= 0) {
             this.onDestroy && this.onDestroy();
@@ -275,25 +301,75 @@ export class ShipManager {
         }
     }
 
+    private healPlates(deltaSeconds: number) {
+        for (const plate of this.state.armor.armorPlates) {
+            if (plate.health > 0 && plate.health < this.state.armor.plateMaxHealth) {
+                plate.health = Math.min(
+                    plate.health + this.state.armor.healRate * deltaSeconds,
+                    this.state.armor.plateMaxHealth
+                );
+            }
+        }
+    }
+
+    private getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
+        const hitPlatesRange = [
+            Math.floor(hitRange[0] / this.state.armor.degreesPerPlate),
+            Math.ceil(hitRange[1] / this.state.armor.degreesPerPlate),
+        ];
+        let brokenPlates = 0;
+        for (const plate of this.state.armor.armorPlates.slice(hitPlatesRange[0], hitPlatesRange[1])) {
+            if (plate.health <= 0) {
+                brokenPlates++;
+            }
+        }
+        return brokenPlates;
+    }
+
+    private applyDamageToArmor(damageFactor: number, hitRange: [number, number]) {
+        const hitPlatesRange = [
+            Math.floor(hitRange[0] / this.state.armor.degreesPerPlate),
+            Math.max(Math.floor(hitRange[1] / this.state.armor.degreesPerPlate), this.state.armor.numberOfPlates),
+        ];
+        for (const plate of this.state.armor.armorPlates.slice(hitPlatesRange[0], hitPlatesRange[1])) {
+            if (plate.health > 0) {
+                plate.health -= damageFactor * normalMarsagliaRandom(20, 4);
+            }
+        }
+    }
+
+    private damageSystem(system: ShipSystem, damageObject: Damage, hits = 1) {
+        if (system.broken) {
+            return;
+        }
+        const dps50 = system.dps50;
+        const dist = new NormalDistribution(dps50, dps50 / 2);
+        const destructionProbability = dist.cdf(damageObject.amount / damageObject.damageDurationSeconds);
+        for (let i = 0; i < hits; i++) {
+            if (Math.random() < destructionProbability) {
+                system.broken = true;
+                break;
+            }
+        }
+    }
+
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
             for (const hitRange of damage.damageSurfaceArcs) {
-                let areaHitRange: [number, number];
-                let areaUnarmoredHits: number;
                 for (let i = 0; i < this.shipAreas; i++) {
                     if (
                         Math.floor(hitRange[0] / this.degreesPerArea) <= i &&
                         Math.ceil(hitRange[1] / this.degreesPerArea) >= i
                     ) {
-                        areaHitRange = [
+                        const areaHitRange: [number, number] = [
                             Math.max(hitRange[0], i * this.degreesPerArea),
                             Math.min(hitRange[1], (i + 1) * this.degreesPerArea),
                         ];
-                        areaUnarmoredHits = this.state.armor.getNumberOfBrokenPlatesInRange(areaHitRange);
+                        const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRange);
                         for (const system of this.systemsByAreas.get(i) || []) {
-                            system.damageSystem(damage.amount, damage.damageDuration, areaUnarmoredHits);
+                            this.damageSystem(system, damage, areaUnarmoredHits);
                         }
-                        this.state.armor.applyDamageToArmor(damage.amount, areaHitRange);
+                        this.applyDamageToArmor(damage.amount, areaHitRange);
                     }
                 }
             }

@@ -7,10 +7,10 @@ import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 
-type Damage = {
+export type Damage = {
     amount: number;
     damageSurfaceArcs: [number, number][];
-    damageDuration: number;
+    damageDurationSeconds: number;
 };
 
 export class SpaceManager {
@@ -257,7 +257,7 @@ export class SpaceManager {
                 ];
                 // since circlesIntersection gives the arc from first to second member, we can know
                 // that if shipLocalDamageAngles[1] > shipLocalDamageAngles[0] the arc passes through 0
-                // in that case we want to split it to [0, shipLocalDamage[0]], [shipLocalDamage[1], 364]
+                // in that case we want to split it to [0, shipLocalDamage[0]], [shipLocalDamage[1], 360]
                 const normalizedLocalDamageArc: [number, number][] =
                     shipLocalDamageAngles[1] > shipLocalDamageAngles[0]
                         ? [
@@ -268,7 +268,7 @@ export class SpaceManager {
                 this.addDamageToObject(object, {
                     amount: damageAmount,
                     damageSurfaceArcs: normalizedLocalDamageArc,
-                    damageDuration: deltaSeconds,
+                    damageDurationSeconds: deltaSeconds,
                 });
             } else {
                 // eslint-disable-next-line no-console
