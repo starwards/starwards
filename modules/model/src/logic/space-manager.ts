@@ -1,5 +1,5 @@
-import { Body, Circle, Collisions, Result } from 'detect-collisions';
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { Circle, Response, System, TBody } from 'detect-collisions';
 
 import { Spaceship } from '../space';
 import { uniqueId } from '../id';
@@ -13,8 +13,8 @@ type Damage = {
 
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
-    public collisions = new Collisions();
-    private collisionToState = new WeakMap<Body, SpaceObject>();
+    public collisions = new System();
+    private collisionToState = new WeakMap<TBody, SpaceObject>();
     public stateToCollision = new WeakMap<SpaceObject, Circle>();
     private objectDamage = new WeakMap<SpaceObject, Damage[]>();
     private toInsert: SpaceObject[] = [];
@@ -149,7 +149,10 @@ export class SpaceManager {
             this.gc();
             for (const object of this.toInsert) {
                 this.state.set(object);
-                const body = this.collisions.createCircle(object.position.x, object.position.y, object.radius);
+                const body = this.collisions.createCircle(
+                    { x: object.position.x, y: object.position.y },
+                    object.radius
+                );
                 this.collisionToState.set(body, object);
                 this.stateToCollision.set(object, body);
             }
@@ -179,7 +182,7 @@ export class SpaceManager {
         }
     }
 
-    private resolveCollision(object: SpaceObject, otherObject: SpaceObject, result: Result, deltaSeconds: number) {
+    private resolveCollision(object: SpaceObject, otherObject: SpaceObject, result: Response, deltaSeconds: number) {
         if (CannonShell.isInstance(object)) {
             this.explodeCannonShell(object);
         } else if (!Explosion.isInstance(object)) {
@@ -198,10 +201,10 @@ export class SpaceManager {
         this.insert(explosion);
     }
 
-    private resolveCrash(object: SpaceObject, result: Result, deltaSeconds: number) {
+    private resolveCrash(object: SpaceObject, result: Response, deltaSeconds: number) {
         const collisionVector = {
-            x: -(result.overlap * result.overlap_x) / 2,
-            y: -(result.overlap * result.overlap_y) / 2,
+            x: -(result.overlap * result.overlapV.x) / 2,
+            y: -(result.overlap * result.overlapV.y) / 2,
         };
         const elasticityFactor = 0.05; // how much velocity created
         Vec2.add(object.position, collisionVector, object.position);
@@ -229,7 +232,7 @@ export class SpaceManager {
     private resolveExplosionEffect(
         object: Exclude<SpaceObject, Explosion>,
         explosion: Explosion,
-        result: Result,
+        result: Response,
         deltaSeconds: number
     ) {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
@@ -242,16 +245,15 @@ export class SpaceManager {
         } else {
             object.health -= damageAmount;
         }
-        object.velocity.x -= result.overlap_x * exposure * explosion.blastFactor;
-        object.velocity.y -= result.overlap_y * exposure * explosion.blastFactor;
+        object.velocity.x -= result.overlapV.x * exposure * explosion.blastFactor;
+        object.velocity.y -= result.overlapV.y * exposure * explosion.blastFactor;
     }
 
     private updateObjectCollision(object: SpaceObject) {
         const body = this.stateToCollision.get(object);
         if (body) {
-            body.x = object.position.x;
-            body.y = object.position.y;
-            body.radius = object.radius;
+            body.setPosition(object.position.x, object.position.y);
+            body.r = object.radius;
         } else {
             // eslint-disable-next-line no-console
             console.error(`object leak! ${object.id} has no collision body`);
@@ -261,7 +263,6 @@ export class SpaceManager {
     private handleCollisions(deltaSeconds: number) {
         // update collisions state
         this.collisions.update();
-        const result = new Result();
         const toUpdate = new Set<SpaceObject>();
         // for every moving object
         for (const object of this.state) {
@@ -269,10 +270,10 @@ export class SpaceManager {
                 const body = this.stateToCollision.get(object);
                 if (body) {
                     // Get any potential collisions
-                    for (const potential of body.potentials()) {
+                    for (const potential of this.collisions.getPotentials(body)) {
                         const otherObjext = this.collisionToState.get(potential);
-                        if (otherObjext && !otherObjext.destroyed && body.collides(potential, result)) {
-                            this.resolveCollision(object, otherObjext, result, deltaSeconds);
+                        if (otherObjext && !otherObjext.destroyed && this.collisions.checkCollision(body, potential)) {
+                            this.resolveCollision(object, otherObjext, this.collisions.response, deltaSeconds);
                             toUpdate.add(object);
                             toUpdate.add(otherObjext);
                         }
