@@ -1,4 +1,3 @@
-//import { ShipSystem, SmartPilotMode } from '.';
 import { ShipSystem } from './ship-system';
 import { SmartPilotMode } from '.';
 import { getConstant } from '../utils';

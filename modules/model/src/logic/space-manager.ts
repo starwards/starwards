@@ -9,7 +9,7 @@ const GC_TIMEOUT = 5;
 
 export type Damage = {
     amount: number;
-    damageSurfaceArcs: [number, number][];
+    damageSurfaceArc: [number, number];
     damageDurationSeconds: number;
 };
 
@@ -255,19 +255,9 @@ export class SpaceManager {
                     XY.angleOf(shipLocalDamageBoundries[0]),
                     XY.angleOf(shipLocalDamageBoundries[1]),
                 ];
-                // since circlesIntersection gives the arc from first to second member, we can know
-                // that if shipLocalDamageAngles[1] > shipLocalDamageAngles[0] the arc passes through 0
-                // in that case we want to split it to [0, shipLocalDamage[0]], [shipLocalDamage[1], 360]
-                const normalizedLocalDamageArc: [number, number][] =
-                    shipLocalDamageAngles[1] > shipLocalDamageAngles[0]
-                        ? [
-                              [0, shipLocalDamageAngles[1]],
-                              [shipLocalDamageAngles[0], 360],
-                          ]
-                        : [[shipLocalDamageAngles[0], shipLocalDamageAngles[1]]];
                 this.addDamageToObject(object, {
                     amount: damageAmount,
-                    damageSurfaceArcs: normalizedLocalDamageArc,
+                    damageSurfaceArc: shipLocalDamageAngles,
                     damageDurationSeconds: deltaSeconds,
                 });
             } else {

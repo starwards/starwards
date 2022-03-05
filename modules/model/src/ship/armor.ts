@@ -4,7 +4,7 @@ import { getConstant } from '../utils';
 
 export class ArmorPlate extends Schema {
     @type('uint8')
-    health = 200;
+    health!: number;
 }
 
 export class Armor extends Schema {
@@ -31,6 +31,17 @@ export class Armor extends Schema {
     }
 
     get degreesPerPlate(): number {
-        return getConstant(this.constants, 'degreesPerPlate');
+        return 360 / getConstant(this.constants, 'numberOfPlates');
+    }
+
+    public *platesInRange(range: [number, number]): IterableIterator<ArmorPlate> {
+        const platesArray = this.armorPlates.toArray();
+        if (platesArray !== undefined && range[0] < platesArray.length && range[1] < platesArray.length) {
+            const platesSlice =
+                range[0] < range[1]
+                    ? platesArray.slice(range[0], range[1])
+                    : platesArray.slice(range[0], platesArray.length - 1).concat(platesArray.slice(0, range[1]));
+            yield* platesSlice;
+        }
     }
 }
