@@ -65,7 +65,7 @@
         "html-webpack-plugin": "^5.5.0",
         "husky": "^7.0.4",
         "jest": "^27.5.1",
-        "lint-staged": "^12.3.3",
+        "lint-staged": "^12.3.5",
         "ncp": "^2.0.0",
         "nodemon": "^2.0.7",
         "pkg": "^5.5.2",
