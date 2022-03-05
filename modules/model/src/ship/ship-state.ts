@@ -1,5 +1,4 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
-import { ShipAreas, ShipSystem } from './ship-system';
 import { Spaceship, Vec2 } from '../space';
 
 import { Armor } from './armor';
