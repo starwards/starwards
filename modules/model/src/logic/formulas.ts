@@ -37,27 +37,6 @@ export function gaussianRandom(mean: number, stdev: number): number {
     return mean + 2.0 * stdev * (Math.random() + Math.random() + Math.random() - 1.5);
 }
 
-// generanes a random number with normal distribution using the Marsaglia polar method
-export function normalMarsagliaRandomPair(mean = 0.0, stdev = 1.0): [number, number] {
-    let u = 0;
-    let v = 0;
-    let s = 0;
-    do {
-        u = Math.random() * 2 - 1;
-        v = Math.random() * 2 - 1;
-        s = u * u + v * v;
-    } while (s === 0 || s >= 1);
-
-    s = Math.sqrt((-2.0 * Math.log(s)) / s);
-
-    return [mean + stdev * u * s, mean + stdev * v * s];
-}
-
-// returns the first number of the generated pair
-export function normalMarsagliaRandom(mean = 0.0, stdev = 1.0): number {
-    return normalMarsagliaRandomPair(mean, stdev)[0];
-}
-
 /**
  * The method calculates the two intersection points between circles with given centres and given radii.
  * It returns the points in the order that the arc for circle0 is from the first to the second returned point.

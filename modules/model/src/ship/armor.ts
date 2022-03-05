@@ -34,13 +34,19 @@ export class Armor extends Schema {
         return 360 / getConstant(this.constants, 'numberOfPlates');
     }
 
-    public *platesInRange(range: [number, number]): IterableIterator<ArmorPlate> {
-        const platesArray = this.armorPlates.toArray();
-        if (platesArray !== undefined && range[0] < platesArray.length && range[1] < platesArray.length) {
+    public *platesInRange(localAngleHitRange: [number, number]): IterableIterator<ArmorPlate> {
+        const platesArray = this.armorPlates.toArray() || [];
+        const platesHitRange = [
+            Math.floor(localAngleHitRange[0] / this.degreesPerPlate),
+            Math.floor(localAngleHitRange[1] / this.degreesPerPlate),
+        ];
+        if (platesHitRange[0] < platesArray.length && platesHitRange[1] < platesArray.length) {
             const platesSlice =
-                range[0] < range[1]
-                    ? platesArray.slice(range[0], range[1])
-                    : platesArray.slice(range[0], platesArray.length - 1).concat(platesArray.slice(0, range[1]));
+                platesHitRange[0] < platesHitRange[1]
+                    ? platesArray.slice(platesHitRange[0], platesHitRange[1])
+                    : platesArray
+                          .slice(platesHitRange[0], platesArray.length - 1)
+                          .concat(platesArray.slice(0, platesHitRange[1]));
             yield* platesSlice;
         }
     }

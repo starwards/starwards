@@ -21,7 +21,6 @@ import {
     lerp,
     limitPercision,
     matchLocalSpeed,
-    normalMarsagliaRandom,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '..';
@@ -59,16 +58,16 @@ function makeThruster(angle: ShipDirection): Thruster {
     return thruster;
 }
 
-function makeArmor(numberOfPlates = 360, plateMaxHealth = 200, healRate = 3.33): Armor {
+function makeArmor(numberOfPlates: number): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
     armor.constants = new MapSchema<number>();
     setConstant(armor, 'numberOfPlates', numberOfPlates);
-    setConstant(armor, 'healRate', healRate);
-    setConstant(armor, 'plateMaxHealth', plateMaxHealth);
+    setConstant(armor, 'healRate', 3.3333);
+    setConstant(armor, 'plateMaxHealth', 200);
     for (let i = 0; i < numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = plateMaxHealth;
+        plate.health = 200;
         armor.armorPlates.push(plate);
     }
     return armor;
@@ -100,6 +99,7 @@ function makeShipState(id: string) {
     setConstant(state, 'maxRearHealth', 1000);
     setConstant(state, 'armourRegions', 360);
     setConstant(state, 'numberOfShipRegions', 2);
+    setConstant(state, 'shipAreas', ShipAreas.SHIP_AREAS_COUNT);
     state.thrusters = new ArraySchema();
     state.thrusters.push(makeThruster(ShipDirection.STBD));
     state.thrusters.push(makeThruster(ShipDirection.PORT));
@@ -159,8 +159,7 @@ export class ShipManager {
         public spaceObject: Spaceship,
         private spaceManager: SpaceManager,
         private ships?: Map<string, ShipManager>,
-        private onDestroy?: () => void,
-        private shipAreas = ShipAreas.SHIP_AREAS_COUNT
+        private onDestroy?: () => void
     ) {
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotManeuveringMode(s),
@@ -176,7 +175,7 @@ export class ShipManager {
     }
 
     get degreesPerArea() {
-        return limitPercision(360 / this.shipAreas);
+        return limitPercision(360 / this.state.shipAreas);
     }
 
     // used by smartPilot
@@ -300,23 +299,27 @@ export class ShipManager {
         }
     }
 
-    private arrayFromRange(from: number, to: number): Array<number> {
-        return to > from ? [...Array<number>(to - from + 1)].map((_, i) => from + i) : Array<number>();
-    }
-
-    private *shipAreasInRange(range: [number, number]): IterableIterator<ShipAreas> {
-        const areasInRange: [number, number] = [
-            Math.floor(range[0] / this.degreesPerArea),
-            Math.floor(range[1] / this.degreesPerArea),
-        ];
-        const areasArray =
-            areasInRange[0] >= areasInRange[1]
-                ? this.arrayFromRange(areasInRange[0], areasInRange[1])
-                : this.arrayFromRange(areasInRange[0], this.shipAreas - 1).concat(
-                      this.arrayFromRange(0, areasInRange[1])
-                  );
-
-        yield* areasArray;
+    private *shipAreasInRange(localAngleRange: [number, number]): IterableIterator<ShipAreas> {
+        for (let i = 0; i < this.state.shipAreas; i++) {
+            const areaStartAngle = i * this.degreesPerArea;
+            const areaEndAngle = (i + 1) * this.degreesPerArea;
+            if (localAngleRange[0] <= localAngleRange[1]) {
+                if (
+                    (localAngleRange[0] >= areaStartAngle && localAngleRange[0] < areaEndAngle) ||
+                    (localAngleRange[0] < areaStartAngle && localAngleRange[1] >= areaEndAngle)
+                ) {
+                    yield i;
+                }
+            } else {
+                if (
+                    (localAngleRange[0] >= areaStartAngle && localAngleRange[0] < areaEndAngle) ||
+                    localAngleRange[0] < areaStartAngle ||
+                    localAngleRange[1] >= areaStartAngle
+                ) {
+                    yield i;
+                }
+            }
+        }
     }
 
     private healPlates(deltaSeconds: number) {
@@ -344,14 +347,10 @@ export class ShipManager {
         return brokenPlates;
     }
 
-    private applyDamageToArmor(damageFactor: number, hitRange: [number, number]) {
-        const hitPlatesRange: [number, number] = [
-            Math.floor(hitRange[0] / this.state.armor.degreesPerPlate),
-            Math.floor(hitRange[1] / this.state.armor.degreesPerPlate),
-        ];
-        for (const plate of this.state.armor.platesInRange(hitPlatesRange)) {
+    private applyDamageToArmor(damageFactor: number, localAnglesHitRange: [number, number]) {
+        for (const plate of this.state.armor.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
-                plate.health -= damageFactor * normalMarsagliaRandom(20, 4);
+                plate.health -= damageFactor * gaussianRandom(20, 4);
             }
         }
     }
@@ -374,15 +373,15 @@ export class ShipManager {
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
             for (const hitArea of this.shipAreasInRange(damage.damageSurfaceArc)) {
-                const areaHitRange: [number, number] = [
+                const areaHitRangeAngles: [number, number] = [
                     Math.max(damage.damageSurfaceArc[0] / this.degreesPerArea, hitArea * this.degreesPerArea),
                     Math.min(damage.damageSurfaceArc[1] / this.degreesPerArea, (hitArea + 1) / this.degreesPerArea),
                 ];
-                const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRange);
+                const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
                 for (const system of this.systemsByAreas.get(hitArea) || []) {
                     this.damageSystem(system, damage, areaUnarmoredHits);
                 }
-                this.applyDamageToArmor(damage.amount, areaHitRange);
+                this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
             }
         }
     }
