@@ -24,6 +24,7 @@ export const orderedDegreesTuple4 = () =>
     float(-360 * 2, 360).chain((delta) =>
         fc
             .tuple(degree(), degree(), degree(), degree())
-            .map((t) => t.sort((a, b) => a - b).map((x) => x + delta) as Tuple4)
+            .map((t) => t.sort((a, b) => a - b))
             .filter((t) => t[0] < t[1] && t[1] < t[2] && t[2] < t[3])
+            .map((t) => t.map((x) => x + delta) as Tuple4)
     );

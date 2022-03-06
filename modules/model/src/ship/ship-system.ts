@@ -2,7 +2,7 @@ import { MapSchema, Schema, type } from '@colyseus/schema';
 
 import { getConstant } from '../utils';
 
-export enum ShipAreas {
+export enum ShipArea {
     front,
     rear,
     SHIP_AREAS_COUNT,
@@ -13,7 +13,7 @@ export class ShipSystem extends Schema {
     broken = false;
 
     @type('int8')
-    damageArea!: ShipAreas;
+    damageArea!: ShipArea;
 
     @type({ map: 'number' })
     constants!: MapSchema<number>;

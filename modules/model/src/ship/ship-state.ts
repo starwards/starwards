@@ -136,9 +136,6 @@ export class ShipState extends Spaceship {
     get turnSpeedCapacity(): number {
         return this.rotationCapacity * this.rotationEffectFactor;
     }
-    get shipAreas(): number {
-        return getConstant(this.constants, 'shipAreas');
-    }
 
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {
