@@ -315,12 +315,8 @@ export class ShipManager {
     }
 
     private getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
-        const hitPlatesRange: [number, number] = [
-            Math.floor(hitRange[0] / this.state.armor.degreesPerPlate),
-            Math.ceil(hitRange[1] / this.state.armor.degreesPerPlate),
-        ];
         let brokenPlates = 0;
-        for (const plate of this.state.armor.platesInRange(hitPlatesRange)) {
+        for (const plate of this.state.armor.platesInRange(hitRange)) {
             if (plate.health <= 0) {
                 brokenPlates++;
             }
