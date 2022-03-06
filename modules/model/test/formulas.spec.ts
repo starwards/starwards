@@ -35,7 +35,7 @@ describe('formulas', () => {
             );
         });
     });
-    describe.only('archIntersection', () => {
+    describe('archIntersection', () => {
         it('returns false on a before b', () =>
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([a0, a1, b0, b1]) => {
