@@ -1,6 +1,7 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 
 import { getConstant } from '../utils';
+import { toPositiveDegreesDelta } from '..';
 
 export class ArmorPlate extends Schema {
     @type('uint8')
@@ -35,19 +36,10 @@ export class Armor extends Schema {
     }
 
     public *platesInRange(localAngleHitRange: [number, number]): IterableIterator<ArmorPlate> {
-        const platesArray = this.armorPlates.toArray() || [];
-        const platesHitRange = [
-            Math.floor(localAngleHitRange[0] / this.degreesPerPlate),
-            Math.floor(localAngleHitRange[1] / this.degreesPerPlate),
-        ];
-        if (platesHitRange[0] < platesArray.length && platesHitRange[1] < platesArray.length) {
-            const platesSlice =
-                platesHitRange[0] < platesHitRange[1]
-                    ? platesArray.slice(platesHitRange[0], platesHitRange[1])
-                    : platesArray
-                          .slice(platesHitRange[0], platesArray.length - 1)
-                          .concat(platesArray.slice(0, platesHitRange[1]));
-            yield* platesSlice;
-        }
+        const firstPlateIdx = Math.floor(toPositiveDegreesDelta(localAngleHitRange[0]) / this.degreesPerPlate);
+        const numberOfPlates = Math.ceil(
+            toPositiveDegreesDelta(localAngleHitRange[1] - localAngleHitRange[0]) / this.degreesPerPlate
+        );
+        yield* this.armorPlates.toArray().slice(firstPlateIdx, firstPlateIdx + numberOfPlates + 1);
     }
 }

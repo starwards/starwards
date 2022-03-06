@@ -299,10 +299,6 @@ export class ShipManager {
         }
     }
 
-    private *shipAreasInRange(localAngleRange: [number, number]): IterableIterator<ShipArea> {
-        yield* shipAreasInRange(localAngleRange);
-    }
-
     private healPlates(deltaSeconds: number) {
         for (const plate of this.state.armor.armorPlates) {
             if (plate.health > 0 && plate.health < this.state.armor.plateMaxHealth) {
@@ -349,7 +345,7 @@ export class ShipManager {
 
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
-            for (const hitArea of this.shipAreasInRange(damage.damageSurfaceArc)) {
+            for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
                 const areaHitRangeAngles: [number, number] = [
                     Math.max(damage.damageSurfaceArc[0] / DEGREES_PER_AREA, hitArea * DEGREES_PER_AREA),
                     Math.min(damage.damageSurfaceArc[1] / DEGREES_PER_AREA, (hitArea + 1) / DEGREES_PER_AREA),
