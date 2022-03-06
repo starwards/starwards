@@ -62,7 +62,6 @@ function makeArmor(numberOfPlates: number): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
     armor.constants = new MapSchema<number>();
-    setConstant(armor, 'numberOfPlates', numberOfPlates);
     setConstant(armor, 'healRate', 3.3333);
     setConstant(armor, 'plateMaxHealth', 200);
     for (let i = 0; i < numberOfPlates; i++) {

@@ -15,7 +15,7 @@ export class Armor extends Schema {
     constants!: MapSchema<number>;
 
     get numberOfPlates(): number {
-        return getConstant(this.constants, 'numberOfPlates');
+        return this.armorPlates.length;
     }
 
     get plateMaxHealth(): number {
@@ -31,7 +31,7 @@ export class Armor extends Schema {
     }
 
     get degreesPerPlate(): number {
-        return 360 / getConstant(this.constants, 'numberOfPlates');
+        return 360 / this.numberOfPlates;
     }
 
     public *platesInRange(localAngleHitRange: [number, number]): IterableIterator<ArmorPlate> {
