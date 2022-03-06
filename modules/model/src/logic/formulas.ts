@@ -1,6 +1,25 @@
 import { XY } from './xy';
 
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
+export const EPSILON = 0.01;
+
+export function archIntersection(a: [number, number], b: [number, number]): boolean {
+    const aNorm = [0, toPositiveDegreesDelta(a[1] - a[0])];
+    const bNorm = [toPositiveDegreesDelta(b[0] - a[0]), toPositiveDegreesDelta(b[1] - a[0])];
+    return bNorm[0] >= bNorm[1] || bNorm[0] <= aNorm[1] || bNorm[1] <= aNorm[1];
+}
+
+/**
+ * normalize drgrees to value between [0, 360)
+ */
+export function toPositiveDegreesDelta(degrees: number) {
+    const deg = degrees % 360;
+    if (deg < 0) {
+        return deg + 360;
+    }
+    return deg;
+}
+
 /**
  * normalize drgrees to value between (-180, 180]
  */
