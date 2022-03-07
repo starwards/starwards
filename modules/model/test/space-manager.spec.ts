@@ -1,4 +1,5 @@
 import { Asteroid, CannonShell, Explosion, SpaceManager, Spaceship, Vec2, XY } from '../src';
+
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
