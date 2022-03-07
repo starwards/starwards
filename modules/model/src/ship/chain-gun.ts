@@ -1,12 +1,9 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
-
+import { ShipSystem } from './ship-system';
 import { SmartPilotMode } from '.';
 import { getConstant } from '../utils';
+import { type } from '@colyseus/schema';
 
-export class ChainGun extends Schema {
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
-
+export class ChainGun extends ShipSystem {
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */

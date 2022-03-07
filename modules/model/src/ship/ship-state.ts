@@ -1,6 +1,7 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 import { Spaceship, Vec2 } from '../space';
 
+import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
@@ -37,23 +38,6 @@ export class SmartPilotState extends Schema {
     readonly maxTurnSpeed = 90;
 }
 
-export class ShipHealth extends Schema {
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
-
-    @type('uint16')
-    frontHealth = 1000;
-    @type('uint16')
-    rearHealth = 1000;
-
-    get maxFrontHealth(): number {
-        return getConstant(this.constants, 'maxFrontHealth');
-    }
-
-    get maxRearHealth(): number {
-        return getConstant(this.constants, 'maxRearHealth');
-    }
-}
 export class ShipState extends Spaceship {
     @type({ map: 'float32' })
     constants!: MapSchema<number>;
@@ -66,9 +50,6 @@ export class ShipState extends Spaceship {
 
     @type(SmartPilotState)
     smartPilot!: SmartPilotState;
-
-    @type(ShipHealth)
-    health!: ShipHealth;
 
     @type('float32')
     rotation = 0;
@@ -90,6 +71,9 @@ export class ShipState extends Spaceship {
 
     @type('int8')
     targeted = TargetedStatus.NONE;
+
+    @type(Armor)
+    armor!: Armor;
 
     // server only, used for commands
     public afterBurnerCommand = 0;

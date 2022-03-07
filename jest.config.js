@@ -4,6 +4,7 @@ const baseConfig = {
     transform: {
         '^.+\\.(ts|js|tsx|jsx)$': 'ts-jest',
     },
+    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
         '^@starwards/(.+)': '<rootDir>/modules/$1/src',
     },
