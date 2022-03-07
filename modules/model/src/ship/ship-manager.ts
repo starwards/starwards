@@ -58,8 +58,7 @@ function makeArmor(numberOfPlates: number): Armor {
     armor.armorPlates = new ArraySchema<ArmorPlate>();
     armor.constants = new MapSchema<number>();
     setConstant(armor, 'healRate', 3.3333);
-    setConstant(armor, 'plateMaxHealth', 300);
-    setConstant(armor, 'plateBreakThreshold', 100);
+    setConstant(armor, 'plateMaxHealth', 200);
     for (let i = 0; i < numberOfPlates; i++) {
         const plate = new ArmorPlate();
         plate.health = 200;
@@ -302,7 +301,7 @@ export class ShipManager {
     private getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
         let brokenPlates = 0;
         for (const plate of this.state.armor.platesInRange(hitRange)) {
-            if (plate.health <= this.state.armor.plateBreakThreshold) {
+            if (plate.health <= 0) {
                 brokenPlates++;
             }
         }

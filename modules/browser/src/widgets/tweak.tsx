@@ -63,12 +63,12 @@ function ShipDetails({ shipDriver }: { shipDriver: ShipDriver }) {
     const countHealthyPlates = useCallback(() => {
         let count = 0;
         for (const plate of shipDriver.state.armor.armorPlates) {
-            if (plate.health > shipDriver.state.armor.plateBreakThreshold) {
+            if (plate.health > 0) {
                 count++;
             }
         }
         return count;
-    }, [shipDriver.state.armor.armorPlates, shipDriver.state.armor.plateBreakThreshold]);
+    }, [shipDriver.state.armor.armorPlates]);
     const [healthyPlates, setHealthyPlates] = useState(countHealthyPlates());
     useLoop(() => setHealthyPlates(countHealthyPlates()), 1000, [setHealthyPlates]);
 
