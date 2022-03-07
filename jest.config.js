@@ -4,6 +4,7 @@ const baseConfig = {
     transform: {
         '^.+\\.(ts|js|tsx|jsx)$': 'ts-jest',
     },
+    modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
         '^@starwards/(.+)': '<rootDir>/modules/$1/src',
