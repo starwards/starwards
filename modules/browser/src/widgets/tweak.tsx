@@ -1,8 +1,8 @@
 import { ArwesThemeProvider, Button, FrameCorners, List, LoadingBars, StylesBaseline, Text } from '@arwes/core';
-import React, { Component } from 'react';
+import React, { Component, useCallback, useState } from 'react';
 import { ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
 import { ShipDriver, ThrusterDriver } from '../driver/ship';
-import { useProperty, useSelected, useShipDriver } from '../react/hooks';
+import { useLoop, useProperty, useSelected, useShipDriver } from '../react/hooks';
 
 import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
@@ -60,12 +60,21 @@ const SingleSelectionDetails = ({ subject }: { subject: SpaceObject }) => {
 };
 
 function ShipDetails({ shipDriver }: { shipDriver: ShipDriver }) {
-    const frontHealth = useProperty(shipDriver.frontHealth);
-    const rearHealth = useProperty(shipDriver.rearHealth);
+    const countHealthyPlates = useCallback(() => {
+        let count = 0;
+        for (const plate of shipDriver.state.armor.armorPlates) {
+            if (plate.health > 0) {
+                count++;
+            }
+        }
+        return count;
+    }, [shipDriver.state.armor.armorPlates]);
+    const [healthyPlates, setHealthyPlates] = useState(countHealthyPlates());
+    useLoop(() => setHealthyPlates(countHealthyPlates()), 1000, [setHealthyPlates]);
+
     return (
         <>
-            FrontHealth: {frontHealth} <br />
-            RearHealth: {rearHealth} <br />
+            Plates: {healthyPlates} of {shipDriver.state.armor.numberOfPlates} <br />
         </>
     );
 }

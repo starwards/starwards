@@ -1,4 +1,4 @@
-import { XY, limitPercisionHard, sign } from '../src';
+import { EPSILON, XY, limitPercisionHard, sign } from '../src';
 
 import fc from 'fast-check';
 
@@ -14,6 +14,25 @@ export const float = (from: number, to: number) => fc.float(from, to).map(limitP
 export const fromTo = (range: number, minDiff: number) =>
     fc.tuple(floatIn(range), floatIn(range)).filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));
-export const orderedTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => t[0] < t[1]);
+export const orderedTuple2 = () =>
+    fc
+        .tuple(safeFloat(), safeFloat())
+        .map((t) => t.sort((a, b) => a - b))
+        .filter((t) => t[0] < t[1]);
 export const orderedTuple3 = () =>
-    fc.tuple(safeFloat(), safeFloat(), safeFloat()).filter((t) => t[0] < t[2] && t[0] <= t[1] && t[1] <= t[2]);
+    fc
+        .tuple(safeFloat(), safeFloat(), safeFloat())
+        .map((t) => t.sort((a, b) => a - b))
+        .filter((t) => t[0] < t[2]);
+
+export const degree = () => float(0, 360 - EPSILON);
+export type Tuple4 = [number, number, number, number];
+
+export const orderedDegreesTuple4 = () =>
+    float(-360 * 2, 360).chain((delta) =>
+        fc
+            .tuple(degree(), degree(), degree(), degree())
+            .map((t) => t.sort((a, b) => a - b))
+            .filter((t) => t[0] < t[1] && t[1] < t[2] && t[2] < t[3])
+            .map((t) => t.map((x) => x + delta) as Tuple4)
+    );

@@ -2,13 +2,15 @@ import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Circle, Polygon, Response, System, TBody } from 'detect-collisions';
 
 import { Spaceship } from '../space';
+import { circlesIntersection } from '.';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 
-type Damage = {
+export type Damage = {
     amount: number;
-    position: XY;
+    damageSurfaceArc: [number, number];
+    damageDurationSeconds: number;
 };
 
 export class SpaceManager {
@@ -266,10 +268,34 @@ export class SpaceManager {
         const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
         const damageAmount = explosion.damageFactor * exposure;
         if (Spaceship.isInstance(object)) {
-            this.addDamageToObject(object, {
-                amount: damageAmount,
-                position: explosion.position,
-            });
+            const damageBoundries = circlesIntersection(
+                object.position,
+                explosion.position,
+                object.radius,
+                explosion.radius
+            );
+            if (damageBoundries) {
+                const shipLocalDamageBoundries: [XY, XY] = [
+                    object.globalToLocal(XY.difference(damageBoundries[0], object.position)),
+                    object.globalToLocal(XY.difference(damageBoundries[1], object.position)),
+                ];
+                const shipLocalDamageAngles: [number, number] = [
+                    XY.angleOf(shipLocalDamageBoundries[0]),
+                    XY.angleOf(shipLocalDamageBoundries[1]),
+                ];
+                this.addDamageToObject(object, {
+                    amount: damageAmount,
+                    damageSurfaceArc: shipLocalDamageAngles,
+                    damageDurationSeconds: deltaSeconds,
+                });
+            } else {
+                // eslint-disable-next-line no-console
+                console.error(`unexpected undefined intersection between explosion and object.
+                object data: centre: ${JSON.stringify(object.position)} radius: ${JSON.stringify(object.radius)}
+                explosion data: centre: ${JSON.stringify(explosion.position)} radius: ${JSON.stringify(
+                    explosion.radius
+                )}`);
+            }
         } else {
             object.health -= damageAmount;
         }

@@ -1,5 +1,12 @@
-import { differentSignTuple2, floatIn, orderedTuple2, orderedTuple3, safeFloat } from './properties';
-import { equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
+import { archIntersection, equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
+import {
+    differentSignTuple2,
+    floatIn,
+    orderedDegreesTuple4,
+    orderedTuple2,
+    orderedTuple3,
+    safeFloat,
+} from './properties';
 
 import { expect } from 'chai';
 import fc from 'fast-check';
@@ -27,6 +34,44 @@ describe('formulas', () => {
                 })
             );
         });
+    });
+    describe('archIntersection', () => {
+        it('returns false on a before b', () =>
+            fc.assert(
+                fc.property(orderedDegreesTuple4(), ([a0, a1, b0, b1]) => {
+                    expect(archIntersection([a0, a1], [b0, b1])).to.be.false;
+                })
+            ));
+        it('returns false on b before a', () =>
+            fc.assert(
+                fc.property(orderedDegreesTuple4(), ([b0, b1, a0, a1]) => {
+                    expect(archIntersection([a0, a1], [b0, b1])).to.be.false;
+                })
+            ));
+        it('returns true on b in a', () =>
+            fc.assert(
+                fc.property(orderedDegreesTuple4(), ([a0, b0, b1, a1]) => {
+                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
+                })
+            ));
+        it('returns true on a in b', () =>
+            fc.assert(
+                fc.property(orderedDegreesTuple4(), ([b0, a0, a1, b1]) => {
+                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
+                })
+            ));
+        it('returns true on a starts in b and ends afterwards', () =>
+            fc.assert(
+                fc.property(orderedDegreesTuple4(), ([a0, b0, a1, b1]) => {
+                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
+                })
+            ));
+        it('returns true on b starts in a and ends afterwards', () =>
+            fc.assert(
+                fc.property(orderedDegreesTuple4(), ([b0, a0, b1, a1]) => {
+                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
+                })
+            ));
     });
 
     describe('lerp', () => {
