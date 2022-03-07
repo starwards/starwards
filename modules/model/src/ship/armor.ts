@@ -23,8 +23,8 @@ export class Armor extends Schema {
         return getConstant(this.constants, 'plateMaxHealth');
     }
 
-    set plateMaxHealth(health: number) {
-        this.constants.set('plateMaxHealth', health);
+    get plateBreakThreshold(): number {
+        return getConstant(this.constants, 'plateBreakThreshold');
     }
 
     get healRate(): number {

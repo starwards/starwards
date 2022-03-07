@@ -5,7 +5,6 @@ import {
     ChainGun,
     Explosion,
     ManeuveringCommand,
-    ShipHealth,
     ShipState,
     SmartPilotMode,
     SmartPilotState,
@@ -59,7 +58,8 @@ function makeArmor(numberOfPlates: number): Armor {
     armor.armorPlates = new ArraySchema<ArmorPlate>();
     armor.constants = new MapSchema<number>();
     setConstant(armor, 'healRate', 3.3333);
-    setConstant(armor, 'plateMaxHealth', 200);
+    setConstant(armor, 'plateMaxHealth', 300);
+    setConstant(armor, 'plateBreakThreshold', 100);
     for (let i = 0; i < numberOfPlates; i++) {
         const plate = new ArmorPlate();
         plate.health = 200;
@@ -90,9 +90,6 @@ function makeShipState(id: string) {
     setConstant(state, 'rotationEffectFactor', 0.5);
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
-    setConstant(state, 'maxFrontHealth', 1000);
-    setConstant(state, 'maxRearHealth', 1000);
-    setConstant(state, 'armourRegions', 360);
     setConstant(state, 'numberOfShipRegions', 2);
     state.thrusters = new ArraySchema();
     state.thrusters.push(makeThruster(ShipDirection.STBD));
@@ -117,19 +114,11 @@ function makeShipState(id: string) {
     setConstant(state.chainGun, 'dps50', 300);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
-    state.health = new ShipHealth();
-    state.health.constants = new MapSchema<number>();
-    setConstant(state.health, 'maxFrontHealth', 1000);
-    setConstant(state.health, 'maxRearHealth', 1000);
-    state.health.frontHealth = 1000;
-    state.health.rearHealth = 1000;
-    state.armor = makeArmor(2);
+    state.armor = makeArmor(60);
     return state;
 }
 
 export function resetShipState(state: ShipState) {
-    state.health.frontHealth = state.health.maxFrontHealth;
-    state.health.rearHealth = state.health.maxRearHealth;
     state.energy = state.maxEnergy;
     fixArmor(state.armor);
     state.chainGun.broken = false;
@@ -269,7 +258,7 @@ export class ShipManager {
     update(deltaSeconds: number) {
         this.healPlates(deltaSeconds);
         this.handleDamage();
-        if (this.state.health.frontHealth <= 0 || this.state.health.rearHealth <= 0) {
+        if (this.state.chainGun.broken && this.state.thrusters.every((t) => t.broken)) {
             this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
@@ -313,7 +302,7 @@ export class ShipManager {
     private getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
         let brokenPlates = 0;
         for (const plate of this.state.armor.platesInRange(hitRange)) {
-            if (plate.health <= 0) {
+            if (plate.health <= this.state.armor.plateBreakThreshold) {
                 brokenPlates++;
             }
         }
@@ -323,7 +312,7 @@ export class ShipManager {
     private applyDamageToArmor(damageFactor: number, localAnglesHitRange: [number, number]) {
         for (const plate of this.state.armor.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
-                plate.health -= damageFactor * gaussianRandom(20, 4);
+                plate.health = Math.max(plate.health - damageFactor * gaussianRandom(20, 4), 0);
             }
         }
     }
@@ -352,7 +341,7 @@ export class ShipManager {
                 ];
                 const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
                 for (const system of this.systemsByAreas.get(hitArea) || []) {
-                    this.damageSystem(system, damage, areaUnarmoredHits);
+                    this.damageSystem(system, damage, areaUnarmoredHits); // the more plates, more damage?
                 }
                 this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
             }
