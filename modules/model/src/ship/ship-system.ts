@@ -1,12 +1,7 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
 
+import { ShipArea } from '.';
 import { getConstant } from '../utils';
-
-export enum ShipArea {
-    front,
-    rear,
-    SHIP_AREAS_COUNT,
-}
 
 export class ShipSystem extends Schema {
     @type('boolean')

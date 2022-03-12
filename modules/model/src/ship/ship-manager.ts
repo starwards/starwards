@@ -5,6 +5,7 @@ import {
     ChainGun,
     Explosion,
     ManeuveringCommand,
+    ShipArea,
     ShipState,
     SmartPilotMode,
     SmartPilotState,
@@ -14,7 +15,6 @@ import {
     TargetedStatus,
     Vec2,
     XY,
-    archIntersection,
     calcShellSecondsToLive,
     capToRange,
     gaussianRandom,
@@ -22,13 +22,16 @@ import {
     matchLocalSpeed,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
+    shipAreasInRange,
+    toPositiveDegreesDelta,
 } from '..';
 import { Damage, SpaceManager } from '../logic/space-manager';
-import { ShipArea, ShipSystem } from './ship-system';
+import { FRONT_ARC, REAR_ARC } from '.';
 
 import { Bot } from '../logic/bot';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
+import { ShipSystem } from './ship-system';
 import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
@@ -123,15 +126,6 @@ export function resetShipState(state: ShipState) {
     state.chainGun.broken = false;
     for (const thruster of state.thrusters) {
         thruster.broken = false;
-    }
-}
-
-export function* shipAreasInRange(localAngleRange: [number, number]) {
-    if (archIntersection([-90, 90], localAngleRange)) {
-        yield ShipArea.front;
-    }
-    if (archIntersection([90, -90], localAngleRange)) {
-        yield ShipArea.rear;
     }
 }
 
@@ -298,7 +292,7 @@ export class ShipManager {
         }
     }
 
-    private getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
+    getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
         let brokenPlates = 0;
         for (const plate of this.state.armor.platesInRange(hitRange)) {
             if (plate.health <= 0) {
@@ -316,31 +310,32 @@ export class ShipManager {
         }
     }
 
-    private damageSystem(system: ShipSystem, damageObject: Damage, hits = 1) {
+    private damageSystem(system: ShipSystem, damageObject: Damage, percentageOfBrokenPlates: number) {
         if (system.broken) {
             return;
         }
         const dps50 = system.dps50;
         const dist = new NormalDistribution(dps50, dps50 / 2);
-        const destructionProbability = dist.cdf(damageObject.amount / damageObject.damageDurationSeconds);
-        for (let i = 0; i < hits; i++) {
-            if (Math.random() < destructionProbability) {
-                system.broken = true;
-                break;
-            }
+        const destructionProbability = dist.cdf(
+            (damageObject.amount / damageObject.damageDurationSeconds) * percentageOfBrokenPlates
+        );
+        if (Math.random() < destructionProbability) {
+            system.broken = true;
         }
     }
 
     private handleDamage() {
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
             for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
+                const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
                 const areaHitRangeAngles: [number, number] = [
-                    Math.max(damage.damageSurfaceArc[0] / DEGREES_PER_AREA, hitArea * DEGREES_PER_AREA),
-                    Math.min(damage.damageSurfaceArc[1] / DEGREES_PER_AREA, (hitArea + 1) / DEGREES_PER_AREA),
+                    Math.max(toPositiveDegreesDelta(areaArc[0]), damage.damageSurfaceArc[0]),
+                    Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
                 ];
                 const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
+                const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
                 for (const system of this.systemsByAreas.get(hitArea) || []) {
-                    this.damageSystem(system, damage, areaUnarmoredHits); // the more plates, more damage?
+                    this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
                 }
                 this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
             }
