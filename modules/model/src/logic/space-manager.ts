@@ -1,8 +1,8 @@
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Circle, Polygon, Response, System, TBody } from 'detect-collisions';
+import { circlesIntersection, limitPercision } from '.';
 
 import { Spaceship } from '../space';
-import { circlesIntersection } from '.';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
@@ -280,8 +280,8 @@ export class SpaceManager {
                     object.globalToLocal(XY.difference(damageBoundries[1], object.position)),
                 ];
                 const shipLocalDamageAngles: [number, number] = [
-                    XY.angleOf(shipLocalDamageBoundries[0]),
-                    XY.angleOf(shipLocalDamageBoundries[1]),
+                    limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
+                    limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
                 ];
                 this.addDamageToObject(object, {
                     amount: damageAmount,

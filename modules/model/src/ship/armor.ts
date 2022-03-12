@@ -31,11 +31,14 @@ export class Armor extends Schema {
         return 360 / this.numberOfPlates;
     }
 
+    public numberOfPlatesInRange(localAngleHitRange: [number, number]): number {
+        return Math.ceil(toPositiveDegreesDelta(localAngleHitRange[1] - localAngleHitRange[0]) / this.degreesPerPlate);
+    }
+
     public *platesInRange(localAngleHitRange: [number, number]): IterableIterator<ArmorPlate> {
         const firstPlateIdx = Math.floor(toPositiveDegreesDelta(localAngleHitRange[0]) / this.degreesPerPlate);
-        const numberOfPlates = Math.ceil(
-            toPositiveDegreesDelta(localAngleHitRange[1] - localAngleHitRange[0]) / this.degreesPerPlate
-        );
-        yield* this.armorPlates.toArray().slice(firstPlateIdx, firstPlateIdx + numberOfPlates + 1);
+        yield* this.armorPlates
+            .toArray()
+            .slice(firstPlateIdx, firstPlateIdx + this.numberOfPlatesInRange(localAngleHitRange) + 1);
     }
 }
