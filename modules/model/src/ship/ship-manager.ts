@@ -93,6 +93,8 @@ function makeShipState(id: string) {
     setConstant(state, 'maxSpeed', 300);
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     setConstant(state, 'numberOfShipRegions', 2);
+    setConstant(state, 'maxChainGunAmmo', 3600);
+    state.chainGunAmmo = 3600;
     state.thrusters = new ArraySchema();
     state.thrusters.push(makeThruster(ShipDirection.STBD));
     state.thrusters.push(makeThruster(ShipDirection.PORT));
@@ -127,6 +129,7 @@ export function resetShipState(state: ShipState) {
     for (const thruster of state.thrusters) {
         thruster.broken = false;
     }
+    state.chainGunAmmo = state.maxChainGunAmmo;
 }
 
 export const DEGREES_PER_AREA = 180;
@@ -176,7 +179,9 @@ export class ShipManager {
     }
 
     public chainGun(isFiring: boolean) {
-        if (!this.state.chainGun.broken) {
+        if (!this.state.chainGun.broken && this.state.chainGunAmmo > 0 && isFiring) {
+            this.state.chainGun.isFiring = isFiring;
+        } else if (!isFiring) {
             this.state.chainGun.isFiring = isFiring;
         }
     }
@@ -612,8 +617,9 @@ export class ShipManager {
 
     private fireChainGun() {
         const chaingun = this.state.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken) {
+        if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken && this.state.chainGunAmmo > 0) {
             chaingun.cooldown += 1;
+            this.state.chainGunAmmo--;
             const shell = new CannonShell(this.getChainGunExplosion());
 
             shell.angle = gaussianRandom(this.spaceObject.angle + chaingun.angle, chaingun.bulletDegreesDeviation);
@@ -628,6 +634,9 @@ export class ShipManager {
             shell.init(uniqueId('shell'), shellPosition);
             shell.secondsToLive = chaingun.shellSecondsToLive;
             this.spaceManager.insert(shell);
+            if (this.state.chainGunAmmo === 0) {
+                this.chainGun(false);
+            }
         }
     }
 

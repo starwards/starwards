@@ -75,6 +75,9 @@ export class ShipState extends Spaceship {
     @type(Armor)
     armor!: Armor;
 
+    @type('int32')
+    chainGunAmmo = 0;
+
     // server only, used for commands
     public afterBurnerCommand = 0;
     public nextTargetCommand = false;
@@ -115,6 +118,9 @@ export class ShipState extends Spaceship {
     }
     get turnSpeedCapacity(): number {
         return this.rotationCapacity * this.rotationEffectFactor;
+    }
+    get maxChainGunAmmo(): number {
+        return getConstant(this.constants, 'maxChainGunAmmo');
     }
 
     *angleThrusters(direction: ShipDirection) {
