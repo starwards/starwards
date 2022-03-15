@@ -179,9 +179,7 @@ export class ShipManager {
     }
 
     public chainGun(isFiring: boolean) {
-        if (!this.state.chainGun.broken && this.state.chainGunAmmo > 0 && isFiring) {
-            this.state.chainGun.isFiring = isFiring;
-        } else if (!isFiring) {
+        if (!isFiring || (!this.state.chainGun.broken && this.state.chainGunAmmo > 0)) {
             this.state.chainGun.isFiring = isFiring;
         }
     }
@@ -619,7 +617,7 @@ export class ShipManager {
         const chaingun = this.state.chainGun;
         if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken && this.state.chainGunAmmo > 0) {
             chaingun.cooldown += 1;
-            this.state.chainGunAmmo--;
+            this.state.chainGunAmmo -= 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 
             shell.angle = gaussianRandom(this.spaceObject.angle + chaingun.angle, chaingun.bulletDegreesDeviation);
@@ -638,6 +636,10 @@ export class ShipManager {
                 this.chainGun(false);
             }
         }
+    }
+
+    public addChainGunAmmo(addedAmmo: number) {
+        this.state.chainGunAmmo = Math.min(this.state.chainGunAmmo + addedAmmo, this.state.maxChainGunAmmo);
     }
 
     private updateRotation(deltaSeconds: number) {

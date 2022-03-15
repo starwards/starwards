@@ -56,7 +56,10 @@ describe('ShipManager', () => {
                     timePassed += iterationTimeInSeconds;
                 }
                 const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
-                expect(cannonShells.length).to.be.closeTo(numIterationsPerSecond, 1);
+                expect(cannonShells.length).to.be.closeTo(
+                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun.bulletsPerSecond),
+                    1
+                );
                 expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.maxChainGunAmmo - cannonShells.length);
             })
         );
