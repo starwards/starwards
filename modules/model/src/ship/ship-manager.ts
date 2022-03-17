@@ -632,9 +632,6 @@ export class ShipManager {
             shell.init(uniqueId('shell'), shellPosition);
             shell.secondsToLive = chaingun.shellSecondsToLive;
             this.spaceManager.insert(shell);
-            if (this.state.chainGunAmmo === 0) {
-                this.chainGun(false);
-            }
         }
     }
 

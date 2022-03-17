@@ -87,7 +87,6 @@ describe('ShipManager', () => {
                 const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
                 expect(cannonShells.length).to.equal(10);
                 expect(shipMgr.state.chainGunAmmo).to.equal(0);
-                expect(shipMgr.state.chainGun.isFiring).to.be.false;
             })
         );
     });
