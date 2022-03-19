@@ -94,7 +94,7 @@ function makeShipState(id: string) {
     setConstant(state, 'maxSpeeFromAfterBurner', 300);
     setConstant(state, 'numberOfShipRegions', 2);
     setConstant(state, 'maxChainGunAmmo', 3600);
-    state.chainGunAmmo = 3600;
+    state.chainGunAmmo = state.maxChainGunAmmo;
     state.thrusters = new ArraySchema();
     state.thrusters.push(makeThruster(ShipDirection.STBD));
     state.thrusters.push(makeThruster(ShipDirection.PORT));
