@@ -35,4 +35,59 @@ describe('ShipManager', () => {
             })
         );
     });
+
+    it('chaingun must expend ammo', () => {
+        fc.assert(
+            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
+                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
+                const spaceMgr = new SpaceManager();
+                const shipObj = new Spaceship();
+                shipObj.id = '1';
+                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                spaceMgr.insert(shipObj);
+                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                shipMgr.chainGun(true);
+
+                let timePassed = 0;
+                while (timePassed <= 1) {
+                    shipMgr.update(iterationTimeInSeconds);
+                    spaceMgr.update(iterationTimeInSeconds);
+                    timePassed += iterationTimeInSeconds;
+                }
+                const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
+                expect(cannonShells.length).to.be.closeTo(
+                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun.bulletsPerSecond),
+                    1
+                );
+                expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.maxChainGunAmmo - cannonShells.length);
+            })
+        );
+    });
+
+    it('chaingun must not fire without ammo', () => {
+        fc.assert(
+            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
+                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
+                const spaceMgr = new SpaceManager();
+                const shipObj = new Spaceship();
+                shipObj.id = '1';
+                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                spaceMgr.insert(shipObj);
+                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                shipMgr.state.chainGunAmmo = 10;
+                shipMgr.chainGun(true);
+                let timePassed = 0;
+                while (timePassed <= 1) {
+                    shipMgr.update(iterationTimeInSeconds);
+                    spaceMgr.update(iterationTimeInSeconds);
+                    timePassed += iterationTimeInSeconds;
+                }
+                const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
+                expect(cannonShells.length).to.equal(10);
+                expect(shipMgr.state.chainGunAmmo).to.equal(0);
+            })
+        );
+    });
 });
