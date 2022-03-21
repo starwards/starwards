@@ -1,4 +1,4 @@
-import { ManeuveringCommand, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
+import { ManeuveringCommand, SystemCondition, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
 import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
 
 import { ShipDirection } from '../src/ship/ship-direction';
@@ -47,7 +47,7 @@ describe('thrusters-ship integration', function () {
                     const harness = new ShipTestHarness();
                     harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                     for (const thruster of harness.shipState.angleThrusters(direction)) {
-                        thruster.broken = true;
+                        thruster.condition = SystemCondition.BROKEN;
                     }
                     expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.eql(0);
                 })
@@ -61,7 +61,7 @@ describe('thrusters-ship integration', function () {
                 const harness = new ShipTestHarness();
                 harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
-                    thruster.broken = true;
+                    thruster.condition = SystemCondition.BROKEN;
                 }
                 setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
                 harness.simulate(1, iterationsPerSecond);
