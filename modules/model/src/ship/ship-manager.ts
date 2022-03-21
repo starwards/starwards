@@ -351,7 +351,7 @@ export class ShipManager {
         if (thruster.malfunctionType === ThrusterMalfunctions.ATTITUDE_MALFUNCTION) {
             thruster.angleError = limitPercision(Math.random() * 5 * (Math.round(Math.random()) ? 1 : -1));
         } else if (thruster.malfunctionType === ThrusterMalfunctions.CAPACITY_MALFUNCTION) {
-            thruster.availableCapacityPercentage = limitPercision(Math.random() * 0.1 + 0.9);
+            thruster.availableCapacity = limitPercision(Math.random() * 0.1 + 0.9);
         }
     }
 
@@ -532,7 +532,7 @@ export class ShipManager {
                 const mvEffect =
                     thruster.active *
                     thruster.capacity *
-                    thruster.availableCapacityPercentage *
+                    thruster.availableCapacity *
                     thruster.speedFactor *
                     deltaSeconds;
                 const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;

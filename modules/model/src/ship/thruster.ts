@@ -29,7 +29,7 @@ export class Thruster extends ShipSystem {
     angleError = 0.0;
 
     @type('float32')
-    availableCapacityPercentage = 0.0;
+    availableCapacity = 1.0;
 
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
