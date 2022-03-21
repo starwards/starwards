@@ -1,10 +1,16 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ShipArea, ShipState } from '.';
+import { ShipSystem, SystemCondition } from './ship-system';
 
 import { ShipDirection } from './ship-direction';
+import { ShipState } from '.';
 import { getConstant } from '../utils';
+import { type } from '@colyseus/schema';
 
-export class Thruster extends Schema {
+export enum ThrusterMalfunctions {
+    ATTITUDE_MALFUNCTION,
+    CAPACITY_MALFUNCTION,
+}
+export class Thruster extends ShipSystem {
+    public readonly type = 'Thruster';
     /**
      * the measure of current engine activity
      */
@@ -16,19 +22,14 @@ export class Thruster extends Schema {
     @type('float32')
     afterBurnerActive = 0;
 
-    @type('boolean')
-    broken = false;
-
     @type('int8')
-    damageArea!: ShipArea;
+    malfunctionType!: ThrusterMalfunctions;
 
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
+    @type('float32')
+    angleError = 0.0;
 
-    // dps at which there's 50% chance of system destruction
-    get dps50() {
-        return getConstant(this.constants, 'dps50');
-    }
+    @type('float32')
+    availableCapacityPercentage = 0.0;
 
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
@@ -47,7 +48,7 @@ export class Thruster extends Schema {
         return getConstant(this.constants, 'angle');
     }
     get capacity(): number {
-        return this.broken ? 0 : getConstant(this.constants, 'capacity');
+        return this.condition === SystemCondition.BROKEN ? 0 : getConstant(this.constants, 'capacity');
     }
 
     get energyCost(): number {
@@ -58,9 +59,13 @@ export class Thruster extends Schema {
         return getConstant(this.constants, 'speedFactor');
     }
     get afterBurnerCapacity(): number {
-        return this.broken ? 0 : getConstant(this.constants, 'afterBurnerCapacity');
+        return this.condition === SystemCondition.BROKEN ? 0 : getConstant(this.constants, 'afterBurnerCapacity');
     }
     get afterBurnerEffectFactor(): number {
         return getConstant(this.constants, 'afterBurnerEffectFactor');
+    }
+
+    public static isInstance(o: unknown): o is Thruster {
+        return !!o && (o as ShipSystem).type === 'Thruster';
     }
 }

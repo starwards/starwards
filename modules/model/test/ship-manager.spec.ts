@@ -1,4 +1,4 @@
-import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2 } from '../src';
+import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, SystemCondition, Vec2 } from '../src';
 
 import { expect } from 'chai';
 import fc from 'fast-check';
@@ -28,7 +28,7 @@ describe('ShipManager', () => {
 
                 const brokenInFront = shipMgr.getNumberOfBrokenPlatesInRange([-178, 178]);
                 expect(brokenInFront).to.equal(0);
-                expect(shipMgr.state.chainGun.broken).to.be.false;
+                expect(shipMgr.state.chainGun.condition).to.equal(SystemCondition.OK);
                 for (const plate of shipMgr.state.armor.platesInRange([177, -177])) {
                     expect(plate.health).to.be.lessThan(200);
                 }

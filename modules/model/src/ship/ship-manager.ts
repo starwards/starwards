@@ -19,23 +19,32 @@ import {
     capToRange,
     gaussianRandom,
     lerp,
+    limitPercision,
     matchLocalSpeed,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
     shipAreasInRange,
     toPositiveDegreesDelta,
 } from '..';
+import { ChainGunMalfunctions, FRONT_ARC, REAR_ARC, SystemCondition } from '.';
 import { Damage, SpaceManager } from '../logic/space-manager';
-import { FRONT_ARC, REAR_ARC } from '.';
+import { Thruster, ThrusterMalfunctions } from './thruster';
 
 import { Bot } from '../logic/bot';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
-import { Thruster } from './thruster';
+import { ShipSystem } from './ship-system';
 import { uniqueId } from '../id';
 
 interface WithConstants {
     constants: MapSchema<number>;
+}
+
+function getRandomEnumValue<T>(anEnum: T): T[keyof T] {
+    const enumValues = Object.keys(anEnum) as Array<keyof T>;
+    const index = Math.floor(Math.random() * enumValues.length);
+    const key = enumValues[index];
+    return anEnum[key];
 }
 function setConstant(state: WithConstants, name: string, value: number) {
     state.constants.set(name, value);
@@ -126,9 +135,9 @@ function makeShipState(id: string) {
 export function resetShipState(state: ShipState) {
     state.energy = state.maxEnergy;
     fixArmor(state.armor);
-    state.chainGun.broken = false;
+    state.chainGun.condition = SystemCondition.OK;
     for (const thruster of state.thrusters) {
-        thruster.broken = false;
+        thruster.condition = SystemCondition.OK;
     }
     state.chainGunAmmo = state.maxChainGunAmmo;
 }
@@ -180,7 +189,7 @@ export class ShipManager {
     }
 
     public chainGun(isFiring: boolean) {
-        if (!isFiring || (!this.state.chainGun.broken && this.state.chainGunAmmo > 0)) {
+        if (!isFiring || (this.state.chainGun.condition !== SystemCondition.BROKEN && this.state.chainGunAmmo > 0)) {
             this.state.chainGun.isFiring = isFiring;
         }
     }
@@ -255,7 +264,10 @@ export class ShipManager {
     update(deltaSeconds: number) {
         this.healPlates(deltaSeconds);
         this.handleDamage();
-        if (this.state.chainGun.broken && this.state.thrusters.every((t) => t.broken)) {
+        if (
+            this.state.chainGun.condition === SystemCondition.BROKEN &&
+            this.state.thrusters.every((t) => t.condition === SystemCondition.BROKEN)
+        ) {
             this.onDestroy && this.onDestroy();
         } else {
             if (this.bot) {
@@ -315,7 +327,7 @@ export class ShipManager {
     }
 
     private damageSystem(system: ShipSystem, damageObject: Damage, percentageOfBrokenPlates: number) {
-        if (system.broken) {
+        if (system.condition === SystemCondition.BROKEN) {
             return;
         }
         const dps50 = system.dps50;
@@ -324,7 +336,29 @@ export class ShipManager {
             (damageObject.amount / damageObject.damageDurationSeconds) * percentageOfBrokenPlates
         );
         if (Math.random() < destructionProbability) {
-            system.broken = true;
+            system.condition =
+                system.condition === SystemCondition.DAMAGED ? SystemCondition.BROKEN : SystemCondition.DAMAGED;
+            if (Thruster.isInstance(system)) {
+                ShipManager.damageThruster(system);
+            } else if (ChainGun.isInstance(system)) {
+                ShipManager.damageChainGun(system);
+            }
+        }
+    }
+
+    private static damageThruster(thruster: Thruster) {
+        thruster.malfunctionType = getRandomEnumValue(ThrusterMalfunctions);
+        if (thruster.malfunctionType === ThrusterMalfunctions.ATTITUDE_MALFUNCTION) {
+            thruster.angleError = limitPercision(Math.random() * 5 * (Math.round(Math.random()) ? 1 : -1));
+        } else if (thruster.malfunctionType === ThrusterMalfunctions.CAPACITY_MALFUNCTION) {
+            thruster.availableCapacityPercentage = limitPercision(Math.random() * 0.1 + 0.9);
+        }
+    }
+
+    private static damageChainGun(chainGun: ChainGun) {
+        chainGun.malfunctionType = getRandomEnumValue(ChainGunMalfunctions);
+        if (chainGun.malfunctionType === ChainGunMalfunctions.ATTITUDE_MALFUNCTION) {
+            chainGun.angleOffset = limitPercision(Math.random() * 2 * (Math.round(Math.random()) ? 1 : -1));
         }
     }
 
@@ -495,9 +529,17 @@ export class ShipManager {
     private updateVelocityFromThrusters(deltaSeconds: number) {
         const speedToChange = XY.sum(
             ...this.state.thrusters.map((thruster) => {
-                const mvEffect = thruster.active * thruster.capacity * thruster.speedFactor * deltaSeconds;
+                const mvEffect =
+                    thruster.active *
+                    thruster.capacity *
+                    thruster.availableCapacityPercentage *
+                    thruster.speedFactor *
+                    deltaSeconds;
                 const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;
-                return XY.byLengthAndDirection(mvEffect + abEffect, thruster.angle + this.state.angle);
+                return XY.byLengthAndDirection(
+                    mvEffect + abEffect,
+                    thruster.angle + thruster.angleError + this.state.angle
+                );
             })
         );
         if (!XY.isZero(speedToChange)) {
@@ -616,12 +658,26 @@ export class ShipManager {
 
     private fireChainGun() {
         const chaingun = this.state.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken && this.state.chainGunAmmo > 0) {
+        if (
+            chaingun.isFiring &&
+            chaingun.cooldown <= 0 &&
+            chaingun.condition !== SystemCondition.BROKEN &&
+            this.state.chainGunAmmo > 0
+        ) {
             chaingun.cooldown += 1;
+            if (
+                chaingun.condition === SystemCondition.DAMAGED &&
+                chaingun?.malfunctionType === ChainGunMalfunctions.COOLING_FAILURE
+            ) {
+                chaingun.cooldown += 1;
+            }
             this.state.chainGunAmmo -= 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 
-            shell.angle = gaussianRandom(this.spaceObject.angle + chaingun.angle, chaingun.bulletDegreesDeviation);
+            shell.angle = gaussianRandom(
+                this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
+                chaingun.bulletDegreesDeviation
+            );
             shell.velocity = Vec2.sum(
                 this.spaceObject.velocity,
                 XY.rotate({ x: chaingun.bulletSpeed, y: 0 }, shell.angle)
