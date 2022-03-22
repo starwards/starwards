@@ -1,9 +1,15 @@
-import { ShipSystem } from './ship-system';
-import { SmartPilotMode } from '.';
-import { getConstant } from '../utils';
-import { type } from '@colyseus/schema';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+import { ShipArea, SmartPilotMode } from '.';
 
-export class ChainGun extends ShipSystem {
+import { getConstant } from '../utils';
+
+export class ChainGun extends Schema {
+    public static isInstance(o: unknown): o is ChainGun {
+        return (o as ChainGun)?.type === 'ChainGun';
+    }
+
+    public readonly type = 'ChainGun';
+
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
@@ -25,6 +31,19 @@ export class ChainGun extends ShipSystem {
     @type('int8')
     shellRangeMode!: SmartPilotMode;
 
+    @type('boolean')
+    broken = false;
+
+    @type('int8')
+    damageArea!: ShipArea;
+
+    @type({ map: 'number' })
+    constants!: MapSchema<number>;
+
+    // dps at which there's 50% chance of system destruction
+    get dps50() {
+        return getConstant(this.constants, 'dps50');
+    }
     // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
         return getConstant(this.constants, 'bulletSpeed');

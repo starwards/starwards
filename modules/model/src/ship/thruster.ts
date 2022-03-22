@@ -1,10 +1,10 @@
-import { ShipDirection } from './ship-direction';
-import { ShipState } from '.';
-import { ShipSystem } from './ship-system';
-import { getConstant } from '../utils';
-import { type } from '@colyseus/schema';
+import { MapSchema, Schema, type } from '@colyseus/schema';
+import { ShipArea, ShipState } from '.';
 
-export class Thruster extends ShipSystem {
+import { ShipDirection } from './ship-direction';
+import { getConstant } from '../utils';
+
+export class Thruster extends Schema {
     /**
      * the measure of current engine activity
      */
@@ -15,6 +15,20 @@ export class Thruster extends ShipSystem {
      */
     @type('float32')
     afterBurnerActive = 0;
+
+    @type('boolean')
+    broken = false;
+
+    @type('int8')
+    damageArea!: ShipArea;
+
+    @type({ map: 'number' })
+    constants!: MapSchema<number>;
+
+    // dps at which there's 50% chance of system destruction
+    get dps50() {
+        return getConstant(this.constants, 'dps50');
+    }
 
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
