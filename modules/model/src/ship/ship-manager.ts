@@ -31,7 +31,6 @@ import { FRONT_ARC, REAR_ARC } from '.';
 import { Bot } from '../logic/bot';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
-import { ShipSystem } from './ship-system';
 import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
@@ -76,6 +75,8 @@ export function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
+export type ShipSystem = ChainGun | Thruster;
+
 function makeShipState(id: string) {
     const state = new ShipState();
     state.id = id;
