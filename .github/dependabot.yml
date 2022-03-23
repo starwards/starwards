@@ -7,3 +7,7 @@ updates:
           interval: daily
       open-pull-requests-limit: 10
       versioning-strategy: increase
+      ignore:
+      - dependency-name: "golden-layout"
+          # version 2 has too many breaking changes for now
+          versions: ["2.x"]
