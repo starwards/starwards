@@ -34,7 +34,7 @@ const InGameMenu = (p: Props) => {
             {adminDriver && (
                 <pre key="Stop Game">
                     <Button palette="error" onClick={adminDriver?.stopGame}>
-                        Stop Game
+                        <div data-id="stop game">Stop Game</div>
                     </Button>
                 </pre>
             )}
@@ -124,10 +124,10 @@ export const Lobby = (p: Props) => {
                         <h1 data-id="title">Starwards</h1>
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
 
-                        {!isGameRunning && adminDriver && (
+                        {false === isGameRunning && adminDriver && (
                             <pre key="new game">
                                 <Button palette="success" onClick={adminDriver.startGame}>
-                                    New Game
+                                    <div data-id="new game">New Game</div>
                                 </Button>
                             </pre>
                         )}

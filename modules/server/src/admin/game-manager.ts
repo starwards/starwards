@@ -10,12 +10,12 @@ export class GameManager {
     private ships = new Map<string, ShipManager>();
     private spaceManager = new SpaceManager();
 
-    constructor(private shipMessenger: ShipStateMessenger) {
+    constructor(private shipMessenger?: ShipStateMessenger) {
         this.state.points = new MapSchema();
     }
 
     update(deltaSeconds: number) {
-        this.shipMessenger.update(deltaSeconds);
+        this.shipMessenger?.update(deltaSeconds);
         if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
             void this.stopGame();
         } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
@@ -33,7 +33,7 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
-            this.shipMessenger.unRegisterAll();
+            this.shipMessenger?.unRegisterAll();
             this.state.isGameRunning = false;
         }
     }
@@ -70,7 +70,7 @@ export class GameManager {
         }); // create a manager to manage the ship
         this.ships.set(id, shipManager);
         if (sendMessages) {
-            this.shipMessenger.registerShip(shipManager.state);
+            this.shipMessenger?.registerShip(shipManager.state);
         }
         void matchMaker.createRoom('ship', { manager: shipManager });
         spaceManager.insert(ship);

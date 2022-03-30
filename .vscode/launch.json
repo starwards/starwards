@@ -1,7 +1,6 @@
 {
     "version": "0.2.0",
     "configurations": [
-    
         {
             "type": "pwa-node",
             "request": "launch",
@@ -26,6 +25,21 @@
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             },
             "args": ["${fileBasename}", "--verbose", "-i", "--no-cache", "--watchAll"],
+            "cwd": "${workspaceRoot}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+            "skipFiles": ["<node_internals>/**"]
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "debug e2e test",
+            "program": "${workspaceFolder}/node_modules/@playwright/test/cli.js",
+            "args": ["test"],
+            "env": {
+                "PWDEBUG": "1"
+            },
             "cwd": "${workspaceRoot}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",

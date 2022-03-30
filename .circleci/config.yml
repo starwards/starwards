@@ -22,6 +22,7 @@ jobs:
             #       node-version: '17.2.0'
             - run: node --version
             - node/install-packages
+            - run: npm run build:model
             - run: npm run test:e2e
             - store_test_results:
                   path: playwright-results.xml
