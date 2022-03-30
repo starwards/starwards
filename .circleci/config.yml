@@ -2,7 +2,26 @@ version: 2.1
 orbs:
     node: circleci/node@4.1.0
 jobs:
-    e2e-test:
+    Static-test:
+        executor:
+            name: node/default
+            tag: '17.2'
+        steps:
+            - checkout
+            - run: node --version
+            - node/install-packages
+            - run: npm run test:types
+            - run: npm run test:format
+    Test:
+        executor:
+            name: node/default
+            tag: '17.2'
+        steps:
+            - checkout
+            - run: node --version
+            - node/install-packages
+            - run: npm run test
+    Test-E2e:
         docker:
             - image: mcr.microsoft.com/playwright:focal
         environment:
@@ -15,11 +34,19 @@ jobs:
             - run: node --version
             - node/install-packages
             - run: npm run test:e2e
-
+    Build:
+        executor:
+            name: node/default
+            tag: '17.2'
+        steps:
+            - checkout
+            - run: node --version
+            - node/install-packages
+            - run: npm run build
 workflows:
     test:
         jobs:
-            - node/test:
-                  name: 'Test'
-                  version: '17.2.0'
-            - e2e-test
+            - Build
+            - Static-test
+            - Test
+            - Test-E2e
