@@ -2,7 +2,7 @@ version: 2.1
 orbs:
     node: circleci/node@4.9.0
 jobs:
-    Static-test:
+    Test-Static:
         executor:
             name: node/default
             tag: '17.2'
@@ -43,5 +43,5 @@ workflows:
                   version: '17.2.0'
                   test-results-for: jest
             # - Build
-            - Static-test
+            - Test-Static
             - Test-E2e
