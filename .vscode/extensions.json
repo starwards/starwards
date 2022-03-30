@@ -8,7 +8,6 @@
         "esbenp.prettier-vscode",
         "msjsdiag.debugger-for-chrome",
         "eamodio.gitlens",
-        "coenraads.bracket-pair-colorizer",
         "orta.vscode-jest"
     ]
 }
