@@ -121,7 +121,7 @@ export const Lobby = (p: Props) => {
             >
                 <AnimatorGeneralProvider animator={generalAnimator}>
                     <div style={{ padding: 20, textAlign: 'center' }}>
-                        <h1>Starwards</h1>
+                        <h1 data-id="title">Starwards</h1>
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
 
                         {!isGameRunning && adminDriver && (

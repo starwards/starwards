@@ -1,6 +1,20 @@
 version: 2.1
 orbs:
     node: circleci/node@4.1.0
+jobs:
+    e2e-test:
+        docker:
+            - image: mcr.microsoft.com/playwright:focal
+        environment:
+            NODE_ENV: development # Needed if playwright is in `devDependencies`
+        steps:
+            - checkout
+            # - run: nvm install 17.2.0
+            # - node/install:
+            #       node-version: '17.2.0'
+            - run: node --version
+            - node/install-packages
+            - run: npm run test:e2e
 
 workflows:
     test:
@@ -8,3 +22,4 @@ workflows:
             - node/test:
                   name: 'Test'
                   version: '17.2.0'
+            - e2e-test

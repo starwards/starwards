@@ -22,8 +22,9 @@
         "lint": "eslint .",
         "pretest": "tsc --noEmit --skipLibCheck && npm run lint",
         "test": "jest",
+        "test:e2e": "playwright test",
         "start": "npm --cwd ./dist run start",
-        "browser": "npm --cwd ./modules/browser run start",
+        "browser": "npm --prefix ./modules/browser run start",
         "prepack": "npm run build",
         "pkg": "node scripts/pkg.js"
     },
@@ -39,6 +40,7 @@
     },
     "devDependencies": {
         "@colyseus/loadtest": "^0.14.7",
+        "@playwright/test": "^1.20.1",
         "@types/chai": "^4.3.0",
         "@types/d3-selection": "^3.0.2",
         "@types/dat.gui": "^0.7.7",
@@ -70,6 +72,7 @@
         "ncp": "^2.0.0",
         "nodemon": "^2.0.7",
         "pkg": "^5.5.2",
+        "playwright": "^1.20.1",
         "prettier": "^2.6.0",
         "pretty-quick": "^3.1.0",
         "rimraf": "^3.0.2",
