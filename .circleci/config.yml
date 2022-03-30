@@ -1,6 +1,6 @@
 version: 2.1
 orbs:
-    node: circleci/node@4.1.0
+    node: circleci/node@4.9.0
 jobs:
     Static-test:
         executor:
@@ -12,20 +12,9 @@ jobs:
             - node/install-packages
             - run: npm run test:types
             - run: npm run test:format
-    Test:
-        executor:
-            name: node/default
-            tag: '17.2'
-        steps:
-            - checkout
-            - run: node --version
-            - node/install-packages
-            - run: npm run test
     Test-E2e:
         docker:
             - image: mcr.microsoft.com/playwright:focal
-        environment:
-            NODE_ENV: development # Needed if playwright is in `devDependencies`
         steps:
             - checkout
             # - run: nvm install 17.2.0
@@ -34,6 +23,8 @@ jobs:
             - run: node --version
             - node/install-packages
             - run: npm run test:e2e
+            - store_test_results:
+                  path: playwright-results.xml
     Build:
         executor:
             name: node/default
@@ -46,7 +37,10 @@ jobs:
 workflows:
     test:
         jobs:
+            - node/test:
+                  name: 'Test'
+                  version: '17.2.0'
+                  test-results-for: jest
             - Build
             - Static-test
-            - Test
             - Test-E2e
