@@ -42,6 +42,6 @@ workflows:
                   name: 'Test'
                   version: '17.2.0'
                   test-results-for: jest
-            - Build
+            # - Build
             - Static-test
             - Test-E2e
