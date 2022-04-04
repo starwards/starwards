@@ -9,13 +9,6 @@ export class ChainGun extends Schema {
     }
 
     public readonly type = 'ChainGun';
-
-export enum ChainGunMalfunctions {
-    ATTITUDE_MALFUNCTION,
-    COOLING_FAILURE,
-}
-export class ChainGun extends ShipSystem {
-    public readonly type = 'ChainGun';
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
@@ -37,11 +30,20 @@ export class ChainGun extends ShipSystem {
     @type('int8')
     shellRangeMode!: SmartPilotMode;
 
-    @type('int8')
-    malfunctionType!: ChainGunMalfunctions;
-
     @type('float32')
     angleOffset = 0;
+
+    @type('uint8')
+    coolingFailure = 0;
+
+    @type('boolean')
+    broken = false;
+
+    @type('int8')
+    damageArea!: ShipArea;
+
+    @type({ map: 'number' })
+    constants!: MapSchema<number>;
 
     // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
@@ -83,8 +85,12 @@ export class ChainGun extends ShipSystem {
     get maxShellSecondsToLive(): number {
         return this.maxShellRange / this.bulletSpeed;
     }
-
-    public static isInstance(o: unknown): o is ChainGun {
-        return !!o && (o as ShipSystem).type === 'ChainGun';
+    // dps at which there's 50% chance of system damage
+    get dps50(): number {
+        return getConstant(this.constants, 'dps50');
+    }
+    // probability that damage to the system will result in complete breakdown
+    get completeDestructionProbability(): number {
+        return getConstant(this.constants, 'completeDestructionProbability');
     }
 }

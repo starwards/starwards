@@ -10,7 +10,6 @@ import {
 } from '../api/property-constructors';
 
 import { ShipState } from './ship-state';
-import { SystemCondition } from '.';
 import { XY } from '../logic';
 
 export const rotationCommand = NumericStatePropertyCommand(
@@ -153,9 +152,9 @@ export const thrusterAngle = StateProperty((state: ShipState, idx: number) => st
 export const thrusterBroken = StatePropertyCommand(
     'thrusterBroken',
     (state: ShipState, value: boolean, idx: number) => {
-        state.thrusters[idx].condition = value ? SystemCondition.BROKEN : SystemCondition.OK;
+        state.thrusters[idx].broken = value;
     },
-    (state: ShipState, idx: number) => state.thrusters[idx].condition === SystemCondition.BROKEN
+    (state: ShipState, idx: number) => state.thrusters[idx].broken
 );
 export const faction = StatePropertyCommand(
     'faction',

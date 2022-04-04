@@ -1,7 +1,9 @@
-import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, SystemCondition, Vec2 } from '../src';
+import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2, XY, limitPercisionHard } from '../src';
 
 import { expect } from 'chai';
 import fc from 'fast-check';
+
+// import { limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
@@ -28,7 +30,9 @@ describe('ShipManager', () => {
 
                 const brokenInFront = shipMgr.getNumberOfBrokenPlatesInRange([-178, 178]);
                 expect(brokenInFront).to.equal(0);
-                expect(shipMgr.state.chainGun.condition).to.equal(SystemCondition.OK);
+                expect(shipMgr.state.chainGun.broken).to.be.false;
+                expect(shipMgr.state.chainGun.angleOffset).to.equal(0);
+                expect(shipMgr.state.chainGun.coolingFailure).to.equal(0);
                 for (const plate of shipMgr.state.armor.platesInRange([177, -177])) {
                     expect(plate.health).to.be.lessThan(200);
                 }
@@ -87,6 +91,66 @@ describe('ShipManager', () => {
                 const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
                 expect(cannonShells.length).to.equal(10);
                 expect(shipMgr.state.chainGunAmmo).to.equal(0);
+            })
+        );
+    });
+
+    it('chaingun with attitude damage must fire at an offset', () => {
+        fc.assert(
+            fc.property(
+                fc.float({ min: 1, max: 180 }),
+                fc.integer({ min: 15, max: 20 }),
+                (angleOffset: number, numIterationsPerSecond: number) => {
+                    const iterationTimeInSeconds = 1 / numIterationsPerSecond;
+                    const spaceMgr = new SpaceManager();
+                    const shipObj = new Spaceship();
+                    const limitedAngleOffset = limitPercisionHard(angleOffset);
+                    shipObj.id = '1';
+                    const shipMgr = new ShipManager(shipObj, spaceMgr);
+                    spaceMgr.insert(shipObj);
+                    shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                    shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                    shipMgr.state.chainGun.angleOffset = limitedAngleOffset;
+                    shipMgr.state.chainGun.constants.set('bulletDegreesDeviation', 0);
+                    shipMgr.chainGun(true);
+                    let timePassed = 0;
+                    while (timePassed <= 1) {
+                        shipMgr.update(iterationTimeInSeconds);
+                        spaceMgr.update(iterationTimeInSeconds);
+                        timePassed += iterationTimeInSeconds;
+                    }
+
+                    for (const cannonShell of spaceMgr.state.getAll('CannonShell')) {
+                        expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(limitedAngleOffset);
+                    }
+                }
+            )
+        );
+    });
+
+    it('chaingun with cooling failure must have reduced rate of fire', () => {
+        fc.assert(
+            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
+                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
+                const spaceMgr = new SpaceManager();
+                const shipObj = new Spaceship();
+                shipObj.id = '1';
+                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                spaceMgr.insert(shipObj);
+                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                shipMgr.state.chainGun.coolingFailure = 1;
+                shipMgr.chainGun(true);
+                let timePassed = 0;
+                while (timePassed <= 1) {
+                    shipMgr.update(iterationTimeInSeconds);
+                    spaceMgr.update(iterationTimeInSeconds);
+                    timePassed += iterationTimeInSeconds;
+                }
+                expect([...spaceMgr.state.getAll('CannonShell')].length).to.be.closeTo(
+                    Math.floor(shipMgr.state.chainGun.bulletsPerSecond / 2),
+                    1
+                );
             })
         );
     });

@@ -1,5 +1,6 @@
-import { ManeuveringCommand, SystemCondition, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
+import { ManeuveringCommand, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
 import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
+import { limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
 
 import { ShipDirection } from '../src/ship/ship-direction';
 import { expect } from 'chai';
@@ -47,7 +48,7 @@ describe('thrusters-ship integration', function () {
                     const harness = new ShipTestHarness();
                     harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                     for (const thruster of harness.shipState.angleThrusters(direction)) {
-                        thruster.condition = SystemCondition.BROKEN;
+                        thruster.broken = true;
                     }
                     expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.eql(0);
                 })
@@ -61,11 +62,27 @@ describe('thrusters-ship integration', function () {
                 const harness = new ShipTestHarness();
                 harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
-                    thruster.condition = SystemCondition.BROKEN;
+                    thruster.broken = true;
                 }
                 setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
                 harness.simulate(1, iterationsPerSecond);
                 expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.eql(0);
+            })
+        );
+    });
+
+    it(`(FWD only) thruster with damaged attitude offsets angle of ship`, () => {
+        fc.assert(
+            fc.property(float(-180, 180), (offset: number) => {
+                const harness = new ShipTestHarness();
+                for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
+                    thruster.angleError = offset;
+                }
+                setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
+                harness.simulate(1, iterationsPerSecond);
+                expect(limitPercisionHard(XY.angleOf(harness.shipObj.velocity)), 'velocity').to.eql(
+                    limitPercisionHard(toPositiveDegreesDelta(offset))
+                );
             })
         );
     });
