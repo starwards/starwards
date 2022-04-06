@@ -43,7 +43,7 @@ const testMap = {
     },
 };
 
-test.only('tactical radar view', async ({ page }) => {
+test('tactical radar view', async ({ page }) => {
     if (!gameManager) throw new Error('missing gameManager');
     await gameManager.startGame(testMap);
     await page.goto(`/ship.html?ship=${testShipId}`);
