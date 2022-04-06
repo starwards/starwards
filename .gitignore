@@ -94,3 +94,4 @@ typings/
 .dynamodb/
 ngrok.*
 assets
+test-results

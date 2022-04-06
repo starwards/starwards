@@ -51,6 +51,7 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
             Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                root.view.setAttribute('data-id', 'Tactical Radar');
                 root.setSquare();
                 const background = new MovementAnchorLayer(
                     root,

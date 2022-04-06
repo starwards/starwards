@@ -26,6 +26,8 @@ jobs:
             - run: npm run test:e2e
             - store_test_results:
                   path: playwright-results.xml
+            - store_artifacts:
+                  path: test-results
     Build:
         executor:
             name: node/default

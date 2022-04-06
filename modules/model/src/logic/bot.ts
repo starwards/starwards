@@ -18,6 +18,7 @@ import {
     setNumericProperty,
 } from '../';
 
+// TODO: use ShipApi
 export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;
 
 export function jouster(): Bot {

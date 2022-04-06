@@ -98,7 +98,7 @@ export class Dashboard extends GoldenLayout {
 
     private registerWidgetMenuItem(name: string, newItemConfig: GoldenLayout.ItemConfigType) {
         if (this.dragContainer) {
-            const menuItem = $('<li>' + name + '</li>');
+            const menuItem = $(`<li data-id="menu-${name}">${name}</li>`);
             this.dragContainer.append(menuItem);
             this.createDragSource(menuItem, newItemConfig);
         }
