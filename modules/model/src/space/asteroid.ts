@@ -15,6 +15,6 @@ export class Asteroid extends SpaceObjectBase {
     constructor() {
         super();
         this.health = 100;
-        this.radius = Asteroid.maxSize / 2;
+        this.radius = Math.random() * Asteroid.maxSize;
     }
 }
