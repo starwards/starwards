@@ -9,6 +9,8 @@ jobs:
         steps:
             - checkout
             - run: node --version
+            - run: npm --version
+            - run: env
             - node/install-packages
             - run: npm run test:types
             - run: npm run test:format
@@ -17,10 +19,13 @@ jobs:
             - image: mcr.microsoft.com/playwright:focal
         steps:
             - checkout
+            - run: mkdir -p ./test-results
             # - run: nvm install 17.2.0
             # - node/install:
             #       node-version: '17.2.0'
             - run: node --version
+            - run: npm --version
+            - run: env
             - node/install-packages
             - run: npm run build:model
             - run: npm run test:e2e
