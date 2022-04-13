@@ -1,30 +1,18 @@
+/* eslint-disable no-console */
 import * as http from 'http';
 
-/* eslint-disable no-console */
-/*
- * embed webpack-dev-server
- */
 import { Server, matchMaker } from 'colyseus';
 
 import { AdminRoom } from './admin/room';
 import { GameManager } from './admin/game-manager';
-import { MqttClient } from './messaging/mqtt-client';
 import { ShipRoom } from './ship/room';
-import { ShipStateMessenger } from './messaging/ship-state-messenger';
 import { SpaceRoom } from './space/room';
 import { WebSocketTransport } from '@colyseus/ws-transport';
+import basicAuth from 'express-basic-auth';
+import express from 'express';
 import { monitor } from '@colyseus/monitor';
 
-import express = require('express');
-import basicAuth = require('express-basic-auth');
-
-process.on('uncaughtException', function (err) {
-    console.error(new Date().toUTCString() + ' uncaughtException:', err.message);
-    console.error(err.stack);
-    // process.exit(1);
-});
-
-export async function server(port: number, staticDir: string, mqttUrl = 'http://localhost', mqttPort = 1883) {
+export async function server(port: number, staticDir: string, manager: GameManager) {
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const gameServer = new Server({ transport: new WebSocketTransport({ server: http.createServer(app) }) });
@@ -42,7 +30,5 @@ export async function server(port: number, staticDir: string, mqttUrl = 'http://
     await gameServer.listen(port);
     console.log(`Listening on port ${port}`);
 
-    const shipMessenger = new ShipStateMessenger(new MqttClient(mqttUrl, mqttPort));
-    const gameManager = new GameManager(shipMessenger);
-    await matchMaker.createRoom('admin', { manager: gameManager }); // create a room
+    await matchMaker.createRoom('admin', { manager }); // create a room
 }

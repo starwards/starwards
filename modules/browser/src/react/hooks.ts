@@ -52,8 +52,8 @@ export function useShipDriver(subject: SpaceObject | undefined, driver: Driver):
     return shipDriver;
 }
 
-export function useIsGameRunning(driver: Driver): boolean {
-    const [gamesCount, setgamesCount] = useState(false);
+export function useIsGameRunning(driver: Driver): boolean | null {
+    const [gamesCount, setgamesCount] = useState<boolean | null>(null);
     useLoop(async () => setgamesCount(await driver.isActiveGame()), 500, [driver]);
     return gamesCount;
 }
