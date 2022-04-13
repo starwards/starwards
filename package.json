@@ -21,7 +21,7 @@
         "build": "npm run build:model && npm run build:browser && npm run build:server && node scripts/post-build.js",
         "lint": "eslint .",
         "test": "jest",
-        "snapshots:ci": "copy %cd%\\modules\\e2e\\test\\integration.spec.ts-snapshots\\*-win32.png %cd%\\modules\\e2e\\test\\integration.spec.ts-snapshots\\*-linux.*",
+        "snapshots:ci": "node ./scripts/update-snapshots.js",
         "test:e2e": "playwright test",
         "test:format": "npm run lint",
         "test:types": "tsc --noEmit --skipLibCheck",
