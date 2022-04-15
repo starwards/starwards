@@ -1,0 +1,10 @@
+version: '3'
+services:
+    app:
+        build:
+            context: ../..
+            dockerfile: modules/e2e/Dockerfile
+        volumes:
+            - type: bind
+              source: ./test
+              target: /work/modules/e2e/test

@@ -21,7 +21,7 @@
         "build": "npm run build:model && npm run build:browser && npm run build:server && node scripts/post-build.js",
         "lint": "eslint .",
         "test": "jest",
-        "snapshots:ci": "node ./scripts/update-snapshots.js",
+        "snapshots:ci": "docker-compose -f ./modules/e2e/docker-compose.yml up",
         "test:e2e": "playwright test",
         "test:format": "npm run lint",
         "test:types": "tsc --noEmit --skipLibCheck",
