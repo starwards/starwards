@@ -1,0 +1,14 @@
+.git/
+.circleci/
+.github/
+.husky/
+.vscode/
+docker/
+models/
+node_modules/
+psd/
+scripts/
+test-results/
+
+modules/**/node_modules/
+modules/**/cjs

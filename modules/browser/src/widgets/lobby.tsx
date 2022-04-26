@@ -92,6 +92,13 @@ function ShipOptions({ shipId }: { shipId: string }) {
                         Empty Screen
                     </Button>
                     <Button
+                        key="3D debug"
+                        palette="secondary"
+                        onClick={() => window.location.assign(`main-screen.html?ship=${shipId}&debug`)}
+                    >
+                        3D debug
+                    </Button>
+                    <Button
                         key="Main Screen"
                         palette="secondary"
                         onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}
