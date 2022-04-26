@@ -14,7 +14,7 @@
         "@babylonjs/core": "5.3.0",
         "@babylonjs/loaders": "5.3.0",
         "@maulingmonkey/gamepad": "^0.0.5",
-        "@pixi/graphics-extras": "^6.2.2",
+        "@pixi/graphics-extras": "^6.3.0",
         "@xstate/react": "^3.0.0",
         "colyseus.js": "^0.14.13",
         "d3": "^7.4.4",
