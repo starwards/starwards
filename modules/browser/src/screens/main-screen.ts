@@ -25,7 +25,7 @@ export const babylonInit = async (): Promise<void> => {
         const engine = new Engine(canvas, true);
 
         // Create the scene
-        const scene = await placeSceneEnv(engine, canvas);
+        const scene = placeSceneEnv(engine);
         const meshes = await loadMeshes(scene);
         const objects = new Objects3D(spaceDriver.state, meshes, shipId);
         // Register a render loop to repeatedly render the scene

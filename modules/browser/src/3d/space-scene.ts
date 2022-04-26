@@ -9,14 +9,10 @@ import { Engine, Scene } from '@babylonjs/core';
 
 import { placeLights } from './lights';
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export async function placeSceneEnv(engine: Engine, _canvas: HTMLCanvasElement): Promise<Scene> {
+export function placeSceneEnv(engine: Engine) {
     const drawingDistance = 5000;
     const scene = new Scene(engine);
 
-    // universalCamera(scene, canvas);
-    // placeAxes(scene, 5);
-    // placeSkybox(scene, 'space-engine-2', drawingDistance * 2);
     placeLights(scene, drawingDistance);
 
     // demo "nebula"
