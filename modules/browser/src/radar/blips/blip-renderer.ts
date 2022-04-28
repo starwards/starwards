@@ -60,7 +60,6 @@ class DradisSpaceshipRenderer implements SpaceObjectRenderer {
         stage.addChild(this.text);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
 
     redraw(): void {
@@ -89,7 +88,6 @@ class DradisAsteroidRenderer implements SpaceObjectRenderer {
         stage.addChild(this.asteroidSprite);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
     redraw(): void {
         const { parent, spaceObject, isSelected, color } = this.data;
@@ -109,7 +107,6 @@ class CircleRenderer implements SpaceObjectRenderer {
         const { stage } = this.data;
         stage.addChild(this.shellCircle);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
     redraw(): void {
         const { parent, spaceObject, isSelected, blipSize, color } = this.data;
@@ -134,7 +131,6 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
         stage.addChild(this.text);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
 
     redraw(): void {
@@ -159,7 +155,6 @@ class RadarRangeRenderer implements SpaceObjectRenderer {
     constructor(private data: ObjectGraphics<SpaceObject>) {
         const { stage } = this.data;
         stage.addChild(this.range);
-        this.redraw();
     }
     redraw(): void {
         const { parent, spaceObject, color } = this.data;

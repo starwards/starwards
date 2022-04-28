@@ -6,6 +6,7 @@ import { Container } from 'pixi.js';
 
 export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
 export type Selection = { has(o: SpaceObject): boolean };
+export type Filter = (o: SpaceObject) => boolean;
 export class ObjectsLayer {
     private stage = new Container();
     private graphics = new Map<string, ObjectGraphics<SpaceObject>>();
@@ -15,7 +16,8 @@ export class ObjectsLayer {
         private blipSize: number,
         private getColor: (s: SpaceObject) => number,
         private drawFunctions: DrawFunctions,
-        private selectedItems: Selection = { has: () => false }
+        private readonly selectedItems?: Selection,
+        private readonly filter?: Filter
     ) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
         spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
@@ -28,9 +30,15 @@ export class ObjectsLayer {
 
     private render = () => {
         for (const objGraphics of this.graphics.values()) {
-            objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
+            this.redrawObjectGraphics(objGraphics);
         }
     };
+
+    private redrawObjectGraphics(objGraphics: ObjectGraphics<SpaceObject>) {
+        if (!this.filter || this.filter(objGraphics.spaceObject)) {
+            objGraphics.redraw(!!this.selectedItems?.has(objGraphics.spaceObject));
+        }
+    }
 
     get renderRoot(): Container {
         return this.stage;
@@ -49,6 +57,7 @@ export class ObjectsLayer {
             );
             this.graphics.set(spaceObject.id, objGraphics);
             this.stage.addChild(objGraphics.stage);
+            this.redrawObjectGraphics(objGraphics);
         }
     }
 }
