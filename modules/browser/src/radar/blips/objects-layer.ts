@@ -3,7 +3,6 @@ import { SpaceObject, SpaceObjects, State } from '@starwards/model';
 import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
 import { ObjectGraphics } from './object-graphics';
-import { SelectionContainer } from '../selection-container';
 
 export interface SpaceObjectRenderer {
     redraw(): void;
@@ -12,7 +11,7 @@ export interface ObjectRendererFactory<T extends SpaceObject> {
     new (data: ObjectGraphics<T>): SpaceObjectRenderer;
 }
 export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererFactory<SpaceObjects[T]> };
-
+export type Selection = { has(o: SpaceObject): boolean };
 export class ObjectsLayer {
     private stage = new Container();
     private graphics = new Map<string, ObjectGraphics<SpaceObject>>();
@@ -22,7 +21,7 @@ export class ObjectsLayer {
         private blipSize: number,
         private getColor: (s: SpaceObject) => number,
         private drawFunctions: DrawFunctions,
-        private selectedItems: SelectionContainer
+        private selectedItems: Selection = { has: () => false }
     ) {
         spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
         spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
