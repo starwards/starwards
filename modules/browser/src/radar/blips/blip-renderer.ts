@@ -156,6 +156,24 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
     }
 }
 
+class RadarRangeRenderer implements SpaceObjectRenderer {
+    private range = new Graphics();
+    constructor(private data: ObjectGraphics<SpaceObject>) {
+        const { stage } = this.data;
+        stage.addChild(this.range);
+        this.redraw();
+    }
+    redraw(): void {
+        const { parent, spaceObject, color } = this.data;
+        this.range.clear();
+        if (spaceObject.radarRange) {
+            const radius = parent.metersToPixles(spaceObject.radarRange);
+            this.range.beginFill(color, 0.1);
+            this.range.drawCircle(0, 0, radius);
+        }
+    }
+}
+
 export const dradisDrawFunctions = {
     Spaceship: DradisSpaceshipRenderer,
     Asteroid: DradisAsteroidRenderer,
@@ -166,4 +184,8 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     CannonShell: CircleRenderer,
     Explosion: CircleRenderer,
+};
+
+export const rangeRangeDrawFunctions = {
+    Spaceship: RadarRangeRenderer,
 };

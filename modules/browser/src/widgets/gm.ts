@@ -1,5 +1,6 @@
 import { Faction, SpaceObject } from '@starwards/model';
 import { blue, red, yellow } from '../colors';
+import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -13,7 +14,6 @@ import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { makeRadarHeaders } from './radar';
-import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {
@@ -52,23 +52,32 @@ export class GmWidgets {
                 const fragCounter = new FragCounter(adminDriver.state);
                 // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
+                const getColor = (s: SpaceObject) => {
+                    switch (s.faction) {
+                        case Faction.none:
+                            return yellow;
+                        case Faction.Gravitas:
+                            return red;
+                        case Faction.Raiders:
+                            return blue;
+                    }
+                };
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
                     64,
-                    (s: SpaceObject) => {
-                        switch (s.faction) {
-                            case Faction.none:
-                                return yellow;
-                            case Faction.Gravitas:
-                                return red;
-                            case Faction.Raiders:
-                                return blue;
-                        }
-                    },
+                    getColor,
                     tacticalDrawFunctions,
                     selectionContainer
                 );
+                const radarRangeLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver.state,
+                    64,
+                    getColor,
+                    rangeRangeDrawFunctions
+                );
+                root.addLayer(radarRangeLayer.renderRoot);
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
                 // root.addLayer(fps.renderRoot);
