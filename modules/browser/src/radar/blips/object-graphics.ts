@@ -1,16 +1,20 @@
-import { ObjectRendererFactory, SpaceObjectRenderer } from './objects-layer';
-
 import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
 import { SpaceObject } from '@starwards/model';
 
+export interface SpaceObjectRenderer {
+    redraw(): void;
+}
+export interface ObjectRendererCtor<T extends SpaceObject> {
+    new (data: ObjectGraphics<T>): SpaceObjectRenderer;
+}
 export class ObjectGraphics<T extends SpaceObject> {
     public stage = new Container(); // stage's position is the object's position
     public isSelected = false;
     private renderer: SpaceObjectRenderer;
     constructor(
         public spaceObject: T,
-        rendererCtor: ObjectRendererFactory<T>,
+        rendererCtor: ObjectRendererCtor<T>,
         public parent: CameraView,
         private onDestroyed: () => unknown,
         public blipSize: number,

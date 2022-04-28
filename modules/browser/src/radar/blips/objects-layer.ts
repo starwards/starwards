@@ -1,16 +1,10 @@
+import { ObjectGraphics, ObjectRendererCtor } from './object-graphics';
 import { SpaceObject, SpaceObjects, State } from '@starwards/model';
 
 import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
-import { ObjectGraphics } from './object-graphics';
 
-export interface SpaceObjectRenderer {
-    redraw(): void;
-}
-export interface ObjectRendererFactory<T extends SpaceObject> {
-    new (data: ObjectGraphics<T>): SpaceObjectRenderer;
-}
-export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererFactory<SpaceObjects[T]> };
+export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
 export type Selection = { has(o: SpaceObject): boolean };
 export class ObjectsLayer {
     private stage = new Container();
@@ -43,7 +37,7 @@ export class ObjectsLayer {
     }
 
     private onNewSpaceObject<T extends SpaceObject>(spaceObject: T) {
-        const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererFactory<T>;
+        const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererCtor<T>;
         if (!spaceObject.destroyed && rendererCtor) {
             const objGraphics = new ObjectGraphics<typeof spaceObject>(
                 spaceObject,

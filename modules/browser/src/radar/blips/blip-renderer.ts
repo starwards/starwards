@@ -1,9 +1,7 @@
 import { Asteroid, SpaceObject, Spaceship } from '@starwards/model';
 import { Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
+import { ObjectGraphics, SpaceObjectRenderer } from './object-graphics';
 import { selectionColor, white } from '../../colors';
-
-import { ObjectGraphics } from './object-graphics';
-import { SpaceObjectRenderer } from './objects-layer';
 
 function renderText(y: number, value: string[], color: number) {
     const result = new Text(
