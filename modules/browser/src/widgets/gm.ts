@@ -36,6 +36,9 @@ export class GmWidgets {
                     camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
                 });
                 const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                root.view.setAttribute('data-id', 'GM Radar');
+                root.view.setAttribute('data-zoom', `${camera.zoom}`);
+                root.events.on('screenChanged', () => root.view.setAttribute('data-zoom', `${camera.zoom}`));
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
                 void this.init(root);
