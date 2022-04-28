@@ -19,9 +19,8 @@ export class ObjectsLayer {
         private readonly selectedItems?: Selection,
         private readonly filter?: Filter
     ) {
-        spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
-
+        spaceState.events.on('add', this.onNewSpaceObject);
+        spaceState.events.on('remove', this.onSpaceObjectDestroyed);
         for (const spaceObject of spaceState) {
             this.onNewSpaceObject(spaceObject);
         }
@@ -44,14 +43,21 @@ export class ObjectsLayer {
         return this.stage;
     }
 
-    private onNewSpaceObject<T extends SpaceObject>(spaceObject: T) {
+    private onSpaceObjectDestroyed = (spaceObject: SpaceObject) => {
+        const objGraphics = this.graphics.get(spaceObject.id);
+        if (objGraphics) {
+            objGraphics.destroy();
+            this.stage.removeChild(objGraphics.stage);
+            this.graphics.delete(spaceObject.id);
+        }
+    };
+    private onNewSpaceObject = <T extends SpaceObject>(spaceObject: T) => {
         const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererCtor<T>;
         if (!spaceObject.destroyed && rendererCtor) {
             const objGraphics = new ObjectGraphics<typeof spaceObject>(
                 spaceObject,
                 rendererCtor,
                 this.parent,
-                () => this.graphics.delete(spaceObject.id),
                 this.blipSize,
                 this.getColor(spaceObject)
             );
@@ -59,5 +65,5 @@ export class ObjectsLayer {
             this.stage.addChild(objGraphics.stage);
             this.redrawObjectGraphics(objGraphics);
         }
-    }
+    };
 }

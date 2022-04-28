@@ -16,7 +16,6 @@ export class ObjectGraphics<T extends SpaceObject> {
         public spaceObject: T,
         rendererCtor: ObjectRendererCtor<T>,
         public parent: CameraView,
-        private onDestroyed: () => unknown,
         public blipSize: number,
         public color: number
     ) {
@@ -47,8 +46,6 @@ export class ObjectGraphics<T extends SpaceObject> {
     }
 
     destroy() {
-        this.onDestroyed();
-        this.stage.parent.removeChild(this.stage);
         this.stage.destroy({
             children: true,
         });
