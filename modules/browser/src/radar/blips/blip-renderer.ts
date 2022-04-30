@@ -161,7 +161,7 @@ class RadarRangeRenderer implements SpaceObjectRenderer {
         this.range.clear();
         if (spaceObject.radarRange) {
             const radius = parent.metersToPixles(spaceObject.radarRange);
-            this.range.beginFill(color, 0.1);
+            this.range.beginFill(color, 1);
             this.range.drawCircle(0, 0, radius);
         }
     }

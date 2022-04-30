@@ -1,4 +1,5 @@
 import { Faction, SpaceObject } from '@starwards/model';
+import { Loader, filters } from 'pixi.js';
 import { blue, red, yellow } from '../colors';
 import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
@@ -10,7 +11,6 @@ import { Driver } from '../driver';
 import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
-import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { makeRadarHeaders } from './radar';
@@ -58,6 +58,7 @@ export class GmWidgets {
                 const getColor = (s: SpaceObject) => {
                     switch (s.faction) {
                         case Faction.none:
+                        case Faction.factionCount:
                             return yellow;
                         case Faction.Gravitas:
                             return red;
@@ -73,14 +74,19 @@ export class GmWidgets {
                     tacticalDrawFunctions,
                     selectionContainer
                 );
-                const radarRangeLayer = new ObjectsLayer(
-                    root,
-                    spaceDriver.state,
-                    64,
-                    getColor,
-                    rangeRangeDrawFunctions
-                );
-                root.addLayer(radarRangeLayer.renderRoot);
+                for (let faction = 0; faction < Faction.factionCount; faction++) {
+                    const radarRangeLayer = new ObjectsLayer(
+                        root,
+                        spaceDriver.state,
+                        64,
+                        getColor,
+                        rangeRangeDrawFunctions,
+                        undefined,
+                        (o: SpaceObject) => o.faction === faction && o.radarRange > 0
+                    );
+                    radarRangeLayer.renderRoot.filters = [new filters.AlphaFilter(0.2)];
+                    root.addLayer(radarRangeLayer.renderRoot);
+                }
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
                 // root.addLayer(fps.renderRoot);

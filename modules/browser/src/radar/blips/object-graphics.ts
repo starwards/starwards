@@ -22,26 +22,27 @@ export class ObjectGraphics<T extends SpaceObject> {
         this.renderer = new rendererCtor(this);
     }
 
-    private isInStage() {
-        return (
-            this.stage.x + this.stage.width > 0 &&
-            this.stage.y + this.stage.height > 0 &&
-            this.stage.x - this.stage.width < this.parent.renderer.width &&
-            this.stage.y - this.stage.height < this.parent.renderer.height
-        );
-    }
-
-    redraw(isSelected: boolean) {
+    public shouldRedraw() {
         if (this.spaceObject.destroyed) {
             this.destroy();
+            return false;
         } else {
-            this.isSelected = isSelected;
             const { x, y } = this.parent.worldToScreen(this.spaceObject.position);
             this.stage.x = x;
             this.stage.y = y;
-            if (this.isInStage()) {
-                this.renderer.redraw();
-            }
+            return (
+                this.stage.x + this.stage.width > 0 &&
+                this.stage.y + this.stage.height > 0 &&
+                this.stage.x - this.stage.width < this.parent.renderer.width &&
+                this.stage.y - this.stage.height < this.parent.renderer.height
+            );
+        }
+    }
+
+    draw(isSelected: boolean) {
+        if (!this.spaceObject.destroyed) {
+            this.isSelected = isSelected;
+            this.renderer.redraw();
         }
     }
 

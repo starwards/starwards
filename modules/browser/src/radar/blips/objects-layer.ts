@@ -29,14 +29,16 @@ export class ObjectsLayer {
 
     private render = () => {
         for (const objGraphics of this.graphics.values()) {
-            this.redrawObjectGraphics(objGraphics);
+            if (objGraphics.shouldRedraw()) {
+                this.drawObjectGraphics(objGraphics);
+            }
         }
     };
 
-    private redrawObjectGraphics(objGraphics: ObjectGraphics<SpaceObject>) {
+    private drawObjectGraphics(objGraphics: ObjectGraphics<SpaceObject>) {
         if (!this.filter || this.filter(objGraphics.spaceObject)) {
-            objGraphics.redraw(!!this.selectedItems?.has(objGraphics.spaceObject));
-        }
+            objGraphics.draw(!!this.selectedItems?.has(objGraphics.spaceObject));
+        } // TODO else remove?
     }
 
     get renderRoot(): Container {
@@ -63,7 +65,7 @@ export class ObjectsLayer {
             );
             this.graphics.set(spaceObject.id, objGraphics);
             this.stage.addChild(objGraphics.stage);
-            this.redrawObjectGraphics(objGraphics);
+            this.drawObjectGraphics(objGraphics);
         }
     };
 }
