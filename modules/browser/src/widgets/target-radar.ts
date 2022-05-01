@@ -1,4 +1,5 @@
 import { ShipDriver, SpaceDriver } from '../driver';
+import { green, radarVisibleBg } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -11,7 +12,6 @@ import { SelectionContainer } from '../radar/selection-container';
 import { SpaceState } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { crosshairs } from '../radar/tactical-radar-layers';
-import { green } from '../colors';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
@@ -43,7 +43,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
 
             Loader.shared.load(() => {
-                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const root = new CameraView({ backgroundColor: radarVisibleBg }, camera, container);
                 root.setSquare();
                 const range = new RangeIndicators(root, p.range / 5);
                 range.setSizeFactor(sizeFactor);

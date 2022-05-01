@@ -2,6 +2,7 @@ import { Container, DisplayObject, Graphics, TextStyle } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
+import { white } from '../colors';
 
 const TEXT_MARGIN = 5;
 export class RangeIndicators {
@@ -38,17 +39,16 @@ export class RangeIndicators {
     private drawRangeIndicators() {
         this.shouldRender = false;
         this.rangeIndicators.clear();
-        this.rangeIndicators.lineStyle(2, 0xffffff, 0.1);
+        this.rangeIndicators.lineStyle(2, white, 0.1);
         const textsIterator = this.rangeNames[Symbol.iterator]();
         const maxCircleSize = this.parent.pixelsToMeters(this.parent.radius * this.sizeFactor);
         // draw circles
         for (let circleSize = this.stepSize; circleSize <= maxCircleSize; circleSize += this.stepSize) {
-            // this.rangeIndicators.beginFill(0x00000000);
             const radius = this.parent.metersToPixles(circleSize);
             this.rangeIndicators.drawCircle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, radius);
             const text = textsIterator.next().value;
             text.text = circleSize.toString() + 'M';
-            (text.style as TextStyle).fill = 0xffffff;
+            (text.style as TextStyle).fill = white;
             text.alpha = 0.1;
             text.x = this.parent.renderer.width / 2 - text.width / 2;
             text.y = this.parent.renderer.height / 2 - text.height - radius - TEXT_MARGIN;

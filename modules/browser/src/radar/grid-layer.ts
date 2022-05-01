@@ -3,11 +3,11 @@ import { XY, getSectorName, sectorSize } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
+import { gridColors } from '../colors';
 
 const scaleFactor = 8;
 const miniSectorSize = sectorSize / (scaleFactor * 2);
 export class GridLayer {
-    private static readonly gridColors = [0xcccccc, 0xcccccc, 0x6666ff, 0xf4fa77, 0x55ff55, 0xff3333];
     private stage = new Container();
 
     private readonly gridLines = new Graphics();
@@ -78,10 +78,10 @@ export class GridLayer {
     }
 
     private calcGridLineMagnitude(minMagnitude: number, position: number) {
-        for (let i = GridLayer.gridColors.length - 1; i >= minMagnitude; i--) {
+        for (let i = gridColors.length - 1; i >= minMagnitude; i--) {
             if (position % Math.pow(scaleFactor, i) === 0) {
-                const scale = Math.min(Math.floor(i), GridLayer.gridColors.length - 1);
-                return { scale, color: GridLayer.gridColors[scale] };
+                const scale = Math.min(Math.floor(i), gridColors.length - 1);
+                return { scale, color: gridColors[scale] };
             }
         }
         return null;

@@ -1,6 +1,7 @@
 import { ShipDriver, SpaceDriver } from '../driver';
 import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
+import { green, radarVisibleBg } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -12,7 +13,6 @@ import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
-import { green } from '../colors';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
@@ -50,7 +50,7 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
             const camera = new Camera();
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
             Loader.shared.load(() => {
-                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const root = new CameraView({ backgroundColor: radarVisibleBg }, camera, container);
                 root.view.setAttribute('data-id', 'Tactical Radar');
                 root.setSquare();
                 const background = new MovementAnchorLayer(

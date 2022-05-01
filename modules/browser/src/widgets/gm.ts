@@ -1,6 +1,6 @@
 import { Faction, SpaceObject } from '@starwards/model';
 import { Loader, filters } from 'pixi.js';
-import { blue, red, yellow } from '../colors';
+import { blue, radarVisibleBg, red, yellow } from '../colors';
 import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
@@ -35,7 +35,7 @@ export class GmWidgets {
                     e.preventDefault();
                     camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
                 });
-                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const root = new CameraView({ backgroundColor: radarVisibleBg }, camera, container);
                 root.view.setAttribute('data-id', 'GM Radar');
                 root.view.setAttribute('data-zoom', `${camera.zoom}`);
                 root.events.on('screenChanged', () => root.view.setAttribute('data-zoom', `${camera.zoom}`));
