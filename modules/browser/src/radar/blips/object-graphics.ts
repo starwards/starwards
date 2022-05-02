@@ -8,7 +8,7 @@ export interface SpaceObjectRenderer {
 export interface ObjectRendererCtor<T extends SpaceObject> {
     new (data: ObjectGraphics<T>): SpaceObjectRenderer;
 }
-export class ObjectGraphics<T extends SpaceObject> {
+export class ObjectGraphics<T extends SpaceObject = SpaceObject> {
     public stage = new Container(); // stage's position is the object's position
     public isSelected = false;
     private renderer: SpaceObjectRenderer;
@@ -22,28 +22,24 @@ export class ObjectGraphics<T extends SpaceObject> {
         this.renderer = new rendererCtor(this);
     }
 
+    public update() {
+        const { x, y } = this.parent.worldToScreen(this.spaceObject.position);
+        this.stage.x = x;
+        this.stage.y = y;
+    }
+
     public shouldRedraw() {
-        if (this.spaceObject.destroyed) {
-            this.destroy();
-            return false;
-        } else {
-            const { x, y } = this.parent.worldToScreen(this.spaceObject.position);
-            this.stage.x = x;
-            this.stage.y = y;
-            return (
-                this.stage.x + this.stage.width > 0 &&
-                this.stage.y + this.stage.height > 0 &&
-                this.stage.x - this.stage.width < this.parent.renderer.width &&
-                this.stage.y - this.stage.height < this.parent.renderer.height
-            );
-        }
+        return (
+            this.stage.x + this.stage.width > 0 &&
+            this.stage.y + this.stage.height > 0 &&
+            this.stage.x - this.stage.width < this.parent.renderer.width &&
+            this.stage.y - this.stage.height < this.parent.renderer.height
+        );
     }
 
     draw(isSelected: boolean) {
-        if (!this.spaceObject.destroyed) {
-            this.isSelected = isSelected;
-            this.renderer.redraw();
-        }
+        this.isSelected = isSelected;
+        this.renderer.redraw();
     }
 
     destroy() {

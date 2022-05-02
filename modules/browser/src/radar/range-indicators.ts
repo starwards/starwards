@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Graphics, TextStyle } from 'pixi.js';
+import { Container, DisplayObject, Graphics, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';
@@ -16,11 +16,15 @@ export class RangeIndicators {
         this.parent.events.on('screenChanged', () => {
             this.shouldRender = true;
         });
-        parent.ticker.add((_delta) => {
-            if (this.shouldRender) {
-                this.drawRangeIndicators();
-            }
-        });
+        parent.ticker.add(
+            (_delta) => {
+                if (this.shouldRender) {
+                    this.drawRangeIndicators();
+                }
+            },
+            null,
+            UPDATE_PRIORITY.LOW
+        );
         this.stage.addChild(this.rangeIndicators);
     }
 

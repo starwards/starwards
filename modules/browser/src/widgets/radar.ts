@@ -1,4 +1,5 @@
 import { Faction, SpaceObject } from '@starwards/model';
+import { Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver } from '../driver';
 import { blue, radarFogOfWar, radarVisibleBg, red, yellow } from '../colors';
 import { dradisDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
@@ -9,8 +10,8 @@ import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
-import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
+import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 
@@ -66,6 +67,8 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 root.addLayer(radarRangeLayer.renderRoot);
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
+                const rangeFilter = new RadarRangeFilter(spaceDriver.state, shipDriver.faction.getValue());
+                root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
@@ -76,7 +79,8 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                         return red;
                     },
                     dradisDrawFunctions,
-                    new SelectionContainer().init(spaceDriver.state)
+                    new SelectionContainer().init(spaceDriver.state),
+                    rangeFilter.isInRange
                 );
                 root.addLayer(blipLayer.renderRoot);
             });
