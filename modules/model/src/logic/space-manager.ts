@@ -162,17 +162,14 @@ export class SpaceManager {
             for (const object of this.toInsert) {
                 this.state.set(object);
                 if (CannonShell.isInstance(object)) {
-                    const body = this.collisions.createPolygon({ x: object.position.x, y: object.position.y }, [
-                        { x: 0, y: 0 },
+                    const body = this.collisions.createPolygon(XY.clone(object.position), [
+                        XY.zero,
                         XY.scale(object.velocity, deltaSeconds),
                     ]);
                     this.collisionToState.set(body, object);
                     this.projectileStateToCollision.set(object, body);
                 } else {
-                    const body = this.collisions.createCircle(
-                        { x: object.position.x, y: object.position.y },
-                        object.radius
-                    );
+                    const body = this.collisions.createCircle(XY.clone(object.position), object.radius);
                     this.collisionToState.set(body, object);
                     this.stateToCollision.set(object, body);
                 }

@@ -1,7 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 module.exports = {
     entry: {
@@ -19,7 +18,7 @@ module.exports = {
                     {
                         loader: 'ts-loader',
                         options: {
-                            // disable type checker - we will use it in fork plugin
+                            // disable type checker - use fork-ts-checker-webpack-plugin if must
                             transpileOnly: true,
                             onlyCompileBundledFiles: true,
                             configFile: path.resolve(__dirname, 'tsconfig.json'),
@@ -65,7 +64,6 @@ module.exports = {
             template: path.resolve(__dirname, 'templates', 'input.html'),
             chunks: ['input'],
         }),
-        new ForkTsCheckerWebpackPlugin(),
     ],
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'], // ,

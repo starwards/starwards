@@ -38,6 +38,7 @@
     "dependencies": {
         "@colyseus/schema": "^1.0.32",
         "normal-distribution": "^1.1.1",
+        "detect-collisions": "^4.0.2",
         "tslib": "^2.4.0"
     },
     "devDependencies": {
@@ -66,7 +67,6 @@
         "eslint-plugin-react-hooks": "^4.5.0",
         "fast-check": "^2.25.0",
         "file-loader": "^6.2.0",
-        "fork-ts-checker-webpack-plugin": "^7.2.7",
         "html-webpack-plugin": "^5.5.0",
         "husky": "^7.0.4",
         "jest": "^27.5.1",

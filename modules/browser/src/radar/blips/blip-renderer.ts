@@ -1,9 +1,7 @@
 import { Asteroid, SpaceObject, Spaceship } from '@starwards/model';
 import { Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
+import { ObjectGraphics, SpaceObjectRenderer } from './object-graphics';
 import { selectionColor, white } from '../../colors';
-
-import { ObjectGraphics } from './object-graphics';
-import { SpaceObjectRenderer } from './objects-layer';
 
 function renderText(y: number, value: string[], color: number) {
     const result = new Text(
@@ -62,7 +60,6 @@ class DradisSpaceshipRenderer implements SpaceObjectRenderer {
         stage.addChild(this.text);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
 
     redraw(): void {
@@ -91,7 +88,6 @@ class DradisAsteroidRenderer implements SpaceObjectRenderer {
         stage.addChild(this.asteroidSprite);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
     redraw(): void {
         const { parent, spaceObject, isSelected, color } = this.data;
@@ -111,7 +107,6 @@ class CircleRenderer implements SpaceObjectRenderer {
         const { stage } = this.data;
         stage.addChild(this.shellCircle);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
     redraw(): void {
         const { parent, spaceObject, isSelected, blipSize, color } = this.data;
@@ -136,7 +131,6 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
         stage.addChild(this.text);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
-        this.redraw();
     }
 
     redraw(): void {
@@ -156,6 +150,23 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
     }
 }
 
+class RadarRangeRenderer implements SpaceObjectRenderer {
+    private range = new Graphics();
+    constructor(private data: ObjectGraphics<SpaceObject>) {
+        const { stage } = this.data;
+        stage.addChild(this.range);
+    }
+    redraw(): void {
+        const { parent, spaceObject, color } = this.data;
+        this.range.clear();
+        if (spaceObject.radarRange) {
+            const radius = parent.metersToPixles(spaceObject.radarRange);
+            this.range.beginFill(color, 1);
+            this.range.drawCircle(0, 0, radius);
+        }
+    }
+}
+
 export const dradisDrawFunctions = {
     Spaceship: DradisSpaceshipRenderer,
     Asteroid: DradisAsteroidRenderer,
@@ -166,4 +177,8 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     CannonShell: CircleRenderer,
     Explosion: CircleRenderer,
+};
+
+export const rangeRangeDrawFunctions = {
+    Spaceship: RadarRangeRenderer,
 };
