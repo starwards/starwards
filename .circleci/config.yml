@@ -11,7 +11,8 @@ jobs:
             - run: node --version
             - run: npm --version
             - run: env
-            - node/install-packages
+            - node/install-packages:
+                  cache-version: default
             - run: npm run test:types
             - run: npm run test:format
     Test-E2e:
@@ -26,7 +27,8 @@ jobs:
             - run: node --version
             - run: npm --version
             - run: env
-            - node/install-packages
+            - node/install-packages:
+                  cache-version: playwright
             - run: npm run build:model
             - run: npm run build:server
             - run: npm run test:e2e
@@ -41,7 +43,8 @@ jobs:
         steps:
             - checkout
             - run: node --version
-            - node/install-packages
+            - node/install-packages:
+                  cache-version: default
             - run: npm run build
             - run: npm run pkg
             - store_artifacts:
@@ -53,6 +56,7 @@ workflows:
                   name: 'Test'
                   version: '17.2.0'
                   test-results-for: jest
+                  cache-version: default
             - Test-Static
             - Test-E2e
     Build:
