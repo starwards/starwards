@@ -13,6 +13,7 @@ const staticDistPath = path.join(distPath, 'static');
 const serverDistPath = path.join(distPath, 'server');
 const serverModulePath = path.join(rootPath, 'modules', 'server');
 const modelModulePath = path.join(rootPath, 'modules', 'model');
+const browserModulePath = path.join(rootPath, 'modules', 'browser');
 (async () => {
     try {
         await rimraf(distPath);
@@ -20,8 +21,8 @@ const modelModulePath = path.join(rootPath, 'modules', 'model');
         await mkdir(staticDistPath);
         await mkdir(serverDistPath);
         await ncp(path.join(rootPath, 'static'), staticDistPath);
-        await ncp(path.join(rootPath, 'modules', 'browser', 'dist'), staticDistPath);
-        await ncp(path.join(serverModulePath, 'cjs', 'server', 'src'), serverDistPath);
+        await ncp(path.join(browserModulePath, 'dist'), staticDistPath);
+        await ncp(path.join(serverModulePath, 'cjs'), serverDistPath);
         const { stdout, stderr } = await exec('npm pack ' + modelModulePath, { cwd: distPath });
         console.error(stderr);
         console.log(stdout);

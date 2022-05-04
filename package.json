@@ -18,7 +18,7 @@
         "build:browser": "webpack --config ./modules/browser/webpack.prod.js",
         "build:model": "tsc -p ./modules/model/tsconfig.json --module CommonJS --outDir ./modules/model/cjs",
         "build:server": "tsc -p ./modules/server/tsconfig.json --module CommonJS --outDir ./modules/server/cjs",
-        "build": "npm run build:model && npm run build:browser && npm run build:server && node scripts/post-build.js",
+        "build": "npm run build:model && npm run build:server && npm run build:browser && node scripts/post-build.js",
         "lint": "eslint .",
         "test": "jest",
         "snapshots:ci": "docker-compose -f ./modules/e2e/docker-compose.yml up",
