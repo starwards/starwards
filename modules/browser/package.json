@@ -12,9 +12,9 @@
         "@arwes/design": "^1.0.0-alpha.19",
         "@arwes/sounds": "^1.0.0-alpha.19",
         "@babylonjs/core": "5.4.0",
-        "@babylonjs/loaders": "5.3.0",
+        "@babylonjs/loaders": "5.4.0",
         "@maulingmonkey/gamepad": "^0.0.5",
-        "@pixi/graphics-extras": "^6.3.0",
+        "@pixi/graphics-extras": "^6.3.1",
         "@xstate/react": "^3.0.0",
         "colyseus.js": "^0.14.13",
         "d3": "^7.4.4",
@@ -23,7 +23,8 @@
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.9.0",
         "jquery": "^3.6.0",
-        "pixi.js": "^6.3.0",
+        "pixi.js": "^6.3.1",
+        "pixi-filters": "^4.1.6",
         "pluralize": "^8.0.0",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",
@@ -31,7 +32,7 @@
         "xstate": "^4.31.0"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.3.0",
-        "@babylonjs/inspector": "5.3.0"
+        "@babylonjs/gui": "5.4.0",
+        "@babylonjs/inspector": "5.4.0"
     }
 }

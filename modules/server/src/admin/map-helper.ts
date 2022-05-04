@@ -36,6 +36,7 @@ export const defaultMap: GameMap = {
             game.addObject(newAsteroid());
         }
         game.addSpaceship(newShip('GVTS', Faction.Gravitas));
+        game.addSpaceship(newShip('GVTS2', Faction.Gravitas));
         const ship2 = game.addSpaceship(newShip('R2D2', Faction.Raiders));
         ship2.setTarget('GVTS');
         // bManager.bot = jouster();

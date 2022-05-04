@@ -25,8 +25,9 @@ export abstract class SpaceObjectBase extends Schema {
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 
-    // default placeholder for all space obejcts. children can replace with dynamic field.
+    // default static placeholder for all space obejcts. children can replace with dynamic field.
     public readonly faction: Faction = Faction.none;
+    public readonly radarRange: number = 0;
 
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)

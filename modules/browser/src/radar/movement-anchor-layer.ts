@@ -1,9 +1,8 @@
 import '@pixi/graphics-extras';
 
-import { Container, DisplayObject } from 'pixi.js';
+import { Container, DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
-import { Graphics } from '@pixi/graphics';
 import { XY } from '@starwards/model';
 
 export type Style = {
@@ -25,7 +24,7 @@ export class MovementAnchorLayer {
             this.shouldRender = true;
         });
         this.stage.addChild(this.anchors);
-        parent.ticker.add((_delta) => this.draw());
+        parent.ticker.add((_delta) => this.draw(), null, UPDATE_PRIORITY.LOW);
     }
 
     get renderRoot(): DisplayObject {

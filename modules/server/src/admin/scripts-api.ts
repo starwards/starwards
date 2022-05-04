@@ -3,6 +3,7 @@ import { Bot, SpaceObject, Spaceship } from '@starwards/model';
 export interface ShipApi {
     setTarget(id: string | null): void;
     bot: Bot | null;
+    spaceObject: Spaceship;
 }
 export interface GameApi {
     getShip(shipId: string): ShipApi | undefined;

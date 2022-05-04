@@ -1,8 +1,8 @@
 import { Asteroid, Faction, Spaceship, Vec2 } from '@starwards/model';
+import { RadarDriver, makeDriver } from './driver';
 import { expect, test } from '@playwright/test';
 
 import { GameApi } from '@starwards/server/src/admin/scripts-api';
-import { makeDriver } from './driver';
 
 const gameDriver = makeDriver(test);
 
@@ -25,9 +25,12 @@ const testMap = {
         const ship = new Spaceship().init(testShipId, new Vec2(0, 0));
         ship.faction = Faction.Gravitas;
         game.addSpaceship(ship);
-        const asteroid = new Asteroid().init('astro', new Vec2(3000, 1000));
-        asteroid.radius = 350;
-        game.addObject(asteroid);
+        const asteroidInRange = new Asteroid().init('astro1', new Vec2(3000, 1000));
+        asteroidInRange.radius = 350;
+        game.addObject(asteroidInRange);
+        const asteroidOutOfRange = new Asteroid().init('astro2', new Vec2(3000, 2000));
+        asteroidOutOfRange.radius = 50;
+        game.addObject(asteroidOutOfRange);
     },
 };
 
@@ -45,4 +48,17 @@ test('main screen', async ({ page }) => {
     await page.goto(`/main-screen.html?ship=${testShipId}`);
     const canvas = page.locator('[data-id="3dCanvas"][data-loaded="true"]');
     expect(await canvas.screenshot()).toMatchSnapshot();
+});
+
+test('GM view', async ({ page }) => {
+    await gameDriver.gameManager.startGame(testMap);
+    const ship = gameDriver.gameManager.scriptApi.getShip(testShipId);
+    if (!ship) {
+        throw new Error(`ship ${testShipId} not found`);
+    }
+    ship.spaceObject.radarRange = 3_000;
+    await page.goto(`/gm.html`);
+    const radar = new RadarDriver(page.locator('[data-id="GM Radar"]'));
+    await radar.setZoom(0.1);
+    expect(await radar.canvas.screenshot()).toMatchSnapshot();
 });

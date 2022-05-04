@@ -28,6 +28,7 @@ jobs:
             - run: env
             - node/install-packages
             - run: npm run build:model
+            - run: npm run build:server
             - run: npm run test:e2e
             - store_test_results:
                   path: playwright-results.xml
