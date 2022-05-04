@@ -53,6 +53,7 @@ workflows:
                   name: 'Test'
                   version: '17.2.0'
                   test-results-for: jest
+                  cache-version: v2
             - Test-Static
             - Test-E2e
     Build:
