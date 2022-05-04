@@ -43,6 +43,9 @@ jobs:
             - run: node --version
             - node/install-packages
             - run: npm run build
+            - run: npm run pkg
+            - store_artifacts:
+                  path: dist/exec
 workflows:
     test:
         jobs:
@@ -50,6 +53,13 @@ workflows:
                   name: 'Test'
                   version: '17.2.0'
                   test-results-for: jest
-            # - Build
             - Test-Static
             - Test-E2e
+    Build:
+        jobs:
+            - Build:
+                  name: 'Build executables'
+                  filters:
+                      branches:
+                          only:
+                              - master
