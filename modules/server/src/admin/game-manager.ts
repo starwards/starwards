@@ -11,7 +11,7 @@ export class GameManager {
     private ships = new Map<string, ShipManager>();
     private spaceManager = new SpaceManager();
     private map: GameMap | null = null;
-    private scriptApi: GameApi = {
+    public readonly scriptApi: GameApi = {
         getShip: (shipId: string) => this.ships.get(shipId),
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
             this.spaceManager.insert(obj);

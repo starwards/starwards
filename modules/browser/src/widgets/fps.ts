@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Text, TextStyle } from 'pixi.js';
+import { Container, DisplayObject, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from '../radar/camera-view';
 
@@ -15,7 +15,7 @@ export class FpsCounter {
             fill: FpsCounter.DEFAULT_FONT_COLOR,
         });
 
-        parent.ticker.add(this.onRender);
+        parent.ticker.add(this.onRender, null, UPDATE_PRIORITY.LOW);
 
         this._fpsTextField = new Text('', { ...defaultStyle, ...style } as TextStyle);
 

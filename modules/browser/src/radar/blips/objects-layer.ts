@@ -1,61 +1,67 @@
+import { Container, UPDATE_PRIORITY } from 'pixi.js';
+import { ObjectGraphics, ObjectRendererCtor } from './object-graphics';
 import { SpaceObject, SpaceObjects, State } from '@starwards/model';
 
 import { CameraView } from '../camera-view';
-import { Container } from 'pixi.js';
-import { ObjectGraphics } from './object-graphics';
-import { SelectionContainer } from '../selection-container';
+import { TrackObjects } from './track-objects';
 
-export interface SpaceObjectRenderer {
-    redraw(): void;
-}
-export interface ObjectRendererFactory<T extends SpaceObject> {
-    new (data: ObjectGraphics<T>): SpaceObjectRenderer;
-}
-export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererFactory<SpaceObjects[T]> };
-
+export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
+export type Selection = { has(o: SpaceObject): boolean };
+export type Filter = (o: SpaceObject) => boolean;
 export class ObjectsLayer {
     private stage = new Container();
-    private graphics = new Map<string, ObjectGraphics<SpaceObject>>();
+
+    private createGraphics = <T extends SpaceObject>(spaceObject: T) => {
+        const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererCtor<T>;
+        const objGraphics = new ObjectGraphics<typeof spaceObject>(
+            spaceObject,
+            rendererCtor,
+            this.parent,
+            this.blipSize,
+            this.getColor(spaceObject)
+        );
+        objGraphics.update();
+        this.stage.addChild(objGraphics.stage);
+        return objGraphics;
+    };
+    private updateGraphics = (_o: SpaceObject, g: ObjectGraphics) => g.update();
+    private destroyGraphics = (g: ObjectGraphics) => {
+        g.destroy();
+        this.stage.removeChild(g.stage);
+    };
+    private shouldTrack = (o: SpaceObject) =>
+        !o.destroyed && !!this.drawFunctions[o.type] && (!this.filter || this.filter(o));
+
+    public graphics = new TrackObjects<ObjectGraphics>(
+        this.spaceState,
+        this.createGraphics,
+        this.updateGraphics,
+        this.destroyGraphics,
+        this.shouldTrack
+    );
+
     constructor(
         private parent: CameraView,
-        spaceState: State<'space'>,
+        private spaceState: State<'space'>,
         private blipSize: number,
         private getColor: (s: SpaceObject) => number,
         private drawFunctions: DrawFunctions,
-        private selectedItems: SelectionContainer
+        private readonly selectedItems?: Selection,
+        private readonly filter?: Filter
     ) {
-        spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
-
-        for (const spaceObject of spaceState) {
-            this.onNewSpaceObject(spaceObject);
-        }
-        parent.ticker.add(this.render);
+        parent.ticker.add(this.render, null, UPDATE_PRIORITY.LOW);
     }
 
     private render = () => {
+        this.graphics.update();
         for (const objGraphics of this.graphics.values()) {
-            objGraphics.redraw(this.selectedItems.has(objGraphics.spaceObject));
+            if (objGraphics.shouldRedraw()) {
+                objGraphics.draw(!!this.selectedItems?.has(objGraphics.spaceObject));
+            }
         }
     };
 
     get renderRoot(): Container {
         return this.stage;
-    }
-
-    private onNewSpaceObject<T extends SpaceObject>(spaceObject: T) {
-        const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererFactory<T>;
-        if (!spaceObject.destroyed && rendererCtor) {
-            const objGraphics = new ObjectGraphics<typeof spaceObject>(
-                spaceObject,
-                rendererCtor,
-                this.parent,
-                () => this.graphics.delete(spaceObject.id),
-                this.blipSize,
-                this.getColor(spaceObject)
-            );
-            this.graphics.set(spaceObject.id, objGraphics);
-            this.stage.addChild(objGraphics.stage);
-        }
     }
 }

@@ -1,5 +1,7 @@
 import { Faction, SpaceObject } from '@starwards/model';
-import { blue, red, yellow } from '../colors';
+import { Loader, filters } from 'pixi.js';
+import { blue, radarVisibleBg, red, yellow } from '../colors';
+import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -9,11 +11,9 @@ import { Driver } from '../driver';
 import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
-import { Loader } from 'pixi.js';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { makeRadarHeaders } from './radar';
-import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {
@@ -35,7 +35,10 @@ export class GmWidgets {
                     e.preventDefault();
                     camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
                 });
-                const root = new CameraView({ backgroundColor: 0x0f0f0f }, camera, container);
+                const root = new CameraView({ backgroundColor: radarVisibleBg }, camera, container);
+                root.view.setAttribute('data-id', 'GM Radar');
+                root.view.setAttribute('data-zoom', `${camera.zoom}`);
+                root.events.on('screenChanged', () => root.view.setAttribute('data-zoom', `${camera.zoom}`));
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
                 void this.init(root);
@@ -52,23 +55,38 @@ export class GmWidgets {
                 const fragCounter = new FragCounter(adminDriver.state);
                 // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
+                const getColor = (s: SpaceObject) => {
+                    switch (s.faction) {
+                        case Faction.none:
+                        case Faction.factionCount:
+                            return yellow;
+                        case Faction.Gravitas:
+                            return red;
+                        case Faction.Raiders:
+                            return blue;
+                    }
+                };
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver.state,
                     64,
-                    (s: SpaceObject) => {
-                        switch (s.faction) {
-                            case Faction.none:
-                                return yellow;
-                            case Faction.Gravitas:
-                                return red;
-                            case Faction.Raiders:
-                                return blue;
-                        }
-                    },
+                    getColor,
                     tacticalDrawFunctions,
                     selectionContainer
                 );
+                for (let faction = 0; faction < Faction.factionCount; faction++) {
+                    const radarRangeLayer = new ObjectsLayer(
+                        root,
+                        spaceDriver.state,
+                        64,
+                        getColor,
+                        rangeRangeDrawFunctions,
+                        undefined,
+                        (o: SpaceObject) => o.faction === faction && o.radarRange > 0
+                    );
+                    radarRangeLayer.renderRoot.filters = [new filters.AlphaFilter(0.2)];
+                    root.addLayer(radarRangeLayer.renderRoot);
+                }
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
                 // root.addLayer(fps.renderRoot);
