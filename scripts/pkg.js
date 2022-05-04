@@ -10,7 +10,7 @@ const distPath = path.join(rootPath, 'dist');
         const { stdout, stderr } = await exec('npm install --legacy-peer-deps', { cwd: distPath });
         console.error(stderr);
         console.log(stdout);
-        await pkg.exec([distPath, '--out-path', distPath]);
+        await pkg.exec([distPath, '--out-path', path.join(distPath, 'exec')]);
         console.log('done!');
     } catch (e) {
         console.error(e);
