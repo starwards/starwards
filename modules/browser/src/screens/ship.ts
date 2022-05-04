@@ -4,6 +4,7 @@ import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
 import { Driver } from '../driver';
+import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
@@ -49,6 +50,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, 'target radar');
     dashboard.registerWidget(monitorWidget(shipDriver), {}, 'monitor');
     dashboard.registerWidget(damageReportWidget(shipDriver), {}, 'damage report');
+    dashboard.registerWidget(armorWidget(shipDriver), {}, 'armor');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

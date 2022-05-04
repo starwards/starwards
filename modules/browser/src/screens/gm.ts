@@ -6,8 +6,11 @@ import $ from 'jquery';
 import { Driver } from '../driver';
 import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
+import { armorWidget } from '../widgets/armor';
+import { damageReportWidget } from '../widgets/damage-report';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
+import { monitorWidget } from '../widgets/monitor';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { shipConstantsWidget } from '../widgets/ship-constants';
@@ -60,6 +63,9 @@ void (async () => {
         dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
         dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, shipId + ' constants');
         dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, shipId + ' target radar');
+        dashboard.registerWidget(monitorWidget(shipDriver), {}, shipId + ' monitor');
+        dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
+        dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
         dashboard.setup();
     }
 })();
