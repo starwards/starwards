@@ -1,8 +1,8 @@
 import { Container, DisplayObject, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
 
-import { CameraView } from '../radar/camera-view';
+import { CameraView } from './camera-view';
 
-export class FpsCounter {
+export class FpsLayer {
     private static readonly DEFAULT_FONT_SIZE: number = 30;
     private static readonly DEFAULT_FONT_COLOR: number = 0xff0000;
 
@@ -11,8 +11,8 @@ export class FpsCounter {
 
     constructor(private parent: CameraView, style?: TextStyle) {
         const defaultStyle = new TextStyle({
-            fontSize: FpsCounter.DEFAULT_FONT_SIZE,
-            fill: FpsCounter.DEFAULT_FONT_COLOR,
+            fontSize: FpsLayer.DEFAULT_FONT_SIZE,
+            fill: FpsLayer.DEFAULT_FONT_COLOR,
         });
 
         parent.ticker.add(this.onRender, null, UPDATE_PRIORITY.LOW);

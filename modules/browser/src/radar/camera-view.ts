@@ -1,12 +1,9 @@
-import { Application, DisplayObject } from 'pixi.js';
+import { Application, DisplayObject, IApplicationOptions } from 'pixi.js';
 
 import { Camera } from './camera';
 import { Container } from 'golden-layout';
 import EventEmitter from 'eventemitter3';
 import { XY } from '@starwards/model';
-
-// extract options argument from application constructor
-type AppOptions = typeof Application extends new (options?: infer T) => Application ? T : never;
 
 export class CameraView extends Application {
     public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
@@ -16,7 +13,7 @@ export class CameraView extends Application {
      * @param pixiOptions options for the pixi application
      * @param camera a point in the world that the radar is watching, and a zoom level
      */
-    constructor(pixiOptions: AppOptions, public camera: Camera, container: Container) {
+    constructor(pixiOptions: IApplicationOptions, public camera: Camera, container: Container) {
         super(pixiOptions);
         this.ticker.maxFPS = 30; // if no limit, then GPU and CPU start heating up and FPS reach ~250
         camera.events.on('view', () => this.events.emit('screenChanged'));
