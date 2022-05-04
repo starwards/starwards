@@ -59,7 +59,7 @@ workflows:
         jobs:
             - Build:
                   name: 'Build executables'
-                  #   filters:
-                  #       branches:
-                  #           only:
-                  #               - master
+                  filters:
+                      branches:
+                          only:
+                              - master
