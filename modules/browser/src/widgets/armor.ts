@@ -1,10 +1,12 @@
-import { Application, Graphics, Loader, Sprite } from 'pixi.js';
+import { Application, Graphics, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '../driver';
 import WebFont from 'webfontloader';
+import { degToRad } from '@starwards/model';
 import { radarVisibleBg } from '../colors';
+import { rgb2hex } from '@pixi/utils';
 
 WebFont.load({
     custom: {
@@ -16,8 +18,8 @@ export const preloadList = ['images/test-circle.svg'];
 Loader.shared.add(preloadList);
 
 const sizeFactor = 0.95;
-const plateMarginFactor = 0.1;
-export function armorWidget(_shipDriver: ShipDriver): DashboardWidget {
+const plateMarginFactor = 0.2;
+export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
     class ArmorComponent {
         constructor(container: Container) {
             const size = () => Math.min(container.width, container.height) * sizeFactor;
@@ -36,30 +38,27 @@ export function armorWidget(_shipDriver: ShipDriver): DashboardWidget {
                 });
                 // ---
                 const texture = Loader.shared.resources['images/test-circle.svg'].texture; // assumed to be pre-loaded
-                const numOfPlates = 12;
-                const plateSize = (2 * Math.PI) / numOfPlates;
-                for (let plateNum = 0; plateNum < numOfPlates; plateNum++) {
+                const plateSize = degToRad * shipDriver.state.armor.degreesPerPlate;
+                for (let plateIdx = 0; plateIdx < shipDriver.state.armor.numberOfPlates; plateIdx++) {
                     const sprite = new Sprite(texture);
 
                     sprite.position.x = 0;
                     sprite.position.y = 0;
-                    container.on('resize', () => {
-                        sprite.height = size();
-                        sprite.width = size();
-                    });
                     sprite.roundPixels = false;
                     root.stage.addChild(sprite);
-                    // --
                     const mask = new Graphics();
                     sprite.mask = mask;
-                    // window.mask = mask;
-
-                    // --
-                    const angleStart = 0 - Math.PI / 2 + plateNum * plateSize + plateMarginFactor / 2;
+                    const angleStart = 0 - Math.PI / 2 + plateIdx * plateSize + plateMarginFactor / 2;
                     const angle = (1 - plateMarginFactor) * plateSize + angleStart;
                     const draw = () => {
-                        mask.position.set(size() / 2, size() / 2);
-                        const radius = size();
+                        const health =
+                            shipDriver.state.armor.armorPlates[plateIdx].health / shipDriver.state.armor.plateMaxHealth;
+                        sprite.tint = rgb2hex([1 - health, health, 0]);
+                        sprite.height = size();
+                        sprite.width = size();
+
+                        const radius = size() / 2;
+                        mask.position.set(radius, radius);
 
                         const x1 = Math.cos(angleStart) * radius;
                         const y1 = Math.sin(angleStart) * radius;
@@ -75,8 +74,8 @@ export function armorWidget(_shipDriver: ShipDriver): DashboardWidget {
                         mask.endFill();
                     };
 
-                    container.on('resize', draw);
-                    draw();
+                    root.ticker.add(draw, null, UPDATE_PRIORITY.LOW);
+
                     root.stage.addChild(mask);
                 }
             });
