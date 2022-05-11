@@ -2,8 +2,20 @@ import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2, 
 
 import { expect } from 'chai';
 import fc from 'fast-check';
+class MockDie {
+    private _expectedRoll = 0;
+    public update(_: number) {
 
-// import { limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
+    }
+
+    public getRoll(): number {
+        return this._expectedRoll;
+    }
+
+    set expectedRoll(roll: number) {
+        this._expectedRoll = roll;
+    }
+}
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
@@ -13,7 +25,9 @@ describe('ShipManager', () => {
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                const die = new MockDie
+                const shipMgr = new ShipManager(shipObj, spaceMgr, die);
+                die.expectedRoll = 1;
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -47,7 +61,7 @@ describe('ShipManager', () => {
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie);
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -76,7 +90,7 @@ describe('ShipManager', () => {
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie);
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -106,7 +120,7 @@ describe('ShipManager', () => {
                     const shipObj = new Spaceship();
                     const limitedAngleOffset = limitPercisionHard(angleOffset);
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(shipObj, spaceMgr);
+                    const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie);
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -135,7 +149,7 @@ describe('ShipManager', () => {
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr);
+                const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie);
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);

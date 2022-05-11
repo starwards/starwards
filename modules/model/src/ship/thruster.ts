@@ -33,18 +33,20 @@ export class Thruster extends Schema {
     @type('int8')
     damageArea!: ShipArea;
 
-    @type('boolean')
-    broken = false;
+    get broken(): boolean {
+        return this.availableCapacity === 0 || this.angleError >= 45 || this.angleError <= -45;
+    }
 
+    set broken(value: boolean) {
+        if (value) {
+            this.availableCapacity = 0;
+            this.angleError = 45;
+        }
+    }
     // dps at which there's 50% chance of system damage
-    get dps50(): number {
-        return getConstant(this.constants, 'dps50');
+    get damage50(): number {
+        return getConstant(this.constants, 'damage50');
     }
-
-    get completeDestructionProbability(): number {
-        return getConstant(this.constants, 'completeDestructionProbability');
-    }
-
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
     }

@@ -52,7 +52,7 @@ function makeThruster(angle: ShipDirection): Thruster {
     setConstant(thruster, 'speedFactor', 3);
     setConstant(thruster, 'afterBurnerCapacity', 300);
     setConstant(thruster, 'afterBurnerEffectFactor', 1);
-    setConstant(thruster, 'dps50', 250);
+    setConstant(thruster, 'damage50', 15);
     setConstant(thruster, 'completeDestructionProbability', 0.1);
     thruster.damageArea = ShipArea.rear;
     return thruster;
@@ -119,7 +119,7 @@ function makeShipState(id: string) {
     setConstant(state.chainGun, 'explosionExpansionSpeed', 40);
     setConstant(state.chainGun, 'explosionDamageFactor', 20);
     setConstant(state.chainGun, 'explosionBlastFactor', 1);
-    setConstant(state.chainGun, 'dps50', 300);
+    setConstant(state.chainGun, 'damage50', 20);
     setConstant(state.chainGun, 'completeDestructionProbability', 0.1);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
@@ -138,18 +138,21 @@ export function resetShipState(state: ShipState) {
 }
 
 function resetChainGun(chainGun: ChainGun) {
-    chainGun.broken = false;
     chainGun.angleOffset = 0;
     chainGun.coolingFailure = 0;
 }
 
 function resetThruster(thruster: Thruster) {
-    thruster.broken = false;
     thruster.angleError = 0;
     thruster.availableCapacity = 1.0;
 }
 
 export const DEGREES_PER_AREA = 180;
+
+type Die = {
+    update: (deltaSeconds: number) => void,
+    getRoll: () => number
+}
 export class ShipManager {
     public state = makeShipState(this.spaceObject.id);
     public bot: Bot | null = null;
@@ -164,8 +167,9 @@ export class ShipManager {
     constructor(
         public spaceObject: Spaceship,
         private spaceManager: SpaceManager,
+        private die: Die,
         private ships?: Map<string, ShipManager>,
-        private onDestroy?: () => void
+        private onDestroy?: () => void,
     ) {
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotManeuveringMode(s),
@@ -277,6 +281,7 @@ export class ShipManager {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
+            this.die.update(deltaSeconds);
             this.handleAfterburnerCommand();
             this.handleNextTargetCommand();
             this.handleToggleSmartPilotRotationMode();
@@ -334,56 +339,47 @@ export class ShipManager {
         if (system.broken) {
             return;
         }
-        const dps50 = system.dps50;
-        const dist = new NormalDistribution(dps50, dps50 / 2);
-        const destructionProbability = dist.cdf(
-            (damageObject.amount / damageObject.damageDurationSeconds) * percentageOfBrokenPlates
+        const dist = new NormalDistribution(system.damage50, system.damage50 / 2);
+        const normalizedDamageProbability = dist.cdf(
+            damageObject.amount * percentageOfBrokenPlates
         );
-        if (Math.random() < destructionProbability) {
+        if (this.die.getRoll() < normalizedDamageProbability) {
             if (Thruster.isInstance(system)) {
-                ShipManager.damageThruster(system);
+                ShipManager.damageThruster(system, this.die.getRoll());
             } else if (ChainGun.isInstance(system)) {
-                ShipManager.damageChainGun(system);
+                ShipManager.damageChainGun(system, this.die.getRoll());
             }
         }
     }
 
-    private static damageThruster(thruster: Thruster) {
-        if (
-            (thruster.angleError || thruster.availableCapacity < 1) &&
-            Math.random() < thruster.completeDestructionProbability
-        ) {
-            thruster.broken = true;
-        } else if (Math.random() < 0.5) {
+    private static damageThruster(thruster: Thruster, dieRoll: number) {
+        if (thruster.broken) {
+            return;
+        }
+        if (dieRoll < 0.5) {
             const offsetSign = thruster.angleError
                 ? Math.sign(thruster.angleError)
-                : Math.round(Math.random())
+                : Math.round(dieRoll / 0.5 * 2 + 1)
                 ? 1
                 : -1;
-            thruster.angleError += limitPercision(Math.random() * 2 + 1) * offsetSign;
+            thruster.angleError += limitPercision(dieRoll / 0.5 * 2 + 1) * offsetSign;
             if (thruster.angleError >= 180 || thruster.angleError <= -180) {
                 thruster.angleError = 180 * Math.sign(thruster.angleError);
-            } else {
-                thruster.availableCapacity -= limitPercision(Math.random() * 0.09 + 0.01);
-            }
+            } 
+        } else {
+            thruster.availableCapacity -= limitPercision(dieRoll / 0.5 * 0.09 + 0.01);
         }
     }
 
-    private static damageChainGun(chainGun: ChainGun) {
-        if (
-            (chainGun.angleOffset || chainGun.coolingFailure) &&
-            Math.random() < chainGun.completeDestructionProbability
-        ) {
-            chainGun.broken = true;
-        } else {
-            const failureChoice = Math.random();
-            if (failureChoice > 0.5) {
+    private static damageChainGun(chainGun: ChainGun, dieRoll: number) {
+        if (!chainGun.broken) {
+            if (dieRoll > 0.5) {
                 const offsetSign = chainGun.angleOffset
                     ? Math.sign(chainGun.angleOffset)
-                    : Math.round(Math.random())
+                    : Math.round(dieRoll)
                     ? 1
                     : -1;
-                chainGun.angleOffset = limitPercision(Math.random() * 1.9 + 0.1) * offsetSign;
+                chainGun.angleOffset = limitPercision((dieRoll - 0.5) / 0.5 * 1.9 + 0.1) * offsetSign;
             } else {
                 chainGun.coolingFailure += 1;
             }

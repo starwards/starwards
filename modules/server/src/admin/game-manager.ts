@@ -5,6 +5,7 @@ import { defaultMap, resetShip } from './map-helper';
 import { MapSchema } from '@colyseus/schema';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
+import { ShipDie } from 'modules/model/src/ship/ship-die';
 
 export class GameManager {
     public state = new AdminState();
@@ -70,7 +71,7 @@ export class GameManager {
     private initShip(spaceObject: Spaceship, sendMessages = false) {
         this.spaceManager.insert(spaceObject);
         this.state.points.set(spaceObject.id, 0);
-        const shipManager = new ShipManager(spaceObject, this.spaceManager, this.ships, () => {
+        const shipManager = new ShipManager(spaceObject, this.spaceManager, new ShipDie(3, 3), this.ships, () => {
             this.state.points.set(spaceObject.id, (this.state.points.get(spaceObject.id) || 0) + 1);
             resetShipState(shipManager.state);
             resetShip(spaceObject);

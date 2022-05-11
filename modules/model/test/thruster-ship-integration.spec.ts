@@ -48,7 +48,7 @@ describe('thrusters-ship integration', function () {
                     const harness = new ShipTestHarness();
                     harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                     for (const thruster of harness.shipState.angleThrusters(direction)) {
-                        thruster.broken = true;
+                        thruster.availableCapacity = 0;
                     }
                     expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.eql(0);
                 })
@@ -62,7 +62,7 @@ describe('thrusters-ship integration', function () {
                 const harness = new ShipTestHarness();
                 harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
-                    thruster.broken = true;
+                    thruster.availableCapacity = 0;
                 }
                 setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
                 harness.simulate(1, iterationsPerSecond);
@@ -73,7 +73,7 @@ describe('thrusters-ship integration', function () {
 
     it(`(FWD only) thruster with damaged attitude offsets angle of ship`, () => {
         fc.assert(
-            fc.property(float(-180, 180), (offset: number) => {
+            fc.property(float(-44, 44), (offset: number) => {
                 const harness = new ShipTestHarness();
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
                     thruster.angleError = offset;

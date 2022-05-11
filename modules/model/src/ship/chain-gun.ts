@@ -36,9 +36,6 @@ export class ChainGun extends Schema {
     @type('uint8')
     coolingFailure = 0;
 
-    @type('boolean')
-    broken = false;
-
     @type('int8')
     damageArea!: ShipArea;
 
@@ -85,12 +82,11 @@ export class ChainGun extends Schema {
     get maxShellSecondsToLive(): number {
         return this.maxShellRange / this.bulletSpeed;
     }
-    // dps at which there's 50% chance of system damage
-    get dps50(): number {
-        return getConstant(this.constants, 'dps50');
+    // damage ammount at which there's 50% chance of system damage
+    get damage50(): number {
+        return getConstant(this.constants, 'damage50');
     }
-    // probability that damage to the system will result in complete breakdown
-    get completeDestructionProbability(): number {
-        return getConstant(this.constants, 'completeDestructionProbability');
+    get broken(): boolean {
+        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.coolingFailure >= 10;
     }
 }
