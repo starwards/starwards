@@ -9,7 +9,8 @@ import {
     timeToReachDistanceByAccelerationWithMaxSpeed,
     timeToReachVelocityByAcceleration,
 } from '../src';
-import {ShipDie} from '../src/ship/ship-die';
+
+import { ShipDie } from '../src/ship/ship-die';
 
 abstract class AbsTestMetrics {
     constructor(public iterationsPerSecond: number, public distance: number) {}

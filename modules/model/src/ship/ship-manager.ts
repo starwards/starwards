@@ -150,9 +150,9 @@ function resetThruster(thruster: Thruster) {
 export const DEGREES_PER_AREA = 180;
 
 type Die = {
-    update: (deltaSeconds: number) => void,
-    getRoll: () => number
-}
+    update: (deltaSeconds: number) => void;
+    getRoll: () => number;
+};
 export class ShipManager {
     public state = makeShipState(this.spaceObject.id);
     public bot: Bot | null = null;
@@ -169,7 +169,7 @@ export class ShipManager {
         private spaceManager: SpaceManager,
         private die: Die,
         private ships?: Map<string, ShipManager>,
-        private onDestroy?: () => void,
+        private onDestroy?: () => void
     ) {
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotManeuveringMode(s),
@@ -340,9 +340,7 @@ export class ShipManager {
             return;
         }
         const dist = new NormalDistribution(system.damage50, system.damage50 / 2);
-        const normalizedDamageProbability = dist.cdf(
-            damageObject.amount * percentageOfBrokenPlates
-        );
+        const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
         if (this.die.getRoll() < normalizedDamageProbability) {
             if (Thruster.isInstance(system)) {
                 ShipManager.damageThruster(system, this.die.getRoll());
@@ -359,15 +357,15 @@ export class ShipManager {
         if (dieRoll < 0.5) {
             const offsetSign = thruster.angleError
                 ? Math.sign(thruster.angleError)
-                : Math.round(dieRoll / 0.5 * 2 + 1)
+                : Math.round((dieRoll / 0.5) * 2 + 1)
                 ? 1
                 : -1;
-            thruster.angleError += limitPercision(dieRoll / 0.5 * 2 + 1) * offsetSign;
+            thruster.angleError += limitPercision((dieRoll / 0.5) * 2 + 1) * offsetSign;
             if (thruster.angleError >= 180 || thruster.angleError <= -180) {
                 thruster.angleError = 180 * Math.sign(thruster.angleError);
-            } 
+            }
         } else {
-            thruster.availableCapacity -= limitPercision(dieRoll / 0.5 * 0.09 + 0.01);
+            thruster.availableCapacity -= limitPercision((dieRoll / 0.5) * 0.09 + 0.01);
         }
     }
 
@@ -379,7 +377,7 @@ export class ShipManager {
                     : Math.round(dieRoll)
                     ? 1
                     : -1;
-                chainGun.angleOffset = limitPercision((dieRoll - 0.5) / 0.5 * 1.9 + 0.1) * offsetSign;
+                chainGun.angleOffset = limitPercision(((dieRoll - 0.5) / 0.5) * 1.9 + 0.1) * offsetSign;
             } else {
                 chainGun.coolingFailure += 1;
             }

@@ -1,11 +1,18 @@
-import { AdminState, ShipManager, SpaceManager, SpaceObject, Spaceship, resetShipState } from '@starwards/model';
+import {
+    AdminState,
+    ShipDie,
+    ShipManager,
+    SpaceManager,
+    SpaceObject,
+    Spaceship,
+    resetShipState,
+} from '@starwards/model';
 import { GameApi, GameMap } from './scripts-api';
 import { defaultMap, resetShip } from './map-helper';
 
 import { MapSchema } from '@colyseus/schema';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
-import { ShipDie } from 'modules/model/src/ship/ship-die';
 
 export class GameManager {
     public state = new AdminState();
