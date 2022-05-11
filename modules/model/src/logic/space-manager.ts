@@ -230,9 +230,12 @@ export class SpaceManager {
 
     private resolveCrash(object: SpaceObject, result: Response, deltaSeconds: number) {
         const collisionVector = XY.scale(result.overlapV, -0.5);
-        const elasticityFactor = 0.05; // how much velocity created
         Vec2.add(object.position, collisionVector, object.position);
-        Vec2.add(object.velocity, XY.scale(collisionVector, elasticityFactor / deltaSeconds), object.velocity);
+        Vec2.add(
+            object.velocity,
+            XY.scale(collisionVector, object.collisionElasticity / deltaSeconds),
+            object.velocity
+        );
     }
 
     private addDamageToObject(object: SpaceObject, damage: Damage) {
