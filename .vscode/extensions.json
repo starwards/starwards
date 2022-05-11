@@ -1,13 +1,12 @@
 {
     "recommendations": [
-        "rvest.vs-code-prettier-eslint",
         "dbaeumer.vscode-eslint",
         "amatiasq.sort-imports",
         "fabiospampinato.vscode-commands",
         "jvandyke.vscode-circleci",
         "esbenp.prettier-vscode",
-        "msjsdiag.debugger-for-chrome",
         "eamodio.gitlens",
-        "orta.vscode-jest"
+        "orta.vscode-jest",
+        "actboy168.tasks"
     ]
 }
