@@ -139,7 +139,7 @@ export function resetShipState(state: ShipState) {
 
 function resetChainGun(chainGun: ChainGun) {
     chainGun.angleOffset = 0;
-    chainGun.coolingFailure = 0;
+    chainGun.cooldownFactor = 1;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -150,8 +150,8 @@ function resetThruster(thruster: Thruster) {
 export const DEGREES_PER_AREA = 180;
 
 type Die = {
-    update: (deltaSeconds: number) => void;
-    getRoll: () => number;
+    getRoll: (id: string, min?: number, max?: number) => number;
+    getSuccess: (id: string, successProbability: number) => boolean;
 };
 export class ShipManager {
     public state = makeShipState(this.spaceObject.id);
@@ -281,7 +281,6 @@ export class ShipManager {
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
-            this.die.update(deltaSeconds);
             this.handleAfterburnerCommand();
             this.handleNextTargetCommand();
             this.handleToggleSmartPilotRotationMode();
@@ -341,45 +340,33 @@ export class ShipManager {
         }
         const dist = new NormalDistribution(system.damage50, system.damage50 / 2);
         const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
-        if (this.die.getRoll() < normalizedDamageProbability) {
+        if (this.die.getRoll(damageObject.id + 'damageSystem') < normalizedDamageProbability) {
             if (Thruster.isInstance(system)) {
-                ShipManager.damageThruster(system, this.die.getRoll());
+                this.damageThruster(system, damageObject.id);
             } else if (ChainGun.isInstance(system)) {
-                ShipManager.damageChainGun(system, this.die.getRoll());
+                this.damageChainGun(system, damageObject.id);
             }
         }
     }
 
-    private static damageThruster(thruster: Thruster, dieRoll: number) {
+    private damageThruster(thruster: Thruster, damageId: string) {
         if (thruster.broken) {
             return;
         }
-        if (dieRoll < 0.5) {
-            const offsetSign = thruster.angleError
-                ? Math.sign(thruster.angleError)
-                : Math.round((dieRoll / 0.5) * 2 + 1)
-                ? 1
-                : -1;
-            thruster.angleError += limitPercision((dieRoll / 0.5) * 2 + 1) * offsetSign;
-            if (thruster.angleError >= 180 || thruster.angleError <= -180) {
-                thruster.angleError = 180 * Math.sign(thruster.angleError);
-            }
+        if (this.die.getSuccess('damageThruster' + damageId, 0.5)) {
+            thruster.angleError += limitPercision(this.die.getRoll('thrusterAngleOffset' + damageId, 1, 3));
+            thruster.angleError = capToRange(-180, 180, thruster.angleError);
         } else {
-            thruster.availableCapacity -= limitPercision((dieRoll / 0.5) * 0.09 + 0.01);
+            thruster.availableCapacity -= limitPercision(this.die.getRoll('availableCapacity' + damageId, 0.01, 0.1));
         }
     }
 
-    private static damageChainGun(chainGun: ChainGun, dieRoll: number) {
+    private damageChainGun(chainGun: ChainGun, damageId: string) {
         if (!chainGun.broken) {
-            if (dieRoll > 0.5) {
-                const offsetSign = chainGun.angleOffset
-                    ? Math.sign(chainGun.angleOffset)
-                    : Math.round(dieRoll)
-                    ? 1
-                    : -1;
-                chainGun.angleOffset = limitPercision(((dieRoll - 0.5) / 0.5) * 1.9 + 0.1) * offsetSign;
+            if (this.die.getSuccess('damageChaingun' + damageId, 0.5)) {
+                chainGun.angleOffset += limitPercision(this.die.getRoll('chainGunAngleOffset' + damageId, 1, 2));
             } else {
-                chainGun.coolingFailure += 1;
+                chainGun.cooldownFactor += 1;
             }
         }
     }
@@ -681,7 +668,7 @@ export class ShipManager {
     private fireChainGun() {
         const chaingun = this.state.chainGun;
         if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken && this.state.chainGunAmmo > 0) {
-            chaingun.cooldown += 1 + chaingun.coolingFailure;
+            chaingun.cooldown += chaingun.cooldownFactor;
             this.state.chainGunAmmo -= 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 

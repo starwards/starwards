@@ -8,6 +8,7 @@ import { uniqueId } from '../id';
 const GC_TIMEOUT = 5;
 
 export type Damage = {
+    id: string;
     amount: number;
     damageSurfaceArc: [number, number];
     damageDurationSeconds: number;
@@ -277,6 +278,7 @@ export class SpaceManager {
                                 limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
                             ];
                             const damage = {
+                                id: otherObject.id,
                                 amount: damageAmount,
                                 damageSurfaceArc: shipLocalDamageAngles,
                                 damageDurationSeconds: deltaSeconds,

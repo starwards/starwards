@@ -34,7 +34,7 @@ export class ChainGun extends Schema {
     angleOffset = 0;
 
     @type('uint8')
-    coolingFailure = 0;
+    cooldownFactor = 1;
 
     @type('int8')
     damageArea!: ShipArea;
@@ -87,6 +87,6 @@ export class ChainGun extends Schema {
         return getConstant(this.constants, 'damage50');
     }
     get broken(): boolean {
-        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.coolingFailure >= 10;
+        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;
     }
 }

@@ -6,10 +6,12 @@ import fc from 'fast-check';
 class MockDie {
     private _expectedRoll = 0;
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    public update(_: number) {}
-
-    public getRoll(): number {
+    public getRoll(_: string, __?: number, ___?: number): number {
         return this._expectedRoll;
+    }
+
+    public getSuccess(_: string, successProbability: number): boolean {
+        return this._expectedRoll < successProbability;
     }
 
     set expectedRoll(roll: number) {
@@ -46,7 +48,7 @@ describe('ShipManager', () => {
                 expect(brokenInFront).to.equal(0);
                 expect(shipMgr.state.chainGun.broken).to.be.false;
                 expect(shipMgr.state.chainGun.angleOffset).to.equal(0);
-                expect(shipMgr.state.chainGun.coolingFailure).to.equal(0);
+                expect(shipMgr.state.chainGun.cooldownFactor).to.equal(1);
                 for (const plate of shipMgr.state.armor.platesInRange([177, -177])) {
                     expect(plate.health).to.be.lessThan(200);
                 }
@@ -144,28 +146,33 @@ describe('ShipManager', () => {
 
     it('chaingun with cooling failure must have reduced rate of fire', () => {
         fc.assert(
-            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
-                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
-                const spaceMgr = new SpaceManager();
-                const shipObj = new Spaceship();
-                shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
-                spaceMgr.insert(shipObj);
-                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                shipMgr.state.chainGun.coolingFailure = 1;
-                shipMgr.chainGun(true);
-                let timePassed = 0;
-                while (timePassed <= 1) {
-                    shipMgr.update(iterationTimeInSeconds);
-                    spaceMgr.update(iterationTimeInSeconds);
-                    timePassed += iterationTimeInSeconds;
+            fc.property(
+                fc.integer({ min: 15, max: 20 }),
+                fc.integer({ min: 10, max: 20 }),
+                (numIterationsPerSecond: number, bulletsPerSecond: number) => {
+                    const iterationTimeInSeconds = 1 / numIterationsPerSecond;
+                    const spaceMgr = new SpaceManager();
+                    const shipObj = new Spaceship();
+                    shipObj.id = '1';
+                    const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
+                    spaceMgr.insert(shipObj);
+                    shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                    shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                    shipMgr.state.chainGun.cooldownFactor = 2;
+                    shipMgr.state.chainGun.constants.set('bulletsPerSecond', bulletsPerSecond);
+                    shipMgr.chainGun(true);
+                    let timePassed = 0;
+                    while (timePassed <= 1) {
+                        shipMgr.update(iterationTimeInSeconds);
+                        spaceMgr.update(iterationTimeInSeconds);
+                        timePassed += iterationTimeInSeconds;
+                    }
+                    expect([...spaceMgr.state.getAll('CannonShell')].length).to.be.closeTo(
+                        Math.floor(shipMgr.state.chainGun.bulletsPerSecond / shipMgr.state.chainGun.cooldownFactor),
+                        1
+                    );
                 }
-                expect([...spaceMgr.state.getAll('CannonShell')].length).to.be.closeTo(
-                    Math.floor(shipMgr.state.chainGun.bulletsPerSecond / 2),
-                    1
-                );
-            })
+            )
         );
     });
 });

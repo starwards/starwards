@@ -36,13 +36,6 @@ export class Thruster extends Schema {
     get broken(): boolean {
         return this.availableCapacity === 0 || this.angleError >= 45 || this.angleError <= -45;
     }
-
-    set broken(value: boolean) {
-        if (value) {
-            this.availableCapacity = 0;
-            this.angleError = 45;
-        }
-    }
     // dps at which there's 50% chance of system damage
     get damage50(): number {
         return getConstant(this.constants, 'damage50');

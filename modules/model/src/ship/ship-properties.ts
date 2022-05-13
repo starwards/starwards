@@ -152,7 +152,14 @@ export const thrusterAngle = StateProperty((state: ShipState, idx: number) => st
 export const thrusterBroken = StatePropertyCommand(
     'thrusterBroken',
     (state: ShipState, value: boolean, idx: number) => {
-        state.thrusters[idx].broken = value;
+        if (value) {
+            state.thrusters[idx].angleError = 45;
+        } else {
+            if (state.thrusters[idx].broken) {
+                state.thrusters[idx].angleError = 0;
+                state.thrusters[idx].availableCapacity = 1.0;
+            }
+        }
     },
     (state: ShipState, idx: number) => state.thrusters[idx].broken
 );
