@@ -222,8 +222,6 @@ export class SpaceManager {
         }
     }
 
-<<<<<<< HEAD
-=======
     private updateObjectCollision(deltaSeconds: number, object: SpaceObject) {
         if (CannonShell.isInstance(object)) {
             const body = this.projectileStateToCollision.get(object);
@@ -249,7 +247,6 @@ export class SpaceManager {
         }
     }
 
->>>>>>> 51ac52d (rebase onto master)
     private handleCollisions(deltaSeconds: number) {
         // find and handle collisions
         this.collisions.checkAll((response: Response) => {
