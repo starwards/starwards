@@ -17,7 +17,7 @@ jobs:
             - run: npm run test:format
     Test-E2e:
         docker:
-            - image: mcr.microsoft.com/playwright:focal
+            - image: mcr.microsoft.com/playwright:v1.22.0
         steps:
             - checkout
             - run: mkdir -p ./test-results
