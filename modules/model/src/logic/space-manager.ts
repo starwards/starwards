@@ -152,6 +152,10 @@ export class SpaceManager {
         this.toInsert.push(object);
     }
 
+    public insertBulk(objects: SpaceObject[]) {
+        this.toInsert.push(...objects);
+    }
+
     public forceFlushEntities() {
         this.handleToInsert(1 / 20);
     }
