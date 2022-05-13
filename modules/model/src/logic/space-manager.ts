@@ -213,10 +213,60 @@ export class SpaceManager {
             }
             this.explodeCannonShell(object);
         } else if (!Explosion.isInstance(object)) {
+            let damageAmount: number | undefined = undefined;
             if (Explosion.isInstance(otherObject)) {
-                this.resolveExplosionEffect(object, otherObject, result, deltaSeconds);
+                const exposure = deltaSeconds * Math.min(result.overlap, otherObject.radius * 2);
+                object.velocity.x -= result.overlapV.x * exposure * otherObject.blastFactor;
+                object.velocity.y -= result.overlapV.y * exposure * otherObject.blastFactor;
+                damageAmount =
+                    otherObject.damageFactor * deltaSeconds * Math.min(result.overlap, otherObject.radius * 2);
             } else {
-                this.resolveCrash(object, result, deltaSeconds);
+                const collisionVector = XY.scale(result.overlapV, -0.5);
+                Vec2.add(object.position, collisionVector, object.position);
+                Vec2.add(
+                    object.velocity,
+                    XY.scale(collisionVector, object.collisionElasticity / deltaSeconds),
+                    object.velocity
+                );
+                damageAmount = object.collisionDamage * Math.min(result.overlap, otherObject.radius * 2);
+            }
+            if (Spaceship.isInstance(object)) {
+                const damageBoundries = circlesIntersection(
+                    object.position,
+                    otherObject.position,
+                    object.radius,
+                    otherObject.radius
+                );
+                if (damageBoundries) {
+                    const shipLocalDamageBoundries: [XY, XY] = [
+                        object.globalToLocal(XY.difference(damageBoundries[0], object.position)),
+                        object.globalToLocal(XY.difference(damageBoundries[1], object.position)),
+                    ];
+                    const shipLocalDamageAngles: [number, number] = [
+                        limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
+                        limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
+                    ];
+                    const damage = {
+                        amount: damageAmount,
+                        damageSurfaceArc: shipLocalDamageAngles,
+                        damageDurationSeconds: deltaSeconds,
+                    };
+                    const objectDamage = this.objectDamage.get(object);
+                    if (objectDamage === undefined) {
+                        this.objectDamage.set(object, [damage]);
+                    } else {
+                        objectDamage.push(damage);
+                    }
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error(`unexpected undefined intersection between ${otherObject.type} and object.
+                    object data: centre: ${JSON.stringify(object.position)} radius: ${JSON.stringify(object.radius)}
+                    ${otherObject.type} data: centre: ${JSON.stringify(otherObject.position)} radius: ${JSON.stringify(
+                        otherObject.radius
+                    )}`);
+                }
+            } else {
+                object.health -= damageAmount;
             }
         }
     }
@@ -228,75 +278,12 @@ export class SpaceManager {
         this.insert(explosion);
     }
 
-    private resolveCrash(object: SpaceObject, result: Response, deltaSeconds: number) {
-        const collisionVector = XY.scale(result.overlapV, -0.5);
-        Vec2.add(object.position, collisionVector, object.position);
-        Vec2.add(
-            object.velocity,
-            XY.scale(collisionVector, object.collisionElasticity / deltaSeconds),
-            object.velocity
-        );
-    }
-
-    private addDamageToObject(object: SpaceObject, damage: Damage) {
-        const objectDamage = this.objectDamage.get(object);
-        if (objectDamage === undefined) {
-            this.objectDamage.set(object, [damage]);
-        } else {
-            objectDamage.push(damage);
-        }
-    }
-
     public *resolveObjectDamage(object: SpaceObject): IterableIterator<Damage> {
         const damageArr = this.objectDamage.get(object);
         if (damageArr !== undefined) {
             yield* damageArr;
             this.objectDamage.delete(object);
         }
-    }
-
-    private resolveExplosionEffect(
-        object: Exclude<SpaceObject, Explosion>,
-        explosion: Explosion,
-        result: Response,
-        deltaSeconds: number
-    ) {
-        const exposure = deltaSeconds * Math.min(result.overlap, explosion.radius * 2);
-        const damageAmount = explosion.damageFactor * exposure;
-        if (Spaceship.isInstance(object)) {
-            const damageBoundries = circlesIntersection(
-                object.position,
-                explosion.position,
-                object.radius,
-                explosion.radius
-            );
-            if (damageBoundries) {
-                const shipLocalDamageBoundries: [XY, XY] = [
-                    object.globalToLocal(XY.difference(damageBoundries[0], object.position)),
-                    object.globalToLocal(XY.difference(damageBoundries[1], object.position)),
-                ];
-                const shipLocalDamageAngles: [number, number] = [
-                    limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
-                    limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
-                ];
-                this.addDamageToObject(object, {
-                    amount: damageAmount,
-                    damageSurfaceArc: shipLocalDamageAngles,
-                    damageDurationSeconds: deltaSeconds,
-                });
-            } else {
-                // eslint-disable-next-line no-console
-                console.error(`unexpected undefined intersection between explosion and object.
-                object data: centre: ${JSON.stringify(object.position)} radius: ${JSON.stringify(object.radius)}
-                explosion data: centre: ${JSON.stringify(explosion.position)} radius: ${JSON.stringify(
-                    explosion.radius
-                )}`);
-            }
-        } else {
-            object.health -= damageAmount;
-        }
-        object.velocity.x -= result.overlapV.x * exposure * explosion.blastFactor;
-        object.velocity.y -= result.overlapV.y * exposure * explosion.blastFactor;
     }
 
     private updateObjectCollision(deltaSeconds: number, object: SpaceObject) {
