@@ -222,31 +222,6 @@ export class SpaceManager {
         }
     }
 
-    private updateObjectCollision(deltaSeconds: number, object: SpaceObject) {
-        if (CannonShell.isInstance(object)) {
-            const body = this.projectileStateToCollision.get(object);
-            if (body) {
-                body.setPosition(object.position.x, object.position.y);
-                const newLineEnd = XY.scale(object.velocity, deltaSeconds);
-                body.points[1].x = newLineEnd.x;
-                body.points[1].y = newLineEnd.y;
-                body.setPoints(body.points);
-            } else {
-                // eslint-disable-next-line no-console
-                console.error(`CannonShell object leak! ${object.id} has no collision body`);
-            }
-        } else {
-            const body = this.stateToCollision.get(object);
-            if (body) {
-                body.setPosition(object.position.x, object.position.y);
-                body.r = object.radius;
-            } else {
-                // eslint-disable-next-line no-console
-                console.error(`object leak! ${object.id} has no collision body`);
-            }
-        }
-    }
-
     private handleCollisions(deltaSeconds: number) {
         // find and handle collisions
         this.collisions.checkAll((response: Response) => {
