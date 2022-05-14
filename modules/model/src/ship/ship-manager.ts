@@ -150,8 +150,9 @@ function resetThruster(thruster: Thruster) {
 export const DEGREES_PER_AREA = 180;
 
 type Die = {
-    getRoll: (id: string, min?: number, max?: number) => number;
+    getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
+    getRollInRange: (id: string, min: number, max: number) => number;
 };
 export class ShipManager {
     public state = makeShipState(this.spaceObject.id);
@@ -354,17 +355,23 @@ export class ShipManager {
             return;
         }
         if (this.die.getSuccess('damageThruster' + damageId, 0.5)) {
-            thruster.angleError += limitPercision(this.die.getRoll('thrusterAngleOffset' + damageId, 1, 3));
+            thruster.angleError +=
+                limitPercision(this.die.getRollInRange('thrusterAngleOffset' + damageId, 1, 3)) *
+                (this.die.getSuccess('thrusterAngleSign' + damageId, 0.5) ? 1 : -1);
             thruster.angleError = capToRange(-180, 180, thruster.angleError);
         } else {
-            thruster.availableCapacity -= limitPercision(this.die.getRoll('availableCapacity' + damageId, 0.01, 0.1));
+            thruster.availableCapacity -= limitPercision(
+                this.die.getRollInRange('availableCapacity' + damageId, 0.01, 0.1)
+            );
         }
     }
 
     private damageChainGun(chainGun: ChainGun, damageId: string) {
         if (!chainGun.broken) {
             if (this.die.getSuccess('damageChaingun' + damageId, 0.5)) {
-                chainGun.angleOffset += limitPercision(this.die.getRoll('chainGunAngleOffset' + damageId, 1, 2));
+                chainGun.angleOffset +=
+                    limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
+                    (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
             } else {
                 chainGun.cooldownFactor += 1;
             }

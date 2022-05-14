@@ -12,11 +12,15 @@ export class ShipDie {
         }
     }
 
-    public getRoll(id: string, min = 0, max = 1): number {
+    public getRoll(id: string): number {
         if (!this.rolls.has(id)) {
             this.rolls.set(id, Math.random());
         }
-        return (this.rolls.get(id) || 0) * (max - min) + min;
+        return this.rolls.get(id) || 0;
+    }
+
+    public getRollInRange(id: string, min: number, max: number): number {
+        return this.getRoll(id) * (max - min) + min;
     }
 
     public getSuccess(id: string, successProbability: number): boolean {

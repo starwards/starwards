@@ -20,7 +20,7 @@ type Die = {
 export class GameManager {
     public state = new AdminState();
     private ships = new Map<string, ShipManager>();
-    private dice = new Map<string, Die>();
+    private dice: Die[] = [];
     private spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     public readonly scriptApi: GameApi = {
@@ -48,7 +48,7 @@ export class GameManager {
             void this.startGame(defaultMap);
         }
         this.map?.update?.(deltaSeconds);
-        for (const die of this.dice.values()) {
+        for (const die of this.dice) {
             die.update(deltaSeconds);
         }
     }
@@ -65,6 +65,7 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
+            this.dice = [];
             this.shipMessenger?.unRegisterAll();
             this.state.isGameRunning = false;
         }
@@ -92,7 +93,7 @@ export class GameManager {
             resetShip(spaceObject);
         }); // create a manager to manage the ship
         this.ships.set(spaceObject.id, shipManager);
-        this.dice.set(spaceObject.id, die);
+        this.dice.push(die);
         if (sendMessages) {
             this.shipMessenger?.registerShip(shipManager.state);
         }

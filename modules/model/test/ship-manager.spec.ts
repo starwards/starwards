@@ -13,6 +13,13 @@ class MockDie {
         return this._expectedRoll < successProbability;
     }
 
+    public getRollInRange(_: string, min: number, max: number): number {
+        if (this._expectedRoll >= min && this._expectedRoll < max) {
+            return this._expectedRoll;
+        }
+        return min;
+    }
+
     set expectedRoll(roll: number) {
         this._expectedRoll = roll;
     }
