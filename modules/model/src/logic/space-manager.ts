@@ -8,6 +8,7 @@ import { uniqueId } from '../id';
 const GC_TIMEOUT = 5;
 
 export type Damage = {
+    id: string;
     amount: number;
     damageSurfaceArc: [number, number];
     damageDurationSeconds: number;
