@@ -216,7 +216,7 @@ export class SpaceManager {
                 );
             }
             this.explodeCannonShell(object);
-        } else if (!Explosion.isInstance(object)) {
+        } else if (!Explosion.isInstance(object) && !CannonShell.isInstance(otherObject)) {
             let damageAmount: number | undefined = undefined;
             if (Explosion.isInstance(otherObject)) {
                 const exposure = deltaSeconds * Math.min(result.overlap, otherObject.radius * 2);
@@ -319,26 +319,15 @@ export class SpaceManager {
         // update collisions state
         this.collisions.update();
         const toUpdate = new Set<SpaceObject>();
-        // for every moving object
-        for (const object of this.state) {
-            if (!object.freeze) {
-                const body = this.stateToCollision.get(object) || this.projectileStateToCollision.get(object);
-                if (body) {
-                    // Get any potential collisions
-                    for (const potential of this.collisions.getPotentials(body)) {
-                        const otherObjext = this.collisionToState.get(potential);
-                        if (otherObjext && !otherObjext.destroyed && this.collisions.checkCollision(body, potential)) {
-                            this.resolveCollision(object, otherObjext, this.collisions.response, deltaSeconds);
-                            toUpdate.add(object);
-                            toUpdate.add(otherObjext);
-                        }
-                    }
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`object leak! ${object.id} has no collision body`);
-                }
+        this.collisions.checkAll((response) => {
+            const object = this.collisionToState.get(response.a as TBody);
+            const otherObjext = this.collisionToState.get(response.b as TBody);
+            if (object && !object.destroyed && !object.freeze && otherObjext && !otherObjext.destroyed) {
+                this.resolveCollision(object, otherObjext, response, deltaSeconds);
+                toUpdate.add(object);
+                toUpdate.add(otherObjext);
             }
-        }
+        });
 
         for (const object of toUpdate) {
             if (!object.destroyed) {
