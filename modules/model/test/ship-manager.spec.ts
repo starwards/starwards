@@ -5,7 +5,6 @@ import fc from 'fast-check';
 
 class MockDie {
     private _expectedRoll = 0;
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     public getRoll(_: string, __?: number, ___?: number): number {
         return this._expectedRoll;
     }
@@ -87,27 +86,32 @@ describe('ShipManager', () => {
 
     it('chaingun must not fire without ammo', () => {
         fc.assert(
-            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
-                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
-                const spaceMgr = new SpaceManager();
-                const shipObj = new Spaceship();
-                shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
-                spaceMgr.insert(shipObj);
-                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                shipMgr.state.chainGunAmmo = 10;
-                shipMgr.chainGun(true);
-                let timePassed = 0;
-                while (timePassed <= 1) {
-                    shipMgr.update(iterationTimeInSeconds);
-                    spaceMgr.update(iterationTimeInSeconds);
-                    timePassed += iterationTimeInSeconds;
+            fc.property(
+                fc.integer({ min: 15, max: 20 }),
+                fc.integer({ min: 0, max: 10 }),
+                (numIterationsPerSecond: number, availableAmmo: number) => {
+                    const iterationTimeInSeconds = 1 / numIterationsPerSecond;
+                    const spaceMgr = new SpaceManager();
+                    const shipObj = new Spaceship();
+                    shipObj.id = '1';
+                    const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
+                    spaceMgr.insert(shipObj);
+                    shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                    shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                    shipMgr.state.chainGun.cooldownFactor = 1;
+                    shipMgr.state.chainGunAmmo = availableAmmo;
+                    shipMgr.chainGun(true);
+                    let timePassed = 0;
+                    while (timePassed <= 1) {
+                        shipMgr.update(iterationTimeInSeconds);
+                        spaceMgr.update(iterationTimeInSeconds);
+                        timePassed += iterationTimeInSeconds;
+                    }
+                    const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
+                    expect(cannonShells.length).to.equal(availableAmmo);
+                    expect(shipMgr.state.chainGunAmmo).to.equal(0);
                 }
-                const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
-                expect(cannonShells.length).to.equal(10);
-                expect(shipMgr.state.chainGunAmmo).to.equal(0);
-            })
+            )
         );
     });
 
