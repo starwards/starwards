@@ -10,6 +10,8 @@ import {
     timeToReachVelocityByAcceleration,
 } from '../src';
 
+import { ShipDie } from '../src/ship/ship-die';
+
 abstract class AbsTestMetrics {
     constructor(public iterationsPerSecond: number, public distance: number) {}
     abstract readonly timeToReach: number;
@@ -66,7 +68,7 @@ declare let global: typeof globalThis & {
 export class ShipTestHarness {
     public spaceMgr = new SpaceManager();
     public shipObj = new Spaceship();
-    public shipMgr = new ShipManager(this.shipObj, this.spaceMgr);
+    public shipMgr = new ShipManager(this.shipObj, this.spaceMgr, new ShipDie(3));
     private graphBuilder: PlotlyGraphBuilder | null = null;
 
     constructor() {

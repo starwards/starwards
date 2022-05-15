@@ -1,4 +1,12 @@
-import { AdminState, ShipManager, SpaceManager, SpaceObject, Spaceship, resetShipState } from '@starwards/model';
+import {
+    AdminState,
+    ShipDie,
+    ShipManager,
+    SpaceManager,
+    SpaceObject,
+    Spaceship,
+    resetShipState,
+} from '@starwards/model';
 import { GameApi, GameMap } from './scripts-api';
 import { defaultMap, resetShip } from './map-helper';
 
@@ -6,9 +14,13 @@ import { MapSchema } from '@colyseus/schema';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 
+type Die = {
+    update: (deltaSeconds: number) => void;
+};
 export class GameManager {
     public state = new AdminState();
     private ships = new Map<string, ShipManager>();
+    private dice: Die[] = [];
     private spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     public readonly scriptApi: GameApi = {
@@ -36,6 +48,9 @@ export class GameManager {
             void this.startGame(defaultMap);
         }
         this.map?.update?.(deltaSeconds);
+        for (const die of this.dice) {
+            die.update(deltaSeconds);
+        }
     }
 
     public async stopGame() {
@@ -50,6 +65,7 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
+            this.dice = [];
             this.shipMessenger?.unRegisterAll();
             this.state.isGameRunning = false;
         }
@@ -70,12 +86,14 @@ export class GameManager {
     private initShip(spaceObject: Spaceship, sendMessages = false) {
         this.spaceManager.insert(spaceObject);
         this.state.points.set(spaceObject.id, 0);
-        const shipManager = new ShipManager(spaceObject, this.spaceManager, this.ships, () => {
+        const die = new ShipDie(3);
+        const shipManager = new ShipManager(spaceObject, this.spaceManager, die, this.ships, () => {
             this.state.points.set(spaceObject.id, (this.state.points.get(spaceObject.id) || 0) + 1);
             resetShipState(shipManager.state);
             resetShip(spaceObject);
         }); // create a manager to manage the ship
         this.ships.set(spaceObject.id, shipManager);
+        this.dice.push(die);
         if (sendMessages) {
             this.shipMessenger?.registerShip(shipManager.state);
         }

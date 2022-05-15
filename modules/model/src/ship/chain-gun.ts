@@ -9,7 +9,6 @@ export class ChainGun extends Schema {
     }
 
     public readonly type = 'ChainGun';
-
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
@@ -31,8 +30,11 @@ export class ChainGun extends Schema {
     @type('int8')
     shellRangeMode!: SmartPilotMode;
 
-    @type('boolean')
-    broken = false;
+    @type('float32')
+    angleOffset = 0;
+
+    @type('uint8')
+    cooldownFactor = 1;
 
     @type('int8')
     damageArea!: ShipArea;
@@ -40,10 +42,6 @@ export class ChainGun extends Schema {
     @type({ map: 'number' })
     constants!: MapSchema<number>;
 
-    // dps at which there's 50% chance of system destruction
-    get dps50() {
-        return getConstant(this.constants, 'dps50');
-    }
     // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
         return getConstant(this.constants, 'bulletSpeed');
@@ -83,5 +81,12 @@ export class ChainGun extends Schema {
     }
     get maxShellSecondsToLive(): number {
         return this.maxShellRange / this.bulletSpeed;
+    }
+    // damage ammount at which there's 50% chance of system damage
+    get damage50(): number {
+        return getConstant(this.constants, 'damage50');
+    }
+    get broken(): boolean {
+        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;
     }
 }

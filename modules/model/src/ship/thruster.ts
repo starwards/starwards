@@ -5,6 +5,11 @@ import { ShipDirection } from './ship-direction';
 import { getConstant } from '../utils';
 
 export class Thruster extends Schema {
+    public static isInstance(o: unknown): o is Thruster {
+        return (o as Thruster)?.type === 'Thruster';
+    }
+
+    public readonly type = 'Thruster';
     /**
      * the measure of current engine activity
      */
@@ -16,20 +21,25 @@ export class Thruster extends Schema {
     @type('float32')
     afterBurnerActive = 0;
 
-    @type('boolean')
-    broken = false;
+    @type('float32')
+    angleError = 0.0;
 
-    @type('int8')
-    damageArea!: ShipArea;
+    @type('float32')
+    availableCapacity = 1.0;
 
     @type({ map: 'number' })
     constants!: MapSchema<number>;
 
-    // dps at which there's 50% chance of system destruction
-    get dps50() {
-        return getConstant(this.constants, 'dps50');
-    }
+    @type('int8')
+    damageArea!: ShipArea;
 
+    get broken(): boolean {
+        return this.availableCapacity === 0 || this.angleError >= 45 || this.angleError <= -45;
+    }
+    // dps at which there's 50% chance of system damage
+    get damage50(): number {
+        return getConstant(this.constants, 'damage50');
+    }
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
     }
