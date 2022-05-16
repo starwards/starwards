@@ -56,22 +56,35 @@ export function gaussianRandom(mean: number, stdev: number): number {
     return mean + 2.0 * stdev * (Math.random() + Math.random() + Math.random() - 1.5);
 }
 
+type Circle = {
+    readonly position: XY;
+    readonly radius: number;
+};
 /**
  * The method calculates the two intersection points between circles with given centres and given radii.
  * It returns the points in the order that the arc for circle0 is from the first to the second returned point.
  * The arc for circle1 is from the second to the first intersection point
  */
-export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: number): [XY, XY] | undefined {
-    const dx = centre1.x - centre0.x;
-    const dy = centre1.y - centre0.y;
+export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] | undefined {
+    let objPosition = object.position;
+    if (XY.lengthOf(XY.difference(object.position, subject.position)) < subject.radius) {
+        // move object to diameter of subject
+        objPosition = XY.add(
+            subject.position,
+            XY.byLengthAndDirection(subject.radius, XY.angleOf(XY.difference(object.position, subject.position)))
+        );
+    }
+
+    const dx = objPosition.x - subject.position.x;
+    const dy = objPosition.y - subject.position.y;
 
     const distance = Math.sqrt(dy * dy + dx * dx);
 
     // check whether the cirles do not intersect of one is completely confined within another
-    if (distance > r0 + r1 || distance < Math.abs(r0 - r1)) {
+    if (distance > subject.radius + object.radius) {
         // eslint-disable-next-line no-console
         console.log(
-            `no intersection distance: ${distance}, (x0, y0): ${centre0.x}, ${centre0.y}, r0 = ${r0}, (x1, y1): ${centre1.x}, ${centre1.y}, r1 = ${r1}`
+            `no intersection distance: ${distance}, (x0, y0): ${subject.position.x}, ${subject.position.y}, subject.radius = ${subject.radius}, (x1, y1): ${object.position.x}, ${object.position.y}, object.radius = ${object.radius}`
         );
         return undefined;
     }
@@ -80,11 +93,12 @@ export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: nu
      * point2 is the intersection between the chord between the intersection points
      * and a line that passes through both circle centres.
      */
-    const a = (r0 * r0 - r1 * r1 + distance * distance) / (2.0 * distance);
-    const p2 = { x: centre0.x + (dx * a) / distance, y: centre0.y + (dy * a) / distance };
+    const a =
+        (subject.radius * subject.radius - object.radius * object.radius + distance * distance) / (2.0 * distance);
+    const p2 = { x: subject.position.x + (dx * a) / distance, y: subject.position.y + (dy * a) / distance };
 
     // h is the distance from p2 and either of the circle intersection points
-    const h = Math.sqrt(r0 * r0 - a * a);
+    const h = Math.sqrt(subject.radius * subject.radius - a * a);
 
     // ox and oy are the offsets of the intersection points from p2
     const ox = -dy * (h / distance);
@@ -95,9 +109,11 @@ export function circlesIntersection(centre0: XY, centre1: XY, r0: number, r1: nu
     const i1 = { x: p2.x - ox, y: p2.y - oy };
 
     if (
-        (centre1.x > centre0.x && i0.y > i1.y) ||
-        (centre0.x > centre1.x && i1.y > i0.y) ||
-        (centre0.x === centre1.x && ((centre1.y > centre0.y && i1.x > i0.x) || (centre0.y > centre1.y && i0.x > i1.x)))
+        (object.position.x > subject.position.x && i0.y > i1.y) ||
+        (subject.position.x > object.position.x && i1.y > i0.y) ||
+        (subject.position.x === object.position.x &&
+            ((object.position.y > subject.position.y && i1.x > i0.x) ||
+                (subject.position.y > object.position.y && i0.x > i1.x)))
     ) {
         return [i1, i0];
     }

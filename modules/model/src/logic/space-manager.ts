@@ -262,12 +262,7 @@ export class SpaceManager {
                         damageAmount = object.collisionDamage * Math.min(response.overlap, otherObject.radius * 2);
                     }
                     if (Spaceship.isInstance(object)) {
-                        const damageBoundries = circlesIntersection(
-                            object.position,
-                            otherObject.position,
-                            object.radius,
-                            otherObject.radius
-                        );
+                        const damageBoundries = circlesIntersection(object, otherObject);
                         if (damageBoundries) {
                             const shipLocalDamageBoundries: [XY, XY] = [
                                 object.globalToLocal(XY.difference(damageBoundries[0], object.position)),
