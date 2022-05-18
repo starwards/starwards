@@ -11,7 +11,7 @@
         "@arwes/core": "^1.0.0-alpha.19",
         "@arwes/design": "^1.0.0-alpha.19",
         "@arwes/sounds": "^1.0.0-alpha.19",
-        "@babylonjs/core": "5.6.0",
+        "@babylonjs/core": "5.6.1",
         "@babylonjs/loaders": "5.6.0",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pixi/graphics-extras": "^6.3.1",
