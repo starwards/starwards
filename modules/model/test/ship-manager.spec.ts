@@ -1,29 +1,8 @@
 import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2, XY, limitPercisionHard } from '../src';
 
+import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
-
-class MockDie {
-    private _expectedRoll = 0;
-    public getRoll(_: string, __?: number, ___?: number): number {
-        return this._expectedRoll;
-    }
-
-    public getSuccess(_: string, successProbability: number): boolean {
-        return this._expectedRoll < successProbability;
-    }
-
-    public getRollInRange(_: string, min: number, max: number): number {
-        if (this._expectedRoll >= min && this._expectedRoll < max) {
-            return this._expectedRoll;
-        }
-        return min;
-    }
-
-    set expectedRoll(roll: number) {
-        this._expectedRoll = roll;
-    }
-}
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {

@@ -30,6 +30,7 @@ import { Damage, SpaceManager } from '../logic/space-manager';
 import { FRONT_ARC, REAR_ARC } from '.';
 
 import { Bot } from '../logic/bot';
+import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
@@ -149,7 +150,7 @@ function resetThruster(thruster: Thruster) {
 
 export const DEGREES_PER_AREA = 180;
 
-type Die = {
+export type Die = {
     getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
     getRollInRange: (id: string, min: number, max: number) => number;
@@ -166,7 +167,7 @@ export class ShipManager {
     ]);
 
     constructor(
-        public spaceObject: Spaceship,
+        public spaceObject: DeepReadonly<Spaceship>,
         private spaceManager: SpaceManager,
         private die: Die,
         private ships?: Map<string, ShipManager>,
@@ -379,7 +380,7 @@ export class ShipManager {
     }
 
     private handleDamage() {
-        for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
+        for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
             for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
                 const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
                 const areaHitRangeAngles: [number, number] = [

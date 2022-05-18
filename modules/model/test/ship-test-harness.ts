@@ -12,6 +12,27 @@ import {
 
 import { ShipDie } from '../src/ship/ship-die';
 
+export class MockDie {
+    private _expectedRoll = 0;
+    public getRoll(_: string, __?: number, ___?: number): number {
+        return this._expectedRoll;
+    }
+
+    public getSuccess(_: string, successProbability: number): boolean {
+        return this._expectedRoll < successProbability;
+    }
+
+    public getRollInRange(_: string, min: number, max: number): number {
+        if (this._expectedRoll >= min && this._expectedRoll < max) {
+            return this._expectedRoll;
+        }
+        return min;
+    }
+
+    set expectedRoll(roll: number) {
+        this._expectedRoll = roll;
+    }
+}
 abstract class AbsTestMetrics {
     constructor(public iterationsPerSecond: number, public distance: number) {}
     abstract readonly timeToReach: number;

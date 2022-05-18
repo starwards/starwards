@@ -20,7 +20,7 @@ export class SpaceManager {
     private collisionToState = new WeakMap<TBody, SpaceObject>();
     public projectileStateToCollision = new WeakMap<SpaceObject, Polygon>();
     public stateToCollision = new WeakMap<SpaceObject, Circle>();
-    private objectDamage = new WeakMap<SpaceObject, Damage[]>();
+    private objectDamage = new Map<string, Damage[]>();
     private toInsert: SpaceObject[] = [];
 
     private toUpdateCollisions = new Set<SpaceObject>();
@@ -69,9 +69,11 @@ export class SpaceManager {
 
     // batch changes to map indexes to save i/o
     private gc() {
+        this.untrackDestroyedObjects();
         this.secondsSinceLastGC = 0;
         for (const destroyed of this.state[Symbol.iterator](true)) {
             this.state.delete(destroyed);
+            this.objectDamage.delete(destroyed.id);
         }
     }
 
@@ -215,11 +217,11 @@ export class SpaceManager {
         this.insert(explosion);
     }
 
-    public *resolveObjectDamage(object: SpaceObject): IterableIterator<Damage> {
-        const damageArr = this.objectDamage.get(object);
+    public *resolveObjectDamage(id: string): IterableIterator<Damage> {
+        const damageArr = this.objectDamage.get(id);
         if (damageArr !== undefined) {
             yield* damageArr;
-            this.objectDamage.delete(object);
+            this.objectDamage.delete(id);
         }
     }
 
@@ -278,9 +280,9 @@ export class SpaceManager {
                                 damageSurfaceArc: shipLocalDamageAngles,
                                 damageDurationSeconds: deltaSeconds,
                             };
-                            const objectDamage = this.objectDamage.get(object);
+                            const objectDamage = this.objectDamage.get(object.id);
                             if (objectDamage === undefined) {
-                                this.objectDamage.set(object, [damage]);
+                                this.objectDamage.set(object.id, [damage]);
                             } else {
                                 objectDamage.push(damage);
                             }
