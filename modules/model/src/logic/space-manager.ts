@@ -226,6 +226,7 @@ export class SpaceManager {
     }
 
     private handleCollisions(deltaSeconds: number) {
+        const positionChanges: Array<{ o: SpaceObject; p: XY }> = [];
         // find and handle collisions
         this.collisions.checkAll((response: Response) => {
             const object = this.collisionToState.get(response.a as TBody);
@@ -254,8 +255,7 @@ export class SpaceManager {
                             Math.min(response.overlap, otherObject.radius * 2);
                     } else {
                         const collisionVector = XY.scale(response.overlapV, -0.5);
-                        Vec2.add(object.position, collisionVector, object.position);
-                        this.toUpdateCollisions.add(object);
+                        positionChanges.push({ o: object, p: collisionVector });
                         Vec2.add(
                             object.velocity,
                             XY.scale(collisionVector, object.collisionElasticity / deltaSeconds),
@@ -289,9 +289,17 @@ export class SpaceManager {
                         } else {
                             // eslint-disable-next-line no-console
                             console.error(`unexpected undefined intersection between ${otherObject.type} and object.
-                    object data: centre: ${JSON.stringify(object.position)} radius: ${JSON.stringify(object.radius)}
-                    ${otherObject.type} data: centre: ${JSON.stringify(otherObject.position)} radius: ${JSON.stringify(
+                                object data: centre: ${JSON.stringify(object.position)}(${JSON.stringify(
+                                (response.a as TBody).pos
+                            )}) radius: ${JSON.stringify(object.radius)}
+                                ${otherObject.type} data: centre: ${JSON.stringify(
+                                otherObject.position
+                            )}(${JSON.stringify((response.b as TBody).pos)}) radius: ${JSON.stringify(
                                 otherObject.radius
+                            )}. state distance: ${XY.lengthOf(
+                                XY.difference(object.position, otherObject.position)
+                            )}. collision distance: ${XY.lengthOf(
+                                XY.difference((response.a as TBody).pos, (response.b as TBody).pos)
                             )}`);
                         }
                     } else {
@@ -300,6 +308,10 @@ export class SpaceManager {
                 }
             }
         });
+        for (const { o, p } of positionChanges) {
+            Vec2.add(o.position, p, o.position);
+            this.toUpdateCollisions.add(o);
+        }
     }
 
     private updateCollisionBodies(deltaSeconds: number) {
