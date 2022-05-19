@@ -84,7 +84,7 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
     if (distance > subject.radius + object.radius) {
         // eslint-disable-next-line no-console
         console.log(
-            `no intersection distance: ${distance}, (x0, y0): ${subject.position.x}, ${subject.position.y}, subject.radius = ${subject.radius}, (x1, y1): ${object.position.x}, ${object.position.y}, object.radius = ${object.radius}`
+            `no intersection distance: ${distance}, (x0, y0): ${subject.position.x}, ${subject.position.y}, subject.radius = ${subject.radius}, (x1, y1): ${objPosition.x}, ${objPosition.y}, object.radius = ${object.radius}`
         );
         return undefined;
     }
@@ -109,11 +109,11 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
     const i1 = { x: p2.x - ox, y: p2.y - oy };
 
     if (
-        (object.position.x > subject.position.x && i0.y > i1.y) ||
-        (subject.position.x > object.position.x && i1.y > i0.y) ||
-        (subject.position.x === object.position.x &&
-            ((object.position.y > subject.position.y && i1.x > i0.x) ||
-                (subject.position.y > object.position.y && i0.x > i1.x)))
+        (objPosition.x > subject.position.x && i0.y > i1.y) ||
+        (subject.position.x > objPosition.x && i1.y > i0.y) ||
+        (subject.position.x === objPosition.x &&
+            ((objPosition.y > subject.position.y && i1.x > i0.x) ||
+                (subject.position.y > objPosition.y && i0.x > i1.x)))
     ) {
         return [i1, i0];
     }
