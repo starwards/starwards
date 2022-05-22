@@ -13,6 +13,11 @@ export const floatIn = (range: number, minRange = 0) =>
 export const float = (from: number, to: number) => fc.float(from, to).map(limitPercisionHard);
 export const fromTo = (range: number, minDiff: number) =>
     fc.tuple(floatIn(range), floatIn(range)).filter((t) => Math.abs(t[0] - t[1]) > minDiff);
+export const range = (from: number, to: number, minDiff = 0) =>
+    fc
+        .tuple(float(from, to), float(from, to))
+        .map((t) => t.sort((a, b) => a - b) as Tuple2)
+        .filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));
 export const orderedTuple2 = () =>
     fc
@@ -26,6 +31,7 @@ export const orderedTuple3 = () =>
         .filter((t) => t[0] < t[2]);
 
 export const degree = () => float(0, 360 - EPSILON);
+export type Tuple2 = [number, number];
 export type Tuple4 = [number, number, number, number];
 
 export const orderedDegreesTuple4 = () =>

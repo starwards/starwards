@@ -3,7 +3,7 @@ import { XY } from './xy';
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 export const EPSILON = 0.01;
 
-export function archIntersection(a: [number, number], b: [number, number]): boolean {
+export function archIntersection(a: readonly [number, number], b: readonly [number, number]): boolean {
     const aNorm = [0, toPositiveDegreesDelta(a[1] - a[0])];
     const bNorm = [toPositiveDegreesDelta(b[0] - a[0]), toPositiveDegreesDelta(b[1] - a[0])];
     return bNorm[0] >= bNorm[1] || bNorm[0] <= aNorm[1] || bNorm[1] <= aNorm[1];

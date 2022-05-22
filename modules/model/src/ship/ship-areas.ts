@@ -7,9 +7,9 @@ export enum ShipArea {
 }
 
 export const FRONT_ARC: [number, number] = [-90, 90 - EPSILON];
-export const REAR_ARC: [number, number] = [90, -90 + EPSILON];
+export const REAR_ARC: [number, number] = [90, -90 - EPSILON];
 
-export function* shipAreasInRange(localAngleRange: [number, number]) {
+export function* shipAreasInRange(localAngleRange: readonly [number, number]) {
     if (archIntersection(FRONT_ARC, localAngleRange)) {
         yield ShipArea.front;
     }
