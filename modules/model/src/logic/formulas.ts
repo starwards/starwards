@@ -55,7 +55,7 @@ function* quadraticEquation(a: number, b: number, c: number) {
         if (b === 0) {
             throw new Error('no a or b coefficients');
         }
-        yield c / b;
+        yield limitPercision(-c / b);
     } else {
         const discriminant = b * b - 4 * a * c;
         if (discriminant >= 0) {
