@@ -5,3 +5,10 @@ export function getConstant(constants: Map<string, number>, name: string): numbe
     }
     return result;
 }
+interface WithConstants {
+    constants: Map<string, number>;
+}
+
+export function setConstant(state: WithConstants, name: string, value: number) {
+    state.constants.set(name, value);
+}

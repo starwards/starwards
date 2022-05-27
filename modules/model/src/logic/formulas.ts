@@ -3,7 +3,36 @@ import { XY } from './xy';
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 export const EPSILON = 0.01;
 
-export function archIntersection(a: readonly [number, number], b: readonly [number, number]): boolean {
+export type RTuple2 = readonly [number, number];
+
+export type Tuple2 = [number, number];
+function* concatinateArchsAcyclic(archs: Iterable<RTuple2>) {
+    let curr: Tuple2 | null = null;
+    for (const arch of archs) {
+        if (curr && toPositiveDegreesDelta(curr[1]) >= toPositiveDegreesDelta(arch[0])) {
+            curr[1] = arch[1];
+        } else {
+            if (curr) yield curr;
+            curr = [...arch];
+        }
+    }
+    if (curr) yield curr;
+}
+
+function* shiftPushIter<T>(orig: Iterable<T>) {
+    const iter = orig[Symbol.iterator]();
+    const headResult = iter.next();
+    if (!headResult.done) {
+        yield* { [Symbol.iterator]: () => iter };
+        yield headResult.value;
+    }
+}
+
+export function* concatinateArchs(archs: Iterable<RTuple2>): Iterable<RTuple2> {
+    yield* concatinateArchsAcyclic(shiftPushIter(concatinateArchsAcyclic(archs)));
+}
+
+export function archIntersection(a: RTuple2, b: RTuple2): boolean {
     const aNorm = [0, toPositiveDegreesDelta(a[1] - a[0])];
     const bNorm = [toPositiveDegreesDelta(b[0] - a[0]), toPositiveDegreesDelta(b[1] - a[0])];
     return bNorm[0] >= bNorm[1] || bNorm[0] <= aNorm[1] || bNorm[1] <= aNorm[1];
@@ -34,7 +63,7 @@ export function toDegreesDelta(degrees: number) {
     }
 }
 
-export function lerp(fromRange: [number, number], toRange: [number, number], fromValue: number) {
+export function lerp(fromRange: Tuple2, toRange: Tuple2, fromValue: number) {
     const t = (fromValue - fromRange[0]) / (fromRange[1] - fromRange[0]);
     return (1 - t) * toRange[0] + t * toRange[1];
 }

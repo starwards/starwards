@@ -99,18 +99,22 @@ export class ShipTestHarness {
         this.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
     }
+
     get shipState() {
         return this.shipMgr.state;
     }
+
     graph() {
         if (!this.graphBuilder) {
             throw new Error('graph not initialized');
         }
         return this.graphBuilder.build();
     }
+
     initGraph(metrics: Record<string, () => number>) {
         this.graphBuilder = new PlotlyGraphBuilder(metrics);
     }
+
     simulate(timeInSeconds: number, iterations: number, body?: (time: number, log?: GraphPointInput) => unknown) {
         const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
         this.shipMgr.update(iterationTimeInSeconds);
@@ -126,9 +130,11 @@ export class ShipTestHarness {
         }
         this.graphBuilder?.newPoint(iterationTimeInSeconds);
     }
+
     addToGraph(n: string, v: number) {
         this.graphBuilder?.newPoint(0).addtoLine(n, v);
     }
+
     annotateGraph(text: string) {
         this.graphBuilder?.newPoint(0).annotate(text);
     }

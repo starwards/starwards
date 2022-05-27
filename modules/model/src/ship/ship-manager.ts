@@ -34,15 +34,8 @@ import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
+import { setConstant } from '../utils';
 import { uniqueId } from '../id';
-
-interface WithConstants {
-    constants: MapSchema<number>;
-}
-
-function setConstant(state: WithConstants, name: string, value: number) {
-    state.constants.set(name, value);
-}
 
 function makeThruster(angle: ShipDirection): Thruster {
     const thruster = new Thruster();
@@ -320,7 +313,7 @@ export class ShipManager {
 
     getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
         let brokenPlates = 0;
-        for (const plate of this.state.armor.platesInRange(hitRange)) {
+        for (const [_, plate] of this.state.armor.platesInRange(hitRange)) {
             if (plate.health <= 0) {
                 brokenPlates++;
             }
@@ -329,9 +322,10 @@ export class ShipManager {
     }
 
     private applyDamageToArmor(damageFactor: number, localAnglesHitRange: [number, number]) {
-        for (const plate of this.state.armor.platesInRange(localAnglesHitRange)) {
+        for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
-                plate.health = Math.max(plate.health - damageFactor * gaussianRandom(20, 4), 0);
+                const newHealth = plate.health - damageFactor * gaussianRandom(20, 4);
+                plate.health = Math.max(newHealth, 0);
             }
         }
     }
@@ -388,9 +382,11 @@ export class ShipManager {
                     Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
                 ];
                 const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-                const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-                for (const system of this.systemsByAreas.get(hitArea) || []) {
-                    this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
+                if (areaUnarmoredHits) {
+                    const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
+                    for (const system of this.systemsByAreas.get(hitArea) || []) {
+                        this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
+                    }
                 }
                 this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
             }

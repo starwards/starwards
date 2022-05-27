@@ -34,7 +34,7 @@ describe('ShipManager', () => {
                 expect(shipMgr.state.chainGun.broken).to.be.false;
                 expect(shipMgr.state.chainGun.angleOffset).to.equal(0);
                 expect(shipMgr.state.chainGun.cooldownFactor).to.equal(1);
-                for (const plate of shipMgr.state.armor.platesInRange([177, -177])) {
+                for (const [_, plate] of shipMgr.state.armor.platesInRange([177, -177])) {
                     expect(plate.health).to.be.lessThan(200);
                 }
             })

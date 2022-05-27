@@ -1,4 +1,4 @@
-import { EPSILON, XY, limitPercisionHard, sign } from '../src';
+import { EPSILON, Tuple2, XY, limitPercisionHard, sign } from '../src';
 
 import fc from 'fast-check';
 
@@ -31,7 +31,6 @@ export const orderedTuple3 = () =>
         .filter((t) => t[0] < t[2]);
 
 export const degree = () => float(0, 360 - EPSILON);
-export type Tuple2 = [number, number];
 export type Tuple4 = [number, number, number, number];
 
 export const orderedDegreesTuple4 = () =>
