@@ -12,3 +12,14 @@ interface WithConstants {
 export function setConstant(state: WithConstants, name: string, value: number) {
     state.constants.set(name, value);
 }
+
+export class MultiMap<K, V> extends Map<K, Array<V>> {
+    push(k: K, ...v: V[]) {
+        let arr = this.get(k);
+        if (!arr) {
+            arr = [];
+            this.set(k, arr);
+        }
+        arr.push(...v);
+    }
+}

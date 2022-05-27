@@ -122,6 +122,7 @@ describe('SpaceManager', () => {
         function highSpeedShip(numIterationsPerSecond: number, speed: number) {
             const sim = new SpaceSimulator(numIterationsPerSecond);
             const ship = new Spaceship();
+            ship.id = 'ship';
             const shipMgr = sim.withShip(ship, new ShipDie(0));
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
             setConstant(shipMgr.state.chainGun, 'maxShellRange', 10_000);
@@ -147,7 +148,7 @@ describe('SpaceManager', () => {
                 )
             );
         });
-        it('shoots itself in the front when accelerating', () => {
+        it.only('shoots itself in the front when accelerating', () => {
             fc.assert(
                 fc.property(
                     fc.integer({ min: 20, max: 20 }),
@@ -165,7 +166,8 @@ describe('SpaceManager', () => {
                         const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, FRONT_ARC))];
                         expect(hitArchs).to.not.be.empty;
                     }
-                )
+                ),
+                { seed: -239791883, path: '0:0', endOnFailure: true }
             );
         });
     });

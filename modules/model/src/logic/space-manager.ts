@@ -1,7 +1,9 @@
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { Circle, Polygon, Response, System, TBody } from 'detect-collisions';
-import { circlesIntersection, limitPercision } from '.';
+import { Circle, System, TBody, Types } from 'detect-collisions';
+import { Ray, SWResponse } from './collisions-utils';
+import { circlesIntersection, findCircleRayIntersections, limitPercision, minDistanceXY } from '.';
 
+import { MultiMap } from '../utils';
 import { Spaceship } from '../space';
 import { uniqueId } from '../id';
 
@@ -13,16 +15,13 @@ export type Damage = {
     damageSurfaceArc: [number, number];
     damageDurationSeconds: number;
 };
-interface TResponse extends Response {
-    a: TBody;
-    b: TBody;
-}
+
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
     private collisionToState = new WeakMap<TBody, SpaceObject>();
-    public projectileStateToCollision = new WeakMap<SpaceObject, Polygon>();
-    public stateToCollision = new WeakMap<SpaceObject, Circle>();
+    public projectileStateToCollision = new WeakMap<CannonShell, Ray>();
+    public stateToCollision = new WeakMap<Exclude<SpaceObject, CannonShell>, Circle>();
     private objectDamage = new Map<string, Damage[]>();
     private toInsert: SpaceObject[] = [];
 
@@ -175,10 +174,8 @@ export class SpaceManager {
             for (const object of this.toInsert) {
                 this.state.set(object);
                 if (CannonShell.isInstance(object)) {
-                    const body = this.collisions.createPolygon(XY.clone(object.position), [
-                        XY.zero,
-                        XY.scale(object.velocity, deltaSeconds),
-                    ]);
+                    const body = new Ray(object.position, XY.scale(object.velocity, deltaSeconds));
+                    this.collisions.insert(body);
                     this.collisionToState.set(body, object);
                     this.projectileStateToCollision.set(object, body);
                 } else {
@@ -229,103 +226,108 @@ export class SpaceManager {
     }
 
     private handleCollisions(deltaSeconds: number) {
-        const positionChanges: Array<{ o: SpaceObject; p: XY }> = [];
+        const positionChanges: Array<{ s: SpaceObject; p: XY }> = [];
+        const projectileCollisions = new MultiMap<CannonShell, XY>();
         // find and handle collisions
-        this.collisions.checkAll((response: TResponse) => {
-            // very fast things don't collide with each other
-            if (response.a.type === 'Circle' || response.b.type === 'Circle') {
-                const object = this.collisionToState.get(response.a);
-                const otherObject = this.collisionToState.get(response.b);
-                if (object && !object.destroyed && !object.freeze && otherObject && !otherObject.destroyed) {
-                    this.handleCollision(deltaSeconds, object, otherObject, response, positionChanges);
+        this.collisions.checkAll((response: SWResponse) => {
+            const subject = this.collisionToState.get(response.a);
+            const object = this.collisionToState.get(response.b);
+            if (
+                subject &&
+                !Explosion.isInstance(subject) &&
+                !subject.destroyed &&
+                !subject.freeze &&
+                object &&
+                !CannonShell.isInstance(object) &&
+                !object.destroyed
+            ) {
+                if (CannonShell.isInstance(subject)) {
+                    if (response.a.type == Types.Line) {
+                        projectileCollisions.push(
+                            subject,
+                            ...findCircleRayIntersections(response.a.globalPoints, object)
+                        );
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.error(`CannonShell collision shape is not Polygon: ${response.a.type}`);
+                    }
+                } else {
+                    const p = this.handleNonProjectileCollision(deltaSeconds, subject, object, response);
+                    if (p) {
+                        positionChanges.push({ s: subject, p });
+                    }
                 }
             }
         });
-        for (const { o, p } of positionChanges) {
+        for (const [projectile, hits] of projectileCollisions.entries()) {
+            // const _ship = this.state.spaceships.get('ship');
+            // _ship?.toJSON?.();
+            const closest = minDistanceXY(projectile.position, hits, hits[0]);
+            projectile.position.setValue(closest);
+            this.explodeCannonShell(projectile);
+        }
+        for (const { s: o, p } of positionChanges) {
             Vec2.add(o.position, p, o.position);
             this.toUpdateCollisions.add(o);
         }
     }
 
-    private handleCollision(
+    private handleNonProjectileCollision(
         deltaSeconds: number,
-        object: SpaceObject,
-        otherObject: SpaceObject,
-        response: Response,
-        positionChanges: { o: SpaceObject; p: XY }[]
+        subject: Exclude<SpaceObject, CannonShell | Explosion>,
+        object: Exclude<SpaceObject, CannonShell>,
+        response: SWResponse
     ) {
-        if (CannonShell.isInstance(object)) {
-            const distance = XY.difference(object.position, otherObject.position);
-            const distLength = XY.lengthOf(distance);
-            if (distLength != 0) {
-                Vec2.sum(
-                    otherObject.position,
-                    XY.scale(distance, (object.radius + otherObject.radius) / distLength),
-                    object.position
-                );
-            }
-            this.explodeCannonShell(object);
-        } else if (!Explosion.isInstance(object) && !CannonShell.isInstance(otherObject)) {
-            let damageAmount: number | undefined = undefined;
-            if (Explosion.isInstance(otherObject)) {
-                const exposure = deltaSeconds * Math.min(response.overlap, otherObject.radius * 2);
-                object.velocity.x -= response.overlapV.x * exposure * otherObject.blastFactor;
-                object.velocity.y -= response.overlapV.y * exposure * otherObject.blastFactor;
-                damageAmount =
-                    otherObject.damageFactor * deltaSeconds * Math.min(response.overlap, otherObject.radius * 2);
-            } else {
-                const collisionVector = XY.scale(response.overlapV, -0.5);
-                positionChanges.push({ o: object, p: collisionVector });
-                Vec2.add(
-                    object.velocity,
-                    XY.scale(collisionVector, object.collisionElasticity / deltaSeconds),
-                    object.velocity
-                );
-                damageAmount = object.collisionDamage * Math.min(response.overlap, otherObject.radius * 2);
-            }
-            if (Spaceship.isInstance(object)) {
-                const damageBoundries = circlesIntersection(object, otherObject);
-                if (damageBoundries) {
-                    const shipLocalDamageBoundries: [XY, XY] = [
-                        object.globalToLocal(XY.difference(damageBoundries[0], object.position)),
-                        object.globalToLocal(XY.difference(damageBoundries[1], object.position)),
-                    ];
-                    const shipLocalDamageAngles: [number, number] = [
-                        limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
-                        limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
-                    ];
-                    const damage = {
-                        id: otherObject.id,
-                        amount: damageAmount,
-                        damageSurfaceArc: shipLocalDamageAngles,
-                        damageDurationSeconds: deltaSeconds,
-                    };
-                    const objectDamage = this.objectDamage.get(object.id);
-                    if (objectDamage === undefined) {
-                        this.objectDamage.set(object.id, [damage]);
-                    } else {
-                        objectDamage.push(damage);
-                    }
+        let positionChange: XY | null = null;
+        let damageAmount: number | undefined = undefined;
+        if (Explosion.isInstance(object)) {
+            const exposure = deltaSeconds * Math.min(response.overlap, object.radius * 2);
+            subject.velocity.x -= response.overlapV.x * exposure * object.blastFactor;
+            subject.velocity.y -= response.overlapV.y * exposure * object.blastFactor;
+            damageAmount = object.damageFactor * deltaSeconds * Math.min(response.overlap, object.radius * 2);
+        } else {
+            const collisionVector = XY.scale(response.overlapV, -0.5);
+            positionChange = collisionVector;
+            Vec2.add(
+                subject.velocity,
+                XY.scale(collisionVector, subject.collisionElasticity / deltaSeconds),
+                subject.velocity
+            );
+            damageAmount = subject.collisionDamage * Math.min(response.overlap, object.radius * 2);
+        }
+        if (Spaceship.isInstance(subject)) {
+            const damageBoundries = circlesIntersection(subject, object);
+            if (damageBoundries) {
+                const shipLocalDamageBoundries: [XY, XY] = [
+                    subject.globalToLocal(XY.difference(damageBoundries[0], subject.position)),
+                    subject.globalToLocal(XY.difference(damageBoundries[1], subject.position)),
+                ];
+                const shipLocalDamageAngles: [number, number] = [
+                    limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
+                    limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
+                ];
+                const damage = {
+                    id: object.id,
+                    amount: damageAmount,
+                    damageSurfaceArc: shipLocalDamageAngles,
+                    damageDurationSeconds: deltaSeconds,
+                };
+                const objectDamage = this.objectDamage.get(subject.id);
+                if (objectDamage === undefined) {
+                    this.objectDamage.set(subject.id, [damage]);
                 } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`unexpected undefined intersection between ${otherObject.type} and object.
-                                object data: centre: ${JSON.stringify(object.position)}(${JSON.stringify(
-                        (response.a as TBody).pos
-                    )}) radius: ${JSON.stringify(object.radius)}
-                                ${otherObject.type} data: centre: ${JSON.stringify(
-                        otherObject.position
-                    )}(${JSON.stringify((response.b as TBody).pos)}) radius: ${JSON.stringify(
-                        otherObject.radius
-                    )}. state distance: ${XY.lengthOf(
-                        XY.difference(object.position, otherObject.position)
-                    )}. collision distance: ${XY.lengthOf(
-                        XY.difference((response.a as TBody).pos, (response.b as TBody).pos)
-                    )}`);
+                    objectDamage.push(damage);
                 }
             } else {
-                object.health -= damageAmount;
+                // eslint-disable-next-line no-console
+                console.error(
+                    `unexpected undefined intersection with Spaceship.\n${collisionErrorMsg(object, subject, response)}`
+                );
             }
+        } else {
+            subject.health -= damageAmount;
         }
+        return positionChange;
     }
 
     private updateCollisionBodies(deltaSeconds: number) {
@@ -359,4 +361,13 @@ export class SpaceManager {
         // reset toUpdateCollisions
         this.toUpdateCollisions.clear();
     }
+}
+function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: SWResponse) {
+    return `Subject ${subject.type} data: centre: ${JSON.stringify(subject.position)}(${JSON.stringify(
+        response.a.pos
+    )}) radius: ${JSON.stringify(subject.radius)}\n Object ${object.type} data: centre: ${JSON.stringify(
+        object.position
+    )}(${JSON.stringify(response.b.pos)}) radius: ${JSON.stringify(object.radius)}. state distance: ${XY.lengthOf(
+        XY.difference(subject.position, object.position)
+    )}. collision distance: ${XY.lengthOf(XY.difference(response.a.pos, response.b.pos))}`;
 }
