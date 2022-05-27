@@ -4,7 +4,6 @@ import {
     CannonShell,
     Explosion,
     FRONT_ARC,
-    REAR_ARC,
     ShipDie,
     SpaceObject,
     Spaceship,
@@ -154,7 +153,7 @@ describe('SpaceManager', () => {
                     fc.integer({ min: 20, max: 20 }),
                     float(bulletSpeed / 2, bulletSpeed),
                     (numIterationsPerSecond: number, speed: number) => {
-                        const { sim, firstBulletTime, ship, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
+                        const { sim, firstBulletTime, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
 
                         boostCommand.setValue(shipMgr.state, 1); // fly forward
                         afterBurner.setValue(shipMgr.state, 1); // afterburner
