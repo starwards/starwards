@@ -31,6 +31,7 @@ import { FRONT_ARC, REAR_ARC } from '.';
 
 import { Bot } from '../logic/bot';
 import { DeepReadonly } from 'ts-essentials';
+import { EPSILON } from '../logic';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
@@ -684,9 +685,12 @@ export class ShipManager {
                 this.spaceObject.velocity,
                 XY.rotate({ x: chaingun.bulletSpeed, y: 0 }, shell.angle)
             );
-            const shellPosition = Vec2.sum(
-                this.spaceObject.position,
-                XY.rotate({ x: this.spaceObject.radius + shell.radius, y: 0 }, shell.angle)
+            const shellPosition = Vec2.make(
+                XY.sum(
+                    this.spaceObject.position, // position of ship
+                    XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, this.spaceObject.angle), // muzzle related to ship
+                    XY.byLengthAndDirection(EPSILON, shell.angle) // some initial distance
+                )
             );
             shell.init(uniqueId('shell'), shellPosition);
             shell.secondsToLive = chaingun.shellSecondsToLive;

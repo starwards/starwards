@@ -2,9 +2,9 @@ import { SpaceObjectBase } from './space-object-base';
 import { type } from '@colyseus/schema';
 
 export class Explosion extends SpaceObjectBase {
-    public static isInstance(o: SpaceObjectBase): o is Explosion {
+    public static isInstance = (o: SpaceObjectBase): o is Explosion => {
         return o.type === 'Explosion';
-    }
+    };
 
     @type('float32')
     public secondsToLive = 0.5;

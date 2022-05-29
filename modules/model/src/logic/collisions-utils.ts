@@ -2,7 +2,7 @@ import { Circle, Polygon, Response, Types } from 'detect-collisions';
 
 import { XY } from './xy';
 
-export type SWBody = Circle | Ray;
+export type SWBody = Circle;
 export interface SWResponse extends Response {
     a: SWBody;
     b: SWBody;

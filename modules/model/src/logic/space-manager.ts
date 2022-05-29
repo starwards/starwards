@@ -1,13 +1,13 @@
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { Circle, System, TBody, Types } from 'detect-collisions';
-import { Ray, SWResponse } from './collisions-utils';
-import { circlesIntersection, findCircleRayIntersections, limitPercision, minDistanceXY } from '.';
+import { Circle, System, TBody } from 'detect-collisions';
+import { circlesIntersection, limitPercision } from '.';
 
-import { MultiMap } from '../utils';
+import { SWResponse } from './collisions-utils';
 import { Spaceship } from '../space';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
+const ZERO_VELOCITY_THRESHOLD = 0;
 
 export type Damage = {
     id: string;
@@ -19,9 +19,8 @@ export type Damage = {
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
-    private collisionToState = new WeakMap<TBody, SpaceObject>();
-    public projectileStateToCollision = new WeakMap<CannonShell, Ray>();
-    public stateToCollision = new WeakMap<Exclude<SpaceObject, CannonShell>, Circle>();
+    private collisionToState = new WeakMap<Circle, SpaceObject>();
+    public stateToCollision = new WeakMap<SpaceObject, Circle>();
     private objectDamage = new Map<string, Damage[]>();
     private toInsert: SpaceObject[] = [];
 
@@ -80,7 +79,7 @@ export class SpaceManager {
     }
 
     public update(deltaSeconds: number) {
-        this.toUpdateCollisions.clear();
+        this.handleToInsert();
         for (const moveCommand of this.state.moveCommands) {
             this.moveObjects(moveCommand.ids, moveCommand.delta);
         }
@@ -99,9 +98,8 @@ export class SpaceManager {
         this.untrackDestroyedObjects();
         this.applyFreeze();
         this.applyPhysics(deltaSeconds);
-        this.updateCollisionBodies(deltaSeconds);
+        this.updateCollisionBodies();
         this.handleCollisions(deltaSeconds);
-        this.handleToInsert(deltaSeconds);
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
             this.gc();
@@ -138,20 +136,11 @@ export class SpaceManager {
 
     private untrackDestroyedObjects() {
         for (const destroyed of this.state[Symbol.iterator](true)) {
-            if (CannonShell.isInstance(destroyed)) {
-                const body = this.projectileStateToCollision.get(destroyed);
-                if (body) {
-                    this.projectileStateToCollision.delete(destroyed);
-                    this.collisionToState.delete(body);
-                    this.collisions.remove(body);
-                }
-            } else {
-                const body = this.stateToCollision.get(destroyed);
-                if (body) {
-                    this.stateToCollision.delete(destroyed);
-                    this.collisionToState.delete(body);
-                    this.collisions.remove(body);
-                }
+            const body = this.stateToCollision.get(destroyed);
+            if (body) {
+                this.stateToCollision.delete(destroyed);
+                this.collisionToState.delete(body);
+                this.collisions.remove(body);
             }
         }
     }
@@ -165,24 +154,17 @@ export class SpaceManager {
     }
 
     public forceFlushEntities() {
-        this.handleToInsert(1 / 20);
+        this.handleToInsert();
     }
 
-    private handleToInsert(deltaSeconds: number) {
+    private handleToInsert() {
         if (this.toInsert.length) {
             this.gc();
             for (const object of this.toInsert) {
                 this.state.set(object);
-                if (CannonShell.isInstance(object)) {
-                    const body = new Ray(object.position, XY.scale(object.velocity, deltaSeconds));
-                    this.collisions.insert(body);
-                    this.collisionToState.set(body, object);
-                    this.projectileStateToCollision.set(object, body);
-                } else {
-                    const body = this.collisions.createCircle(XY.clone(object.position), object.radius);
-                    this.collisionToState.set(body, object);
-                    this.stateToCollision.set(object, body);
-                }
+                const body = this.collisions.createCircle(XY.clone(object.position), object.radius);
+                this.collisionToState.set(body, object);
+                this.stateToCollision.set(object, body);
             }
             this.toInsert = [];
         }
@@ -197,15 +179,28 @@ export class SpaceManager {
         }
     }
 
+    private allowRaycastCollision = (potential: TBody) => {
+        const object = this.collisionToState.get(potential as Circle);
+        const ignore = !object || this.isProjectile(object);
+        return !ignore;
+    };
+
     private applyPhysics(deltaSeconds: number) {
         // loop over objects and apply velocity
-        for (const object of this.state) {
-            if (object.velocity.x || object.velocity.y) {
-                Vec2.add(object.position, XY.scale(object.velocity, deltaSeconds), object.position);
-                this.toUpdateCollisions.add(object);
+        for (const subject of this.state) {
+            if (!XY.isZero(subject.velocity, ZERO_VELOCITY_THRESHOLD)) {
+                let destination = XY.add(subject.position, XY.scale(subject.velocity, deltaSeconds));
+                if (this.isProjectile(subject)) {
+                    const res = this.collisions.raycast(subject.position, destination, this.allowRaycastCollision);
+                    if (res) {
+                        destination = res.point;
+                    }
+                }
+                subject.position.setValue(destination);
+                this.toUpdateCollisions.add(subject);
             }
-            if (object.turnSpeed) {
-                object.angle = (360 + object.angle + object.turnSpeed * deltaSeconds) % 360;
+            if (subject.turnSpeed) {
+                subject.angle = (360 + subject.angle + subject.turnSpeed * deltaSeconds) % 360;
             }
         }
     }
@@ -225,9 +220,10 @@ export class SpaceManager {
         }
     }
 
+    private isProjectile = CannonShell.isInstance;
+
     private handleCollisions(deltaSeconds: number) {
         const positionChanges: Array<{ s: SpaceObject; p: XY }> = [];
-        const projectileCollisions = new MultiMap<CannonShell, XY>();
         // find and handle collisions
         this.collisions.checkAll((response: SWResponse) => {
             const subject = this.collisionToState.get(response.a);
@@ -238,19 +234,11 @@ export class SpaceManager {
                 !subject.destroyed &&
                 !subject.freeze &&
                 object &&
-                !CannonShell.isInstance(object) &&
+                !this.isProjectile(object) &&
                 !object.destroyed
             ) {
                 if (CannonShell.isInstance(subject)) {
-                    if (response.a.type == Types.Line) {
-                        projectileCollisions.push(
-                            subject,
-                            ...findCircleRayIntersections(response.a.globalPoints, object)
-                        );
-                    } else {
-                        // eslint-disable-next-line no-console
-                        console.error(`CannonShell collision shape is not Polygon: ${response.a.type}`);
-                    }
+                    this.explodeCannonShell(subject);
                 } else {
                     const p = this.handleNonProjectileCollision(deltaSeconds, subject, object, response);
                     if (p) {
@@ -259,13 +247,6 @@ export class SpaceManager {
                 }
             }
         });
-        for (const [projectile, hits] of projectileCollisions.entries()) {
-            // const _ship = this.state.spaceships.get('ship');
-            // _ship?.toJSON?.();
-            const closest = minDistanceXY(projectile.position, hits, hits[0]);
-            projectile.position.setValue(closest);
-            this.explodeCannonShell(projectile);
-        }
         for (const { s: o, p } of positionChanges) {
             Vec2.add(o.position, p, o.position);
             this.toUpdateCollisions.add(o);
@@ -275,7 +256,7 @@ export class SpaceManager {
     private handleNonProjectileCollision(
         deltaSeconds: number,
         subject: Exclude<SpaceObject, CannonShell | Explosion>,
-        object: Exclude<SpaceObject, CannonShell>,
+        object: SpaceObject,
         response: SWResponse
     ) {
         let positionChange: XY | null = null;
@@ -330,30 +311,16 @@ export class SpaceManager {
         return positionChange;
     }
 
-    private updateCollisionBodies(deltaSeconds: number) {
+    private updateCollisionBodies() {
         for (const object of this.toUpdateCollisions) {
             if (!object.destroyed) {
-                if (CannonShell.isInstance(object)) {
-                    const body = this.projectileStateToCollision.get(object);
-                    if (body) {
-                        const newLineEnd = XY.scale(object.velocity, deltaSeconds);
-                        body.points[1].x = newLineEnd.x;
-                        body.points[1].y = newLineEnd.y;
-                        body.setPoints(body.points);
-                        body.setPosition(object.position.x, object.position.y);
-                    } else {
-                        // eslint-disable-next-line no-console
-                        console.error(`CannonShell object leak! ${object.id} has no collision body`);
-                    }
+                const body = this.stateToCollision.get(object);
+                if (body) {
+                    body.r = object.radius;
+                    body.setPosition(object.position.x, object.position.y);
                 } else {
-                    const body = this.stateToCollision.get(object);
-                    if (body) {
-                        body.r = object.radius;
-                        body.setPosition(object.position.x, object.position.y);
-                    } else {
-                        // eslint-disable-next-line no-console
-                        console.error(`object leak! ${object.id} has no collision body`);
-                    }
+                    // eslint-disable-next-line no-console
+                    console.error(`object leak! ${object.id} has no collision body`);
                 }
             }
         }
