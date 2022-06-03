@@ -23,7 +23,7 @@
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.9.0",
         "jquery": "^3.6.0",
-        "pixi.js": "^6.3.1",
+        "pixi.js": "^6.4.2",
         "pixi-filters": "^4.1.6",
         "pluralize": "^8.0.0",
         "react": "^17.0.2",
