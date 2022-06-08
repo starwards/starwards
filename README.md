@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <img src="https://raw.githubusercontent.com/starwards/starwards/master/static/images/starwards-logo.webp" alt="logo" width="200">
+  <img src="static/images/starwards-logo.webp" alt="logo" width="200">
   <br>
   Starwards
   <br>
@@ -13,7 +13,7 @@
 
 <p align="center">
     <video controls width="250">
-        <source src="https://raw.githubusercontent.com/starwards/starwards/master/static/images/screen-capture.webm" type="video/webm">
+        <source src="images/screen-capture.webm" type="video/webm">
         Sorry, your browser doesn't support embedded videos.
     </video>
 </p>
