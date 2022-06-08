@@ -11,12 +11,7 @@
   <a href="https://discord.gg/p56nSVEjdb"><img alt="Discord Chat" src="https://img.shields.io/discord/843041591772971028?color=5865F2&label=discord&style=flat-square"></a>
 </p>
 
-<p align="center">
-    <video controls width="250">
-        <source src="images/screen-capture.webm" type="video/webm">
-        Sorry, your browser doesn't support embedded videos.
-    </video>
-</p>
+![screen-capture](https://user-images.githubusercontent.com/6019373/172685031-e3bf9db0-268a-41a6-81e2-a5e74dbbc464.gif)
 
 # What is this?
 
