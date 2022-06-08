@@ -1,6 +1,6 @@
 # starwards
 
-This game's client is designed to run in a chrome browser.
+A starship simulator designed specifically for LARP (Live Action Role-Playing).
 
 ## Developer instructions
 
@@ -21,7 +21,8 @@ Utility scripts are stored in the `scripts` folder:
 
 ### IDE
 
-This project comes pre-configured for [VSCode](https://code.visualstudio.com/).  
+This project comes pre-configured for [VSCode](https://code.visualstudio.com/).
+
 ### Installing workspace and running commands
 
 to install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installd. nodejs should be at version 15.11 at least and npm should be at version 7.6 at least
@@ -41,7 +42,7 @@ More commands:
 
 ## running and debugging a local development server
 
-The `run server` command (in `.vscode/launch.json`) runs a local development API server (game logic and static files serving). you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `model` modules). 
+The `run server` command (in `.vscode/launch.json`) runs a local development API server (game logic and static files serving). you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `model` modules).
 
 The `debug chrome` command runs a frontend development server that will automatically re-load the client appilcation when changes are made to it, and proxies all API and static files requests to the API server.
 
