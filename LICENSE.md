@@ -1,4 +1,4 @@
-Starwards - A starship simulator designed specifically for LARP (Live Action Role-Playing).
+Starwards - A space and starship simulator designed specifically for LARPs (Live Action Role-Playing games).
 
 Copyright (C) 2019 Amir Arad <greenshade@gmail.com>
 
