@@ -9,6 +9,8 @@
 
 <p align="center">
   <a href="https://discord.gg/p56nSVEjdb"><img alt="Discord Chat" src="https://img.shields.io/discord/843041591772971028?color=5865F2&label=discord&style=flat-square"></a>
+  <a href="https://circleci.com/gh/starwards/starwards/tree/master"><img alt="CircleCI" src="https://circleci.com/gh/starwards/starwards/tree/master.svg?style=svg"></a>
+
 </p>
 
 ![screen-capture](https://user-images.githubusercontent.com/6019373/172685031-e3bf9db0-268a-41a6-81e2-a5e74dbbc464.gif)
