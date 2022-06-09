@@ -21,7 +21,9 @@ Starwards is a space and starship simulator designed specifically for LARPs (Liv
 
 # how to run and use it
 
-Currently executables are being built in [circleci](https://app.circleci.com/pipelines/github/starwards/starwards?branch=master&filter=build&status=none&status=success) after every change. download and run the executable.
+Currently executables are being built after every change. 
+click on [this link](https://app.circleci.com/pipelines/github/starwards/starwards?branch=master&filter=build&status=none&status=success), click on the top-most "build" workflow, tghen on the "build executables" job, then on the "artifacts" tab, and choose the executable that fits your computer. 
+download and run it.
 
 This is not a solution we like. We are [open to improvements and suggestions](https://github.com/starwards/starwards/issues/832).
 
