@@ -3,6 +3,7 @@ import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2, 
 import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
+import { float } from './properties';
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
@@ -104,13 +105,12 @@ describe('ShipManager', () => {
     it('chaingun with attitude damage must fire at an offset', () => {
         fc.assert(
             fc.property(
-                fc.float({ min: 1, max: 180 }),
+                float(1, 180),
                 fc.integer({ min: 15, max: 20 }),
-                (angleOffset: number, numIterationsPerSecond: number) => {
+                (limitedAngleOffset: number, numIterationsPerSecond: number) => {
                     const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
-                    const limitedAngleOffset = limitPercisionHard(angleOffset);
                     shipObj.id = '1';
                     const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
                     spaceMgr.insert(shipObj);

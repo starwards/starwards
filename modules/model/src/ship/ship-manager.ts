@@ -689,7 +689,7 @@ export class ShipManager {
                 XY.sum(
                     this.spaceObject.position, // position of ship
                     XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, this.spaceObject.angle), // muzzle related to ship
-                    XY.byLengthAndDirection(EPSILON, shell.angle) // some initial distance
+                    XY.byLengthAndDirection(shell.radius * 2, shell.angle) // some initial distance
                 )
             );
             shell.init(uniqueId('shell'), shellPosition);
