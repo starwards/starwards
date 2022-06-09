@@ -41,5 +41,5 @@ Please read [Contributing to Starwards](CONTRIBUTING.md) for more details.
 
 ## License
 
-Starwards is Licensed under [AGPL 3](https://www.gnu.org/licenses/agpl-3.0-standalone.html)
-Copyright (C) 2019 Amir Arad <greenshade@gmail.com>
+`SPDX-License-Identifier: AGPL-3.0-or-later`
+For more details on license and copyright see [the license file](LICENSE.md)

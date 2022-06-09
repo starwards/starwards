@@ -3,6 +3,7 @@
     "repository": "git@github.com:starwards/starwards.git",
     "author": "amir-arad <greenshade@gmail.com>",
     "private": true,
+    "license": "SEE LICENSE IN LICENSE.md",
     "engines": {
         "node": ">= 15.11",
         "npm": ">= 7.5.4"
