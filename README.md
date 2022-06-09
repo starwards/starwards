@@ -43,3 +43,5 @@ Please read [Contributing to Starwards](CONTRIBUTING.md) for more details.
 
 `SPDX-License-Identifier: AGPL-3.0-or-later`
 For more details on license and copyright see [the license file](LICENSE.md)
+
+The current license was chosen because we feel it best represents the ethics of knowledge sharing if the LARP community. If you feel that we should consider changing the license, please contact us on our [chat](https://discord.gg/p56nSVEjdb).
