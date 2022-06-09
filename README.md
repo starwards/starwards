@@ -1,54 +1,47 @@
-# starwards
+<h1 align="center">
+  <br>
+  <img src="static/images/starwards-logo.webp" alt="logo" width="200">
+  <br>
+  Starwards
+  <br>
+  <br>
+</h1>
 
-This game's client is designed to run in a chrome browser.
+<p align="center">
+  <a href="https://discord.gg/p56nSVEjdb"><img alt="Discord Chat" src="https://img.shields.io/discord/843041591772971028?color=5865F2&label=discord&style=flat-square"></a>
+</p>
 
-## Developer instructions
+![screen-capture](https://user-images.githubusercontent.com/6019373/172685031-e3bf9db0-268a-41a6-81e2-a5e74dbbc464.gif)
 
-This project is not written using TDD. For now, most of the testing is manual. So make sure you are familiar with the areas that are affected by changes you make in the code.
+# What is this?
 
-### Project structure
+Starwards is a space and starship simulator designed specifically for LARPs (Live Action Role-Playing games). Derived from the "Starship Bridge Simulator" genre, Starwards is designed to support long games where the players interact with the ship's system throughout the ship, not just in the bridge.
 
-The project is a monorepo, based on [npm workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces). The sub-modules are in the `modules` folder:
+# how to run and use it
 
--   browser - the frontend client for the game
--   model - the game model objects, used by both client and server
--   server - The game's server
+Currently executables are being built in [circleci](https://app.circleci.com/pipelines/github/starwards/starwards?branch=master&filter=build&status=none&status=success) after every change. download and run the executable.
 
-Utility scripts are stored in the `scripts` folder:
+This is not a solution we like. We are open to improvements and suggestions.
 
--   `pkg.js` packages and compiles the game server into a single, native executable. used by `npm run pkg` command.
--   `post-build.js` copies artifacts into the `./dist` folder. used by `npm run build` command.
+# how do I get involved
 
-### IDE
+Starwards is a labour of love built by enthusiastic volunteers. We eagerly welcome anyone who would like to join us, so long as they adhere to our [code of conduct](CODE_OF_CONDUCT.md).
 
-This project comes pre-configured for [VSCode](https://code.visualstudio.com/).  
-### Installing workspace and running commands
+Please report any code of conduct violations to [greenshade@gmail.com](mailto:greenshade@gmail.com)
 
-to install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installd. nodejs should be at version 15.11 at least and npm should be at version 7.6 at least
-Then, `git clone` this repo locally and run:
+To get started, you can:
 
-```
-$ npm install
-$ npm test
-```
+1. Take a look at the "Issues" in this repository - especially those marked "Good first issue". Those with the "Help Wanted" tag probably don't have anyone else working on them.
+2. Drop by our [chat](https://discord.gg/p56nSVEjdb) and ask what you can work on, or how to get started.
+3. Open an issue with your idea(s) for the project or tell us about them in our chat.
 
-you've just installed the development environment, ran the little tests we have, including linting and type checking.
+## How do I contribute?
 
-More commands:
+Please read [Contributing to Starwards](CONTRIBUTING.md) for more details.
 
-`$ npm run build` - build the project (artifacts are in the `./dist` folder)
-`$ npm run prettify` - normalize project code style
+## License
 
-## running and debugging a local development server
+`SPDX-License-Identifier: AGPL-3.0-or-later`
+For more details on license and copyright see [the license file](LICENSE.md)
 
-The `run server` command (in `.vscode/launch.json`) runs a local development API server (game logic and static files serving). you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `model` modules). 
-
-The `debug chrome` command runs a frontend development server that will automatically re-load the client appilcation when changes are made to it, and proxies all API and static files requests to the API server.
-
-After both development servers are up, open your chrome browser at `http://localhost/`.
-
-To quickly host a local game with a remote party, I reccommend you use [ngrok](https://ngrok.com/). just download the executable file to the root of this project and run `./ngrok http` to create an HTTP tunnel to your local server.
-
-### Building executable
-
-At some early point this game was supposed to be served as an execuutable. The build process remained. you can build native executable files for the server by runniing `npm run pkg` (executables will appear in `./dist` folder)
+The current license was chosen because we feel it best represents the ethics of knowledge sharing if the LARP community. If you feel that we should consider changing the license, please contact us on our [chat](https://discord.gg/p56nSVEjdb).
