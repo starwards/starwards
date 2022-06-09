@@ -2,6 +2,8 @@
     "name": "@starwards/browser",
     "version": "1.0.0",
     "main": "dist/index.js",
+    "private": true,
+    "license": "SEE LICENSE IN LICENSE.md",
     "scripts": {
         "start": "webpack serve -c ./webpack.dev.js --hot",
         "test": "echo \"no tests here\" && exit 0"
