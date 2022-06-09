@@ -3,7 +3,7 @@ import {
     Asteroid,
     CannonShell,
     Explosion,
-    FRONT_ARC,
+    REAR_ARC,
     ShipDie,
     SpaceObject,
     Spaceship,
@@ -64,11 +64,8 @@ describe('SpaceManager', () => {
 
                     const explosionCenter = explosionInit.mock.calls[0][1];
                     const distance = XY.lengthOf(XY.difference(explosionCenter, target.position));
-                    expect(distance).to.be.closeTo(
-                        target.radius + shell.radius,
-                        bulletSpeed * iterationTimeInSeconds * 2
-                    );
-                    expect(distance).to.be.gte(target.radius + shell.radius);
+                    expect(distance).to.be.closeTo(target.radius, bulletSpeed * iterationTimeInSeconds * 2);
+                    expect(distance).to.be.gte(target.radius);
                 }
             )
         );
@@ -130,45 +127,24 @@ describe('SpaceManager', () => {
             shipMgr.chainGun(true);
 
             // stop simulation when first bullet reaches its range
-            const firstBulletTime = calcShellSecondsToLive(shipMgr.state, shipMgr.state.chainGun.maxShellRange);
-            return { sim, firstBulletTime, ship, shipMgr };
+            const shellSecondsToLive = calcShellSecondsToLive(shipMgr.state, shipMgr.state.chainGun.maxShellRange);
+            return { sim, shellSecondsToLive, ship, shipMgr };
         }
 
-        it('does not shoot itself on constant velocity', () => {
-            fc.assert(
-                fc.property(
-                    fc.integer({ min: 15, max: 20 }),
-                    float(bulletSpeed / 2, bulletSpeed),
-                    (numIterationsPerSecond: number, speed: number) => {
-                        const { sim, firstBulletTime, ship } = highSpeedShip(numIterationsPerSecond, speed);
-                        sim.simulateUntilTime(firstBulletTime, (spaceMgr) => {
-                            expect([...spaceMgr.resolveObjectDamage(ship.id)]).to.eql([]);
-                        });
-                    }
-                )
-            );
-        });
-        it.only('shoots itself in the front when accelerating', () => {
-            fc.assert(
-                fc.property(
-                    fc.integer({ min: 20, max: 20 }),
-                    float(bulletSpeed / 2, bulletSpeed),
-                    (numIterationsPerSecond: number, speed: number) => {
-                        const { sim, firstBulletTime, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
+        it('does not shoot itself in the back when accelerating (regression)', () => {
+            const speed = bulletSpeed;
+            const numIterationsPerSecond = 20;
+            const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
 
-                        boostCommand.setValue(shipMgr.state, 1); // fly forward
-                        afterBurner.setValue(shipMgr.state, 1); // afterburner
-                        setConstant(shipMgr.state.armor, 'healRate', 0);
+            boostCommand.setValue(shipMgr.state, 1); // fly forward
+            afterBurner.setValue(shipMgr.state, 1); // afterburner
+            setConstant(shipMgr.state.armor, 'healRate', 0);
 
-                        sim.simulateUntilTime(firstBulletTime, (_spaceMgr) => {
-                            shipMgr.state.afterBurnerFuel = shipMgr.state.maxAfterBurner;
-                        });
-                        const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, FRONT_ARC))];
-                        expect(hitArchs).to.not.be.empty;
-                    }
-                ),
-                { seed: -239791883, path: '0:0', endOnFailure: true }
-            );
+            sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {
+                shipMgr.state.afterBurnerFuel = shipMgr.state.maxAfterBurner;
+            });
+            const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, REAR_ARC))];
+            expect(hitArchs).to.not.be.empty;
         });
     });
 });
