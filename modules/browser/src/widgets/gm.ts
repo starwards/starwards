@@ -1,4 +1,4 @@
-import { CannonShell, Explosion, Faction, SpaceObject } from '@starwards/model';
+import { CannonShell, Faction, SpaceObject } from '@starwards/model';
 import { Loader, filters } from 'pixi.js';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
