@@ -129,7 +129,7 @@ describe('ShipManager', () => {
             fc.property(
                 float(1, 180),
                 fc.integer({ min: 15, max: 20 }),
-                (limitedAngleOffset: number, numIterationsPerSecond: number) => {
+                (angleOffset: number, numIterationsPerSecond: number) => {
                     const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
@@ -138,7 +138,7 @@ describe('ShipManager', () => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun.angleOffset = limitedAngleOffset;
+                    shipMgr.state.chainGun.angleOffset = angleOffset;
                     shipMgr.state.chainGun.constants.set('bulletDegreesDeviation', 0);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
@@ -149,7 +149,7 @@ describe('ShipManager', () => {
                     }
 
                     for (const cannonShell of spaceMgr.state.getAll('CannonShell')) {
-                        expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(limitedAngleOffset);
+                        expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(angleOffset);
                     }
                 }
             )

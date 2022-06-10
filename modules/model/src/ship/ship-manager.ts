@@ -688,7 +688,7 @@ export class ShipManager {
             const shellPosition = Vec2.make(
                 XY.sum(
                     this.spaceObject.position, // position of ship
-                    XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, this.spaceObject.angle), // muzzle related to ship
+                    XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, shell.angle), // muzzle related to ship
                     XY.byLengthAndDirection(shell.radius * 2, shell.angle) // some initial distance
                 )
             );

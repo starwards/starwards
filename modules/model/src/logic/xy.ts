@@ -85,7 +85,7 @@ export namespace XY {
     }
 
     export function isZero(vector: XY, threshold = 0.00001): boolean {
-        if (vector.x === 0 && vector.y === 0) return true;
+        if (vector.x == 0 && vector.y == 0) return true;
         return threshold ? XY.equals(vector, XY.zero, threshold) : false;
     }
 
@@ -125,13 +125,6 @@ export namespace XY {
 
     export function direction(vector: XY, vector2: XY) {
         return XY.normalize(XY.difference(vector, vector2));
-    }
-
-    export function slope(vector: XY) {
-        if (vector.x === 0) {
-            return Infinity;
-        }
-        return vector.y / vector.x;
     }
 
     export function angleOf(vector: XY) {
