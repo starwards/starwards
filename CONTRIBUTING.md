@@ -55,9 +55,9 @@ more commands:
 ```sh
 # normalize project code style
 npm run prettify
-# update snapshots for E2E tests on development environment
+# update snapshots for E2E tests on local development environment
 npm run test:e2e -- --update-snapshots
-# update snapshots for the CI E2E tests
+# update snapshots for the E2E tests on CI (linux) environment (requires docker. very slow)
 npm run snapshots:ci
 # generate native binary executables. executables will appear in ./dist folder.
 npm run pkg
