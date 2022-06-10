@@ -21,7 +21,7 @@ The sub-modules are in the `modules` folder:
 -   browser - The web client for the game (including 3D)
 -   model - The game core logic and API objects, may be used by client and/or server
 -   server - The game's server
--   e2e - not strictly a module. The End-to-End test logic and scripts are.
+-   e2e - not strictly a module. The End-to-End tests reside here.
 
 ### Scripts
 
@@ -55,9 +55,9 @@ more commands:
 ```sh
 # normalize project code style
 npm run prettify
-# update snapshots for E2E tests on development environment
+# update snapshots for E2E tests on local development environment
 npm run test:e2e -- --update-snapshots
-# update snapshots for the CI E2E tests
+# update snapshots for the E2E tests on CI (linux) environment (requires docker. very slow)
 npm run snapshots:ci
 # generate native binary executables. executables will appear in ./dist folder.
 npm run pkg

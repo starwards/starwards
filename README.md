@@ -38,6 +38,7 @@ To get started, you can:
 1. Take a look at the "Issues" in this repository - especially those marked "Good first issue". Those with the "Help Wanted" tag probably don't have anyone else working on them.
 2. Drop by our [chat](https://discord.gg/p56nSVEjdb) and ask what you can work on, or how to get started.
 3. Open an issue with your idea(s) for the project or tell us about them in our chat.
+4. Read our [developers blog](https://blog.starwards.space/)
 
 ## How do I contribute?
 
