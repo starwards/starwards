@@ -21,7 +21,7 @@ The sub-modules are in the `modules` folder:
 -   browser - The web client for the game (including 3D)
 -   model - The game core logic and API objects, may be used by client and/or server
 -   server - The game's server
--   e2e - not strictly a module. The End-to-End test logic and scripts are.
+-   e2e - not strictly a module. The End-to-End tests reside here.
 
 ### Scripts
 
