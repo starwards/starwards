@@ -85,7 +85,8 @@ export namespace XY {
     }
 
     export function isZero(vector: XY, threshold = 0.00001): boolean {
-        return XY.equals(vector, XY.zero, threshold);
+        if (vector.x == 0 && vector.y == 0) return true;
+        return threshold ? XY.equals(vector, XY.zero, threshold) : false;
     }
 
     export function isFinite(vector: XY): boolean {

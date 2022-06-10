@@ -1,5 +1,8 @@
+/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
+
 const baseConfig = {
     testPathIgnorePatterns: ['/node_modules/', '/cjs/'],
+    preset: 'ts-jest/presets/js-with-ts',
     testEnvironment: 'node',
     transform: {
         '^.+\\.(ts|js|tsx|jsx)$': 'ts-jest',
@@ -9,16 +12,17 @@ const baseConfig = {
     moduleNameMapper: {
         '^@starwards/(.+)': '<rootDir>/modules/$1/src',
     },
-};
-
-module.exports = {
     globals: {
         'ts-jest': {
             diagnostics: {
                 warnOnly: true,
             },
+            isolatedModules: true,
         },
     },
+};
+
+module.exports = {
     projects: [
         {
             ...baseConfig,

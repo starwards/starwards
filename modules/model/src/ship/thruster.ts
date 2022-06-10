@@ -5,9 +5,9 @@ import { ShipDirection } from './ship-direction';
 import { getConstant } from '../utils';
 
 export class Thruster extends Schema {
-    public static isInstance(o: unknown): o is Thruster {
+    public static isInstance = (o: unknown): o is Thruster => {
         return (o as Thruster)?.type === 'Thruster';
-    }
+    };
 
     public readonly type = 'Thruster';
     /**

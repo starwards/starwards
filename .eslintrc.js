@@ -36,6 +36,7 @@ module.exports = {
             ],
             rules: {
                 'no-shadow': 'off',
+                '@typescript-eslint/ban-ts-comment': ['error', { 'ts-ignore': 'allow-with-description' }],
                 '@typescript-eslint/no-shadow': 'error',
                 '@typescript-eslint/explicit-module-boundary-types': 'off',
                 '@typescript-eslint/no-use-before-define': 'off',

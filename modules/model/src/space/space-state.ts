@@ -44,6 +44,9 @@ export class SpaceState extends Schema {
             }
             this.events.on('add', (so: SpaceObject) => {
                 so.onChange = (changes) => {
+                    if (so.destroyed) {
+                        onRemove(so);
+                    }
                     for (const { field } of changes) {
                         this.events.emit(so.id, field);
                     }

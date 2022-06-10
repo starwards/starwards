@@ -1,34 +1,27 @@
-import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2, XY, limitPercisionHard } from '../src';
+import {
+    EPSILON,
+    Explosion,
+    ShipManager,
+    SmartPilotMode,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    limitPercisionHard,
+    padArch,
+} from '../src';
 
+import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
-
-class MockDie {
-    private _expectedRoll = 0;
-    public getRoll(_: string, __?: number, ___?: number): number {
-        return this._expectedRoll;
-    }
-
-    public getSuccess(_: string, successProbability: number): boolean {
-        return this._expectedRoll < successProbability;
-    }
-
-    public getRollInRange(_: string, min: number, max: number): number {
-        if (this._expectedRoll >= min && this._expectedRoll < max) {
-            return this._expectedRoll;
-        }
-        return min;
-    }
-
-    set expectedRoll(roll: number) {
-        this._expectedRoll = roll;
-    }
-}
+import { float } from './properties';
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
         fc.assert(
+            // TODO explosionAngleToShip should also be a property
             fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
+                const explosionAngleToShip = 180;
                 const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
@@ -40,24 +33,33 @@ describe('ShipManager', () => {
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                 const explosion = new Explosion();
-                explosion.position = Vec2.sum(shipObj.position, { x: -shipObj.radius, y: 0 });
+                const sizeOfPlate = (2 * Math.PI * shipObj.radius) / shipMgr.state.armor.numberOfPlates;
+                explosion.expansionSpeed = sizeOfPlate / explosion.secondsToLive; // expand to size of a plate
+                explosion.damageFactor = Number.MAX_SAFE_INTEGER;
+                explosion.position = Vec2.sum(
+                    shipObj.position,
+                    XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip)
+                );
                 spaceMgr.insert(explosion);
 
-                let timePassed = 0;
-                while (timePassed <= explosion.secondsToLive) {
+                while (!explosion.destroyed) {
                     shipMgr.update(iterationTimeInSeconds);
                     spaceMgr.update(iterationTimeInSeconds);
-                    timePassed += iterationTimeInSeconds;
                 }
 
-                const brokenInFront = shipMgr.getNumberOfBrokenPlatesInRange([-178, 178]);
-                expect(brokenInFront).to.equal(0);
+                const expectedHitPlatesRange = padArch(
+                    [explosionAngleToShip, explosionAngleToShip],
+                    sizeOfPlate + EPSILON
+                );
+                const brokenOutsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                expect(brokenOutsideExplosion).to.equal(2);
+
+                const brokenInsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
+                expect(brokenInsideExplosion).to.equal(2);
+
                 expect(shipMgr.state.chainGun.broken).to.be.false;
                 expect(shipMgr.state.chainGun.angleOffset).to.equal(0);
                 expect(shipMgr.state.chainGun.cooldownFactor).to.equal(1);
-                for (const plate of shipMgr.state.armor.platesInRange([177, -177])) {
-                    expect(plate.health).to.be.lessThan(200);
-                }
             })
         );
     });
@@ -125,19 +127,18 @@ describe('ShipManager', () => {
     it('chaingun with attitude damage must fire at an offset', () => {
         fc.assert(
             fc.property(
-                fc.float({ min: 1, max: 180 }),
+                float(1, 180),
                 fc.integer({ min: 15, max: 20 }),
                 (angleOffset: number, numIterationsPerSecond: number) => {
                     const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
-                    const limitedAngleOffset = limitPercisionHard(angleOffset);
                     shipObj.id = '1';
                     const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun.angleOffset = limitedAngleOffset;
+                    shipMgr.state.chainGun.angleOffset = angleOffset;
                     shipMgr.state.chainGun.constants.set('bulletDegreesDeviation', 0);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
@@ -148,7 +149,7 @@ describe('ShipManager', () => {
                     }
 
                     for (const cannonShell of spaceMgr.state.getAll('CannonShell')) {
-                        expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(limitedAngleOffset);
+                        expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(angleOffset);
                     }
                 }
             )
