@@ -27,11 +27,11 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { Damage, SpaceManager } from '../logic/space-manager';
+import { EPSILON, RTuple2 } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
 import { Bot } from '../logic/bot';
 import { DeepReadonly } from 'ts-essentials';
-import { EPSILON } from '../logic';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
@@ -312,7 +312,7 @@ export class ShipManager {
         }
     }
 
-    getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
+    getNumberOfBrokenPlatesInRange(hitRange: RTuple2): number {
         let brokenPlates = 0;
         for (const [_, plate] of this.state.armor.platesInRange(hitRange)) {
             if (plate.health <= 0) {

@@ -242,7 +242,7 @@ export class SpaceManager {
                 if (CannonShell.isInstance(subject)) {
                     this.explodeCannonShell(subject);
                 } else if (Explosion.isInstance(subject)) {
-                    positionChange = this.handleExplosionCollision(subject, object, response);
+                    positionChange = this.handleExplosionCollision(subject, response);
                 } else {
                     const res = this.calcSolidCollision(deltaSeconds, subject, object, response);
                     positionChange = res.positionChange;
@@ -263,13 +263,13 @@ export class SpaceManager {
             this.toUpdateCollisions.add(s);
         }
     }
-    private handleExplosionCollision(subject: Explosion, object: SpaceObject, response: SWResponse) {
+    private handleExplosionCollision(subject: Explosion, response: SWResponse) {
         let positionChange: XY | null = null;
         if (response.aInB) {
             subject.velocity.setValue(XY.zero);
             positionChange = XY.scale(response.overlapV, -0.5);
-        } else if (response.overlap > object.radius) {
-            positionChange = XY.scale(response.overlapN, -object.radius);
+        } else if (limitPercision(response.overlap) > limitPercision(subject.radius)) {
+            positionChange = XY.scale(response.overlapN, -subject.radius);
         }
         return positionChange;
     }

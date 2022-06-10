@@ -1,4 +1,15 @@
-import { Explosion, ShipManager, SmartPilotMode, SpaceManager, Spaceship, Vec2, XY, limitPercisionHard } from '../src';
+import {
+    EPSILON,
+    Explosion,
+    ShipManager,
+    SmartPilotMode,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    limitPercisionHard,
+    padArch,
+} from '../src';
 
 import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
@@ -8,7 +19,9 @@ import { float } from './properties';
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
         fc.assert(
+            // TODO explosionAngleToShip should also be a property
             fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
+                const explosionAngleToShip = 180;
                 const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
@@ -20,24 +33,33 @@ describe('ShipManager', () => {
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                 const explosion = new Explosion();
-                explosion.position = Vec2.sum(shipObj.position, { x: -shipObj.radius, y: 0 });
+                const sizeOfPlate = (2 * Math.PI * shipObj.radius) / shipMgr.state.armor.numberOfPlates;
+                explosion.expansionSpeed = sizeOfPlate / explosion.secondsToLive; // expand to size of a plate
+                explosion.damageFactor = Number.MAX_SAFE_INTEGER;
+                explosion.position = Vec2.sum(
+                    shipObj.position,
+                    XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip)
+                );
                 spaceMgr.insert(explosion);
 
-                let timePassed = 0;
-                while (timePassed <= explosion.secondsToLive) {
+                while (!explosion.destroyed) {
                     shipMgr.update(iterationTimeInSeconds);
                     spaceMgr.update(iterationTimeInSeconds);
-                    timePassed += iterationTimeInSeconds;
                 }
 
-                const brokenInFront = shipMgr.getNumberOfBrokenPlatesInRange([-178, 178]);
-                expect(brokenInFront).to.equal(0);
+                const expectedHitPlatesRange = padArch(
+                    [explosionAngleToShip, explosionAngleToShip],
+                    sizeOfPlate + EPSILON
+                );
+                const brokenOutsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                expect(brokenOutsideExplosion).to.equal(2);
+
+                const brokenInsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
+                expect(brokenInsideExplosion).to.equal(2);
+
                 expect(shipMgr.state.chainGun.broken).to.be.false;
                 expect(shipMgr.state.chainGun.angleOffset).to.equal(0);
                 expect(shipMgr.state.chainGun.cooldownFactor).to.equal(1);
-                for (const [_, plate] of shipMgr.state.armor.platesInRange([177, -177])) {
-                    expect(plate.health).to.be.lessThan(200);
-                }
             })
         );
     });

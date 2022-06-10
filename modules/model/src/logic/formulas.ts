@@ -104,6 +104,9 @@ export function archIntersection(a: RTuple2, b: RTuple2): boolean {
     return bNorm[0] >= bNorm[1] || bNorm[0] <= aNorm[1] || bNorm[1] <= aNorm[1];
 }
 
+export function padArch(arch: RTuple2, pad: number): RTuple2 {
+    return [toPositiveDegreesDelta(arch[0] - pad), toPositiveDegreesDelta(arch[1] + pad)];
+}
 /**
  * normalize drgrees to value between [0, 360)
  */
