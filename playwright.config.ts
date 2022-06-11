@@ -11,7 +11,7 @@ const config: PlaywrightTestConfig = {
     },
     webServer: {
         command: 'npm run browser',
-        port: 80,
+        url: 'http://localhost:80/',
         timeout: 2 * 60 * 1000,
         reuseExistingServer: !process.env.CI,
     },
