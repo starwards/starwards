@@ -4,9 +4,9 @@ import { ShipArea, SmartPilotMode } from '.';
 import { getConstant } from '../utils';
 
 export class ChainGun extends Schema {
-    public static isInstance(o: unknown): o is ChainGun {
+    public static isInstance = (o: unknown): o is ChainGun => {
         return (o as ChainGun)?.type === 'ChainGun';
-    }
+    };
 
     public readonly type = 'ChainGun';
     /*!

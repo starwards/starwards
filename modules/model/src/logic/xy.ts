@@ -6,8 +6,8 @@ export namespace XY {
         x: number;
         y: number;
     }
-    export const one = Object.freeze({ x: 1, y: 0 });
-    export const zero = Object.freeze({ x: 0, y: 0 });
+    export const one = Object.freeze({ x: 1, y: 0 }) as XY;
+    export const zero = Object.freeze({ x: 0, y: 0 }) as XY;
     export function byLengthAndDirection(length: number, degrees: number) {
         return length ? XY.rotate({ x: length, y: 0 }, toDegreesDelta(degrees)) : XY.zero;
     }
@@ -85,7 +85,8 @@ export namespace XY {
     }
 
     export function isZero(vector: XY, threshold = 0.00001): boolean {
-        return XY.equals(vector, XY.zero, threshold);
+        if (vector.x == 0 && vector.y == 0) return true;
+        return threshold ? XY.equals(vector, XY.zero, threshold) : false;
     }
 
     export function isFinite(vector: XY): boolean {

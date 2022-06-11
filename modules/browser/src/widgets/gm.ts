@@ -1,6 +1,6 @@
-import { Faction, SpaceObject } from '@starwards/model';
+import { CannonShell, Faction, SpaceObject } from '@starwards/model';
 import { Loader, filters } from 'pixi.js';
-import { blue, radarVisibleBg, red, yellow } from '../colors';
+import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
@@ -59,7 +59,7 @@ export class GmWidgets {
                     switch (s.faction) {
                         case Faction.none:
                         case Faction.factionCount:
-                            return yellow;
+                            return CannonShell.isInstance(s) ? white : yellow;
                         case Faction.Gravitas:
                             return red;
                         case Faction.Raiders:
