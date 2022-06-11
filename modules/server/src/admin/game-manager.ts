@@ -7,7 +7,7 @@ import {
     Spaceship,
     resetShipState,
 } from '@starwards/model';
-import { GameApi, GameMap } from './scripts-api';
+import { GameApi, GameMap, ShipApi } from './scripts-api';
 import { defaultMap, resetShip } from './map-helper';
 
 import { MapSchema } from '@colyseus/schema';
@@ -24,13 +24,11 @@ export class GameManager {
     private spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     public readonly scriptApi: GameApi = {
-        getShip: (shipId: string) => this.ships.get(shipId),
+        getShip: (shipId: string) => this.ships.get(shipId) as unknown as ShipApi,
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
             this.spaceManager.insert(obj);
         },
-        addSpaceship: (ship: Spaceship) => {
-            return this.initShip(ship);
-        },
+        addSpaceship: (ship: Spaceship) => this.initShip(ship) as unknown as ShipApi,
         stopGame: () => {
             this.state.shouldGameBeRunning = false;
         },

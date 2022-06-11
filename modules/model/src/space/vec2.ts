@@ -213,6 +213,12 @@ export class Vec2 extends Schema implements XY {
         this.x = x;
         this.y = y;
     }
+
+    setValue(xy: XY) {
+        this.x = xy.x;
+        this.y = xy.y;
+    }
+
     /*
     if one of these methods are needed, move it to static
     public at(index: number): number {

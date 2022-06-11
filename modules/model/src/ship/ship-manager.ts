@@ -27,21 +27,16 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { Damage, SpaceManager } from '../logic/space-manager';
+import { EPSILON, RTuple2 } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
 import { Bot } from '../logic/bot';
+import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
+import { setConstant } from '../utils';
 import { uniqueId } from '../id';
-
-interface WithConstants {
-    constants: MapSchema<number>;
-}
-
-function setConstant(state: WithConstants, name: string, value: number) {
-    state.constants.set(name, value);
-}
 
 function makeThruster(angle: ShipDirection): Thruster {
     const thruster = new Thruster();
@@ -149,7 +144,7 @@ function resetThruster(thruster: Thruster) {
 
 export const DEGREES_PER_AREA = 180;
 
-type Die = {
+export type Die = {
     getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
     getRollInRange: (id: string, min: number, max: number) => number;
@@ -166,7 +161,7 @@ export class ShipManager {
     ]);
 
     constructor(
-        public spaceObject: Spaceship,
+        public spaceObject: DeepReadonly<Spaceship>,
         private spaceManager: SpaceManager,
         private die: Die,
         private ships?: Map<string, ShipManager>,
@@ -317,9 +312,9 @@ export class ShipManager {
         }
     }
 
-    getNumberOfBrokenPlatesInRange(hitRange: [number, number]): number {
+    getNumberOfBrokenPlatesInRange(hitRange: RTuple2): number {
         let brokenPlates = 0;
-        for (const plate of this.state.armor.platesInRange(hitRange)) {
+        for (const [_, plate] of this.state.armor.platesInRange(hitRange)) {
             if (plate.health <= 0) {
                 brokenPlates++;
             }
@@ -328,9 +323,10 @@ export class ShipManager {
     }
 
     private applyDamageToArmor(damageFactor: number, localAnglesHitRange: [number, number]) {
-        for (const plate of this.state.armor.platesInRange(localAnglesHitRange)) {
+        for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
-                plate.health = Math.max(plate.health - damageFactor * gaussianRandom(20, 4), 0);
+                const newHealth = plate.health - damageFactor * gaussianRandom(20, 4);
+                plate.health = Math.max(newHealth, 0);
             }
         }
     }
@@ -379,7 +375,7 @@ export class ShipManager {
     }
 
     private handleDamage() {
-        for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject)) {
+        for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
             for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
                 const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
                 const areaHitRangeAngles: [number, number] = [
@@ -387,9 +383,11 @@ export class ShipManager {
                     Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
                 ];
                 const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-                const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-                for (const system of this.systemsByAreas.get(hitArea) || []) {
-                    this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
+                if (areaUnarmoredHits) {
+                    const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
+                    for (const system of this.systemsByAreas.get(hitArea) || []) {
+                        this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
+                    }
                 }
                 this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
             }
@@ -687,9 +685,12 @@ export class ShipManager {
                 this.spaceObject.velocity,
                 XY.rotate({ x: chaingun.bulletSpeed, y: 0 }, shell.angle)
             );
-            const shellPosition = Vec2.sum(
-                this.spaceObject.position,
-                XY.rotate({ x: this.spaceObject.radius + shell.radius, y: 0 }, shell.angle)
+            const shellPosition = Vec2.make(
+                XY.sum(
+                    this.spaceObject.position, // position of ship
+                    XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, shell.angle), // muzzle related to ship
+                    XY.byLengthAndDirection(shell.radius * 2, shell.angle) // some initial distance
+                )
             );
             shell.init(uniqueId('shell'), shellPosition);
             shell.secondsToLive = chaingun.shellSecondsToLive;

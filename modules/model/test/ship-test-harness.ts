@@ -12,6 +12,27 @@ import {
 
 import { ShipDie } from '../src/ship/ship-die';
 
+export class MockDie {
+    private _expectedRoll = 0;
+    public getRoll(_: string, __?: number, ___?: number): number {
+        return this._expectedRoll;
+    }
+
+    public getSuccess(_: string, successProbability: number): boolean {
+        return this._expectedRoll < successProbability;
+    }
+
+    public getRollInRange(_: string, min: number, max: number): number {
+        if (this._expectedRoll >= min && this._expectedRoll < max) {
+            return this._expectedRoll;
+        }
+        return min;
+    }
+
+    set expectedRoll(roll: number) {
+        this._expectedRoll = roll;
+    }
+}
 abstract class AbsTestMetrics {
     constructor(public iterationsPerSecond: number, public distance: number) {}
     abstract readonly timeToReach: number;
@@ -78,18 +99,22 @@ export class ShipTestHarness {
         this.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
     }
+
     get shipState() {
         return this.shipMgr.state;
     }
+
     graph() {
         if (!this.graphBuilder) {
             throw new Error('graph not initialized');
         }
         return this.graphBuilder.build();
     }
+
     initGraph(metrics: Record<string, () => number>) {
         this.graphBuilder = new PlotlyGraphBuilder(metrics);
     }
+
     simulate(timeInSeconds: number, iterations: number, body?: (time: number, log?: GraphPointInput) => unknown) {
         const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
         this.shipMgr.update(iterationTimeInSeconds);
@@ -105,9 +130,11 @@ export class ShipTestHarness {
         }
         this.graphBuilder?.newPoint(iterationTimeInSeconds);
     }
+
     addToGraph(n: string, v: number) {
         this.graphBuilder?.newPoint(0).addtoLine(n, v);
     }
+
     annotateGraph(text: string) {
         this.graphBuilder?.newPoint(0).annotate(text);
     }
