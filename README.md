@@ -27,6 +27,13 @@ download and run it, and open [this link](http://localhost/) in your browser.
 
 This is not a solution we like. We are [open to improvements and suggestions](https://github.com/starwards/starwards/issues/832).
 
+### the game is running! now what?
+Missing documentation. contributions are welcomed!
+
+In the "GM" and "empty" screen, the list to the left represents UI widgets that can be *dragged into the main screen*. so you build your own screen. this way each game can have their stations set up the way they want to. later we will support saving the screen presets.
+
+https://blog.starwards.space/2021-03-06-modular-peek/
+
 # how do I get involved
 
 Starwards is a labour of love built by enthusiastic volunteers. We eagerly welcome anyone who would like to join us, so long as they adhere to our [code of conduct](CODE_OF_CONDUCT.md).
