@@ -22,6 +22,7 @@ export class SpaceManager {
     private collisionToState = new WeakMap<Circle, SpaceObject>();
     public stateToCollision = new WeakMap<SpaceObject, Circle>();
     private objectDamage = new Map<string, Damage[]>();
+    private objectOrder = new Map<string, XY>();
     private toInsert: SpaceObject[] = [];
 
     private toUpdateCollisions = new Set<SpaceObject>();
@@ -75,6 +76,7 @@ export class SpaceManager {
         for (const destroyed of this.state[Symbol.iterator](true)) {
             this.state.delete(destroyed);
             this.objectDamage.delete(destroyed.id);
+            this.objectOrder.delete(destroyed.id);
         }
     }
 
@@ -92,6 +94,16 @@ export class SpaceManager {
 
         this.toggleFreezeObjects(this.state.toggleFreezeCommand);
         this.state.toggleFreezeCommand = [];
+
+        for (const { ids, position } of this.state.botOrderCommands) {
+            for (const id of ids) {
+                const subject = this.state.get(id);
+                if (subject && !subject.destroyed && Spaceship.isInstance(subject)) {
+                    this.objectOrder.set(id, position);
+                }
+            }
+        }
+        this.state.botOrderCommands = [];
 
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
@@ -219,6 +231,12 @@ export class SpaceManager {
             yield* damageArr;
             this.objectDamage.delete(id);
         }
+    }
+
+    public resolveObjectOrder(id: string): XY | null {
+        const order = this.objectOrder.get(id);
+        this.objectOrder.delete(id);
+        return order || null;
     }
 
     private isProjectile = (o: SpaceObject) =>

@@ -21,6 +21,30 @@ import {
 // TODO: use ShipApi
 export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;
 
+export function p2pGoto(destination: XY): Bot {
+    let deltaSeconds = 1 / 20;
+    return (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
+        deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
+        const ship = shipManager.state;
+        if (XY.equals(ship.position, destination, 1)) {
+            shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+            shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
+            setNumericProperty(shipManager, p.rotationCommand, 0, undefined);
+            setNumericProperty(shipManager, p.boostCommand, 0, undefined);
+            setNumericProperty(shipManager, p.strafeCommand, 0, undefined);
+            shipManager.bot = null;
+        } else {
+            shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+            const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
+            const maneuvering = moveToTarget(deltaSeconds, ship, destination);
+            setNumericProperty(shipManager, p.rotationCommand, rotation, undefined);
+            setNumericProperty(shipManager, p.boostCommand, maneuvering.boost, undefined);
+            setNumericProperty(shipManager, p.strafeCommand, maneuvering.strafe, undefined);
+        }
+    };
+}
+
 export function jouster(): Bot {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;

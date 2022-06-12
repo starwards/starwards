@@ -26,6 +26,7 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         commandMoveObjects: cmdSender(spaceRoom, spaceProperties.moveObjects, undefined),
         commandRotateObjects: cmdSender(spaceRoom, spaceProperties.rotateObjects, undefined),
         commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.toggleFreeze, undefined),
+        commandBotOrder: cmdSender(spaceRoom, spaceProperties.botOrder, undefined),
         selectionActions(selectionContainer: SelectionContainer) {
             return {
                 rotate: {
