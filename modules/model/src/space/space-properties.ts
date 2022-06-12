@@ -17,6 +17,11 @@ export type FreezeArg = {
     ids: Array<SpaceObjectBase['id']>;
 };
 
+export type BotOrderArg = {
+    ids: Array<SpaceObjectBase['id']>;
+    position: XY;
+};
+
 export const moveObjects = PropertyCommand('moveObjects', (state: SpaceState, value: MoveObjectsArg) => {
     state.moveCommands.push(value);
 });
@@ -27,4 +32,8 @@ export const rotateObjects = PropertyCommand('rotateObjects', (state: SpaceState
 
 export const toggleFreeze = PropertyCommand('toggleFreeze', (state: SpaceState, value: FreezeArg) => {
     state.toggleFreezeCommand.push(...value.ids);
+});
+
+export const botOrder = PropertyCommand('botOrder', (state: SpaceState, value: BotOrderArg) => {
+    state.botOrderCommands.push(value);
 });

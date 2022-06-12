@@ -1,5 +1,6 @@
 import { Armor, ArmorPlate } from './armor';
 import { ArraySchema, MapSchema } from '@colyseus/schema';
+import { Bot, p2pGoto } from '../logic/bot';
 import {
     CannonShell,
     ChainGun,
@@ -30,7 +31,6 @@ import { Damage, SpaceManager } from '../logic/space-manager';
 import { EPSILON, RTuple2 } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
-import { Bot } from '../logic/bot';
 import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
 import { ShipDirection } from './ship-direction';
@@ -274,6 +274,10 @@ export class ShipManager {
         if (this.state.chainGun.broken && this.state.thrusters.every((t) => t.broken)) {
             this.onDestroy && this.onDestroy();
         } else {
+            const order = this.spaceManager.resolveObjectOrder(this.spaceObject.id);
+            if (order) {
+                this.bot = p2pGoto(order);
+            }
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }

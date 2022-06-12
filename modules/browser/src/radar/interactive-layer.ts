@@ -17,6 +17,7 @@ enum MouseButton {
 enum ActionType {
     none,
     select,
+    panCameraOrOrder,
     panCamera,
     dragObjects,
 }
@@ -102,8 +103,7 @@ export class InteractiveLayer {
                     this.drawSelection();
                 }
             } else if (event.data.button === MouseButton.right) {
-                this.stage.cursor = 'grab';
-                this.actionType = ActionType.panCamera;
+                this.actionType = ActionType.panCameraOrOrder;
                 this.dragFrom = event.data.getLocalPosition(this.stage);
             }
         }
@@ -114,7 +114,9 @@ export class InteractiveLayer {
             if (this.actionType === ActionType.select) {
                 this.dragTo = event.data.getLocalPosition(this.stage);
                 this.drawSelection();
-            } else if (this.actionType === ActionType.panCamera) {
+            } else if (this.actionType === ActionType.panCamera || this.actionType === ActionType.panCameraOrOrder) {
+                this.actionType = ActionType.panCamera;
+                this.stage.cursor = 'grab';
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.add(XY.negate(dragTo), this.dragFrom); // camera moves opposite to the drag direction
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
@@ -144,6 +146,12 @@ export class InteractiveLayer {
                     const to = this.parent.screenToWorld(this.dragTo);
                     this.onSelectArea(this.parent.screenToWorld(this.dragFrom), to);
                 }
+            } else if (this.actionType === ActionType.panCameraOrOrder) {
+                const position = this.parent.screenToWorld(this.dragFrom);
+                this.spaceDriver.commandBotOrder({
+                    ids: this.selectionContainer.selectedItemsIds,
+                    position,
+                });
             }
         }
         this.stage.cursor = 'crosshair';

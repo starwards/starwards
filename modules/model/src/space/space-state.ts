@@ -1,5 +1,5 @@
+import { BotOrderArg, MoveObjectsArg, RotataObjectsArg } from './space-properties';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { MoveObjectsArg, RotataObjectsArg } from './space-properties';
 import { SpaceObject, SpaceObjectBase, SpaceObjects } from '.';
 
 import { Asteroid } from './asteroid';
@@ -29,6 +29,7 @@ export class SpaceState extends Schema {
     public moveCommands = Array.of<MoveObjectsArg>();
     public rotateCommands = Array.of<RotataObjectsArg>();
     public toggleFreezeCommand = Array.of<SpaceObjectBase['id']>();
+    public botOrderCommands = Array.of<BotOrderArg>();
 
     public events = new EventEmitter();
 
