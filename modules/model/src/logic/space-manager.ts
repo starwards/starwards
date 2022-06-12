@@ -1,6 +1,6 @@
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Circle, System, TBody } from 'detect-collisions';
-import { circlesIntersection, limitPercision, p2pGoto } from '.';
+import { circlesIntersection, limitPercision } from '.';
 
 import { SWResponse } from './collisions-utils';
 import { Spaceship } from '../space';
