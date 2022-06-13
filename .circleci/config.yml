@@ -5,7 +5,7 @@ jobs:
     Test-Static:
         executor:
             name: node/default
-            tag: '17.2'
+            tag: '18.3'
         steps:
             - checkout
             - run: node --version
@@ -21,9 +21,9 @@ jobs:
         steps:
             - checkout
             - run: mkdir -p ./test-results
-            # - run: nvm install 17.2.0
+            # - run: nvm install 18.3.0
             # - node/install:
-            #       node-version: '17.2.0'
+            #       node-version: '18.3.0'
             - run: node --version
             - run: npm --version
             - run: env
@@ -39,7 +39,7 @@ jobs:
     Build:
         executor:
             name: node/default
-            tag: '17.2'
+            tag: '18.3'
         steps:
             - checkout
             - run: node --version
@@ -54,7 +54,7 @@ workflows:
         jobs:
             - node/test:
                   name: 'Test'
-                  version: '17.2.0'
+                  version: '18.3.0'
                   test-results-for: jest
                   cache-version: default
             - Test-Static
