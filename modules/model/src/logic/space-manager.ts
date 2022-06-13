@@ -16,13 +16,22 @@ export type Damage = {
     damageDurationSeconds: number;
 };
 
+export type MoveOrder = {
+    type: 'move';
+    position: XY;
+};
+export type AttackOrder = {
+    type: 'attack';
+    targetId: string;
+};
+export type BotOrder = MoveOrder | AttackOrder;
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
     private collisionToState = new WeakMap<Circle, SpaceObject>();
     public stateToCollision = new WeakMap<SpaceObject, Circle>();
     private objectDamage = new Map<string, Damage[]>();
-    private objectOrder = new Map<string, XY>();
+    private objectOrder = new Map<string, BotOrder>();
     private toInsert: SpaceObject[] = [];
 
     private toUpdateCollisions = new Set<SpaceObject>();
@@ -95,11 +104,11 @@ export class SpaceManager {
         this.toggleFreezeObjects(this.state.toggleFreezeCommand);
         this.state.toggleFreezeCommand = [];
 
-        for (const { ids, position } of this.state.botOrderCommands) {
-            for (const id of ids) {
+        for (const cmd of this.state.botOrderCommands) {
+            for (const id of cmd.ids) {
                 const subject = this.state.get(id);
                 if (subject && !subject.destroyed && Spaceship.isInstance(subject)) {
-                    this.objectOrder.set(id, position);
+                    this.objectOrder.set(id, cmd.order);
                 }
             }
         }
@@ -233,7 +242,7 @@ export class SpaceManager {
         }
     }
 
-    public resolveObjectOrder(id: string): XY | null {
+    public resolveObjectOrder(id: string) {
         const order = this.objectOrder.get(id);
         this.objectOrder.delete(id);
         return order || null;
