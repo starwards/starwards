@@ -6,7 +6,6 @@ import {
     calcRangediff,
     getKillZoneRadiusRange,
     getShellAimVelocityCompensation,
-    getTarget,
     isInRange,
     isTargetInKillZone,
     lerp,
@@ -21,18 +20,24 @@ import {
 // TODO: use ShipApi
 export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;
 
+export function cleanupBot(shipManager: ShipManager) {
+    shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+    shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
+    setNumericProperty(shipManager, p.rotationCommand, 0, undefined);
+    setNumericProperty(shipManager, p.boostCommand, 0, undefined);
+    setNumericProperty(shipManager, p.strafeCommand, 0, undefined);
+    shipManager.chainGun(false);
+    shipManager.setTarget(null);
+    shipManager.bot = null;
+}
+
 export function p2pGoto(destination: XY): Bot {
     let deltaSeconds = 1 / 20;
     return (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
-        if (XY.equals(ship.position, destination, 1)) {
-            shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
-            shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
-            setNumericProperty(shipManager, p.rotationCommand, 0, undefined);
-            setNumericProperty(shipManager, p.boostCommand, 0, undefined);
-            setNumericProperty(shipManager, p.strafeCommand, 0, undefined);
-            shipManager.bot = null;
+        if (XY.equals(ship.position, destination, 1) && XY.isZero(ship.velocity, 1)) {
+            cleanupBot(shipManager);
         } else {
             shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -45,16 +50,17 @@ export function p2pGoto(destination: XY): Bot {
     };
 }
 
-export function jouster(): Bot {
+export function jouster(targetId: string): Bot {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;
     return (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        const target = getTarget(shipManager.state, spaceState);
-        if (target) {
-            const ship = shipManager.state;
+        const target = spaceState.get(targetId) || null;
+        const ship = shipManager.state;
+        if (target && !target.destroyed) {
+            shipManager.setTarget(targetId);
             const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
             const hitLocation = predictHitLocation(shipManager.state, target, targetAccel);
             const rangeDiff = calcRangediff(shipManager.state, target, hitLocation);
@@ -90,8 +96,7 @@ export function jouster(): Bot {
             lastTargetVelocity = XY.clone(target.velocity);
             shipManager.chainGun(isTargetInKillZone(shipManager.state, target));
         } else {
-            lastTargetVelocity = XY.zero;
-            shipManager.chainGun(false);
+            cleanupBot(shipManager);
         }
     };
 }

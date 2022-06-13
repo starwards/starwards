@@ -1,6 +1,6 @@
 import { Armor, ArmorPlate } from './armor';
 import { ArraySchema, MapSchema } from '@colyseus/schema';
-import { Bot, p2pGoto } from '../logic/bot';
+import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
 import {
     CannonShell,
     ChainGun,
@@ -274,10 +274,7 @@ export class ShipManager {
         if (this.state.chainGun.broken && this.state.thrusters.every((t) => t.broken)) {
             this.onDestroy && this.onDestroy();
         } else {
-            const order = this.spaceManager.resolveObjectOrder(this.spaceObject.id);
-            if (order) {
-                this.bot = p2pGoto(order);
-            }
+            this.applyBotOrders();
             if (this.bot) {
                 this.bot(deltaSeconds, this.spaceManager.state, this);
             }
@@ -302,6 +299,18 @@ export class ShipManager {
             this.updateChainGun(deltaSeconds);
             this.chargeAfterBurner(deltaSeconds);
             this.fireChainGun();
+        }
+    }
+
+    private applyBotOrders() {
+        const order = this.spaceManager.resolveObjectOrder(this.spaceObject.id);
+        if (order) {
+            cleanupBot(this);
+            if (order.type === 'move') {
+                this.bot = p2pGoto(order.position);
+            } else if (order.type === 'attack') {
+                this.bot = jouster(order.targetId);
+            }
         }
     }
 

@@ -148,10 +148,24 @@ export class InteractiveLayer {
                 }
             } else if (this.actionType === ActionType.panCameraOrOrder) {
                 const position = this.parent.screenToWorld(this.dragFrom);
-                this.spaceDriver.commandBotOrder({
-                    ids: this.selectionContainer.selectedItemsIds,
-                    position,
-                });
+                const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
+                if (spaceObject) {
+                    this.spaceDriver.commandBotOrder({
+                        ids: this.selectionContainer.selectedItemsIds,
+                        order: {
+                            type: 'attack',
+                            targetId: spaceObject.id,
+                        },
+                    });
+                } else {
+                    this.spaceDriver.commandBotOrder({
+                        ids: this.selectionContainer.selectedItemsIds,
+                        order: {
+                            type: 'move',
+                            position,
+                        },
+                    });
+                }
             }
         }
         this.stage.cursor = 'crosshair';

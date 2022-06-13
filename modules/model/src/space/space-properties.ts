@@ -1,4 +1,4 @@
-import { SpaceObjectBase, XY } from '..';
+import { BotOrder, SpaceObjectBase, XY } from '..';
 
 import { PropertyCommand } from '../api/property-constructors';
 import { SpaceState } from '.';
@@ -19,7 +19,7 @@ export type FreezeArg = {
 
 export type BotOrderArg = {
     ids: Array<SpaceObjectBase['id']>;
-    position: XY;
+    order: BotOrder;
 };
 
 export const moveObjects = PropertyCommand('moveObjects', (state: SpaceState, value: MoveObjectsArg) => {
