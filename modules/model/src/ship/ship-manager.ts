@@ -121,6 +121,7 @@ function makeShipState(id: string) {
     state.chainGun.shellSecondsToLive = 0;
     state.armor = makeArmor(60);
     state.radar = new Radar();
+    setConstant(state.radar, 'damage50', 20);
     state.radar.basicRange = 3_000;
     return state;
 }
