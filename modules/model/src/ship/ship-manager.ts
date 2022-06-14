@@ -28,7 +28,7 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { Damage, SpaceManager } from '../logic/space-manager';
-import { EPSILON, RTuple2 } from '../logic';
+import { EPSILON, RTuple2, easeInOutSine, sinWave } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
 import { DeepReadonly } from 'ts-essentials';
@@ -121,8 +121,11 @@ function makeShipState(id: string) {
     state.chainGun.shellSecondsToLive = 0;
     state.armor = makeArmor(60);
     state.radar = new Radar();
+    state.radar.constants = new MapSchema<number>();
     setConstant(state.radar, 'damage50', 20);
     setConstant(state.radar, 'basicRange', 3_000);
+    setConstant(state.radar, 'rangeEaseFactor', 0.2);
+    setConstant(state.radar, 'malfunctionRange', 1_500);
     return state;
 }
 
@@ -160,9 +163,10 @@ export class ShipManager {
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, ShipSystem[]>([
-        [ShipArea.front, [this.state.chainGun]],
+        [ShipArea.front, [this.state.chainGun, this.state.radar]],
         [ShipArea.rear, this.state.thrusters.toArray()],
     ]);
+    private totalSeconds = 0;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -273,6 +277,7 @@ export class ShipManager {
     }
 
     update(deltaSeconds: number) {
+        this.totalSeconds += deltaSeconds;
         this.healPlates(deltaSeconds);
         this.handleDamage();
         if (this.state.chainGun.broken && this.state.thrusters.every((t) => t.broken)) {
@@ -308,7 +313,22 @@ export class ShipManager {
     }
 
     private updateRadarRange() {
-        this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.state.radar.basicRange);
+        this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange());
+    }
+
+    private calcRadarRange() {
+        if (this.state.radar.malfunctionRangeFactor) {
+            const frequency = this.die.getRollInRange('updateRadarRangeFrequency', 0.2, 1);
+            const wave = sinWave(this.totalSeconds, frequency, 0.5, 0, 0.5);
+            const factorEaseRange = [
+                this.state.radar.malfunctionRangeFactor,
+                this.state.radar.malfunctionRangeFactor + this.state.radar.rangeEaseFactor,
+            ] as const;
+            const cappedWave = capToRange(...factorEaseRange, wave);
+            return lerp(factorEaseRange, [this.state.radar.malfunctionRange, this.state.radar.basicRange], cappedWave);
+        } else {
+            return this.state.radar.basicRange;
+        }
     }
 
     private applyBotOrders() {
@@ -364,7 +384,15 @@ export class ShipManager {
                 this.damageThruster(system, damageObject.id);
             } else if (ChainGun.isInstance(system)) {
                 this.damageChainGun(system, damageObject.id);
+            } else if (Radar.isInstance(system)) {
+                this.damageRadar(system);
             }
+        }
+    }
+
+    private damageRadar(radar: Radar) {
+        if (!radar.broken) {
+            radar.malfunctionRangeFactor += 0.05;
         }
     }
 

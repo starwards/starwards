@@ -2,10 +2,25 @@ import { XY } from './xy';
 
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 export const EPSILON = 0.01;
+const TWO_PI = Math.PI * 2;
 
 export type RTuple2 = readonly [number, number];
 
 export type Tuple2 = [number, number];
+
+/**
+ * simple sin wave with control over period/frequency
+ * from:  https://riptutorial.com/javascript/example/10173/periodic-functions-using-math-sin
+ * @param time time in seconds when you want to get a sample
+ * @param frequency number of oscillations per second
+ * @param amplitude distance from the lowest value and highest value during one cycle
+ * @param phase offset in terms of frequency from the start of the oscillations
+ * @param offset moves the whole wave up or down
+ * @returns wave value
+ */
+export function sinWave(time: number, frequency = 1, amplitude = 1, phase = 0, offset = 0) {
+    return Math.sin(time * frequency * TWO_PI + phase * TWO_PI) * amplitude + offset;
+}
 
 function* concatinateArchsAcyclic(archs: Iterable<RTuple2>) {
     let curr: Tuple2 | null = null;
