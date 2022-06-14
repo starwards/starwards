@@ -3,6 +3,7 @@ import { Spaceship, Vec2 } from '../space';
 
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
+import { Radar } from './radar';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
 import { getConstant } from '../utils';
@@ -47,6 +48,9 @@ export class ShipState extends Spaceship {
 
     @type(ChainGun)
     chainGun!: ChainGun;
+
+    @type(Radar)
+    radar!: Radar;
 
     @type(SmartPilotState)
     smartPilot!: SmartPilotState;
