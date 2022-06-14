@@ -242,6 +242,13 @@ export class SpaceManager {
         }
     }
 
+    public changeShipRadarRange(id: string, radarRange: number) {
+        const ship = this.state.spaceships.get(id);
+        if (ship && !ship.destroyed) {
+            ship.radarRange = radarRange;
+        }
+    }
+
     public resolveObjectOrder(id: string) {
         const order = this.objectOrder.get(id);
         this.objectOrder.delete(id);

@@ -16,7 +16,7 @@ export class Spaceship extends SpaceObjectBase {
     public faction: Faction = Faction.none;
 
     @type('float32')
-    public radarRange = 3_000;
+    public radarRange = 0;
 
     constructor() {
         super();

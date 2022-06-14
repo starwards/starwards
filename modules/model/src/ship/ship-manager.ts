@@ -33,6 +33,7 @@ import { FRONT_ARC, REAR_ARC } from '.';
 
 import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
+import { Radar } from './radar';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
 import { setConstant } from '../utils';
@@ -73,7 +74,7 @@ export function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-export type ShipSystem = ChainGun | Thruster;
+export type ShipSystem = ChainGun | Thruster | Radar;
 
 function makeShipState(id: string) {
     const state = new ShipState();
@@ -119,6 +120,8 @@ function makeShipState(id: string) {
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
     state.armor = makeArmor(60);
+    state.radar = new Radar();
+    state.radar.basicRange = 3_000;
     return state;
 }
 
@@ -299,7 +302,12 @@ export class ShipManager {
             this.updateChainGun(deltaSeconds);
             this.chargeAfterBurner(deltaSeconds);
             this.fireChainGun();
+            this.updateRadarRange();
         }
+    }
+
+    private updateRadarRange() {
+        this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.state.radar.basicRange);
     }
 
     private applyBotOrders() {
@@ -627,6 +635,7 @@ export class ShipManager {
         this.state.turnSpeed = this.spaceObject.turnSpeed;
         this.state.angle = this.spaceObject.angle;
         this.state.faction = this.spaceObject.faction;
+        this.state.radarRange = this.spaceObject.radarRange;
     }
 
     trySpendEnergy(value: number): boolean {
