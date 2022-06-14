@@ -9,11 +9,12 @@ export class Radar extends Schema {
 
     public readonly type = 'Radar';
 
-    @type('float32')
-    basicRange = 0;
-
     @type({ map: 'number' })
     constants!: MapSchema<number>;
+
+    get basicRange(): number {
+        return getConstant(this.constants, 'basicRange');
+    }
 
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
