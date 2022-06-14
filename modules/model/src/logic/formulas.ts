@@ -82,7 +82,7 @@ export function toDegreesDelta(degrees: number) {
     }
 }
 
-export function lerp(fromRange: Tuple2, toRange: Tuple2, fromValue: number) {
+export function lerp(fromRange: RTuple2, toRange: RTuple2, fromValue: number) {
     const t = (fromValue - fromRange[0]) / (fromRange[1] - fromRange[0]);
     return (1 - t) * toRange[0] + t * toRange[1];
 }

@@ -28,7 +28,7 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { Damage, SpaceManager } from '../logic/space-manager';
-import { EPSILON, RTuple2, easeInOutSine, sinWave } from '../logic';
+import { EPSILON, RTuple2, sinWave } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
 import { DeepReadonly } from 'ts-essentials';
