@@ -41,34 +41,34 @@ export class ChainGun extends Schema {
 
     // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
-        return getConstant(this.constants, 'bulletSpeed');
+        return getConstant(this, 'bulletSpeed');
     }
     get bulletsPerSecond(): number {
-        return getConstant(this.constants, 'bulletsPerSecond');
+        return getConstant(this, 'bulletsPerSecond');
     }
     get minShellRange(): number {
-        return getConstant(this.constants, 'minShellRange');
+        return getConstant(this, 'minShellRange');
     }
     get maxShellRange(): number {
-        return getConstant(this.constants, 'maxShellRange');
+        return getConstant(this, 'maxShellRange');
     }
     get shellRangeAim(): number {
-        return getConstant(this.constants, 'shellRangeAim');
+        return getConstant(this, 'shellRangeAim');
     }
     get explosionRadius(): number {
-        return getConstant(this.constants, 'explosionRadius');
+        return getConstant(this, 'explosionRadius');
     }
     get explosionExpansionSpeed(): number {
-        return getConstant(this.constants, 'explosionExpansionSpeed');
+        return getConstant(this, 'explosionExpansionSpeed');
     }
     get explosionDamageFactor(): number {
-        return getConstant(this.constants, 'explosionDamageFactor');
+        return getConstant(this, 'explosionDamageFactor');
     }
     get explosionBlastFactor(): number {
-        return getConstant(this.constants, 'explosionBlastFactor');
+        return getConstant(this, 'explosionBlastFactor');
     }
     get bulletDegreesDeviation(): number {
-        return getConstant(this.constants, 'bulletDegreesDeviation');
+        return getConstant(this, 'bulletDegreesDeviation');
     }
     get explosionSecondsToLive(): number {
         return this.explosionRadius / this.explosionExpansionSpeed;
@@ -81,7 +81,7 @@ export class ChainGun extends Schema {
     }
     // damage ammount at which there's 50% chance of system damage
     get damage50(): number {
-        return getConstant(this.constants, 'damage50');
+        return getConstant(this, 'damage50');
     }
     get broken(): boolean {
         return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;

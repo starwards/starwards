@@ -20,11 +20,11 @@ export class Armor extends Schema {
     }
 
     get plateMaxHealth(): number {
-        return getConstant(this.constants, 'plateMaxHealth');
+        return getConstant(this, 'plateMaxHealth');
     }
 
     get healRate(): number {
-        return getConstant(this.constants, 'healRate');
+        return getConstant(this, 'healRate');
     }
 
     get degreesPerPlate(): number {

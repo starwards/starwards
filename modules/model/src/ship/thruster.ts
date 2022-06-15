@@ -35,7 +35,7 @@ export class Thruster extends Schema {
     }
     // dps at which there's 50% chance of system damage
     get damage50(): number {
-        return getConstant(this.constants, 'damage50');
+        return getConstant(this, 'damage50');
     }
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
@@ -51,23 +51,23 @@ export class Thruster extends Schema {
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
     get angle(): ShipDirection {
-        return getConstant(this.constants, 'angle');
+        return getConstant(this, 'angle');
     }
     get capacity(): number {
-        return this.broken ? 0 : getConstant(this.constants, 'capacity');
+        return this.broken ? 0 : getConstant(this, 'capacity');
     }
 
     get energyCost(): number {
-        return getConstant(this.constants, 'energyCost');
+        return getConstant(this, 'energyCost');
     }
 
     get speedFactor(): number {
-        return getConstant(this.constants, 'speedFactor');
+        return getConstant(this, 'speedFactor');
     }
     get afterBurnerCapacity(): number {
-        return this.broken ? 0 : getConstant(this.constants, 'afterBurnerCapacity');
+        return this.broken ? 0 : getConstant(this, 'afterBurnerCapacity');
     }
     get afterBurnerEffectFactor(): number {
-        return getConstant(this.constants, 'afterBurnerEffectFactor');
+        return getConstant(this, 'afterBurnerEffectFactor');
     }
 }
