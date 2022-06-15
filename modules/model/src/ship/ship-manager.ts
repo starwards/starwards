@@ -6,6 +6,7 @@ import {
     ChainGun,
     Explosion,
     ManeuveringCommand,
+    Radar,
     ShipArea,
     ShipState,
     SmartPilotMode,
@@ -33,7 +34,6 @@ import { FRONT_ARC, REAR_ARC } from '.';
 
 import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
-import { Radar } from './radar';
 import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
 import { setConstant } from '../utils';
@@ -116,6 +116,10 @@ function makeShipState(id: string) {
     setConstant(state.chainGun, 'damage50', 20);
     setConstant(state.chainGun, 'completeDestructionProbability', 0.1);
     state.smartPilot = new SmartPilotState();
+    state.smartPilot.constants = new MapSchema<number>();
+    setConstant(state.smartPilot, 'maxTargetAimOffset', 30);
+    setConstant(state.smartPilot, 'aimOffsetSpeed', 15);
+    setConstant(state.smartPilot, 'maxTurnSpeed', 90);
     state.chainGun.shellSecondsToLive = 0;
     state.armor = makeArmor(60);
     state.radar = new Radar();
