@@ -15,6 +15,7 @@ import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
+import { setConstant } from '../src/utils';
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
@@ -139,7 +140,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun.angleOffset = angleOffset;
-                    shipMgr.state.chainGun.constants.set('bulletDegreesDeviation', 0);
+                    setConstant(shipMgr.state.chainGun, 'bulletDegreesDeviation', 0);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -171,7 +172,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun.cooldownFactor = 2;
-                    shipMgr.state.chainGun.constants.set('bulletsPerSecond', bulletsPerSecond);
+                    setConstant(shipMgr.state.chainGun, 'bulletsPerSecond', bulletsPerSecond);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
