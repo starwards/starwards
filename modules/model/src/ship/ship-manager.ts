@@ -1,5 +1,3 @@
-import { Armor, ArmorPlate } from './armor';
-import { ArraySchema, MapSchema } from '@colyseus/schema';
 import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
 import {
     CannonShell,
@@ -9,7 +7,6 @@ import {
     ShipArea,
     ShipState,
     SmartPilotMode,
-    SmartPilotState,
     SpaceObject,
     Spaceship,
     StatesToggle,
@@ -31,41 +28,12 @@ import { Damage, SpaceManager } from '../logic/space-manager';
 import { EPSILON, RTuple2, sinWave } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
+import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
-import { ShipDirection } from './ship-direction';
 import { Thruster } from './thruster';
-import { setConstant } from '../utils';
 import { uniqueId } from '../id';
-
-function makeThruster(thrusterModel: ThrusterModel): Thruster {
-    const thruster = new Thruster();
-    thruster.constants = new MapSchema<number>();
-    setConstant(thruster, 'angle', thrusterModel.angle);
-    setConstant(thruster, 'capacity', thrusterModel.capacity);
-    setConstant(thruster, 'energyCost', thrusterModel.energyCost);
-    setConstant(thruster, 'speedFactor', thrusterModel.speedFactor);
-    setConstant(thruster, 'afterBurnerCapacity', thrusterModel.afterBurnerCapacity);
-    setConstant(thruster, 'afterBurnerEffectFactor', thrusterModel.afterBurnerEffectFactor);
-    setConstant(thruster, 'damage50', thrusterModel.damage50);
-    setConstant(thruster, 'completeDestructionProbability', thrusterModel.completeDestructionProbability);
-    return thruster;
-}
-
-function makeArmor(armorModel: ArmorModel): Armor {
-    const armor = new Armor();
-    armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.constants = new MapSchema<number>();
-    setConstant(armor, 'healRate', armorModel.healRate);
-    setConstant(armor, 'plateMaxHealth', armorModel.plateMaxHealth);
-    for (let i = 0; i < armorModel.numberOfPlates; i++) {
-        const plate = new ArmorPlate();
-        plate.health = armorModel.plateMaxHealth;
-        armor.armorPlates.push(plate);
-    }
-    return armor;
-}
 
 export function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.plateMaxHealth;
@@ -74,116 +42,6 @@ export function fixArmor(armor: Armor) {
     }
 }
 export type ShipSystem = ChainGun | Thruster | Radar;
-
-const thrusterModel = {
-    capacity: 50,
-    energyCost: 0.07,
-    speedFactor: 3,
-    afterBurnerCapacity: 300,
-    afterBurnerEffectFactor: 1,
-    damage50: 15,
-    completeDestructionProbability: 0.1,
-};
-type ThrusterModel = typeof thrusterModel & { angle: ShipDirection };
-const dragonflySF22 = {
-    energyPerSecond: 5,
-    maxEnergy: 1000,
-    maxAfterBurner: 5000,
-    afterBurnerCharge: 20,
-    afterBurnerEnergyCost: 0.07,
-    rotationCapacity: 50,
-    rotationEnergyCost: 0.07,
-    antiDriftEffectFactor: 1,
-    breaksEffectFacto: 1,
-    rotationEffectFactor: 0.5,
-    maxSpeed: 300,
-    maxSpeeFromAfterBurner: 300,
-    numberOfShipRegions: 2,
-    maxChainGunAmmo: 3600,
-    chainGun: {
-        bulletsPerSecond: 20,
-        bulletSpeed: 1000,
-        bulletDegreesDeviation: 1,
-        maxShellRange: 5000,
-        minShellRange: 1000,
-        shellRangeAim: 1000,
-        explosionRadius: 10,
-        explosionExpansionSpeed: 40,
-        explosionDamageFactor: 20,
-        explosionBlastFactor: 1,
-        damage50: 20,
-        completeDestructionProbability: 0.1,
-    },
-    thrusters: [
-        { angle: ShipDirection.STBD, ...thrusterModel },
-        { angle: ShipDirection.PORT, ...thrusterModel },
-        { angle: ShipDirection.FWD, ...thrusterModel },
-        { angle: ShipDirection.FWD, ...thrusterModel },
-        { angle: ShipDirection.AFT, ...thrusterModel },
-        { angle: ShipDirection.AFT, ...thrusterModel },
-    ],
-    armor: {
-        numberOfPlates: 60,
-        healRate: 3.3333,
-        plateMaxHealth: 200,
-    },
-    radar: {
-        damage50: 20,
-        basicRange: 3_000,
-        rangeEaseFactor: 0.2,
-        malfunctionRange: 1_500,
-    },
-};
-export type ShipModel = typeof dragonflySF22;
-export type ArmorModel = ShipModel['armor'];
-function makeShipState(id: string, shipModel: ShipModel = dragonflySF22) {
-    const state = new ShipState();
-    state.id = id;
-    state.constants = new MapSchema<number>();
-    setConstant(state, 'energyPerSecond', shipModel.energyPerSecond);
-    setConstant(state, 'maxEnergy', shipModel.maxEnergy);
-    setConstant(state, 'maxAfterBurner', shipModel.maxAfterBurner);
-    setConstant(state, 'afterBurnerCharge', shipModel.afterBurnerCharge);
-    setConstant(state, 'afterBurnerEnergyCost', shipModel.afterBurnerEnergyCost);
-    setConstant(state, 'rotationCapacity', shipModel.rotationCapacity);
-    setConstant(state, 'rotationEnergyCost', shipModel.rotationEnergyCost);
-    setConstant(state, 'antiDriftEffectFactor', shipModel.antiDriftEffectFactor);
-    setConstant(state, 'breaksEffectFactor', shipModel.breaksEffectFacto);
-    setConstant(state, 'rotationEffectFactor', shipModel.rotationEffectFactor);
-    setConstant(state, 'maxSpeed', shipModel.maxSpeed);
-    setConstant(state, 'maxSpeeFromAfterBurner', shipModel.maxSpeeFromAfterBurner);
-    setConstant(state, 'numberOfShipRegions', shipModel.numberOfShipRegions);
-    setConstant(state, 'maxChainGunAmmo', shipModel.maxChainGunAmmo);
-    state.chainGunAmmo = state.maxChainGunAmmo;
-    state.thrusters = new ArraySchema();
-    for (const thrusterConfig of shipModel.thrusters) {
-        state.thrusters.push(makeThruster(thrusterConfig));
-    }
-    state.chainGun = new ChainGun();
-    state.chainGun.constants = new MapSchema<number>();
-    setConstant(state.chainGun, 'bulletsPerSecond', shipModel.chainGun.bulletsPerSecond);
-    setConstant(state.chainGun, 'bulletSpeed', shipModel.chainGun.bulletSpeed);
-    setConstant(state.chainGun, 'bulletDegreesDeviation', shipModel.chainGun.bulletDegreesDeviation);
-    setConstant(state.chainGun, 'maxShellRange', shipModel.chainGun.maxShellRange);
-    setConstant(state.chainGun, 'minShellRange', shipModel.chainGun.minShellRange);
-    setConstant(state.chainGun, 'shellRangeAim', shipModel.chainGun.shellRangeAim);
-    setConstant(state.chainGun, 'explosionRadius', shipModel.chainGun.explosionRadius);
-    setConstant(state.chainGun, 'explosionExpansionSpeed', shipModel.chainGun.explosionExpansionSpeed);
-    setConstant(state.chainGun, 'explosionDamageFactor', shipModel.chainGun.explosionDamageFactor);
-    setConstant(state.chainGun, 'explosionBlastFactor', shipModel.chainGun.explosionBlastFactor);
-    setConstant(state.chainGun, 'damage50', shipModel.chainGun.damage50);
-    setConstant(state.chainGun, 'completeDestructionProbability', shipModel.chainGun.completeDestructionProbability);
-    state.smartPilot = new SmartPilotState();
-    state.chainGun.shellSecondsToLive = 0;
-    state.armor = makeArmor(shipModel.armor);
-    state.radar = new Radar();
-    state.radar.constants = new MapSchema<number>();
-    setConstant(state.radar, 'damage50', shipModel.radar.damage50);
-    setConstant(state.radar, 'basicRange', shipModel.radar.basicRange);
-    setConstant(state.radar, 'rangeEaseFactor', shipModel.radar.rangeEaseFactor);
-    setConstant(state.radar, 'malfunctionRange', shipModel.radar.malfunctionRange);
-    return state;
-}
 
 export function resetShipState(state: ShipState) {
     state.energy = state.maxEnergy;
@@ -213,7 +71,6 @@ export type Die = {
     getRollInRange: (id: string, min: number, max: number) => number;
 };
 export class ShipManager {
-    public state = makeShipState(this.spaceObject.id);
     public bot: Bot | null = null;
     private target: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
@@ -226,6 +83,7 @@ export class ShipManager {
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
+        public state: ShipState,
         private spaceManager: SpaceManager,
         private die: Die,
         private ships?: Map<string, ShipManager>,

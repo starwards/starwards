@@ -1,5 +1,5 @@
+import { ShipDirectionConfig } from './ship-configuration';
 import { XY } from '..';
-
 export enum ShipDirection {
     FWD = 0,
     STBD = -90,
@@ -10,6 +10,10 @@ export enum ShipDirection {
 export const ShipDirections = Object.values(ShipDirection).filter<ShipDirection>(
     (k): k is ShipDirection => typeof k === 'number'
 );
+
+export function getDirectionFromConfig(config: ShipDirectionConfig): ShipDirection {
+    return ShipDirection[config];
+}
 
 export function vector2ShipDirections(xy: XY) {
     return {

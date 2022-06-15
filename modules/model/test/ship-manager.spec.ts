@@ -8,14 +8,18 @@ import {
     Vec2,
     XY,
     limitPercisionHard,
+    makeShipState,
     padArch,
+    setConstant,
+    shipConfigurations,
 } from '../src';
 
 import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
-import { setConstant } from '../src/utils';
+
+const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
 describe('ShipManager', () => {
     it('explosion must damage only affected areas', () => {
@@ -28,7 +32,7 @@ describe('ShipManager', () => {
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
                 const die = new MockDie();
-                const shipMgr = new ShipManager(shipObj, spaceMgr, die);
+                const shipMgr = new ShipManager(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
                 die.expectedRoll = 1;
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -72,7 +76,12 @@ describe('ShipManager', () => {
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
-                const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
+                const shipMgr = new ShipManager(
+                    shipObj,
+                    makeShipState(shipObj.id, dragonflyConfig),
+                    spaceMgr,
+                    new MockDie()
+                );
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -104,7 +113,12 @@ describe('ShipManager', () => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
+                    const shipMgr = new ShipManager(
+                        shipObj,
+                        makeShipState(shipObj.id, dragonflyConfig),
+                        spaceMgr,
+                        new MockDie()
+                    );
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -135,7 +149,12 @@ describe('ShipManager', () => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
+                    const shipMgr = new ShipManager(
+                        shipObj,
+                        makeShipState(shipObj.id, dragonflyConfig),
+                        spaceMgr,
+                        new MockDie()
+                    );
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -167,7 +186,12 @@ describe('ShipManager', () => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(shipObj, spaceMgr, new MockDie());
+                    const shipMgr = new ShipManager(
+                        shipObj,
+                        makeShipState(shipObj.id, dragonflyConfig),
+                        spaceMgr,
+                        new MockDie()
+                    );
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
