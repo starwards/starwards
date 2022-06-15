@@ -1,5 +1,5 @@
+import { Body, Circle, System } from 'detect-collisions';
 import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { Circle, System, TBody } from 'detect-collisions';
 import { circlesIntersection, limitPercision } from '.';
 
 import { SWResponse } from './collisions-utils';
@@ -200,7 +200,7 @@ export class SpaceManager {
         }
     }
 
-    private allowRaycastCollision = (potential: TBody) => {
+    private allowRaycastCollision = (potential: Body) => {
         const object = this.collisionToState.get(potential as Circle);
         const ignore = !object || this.isProjectile(object);
         return !ignore;
@@ -374,7 +374,7 @@ export class SpaceManager {
                 const body = this.stateToCollision.get(object);
                 if (body) {
                     body.r = object.radius;
-                    body.setPosition(object.position.x, object.position.y);
+                    body.setPosition(object.position.x, object.position.y); // order matters! setPosition() internally calls updateAABB()
                 } else {
                     // eslint-disable-next-line no-console
                     console.error(`object leak! ${object.id} has no collision body`);
