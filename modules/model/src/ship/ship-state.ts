@@ -91,40 +91,40 @@ export class ShipState extends Spaceship {
 
     // TODO: move to logic (not part of state)
     get maxEnergy(): number {
-        return getConstant(this.constants, 'maxEnergy');
+        return getConstant(this, 'maxEnergy');
     }
     get maxAfterBurner(): number {
-        return getConstant(this.constants, 'maxAfterBurner');
+        return getConstant(this, 'maxAfterBurner');
     }
     get afterBurnerCharge(): number {
-        return getConstant(this.constants, 'afterBurnerCharge');
+        return getConstant(this, 'afterBurnerCharge');
     }
     get afterBurnerEnergyCost(): number {
-        return getConstant(this.constants, 'afterBurnerEnergyCost');
+        return getConstant(this, 'afterBurnerEnergyCost');
     }
     get energyPerSecond(): number {
-        return getConstant(this.constants, 'energyPerSecond');
+        return getConstant(this, 'energyPerSecond');
     }
     get rotationCapacity(): number {
-        return getConstant(this.constants, 'rotationCapacity');
+        return getConstant(this, 'rotationCapacity');
     }
     get rotationEnergyCost(): number {
-        return getConstant(this.constants, 'rotationEnergyCost');
+        return getConstant(this, 'rotationEnergyCost');
     }
     get antiDriftEffectFactor(): number {
-        return getConstant(this.constants, 'antiDriftEffectFactor');
+        return getConstant(this, 'antiDriftEffectFactor');
     }
     get breaksEffectFactor(): number {
-        return getConstant(this.constants, 'breaksEffectFactor');
+        return getConstant(this, 'breaksEffectFactor');
     }
     get rotationEffectFactor(): number {
-        return getConstant(this.constants, 'rotationEffectFactor');
+        return getConstant(this, 'rotationEffectFactor');
     }
     get turnSpeedCapacity(): number {
         return this.rotationCapacity * this.rotationEffectFactor;
     }
     get maxChainGunAmmo(): number {
-        return getConstant(this.constants, 'maxChainGunAmmo');
+        return getConstant(this, 'maxChainGunAmmo');
     }
 
     *angleThrusters(direction: ShipDirection) {
@@ -139,10 +139,7 @@ export class ShipState extends Spaceship {
         return [...this.angleThrusters(direction)].reduce((s, t) => s + t.getVelocityCapacity(this), 0);
     }
     getMaxSpeedForAfterburner(afterBurner: number) {
-        return (
-            getConstant(this.constants, 'maxSpeed') +
-            afterBurner * getConstant(this.constants, 'maxSpeeFromAfterBurner')
-        );
+        return getConstant(this, 'maxSpeed') + afterBurner * getConstant(this, 'maxSpeeFromAfterBurner');
     }
 
     get maxSpeed() {

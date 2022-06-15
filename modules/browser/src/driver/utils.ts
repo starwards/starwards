@@ -7,7 +7,6 @@ import {
     ShipState,
     StateProperty,
     cmdSender,
-    getConstant,
     isStatePropertyCommand,
 } from '@starwards/model';
 
@@ -107,11 +106,19 @@ export class NumberMapDriver {
     constructor(private shipRoom: GameRoom<'ship'>, private p: MappedPropertyCommand<ShipState, void>) {
         this.map = this._map = p.getValue(shipRoom.state);
     }
+    private getValue(name: string) {
+        const val = this.map.get(name);
+        if (val === undefined) {
+            throw new Error(`missing constant value: ${name}`);
+        }
+        return val;
+    }
+
     getApi(name: string): DriverNumericApi {
         const sender = cmdSender(this.shipRoom, this.p, undefined);
-        const val = getConstant(this.map, name);
+        const val = this.getValue(name);
         return {
-            getValue: () => getConstant(this.map, name),
+            getValue: () => this.getValue(name),
             range: [val / 2, val * 2],
             setValue: (value: number) => sender([name, value]),
         };
