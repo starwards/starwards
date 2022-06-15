@@ -1,7 +1,7 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ShipArea, ShipState } from '.';
 
 import { ShipDirection } from './ship-direction';
+import { ShipState } from '.';
 import { getConstant } from '../utils';
 
 export class Thruster extends Schema {
@@ -29,9 +29,6 @@ export class Thruster extends Schema {
 
     @type({ map: 'number' })
     constants!: MapSchema<number>;
-
-    @type('int8')
-    damageArea!: ShipArea;
 
     get broken(): boolean {
         return this.availableCapacity === 0 || this.angleError >= 45 || this.angleError <= -45;
