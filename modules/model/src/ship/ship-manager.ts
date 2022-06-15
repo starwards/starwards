@@ -39,29 +39,29 @@ import { Thruster } from './thruster';
 import { setConstant } from '../utils';
 import { uniqueId } from '../id';
 
-function makeThruster(angle: ShipDirection): Thruster {
+function makeThruster(thrusterModel: ThrusterModel): Thruster {
     const thruster = new Thruster();
     thruster.constants = new MapSchema<number>();
-    setConstant(thruster, 'angle', angle);
-    setConstant(thruster, 'capacity', 50);
-    setConstant(thruster, 'energyCost', 0.07);
-    setConstant(thruster, 'speedFactor', 3);
-    setConstant(thruster, 'afterBurnerCapacity', 300);
-    setConstant(thruster, 'afterBurnerEffectFactor', 1);
-    setConstant(thruster, 'damage50', 15);
-    setConstant(thruster, 'completeDestructionProbability', 0.1);
+    setConstant(thruster, 'angle', thrusterModel.angle);
+    setConstant(thruster, 'capacity', thrusterModel.capacity);
+    setConstant(thruster, 'energyCost', thrusterModel.energyCost);
+    setConstant(thruster, 'speedFactor', thrusterModel.speedFactor);
+    setConstant(thruster, 'afterBurnerCapacity', thrusterModel.afterBurnerCapacity);
+    setConstant(thruster, 'afterBurnerEffectFactor', thrusterModel.afterBurnerEffectFactor);
+    setConstant(thruster, 'damage50', thrusterModel.damage50);
+    setConstant(thruster, 'completeDestructionProbability', thrusterModel.completeDestructionProbability);
     return thruster;
 }
 
-function makeArmor(numberOfPlates: number): Armor {
+function makeArmor(armorModel: ArmorModel): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
     armor.constants = new MapSchema<number>();
-    setConstant(armor, 'healRate', 3.3333);
-    setConstant(armor, 'plateMaxHealth', 200);
-    for (let i = 0; i < numberOfPlates; i++) {
+    setConstant(armor, 'healRate', armorModel.healRate);
+    setConstant(armor, 'plateMaxHealth', armorModel.plateMaxHealth);
+    for (let i = 0; i < armorModel.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = 200;
+        plate.health = armorModel.plateMaxHealth;
         armor.armorPlates.push(plate);
     }
     return armor;
@@ -75,55 +75,113 @@ export function fixArmor(armor: Armor) {
 }
 export type ShipSystem = ChainGun | Thruster | Radar;
 
-function makeShipState(id: string) {
+const thrusterModel = {
+    capacity: 50,
+    energyCost: 0.07,
+    speedFactor: 3,
+    afterBurnerCapacity: 300,
+    afterBurnerEffectFactor: 1,
+    damage50: 15,
+    completeDestructionProbability: 0.1,
+};
+type ThrusterModel = typeof thrusterModel & { angle: ShipDirection };
+const dragonflySF22 = {
+    energyPerSecond: 5,
+    maxEnergy: 1000,
+    maxAfterBurner: 5000,
+    afterBurnerCharge: 20,
+    afterBurnerEnergyCost: 0.07,
+    rotationCapacity: 50,
+    rotationEnergyCost: 0.07,
+    antiDriftEffectFactor: 1,
+    breaksEffectFacto: 1,
+    rotationEffectFactor: 0.5,
+    maxSpeed: 300,
+    maxSpeeFromAfterBurner: 300,
+    numberOfShipRegions: 2,
+    maxChainGunAmmo: 3600,
+    chainGun: {
+        bulletsPerSecond: 20,
+        bulletSpeed: 1000,
+        bulletDegreesDeviation: 1,
+        maxShellRange: 5000,
+        minShellRange: 1000,
+        shellRangeAim: 1000,
+        explosionRadius: 10,
+        explosionExpansionSpeed: 40,
+        explosionDamageFactor: 20,
+        explosionBlastFactor: 1,
+        damage50: 20,
+        completeDestructionProbability: 0.1,
+    },
+    thrusters: [
+        { angle: ShipDirection.STBD, ...thrusterModel },
+        { angle: ShipDirection.PORT, ...thrusterModel },
+        { angle: ShipDirection.FWD, ...thrusterModel },
+        { angle: ShipDirection.FWD, ...thrusterModel },
+        { angle: ShipDirection.AFT, ...thrusterModel },
+        { angle: ShipDirection.AFT, ...thrusterModel },
+    ],
+    armor: {
+        numberOfPlates: 60,
+        healRate: 3.3333,
+        plateMaxHealth: 200,
+    },
+    radar: {
+        damage50: 20,
+        basicRange: 3_000,
+        rangeEaseFactor: 0.2,
+        malfunctionRange: 1_500,
+    },
+};
+export type ShipModel = typeof dragonflySF22;
+export type ArmorModel = ShipModel['armor'];
+function makeShipState(id: string, shipModel: ShipModel = dragonflySF22) {
     const state = new ShipState();
     state.id = id;
     state.constants = new MapSchema<number>();
-    setConstant(state, 'energyPerSecond', 5);
-    setConstant(state, 'maxEnergy', 1000);
-    setConstant(state, 'maxAfterBurner', 5000);
-    setConstant(state, 'afterBurnerCharge', 20);
-    setConstant(state, 'afterBurnerEnergyCost', 0.07);
-    setConstant(state, 'rotationCapacity', 50);
-    setConstant(state, 'rotationEnergyCost', 0.07);
-    setConstant(state, 'antiDriftEffectFactor', 1);
-    setConstant(state, 'breaksEffectFactor', 1);
-    setConstant(state, 'rotationEffectFactor', 0.5);
-    setConstant(state, 'maxSpeed', 300);
-    setConstant(state, 'maxSpeeFromAfterBurner', 300);
-    setConstant(state, 'numberOfShipRegions', 2);
-    setConstant(state, 'maxChainGunAmmo', 3600);
+    setConstant(state, 'energyPerSecond', shipModel.energyPerSecond);
+    setConstant(state, 'maxEnergy', shipModel.maxEnergy);
+    setConstant(state, 'maxAfterBurner', shipModel.maxAfterBurner);
+    setConstant(state, 'afterBurnerCharge', shipModel.afterBurnerCharge);
+    setConstant(state, 'afterBurnerEnergyCost', shipModel.afterBurnerEnergyCost);
+    setConstant(state, 'rotationCapacity', shipModel.rotationCapacity);
+    setConstant(state, 'rotationEnergyCost', shipModel.rotationEnergyCost);
+    setConstant(state, 'antiDriftEffectFactor', shipModel.antiDriftEffectFactor);
+    setConstant(state, 'breaksEffectFactor', shipModel.breaksEffectFacto);
+    setConstant(state, 'rotationEffectFactor', shipModel.rotationEffectFactor);
+    setConstant(state, 'maxSpeed', shipModel.maxSpeed);
+    setConstant(state, 'maxSpeeFromAfterBurner', shipModel.maxSpeeFromAfterBurner);
+    setConstant(state, 'numberOfShipRegions', shipModel.numberOfShipRegions);
+    setConstant(state, 'maxChainGunAmmo', shipModel.maxChainGunAmmo);
     state.chainGunAmmo = state.maxChainGunAmmo;
     state.thrusters = new ArraySchema();
-    state.thrusters.push(makeThruster(ShipDirection.STBD));
-    state.thrusters.push(makeThruster(ShipDirection.PORT));
-    state.thrusters.push(makeThruster(ShipDirection.FWD));
-    state.thrusters.push(makeThruster(ShipDirection.FWD));
-    state.thrusters.push(makeThruster(ShipDirection.AFT));
-    state.thrusters.push(makeThruster(ShipDirection.AFT));
+    for (const thrusterConfig of shipModel.thrusters) {
+        state.thrusters.push(makeThruster(thrusterConfig));
+    }
     state.chainGun = new ChainGun();
     state.chainGun.constants = new MapSchema<number>();
-    setConstant(state.chainGun, 'bulletsPerSecond', 20);
-    setConstant(state.chainGun, 'bulletSpeed', 1000);
-    setConstant(state.chainGun, 'bulletDegreesDeviation', 1);
-    setConstant(state.chainGun, 'maxShellRange', 5000);
-    setConstant(state.chainGun, 'minShellRange', 1000);
-    setConstant(state.chainGun, 'shellRangeAim', 1000);
-    setConstant(state.chainGun, 'explosionRadius', 10);
-    setConstant(state.chainGun, 'explosionExpansionSpeed', 40);
-    setConstant(state.chainGun, 'explosionDamageFactor', 20);
-    setConstant(state.chainGun, 'explosionBlastFactor', 1);
-    setConstant(state.chainGun, 'damage50', 20);
-    setConstant(state.chainGun, 'completeDestructionProbability', 0.1);
+    setConstant(state.chainGun, 'bulletsPerSecond', shipModel.chainGun.bulletsPerSecond);
+    setConstant(state.chainGun, 'bulletSpeed', shipModel.chainGun.bulletSpeed);
+    setConstant(state.chainGun, 'bulletDegreesDeviation', shipModel.chainGun.bulletDegreesDeviation);
+    setConstant(state.chainGun, 'maxShellRange', shipModel.chainGun.maxShellRange);
+    setConstant(state.chainGun, 'minShellRange', shipModel.chainGun.minShellRange);
+    setConstant(state.chainGun, 'shellRangeAim', shipModel.chainGun.shellRangeAim);
+    setConstant(state.chainGun, 'explosionRadius', shipModel.chainGun.explosionRadius);
+    setConstant(state.chainGun, 'explosionExpansionSpeed', shipModel.chainGun.explosionExpansionSpeed);
+    setConstant(state.chainGun, 'explosionDamageFactor', shipModel.chainGun.explosionDamageFactor);
+    setConstant(state.chainGun, 'explosionBlastFactor', shipModel.chainGun.explosionBlastFactor);
+    setConstant(state.chainGun, 'damage50', shipModel.chainGun.damage50);
+    setConstant(state.chainGun, 'completeDestructionProbability', shipModel.chainGun.completeDestructionProbability);
     state.smartPilot = new SmartPilotState();
     state.chainGun.shellSecondsToLive = 0;
-    state.armor = makeArmor(60);
+    state.armor = makeArmor(shipModel.armor);
     state.radar = new Radar();
     state.radar.constants = new MapSchema<number>();
-    setConstant(state.radar, 'damage50', 20);
-    setConstant(state.radar, 'basicRange', 3_000);
-    setConstant(state.radar, 'rangeEaseFactor', 0.2);
-    setConstant(state.radar, 'malfunctionRange', 1_500);
+    setConstant(state.radar, 'damage50', shipModel.radar.damage50);
+    setConstant(state.radar, 'basicRange', shipModel.radar.basicRange);
+    setConstant(state.radar, 'rangeEaseFactor', shipModel.radar.rangeEaseFactor);
+    setConstant(state.radar, 'malfunctionRange', shipModel.radar.malfunctionRange);
     return state;
 }
 
