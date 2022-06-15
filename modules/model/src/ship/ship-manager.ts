@@ -50,7 +50,6 @@ function makeThruster(angle: ShipDirection): Thruster {
     setConstant(thruster, 'afterBurnerEffectFactor', 1);
     setConstant(thruster, 'damage50', 15);
     setConstant(thruster, 'completeDestructionProbability', 0.1);
-    thruster.damageArea = ShipArea.rear;
     return thruster;
 }
 
@@ -103,7 +102,6 @@ function makeShipState(id: string) {
     state.thrusters.push(makeThruster(ShipDirection.AFT));
     state.thrusters.push(makeThruster(ShipDirection.AFT));
     state.chainGun = new ChainGun();
-    state.chainGun.damageArea = ShipArea.front;
     state.chainGun.constants = new MapSchema<number>();
     setConstant(state.chainGun, 'bulletsPerSecond', 20);
     setConstant(state.chainGun, 'bulletSpeed', 1000);

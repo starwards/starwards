@@ -1,6 +1,6 @@
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { ShipArea, SmartPilotMode } from '.';
 
+import { SmartPilotMode } from '.';
 import { getConstant } from '../utils';
 
 export class ChainGun extends Schema {
@@ -35,9 +35,6 @@ export class ChainGun extends Schema {
 
     @type('uint8')
     cooldownFactor = 1;
-
-    @type('int8')
-    damageArea!: ShipArea;
 
     @type({ map: 'number' })
     constants!: MapSchema<number>;
