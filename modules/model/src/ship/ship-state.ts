@@ -4,7 +4,7 @@ import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { Radar } from './radar';
 import { ShipDirection } from './ship-direction';
-import { SmartPilotState } from './smart-pilot';
+import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
 import { Thruster } from './thruster';
 import { getConstant } from '../utils';
@@ -29,8 +29,8 @@ export class ShipState extends Spaceship {
     @type(Radar)
     radar!: Radar;
 
-    @type(SmartPilotState)
-    smartPilot!: SmartPilotState;
+    @type(SmartPilot)
+    smartPilot!: SmartPilot;
 
     @type('float32')
     rotation = 0;

@@ -10,7 +10,13 @@ export enum SmartPilotMode {
     TARGET,
 }
 
-export class SmartPilotState extends Schema {
+export class SmartPilot extends Schema {
+    public static isInstance = (o: unknown): o is SmartPilot => {
+        return (o as SmartPilot)?.type === 'SmartPilot';
+    };
+
+    public readonly type = 'SmartPilot';
+
     @type({ map: 'float32' })
     constants!: MapSchema<number>;
 
@@ -25,6 +31,12 @@ export class SmartPilotState extends Schema {
     @type(Vec2)
     maneuvering: Vec2 = new Vec2(0, 0);
 
+    /**
+     * factor of error vector when active - (0-1)
+     */
+    @type('float32')
+    offsetFactor = 0;
+
     get maxTargetAimOffset(): number {
         return getConstant(this, 'maxTargetAimOffset');
     }
@@ -37,6 +49,10 @@ export class SmartPilotState extends Schema {
         return getConstant(this, 'maxTurnSpeed');
     }
 
+    get offsetBrokenThreshold(): number {
+        return getConstant(this, 'offsetBrokenThreshold');
+    }
+
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
      **/
@@ -44,6 +60,6 @@ export class SmartPilotState extends Schema {
         return getConstant(this, 'damage50');
     }
     get broken(): boolean {
-        return false;
+        return this.offsetFactor >= this.offsetBrokenThreshold;
     }
 }
