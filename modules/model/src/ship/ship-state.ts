@@ -1,10 +1,11 @@
-import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
-import { Spaceship, Vec2 } from '../space';
+import { ArraySchema, MapSchema, type } from '@colyseus/schema';
 
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { Radar } from './radar';
 import { ShipDirection } from './ship-direction';
+import { SmartPilot } from './smart-pilot';
+import { Spaceship } from '../space';
 import { Thruster } from './thruster';
 import { getConstant } from '../utils';
 import { toDegreesDelta } from '..';
@@ -13,30 +14,6 @@ export enum TargetedStatus {
     NONE,
     LOCKED,
     FIRED_UPON,
-}
-
-export enum SmartPilotMode {
-    DIRECT,
-    VELOCITY,
-    TARGET,
-}
-export class SmartPilotState extends Schema {
-    @type('int8')
-    rotationMode!: SmartPilotMode;
-    @type('int8')
-    maneuveringMode!: SmartPilotMode;
-    @type('float32')
-    rotation = 0;
-    @type('float32')
-    rotationTargetOffset = 0;
-    @type(Vec2)
-    maneuvering: Vec2 = new Vec2(0, 0);
-    @type('boolean')
-    broken = false;
-
-    readonly maxTargetAimOffset = 30;
-    readonly aimOffsetSpeed = 15;
-    readonly maxTurnSpeed = 90;
 }
 
 export class ShipState extends Spaceship {
@@ -52,8 +29,8 @@ export class ShipState extends Spaceship {
     @type(Radar)
     radar!: Radar;
 
-    @type(SmartPilotState)
-    smartPilot!: SmartPilotState;
+    @type(SmartPilot)
+    smartPilot!: SmartPilot;
 
     @type('float32')
     rotation = 0;
