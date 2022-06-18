@@ -1,13 +1,14 @@
-import { DriverNumericApi, NumberMapDriver, ShipDriver } from '../driver';
+import { NumberMapDriver, ShipDriver } from '../driver';
 import { Panel, PropertyPanel } from '../property-panel';
 
 import $ from 'jquery';
+import { BaseApi } from '../driver/utils';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 
 function addMapToPanel(panel: Panel, p: NumberMapDriver) {
-    const initConst = (name: string, api: DriverNumericApi) => {
-        panel.addProperty(name, api);
+    const initConst = (name: string, api: BaseApi<number>) => {
+        panel.addConfig(name, api);
     };
     p.onAdd = initConst;
     for (const constName of p.map.keys()) {

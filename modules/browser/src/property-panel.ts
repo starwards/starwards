@@ -1,5 +1,8 @@
+import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
+
 import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
 
+import { BaseApi } from './driver/utils';
 import { Container } from 'golden-layout';
 import { DriverNumericApi } from './driver';
 import { EmitterLoop } from './loop';
@@ -10,6 +13,7 @@ export type TextProperty = {
 };
 
 export interface Panel {
+    addConfig(name: string, property: BaseApi<number>): this;
     addProperty(name: string, property: DriverNumericApi): this;
     addText(name: string, property: TextProperty): this;
 }
@@ -20,11 +24,30 @@ export class PropertyPanel implements Panel {
     private viewLoop = new EmitterLoop();
     constructor(container: Container) {
         this.rootGui = new Pane({ container: container.getElement().get(0) });
+        this.rootGui.registerPlugin(CamerakitPlugin);
         this.viewLoop.start();
     }
     destroy() {
         this.viewLoop.stop();
         this.rootGui.dispose();
+    }
+
+    private contextAddConfig(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: BaseApi<number>) {
+        const { getValue, setValue } = property;
+        viewModel[name] = getValue();
+        const guiController = guiFolder.addInput(viewModel, name, {
+            view: 'cameraring',
+            series: 0,
+        }) as InputBindingApi<unknown, number>;
+        let lastGetValue = getValue();
+        this.viewLoop.onLoop(() => {
+            const newGetValue = getValue();
+            if (newGetValue !== lastGetValue) {
+                viewModel[name] = lastGetValue = newGetValue;
+                guiController.refresh();
+            }
+        });
+        guiController.on('change', (ev) => setValue(ev.value));
     }
 
     private contextAddProperty(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: DriverNumericApi) {
@@ -35,14 +58,18 @@ export class PropertyPanel implements Panel {
             options.step = 0.01;
         }
         const guiController: InputBindingApi<unknown, number> = guiFolder.addInput(viewModel, name, options);
+        let lastGetValue = getValue();
         this.viewLoop.onLoop(() => {
-            viewModel[name] = getValue();
-            guiController.refresh();
+            const newGetValue = getValue();
+            if (newGetValue !== lastGetValue) {
+                viewModel[name] = lastGetValue = newGetValue;
+                guiController.refresh();
+            }
         });
         guiController.on('change', (ev) => setValue(ev.value));
     }
 
-    contextAddText(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: TextProperty) {
+    private contextAddText(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: TextProperty) {
         const { getValue } = property;
         viewModel[name] = getValue();
         const guiController: InputBindingApi<unknown, number> = guiFolder.addInput(viewModel, name);
@@ -50,6 +77,11 @@ export class PropertyPanel implements Panel {
             viewModel[name] = getValue();
             guiController.refresh();
         });
+    }
+
+    addConfig(name: string, property: BaseApi<number>) {
+        this.contextAddConfig(this.rootGui, this.rootViewModel, name, property);
+        return this;
     }
 
     addProperty(name: string, property: DriverNumericApi) {
@@ -66,6 +98,10 @@ export class PropertyPanel implements Panel {
         const guiFolder = this.rootGui.addFolder({ title: folderName, expanded: true });
         const folderViewModel: ViewModel = {};
         const folder: Panel = {
+            addConfig: (name: string, property: BaseApi<number>) => {
+                this.contextAddConfig(guiFolder, folderViewModel, name, property);
+                return folder;
+            },
             addProperty: (name: string, property: DriverNumericApi) => {
                 this.contextAddProperty(guiFolder, folderViewModel, name, property);
                 return folder;
