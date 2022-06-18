@@ -114,16 +114,14 @@ export class NumberMapDriver {
         return val;
     }
 
-    getApi(name: string): DriverNumericApi {
+    getApi(name: string): BaseApi<number> {
         const sender = cmdSender(this.shipRoom, this.p, undefined);
-        const val = this.getValue(name);
         return {
             getValue: () => this.getValue(name),
-            range: [val / 2, val * 2],
             setValue: (value: number) => sender([name, value]),
         };
     }
-    set onAdd(cb: (name: string, api: DriverNumericApi) => unknown) {
+    set onAdd(cb: (name: string, api: BaseApi<number>) => unknown) {
         this._map.onAdd = (_: unknown, name: string) => cb(name, this.getApi(name));
     }
 }
