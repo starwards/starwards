@@ -20,7 +20,6 @@
         "@xstate/react": "^3.0.0",
         "colyseus.js": "^0.14.13",
         "d3": "^7.4.4",
-        "dat.gui": "^0.7.7",
         "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.9.0",
@@ -30,11 +29,13 @@
         "pluralize": "^8.0.0",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",
+        "tweakpane": "^3.1.0",
         "webfontloader": "^1.6.28",
         "xstate": "^4.32.1"
     },
     "devDependencies": {
         "@babylonjs/gui": "5.11.0",
-        "@babylonjs/inspector": "5.11.0"
+        "@babylonjs/inspector": "5.11.0",
+        "@tweakpane/core": "^1.1.0"
     }
 }

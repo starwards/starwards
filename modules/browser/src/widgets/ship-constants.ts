@@ -17,8 +17,7 @@ function addMapToPanel(panel: Panel, p: NumberMapDriver) {
 
 export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
     function makeShipComponent(container: Container) {
-        const rootPanel = new PropertyPanel();
-        rootPanel.init(container);
+        const rootPanel = new PropertyPanel(container);
         shipDriver.constants;
         addMapToPanel(rootPanel.addFolder('main'), shipDriver.constants);
         addMapToPanel(rootPanel.addFolder('chainGun'), shipDriver.chainGunConstants);

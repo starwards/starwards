@@ -1,7 +1,8 @@
+import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
+
 import { Container } from 'golden-layout';
 import { DriverNumericApi } from './driver';
 import { EmitterLoop } from './loop';
-import { GUI } from 'dat.gui';
 
 export type TextProperty = {
     getValue: () => string;
@@ -15,41 +16,40 @@ export interface Panel {
 type ViewModel = Record<string, number | string>;
 export class PropertyPanel implements Panel {
     private rootViewModel: ViewModel = {};
-    private rootGui = new GUI({ autoPlace: false, hideable: false });
+    private rootGui: Pane;
     private viewLoop = new EmitterLoop();
-    init(container: Container) {
-        container.getElement().append(this.rootGui.domElement);
+    constructor(container: Container) {
+        this.rootGui = new Pane({ container: container.getElement().get(0) });
         this.viewLoop.start();
     }
     destroy() {
-        this.rootGui.domElement.parentElement?.removeChild(this.rootGui.domElement);
-        this.rootGui.destroy();
         this.viewLoop.stop();
+        this.rootGui.dispose();
     }
 
-    private contextAddProperty(guiFolder: GUI, viewModel: ViewModel, name: string, property: DriverNumericApi) {
+    private contextAddProperty(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: DriverNumericApi) {
         const { getValue, range, setValue } = property;
         viewModel[name] = getValue();
-        const guiController = guiFolder.add(viewModel, name, ...range);
+        const options: InputParams = { min: range[0], max: range[1] };
         if (range[1] === 1) {
-            guiController.step(0.01);
+            options.step = 0.01;
         }
+        const guiController: InputBindingApi<unknown, number> = guiFolder.addInput(viewModel, name, options);
         this.viewLoop.onLoop(() => {
             viewModel[name] = getValue();
-            guiController.updateDisplay();
+            guiController.refresh();
         });
-        guiController.onChange(setValue);
+        guiController.on('change', (ev) => setValue(ev.value));
     }
 
-    contextAddText(guiFolder: GUI, viewModel: ViewModel, name: string, property: TextProperty) {
-        const { getValue, setValue } = property;
+    contextAddText(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: TextProperty) {
+        const { getValue } = property;
         viewModel[name] = getValue();
-        const guiController = guiFolder.add(viewModel, name);
+        const guiController: InputBindingApi<unknown, number> = guiFolder.addInput(viewModel, name);
         this.viewLoop.onLoop(() => {
             viewModel[name] = getValue();
-            guiController.updateDisplay();
+            guiController.refresh();
         });
-        guiController.onChange(setValue);
     }
 
     addProperty(name: string, property: DriverNumericApi) {
@@ -63,8 +63,7 @@ export class PropertyPanel implements Panel {
     }
 
     addFolder(folderName: string): Panel {
-        const guiFolder = this.rootGui.addFolder(folderName);
-        guiFolder.open();
+        const guiFolder = this.rootGui.addFolder({ title: folderName, expanded: true });
         const folderViewModel: ViewModel = {};
         const folder: Panel = {
             addProperty: (name: string, property: DriverNumericApi) => {
