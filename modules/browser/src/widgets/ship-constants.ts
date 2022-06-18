@@ -22,6 +22,7 @@ export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
         shipDriver.constants;
         addMapToPanel(rootPanel.addFolder('main'), shipDriver.constants);
         addMapToPanel(rootPanel.addFolder('chainGun'), shipDriver.chainGunConstants);
+        rootPanel.addImportExport();
         const cleanup = () => {
             container.off('destroy', cleanup);
             rootPanel.destroy();

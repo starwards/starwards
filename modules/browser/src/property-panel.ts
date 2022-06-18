@@ -1,4 +1,5 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
+import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
 import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
 
@@ -6,6 +7,7 @@ import { BaseApi } from './driver/utils';
 import { Container } from 'golden-layout';
 import { DriverNumericApi } from './driver';
 import { EmitterLoop } from './loop';
+import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
 
 export type TextProperty = {
     getValue: () => string;
@@ -25,6 +27,7 @@ export class PropertyPanel implements Panel {
     constructor(container: Container) {
         this.pane = new Pane({ container: container.getElement().get(0) });
         this.pane.registerPlugin(CamerakitPlugin);
+        this.pane.registerPlugin(TextareaPlugin);
         this.viewLoop.start();
     }
     destroy() {
@@ -40,7 +43,7 @@ export class PropertyPanel implements Panel {
         params: InputParams
     ) {
         let lastGetValue = (viewModel[name] = getValue());
-        const guiController: InputBindingApi<unknown, number> = guiFolder.addInput(viewModel, name, params);
+        const guiController: InputBindingApi<unknown, T> = guiFolder.addInput(viewModel, name, params);
         this.viewLoop.onLoop(() => {
             const newGetValue = getValue();
             if (newGetValue !== lastGetValue) {
@@ -109,5 +112,33 @@ export class PropertyPanel implements Panel {
             },
         };
         return folder;
+    }
+
+    addImportExport() {
+        const guiFolder = this.pane.addFolder({ title: 'Import / Export', expanded: false });
+        const presetKey = 'JSON';
+        const options = {
+            presetKey,
+            view: 'textarea',
+            // lineCount: 6,
+        };
+        const getValue = () => {
+            const preset = this.pane.exportPreset();
+            delete preset[presetKey];
+            return JSON.stringify(preset, null, 2);
+        };
+        const guiController = this.addInput(guiFolder, this.rootViewModel, presetKey, getValue, options);
+
+        guiController.on('change', (ev) => {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const val = JSON.parse(ev.value) as PresetObject;
+                if (typeof val === 'object' && val) {
+                    this.pane.importPreset(val);
+                }
+            } catch (e) {
+                void 0; // do nothing
+            }
+        });
     }
 }
