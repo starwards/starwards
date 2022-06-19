@@ -21,6 +21,7 @@ export class SelectionContainer {
         space.events.on('remove', (spaceObject: SpaceObject) => {
             if (this.selectedItems.delete(spaceObject)) {
                 this.events.emit(spaceObject.id);
+                this.events.emit('changed');
             }
         });
         return this;
