@@ -6,6 +6,8 @@ import {
     SpaceManager,
     Spaceship,
     limitPercision,
+    makeShipState,
+    shipConfigurations,
     timeToReachDistanceByAccelerationWithMaxSpeed,
     timeToReachVelocityByAcceleration,
 } from '../src';
@@ -86,10 +88,18 @@ export class TimedTestMetrics extends AbsTestMetrics {
 declare let global: typeof globalThis & {
     harness?: ShipTestHarness;
 };
+
+const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+
 export class ShipTestHarness {
     public spaceMgr = new SpaceManager();
     public shipObj = new Spaceship();
-    public shipMgr = new ShipManager(this.shipObj, this.spaceMgr, new ShipDie(3));
+    public shipMgr = new ShipManager(
+        this.shipObj,
+        makeShipState(this.shipObj.id, dragonflyConfig),
+        this.spaceMgr,
+        new ShipDie(3)
+    );
     private graphBuilder: PlotlyGraphBuilder | null = null;
 
     constructor() {

@@ -54,12 +54,6 @@ export abstract class SpaceObjectBase extends Schema {
         return XY.rotate(global, -this.angle);
     }
 
-    init(id: string, position: Vec2): this {
-        this.id = id;
-        this.position = position;
-        return this;
-    }
-
     get directionAxis() {
         return XY.rotate(XY.one, this.angle - 90);
     }
