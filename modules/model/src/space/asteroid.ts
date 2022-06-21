@@ -1,4 +1,5 @@
 import { SpaceObjectBase } from './space-object-base';
+import { Vec2 } from './vec2';
 import { type } from '@colyseus/schema';
 
 export class Asteroid extends SpaceObjectBase {
@@ -16,5 +17,11 @@ export class Asteroid extends SpaceObjectBase {
         super();
         this.health = 100;
         this.radius = Math.random() * Asteroid.maxSize;
+    }
+
+    init(id: string, position: Vec2): this {
+        this.id = id;
+        this.position = position;
+        return this;
     }
 }

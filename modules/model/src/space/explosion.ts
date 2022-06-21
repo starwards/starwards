@@ -1,4 +1,5 @@
 import { SpaceObjectBase } from './space-object-base';
+import { Vec2 } from './vec2';
 import { type } from '@colyseus/schema';
 
 export class Explosion extends SpaceObjectBase {
@@ -29,5 +30,11 @@ export class Explosion extends SpaceObjectBase {
     constructor() {
         super();
         this.radius = 0.01;
+    }
+
+    init(id: string, position: Vec2): this {
+        this.id = id;
+        this.position = position;
+        return this;
     }
 }

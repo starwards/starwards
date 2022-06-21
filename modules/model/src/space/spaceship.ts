@@ -1,6 +1,7 @@
 import { Faction } from './faction';
 import { ShipModel } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
+import { Vec2 } from './vec2';
 import { type } from '@colyseus/schema';
 
 export class Spaceship extends SpaceObjectBase {
@@ -25,5 +26,12 @@ export class Spaceship extends SpaceObjectBase {
     constructor() {
         super();
         this.radius = Spaceship.radius;
+    }
+
+    init(id: string, position: Vec2, shipModel: ShipModel): this {
+        this.id = id;
+        this.position = position;
+        this.model = shipModel;
+        return this;
     }
 }

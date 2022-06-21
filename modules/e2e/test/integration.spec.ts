@@ -22,7 +22,7 @@ test('start and stop a game', async ({ page }) => {
 const testShipId = 'GVTS';
 const testMap = {
     init: (game: GameApi) => {
-        const ship = new Spaceship().init(testShipId, new Vec2(0, 0));
+        const ship = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22');
         ship.faction = Faction.Gravitas;
         game.addSpaceship(ship);
         const asteroidInRange = new Asteroid().init('astro1', new Vec2(3000, 1000));
