@@ -13,8 +13,7 @@ import {
 
 import EventEmitter from 'eventemitter3';
 import { MapSchema } from '@colyseus/schema';
-
-const noop = () => void 0;
+import { noop } from 'ts-essentials';
 
 export type DriverNumericApi = {
     range: [number, number];
@@ -52,28 +51,30 @@ export function wrapStateProperty<T, P>(
         setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
     };
 }
-export function wrapStatePropertyEvents<T, P>(
-    shipRoom: GameRoom<'ship'>,
-    p: StateProperty<T, ShipState, P>,
-    path: P,
+
+export function addEventsApi<T, A extends { getValue: () => T }>(
+    api: A,
     events: EventEmitter,
     eventName: string
-): BaseEventsApi<T> {
+): A & EventApi {
     return {
-        getValue: () => p.getValue(shipRoom.state, path),
-        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
-        onChange: (cb: () => unknown) => {
-            let lastValue = p.getValue(shipRoom.state, path);
-            const listener = () => {
-                const newValue = p.getValue(shipRoom.state, path);
-                if (newValue !== lastValue) {
-                    lastValue = newValue;
-                    cb();
-                }
-            };
-            events.on(eventName, listener);
-            return () => events.off(eventName, listener);
-        },
+        ...api,
+        onChange: makeOnChange<T>(events, eventName, api.getValue),
+    };
+}
+
+function makeOnChange<T>(events: EventEmitter, eventName: string, getValue: () => T) {
+    return (cb: () => unknown) => {
+        let lastValue = getValue();
+        const listener = () => {
+            const newValue = getValue();
+            if (newValue !== lastValue) {
+                lastValue = newValue;
+                cb();
+            }
+        };
+        events.on(eventName, listener);
+        return () => events.off(eventName, listener);
     };
 }
 

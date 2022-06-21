@@ -170,3 +170,11 @@ export const faction = StatePropertyCommand(
     },
     (state: ShipState) => state.faction
 );
+
+export const numPlates = StateProperty((state: ShipState) => state.armor.numberOfPlates);
+export const plateHealth = NumericStatePropertyCommand(
+    'plateHealth',
+    (state: ShipState, value: number, idx: number) => (state.armor.armorPlates[idx].health = value),
+    (state: ShipState, idx: number) => state.armor.armorPlates[idx].health,
+    (state: ShipState) => [0, state.armor.plateMaxHealth]
+);

@@ -2,16 +2,17 @@ import {
     BaseApi,
     BaseEventsApi,
     NumberMapDriver,
+    addEventsApi,
     wrapIteratorStateProperty,
     wrapNormalNumericProperty,
     wrapNumericProperty,
     wrapStateProperty,
-    wrapStatePropertyEvents,
     wrapStringStateProperty,
 } from './utils';
 import { GameRoom, ShipDirection, ShipState, shipProperties } from '@starwards/model';
 
 import EventEmitter from 'eventemitter3';
+import { noop } from 'ts-essentials';
 import { waitForEvents } from './async-utils';
 
 function wireEvents(state: ShipState) {
@@ -61,6 +62,32 @@ function wireEvents(state: ShipState) {
                 events.emit(`thrusters.${key}.constants`);
             };
         };
+        state.thrusters.onRemove = () => {
+            events.emit(`armor`);
+        };
+    });
+    events.once('armor', () => {
+        state.armor.onChange = (changes) => {
+            for (const { field, value } of changes) {
+                events.emit(`armor.${field}`, value);
+            }
+        };
+        state.armor.constants.onChange = (value: number, key: string) => {
+            events.emit('armor.constants.' + key, value);
+            events.emit('armor.constants');
+        };
+        state.armor.armorPlates.onAdd = (plate, key) => {
+            events.emit(`armor`);
+            plate.onChange = (changes) => {
+                for (const { field, value } of changes) {
+                    events.emit(`armor.${key}.${field}`, value);
+                    events.emit(`armor`);
+                }
+            };
+        };
+        state.armor.armorPlates.onRemove = () => {
+            events.emit(`armor`);
+        };
     });
     return events;
 }
@@ -74,6 +101,7 @@ export class ThrustersDriver {
     public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters);
     private cache = new Map<number, ThrusterDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
+
     getApi(index: number) {
         const result = this.cache.get(index);
         if (result) {
@@ -82,10 +110,8 @@ export class ThrustersDriver {
             const newValue: ThrusterDriver = {
                 index,
                 broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
-                angle: wrapStatePropertyEvents(
-                    this.shipRoom,
-                    shipProperties.thrusterAngle,
-                    index,
+                angle: addEventsApi(
+                    wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
                     this.events,
                     `thrusters.${index}.angle`
                 ),
@@ -101,8 +127,63 @@ export class ThrustersDriver {
     }
 }
 
+export type PlateDriver = {
+    index: number;
+    health: BaseEventsApi<ShipDirection>;
+};
+
+const NO_EVENT = 'never';
+export class ArmorDriver {
+    public numPlates = addEventsApi(
+        wrapStateProperty(this.shipRoom, shipProperties.numPlates, undefined),
+        this.events,
+        NO_EVENT
+    );
+    public numHealthyPlates = addEventsApi(
+        {
+            getValue: () => {
+                let count = 0;
+                for (const plate of this.shipRoom.state.armor.armorPlates) {
+                    if (plate.health > 0) {
+                        count++;
+                    }
+                }
+                return count;
+            },
+            setValue: noop,
+        },
+        this.events,
+        'armor'
+    );
+    private cache = new Map<number, PlateDriver>();
+    constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
+
+    getApi(index: number) {
+        const result = this.cache.get(index);
+        if (result) {
+            return result;
+        } else {
+            const newValue: PlateDriver = {
+                index,
+                health: addEventsApi(
+                    wrapStateProperty(this.shipRoom, shipProperties.plateHealth, index),
+                    this.events,
+                    `armor.${index}.health`
+                ),
+            };
+            this.cache.set(index, newValue);
+            return newValue;
+        }
+    }
+    public *[Symbol.iterator](): IterableIterator<PlateDriver> {
+        for (let i = 0; i < this.numPlates.getValue(); i++) {
+            yield this.getApi(i);
+        }
+    }
+}
 function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     return {
+        armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, shipProperties.constants),
         chainGunConstants: new NumberMapDriver(shipRoom, shipProperties.chainGunConstants),
@@ -161,6 +242,9 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
     }
     if (!shipRoom.state.thrusters) {
         pendingEvents.push('thrusters');
+    }
+    if (!shipRoom.state.thrusters) {
+        pendingEvents.push('armor');
     }
     await waitForEvents(events, pendingEvents);
     const driver = newShipDriverObj(shipRoom, events);

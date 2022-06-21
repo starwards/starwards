@@ -26,12 +26,12 @@ export function NumericStateProperty<S extends Schema>(
 ): types.NumericStateProperty<S, void> {
     return { getValue, range };
 }
-export function NumericStatePropertyCommand<S extends Schema>(
+export function NumericStatePropertyCommand<S extends Schema, P>(
     cmdName: string,
-    setValue: (state: S, value: number) => unknown,
-    getValue: (state: S) => number,
+    setValue: (state: S, value: number, path: P) => unknown,
+    getValue: (state: S, path: P) => number,
     range: [number, number] | ((state: S) => [number, number])
-): types.NumericStatePropertyCommand<S, void> {
+): types.NumericStatePropertyCommand<S, P> {
     return { cmdName, setValue, getValue, range };
 }
 export function NormalNumericStatePropertyCommand<S extends Schema>(
