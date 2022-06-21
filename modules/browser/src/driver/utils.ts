@@ -1,4 +1,5 @@
 import {
+    Destructor,
     GameRoom,
     IteratorStatePropertyCommand,
     MappedPropertyCommand,
@@ -10,6 +11,7 @@ import {
     isStatePropertyCommand,
 } from '@starwards/model';
 
+import EventEmitter from 'eventemitter3';
 import { MapSchema } from '@colyseus/schema';
 
 const noop = () => void 0;
@@ -31,6 +33,10 @@ export type BaseApi<T> = {
     setValue: (v: T) => unknown;
 };
 
+export type EventApi = {
+    onChange: (cb: () => unknown) => Destructor;
+};
+export type BaseEventsApi<T> = BaseApi<T> & EventApi;
 export type TriggerApi = {
     getValue: () => string;
     setValue: (v: boolean) => unknown;
@@ -44,6 +50,30 @@ export function wrapStateProperty<T, P>(
     return {
         getValue: () => p.getValue(shipRoom.state, path),
         setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
+    };
+}
+export function wrapStatePropertyEvents<T, P>(
+    shipRoom: GameRoom<'ship'>,
+    p: StateProperty<T, ShipState, P>,
+    path: P,
+    events: EventEmitter,
+    eventName: string
+): BaseEventsApi<T> {
+    return {
+        getValue: () => p.getValue(shipRoom.state, path),
+        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
+        onChange: (cb: () => unknown) => {
+            let lastValue = p.getValue(shipRoom.state, path);
+            const listener = () => {
+                const newValue = p.getValue(shipRoom.state, path);
+                if (newValue !== lastValue) {
+                    lastValue = newValue;
+                    cb();
+                }
+            };
+            events.on(eventName, listener);
+            return () => events.off(eventName, listener);
+        },
     };
 }
 

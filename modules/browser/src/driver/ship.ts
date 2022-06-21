@@ -1,10 +1,12 @@
 import {
     BaseApi,
+    BaseEventsApi,
     NumberMapDriver,
     wrapIteratorStateProperty,
     wrapNormalNumericProperty,
     wrapNumericProperty,
     wrapStateProperty,
+    wrapStatePropertyEvents,
     wrapStringStateProperty,
 } from './utils';
 import { GameRoom, ShipDirection, ShipState, shipProperties } from '@starwards/model';
@@ -66,12 +68,12 @@ function wireEvents(state: ShipState) {
 export type ThrusterDriver = {
     index: number;
     broken: BaseApi<boolean>;
-    angle: BaseApi<ShipDirection>;
+    angle: BaseEventsApi<ShipDirection>;
 };
 export class ThrustersDriver {
     public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters);
     private cache = new Map<number, ThrusterDriver>();
-    constructor(private shipRoom: GameRoom<'ship'>) {}
+    constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
     getApi(index: number) {
         const result = this.cache.get(index);
         if (result) {
@@ -80,7 +82,13 @@ export class ThrustersDriver {
             const newValue: ThrusterDriver = {
                 index,
                 broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
-                angle: wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
+                angle: wrapStatePropertyEvents(
+                    this.shipRoom,
+                    shipProperties.thrusterAngle,
+                    index,
+                    this.events,
+                    `thrusters.${index}.angle`
+                ),
             };
             this.cache.set(index, newValue);
             return newValue;
@@ -93,9 +101,9 @@ export class ThrustersDriver {
     }
 }
 
-function wireCommands(shipRoom: GameRoom<'ship'>) {
+function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     return {
-        thrusters: new ThrustersDriver(shipRoom),
+        thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, shipProperties.constants),
         chainGunConstants: new NumberMapDriver(shipRoom, shipProperties.chainGunConstants),
         rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand),
@@ -131,7 +139,7 @@ function wireCommands(shipRoom: GameRoom<'ship'>) {
 export type ShipDriver = ReturnType<typeof newShipDriverObj>;
 
 function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
-    const commands = wireCommands(shipRoom);
+    const commands = wireCommands(shipRoom, events);
     return {
         events,
         id: shipRoom.state.id,
