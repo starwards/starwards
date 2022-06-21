@@ -1,8 +1,18 @@
+import { BaseEventsApi, EventApi } from '../driver/utils';
 import { Destructor, Destructors, ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
-import { Driver, SpaceDriver } from '../driver';
-import { FolderApi, InputParams, ListApi, ListBladeParams, Pane, TextApi, TextBladeParams } from 'tweakpane';
+import { Driver, DriverNumericApi, SpaceDriver } from '../driver';
+import {
+    FolderApi,
+    InputParams,
+    ListApi,
+    ListBladeParams,
+    Pane,
+    SliderApi,
+    SliderBladeParams,
+    TextApi,
+    TextBladeParams,
+} from 'tweakpane';
 
-import { BaseEventsApi } from '../driver/utils';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { SelectionContainer } from '../radar/selection-container';
@@ -39,8 +49,15 @@ const singleSelectionDetails = async (
 
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
+        const armorFolder = guiFolder.addFolder({
+            title: `Armor`,
+            expanded: true,
+        });
+        cleanup(() => {
+            armorFolder.dispose();
+        });
         addTextBlade<ShipDirection>(
-            guiFolder,
+            armorFolder,
             shipDriver.armor.numPlates,
             {
                 label: 'Plates',
@@ -49,7 +66,7 @@ const singleSelectionDetails = async (
             cleanup
         );
         addTextBlade<ShipDirection>(
-            guiFolder,
+            armorFolder,
             shipDriver.armor.numHealthyPlates,
             {
                 label: 'Healthy Plates',
@@ -75,9 +92,43 @@ const singleSelectionDetails = async (
                 },
                 cleanup
             );
+            addSliderBlade(
+                thrusterFolder,
+                thruster.angleError,
+                {
+                    label: 'Angle Error',
+                },
+                cleanup
+            );
         }
     }
 };
+
+function addSliderBlade<T>(
+    guiFolder: FolderApi,
+    api: DriverNumericApi & EventApi,
+    params: Partial<SliderBladeParams>, // { label: string; parse: (v: T) => string },
+    cleanup: (d: Destructor) => void
+) {
+    const guiController = guiFolder.addBlade({
+        parse: (v: T) => String(v), // should be from string to T...
+        ...params,
+        view: 'slider',
+        min: api.range[0],
+        max: api.range[1],
+        value: api.getValue(),
+    }) as SliderApi;
+    guiController.on('change', (e) => {
+        api.setValue(e.value);
+    });
+    const removeStateListener = api.onChange(() => {
+        guiController.value = api.getValue();
+    });
+    cleanup(() => {
+        guiController.dispose();
+        removeStateListener();
+    });
+}
 
 function addTextBlade<T>(
     guiFolder: FolderApi,

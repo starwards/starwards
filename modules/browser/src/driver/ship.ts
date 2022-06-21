@@ -1,6 +1,8 @@
 import {
     BaseApi,
     BaseEventsApi,
+    DriverNumericApi,
+    EventApi,
     NumberMapDriver,
     addEventsApi,
     wrapIteratorStateProperty,
@@ -96,9 +98,10 @@ export type ThrusterDriver = {
     index: number;
     broken: BaseApi<boolean>;
     angle: BaseEventsApi<ShipDirection>;
+    angleError: DriverNumericApi & EventApi;
 };
 export class ThrustersDriver {
-    public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters);
+    public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters, undefined);
     private cache = new Map<number, ThrusterDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
 
@@ -112,6 +115,11 @@ export class ThrustersDriver {
                 broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
                 angle: addEventsApi(
                     wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
+                    this.events,
+                    `thrusters.${index}.angle`
+                ),
+                angleError: addEventsApi(
+                    wrapNumericProperty(this.shipRoom, shipProperties.thrusterAngleError, index),
                     this.events,
                     `thrusters.${index}.angle`
                 ),
@@ -187,22 +195,22 @@ function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
         thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, shipProperties.constants),
         chainGunConstants: new NumberMapDriver(shipRoom, shipProperties.chainGunConstants),
-        rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand),
-        shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive),
-        shellRange: wrapNumericProperty(shipRoom, shipProperties.shellRange),
-        rotation: wrapNumericProperty(shipRoom, shipProperties.rotation),
-        strafeCommand: wrapNumericProperty(shipRoom, shipProperties.strafeCommand),
-        boostCommand: wrapNumericProperty(shipRoom, shipProperties.boostCommand),
-        strafe: wrapNumericProperty(shipRoom, shipProperties.strafe),
-        boost: wrapNumericProperty(shipRoom, shipProperties.boost),
-        energy: wrapNumericProperty(shipRoom, shipProperties.energy),
-        afterBurnerFuel: wrapNumericProperty(shipRoom, shipProperties.afterBurnerFuel),
-        turnSpeed: wrapNumericProperty(shipRoom, shipProperties.turnSpeed),
-        angle: wrapNumericProperty(shipRoom, shipProperties.angle),
-        speedDirection: wrapNumericProperty(shipRoom, shipProperties.velocityAngle),
-        speed: wrapNumericProperty(shipRoom, shipProperties.speed),
-        chainGunCooldown: wrapNumericProperty(shipRoom, shipProperties.chainGunCoolDown),
-        chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive),
+        rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand, undefined),
+        shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
+        shellRange: wrapNumericProperty(shipRoom, shipProperties.shellRange, undefined),
+        rotation: wrapNumericProperty(shipRoom, shipProperties.rotation, undefined),
+        strafeCommand: wrapNumericProperty(shipRoom, shipProperties.strafeCommand, undefined),
+        boostCommand: wrapNumericProperty(shipRoom, shipProperties.boostCommand, undefined),
+        strafe: wrapNumericProperty(shipRoom, shipProperties.strafe, undefined),
+        boost: wrapNumericProperty(shipRoom, shipProperties.boost, undefined),
+        energy: wrapNumericProperty(shipRoom, shipProperties.energy, undefined),
+        afterBurnerFuel: wrapNumericProperty(shipRoom, shipProperties.afterBurnerFuel, undefined),
+        turnSpeed: wrapNumericProperty(shipRoom, shipProperties.turnSpeed, undefined),
+        angle: wrapNumericProperty(shipRoom, shipProperties.angle, undefined),
+        speedDirection: wrapNumericProperty(shipRoom, shipProperties.velocityAngle, undefined),
+        speed: wrapNumericProperty(shipRoom, shipProperties.speed, undefined),
+        chainGunCooldown: wrapNumericProperty(shipRoom, shipProperties.chainGunCoolDown, undefined),
+        chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
         rotationTargetOffset: wrapNormalNumericProperty(shipRoom, shipProperties.rotationTargetOffset),
         afterBurner: wrapNormalNumericProperty(shipRoom, shipProperties.afterBurner),
         antiDrift: wrapNormalNumericProperty(shipRoom, shipProperties.antiDrift),

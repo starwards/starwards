@@ -78,15 +78,16 @@ function makeOnChange<T>(events: EventEmitter, eventName: string, getValue: () =
     };
 }
 
-export function wrapNumericProperty(
+export function wrapNumericProperty<P>(
     shipRoom: GameRoom<'ship'>,
-    p: NumericStateProperty<ShipState, void>
+    p: NumericStateProperty<ShipState, P>,
+    path: P
 ): DriverNumericApi {
-    const range = typeof p.range === 'function' ? p.range(shipRoom.state) : p.range;
+    const range = typeof p.range === 'function' ? p.range(shipRoom.state, path) : p.range;
     return {
-        getValue: () => p.getValue(shipRoom.state),
+        getValue: () => p.getValue(shipRoom.state, path),
         range,
-        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
+        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
     };
 }
 

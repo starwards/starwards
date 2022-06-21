@@ -149,6 +149,14 @@ export const shellRange = NumericStatePropertyCommand(
 
 export const numThrusters = NumericStateProperty((state: ShipState) => state.thrusters.length, [0, 64]);
 export const thrusterAngle = StateProperty((state: ShipState, idx: number) => state.thrusters[idx].angle);
+export const thrusterAngleError = NumericStatePropertyCommand(
+    'thrusterAngleError',
+    (state: ShipState, value: number, idx: number) => {
+        state.thrusters[idx].angleError = value;
+    },
+    (state: ShipState, idx: number) => state.thrusters[idx].angleError,
+    (state: ShipState, idx: number) => [-state.thrusters[idx].maxAngleError, state.thrusters[idx].maxAngleError]
+);
 export const thrusterBroken = StatePropertyCommand(
     'thrusterBroken',
     (state: ShipState, value: boolean, idx: number) => {

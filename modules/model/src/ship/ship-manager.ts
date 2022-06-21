@@ -43,6 +43,7 @@ function makeThruster(angle: ShipDirection): Thruster {
     const thruster = new Thruster();
     thruster.constants = new MapSchema<number>();
     setConstant(thruster, 'angle', angle);
+    setConstant(thruster, 'maxAngleError', 45);
     setConstant(thruster, 'capacity', 50);
     setConstant(thruster, 'energyCost', 0.07);
     setConstant(thruster, 'speedFactor', 3);

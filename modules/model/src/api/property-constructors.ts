@@ -20,9 +20,9 @@ export function StatePropertyCommand<T, S extends Schema, P>(
 ): types.StatePropertyCommand<T, S, P> {
     return { cmdName, setValue, getValue };
 }
-export function NumericStateProperty<S extends Schema>(
-    getValue: (state: S) => number,
-    range: [number, number] | ((state: S) => [number, number])
+export function NumericStateProperty<S extends Schema, P>(
+    getValue: (state: S, path: P) => number,
+    range: [number, number] | ((state: S, path: P) => [number, number])
 ): types.NumericStateProperty<S, void> {
     return { getValue, range };
 }
