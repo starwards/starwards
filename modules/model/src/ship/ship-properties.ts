@@ -157,6 +157,13 @@ export const thrusterAngleError = NumericStatePropertyCommand(
     (state: ShipState, idx: number) => state.thrusters[idx].angleError,
     (state: ShipState, idx: number) => [-state.thrusters[idx].maxAngleError, state.thrusters[idx].maxAngleError]
 );
+export const thrusterAvailableCapacity = NormalNumericStatePropertyCommand(
+    'thrusterAvailableCapacity',
+    (state: ShipState, value: number, idx: number) => {
+        state.thrusters[idx].availableCapacity = value;
+    },
+    (state: ShipState, idx: number) => state.thrusters[idx].availableCapacity
+);
 export const thrusterBroken = StatePropertyCommand(
     'thrusterBroken',
     (state: ShipState, value: boolean, idx: number) => {

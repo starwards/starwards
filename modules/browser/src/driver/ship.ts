@@ -1,6 +1,7 @@
 import {
     BaseApi,
     BaseEventsApi,
+    DriverNormalNumericApi,
     DriverNumericApi,
     EventApi,
     NumberMapDriver,
@@ -99,6 +100,7 @@ export type ThrusterDriver = {
     broken: BaseApi<boolean>;
     angle: BaseEventsApi<ShipDirection>;
     angleError: DriverNumericApi & EventApi;
+    availableCapacity: DriverNormalNumericApi & EventApi;
 };
 export class ThrustersDriver {
     public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters, undefined);
@@ -122,6 +124,11 @@ export class ThrustersDriver {
                     wrapNumericProperty(this.shipRoom, shipProperties.thrusterAngleError, index),
                     this.events,
                     `thrusters.${index}.angle`
+                ),
+                availableCapacity: addEventsApi(
+                    wrapNumericProperty(this.shipRoom, shipProperties.thrusterAvailableCapacity, index),
+                    this.events,
+                    `thrusters.${index}.availableCapacity`
                 ),
             };
             this.cache.set(index, newValue);

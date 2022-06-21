@@ -82,21 +82,19 @@ const singleSelectionDetails = async (
             cleanup(() => {
                 thrusterFolder.dispose();
             });
-            addTextBlade<ShipDirection>(
-                thrusterFolder,
-                thruster.angle,
-                {
-                    label: 'Direction',
-                    format: (v) => ShipDirection[v],
-                    disabled: true,
-                },
-                cleanup
-            );
             addSliderBlade(
                 thrusterFolder,
                 thruster.angleError,
                 {
                     label: 'Angle Error',
+                },
+                cleanup
+            );
+            addSliderBlade(
+                thrusterFolder,
+                thruster.availableCapacity,
+                {
+                    label: 'Available Capacity',
                 },
                 cleanup
             );
