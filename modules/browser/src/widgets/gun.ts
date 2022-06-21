@@ -6,8 +6,7 @@ import { ShipDriver } from '../driver';
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
     class GunComponent {
         constructor(container: Container, _: unknown) {
-            const panel = new PropertyPanel();
-            panel.init(container);
+            const panel = new PropertyPanel(container);
             container.on('destroy', () => {
                 panel.destroy();
             });

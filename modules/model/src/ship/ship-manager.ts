@@ -6,6 +6,7 @@ import {
     ManeuveringCommand,
     ShipArea,
     ShipState,
+    SmartPilot,
     SmartPilotMode,
     SpaceObject,
     Spaceship,
@@ -41,7 +42,7 @@ export function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-export type ShipSystem = ChainGun | Thruster | Radar;
+export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot;
 
 export function resetShipState(state: ShipState) {
     state.energy = state.maxEnergy;
@@ -50,6 +51,7 @@ export function resetShipState(state: ShipState) {
     for (const thruster of state.thrusters) {
         resetThruster(thruster);
     }
+    state.smartPilot.offsetFactor = 0;
     state.chainGunAmmo = state.maxChainGunAmmo;
 }
 
@@ -76,7 +78,7 @@ export class ShipManager {
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, ShipSystem[]>([
-        [ShipArea.front, [this.state.chainGun, this.state.radar]],
+        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot]],
         [ShipArea.rear, this.state.thrusters.toArray()],
     ]);
     private totalSeconds = 0;
@@ -213,6 +215,8 @@ export class ShipManager {
             this.updateRotation(deltaSeconds);
 
             this.calcShellRange();
+
+            this.calcSmartPilotModes();
             this.calcSmartPilotManeuvering(deltaSeconds);
             this.calcSmartPilotRotation(deltaSeconds);
             const maneuveringAction = this.calcManeuveringAction();
@@ -223,6 +227,13 @@ export class ShipManager {
             this.chargeAfterBurner(deltaSeconds);
             this.fireChainGun();
             this.updateRadarRange();
+        }
+    }
+
+    private calcSmartPilotModes() {
+        if (this.state.smartPilot.broken) {
+            this.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            this.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         }
     }
 
@@ -300,7 +311,15 @@ export class ShipManager {
                 this.damageChainGun(system, damageObject.id);
             } else if (Radar.isInstance(system)) {
                 this.damageRadar(system);
+            } else if (SmartPilot.isInstance(system)) {
+                this.damageSmartPilot(system);
             }
+        }
+    }
+
+    private damageSmartPilot(smartPilot: SmartPilot) {
+        if (!smartPilot.broken) {
+            smartPilot.offsetFactor += 0.01;
         }
     }
 
@@ -368,9 +387,10 @@ export class ShipManager {
     }
 
     private calcSmartPilotManeuvering(deltaSeconds: number) {
-        if (this.state.smartPilot.broken && this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT) {
-            return;
-        }
+        const offsetFactor =
+            this.state.smartPilot.maneuveringMode === SmartPilotMode.DIRECT ? 0 : this.state.smartPilot.offsetFactor;
+        const error = XY.byLengthAndDirection(offsetFactor, this.die.getRollInRange('smartPilotOffset', -180, 180));
+
         let maneuveringCommand: ManeuveringCommand | undefined = undefined;
         switch (this.state.smartPilot.maneuveringMode) {
             case SmartPilotMode.DIRECT: {
@@ -395,8 +415,8 @@ export class ShipManager {
                 break;
             }
         }
-        this.setBoost(maneuveringCommand.boost);
-        this.setStrafe(maneuveringCommand.strafe);
+        this.setBoost(maneuveringCommand.boost + error.y);
+        this.setStrafe(maneuveringCommand.strafe + error.x);
     }
 
     private calcShellRange() {

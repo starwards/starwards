@@ -5,10 +5,11 @@ import {
     RadarModel,
     ShipModel,
     ShipPropertiesModel,
+    SmartPilotModel,
     ThrusterModel,
 } from './ship-configuration';
 import { ArraySchema, MapSchema } from '@colyseus/schema';
-import { ChainGun, ShipState, SmartPilotState } from '..';
+import { ChainGun, ShipState, SmartPilot } from '..';
 
 import { Radar } from './radar';
 import { Thruster } from './thruster';
@@ -94,6 +95,17 @@ function makeRadar(radarModel: RadarModel) {
     return radar;
 }
 
+function makeSmartPilot(smartPilotModel: SmartPilotModel) {
+    const smartPilot = new SmartPilot();
+    smartPilot.constants = new MapSchema<number>();
+    setConstant(smartPilot, 'maxTargetAimOffset', smartPilotModel.maxTargetAimOffset);
+    setConstant(smartPilot, 'aimOffsetSpeed', smartPilotModel.aimOffsetSpeed);
+    setConstant(smartPilot, 'maxTurnSpeed', smartPilotModel.maxTurnSpeed);
+    setConstant(smartPilot, 'offsetBrokenThreshold', smartPilotModel.offsetBrokenThreshold);
+    setConstant(smartPilot, 'damage50', smartPilotModel.damage50);
+    return smartPilot;
+}
+
 export function makeShipState(id: string, shipModel: ShipModel) {
     const state = makeShip(id, shipModel.properties);
     state.thrusters = new ArraySchema();
@@ -101,7 +113,8 @@ export function makeShipState(id: string, shipModel: ShipModel) {
         state.thrusters.push(makeThruster(thrusterConfig));
     }
     state.chainGun = makeChainGun(shipModel.chainGun);
-    state.smartPilot = new SmartPilotState();
+    state.smartPilot = makeSmartPilot(shipModel.smartPilot);
+
     state.armor = makeArmor(shipModel.armor);
     state.radar = makeRadar(shipModel.radar);
     return state;

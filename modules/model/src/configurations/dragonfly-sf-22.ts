@@ -50,6 +50,13 @@ export const dragonflyProperties = {
     numberOfShipRegions: 2,
     maxChainGunAmmo: 3600,
 };
+export const dragonflySmartPilot = {
+    maxTargetAimOffset: 30,
+    aimOffsetSpeed: 15,
+    maxTurnSpeed: 90,
+    offsetBrokenThreshold: 0.6,
+    damage50: 90,
+};
 export const dragonflySF22: ShipModel = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
@@ -63,4 +70,5 @@ export const dragonflySF22: ShipModel = {
     ],
     armor: dragonflyArmor,
     radar: dragonflyRadar,
+    smartPilot: dragonflySmartPilot,
 };

@@ -54,10 +54,19 @@ export type ShipModel = {
     thrusters: ThrusterModel[];
     armor: ArmorModel;
     radar: RadarModel;
+    smartPilot: SmartPilotModel;
 };
 
 export type ArmorModel = {
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
+};
+
+export type SmartPilotModel = {
+    maxTargetAimOffset: number;
+    aimOffsetSpeed: number;
+    maxTurnSpeed: number;
+    offsetBrokenThreshold: number;
+    damage50: number;
 };
