@@ -24,4 +24,4 @@ export * from './id';
 export * from './logic';
 export * from './ship';
 export * from './space';
-export { getConstant } from './utils';
+export * from './utils';
