@@ -1,6 +1,6 @@
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { PropertyPanel } from '../property-panel';
+import { PropertyPanel } from '../panel';
 import { ShipDriver } from '../driver';
 
 export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {

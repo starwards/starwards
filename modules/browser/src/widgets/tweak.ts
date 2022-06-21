@@ -1,17 +1,7 @@
-import { BaseEventsApi, EventApi } from '../driver/utils';
 import { Destructor, Destructors, ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
-import { Driver, DriverNumericApi, SpaceDriver } from '../driver';
-import {
-    FolderApi,
-    InputParams,
-    ListApi,
-    ListBladeParams,
-    Pane,
-    SliderApi,
-    SliderBladeParams,
-    TextApi,
-    TextBladeParams,
-} from 'tweakpane';
+import { Driver, SpaceDriver } from '../driver';
+import { FolderApi, Pane } from 'tweakpane';
+import { addInput, addSliderBlade, addTextBlade } from '../panel';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
@@ -101,123 +91,6 @@ const singleSelectionDetails = async (
         }
     }
 };
-
-function addSliderBlade<T>(
-    guiFolder: FolderApi,
-    api: DriverNumericApi & EventApi,
-    params: Partial<SliderBladeParams>, // { label: string; parse: (v: T) => string },
-    cleanup: (d: Destructor) => void
-) {
-    const guiController = guiFolder.addBlade({
-        parse: (v: T) => String(v), // should be from string to T...
-        ...params,
-        view: 'slider',
-        min: api.range[0],
-        max: api.range[1],
-        value: api.getValue(),
-    }) as SliderApi;
-    guiController.on('change', (e) => {
-        api.setValue(e.value);
-    });
-    const removeStateListener = api.onChange(() => {
-        guiController.value = api.getValue();
-    });
-    cleanup(() => {
-        guiController.dispose();
-        removeStateListener();
-    });
-}
-
-function addTextBlade<T>(
-    guiFolder: FolderApi,
-    api: BaseEventsApi<T>,
-    params: Partial<TextBladeParams<T>>, // { label: string; parse: (v: T) => string },
-    cleanup: (d: Destructor) => void
-) {
-    const guiController = guiFolder.addBlade({
-        parse: (v: T) => String(v), // should be from string to T...
-        ...params,
-        view: 'text',
-        value: api.getValue(),
-    }) as TextApi<T>;
-    guiController.on('change', (e) => {
-        api.setValue(e.value);
-    });
-    const removeStateListener = api.onChange(() => {
-        guiController.value = api.getValue();
-    });
-    cleanup(() => {
-        guiController.dispose();
-        removeStateListener();
-    });
-}
-
-// options: ShipDirections.map((value) => ({ value, text: ShipDirection[value] }))
-function addEnumListBlade<T>(
-    guiFolder: FolderApi,
-    api: BaseEventsApi<T>,
-    params: Partial<ListBladeParams<T>>, // { label: string; parse: (v: T) => string },
-    cleanup: (d: Destructor) => void
-) {
-    let lastValue = api.getValue();
-    const guiController = guiFolder.addBlade({
-        parse: (v: T) => String(v), // should be from string to T...
-        options: [],
-        ...params,
-        view: 'list',
-        value: lastValue,
-    }) as ListApi<T>;
-    guiController.on('change', (e) => {
-        const newValue = e.value;
-        if (newValue !== lastValue) {
-            api.setValue(newValue);
-        }
-    });
-    const removeStateListener = api.onChange(() => {
-        const newValue = api.getValue();
-        if (newValue !== lastValue) {
-            lastValue = newValue;
-            guiController.value = newValue;
-        }
-    });
-    cleanup(() => {
-        guiController.dispose();
-        removeStateListener();
-    });
-}
-
-function addInput<K extends keyof SpaceObject>(
-    guiFolder: FolderApi,
-    subject: SpaceObject,
-    propertyName: K,
-    params: InputParams,
-    setValue: (_newValue: SpaceObject[K]) => void,
-    spaceDriver: SpaceDriver,
-    cleanup: (d: Destructor) => void
-) {
-    const guiController = guiFolder.addInput(subject, propertyName, params);
-    let lastValue = subject[propertyName];
-    guiController.on('change', (e) => {
-        const newValue = e.value;
-        if (newValue !== lastValue) {
-            setValue(newValue);
-        }
-    });
-    const stateListener = (field: string) => {
-        if (field === propertyName) {
-            const newValue = subject[propertyName];
-            if (newValue !== lastValue) {
-                lastValue = newValue;
-                guiController.refresh();
-            }
-        }
-    };
-    spaceDriver.state.events.on(subject.id, stateListener);
-    cleanup(() => {
-        guiController.dispose();
-        spaceDriver.state.events.removeListener(subject.id, stateListener);
-    });
-}
 
 export function tweakWidget(driver: Driver, selectionContainer: SelectionContainer): DashboardWidget {
     class TweakRoot {
