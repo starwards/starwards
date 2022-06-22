@@ -1,4 +1,4 @@
-import { Asteroid, Faction, Spaceship, Vec2, makeId, sectorSize } from '@starwards/model';
+import { Asteroid, Faction, ShipModel, Spaceship, Vec2, makeId, sectorSize } from '@starwards/model';
 import { GameApi, GameMap } from './scripts-api';
 
 const speedMax = 50;
@@ -14,10 +14,11 @@ export function newAsteroid() {
 }
 
 const locationRange = 2 * 1000;
-export function newShip(id: string, faction: Faction) {
+export function newShip(id: string, faction: Faction, model: ShipModel) {
     const ship = new Spaceship();
     ship.id = id;
     ship.faction = faction;
+    ship.model = model;
     resetShip(ship);
     return ship;
 }
@@ -35,9 +36,9 @@ export const defaultMap: GameMap = {
         for (let i = 0; i < 20; i++) {
             game.addObject(newAsteroid());
         }
-        game.addSpaceship(newShip('GVTS', Faction.Gravitas));
-        game.addSpaceship(newShip('GVTS2', Faction.Gravitas));
-        const ship2 = game.addSpaceship(newShip('R2D2', Faction.Raiders));
+        game.addSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
+        game.addSpaceship(newShip('GVTS2', Faction.Gravitas, 'dragonfly-SF22'));
+        const ship2 = game.addSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
         ship2.setTarget('GVTS');
         // bManager.bot = jouster();
     },

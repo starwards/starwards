@@ -1,7 +1,19 @@
-import { Die, ShipManager, SmartPilotMode, SpaceManager, SpaceObject, Spaceship, limitPercision } from '../src';
+import {
+    Die,
+    ShipManager,
+    SmartPilotMode,
+    SpaceManager,
+    SpaceObject,
+    Spaceship,
+    limitPercision,
+    makeShipState,
+    shipConfigurations,
+} from '../src';
 import { Updateable, isUpdateable } from '../src/updateable';
 
 import { expect } from 'chai';
+
+const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
 export class SpaceSimulator {
     public spaceMgr = new SpaceManager();
@@ -15,7 +27,7 @@ export class SpaceSimulator {
         return this;
     }
     withShip(ship: Spaceship, die: Die) {
-        const shipMgr = new ShipManager(ship, this.spaceMgr, die);
+        const shipMgr = new ShipManager(ship, makeShipState(ship.id, dragonflyConfig), this.spaceMgr, die);
         this.updateables.push(shipMgr);
         if (isUpdateable(die)) {
             this.updateables.push(die);

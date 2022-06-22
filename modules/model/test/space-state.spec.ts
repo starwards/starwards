@@ -12,7 +12,7 @@ const map = Array(100)
             new Vec2(Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2)
         )
     );
-map.push(new Spaceship().init(nanoid(), new Vec2(0, 0)));
+map.push(new Spaceship().init(nanoid(), new Vec2(0, 0), 'dragonfly-SF22'));
 
 describe('SpaceState', () => {
     it('iterator has same number of elements', () => {

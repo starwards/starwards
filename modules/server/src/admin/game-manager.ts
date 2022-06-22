@@ -5,7 +5,9 @@ import {
     SpaceManager,
     SpaceObject,
     Spaceship,
+    makeShipState,
     resetShipState,
+    shipConfigurations,
 } from '@starwards/model';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
 import { defaultMap, resetShip } from './map-helper';
@@ -85,11 +87,22 @@ export class GameManager {
         this.spaceManager.insert(spaceObject);
         this.state.points.set(spaceObject.id, 0);
         const die = new ShipDie(3);
-        const shipManager = new ShipManager(spaceObject, this.spaceManager, die, this.ships, () => {
-            this.state.points.set(spaceObject.id, (this.state.points.get(spaceObject.id) || 0) + 1);
-            resetShipState(shipManager.state);
-            resetShip(spaceObject);
-        }); // create a manager to manage the ship
+        if (!spaceObject.model) {
+            throw new Error(`missing ship model for ship ${spaceObject.id}`);
+        }
+        const configuration = shipConfigurations[spaceObject.model];
+        const shipManager = new ShipManager(
+            spaceObject,
+            makeShipState(spaceObject.id, configuration),
+            this.spaceManager,
+            die,
+            this.ships,
+            () => {
+                this.state.points.set(spaceObject.id, (this.state.points.get(spaceObject.id) || 0) + 1);
+                resetShipState(shipManager.state);
+                resetShip(spaceObject);
+            }
+        ); // create a manager to manage the ship
         this.ships.set(spaceObject.id, shipManager);
         this.dice.push(die);
         if (sendMessages) {
