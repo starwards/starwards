@@ -1,5 +1,5 @@
 import { NumberMapDriver, ShipDriver } from '../driver';
-import { Panel, PropertyPanel } from '../property-panel';
+import { Panel, PropertyPanel } from '../panel';
 
 import $ from 'jquery';
 import { BaseApi } from '../driver/utils';

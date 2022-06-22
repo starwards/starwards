@@ -16,7 +16,7 @@ export interface IteratorStatePropertyCommand<S extends Schema, P>
 
 export interface StatePropertyCommand<T, S extends Schema, P> extends StateProperty<T, S, P>, StateCommand<T, S, P> {}
 export interface NumericStateProperty<S extends Schema, P> extends StateProperty<number, S, P> {
-    range: [number, number] | ((state: S) => [number, number]);
+    range: [number, number] | ((state: S, path: P) => [number, number]);
 }
 export interface NormalNumericStateProperty<S extends Schema, P> extends NumericStateProperty<S, P> {
     range: [0, 1];
@@ -69,7 +69,7 @@ export function setNumericProperty<S extends Schema, P>(
     value: number,
     path: P
 ) {
-    const range = typeof p.range === 'function' ? p.range(manager.state) : p.range;
+    const range = typeof p.range === 'function' ? p.range(manager.state, path) : p.range;
     p.setValue(manager.state, capToRange(range[0], range[1], value), path);
 }
 

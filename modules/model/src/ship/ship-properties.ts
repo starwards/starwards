@@ -149,6 +149,21 @@ export const shellRange = NumericStatePropertyCommand(
 
 export const numThrusters = NumericStateProperty((state: ShipState) => state.thrusters.length, [0, 64]);
 export const thrusterAngle = StateProperty((state: ShipState, idx: number) => state.thrusters[idx].angle);
+export const thrusterAngleError = NumericStatePropertyCommand(
+    'thrusterAngleError',
+    (state: ShipState, value: number, idx: number) => {
+        state.thrusters[idx].angleError = value;
+    },
+    (state: ShipState, idx: number) => state.thrusters[idx].angleError,
+    (state: ShipState, idx: number) => [-state.thrusters[idx].maxAngleError, state.thrusters[idx].maxAngleError]
+);
+export const thrusterAvailableCapacity = NormalNumericStatePropertyCommand(
+    'thrusterAvailableCapacity',
+    (state: ShipState, value: number, idx: number) => {
+        state.thrusters[idx].availableCapacity = value;
+    },
+    (state: ShipState, idx: number) => state.thrusters[idx].availableCapacity
+);
 export const thrusterBroken = StatePropertyCommand(
     'thrusterBroken',
     (state: ShipState, value: boolean, idx: number) => {
@@ -169,4 +184,12 @@ export const faction = StatePropertyCommand(
         state.faction = value;
     },
     (state: ShipState) => state.faction
+);
+
+export const numPlates = StateProperty((state: ShipState) => state.armor.numberOfPlates);
+export const plateHealth = NumericStatePropertyCommand(
+    'plateHealth',
+    (state: ShipState, value: number, idx: number) => (state.armor.armorPlates[idx].health = value),
+    (state: ShipState, idx: number) => state.armor.armorPlates[idx].health,
+    (state: ShipState) => [0, state.armor.plateMaxHealth]
 );

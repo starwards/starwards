@@ -6,6 +6,7 @@ export const dragonflyArmor = {
     plateMaxHealth: 200,
 };
 export const dragonflyThruster = {
+    maxAngleError: 45,
     capacity: 50,
     energyCost: 0.07,
     speedFactor: 3,

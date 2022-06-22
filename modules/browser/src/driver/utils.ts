@@ -1,4 +1,5 @@
 import {
+    Destructor,
     GameRoom,
     IteratorStatePropertyCommand,
     MappedPropertyCommand,
@@ -10,9 +11,9 @@ import {
     isStatePropertyCommand,
 } from '@starwards/model';
 
+import EventEmitter from 'eventemitter3';
 import { MapSchema } from '@colyseus/schema';
-
-const noop = () => void 0;
+import { noop } from 'ts-essentials';
 
 export type DriverNumericApi = {
     range: [number, number];
@@ -31,6 +32,10 @@ export type BaseApi<T> = {
     setValue: (v: T) => unknown;
 };
 
+export type EventApi = {
+    onChange: (cb: () => unknown) => Destructor;
+};
+export type BaseEventsApi<T> = BaseApi<T> & EventApi;
 export type TriggerApi = {
     getValue: () => string;
     setValue: (v: boolean) => unknown;
@@ -47,25 +52,53 @@ export function wrapStateProperty<T, P>(
     };
 }
 
-export function wrapNumericProperty(
-    shipRoom: GameRoom<'ship'>,
-    p: NumericStateProperty<ShipState, void>
-): DriverNumericApi {
-    const range = typeof p.range === 'function' ? p.range(shipRoom.state) : p.range;
+export function addEventsApi<T, A extends { getValue: () => T }>(
+    api: A,
+    events: EventEmitter,
+    eventName: string
+): A & EventApi {
     return {
-        getValue: () => p.getValue(shipRoom.state),
-        range,
-        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
+        ...api,
+        onChange: makeOnChange<T>(events, eventName, api.getValue),
     };
 }
 
-export function wrapNormalNumericProperty(
+function makeOnChange<T>(events: EventEmitter, eventName: string, getValue: () => T) {
+    return (cb: () => unknown) => {
+        let lastValue = getValue();
+        const listener = () => {
+            const newValue = getValue();
+            if (newValue !== lastValue) {
+                lastValue = newValue;
+                cb();
+            }
+        };
+        events.on(eventName, listener);
+        return () => events.off(eventName, listener);
+    };
+}
+
+export function wrapNumericProperty<P>(
     shipRoom: GameRoom<'ship'>,
-    p: NormalNumericStateProperty<ShipState, void>
+    p: NumericStateProperty<ShipState, P>,
+    path: P
+): DriverNumericApi {
+    const range = typeof p.range === 'function' ? p.range(shipRoom.state, path) : p.range;
+    return {
+        getValue: () => p.getValue(shipRoom.state, path),
+        range,
+        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
+    };
+}
+
+export function wrapNormalNumericProperty<P>(
+    shipRoom: GameRoom<'ship'>,
+    p: NormalNumericStateProperty<ShipState, P>,
+    path: P
 ): DriverNormalNumericApi {
     let setValue: (v: number | boolean) => unknown = noop;
     if (isStatePropertyCommand(p)) {
-        const sender = cmdSender(shipRoom, p, undefined);
+        const sender = cmdSender(shipRoom, p, path);
         setValue = (v: number | boolean) => {
             if (v === true) return sender(1);
             if (v === false) return sender(0);
@@ -73,7 +106,7 @@ export function wrapNormalNumericProperty(
         };
     }
     return {
-        getValue: () => p.getValue(shipRoom.state),
+        getValue: () => p.getValue(shipRoom.state, path),
         range: [0, 1],
         setValue,
     };

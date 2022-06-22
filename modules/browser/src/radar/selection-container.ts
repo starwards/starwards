@@ -21,6 +21,7 @@ export class SelectionContainer {
         space.events.on('remove', (spaceObject: SpaceObject) => {
             if (this.selectedItems.delete(spaceObject)) {
                 this.events.emit(spaceObject.id);
+                this.events.emit('changed');
             }
         });
         return this;
@@ -29,10 +30,12 @@ export class SelectionContainer {
     public clear() {
         const changed = [...this.selectedItems];
         this.selectedItems.clear();
-        for (const spaceObject of changed) {
-            this.events.emit(spaceObject.id);
+        if (changed.length) {
+            for (const spaceObject of changed) {
+                this.events.emit(spaceObject.id);
+            }
+            this.events.emit('changed');
         }
-        this.events.emit('changed');
     }
 
     public set(selected: SpaceObject[]) {
@@ -41,10 +44,12 @@ export class SelectionContainer {
         for (const spaceObject of selected) {
             this.selectedItems.add(spaceObject);
         }
-        for (const spaceObject of changed) {
-            this.events.emit(spaceObject.id);
+        if (changed.length) {
+            for (const spaceObject of changed) {
+                this.events.emit(spaceObject.id);
+            }
+            this.events.emit('changed');
         }
-        this.events.emit('changed');
     }
 
     public has(o: SpaceObject) {

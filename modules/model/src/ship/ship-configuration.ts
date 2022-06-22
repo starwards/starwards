@@ -8,6 +8,7 @@ export type RadarModel = {
 };
 export type ThrusterModel = {
     angle: ShipDirectionConfig;
+    maxAngleError: number;
     capacity: number;
     energyCost: number;
     speedFactor: number;

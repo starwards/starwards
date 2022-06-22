@@ -3,10 +3,10 @@ import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
 import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
 
-import { BaseApi } from './driver/utils';
+import { BaseApi } from '../driver/utils';
 import { Container } from 'golden-layout';
-import { DriverNumericApi } from './driver';
-import { EmitterLoop } from './loop';
+import { DriverNumericApi } from '../driver';
+import { EmitterLoop } from '../loop';
 import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
 
 export type TextProperty = {

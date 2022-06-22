@@ -31,7 +31,7 @@ export class Thruster extends Schema {
     constants!: MapSchema<number>;
 
     get broken(): boolean {
-        return this.availableCapacity === 0 || this.angleError >= 45 || this.angleError <= -45;
+        return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.maxAngleError;
     }
     // dps at which there's 50% chance of system damage
     get damage50(): number {
@@ -52,6 +52,9 @@ export class Thruster extends Schema {
      */
     get angle(): ShipDirection {
         return getConstant(this, 'angle');
+    }
+    get maxAngleError(): ShipDirection {
+        return getConstant(this, 'maxAngleError');
     }
     get capacity(): number {
         return this.broken ? 0 : getConstant(this, 'capacity');
