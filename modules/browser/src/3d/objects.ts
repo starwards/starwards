@@ -1,15 +1,16 @@
-import { SpaceObject, State, degToRad } from '@starwards/model';
+import { SpaceObject, degToRad } from '@starwards/model';
 import { TransformNode, Vector3 } from '@babylonjs/core';
 
 import { Meshes } from './meshes';
+import { SpaceDriver } from '../driver';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();
-    constructor(spaceState: State<'space'>, private meshes: Meshes, private shipId: string) {
-        spaceState.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        spaceState.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
+    constructor(driver: SpaceDriver, private meshes: Meshes, private shipId: string) {
+        driver.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
+        driver.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
 
-        for (const spaceObject of spaceState) {
+        for (const spaceObject of driver.state) {
             this.onNewSpaceObject(spaceObject);
         }
     }

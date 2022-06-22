@@ -1,6 +1,5 @@
 import { BaseEventsApi, EventApi } from '../driver/utils';
 import { Destructor, SpaceObject } from '@starwards/model';
-import { DriverNumericApi, SpaceDriver } from '../driver';
 import {
     FolderApi,
     InputParams,
@@ -11,6 +10,9 @@ import {
     TextApi,
     TextBladeParams,
 } from 'tweakpane';
+
+import { DriverNumericApi } from '../driver';
+import { SpaceDriver } from '../driver/space';
 
 export function addSliderBlade<T>(
     guiFolder: FolderApi,
@@ -121,9 +123,35 @@ export function addInput<K extends keyof SpaceObject>(
             }
         }
     };
-    spaceDriver.state.events.on(subject.id, stateListener);
+    spaceDriver.events.on(subject.id, stateListener);
     cleanup(() => {
         guiController.dispose();
-        spaceDriver.state.events.removeListener(subject.id, stateListener);
+        spaceDriver.events.removeListener(subject.id, stateListener);
+    });
+}
+
+export type InputBladeParams = Partial<InputParams> & { label: string };
+export function addInputBlade(
+    guiFolder: FolderApi,
+    api: BaseEventsApi<unknown>,
+    params: InputBladeParams,
+    cleanup: (d: Destructor) => void
+) {
+    const viewModel: Record<string, unknown> = {};
+    const { label } = params;
+    viewModel[label] = api.getValue();
+    const guiController = guiFolder.addInput(viewModel, label, params);
+    const removeStateListener = api.onChange(() => {
+        viewModel[label] = api.getValue();
+        guiController.refresh();
+    });
+    guiController.on('change', (e) => {
+        if (e.value !== viewModel[label]) {
+            api.setValue(e.value);
+        }
+    });
+    cleanup(() => {
+        guiController.dispose();
+        removeStateListener();
     });
 }

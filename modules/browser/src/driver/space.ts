@@ -1,10 +1,15 @@
-import { GameRoom, SpaceObject, cmdSender, spaceProperties } from '@starwards/model';
+import { GameRoom, SpaceObject, SpaceState, cmdSender, spaceProperties } from '@starwards/model';
 
+import EventEmitter from 'eventemitter3';
 import { SelectionContainer } from '../radar/selection-container';
 
+export type SpaceDriver = ReturnType<typeof SpaceDriver>;
+
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
+    const events = wireEvents(spaceRoom.state);
     const spaceDriver = {
-        get state() {
+        events,
+        get state(): SpaceState {
             return spaceRoom.state;
         },
         waitForObjecr(id: string): Promise<SpaceObject> {
@@ -15,11 +20,11 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                 return new Promise((res) => {
                     const tracker = (spaceObject: SpaceObject) => {
                         if (spaceObject.id === id) {
-                            spaceDriver.state.events.removeListener('add', tracker);
+                            events.removeListener('add', tracker);
                             res(spaceObject);
                         }
                     };
-                    spaceDriver.state.events.addListener('add', tracker);
+                    events.addListener('add', tracker);
                 });
             }
         },
@@ -47,4 +52,27 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         },
     };
     return spaceDriver;
+}
+function wireEvents(state: SpaceState) {
+    const events = new EventEmitter();
+    const collections = [state.cannonShells, state.asteroids, state.spaceships, state.explosions];
+    const onAdd = (so: SpaceObject) => events.emit('add', so);
+    const onRemove = (so: SpaceObject) => events.emit('remove', so);
+    for (const c of collections) {
+        c.onAdd = onAdd;
+        c.onRemove = onRemove;
+    }
+    events.on('add', (so: SpaceObject) => {
+        so.onChange = (changes) => {
+            if (so.destroyed) {
+                onRemove(so);
+            }
+            for (const { field } of changes) {
+                events.emit(so.id, field);
+            }
+        };
+        so.position.onChange = (_) => events.emit(so.id, 'position');
+        so.velocity.onChange = (_) => events.emit(so.id, 'velocity');
+    });
+    return events;
 }

@@ -1,5 +1,7 @@
 import { Circle, System } from 'detect-collisions';
-import { Faction, SpaceObject, SpaceState, XY } from '@starwards/model';
+import { Faction, SpaceObject, XY } from '@starwards/model';
+
+import { SpaceDriver } from '../../driver';
 import { TrackObjects } from './track-objects';
 
 export class RadarRangeFilter {
@@ -13,13 +15,13 @@ export class RadarRangeFilter {
     private destroyRange = (r: Circle) => this.collisions.remove(r);
     private shouldTrack = (o: SpaceObject) => o.faction === this.faction;
     public radarRanges = new TrackObjects<Circle>(
-        this.spaceState,
+        this.spaceDriver,
         this.createRange,
         this.updateRange,
         this.destroyRange,
         this.shouldTrack
     );
-    constructor(private spaceState: SpaceState, private faction: Faction) {}
+    constructor(private spaceDriver: SpaceDriver, private faction: Faction) {}
 
     public update = () => {
         this.radarRanges.update();

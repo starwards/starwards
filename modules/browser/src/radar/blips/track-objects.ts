@@ -1,15 +1,16 @@
-import { SpaceObject, SpaceState } from '@starwards/model';
+import { SpaceDriver } from '../../driver';
+import { SpaceObject } from '@starwards/model';
 
 export class TrackObjects<C> {
     public contexts = new Map<string, C>();
     constructor(
-        private spaceState: SpaceState,
+        private spaceDriver: SpaceDriver,
         private createCtx: (object: SpaceObject) => C,
         private updateCtx: (object: SpaceObject, ctx: C) => void,
         private destroyCtx: (ctx: C) => void,
         private shouldTrack = (_object: SpaceObject) => true
     ) {
-        spaceState.events.on('remove', this.stopTracking);
+        spaceDriver.events.on('remove', this.stopTracking);
     }
 
     private stopTracking = (destroyed: SpaceObject) => {
@@ -21,7 +22,7 @@ export class TrackObjects<C> {
     };
 
     public update = () => {
-        for (const object of this.spaceState) {
+        for (const object of this.spaceDriver.state) {
             if (this.shouldTrack(object)) {
                 const context = this.contexts.get(object.id);
                 if (context) {

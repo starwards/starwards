@@ -68,7 +68,7 @@ export class GmWidgets {
                 };
                 const blipLayer = new ObjectsLayer(
                     root,
-                    spaceDriver.state,
+                    spaceDriver,
                     64,
                     getColor,
                     tacticalDrawFunctions,
@@ -77,7 +77,7 @@ export class GmWidgets {
                 for (let faction = 0; faction < Faction.factionCount; faction++) {
                     const radarRangeLayer = new ObjectsLayer(
                         root,
-                        spaceDriver.state,
+                        spaceDriver,
                         64,
                         getColor,
                         rangeRangeDrawFunctions,
@@ -102,6 +102,6 @@ export class GmWidgets {
             component: GmRadarComponent,
         };
         this.tweak = tweakWidget(driver, selectionContainer);
-        void driver.getSpaceDriver().then((spaceDriver) => selectionContainer.init(spaceDriver.state));
+        void driver.getSpaceDriver().then((spaceDriver) => selectionContainer.init(spaceDriver));
     }
 }

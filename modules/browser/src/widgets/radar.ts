@@ -52,12 +52,12 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
             });
             void spaceDriver
                 .waitForObjecr(shipDriver.id)
-                .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.state.events));
+                .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.events));
             Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
                 const radarRangeLayer = new ObjectsLayer(
                     root,
-                    spaceDriver.state,
+                    spaceDriver,
                     64,
                     () => radarVisibleBg,
                     rangeRangeDrawFunctions,
@@ -67,11 +67,11 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 root.addLayer(radarRangeLayer.renderRoot);
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
-                const rangeFilter = new RadarRangeFilter(spaceDriver.state, shipDriver.faction.getValue());
+                const rangeFilter = new RadarRangeFilter(spaceDriver, shipDriver.faction.getValue());
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
                 const blipLayer = new ObjectsLayer(
                     root,
-                    spaceDriver.state,
+                    spaceDriver,
                     64,
                     (s: SpaceObject) => {
                         if (s.faction === Faction.none) return yellow;
@@ -79,7 +79,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                         return red;
                     },
                     dradisDrawFunctions,
-                    new SelectionContainer().init(spaceDriver.state),
+                    new SelectionContainer().init(spaceDriver),
                     rangeFilter.isInRange
                 );
                 root.addLayer(blipLayer.renderRoot);
