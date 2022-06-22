@@ -91,13 +91,14 @@ export function wrapNumericProperty<P>(
     };
 }
 
-export function wrapNormalNumericProperty(
+export function wrapNormalNumericProperty<P>(
     shipRoom: GameRoom<'ship'>,
-    p: NormalNumericStateProperty<ShipState, void>
+    p: NormalNumericStateProperty<ShipState, P>,
+    path: P
 ): DriverNormalNumericApi {
     let setValue: (v: number | boolean) => unknown = noop;
     if (isStatePropertyCommand(p)) {
-        const sender = cmdSender(shipRoom, p, undefined);
+        const sender = cmdSender(shipRoom, p, path);
         setValue = (v: number | boolean) => {
             if (v === true) return sender(1);
             if (v === false) return sender(0);
@@ -105,7 +106,7 @@ export function wrapNormalNumericProperty(
         };
     }
     return {
-        getValue: () => p.getValue(shipRoom.state),
+        getValue: () => p.getValue(shipRoom.state, path),
         range: [0, 1],
         setValue,
     };

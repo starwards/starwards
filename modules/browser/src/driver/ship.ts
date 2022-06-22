@@ -126,7 +126,7 @@ export class ThrustersDriver {
                     `thrusters.${index}.angle`
                 ),
                 availableCapacity: addEventsApi(
-                    wrapNumericProperty(this.shipRoom, shipProperties.thrusterAvailableCapacity, index),
+                    wrapNormalNumericProperty(this.shipRoom, shipProperties.thrusterAvailableCapacity, index),
                     this.events,
                     `thrusters.${index}.availableCapacity`
                 ),
@@ -218,10 +218,10 @@ function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
         speed: wrapNumericProperty(shipRoom, shipProperties.speed, undefined),
         chainGunCooldown: wrapNumericProperty(shipRoom, shipProperties.chainGunCoolDown, undefined),
         chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
-        rotationTargetOffset: wrapNormalNumericProperty(shipRoom, shipProperties.rotationTargetOffset),
-        afterBurner: wrapNormalNumericProperty(shipRoom, shipProperties.afterBurner),
-        antiDrift: wrapNormalNumericProperty(shipRoom, shipProperties.antiDrift),
-        breaks: wrapNormalNumericProperty(shipRoom, shipProperties.breaks),
+        rotationTargetOffset: wrapNormalNumericProperty(shipRoom, shipProperties.rotationTargetOffset, undefined),
+        afterBurner: wrapNormalNumericProperty(shipRoom, shipProperties.afterBurner, undefined),
+        antiDrift: wrapNormalNumericProperty(shipRoom, shipProperties.antiDrift, undefined),
+        breaks: wrapNormalNumericProperty(shipRoom, shipProperties.breaks, undefined),
         targeted: wrapStringStateProperty(shipRoom, shipProperties.targeted),
         chainGunIsFiring: wrapIteratorStateProperty(shipRoom, shipProperties.chainGunIsFiring, undefined),
         target: wrapIteratorStateProperty(shipRoom, shipProperties.target, undefined),

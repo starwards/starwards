@@ -2,7 +2,7 @@ import * as types from './properties';
 
 import { MapSchema, Schema } from '@colyseus/schema';
 
-export function StateProperty<T, S extends Schema, P>(
+export function StateProperty<T, S extends Schema, P = void>(
     getValue: (state: S, path: P) => T
 ): types.StateProperty<T, S, P> {
     return { getValue };
@@ -13,39 +13,36 @@ export function PropertyCommand<T, S extends Schema>(
 ): types.StateCommand<T, S, void> {
     return { cmdName, setValue };
 }
-export function StatePropertyCommand<T, S extends Schema, P>(
+export function StatePropertyCommand<T, S extends Schema, P = void>(
     cmdName: string,
     setValue: (state: S, value: T, path: P) => unknown,
     getValue: (state: S, path: P) => T
 ): types.StatePropertyCommand<T, S, P> {
     return { cmdName, setValue, getValue };
 }
-export function NumericStateProperty<S extends Schema, P>(
+export function NumericStateProperty<S extends Schema, P = void>(
     getValue: (state: S, path: P) => number,
     range: [number, number] | ((state: S, path: P) => [number, number])
-): types.NumericStateProperty<S, void> {
+): types.NumericStateProperty<S, P> {
     return { getValue, range };
 }
-export function NumericStatePropertyCommand<S extends Schema, P>(
+export function NumericStatePropertyCommand<S extends Schema, P = void>(
     cmdName: string,
     setValue: (state: S, value: number, path: P) => unknown,
     getValue: (state: S, path: P) => number,
-    range: [number, number] | ((state: S) => [number, number])
+    range: [number, number] | ((state: S, path: P) => [number, number])
 ): types.NumericStatePropertyCommand<S, P> {
     return { cmdName, setValue, getValue, range };
 }
-export function NormalNumericStatePropertyCommand<S extends Schema>(
+export function NormalNumericStatePropertyCommand<S extends Schema, P = void>(
     cmdName: string,
-    setValue: (state: S, value: number) => unknown,
-    getValue: (state: S) => number
+    setValue: (state: S, value: number, path: P) => unknown,
+    getValue: (state: S, path: P) => number
 ) {
-    return NumericStatePropertyCommand(cmdName, setValue, getValue, [0, 1]) as types.NumericStatePropertyCommand<
-        S,
-        void
-    > &
-        types.NormalNumericStateProperty<S, void>;
+    return NumericStatePropertyCommand(cmdName, setValue, getValue, [0, 1]) as types.NumericStatePropertyCommand<S, P> &
+        types.NormalNumericStateProperty<S, P>;
 }
-export function IteratorStatePropertyCommand<S extends Schema, P>(
+export function IteratorStatePropertyCommand<S extends Schema, P = void>(
     cmdName: string,
     setValue: (state: S, value: boolean, path: P) => unknown,
     getValue: (state: S, path: P) => string
