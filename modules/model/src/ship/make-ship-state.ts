@@ -57,7 +57,6 @@ function makeShip(id: string, properties: ShipPropertiesModel) {
     setConstant(state, 'rotationCapacity', properties.rotationCapacity);
     setConstant(state, 'rotationEnergyCost', properties.rotationEnergyCost);
     setConstant(state, 'maxSpeeFromAfterBurner', properties.maxSpeeFromAfterBurner);
-    setConstant(state, 'numberOfShipRegions', properties.numberOfShipRegions);
     setConstant(state, 'maxChainGunAmmo', properties.maxChainGunAmmo);
     state.chainGunAmmo = state.maxChainGunAmmo;
     return state;

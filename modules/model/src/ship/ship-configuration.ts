@@ -41,7 +41,6 @@ export type ShipPropertiesModel = {
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxSpeeFromAfterBurner: number;
-    numberOfShipRegions: number;
     maxChainGunAmmo: number;
 };
 

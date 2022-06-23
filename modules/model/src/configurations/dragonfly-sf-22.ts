@@ -44,7 +44,6 @@ export const dragonflyProperties = {
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
     maxSpeeFromAfterBurner: 300,
-    numberOfShipRegions: 2,
     maxChainGunAmmo: 3600,
 };
 export const dragonflySmartPilot = {
