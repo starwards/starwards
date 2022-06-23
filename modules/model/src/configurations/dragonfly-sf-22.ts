@@ -38,17 +38,11 @@ export const dragonflyChaingun = {
 export const dragonflyProperties = {
     energyPerSecond: 5,
     maxEnergy: 1000,
-    maxAfterBurner: 5000,
+    maxAfterBurnerFuel: 5000,
     afterBurnerCharge: 20,
     afterBurnerEnergyCost: 0.07,
-    rotationCapacity: 50,
+    rotationCapacity: 25,
     rotationEnergyCost: 0.07,
-    antiDriftEffectFactor: 1,
-    breaksEffectFacto: 1,
-    rotationEffectFactor: 0.5,
-    maxSpeed: 300,
-    maxSpeeFromAfterBurner: 300,
-    numberOfShipRegions: 2,
     maxChainGunAmmo: 3600,
 };
 export const dragonflySmartPilot = {
@@ -57,6 +51,8 @@ export const dragonflySmartPilot = {
     maxTurnSpeed: 90,
     offsetBrokenThreshold: 0.6,
     damage50: 90,
+    maxSpeed: 300,
+    maxSpeedFromAfterBurner: 300,
 };
 export const dragonflySF22: ShipModel = {
     properties: dragonflyProperties,

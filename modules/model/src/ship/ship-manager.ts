@@ -546,9 +546,9 @@ export class ShipManager {
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.afterBurnerFuel < this.state.maxAfterBurner) {
+        if (this.state.afterBurnerFuel < this.state.maxAfterBurnerFuel) {
             const speedToChange = Math.min(
-                this.state.maxAfterBurner - this.state.afterBurnerFuel,
+                this.state.maxAfterBurnerFuel - this.state.afterBurnerFuel,
                 this.state.afterBurnerCharge * deltaSeconds
             );
             if (this.trySpendEnergy(speedToChange * this.state.afterBurnerEnergyCost)) {
@@ -693,7 +693,7 @@ export class ShipManager {
             const rotateFactor = this.state.rotation * deltaSeconds;
             const enginePower = rotateFactor * this.state.rotationCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
-                speedToChange += enginePower * this.state.rotationEffectFactor;
+                speedToChange += enginePower;
             }
             this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);
         }

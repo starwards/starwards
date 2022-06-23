@@ -7,7 +7,7 @@ import { vector2ShipDirections } from '../ship/ship-direction';
 export type ManeuveringCommand = { strafe: number; boost: number };
 
 export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipState, targetTurnSpeed: number) {
-    return accelerateToSpeed(deltaSeconds, ship.turnSpeedCapacity, targetTurnSpeed - ship.turnSpeed);
+    return accelerateToSpeed(deltaSeconds, ship.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
 }
 
 export function matchGlobalSpeed(deltaSeconds: number, ship: ShipState, globalVelocity: XY): ManeuveringCommand {
@@ -35,7 +35,7 @@ export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: X
 
 export function rotateToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, offset: number): number {
     const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
-    return accelerateToPosition(deltaSeconds, ship.turnSpeedCapacity, ship.turnSpeed, angleDiff + offset);
+    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff + offset);
 }
 
 function calcTargetPositionDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {

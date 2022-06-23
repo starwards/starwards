@@ -51,17 +51,11 @@ function makeShip(id: string, properties: ShipPropertiesModel) {
     state.constants = new MapSchema<number>();
     setConstant(state, 'energyPerSecond', properties.energyPerSecond);
     setConstant(state, 'maxEnergy', properties.maxEnergy);
-    setConstant(state, 'maxAfterBurner', properties.maxAfterBurner);
+    setConstant(state, 'maxAfterBurnerFuel', properties.maxAfterBurnerFuel);
     setConstant(state, 'afterBurnerCharge', properties.afterBurnerCharge);
     setConstant(state, 'afterBurnerEnergyCost', properties.afterBurnerEnergyCost);
     setConstant(state, 'rotationCapacity', properties.rotationCapacity);
     setConstant(state, 'rotationEnergyCost', properties.rotationEnergyCost);
-    setConstant(state, 'antiDriftEffectFactor', properties.antiDriftEffectFactor);
-    setConstant(state, 'breaksEffectFactor', properties.breaksEffectFacto);
-    setConstant(state, 'rotationEffectFactor', properties.rotationEffectFactor);
-    setConstant(state, 'maxSpeed', properties.maxSpeed);
-    setConstant(state, 'maxSpeeFromAfterBurner', properties.maxSpeeFromAfterBurner);
-    setConstant(state, 'numberOfShipRegions', properties.numberOfShipRegions);
     setConstant(state, 'maxChainGunAmmo', properties.maxChainGunAmmo);
     state.chainGunAmmo = state.maxChainGunAmmo;
     return state;
@@ -104,6 +98,8 @@ function makeSmartPilot(smartPilotModel: SmartPilotModel) {
     setConstant(smartPilot, 'maxTurnSpeed', smartPilotModel.maxTurnSpeed);
     setConstant(smartPilot, 'offsetBrokenThreshold', smartPilotModel.offsetBrokenThreshold);
     setConstant(smartPilot, 'damage50', smartPilotModel.damage50);
+    setConstant(smartPilot, 'maxSpeed', smartPilotModel.maxSpeed);
+    setConstant(smartPilot, 'maxSpeedFromAfterBurner', smartPilotModel.maxSpeedFromAfterBurner);
     return smartPilot;
 }
 

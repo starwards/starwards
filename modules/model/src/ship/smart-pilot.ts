@@ -62,4 +62,10 @@ export class SmartPilot extends Schema {
     get broken(): boolean {
         return this.offsetFactor >= this.offsetBrokenThreshold;
     }
+    get maxSpeed() {
+        return getConstant(this, 'maxSpeed');
+    }
+    get maxSpeedFromAfterBurner() {
+        return getConstant(this, 'maxSpeedFromAfterBurner');
+    }
 }

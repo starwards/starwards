@@ -70,8 +70,8 @@ export class ShipState extends Spaceship {
     get maxEnergy(): number {
         return getConstant(this, 'maxEnergy');
     }
-    get maxAfterBurner(): number {
-        return getConstant(this, 'maxAfterBurner');
+    get maxAfterBurnerFuel(): number {
+        return getConstant(this, 'maxAfterBurnerFuel');
     }
     get afterBurnerCharge(): number {
         return getConstant(this, 'afterBurnerCharge');
@@ -88,18 +88,6 @@ export class ShipState extends Spaceship {
     get rotationEnergyCost(): number {
         return getConstant(this, 'rotationEnergyCost');
     }
-    get antiDriftEffectFactor(): number {
-        return getConstant(this, 'antiDriftEffectFactor');
-    }
-    get breaksEffectFactor(): number {
-        return getConstant(this, 'breaksEffectFactor');
-    }
-    get rotationEffectFactor(): number {
-        return getConstant(this, 'rotationEffectFactor');
-    }
-    get turnSpeedCapacity(): number {
-        return this.rotationCapacity * this.rotationEffectFactor;
-    }
     get maxChainGunAmmo(): number {
         return getConstant(this, 'maxChainGunAmmo');
     }
@@ -115,8 +103,9 @@ export class ShipState extends Spaceship {
     velocityCapacity(direction: ShipDirection) {
         return [...this.angleThrusters(direction)].reduce((s, t) => s + t.getVelocityCapacity(this), 0);
     }
+
     getMaxSpeedForAfterburner(afterBurner: number) {
-        return getConstant(this, 'maxSpeed') + afterBurner * getConstant(this, 'maxSpeeFromAfterBurner');
+        return this.smartPilot.maxSpeed + afterBurner * this.smartPilot.maxSpeedFromAfterBurner;
     }
 
     get maxSpeed() {
