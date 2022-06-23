@@ -37,7 +37,7 @@
     },
     "devDependencies": {
         "@babylonjs/gui": "5.11.0",
-        "@babylonjs/inspector": "5.11.0",
+        "@babylonjs/inspector": "5.12.0",
         "@tweakpane/core": "^1.1.0"
     }
 }
