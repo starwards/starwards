@@ -88,12 +88,6 @@ export class ShipState extends Spaceship {
     get rotationEnergyCost(): number {
         return getConstant(this, 'rotationEnergyCost');
     }
-    get rotationEffectFactor(): number {
-        return getConstant(this, 'rotationEffectFactor');
-    }
-    get turnSpeedCapacity(): number {
-        return this.rotationCapacity * this.rotationEffectFactor;
-    }
     get maxChainGunAmmo(): number {
         return getConstant(this, 'maxChainGunAmmo');
     }

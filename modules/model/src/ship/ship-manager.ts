@@ -693,7 +693,7 @@ export class ShipManager {
             const rotateFactor = this.state.rotation * deltaSeconds;
             const enginePower = rotateFactor * this.state.rotationCapacity;
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
-                speedToChange += enginePower * this.state.rotationEffectFactor;
+                speedToChange += enginePower;
             }
             this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);
         }
