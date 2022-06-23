@@ -40,7 +40,6 @@ export type ShipPropertiesModel = {
     afterBurnerEnergyCost: number;
     rotationCapacity: number;
     rotationEnergyCost: number;
-    antiDriftEffectFactor: number;
     breaksEffectFacto: number;
     rotationEffectFactor: number;
     maxSpeed: number;
