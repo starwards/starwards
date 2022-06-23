@@ -1,6 +1,6 @@
 import { BotOrder, SpaceObjectBase, XY } from '..';
+import { PropertyCommand, StatePropertyCommand } from '../api/property-constructors';
 
-import { PropertyCommand } from '../api/property-constructors';
 import { SpaceState } from '.';
 
 export type MoveObjectsArg = {
@@ -37,3 +37,11 @@ export const toggleFreeze = PropertyCommand('toggleFreeze', (state: SpaceState, 
 export const botOrder = PropertyCommand('botOrder', (state: SpaceState, value: BotOrderArg) => {
     state.botOrderCommands.push(value);
 });
+export const freeze = StatePropertyCommand(
+    'freeze',
+    (state: SpaceState, value: boolean, id: string) => {
+        const so = state.get(id);
+        if (so) so.freeze = value;
+    },
+    (state: SpaceState, id: string) => state.get(id)?.freeze || false
+);

@@ -1,12 +1,39 @@
 import { GameRoom, SpaceObject, SpaceState, cmdSender, spaceProperties } from '@starwards/model';
+import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
 import { SelectionContainer } from '../radar/selection-container';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
+function wireEvents(state: SpaceState) {
+    const events = new EventEmitter();
+    const collections = [state.cannonShells, state.asteroids, state.spaceships, state.explosions];
+    const onAdd = (so: SpaceObject) => events.emit('add', so);
+    const onRemove = (so: SpaceObject) => events.emit('remove', so);
+    for (const c of collections) {
+        c.onAdd = onAdd;
+        c.onRemove = onRemove;
+    }
+    events.on('add', (so: SpaceObject) => {
+        so.onChange = (changes) => {
+            if (so.destroyed) {
+                onRemove(so);
+            }
+            for (const { field } of changes) {
+                events.emit(so.id, field); // old event format
+                events.emit(so.id + '.' + field); // new event format
+            }
+        };
+        so.position.onChange = (_) => events.emit(so.id, 'position');
+        so.velocity.onChange = (_) => events.emit(so.id, 'velocity');
+    });
+    return events;
+}
+
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
     const events = wireEvents(spaceRoom.state);
+
     const spaceDriver = {
         events,
         get state(): SpaceState {
@@ -27,6 +54,12 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                     events.addListener('add', tracker);
                 });
             }
+        },
+        getObjectApi(id: string) {
+            return {
+                id,
+                freeze: addEventsApi(wrapStateProperty(spaceRoom, spaceProperties.freeze, id), events, `${id}.freeze`),
+            };
         },
         commandMoveObjects: cmdSender(spaceRoom, spaceProperties.moveObjects, undefined),
         commandRotateObjects: cmdSender(spaceRoom, spaceProperties.rotateObjects, undefined),
@@ -52,27 +85,4 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         },
     };
     return spaceDriver;
-}
-function wireEvents(state: SpaceState) {
-    const events = new EventEmitter();
-    const collections = [state.cannonShells, state.asteroids, state.spaceships, state.explosions];
-    const onAdd = (so: SpaceObject) => events.emit('add', so);
-    const onRemove = (so: SpaceObject) => events.emit('remove', so);
-    for (const c of collections) {
-        c.onAdd = onAdd;
-        c.onRemove = onRemove;
-    }
-    events.on('add', (so: SpaceObject) => {
-        so.onChange = (changes) => {
-            if (so.destroyed) {
-                onRemove(so);
-            }
-            for (const { field } of changes) {
-                events.emit(so.id, field);
-            }
-        };
-        so.position.onChange = (_) => events.emit(so.id, 'position');
-        so.velocity.onChange = (_) => events.emit(so.id, 'velocity');
-    });
-    return events;
 }

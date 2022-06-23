@@ -1,7 +1,7 @@
 import { Destructor, Destructors, ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
 import { Driver, SpaceDriver } from '../driver';
 import { FolderApi, Pane } from 'tweakpane';
-import { addInput, addSliderBlade, addTextBlade } from '../panel';
+import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
@@ -26,22 +26,15 @@ const singleSelectionDetails = async (
     guiFolder: FolderApi,
     cleanup: (d: Destructor) => void
 ) => {
+    const api = spaceDriver.getObjectApi(subject.id);
     guiFolder.addInput(subject, 'id', { disabled: true });
-    addInput(
-        guiFolder,
-        subject,
-        'freeze',
-        {},
-        (_newValue: boolean) => spaceDriver.commandToggleFreeze({ ids: [subject.id] }),
-        spaceDriver,
-        cleanup
-    );
+    addInputBlade(guiFolder, api.freeze, { label: 'Freeze' }, cleanup);
 
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
         const armorFolder = guiFolder.addFolder({
             title: `Armor`,
-            expanded: true,
+            expanded: false,
         });
         cleanup(() => {
             armorFolder.dispose();
@@ -67,7 +60,7 @@ const singleSelectionDetails = async (
         for (const thruster of shipDriver.thrusters) {
             const thrusterFolder = guiFolder.addFolder({
                 title: `Thruster ${thruster.index} (${ShipDirection[thruster.angle.getValue()]})`,
-                expanded: true,
+                expanded: false,
             });
             cleanup(() => {
                 thrusterFolder.dispose();

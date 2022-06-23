@@ -5,8 +5,9 @@ import $ from 'jquery';
 import { BaseApi } from '../driver/utils';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { RoomName } from '@starwards/model';
 
-function addMapToPanel(panel: Panel, p: NumberMapDriver) {
+function addMapToPanel<R extends RoomName, P>(panel: Panel, p: NumberMapDriver<R, P>) {
     const initConst = (name: string, api: BaseApi<number>) => {
         panel.addConfig(name, api);
     };

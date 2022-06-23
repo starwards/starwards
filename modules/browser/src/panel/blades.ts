@@ -1,5 +1,4 @@
 import { BaseEventsApi, EventApi } from '../driver/utils';
-import { Destructor, SpaceObject } from '@starwards/model';
 import {
     FolderApi,
     InputParams,
@@ -11,9 +10,13 @@ import {
     TextBladeParams,
 } from 'tweakpane';
 
+import { Destructor } from '@starwards/model';
 import { DriverNumericApi } from '../driver';
-import { SpaceDriver } from '../driver/space';
 
+/*
+    This module was written after ./property-panel
+    This is the module to use to creatte new panels
+*/
 export function addSliderBlade<T>(
     guiFolder: FolderApi,
     api: DriverNumericApi & EventApi,
@@ -97,56 +100,23 @@ export function addEnumListBlade<T>(
     });
 }
 
-export function addInput<K extends keyof SpaceObject>(
+export type InputBladeParams = { label: string } & Partial<InputParams>;
+export function addInputBlade<T>(
     guiFolder: FolderApi,
-    subject: SpaceObject,
-    propertyName: K,
-    params: InputParams,
-    setValue: (_newValue: SpaceObject[K]) => void,
-    spaceDriver: SpaceDriver,
-    cleanup: (d: Destructor) => void
-) {
-    const guiController = guiFolder.addInput(subject, propertyName, params);
-    let lastValue = subject[propertyName];
-    guiController.on('change', (e) => {
-        const newValue = e.value;
-        if (newValue !== lastValue) {
-            setValue(newValue);
-        }
-    });
-    const stateListener = (field: string) => {
-        if (field === propertyName) {
-            const newValue = subject[propertyName];
-            if (newValue !== lastValue) {
-                lastValue = newValue;
-                guiController.refresh();
-            }
-        }
-    };
-    spaceDriver.events.on(subject.id, stateListener);
-    cleanup(() => {
-        guiController.dispose();
-        spaceDriver.events.removeListener(subject.id, stateListener);
-    });
-}
-
-export type InputBladeParams = Partial<InputParams> & { label: string };
-export function addInputBlade(
-    guiFolder: FolderApi,
-    api: BaseEventsApi<unknown>,
+    api: BaseEventsApi<T>,
     params: InputBladeParams,
     cleanup: (d: Destructor) => void
 ) {
-    const viewModel: Record<string, unknown> = {};
+    const viewModel: Record<string, T> = {};
     const { label } = params;
-    viewModel[label] = api.getValue();
+    let lastValue = (viewModel[label] = api.getValue());
     const guiController = guiFolder.addInput(viewModel, label, params);
     const removeStateListener = api.onChange(() => {
-        viewModel[label] = api.getValue();
+        lastValue = viewModel[label] = api.getValue();
         guiController.refresh();
     });
     guiController.on('change', (e) => {
-        if (e.value !== viewModel[label]) {
+        if (e.value !== lastValue) {
             api.setValue(e.value);
         }
     });
