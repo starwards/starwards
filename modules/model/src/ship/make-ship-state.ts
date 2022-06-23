@@ -56,7 +56,6 @@ function makeShip(id: string, properties: ShipPropertiesModel) {
     setConstant(state, 'afterBurnerEnergyCost', properties.afterBurnerEnergyCost);
     setConstant(state, 'rotationCapacity', properties.rotationCapacity);
     setConstant(state, 'rotationEnergyCost', properties.rotationEnergyCost);
-    setConstant(state, 'breaksEffectFactor', properties.breaksEffectFacto);
     setConstant(state, 'rotationEffectFactor', properties.rotationEffectFactor);
     setConstant(state, 'maxSpeed', properties.maxSpeed);
     setConstant(state, 'maxSpeeFromAfterBurner', properties.maxSpeeFromAfterBurner);

@@ -88,9 +88,6 @@ export class ShipState extends Spaceship {
     get rotationEnergyCost(): number {
         return getConstant(this, 'rotationEnergyCost');
     }
-    get breaksEffectFactor(): number {
-        return getConstant(this, 'breaksEffectFactor');
-    }
     get rotationEffectFactor(): number {
         return getConstant(this, 'rotationEffectFactor');
     }

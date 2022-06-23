@@ -43,7 +43,6 @@ export const dragonflyProperties = {
     afterBurnerEnergyCost: 0.07,
     rotationCapacity: 50,
     rotationEnergyCost: 0.07,
-    breaksEffectFacto: 1,
     rotationEffectFactor: 0.5,
     maxSpeed: 300,
     maxSpeeFromAfterBurner: 300,
