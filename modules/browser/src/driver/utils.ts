@@ -5,7 +5,8 @@ import {
     MappedPropertyCommand,
     NormalNumericStateProperty,
     NumericStateProperty,
-    ShipState,
+    RoomName,
+    State,
     StateProperty,
     cmdSender,
     isStatePropertyCommand,
@@ -31,7 +32,9 @@ export type BaseApi<T> = {
     getValue: () => T;
     setValue: (v: T) => unknown;
 };
-
+export type ReadApi<T> = {
+    getValue: () => T;
+};
 export type EventApi = {
     onChange: (cb: () => unknown) => Destructor;
 };
@@ -41,9 +44,9 @@ export type TriggerApi = {
     setValue: (v: boolean) => unknown;
 };
 
-export function wrapStateProperty<T, P>(
-    shipRoom: GameRoom<'ship'>,
-    p: StateProperty<T, ShipState, P>,
+export function wrapStateProperty<T, R extends RoomName, P>(
+    shipRoom: GameRoom<R>,
+    p: StateProperty<T, State<R>, P>,
     path: P
 ): BaseApi<T> {
     return {
@@ -52,35 +55,27 @@ export function wrapStateProperty<T, P>(
     };
 }
 
-export function addEventsApi<T, A extends { getValue: () => T }>(
-    api: A,
-    events: EventEmitter,
-    eventName: string
-): A & EventApi {
+export function addEventsApi<T, A extends ReadApi<T>>(api: A, events: EventEmitter, eventName: string): A & EventApi {
     return {
         ...api,
-        onChange: makeOnChange<T>(events, eventName, api.getValue),
+        onChange: (cb: () => unknown) => {
+            let lastValue = api.getValue();
+            const listener = () => {
+                const newValue = api.getValue();
+                if (newValue !== lastValue) {
+                    lastValue = newValue;
+                    cb();
+                }
+            };
+            events.on(eventName, listener);
+            return () => events.off(eventName, listener);
+        },
     };
 }
 
-function makeOnChange<T>(events: EventEmitter, eventName: string, getValue: () => T) {
-    return (cb: () => unknown) => {
-        let lastValue = getValue();
-        const listener = () => {
-            const newValue = getValue();
-            if (newValue !== lastValue) {
-                lastValue = newValue;
-                cb();
-            }
-        };
-        events.on(eventName, listener);
-        return () => events.off(eventName, listener);
-    };
-}
-
-export function wrapNumericProperty<P>(
-    shipRoom: GameRoom<'ship'>,
-    p: NumericStateProperty<ShipState, P>,
+export function wrapNumericProperty<R extends RoomName, P>(
+    shipRoom: GameRoom<R>,
+    p: NumericStateProperty<State<R>, P>,
     path: P
 ): DriverNumericApi {
     const range = typeof p.range === 'function' ? p.range(shipRoom.state, path) : p.range;
@@ -91,9 +86,9 @@ export function wrapNumericProperty<P>(
     };
 }
 
-export function wrapNormalNumericProperty<P>(
-    shipRoom: GameRoom<'ship'>,
-    p: NormalNumericStateProperty<ShipState, P>,
+export function wrapNormalNumericProperty<R extends RoomName, P>(
+    shipRoom: GameRoom<R>,
+    p: NormalNumericStateProperty<State<R>, P>,
     path: P
 ): DriverNormalNumericApi {
     let setValue: (v: number | boolean) => unknown = noop;
@@ -112,9 +107,9 @@ export function wrapNormalNumericProperty<P>(
     };
 }
 
-export function wrapIteratorStateProperty<P>(
-    shipRoom: GameRoom<'ship'>,
-    p: IteratorStatePropertyCommand<ShipState, P>,
+export function wrapIteratorStateProperty<R extends RoomName, P>(
+    shipRoom: GameRoom<R>,
+    p: IteratorStatePropertyCommand<State<R>, P>,
     path: P
 ): TriggerApi {
     return {
@@ -123,21 +118,22 @@ export function wrapIteratorStateProperty<P>(
     };
 }
 
-export function wrapStringStateProperty(
-    shipRoom: GameRoom<'ship'>,
-    p: StateProperty<string, ShipState, void>
+export function wrapStringStateProperty<R extends RoomName, P>(
+    shipRoom: GameRoom<R>,
+    p: StateProperty<string, State<R>, P>,
+    path: P
 ): TriggerApi {
     return {
-        getValue: () => p.getValue(shipRoom.state),
+        getValue: () => p.getValue(shipRoom.state, path),
         setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
     };
 }
 
-export class NumberMapDriver {
+export class NumberMapDriver<R extends RoomName, P> {
     private _map: MapSchema<number>;
     public map: Map<string, number>;
-    constructor(private shipRoom: GameRoom<'ship'>, private p: MappedPropertyCommand<ShipState, void>) {
-        this.map = this._map = p.getValue(shipRoom.state);
+    constructor(private shipRoom: GameRoom<R>, private p: MappedPropertyCommand<State<R>, P>, path: P) {
+        this.map = this._map = p.getValue(shipRoom.state, path);
     }
     private getValue(name: string) {
         const val = this.map.get(name);

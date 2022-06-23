@@ -61,23 +61,6 @@ export class SpaceManager {
         }
     }
 
-    private rotateObjects(ids: string[], delta: number) {
-        for (const id of ids) {
-            const subject = this.state.get(id);
-            if (subject && !subject.destroyed) {
-                subject.angle = (360 + subject.angle + delta) % 360;
-            }
-        }
-    }
-
-    private toggleFreezeObjects(ids: string[]) {
-        const allObjects = this.state.getBatch(ids);
-        const isAllFrozen = allObjects.every((so) => so.freeze);
-        for (const subject of allObjects) {
-            subject.freeze = !isAllFrozen;
-        }
-    }
-
     // batch changes to map indexes to save i/o
     private gc() {
         this.untrackDestroyedObjects();
@@ -95,14 +78,6 @@ export class SpaceManager {
             this.moveObjects(moveCommand.ids, moveCommand.delta);
         }
         this.state.moveCommands = [];
-
-        for (const rotateCommand of this.state.rotateCommands) {
-            this.rotateObjects(rotateCommand.ids, rotateCommand.delta);
-        }
-        this.state.rotateCommands = [];
-
-        this.toggleFreezeObjects(this.state.toggleFreezeCommand);
-        this.state.toggleFreezeCommand = [];
 
         for (const cmd of this.state.botOrderCommands) {
             for (const id of cmd.ids) {

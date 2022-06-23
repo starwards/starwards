@@ -33,12 +33,12 @@ const sizeFactorGrace = 0.005;
 function trackObject(camera: Camera, spaceDriver: SpaceDriver, subjectId: string) {
     let tracked = spaceDriver.state.get(subjectId);
     if (tracked) {
-        camera.followSpaceObject(tracked, spaceDriver.state.events, true);
+        camera.followSpaceObject(tracked, spaceDriver.events, true);
     } else {
-        spaceDriver.state.events.on('add', (spaceObject: SpaceObject) => {
+        spaceDriver.events.on('add', (spaceObject: SpaceObject) => {
             if (!tracked && spaceObject.id === subjectId) {
                 tracked = spaceObject;
-                camera.followSpaceObject(tracked, spaceDriver.state.events, true);
+                camera.followSpaceObject(tracked, spaceDriver.events, true);
             }
         });
     }
@@ -56,7 +56,7 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 root.setSquare();
                 const radarRangeLayer = new ObjectsLayer(
                     root,
-                    spaceDriver.state,
+                    spaceDriver,
                     64,
                     () => radarVisibleBg,
                     rangeRangeDrawFunctions,
@@ -89,14 +89,14 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                     () => degToRad * -shipDriver.state.angle
                 );
                 root.addLayer(asimuthCircle.renderRoot);
-                const shipTarget = trackTargetObject(spaceDriver.state, shipDriver);
+                const shipTarget = trackTargetObject(spaceDriver, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
                 root.addLayer(speedLines(root, shipDriver.state, shipTarget));
-                const rangeFilter = new RadarRangeFilter(spaceDriver.state, shipDriver.faction.getValue());
+                const rangeFilter = new RadarRangeFilter(spaceDriver, shipDriver.faction.getValue());
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
                 const blipLayer = new ObjectsLayer(
                     root,
-                    spaceDriver.state,
+                    spaceDriver,
                     32,
                     () => green,
                     tacticalDrawFunctions,

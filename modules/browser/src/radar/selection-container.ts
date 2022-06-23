@@ -1,6 +1,6 @@
-import { SpaceObject, SpaceState } from '@starwards/model';
-
 import EventEmitter from 'eventemitter3';
+import { SpaceDriver } from '../driver';
+import { SpaceObject } from '@starwards/model';
 
 export class SelectionContainer {
     /**
@@ -17,8 +17,8 @@ export class SelectionContainer {
         return [...this.selectedItems].map((o) => o.id);
     }
 
-    init(space: SpaceState) {
-        space.events.on('remove', (spaceObject: SpaceObject) => {
+    init(spaceDriver: SpaceDriver) {
+        spaceDriver.events.on('remove', (spaceObject: SpaceObject) => {
             if (this.selectedItems.delete(spaceObject)) {
                 this.events.emit(spaceObject.id);
                 this.events.emit('changed');

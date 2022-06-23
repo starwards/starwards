@@ -1,8 +1,9 @@
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
 import { ObjectGraphics, ObjectRendererCtor } from './object-graphics';
-import { SpaceObject, SpaceObjects, State } from '@starwards/model';
+import { SpaceObject, SpaceObjects } from '@starwards/model';
 
 import { CameraView } from '../camera-view';
+import { SpaceDriver } from '../../driver';
 import { TrackObjects } from './track-objects';
 
 export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
@@ -33,7 +34,7 @@ export class ObjectsLayer {
         !o.destroyed && !!this.drawFunctions[o.type] && (!this.filter || this.filter(o));
 
     public graphics = new TrackObjects<ObjectGraphics>(
-        this.spaceState,
+        this.spaceDriver,
         this.createGraphics,
         this.updateGraphics,
         this.destroyGraphics,
@@ -42,7 +43,7 @@ export class ObjectsLayer {
 
     constructor(
         private parent: CameraView,
-        private spaceState: State<'space'>,
+        private spaceDriver: SpaceDriver,
         private blipSize: number,
         private getColor: (s: SpaceObject) => number,
         private drawFunctions: DrawFunctions,

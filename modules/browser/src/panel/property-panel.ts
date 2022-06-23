@@ -9,6 +9,13 @@ import { DriverNumericApi } from '../driver';
 import { EmitterLoop } from '../loop';
 import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
 
+/*
+    This module was written originally for the Dat.gui API.
+    Since then it was adapted to tweakpane. 
+    It is deprecated. 
+    for new panels use ./blades.ts instead
+*/
+
 export type TextProperty = {
     getValue: () => string;
     setValue: (v: boolean) => unknown;

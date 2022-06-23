@@ -1,20 +1,19 @@
+import { RoomName, schemaClasses } from '@starwards/model';
 import { DriverNumericApi as _DriverNumericApi, NumberMapDriver as _NumberMapDriver } from './utils';
 
 import { AdminDriver } from './admin';
 import { Client } from 'colyseus.js';
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
-import { schemaClasses } from '@starwards/model';
 
+export { SpaceDriver } from './space';
 export { ShipDriver } from './ship';
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
 export type DriverNumericApi = _DriverNumericApi;
-export type NumberMapDriver = _NumberMapDriver;
+export type NumberMapDriver<R extends RoomName, P> = _NumberMapDriver<R, P>;
 
 export type AdminDriver = ReturnType<typeof AdminDriver>;
-
-export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

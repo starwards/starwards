@@ -1,10 +1,9 @@
-import { BotOrderArg, MoveObjectsArg, RotataObjectsArg } from './space-properties';
+import { BulkBotOrderArg, BulkMoveArg } from './space-properties';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { SpaceObject, SpaceObjectBase, SpaceObjects } from '.';
+import { SpaceObject, SpaceObjects } from '.';
 
 import { Asteroid } from './asteroid';
 import { CannonShell } from './cannon-shell';
-import EventEmitter from 'eventemitter3';
 import { Explosion } from './explosion';
 import { Spaceship } from './spaceship';
 
@@ -26,37 +25,8 @@ export class SpaceState extends Schema {
     public spaceships = new MapSchema<Spaceship>();
 
     // server only, used for commands
-    public moveCommands = Array.of<MoveObjectsArg>();
-    public rotateCommands = Array.of<RotataObjectsArg>();
-    public toggleFreezeCommand = Array.of<SpaceObjectBase['id']>();
-    public botOrderCommands = Array.of<BotOrderArg>();
-
-    public events = new EventEmitter();
-
-    constructor(isClient = true) {
-        super();
-        if (isClient) {
-            const collections = [this.cannonShells, this.asteroids, this.spaceships, this.explosions];
-            const onAdd = (so: SpaceObject) => this.events.emit('add', so);
-            const onRemove = (so: SpaceObject) => this.events.emit('remove', so);
-            for (const c of collections) {
-                c.onAdd = onAdd;
-                c.onRemove = onRemove;
-            }
-            this.events.on('add', (so: SpaceObject) => {
-                so.onChange = (changes) => {
-                    if (so.destroyed) {
-                        onRemove(so);
-                    }
-                    for (const { field } of changes) {
-                        this.events.emit(so.id, field);
-                    }
-                };
-                so.position.onChange = (_) => this.events.emit(so.id, 'position');
-                so.velocity.onChange = (_) => this.events.emit(so.id, 'velocity');
-            });
-        }
-    }
+    public moveCommands = Array.of<BulkMoveArg>();
+    public botOrderCommands = Array.of<BulkBotOrderArg>();
 
     public get(id: string): SpaceObject | undefined {
         return (
