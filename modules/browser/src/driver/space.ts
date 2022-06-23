@@ -1,4 +1,4 @@
-import { GameRoom, SpaceObject, SpaceObjectBase, SpaceState, cmdSender, spaceProperties } from '@starwards/model';
+import { GameRoom, SpaceObject, SpaceState, cmdSender, spaceProperties } from '@starwards/model';
 import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
