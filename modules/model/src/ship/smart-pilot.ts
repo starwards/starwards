@@ -65,4 +65,7 @@ export class SmartPilot extends Schema {
     get maxSpeed() {
         return getConstant(this, 'maxSpeed');
     }
+    get maxSpeedFromAfterBurner() {
+        return getConstant(this, 'maxSpeedFromAfterBurner');
+    }
 }
