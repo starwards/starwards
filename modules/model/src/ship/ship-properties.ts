@@ -52,7 +52,7 @@ export const energy = NumericStateProperty(
 );
 export const afterBurnerFuel = NumericStateProperty(
     (state: ShipState) => state.afterBurnerFuel,
-    (state: ShipState) => [0, state.maxAfterBurner]
+    (state: ShipState) => [0, state.maxAfterBurnerFuel]
 );
 export const turnSpeed = NumericStateProperty((state: ShipState) => state.turnSpeed, [-90, 90]);
 export const angle = NumericStateProperty((state: ShipState) => state.angle, [0, 360]);

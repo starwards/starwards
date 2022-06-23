@@ -70,8 +70,8 @@ export class ShipState extends Spaceship {
     get maxEnergy(): number {
         return getConstant(this, 'maxEnergy');
     }
-    get maxAfterBurner(): number {
-        return getConstant(this, 'maxAfterBurner');
+    get maxAfterBurnerFuel(): number {
+        return getConstant(this, 'maxAfterBurnerFuel');
     }
     get afterBurnerCharge(): number {
         return getConstant(this, 'afterBurnerCharge');

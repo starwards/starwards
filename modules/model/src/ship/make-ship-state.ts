@@ -51,7 +51,7 @@ function makeShip(id: string, properties: ShipPropertiesModel) {
     state.constants = new MapSchema<number>();
     setConstant(state, 'energyPerSecond', properties.energyPerSecond);
     setConstant(state, 'maxEnergy', properties.maxEnergy);
-    setConstant(state, 'maxAfterBurner', properties.maxAfterBurner);
+    setConstant(state, 'maxAfterBurnerFuel', properties.maxAfterBurnerFuel);
     setConstant(state, 'afterBurnerCharge', properties.afterBurnerCharge);
     setConstant(state, 'afterBurnerEnergyCost', properties.afterBurnerEnergyCost);
     setConstant(state, 'rotationCapacity', properties.rotationCapacity);

@@ -38,7 +38,7 @@ export const dragonflyChaingun = {
 export const dragonflyProperties = {
     energyPerSecond: 5,
     maxEnergy: 1000,
-    maxAfterBurner: 5000,
+    maxAfterBurnerFuel: 5000,
     afterBurnerCharge: 20,
     afterBurnerEnergyCost: 0.07,
     rotationCapacity: 25,

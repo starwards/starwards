@@ -35,7 +35,7 @@ export type ChaingunModel = {
 export type ShipPropertiesModel = {
     energyPerSecond: number;
     maxEnergy: number;
-    maxAfterBurner: number;
+    maxAfterBurnerFuel: number;
     afterBurnerCharge: number;
     afterBurnerEnergyCost: number;
     rotationCapacity: number;

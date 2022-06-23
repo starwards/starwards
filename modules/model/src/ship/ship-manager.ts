@@ -546,9 +546,9 @@ export class ShipManager {
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.afterBurnerFuel < this.state.maxAfterBurner) {
+        if (this.state.afterBurnerFuel < this.state.maxAfterBurnerFuel) {
             const speedToChange = Math.min(
-                this.state.maxAfterBurner - this.state.afterBurnerFuel,
+                this.state.maxAfterBurnerFuel - this.state.afterBurnerFuel,
                 this.state.afterBurnerCharge * deltaSeconds
             );
             if (this.trySpendEnergy(speedToChange * this.state.afterBurnerEnergyCost)) {
