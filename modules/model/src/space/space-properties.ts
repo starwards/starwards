@@ -17,7 +17,7 @@ export type BulkFreezeToggleArg = {
     ids: Array<SpaceObjectBase['id']>;
 };
 
-export type BotOrderArg = {
+export type BulkBotOrderArg = {
     ids: Array<SpaceObjectBase['id']>;
     order: BotOrder;
 };
@@ -43,7 +43,7 @@ export const bulkFreezeToggle = PropertyCommand('bulkFreezeToggle', (state: Spac
     }
 });
 
-export const botOrder = PropertyCommand('botOrder', (state: SpaceState, value: BotOrderArg) => {
+export const bulkBotOrder = PropertyCommand('bulkBotOrder', (state: SpaceState, value: BulkBotOrderArg) => {
     state.botOrderCommands.push(value);
 });
 export const freeze = StatePropertyCommand(

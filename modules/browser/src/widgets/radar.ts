@@ -51,7 +51,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
             });
             void spaceDriver
-                .waitForObjecr(shipDriver.id)
+                .waitForObject(shipDriver.id)
                 .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.events));
             Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);

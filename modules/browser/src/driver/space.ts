@@ -1,4 +1,4 @@
-import { GameRoom, SpaceObject, SpaceState, cmdSender, spaceProperties } from '@starwards/model';
+import { GameRoom, SpaceObject, SpaceObjectBase, SpaceState, cmdSender, spaceProperties } from '@starwards/model';
 import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
@@ -33,13 +33,13 @@ function wireEvents(state: SpaceState) {
 
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
     const events = wireEvents(spaceRoom.state);
-
+    const objectsApi = new ObjectsApi(spaceRoom, events);
     const spaceDriver = {
         events,
         get state(): SpaceState {
             return spaceRoom.state;
         },
-        waitForObjecr(id: string): Promise<SpaceObject> {
+        waitForObject(id: string): Promise<SpaceObject> {
             const tracked = spaceDriver.state.get(id);
             if (tracked) {
                 return Promise.resolve(tracked);
@@ -55,16 +55,11 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                 });
             }
         },
-        getObjectApi(id: string) {
-            return {
-                id,
-                freeze: addEventsApi(wrapStateProperty(spaceRoom, spaceProperties.freeze, id), events, `${id}.freeze`),
-            };
-        },
-        commandMoveObjects: cmdSender(spaceRoom, spaceProperties.moveObjects, undefined),
-        commandRotateObjects: cmdSender(spaceRoom, spaceProperties.rotateObjects, undefined),
-        commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.toggleFreeze, undefined),
-        commandBotOrder: cmdSender(spaceRoom, spaceProperties.botOrder, undefined),
+        getObjectApi: objectsApi.getObjectApi,
+        commandMoveObjects: cmdSender(spaceRoom, spaceProperties.bulkMove, undefined),
+        commandRotateObjects: cmdSender(spaceRoom, spaceProperties.bulkRotate, undefined),
+        commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.bulkFreezeToggle, undefined),
+        commandBotOrder: cmdSender(spaceRoom, spaceProperties.bulkBotOrder, undefined),
         selectionActions(selectionContainer: SelectionContainer) {
             return {
                 rotate: {
@@ -85,4 +80,30 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         },
     };
     return spaceDriver;
+}
+
+type ObjectApi = ReturnType<ObjectsApi['makeObjectApi']>;
+class ObjectsApi {
+    private cache = new WeakMap<SpaceObject, ObjectApi>();
+    constructor(private spaceRoom: GameRoom<'space'>, private events: EventEmitter) {}
+    getObjectApi = (subject: SpaceObject) => {
+        const result = this.cache.get(subject);
+        if (result) {
+            return result;
+        } else {
+            const newApi = this.makeObjectApi(subject);
+            this.cache.set(subject, newApi);
+            return newApi;
+        }
+    };
+    private makeObjectApi(subject: SpaceObject) {
+        return {
+            id: subject.id,
+            freeze: addEventsApi(
+                wrapStateProperty(this.spaceRoom, spaceProperties.freeze, subject.id),
+                this.events,
+                `${subject.id}.freeze`
+            ),
+        };
+    }
 }
