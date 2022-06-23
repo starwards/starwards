@@ -43,7 +43,6 @@ export const dragonflyProperties = {
     afterBurnerEnergyCost: 0.07,
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
-    maxSpeed: 300,
     maxSpeeFromAfterBurner: 300,
     numberOfShipRegions: 2,
     maxChainGunAmmo: 3600,
@@ -54,6 +53,7 @@ export const dragonflySmartPilot = {
     maxTurnSpeed: 90,
     offsetBrokenThreshold: 0.6,
     damage50: 90,
+    maxSpeed: 300,
 };
 export const dragonflySF22: ShipModel = {
     properties: dragonflyProperties,

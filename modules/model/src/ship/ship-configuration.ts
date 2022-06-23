@@ -40,7 +40,6 @@ export type ShipPropertiesModel = {
     afterBurnerEnergyCost: number;
     rotationCapacity: number;
     rotationEnergyCost: number;
-    maxSpeed: number;
     maxSpeeFromAfterBurner: number;
     numberOfShipRegions: number;
     maxChainGunAmmo: number;
@@ -66,5 +65,6 @@ export type SmartPilotModel = {
     aimOffsetSpeed: number;
     maxTurnSpeed: number;
     offsetBrokenThreshold: number;
+    maxSpeed: number;
     damage50: number;
 };

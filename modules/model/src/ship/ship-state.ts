@@ -103,8 +103,9 @@ export class ShipState extends Spaceship {
     velocityCapacity(direction: ShipDirection) {
         return [...this.angleThrusters(direction)].reduce((s, t) => s + t.getVelocityCapacity(this), 0);
     }
+
     getMaxSpeedForAfterburner(afterBurner: number) {
-        return getConstant(this, 'maxSpeed') + afterBurner * getConstant(this, 'maxSpeeFromAfterBurner');
+        return this.smartPilot.maxSpeed + afterBurner * getConstant(this, 'maxSpeeFromAfterBurner');
     }
 
     get maxSpeed() {
