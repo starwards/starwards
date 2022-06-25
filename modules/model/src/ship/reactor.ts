@@ -17,6 +17,9 @@ export class Reactor extends Schema {
     @type('number')
     afterBurnerFuel = 0;
 
+    @type('float32')
+    effeciencyFactor = 1;
+
     get maxEnergy(): number {
         return getConstant(this, 'maxEnergy');
     }
@@ -30,7 +33,7 @@ export class Reactor extends Schema {
         return getConstant(this, 'afterBurnerEnergyCost');
     }
     get energyPerSecond(): number {
-        return getConstant(this, 'energyPerSecond');
+        return this.effeciencyFactor * getConstant(this, 'energyPerSecond');
     }
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
@@ -40,6 +43,6 @@ export class Reactor extends Schema {
     }
 
     get broken() {
-        return false;
+        return this.energy > 200;
     }
 }

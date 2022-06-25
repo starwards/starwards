@@ -314,6 +314,18 @@ export class ShipManager {
                 this.damageRadar(system);
             } else if (SmartPilot.isInstance(system)) {
                 this.damageSmartPilot(system);
+            } else if (Reactor.isInstance(system)) {
+                this.damageReactor(system, damageObject.id);
+            }
+        }
+    }
+
+    private damageReactor(reactor: Reactor, damageId: string) {
+        if (!reactor.broken) {
+            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+                reactor.energy *= 0.9;
+            } else {
+                reactor.effeciencyFactor -= 0.05;
             }
         }
     }
