@@ -1,4 +1,5 @@
-import { ShipState } from '@starwards/model';
+import { Reactor, ShipState } from '@starwards/model';
+
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 
 describe('ShipStateMessenger', () => {
@@ -11,7 +12,8 @@ describe('ShipStateMessenger', () => {
     beforeEach(() => {
         mqttClient.publish.mockClear();
         shipState.id = shipId;
-        shipState.energy = 10;
+        shipState.reactor = new Reactor();
+        shipState.reactor.energy = 10;
     });
 
     it('publish message on ship registration', () => {
@@ -23,11 +25,11 @@ describe('ShipStateMessenger', () => {
     it('publish message on energy change', () => {
         shipMessenger.registerShip(shipState);
         shipMessenger.update(0);
-        shipState.energy += 1;
+        shipState.reactor.energy += 1;
 
         shipMessenger.update(0);
 
-        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/energy`, `${shipState.energy}`);
+        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/energy`, `${shipState.reactor.energy}`);
     });
 
     it('not publish if energy did not change', () => {
@@ -44,7 +46,7 @@ describe('ShipStateMessenger', () => {
 
         shipMessenger.update(1001);
 
-        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/energy`, `${shipState.energy}`);
+        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/energy`, `${shipState.reactor.energy}`);
     });
 
     it('unRegisterAll() stops updates on ship', () => {
