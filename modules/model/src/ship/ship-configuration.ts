@@ -31,13 +31,16 @@ export type ChaingunModel = {
     damage50: number;
     completeDestructionProbability: number;
 };
-
-export type ShipPropertiesModel = {
+export type ReactorModel = {
     energyPerSecond: number;
     maxEnergy: number;
     maxAfterBurnerFuel: number;
     afterBurnerCharge: number;
     afterBurnerEnergyCost: number;
+    damage50: number;
+};
+
+export type ShipPropertiesModel = {
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxChainGunAmmo: number;
@@ -50,6 +53,7 @@ export type ShipModel = {
     armor: ArmorModel;
     radar: RadarModel;
     smartPilot: SmartPilotModel;
+    reactor: ReactorModel;
 };
 
 export type ArmorModel = {

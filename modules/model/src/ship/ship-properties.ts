@@ -47,12 +47,12 @@ export const rotation = NumericStateProperty((state: ShipState) => state.rotatio
 export const strafe = NumericStateProperty((state: ShipState) => state.strafe, [-1, 1]);
 export const boost = NumericStateProperty((state: ShipState) => state.boost, [-1, 1]);
 export const energy = NumericStateProperty(
-    (state: ShipState) => state.energy,
-    (state: ShipState) => [0, state.maxEnergy]
+    (state: ShipState) => state.reactor.energy,
+    (state: ShipState) => [0, state.reactor.maxEnergy]
 );
 export const afterBurnerFuel = NumericStateProperty(
-    (state: ShipState) => state.afterBurnerFuel,
-    (state: ShipState) => [0, state.maxAfterBurnerFuel]
+    (state: ShipState) => state.reactor.afterBurnerFuel,
+    (state: ShipState) => [0, state.reactor.maxAfterBurnerFuel]
 );
 export const turnSpeed = NumericStateProperty((state: ShipState) => state.turnSpeed, [-90, 90]);
 export const angle = NumericStateProperty((state: ShipState) => state.angle, [0, 360]);

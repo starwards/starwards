@@ -33,6 +33,7 @@ import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
+import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
@@ -42,10 +43,10 @@ export function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot;
+export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
 
 export function resetShipState(state: ShipState) {
-    state.energy = state.maxEnergy;
+    state.reactor.energy = state.reactor.maxEnergy;
     fixArmor(state.armor);
     resetChainGun(state.chainGun);
     for (const thruster of state.thrusters) {
@@ -79,7 +80,7 @@ export class ShipManager {
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, ShipSystem[]>([
         [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot]],
-        [ShipArea.rear, this.state.thrusters.toArray()],
+        [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor]],
     ]);
     private totalSeconds = 0;
 
@@ -546,13 +547,13 @@ export class ShipManager {
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.afterBurnerFuel < this.state.maxAfterBurnerFuel) {
+        if (this.state.reactor.afterBurnerFuel < this.state.reactor.maxAfterBurnerFuel) {
             const speedToChange = Math.min(
-                this.state.maxAfterBurnerFuel - this.state.afterBurnerFuel,
-                this.state.afterBurnerCharge * deltaSeconds
+                this.state.reactor.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
+                this.state.reactor.afterBurnerCharge * deltaSeconds
             );
-            if (this.trySpendEnergy(speedToChange * this.state.afterBurnerEnergyCost)) {
-                this.state.afterBurnerFuel += speedToChange;
+            if (this.trySpendEnergy(speedToChange * this.state.reactor.afterBurnerEnergyCost)) {
+                this.state.reactor.afterBurnerFuel += speedToChange;
             }
         }
     }
@@ -606,11 +607,11 @@ export class ShipManager {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
         }
-        if (this.state.energy > value) {
-            this.state.energy = this.state.energy - value;
+        if (this.state.reactor.energy > value) {
+            this.state.reactor.energy = this.state.reactor.energy - value;
             return true;
         }
-        this.state.energy = 0;
+        this.state.reactor.energy = 0;
         return false;
     }
 
@@ -619,19 +620,19 @@ export class ShipManager {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
         }
-        if (this.state.afterBurnerFuel > value) {
-            this.state.afterBurnerFuel = this.state.afterBurnerFuel - value;
+        if (this.state.reactor.afterBurnerFuel > value) {
+            this.state.reactor.afterBurnerFuel = this.state.reactor.afterBurnerFuel - value;
             return true;
         }
-        this.state.afterBurnerFuel = 0;
+        this.state.reactor.afterBurnerFuel = 0;
         return false;
     }
 
     private updateEnergy(deltaSeconds: number) {
-        this.state.energy = capToRange(
+        this.state.reactor.energy = capToRange(
             0,
-            this.state.maxEnergy,
-            this.state.energy + this.state.energyPerSecond * deltaSeconds
+            this.state.reactor.maxEnergy,
+            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds
         );
     }
 

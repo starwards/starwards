@@ -3,6 +3,7 @@ import { ArraySchema, MapSchema, type } from '@colyseus/schema';
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { Radar } from './radar';
+import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
@@ -29,6 +30,9 @@ export class ShipState extends Spaceship {
     @type(Radar)
     radar!: Radar;
 
+    @type(Reactor)
+    reactor!: Reactor;
+
     @type(SmartPilot)
     smartPilot!: SmartPilot;
 
@@ -43,10 +47,6 @@ export class ShipState extends Spaceship {
     antiDrift = 0;
     @type('float32')
     breaks = 0;
-    @type('number')
-    energy = 1000;
-    @type('number')
-    afterBurnerFuel = 0;
     @type('float32')
     afterBurner = 0;
 
@@ -67,21 +67,6 @@ export class ShipState extends Spaceship {
     public maneuveringModeCommand = false;
 
     // TODO: move to logic (not part of state)
-    get maxEnergy(): number {
-        return getConstant(this, 'maxEnergy');
-    }
-    get maxAfterBurnerFuel(): number {
-        return getConstant(this, 'maxAfterBurnerFuel');
-    }
-    get afterBurnerCharge(): number {
-        return getConstant(this, 'afterBurnerCharge');
-    }
-    get afterBurnerEnergyCost(): number {
-        return getConstant(this, 'afterBurnerEnergyCost');
-    }
-    get energyPerSecond(): number {
-        return getConstant(this, 'energyPerSecond');
-    }
     get rotationCapacity(): number {
         return getConstant(this, 'rotationCapacity');
     }

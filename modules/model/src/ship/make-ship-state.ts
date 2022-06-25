@@ -3,6 +3,7 @@ import {
     ArmorModel,
     ChaingunModel,
     RadarModel,
+    ReactorModel,
     ShipModel,
     ShipPropertiesModel,
     SmartPilotModel,
@@ -12,6 +13,7 @@ import { ArraySchema, MapSchema } from '@colyseus/schema';
 import { ChainGun, ShipState, SmartPilot } from '..';
 
 import { Radar } from './radar';
+import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 import { getDirectionFromConfig } from '.';
 import { setConstant } from '../utils';
@@ -49,11 +51,6 @@ function makeShip(id: string, properties: ShipPropertiesModel) {
     const state = new ShipState();
     state.id = id;
     state.constants = new MapSchema<number>();
-    setConstant(state, 'energyPerSecond', properties.energyPerSecond);
-    setConstant(state, 'maxEnergy', properties.maxEnergy);
-    setConstant(state, 'maxAfterBurnerFuel', properties.maxAfterBurnerFuel);
-    setConstant(state, 'afterBurnerCharge', properties.afterBurnerCharge);
-    setConstant(state, 'afterBurnerEnergyCost', properties.afterBurnerEnergyCost);
     setConstant(state, 'rotationCapacity', properties.rotationCapacity);
     setConstant(state, 'rotationEnergyCost', properties.rotationEnergyCost);
     setConstant(state, 'maxChainGunAmmo', properties.maxChainGunAmmo);
@@ -90,6 +87,18 @@ function makeRadar(radarModel: RadarModel) {
     return radar;
 }
 
+function makeReactor(reactorModel: ReactorModel) {
+    const reactor = new Reactor();
+    reactor.constants = new MapSchema<number>();
+    setConstant(reactor, 'energyPerSecond', reactorModel.energyPerSecond);
+    setConstant(reactor, 'maxEnergy', reactorModel.maxEnergy);
+    setConstant(reactor, 'maxAfterBurnerFuel', reactorModel.maxAfterBurnerFuel);
+    setConstant(reactor, 'afterBurnerCharge', reactorModel.afterBurnerCharge);
+    setConstant(reactor, 'afterBurnerEnergyCost', reactorModel.afterBurnerEnergyCost);
+    setConstant(reactor, 'damage50', reactorModel.damage50);
+    return reactor;
+}
+
 function makeSmartPilot(smartPilotModel: SmartPilotModel) {
     const smartPilot = new SmartPilot();
     smartPilot.constants = new MapSchema<number>();
@@ -114,5 +123,6 @@ export function makeShipState(id: string, shipModel: ShipModel) {
 
     state.armor = makeArmor(shipModel.armor);
     state.radar = makeRadar(shipModel.radar);
+    state.reactor = makeReactor(shipModel.reactor);
     return state;
 }

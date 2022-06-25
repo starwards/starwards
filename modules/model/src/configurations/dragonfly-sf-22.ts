@@ -35,12 +35,14 @@ export const dragonflyChaingun = {
     damage50: 20,
     completeDestructionProbability: 0.1,
 };
-export const dragonflyProperties = {
+export const dragonflyReactor = {
     energyPerSecond: 5,
     maxEnergy: 1000,
     maxAfterBurnerFuel: 5000,
     afterBurnerCharge: 20,
     afterBurnerEnergyCost: 0.07,
+};
+export const dragonflyProperties = {
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
     maxChainGunAmmo: 3600,
@@ -68,4 +70,5 @@ export const dragonflySF22: ShipModel = {
     armor: dragonflyArmor,
     radar: dragonflyRadar,
     smartPilot: dragonflySmartPilot,
+    reactor: dragonflyReactor,
 };
