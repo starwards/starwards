@@ -10,7 +10,6 @@ import {
     limitPercisionHard,
     makeShipState,
     padArch,
-    setConstant,
     shipConfigurations,
 } from '../src';
 
@@ -159,7 +158,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun.angleOffset = angleOffset;
-                    setConstant(shipMgr.state.chainGun, 'bulletDegreesDeviation', 0);
+                    shipMgr.state.chainGun.modelParams.set('bulletDegreesDeviation', 0);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -196,7 +195,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun.cooldownFactor = 2;
-                    setConstant(shipMgr.state.chainGun, 'bulletsPerSecond', bulletsPerSecond);
+                    shipMgr.state.chainGun.modelParams.set('bulletsPerSecond', bulletsPerSecond);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {

@@ -4,125 +4,84 @@ import {
     ChaingunModel,
     RadarModel,
     ReactorModel,
+    ShipDirectionConfig,
     ShipModel,
     ShipPropertiesModel,
     SmartPilotModel,
     ThrusterModel,
 } from './ship-configuration';
-import { ArraySchema, MapSchema } from '@colyseus/schema';
 import { ChainGun, ShipState, SmartPilot } from '..';
 
+import { ArraySchema } from '@colyseus/schema';
+import { ModelParams } from '../model-params';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 import { getDirectionFromConfig } from '.';
-import { setConstant } from '../utils';
 
-function makeThruster(thrusterModel: ThrusterModel): Thruster {
+function makeThruster(model: ThrusterModel, angle: ShipDirectionConfig): Thruster {
     const thruster = new Thruster();
-    thruster.constants = new MapSchema<number>();
-    setConstant(thruster, 'angle', getDirectionFromConfig(thrusterModel.angle));
-    setConstant(thruster, 'maxAngleError', thrusterModel.maxAngleError);
-    setConstant(thruster, 'capacity', thrusterModel.capacity);
-    setConstant(thruster, 'energyCost', thrusterModel.energyCost);
-    setConstant(thruster, 'speedFactor', thrusterModel.speedFactor);
-    setConstant(thruster, 'afterBurnerCapacity', thrusterModel.afterBurnerCapacity);
-    setConstant(thruster, 'afterBurnerEffectFactor', thrusterModel.afterBurnerEffectFactor);
-    setConstant(thruster, 'damage50', thrusterModel.damage50);
-    setConstant(thruster, 'completeDestructionProbability', thrusterModel.completeDestructionProbability);
+    thruster.angle = getDirectionFromConfig(angle);
+    thruster.modelParams = new ModelParams(model);
     return thruster;
 }
 
-function makeArmor(armorModel: ArmorModel): Armor {
+function makeArmor(model: ArmorModel): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.constants = new MapSchema<number>();
-    setConstant(armor, 'healRate', armorModel.healRate);
-    setConstant(armor, 'plateMaxHealth', armorModel.plateMaxHealth);
-    for (let i = 0; i < armorModel.numberOfPlates; i++) {
+    armor.modelParams = new ModelParams(model);
+    for (let i = 0; i < model.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = armorModel.plateMaxHealth;
+        plate.health = model.plateMaxHealth;
         armor.armorPlates.push(plate);
     }
     return armor;
 }
 
-function makeShip(id: string, properties: ShipPropertiesModel) {
+function makeShip(id: string, model: ShipPropertiesModel) {
     const state = new ShipState();
     state.id = id;
-    state.constants = new MapSchema<number>();
-    setConstant(state, 'rotationCapacity', properties.rotationCapacity);
-    setConstant(state, 'rotationEnergyCost', properties.rotationEnergyCost);
-    setConstant(state, 'maxChainGunAmmo', properties.maxChainGunAmmo);
+    state.modelParams = new ModelParams(model);
     state.chainGunAmmo = state.maxChainGunAmmo;
     return state;
 }
 
 function makeChainGun(model: ChaingunModel) {
     const chainGun = new ChainGun();
-    chainGun.constants = new MapSchema<number>();
-    setConstant(chainGun, 'bulletsPerSecond', model.bulletsPerSecond);
-    setConstant(chainGun, 'bulletSpeed', model.bulletSpeed);
-    setConstant(chainGun, 'bulletDegreesDeviation', model.bulletDegreesDeviation);
-    setConstant(chainGun, 'maxShellRange', model.maxShellRange);
-    setConstant(chainGun, 'minShellRange', model.minShellRange);
-    setConstant(chainGun, 'shellRangeAim', model.shellRangeAim);
-    setConstant(chainGun, 'explosionRadius', model.explosionRadius);
-    setConstant(chainGun, 'explosionExpansionSpeed', model.explosionExpansionSpeed);
-    setConstant(chainGun, 'explosionDamageFactor', model.explosionDamageFactor);
-    setConstant(chainGun, 'explosionBlastFactor', model.explosionBlastFactor);
-    setConstant(chainGun, 'damage50', model.damage50);
-    setConstant(chainGun, 'completeDestructionProbability', model.completeDestructionProbability);
+    chainGun.modelParams = new ModelParams(model);
     chainGun.shellSecondsToLive = 0;
     return chainGun;
 }
 
-function makeRadar(radarModel: RadarModel) {
+function makeRadar(model: RadarModel) {
     const radar = new Radar();
-    radar.constants = new MapSchema<number>();
-    setConstant(radar, 'damage50', radarModel.damage50);
-    setConstant(radar, 'basicRange', radarModel.basicRange);
-    setConstant(radar, 'rangeEaseFactor', radarModel.rangeEaseFactor);
-    setConstant(radar, 'malfunctionRange', radarModel.malfunctionRange);
+    radar.modelParams = new ModelParams(model);
     return radar;
 }
 
-function makeReactor(reactorModel: ReactorModel) {
+function makeReactor(model: ReactorModel) {
     const reactor = new Reactor();
-    reactor.constants = new MapSchema<number>();
-    setConstant(reactor, 'energyPerSecond', reactorModel.energyPerSecond);
-    setConstant(reactor, 'maxEnergy', reactorModel.maxEnergy);
-    setConstant(reactor, 'maxAfterBurnerFuel', reactorModel.maxAfterBurnerFuel);
-    setConstant(reactor, 'afterBurnerCharge', reactorModel.afterBurnerCharge);
-    setConstant(reactor, 'afterBurnerEnergyCost', reactorModel.afterBurnerEnergyCost);
-    setConstant(reactor, 'damage50', reactorModel.damage50);
+    reactor.modelParams = new ModelParams(model);
     return reactor;
 }
 
-function makeSmartPilot(smartPilotModel: SmartPilotModel) {
+function makeSmartPilot(model: SmartPilotModel) {
     const smartPilot = new SmartPilot();
-    smartPilot.constants = new MapSchema<number>();
-    setConstant(smartPilot, 'maxTargetAimOffset', smartPilotModel.maxTargetAimOffset);
-    setConstant(smartPilot, 'aimOffsetSpeed', smartPilotModel.aimOffsetSpeed);
-    setConstant(smartPilot, 'maxTurnSpeed', smartPilotModel.maxTurnSpeed);
-    setConstant(smartPilot, 'offsetBrokenThreshold', smartPilotModel.offsetBrokenThreshold);
-    setConstant(smartPilot, 'damage50', smartPilotModel.damage50);
-    setConstant(smartPilot, 'maxSpeed', smartPilotModel.maxSpeed);
-    setConstant(smartPilot, 'maxSpeedFromAfterBurner', smartPilotModel.maxSpeedFromAfterBurner);
+    smartPilot.modelParams = new ModelParams(model);
     return smartPilot;
 }
 
-export function makeShipState(id: string, shipModel: ShipModel) {
-    const state = makeShip(id, shipModel.properties);
+export function makeShipState(id: string, model: ShipModel) {
+    const state = makeShip(id, model.properties);
     state.thrusters = new ArraySchema();
-    for (const thrusterConfig of shipModel.thrusters) {
-        state.thrusters.push(makeThruster(thrusterConfig));
+    for (const [angleConfig, thrusterConfig] of model.thrusters) {
+        state.thrusters.push(makeThruster(thrusterConfig, angleConfig));
     }
-    state.chainGun = makeChainGun(shipModel.chainGun);
-    state.smartPilot = makeSmartPilot(shipModel.smartPilot);
+    state.chainGun = makeChainGun(model.chainGun);
+    state.smartPilot = makeSmartPilot(model.smartPilot);
 
-    state.armor = makeArmor(shipModel.armor);
-    state.radar = makeRadar(shipModel.radar);
-    state.reactor = makeReactor(shipModel.reactor);
+    state.armor = makeArmor(model.armor);
+    state.radar = makeRadar(model.radar);
+    state.reactor = makeReactor(model.reactor);
     return state;
 }

@@ -1,6 +1,7 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { Schema, type } from '@colyseus/schema';
 
-import { getConstant } from '../utils';
+import { ModelParams } from '../model-params';
+import { RadarModel } from './ship-configuration';
 
 export class Radar extends Schema {
     public static isInstance = (o: unknown): o is Radar => {
@@ -9,8 +10,8 @@ export class Radar extends Schema {
 
     public readonly type = 'Radar';
 
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof RadarModel>;
 
     /**
      * percent of the time in which the range is malfunctionRange
@@ -19,24 +20,24 @@ export class Radar extends Schema {
     malfunctionRangeFactor = 0;
 
     get basicRange(): number {
-        return getConstant(this, 'basicRange');
+        return this.modelParams.get('basicRange');
     }
 
     get malfunctionRange(): number {
-        return getConstant(this, 'malfunctionRange');
+        return this.modelParams.get('malfunctionRange');
     }
 
     /**
      * percent of the time in which the range is easing from/to basicRange
      */
     get rangeEaseFactor(): number {
-        return getConstant(this, 'rangeEaseFactor');
+        return this.modelParams.get('rangeEaseFactor');
     }
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
      **/
     get damage50(): number {
-        return getConstant(this, 'damage50');
+        return this.modelParams.get('damage50');
     }
 
     get broken() {

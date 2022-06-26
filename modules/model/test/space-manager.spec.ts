@@ -19,7 +19,6 @@ import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
-import { setConstant } from '../src/utils';
 
 function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number) {
     const hitAngle = 0;
@@ -122,7 +121,7 @@ describe('SpaceManager', () => {
             ship.id = 'ship';
             const shipMgr = sim.withShip(ship, new ShipDie(0));
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
-            setConstant(shipMgr.state.chainGun, 'maxShellRange', 10_000);
+            shipMgr.state.chainGun.modelParams.set('maxShellRange', 10_000);
             shellRange.setValue(shipMgr.state, 1);
             shipMgr.chainGun(true);
 
@@ -138,7 +137,7 @@ describe('SpaceManager', () => {
 
             boostCommand.setValue(shipMgr.state, 1); // fly forward
             afterBurner.setValue(shipMgr.state, 1); // afterburner
-            setConstant(shipMgr.state.armor, 'healRate', 0);
+            shipMgr.state.armor.modelParams.set('healRate', 0);
 
             sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {
                 shipMgr.state.reactor.afterBurnerFuel = shipMgr.state.reactor.maxAfterBurnerFuel;

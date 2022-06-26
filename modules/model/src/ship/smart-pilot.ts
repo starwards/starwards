@@ -1,8 +1,8 @@
 import { Schema, type } from '@colyseus/schema';
 
-import { MapSchema } from '@colyseus/schema';
+import { ModelParams } from '../model-params';
+import { SmartPilotModel } from './ship-configuration';
 import { Vec2 } from '../space';
-import { getConstant } from '../utils';
 
 export enum SmartPilotMode {
     DIRECT,
@@ -17,8 +17,8 @@ export class SmartPilot extends Schema {
 
     public readonly type = 'SmartPilot';
 
-    @type({ map: 'float32' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof SmartPilotModel>;
 
     @type('int8')
     rotationMode!: SmartPilotMode;
@@ -38,34 +38,34 @@ export class SmartPilot extends Schema {
     offsetFactor = 0;
 
     get maxTargetAimOffset(): number {
-        return getConstant(this, 'maxTargetAimOffset');
+        return this.modelParams.get('maxTargetAimOffset');
     }
 
     get aimOffsetSpeed(): number {
-        return getConstant(this, 'aimOffsetSpeed');
+        return this.modelParams.get('aimOffsetSpeed');
     }
 
     get maxTurnSpeed(): number {
-        return getConstant(this, 'maxTurnSpeed');
+        return this.modelParams.get('maxTurnSpeed');
     }
 
     get offsetBrokenThreshold(): number {
-        return getConstant(this, 'offsetBrokenThreshold');
+        return this.modelParams.get('offsetBrokenThreshold');
     }
 
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
      **/
     get damage50(): number {
-        return getConstant(this, 'damage50');
+        return this.modelParams.get('damage50');
     }
     get broken(): boolean {
         return this.offsetFactor >= this.offsetBrokenThreshold;
     }
     get maxSpeed() {
-        return getConstant(this, 'maxSpeed');
+        return this.modelParams.get('maxSpeed');
     }
     get maxSpeedFromAfterBurner() {
-        return getConstant(this, 'maxSpeedFromAfterBurner');
+        return this.modelParams.get('maxSpeedFromAfterBurner');
     }
 }

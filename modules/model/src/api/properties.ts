@@ -1,5 +1,6 @@
-import { MapSchema, Schema } from '@colyseus/schema';
 import { Stateful, capToRange } from '..';
+
+import { Schema } from '@colyseus/schema';
 
 export interface StateCommand<T, S extends Schema, P> {
     cmdName: string;
@@ -59,9 +60,9 @@ export interface NumericStatePropertyCommand<S extends Schema, P>
     extends NumericStateProperty<S, P>,
         StatePropertyCommand<number, S, P> {}
 
-export interface MappedPropertyCommand<S extends Schema, P>
-    extends StateProperty<MapSchema<number>, S, P>,
-        StateCommand<[string, number], S, P> {}
+export interface MappedPropertyCommand<S extends Schema, P, K extends string>
+    extends StateProperty<Map<K, number>, S, P>,
+        StateCommand<[K, number], S, P> {}
 
 export function setNumericProperty<S extends Schema, P>(
     manager: Stateful<S>,

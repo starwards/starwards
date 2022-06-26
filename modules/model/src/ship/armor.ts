@@ -1,7 +1,8 @@
-import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
+import { ArraySchema, Schema, type } from '@colyseus/schema';
 import { RTuple2, toPositiveDegreesDelta } from '..';
 
-import { getConstant } from '../utils';
+import { ArmorModel } from './ship-configuration';
+import { ModelParams } from '../model-params';
 
 export class ArmorPlate extends Schema {
     @type('uint8')
@@ -12,19 +13,19 @@ export class Armor extends Schema {
     @type([ArmorPlate])
     armorPlates!: ArraySchema<ArmorPlate>;
 
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof ArmorModel>;
 
     get numberOfPlates(): number {
         return this.armorPlates.length;
     }
 
     get plateMaxHealth(): number {
-        return getConstant(this, 'plateMaxHealth');
+        return this.modelParams.get('plateMaxHealth');
     }
 
     get healRate(): number {
-        return getConstant(this, 'healRate');
+        return this.modelParams.get('healRate');
     }
 
     get degreesPerPlate(): number {

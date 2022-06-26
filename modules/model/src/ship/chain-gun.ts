@@ -1,7 +1,8 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { Schema, type } from '@colyseus/schema';
 
+import { ChaingunModel } from './ship-configuration';
+import { ModelParams } from '../model-params';
 import { SmartPilotMode } from '.';
-import { getConstant } from '../utils';
 
 export class ChainGun extends Schema {
     public static isInstance = (o: unknown): o is ChainGun => {
@@ -36,39 +37,38 @@ export class ChainGun extends Schema {
     @type('uint8')
     cooldownFactor = 1;
 
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof ChaingunModel>;
 
-    // TODO: move to logic (not part of state)
     get bulletSpeed(): number {
-        return getConstant(this, 'bulletSpeed');
+        return this.modelParams.get('bulletSpeed');
     }
     get bulletsPerSecond(): number {
-        return getConstant(this, 'bulletsPerSecond');
+        return this.modelParams.get('bulletsPerSecond');
     }
     get minShellRange(): number {
-        return getConstant(this, 'minShellRange');
+        return this.modelParams.get('minShellRange');
     }
     get maxShellRange(): number {
-        return getConstant(this, 'maxShellRange');
+        return this.modelParams.get('maxShellRange');
     }
     get shellRangeAim(): number {
-        return getConstant(this, 'shellRangeAim');
+        return this.modelParams.get('shellRangeAim');
     }
     get explosionRadius(): number {
-        return getConstant(this, 'explosionRadius');
+        return this.modelParams.get('explosionRadius');
     }
     get explosionExpansionSpeed(): number {
-        return getConstant(this, 'explosionExpansionSpeed');
+        return this.modelParams.get('explosionExpansionSpeed');
     }
     get explosionDamageFactor(): number {
-        return getConstant(this, 'explosionDamageFactor');
+        return this.modelParams.get('explosionDamageFactor');
     }
     get explosionBlastFactor(): number {
-        return getConstant(this, 'explosionBlastFactor');
+        return this.modelParams.get('explosionBlastFactor');
     }
     get bulletDegreesDeviation(): number {
-        return getConstant(this, 'bulletDegreesDeviation');
+        return this.modelParams.get('bulletDegreesDeviation');
     }
     get explosionSecondsToLive(): number {
         return this.explosionRadius / this.explosionExpansionSpeed;
@@ -81,7 +81,7 @@ export class ChainGun extends Schema {
     }
     // damage ammount at which there's 50% chance of system damage
     get damage50(): number {
-        return getConstant(this, 'damage50');
+        return this.modelParams.get('damage50');
     }
     get broken(): boolean {
         return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;

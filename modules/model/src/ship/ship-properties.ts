@@ -123,16 +123,16 @@ export const maneuveringMode = IteratorStatePropertyCommand(
 export const constants = MappedPropertyCommand(
     'constants',
     (state: ShipState, [name, value]) => {
-        state.constants.set(name, value);
+        state.modelParams.set(name, value);
     },
-    (state: ShipState) => state.constants
+    (state: ShipState) => state.modelParams
 );
 export const chainGunConstants = MappedPropertyCommand(
     'chainGunConstants',
     (state: ShipState, [name, value]) => {
-        state.chainGun.constants.set(name, value);
+        state.chainGun.modelParams.set(name, value);
     },
-    (state: ShipState) => state.chainGun.constants
+    (state: ShipState) => state.chainGun.modelParams
 );
 export const shellSecondsToLive = NumericStateProperty(
     (state: ShipState) => state.chainGun.shellSecondsToLive,

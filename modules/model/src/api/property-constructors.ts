@@ -1,6 +1,6 @@
 import * as types from './properties';
 
-import { MapSchema, Schema } from '@colyseus/schema';
+import { Schema } from '@colyseus/schema';
 
 export function StateProperty<T, S extends Schema, P = void>(
     getValue: (state: S, path: P) => T
@@ -49,10 +49,10 @@ export function IteratorStatePropertyCommand<S extends Schema, P = void>(
 ): types.IteratorStatePropertyCommand<S, P> {
     return { cmdName, setValue, getValue };
 }
-export function MappedPropertyCommand<S extends Schema>(
+export function MappedPropertyCommand<S extends Schema, K extends string>(
     cmdName: string,
-    setValue: (state: S, value: [string, number]) => unknown,
-    getValue: (state: S) => MapSchema<number>
-): types.MappedPropertyCommand<S, void> {
+    setValue: (state: S, value: [K, number]) => unknown,
+    getValue: (state: S) => Map<K, number>
+): types.MappedPropertyCommand<S, void, K> {
     return { cmdName, setValue, getValue };
 }

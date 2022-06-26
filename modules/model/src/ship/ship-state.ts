@@ -1,14 +1,15 @@
-import { ArraySchema, MapSchema, type } from '@colyseus/schema';
+import { ArraySchema, type } from '@colyseus/schema';
 
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
+import { ModelParams } from '../model-params';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
+import { ShipPropertiesModel } from './ship-configuration';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
 import { Thruster } from './thruster';
-import { getConstant } from '../utils';
 import { toDegreesDelta } from '..';
 
 export enum TargetedStatus {
@@ -18,8 +19,8 @@ export enum TargetedStatus {
 }
 
 export class ShipState extends Spaceship {
-    @type({ map: 'float32' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof ShipPropertiesModel>;
 
     @type([Thruster])
     thrusters!: ArraySchema<Thruster>;
@@ -68,13 +69,13 @@ export class ShipState extends Spaceship {
 
     // TODO: move to logic (not part of state)
     get rotationCapacity(): number {
-        return getConstant(this, 'rotationCapacity');
+        return this.modelParams.get('rotationCapacity');
     }
     get rotationEnergyCost(): number {
-        return getConstant(this, 'rotationEnergyCost');
+        return this.modelParams.get('rotationEnergyCost');
     }
     get maxChainGunAmmo(): number {
-        return getConstant(this, 'maxChainGunAmmo');
+        return this.modelParams.get('maxChainGunAmmo');
     }
 
     *angleThrusters(direction: ShipDirection) {

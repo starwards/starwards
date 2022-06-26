@@ -7,7 +7,6 @@ export type RadarModel = {
     malfunctionRange: number;
 };
 export type ThrusterModel = {
-    angle: ShipDirectionConfig;
     maxAngleError: number;
     capacity: number;
     energyCost: number;
@@ -49,7 +48,7 @@ export type ShipPropertiesModel = {
 export type ShipModel = {
     properties: ShipPropertiesModel;
     chainGun: ChaingunModel;
-    thrusters: ThrusterModel[];
+    thrusters: [ShipDirectionConfig, ThrusterModel][];
     armor: ArmorModel;
     radar: RadarModel;
     smartPilot: SmartPilotModel;
