@@ -1,6 +1,7 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { Schema, type } from '@colyseus/schema';
 
-import { getConstant } from '../utils';
+import { ModelParams } from '../model-params';
+import { ReactorModel } from './ship-configuration';
 
 export class Reactor extends Schema {
     public static isInstance = (o: unknown): o is Reactor => {
@@ -9,8 +10,8 @@ export class Reactor extends Schema {
 
     public readonly type = 'Reactor';
 
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof ReactorModel>;
 
     @type('number')
     energy = 1000;
@@ -21,25 +22,25 @@ export class Reactor extends Schema {
     effeciencyFactor = 1;
 
     get maxEnergy(): number {
-        return getConstant(this, 'maxEnergy');
+        return this.modelParams.get('maxEnergy');
     }
     get maxAfterBurnerFuel(): number {
-        return getConstant(this, 'maxAfterBurnerFuel');
+        return this.modelParams.get('maxAfterBurnerFuel');
     }
     get afterBurnerCharge(): number {
-        return getConstant(this, 'afterBurnerCharge');
+        return this.modelParams.get('afterBurnerCharge');
     }
     get afterBurnerEnergyCost(): number {
-        return getConstant(this, 'afterBurnerEnergyCost');
+        return this.modelParams.get('afterBurnerEnergyCost');
     }
     get energyPerSecond(): number {
-        return this.effeciencyFactor * getConstant(this, 'energyPerSecond');
+        return this.effeciencyFactor * this.modelParams.get('energyPerSecond');
     }
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
      **/
     get damage50(): number {
-        return getConstant(this, 'damage50');
+        return this.modelParams.get('damage50');
     }
 
     get broken() {

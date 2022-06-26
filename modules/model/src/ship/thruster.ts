@@ -1,8 +1,9 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { Schema, type } from '@colyseus/schema';
 
+import { ModelParams } from '../model-params';
 import { ShipDirection } from './ship-direction';
 import { ShipState } from '.';
-import { getConstant } from '../utils';
+import { ThrusterModel } from './ship-configuration';
 
 export class Thruster extends Schema {
     public static isInstance = (o: unknown): o is Thruster => {
@@ -21,21 +22,27 @@ export class Thruster extends Schema {
     @type('float32')
     afterBurnerActive = 0;
 
+    /*
+     *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
+     */
+    @type('float32')
+    angle = 0.0;
+
     @type('float32')
     angleError = 0.0;
 
     @type('float32')
     availableCapacity = 1.0;
 
-    @type({ map: 'number' })
-    constants!: MapSchema<number>;
+    @type(ModelParams)
+    modelParams!: ModelParams<keyof ThrusterModel>;
 
     get broken(): boolean {
         return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.maxAngleError;
     }
     // dps at which there's 50% chance of system damage
     get damage50(): number {
-        return getConstant(this, 'damage50');
+        return this.modelParams.get('damage50');
     }
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
@@ -47,30 +54,24 @@ export class Thruster extends Schema {
         );
     }
 
-    /*
-     *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
-     */
-    get angle(): ShipDirection {
-        return getConstant(this, 'angle');
-    }
     get maxAngleError(): ShipDirection {
-        return getConstant(this, 'maxAngleError');
+        return this.modelParams.get('maxAngleError');
     }
     get capacity(): number {
-        return this.broken ? 0 : getConstant(this, 'capacity');
+        return this.broken ? 0 : this.modelParams.get('capacity');
     }
 
     get energyCost(): number {
-        return getConstant(this, 'energyCost');
+        return this.modelParams.get('energyCost');
     }
 
     get speedFactor(): number {
-        return getConstant(this, 'speedFactor');
+        return this.modelParams.get('speedFactor');
     }
     get afterBurnerCapacity(): number {
-        return this.broken ? 0 : getConstant(this, 'afterBurnerCapacity');
+        return this.broken ? 0 : this.modelParams.get('afterBurnerCapacity');
     }
     get afterBurnerEffectFactor(): number {
-        return getConstant(this, 'afterBurnerEffectFactor');
+        return this.modelParams.get('afterBurnerEffectFactor');
     }
 }

@@ -6,7 +6,6 @@ import { ShipDirection } from '../src/ship/ship-direction';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
-import { setConstant } from '../src/utils';
 
 describe('thrusters-ship integration', function () {
     jest.setTimeout(60 * 1000);
@@ -19,7 +18,7 @@ describe('thrusters-ship integration', function () {
                         const harness = new ShipTestHarness();
                         harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                         for (const thruster of harness.shipState.angleThrusters(direction)) {
-                            setConstant(thruster, 'capacity', customCapacity);
+                            thruster.modelParams.set('capacity', customCapacity);
                         }
                         const startVelocity = harness.shipState.maxSpeed;
                         harness.shipObj.velocity = Vec2.make(XY.rotate({ x: -startVelocity, y: 0 }, direction));
