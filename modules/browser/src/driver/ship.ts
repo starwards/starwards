@@ -18,6 +18,13 @@ import EventEmitter from 'eventemitter3';
 import { noop } from 'ts-essentials';
 import { waitForEvents } from './async-utils';
 
+function wireModelParamsEvents(state: ShipState, events: EventEmitter) {
+    state.modelParams.params.onChange = (value: number, key: string) => {
+        events.emit('modelParams.params.' + key, value);
+        events.emit('modelParams.params');
+    };
+}
+
 function wireEvents(state: ShipState) {
     const events = new EventEmitter();
     state.onChange = (changes) => {
@@ -25,11 +32,15 @@ function wireEvents(state: ShipState) {
             events.emit(field, value);
         }
     };
-    events.once('constants', () => {
-        state.constants.onChange = (value: number, key: string) => {
-            events.emit('constants.' + key, value);
-            events.emit('constants');
+    events.once('modelParams', () => {
+        state.modelParams.onChange = (changes) => {
+            for (const { field, value } of changes) {
+                events.emit(`modelParams.${field}`, value);
+            }
         };
+    });
+    events.once('modelParams.params', () => {
+        wireModelParamsEvents(state, events);
     });
     state.position.onChange = (_) => events.emit('position', state.position);
     state.velocity.onChange = (_) => events.emit('velocity', state.velocity);
@@ -39,9 +50,9 @@ function wireEvents(state: ShipState) {
                 events.emit(`chainGun.${field}`, value);
             }
         };
-        state.chainGun.constants.onChange = (value: number, key: string) => {
-            events.emit('chainGun.constants.' + key, value);
-            events.emit('chainGun.constants');
+        state.chainGun.modelParams.params.onChange = (value: number, key: string) => {
+            events.emit('chainGun.modelParams.params.' + key, value);
+            events.emit('chainGun.modelParams.params');
         };
     });
     events.once('smartPilot', () => {
@@ -60,9 +71,9 @@ function wireEvents(state: ShipState) {
                     events.emit(`thrusters.${key}.${field}`, value);
                 }
             };
-            thruster.constants.onChange = (value: number, constKey: string) => {
-                events.emit(`thrusters.${key}.constants.${constKey}`, value);
-                events.emit(`thrusters.${key}.constants`);
+            thruster.modelParams.params.onChange = (value: number, constKey: string) => {
+                events.emit(`thrusters.${key}.modelParams.params.${constKey}`, value);
+                events.emit(`thrusters.${key}.modelParams.params`);
             };
         };
         state.thrusters.onRemove = () => {
@@ -75,9 +86,9 @@ function wireEvents(state: ShipState) {
                 events.emit(`armor.${field}`, value);
             }
         };
-        state.armor.constants.onChange = (value: number, key: string) => {
-            events.emit('armor.constants.' + key, value);
-            events.emit('armor.constants');
+        state.armor.modelParams.params.onChange = (value: number, key: string) => {
+            events.emit('armor.modelParams.params.' + key, value);
+            events.emit('armor.modelParams.params');
         };
         state.armor.armorPlates.onAdd = (plate, key) => {
             events.emit(`armor`);
@@ -252,13 +263,13 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
     if (!shipRoom.state.chainGun) {
         pendingEvents.push('chainGun');
     }
-    if (!shipRoom.state.constants) {
-        pendingEvents.push('constants');
+    if (!shipRoom.state.modelParams) {
+        pendingEvents.push('modelParams');
     }
     if (!shipRoom.state.thrusters) {
         pendingEvents.push('thrusters');
     }
-    if (!shipRoom.state.thrusters) {
+    if (!shipRoom.state.armor) {
         pendingEvents.push('armor');
     }
     await waitForEvents(events, pendingEvents);
