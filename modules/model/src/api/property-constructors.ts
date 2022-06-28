@@ -49,10 +49,10 @@ export function IteratorStatePropertyCommand<S extends Schema, P = void>(
 ): types.IteratorStatePropertyCommand<S, P> {
     return { cmdName, setValue, getValue };
 }
-export function MappedPropertyCommand<S extends Schema, K extends string>(
+export function MappedPropertyCommand<S extends Schema, P = void, K extends string = string>(
     cmdName: string,
-    setValue: (state: S, value: [K, number]) => unknown,
-    getValue: (state: S) => Map<K, number>
-): types.MappedPropertyCommand<S, void, K> {
+    setValue: (state: S, value: [K, number], path: P) => unknown,
+    getValue: (state: S, path: P) => Map<K, number>
+): types.MappedPropertyCommand<S, P, K> {
     return { cmdName, setValue, getValue };
 }

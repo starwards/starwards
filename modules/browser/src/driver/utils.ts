@@ -2,7 +2,6 @@ import {
     Destructor,
     GameRoom,
     IteratorStatePropertyCommand,
-    MappedPropertyCommand,
     NormalNumericStateProperty,
     NumericStateProperty,
     RoomName,
@@ -13,7 +12,6 @@ import {
 } from '@starwards/model';
 
 import EventEmitter from 'eventemitter3';
-import { MapSchema } from '@colyseus/schema';
 import { noop } from 'ts-essentials';
 
 export type DriverNumericApi = {
@@ -127,30 +125,4 @@ export function wrapStringStateProperty<R extends RoomName, P>(
         getValue: () => p.getValue(shipRoom.state, path),
         setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
     };
-}
-
-export class NumberMapDriver<R extends RoomName, P> {
-    private _map: MapSchema<number>;
-    public map: Map<string, number>;
-    constructor(private shipRoom: GameRoom<R>, private p: MappedPropertyCommand<State<R>, P>, path: P) {
-        this.map = this._map = p.getValue(shipRoom.state, path);
-    }
-    private getValue(name: string) {
-        const val = this.map.get(name);
-        if (val === undefined) {
-            throw new Error(`missing constant value: ${name}`);
-        }
-        return val;
-    }
-
-    getApi(name: string): BaseApi<number> {
-        const sender = cmdSender(this.shipRoom, this.p, undefined);
-        return {
-            getValue: () => this.getValue(name),
-            setValue: (value: number) => sender([name, value]),
-        };
-    }
-    set onAdd(cb: (name: string, api: BaseApi<number>) => unknown) {
-        this._map.onAdd = (_: unknown, name: string) => cb(name, this.getApi(name));
-    }
 }
