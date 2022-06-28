@@ -4,7 +4,6 @@ import {
     DriverNormalNumericApi,
     DriverNumericApi,
     EventApi,
-    NumberMapDriver,
     addEventsApi,
     wrapIteratorStateProperty,
     wrapNormalNumericProperty,
@@ -12,7 +11,16 @@ import {
     wrapStateProperty,
     wrapStringStateProperty,
 } from './utils';
-import { GameRoom, ShipDirection, ShipState, shipProperties } from '@starwards/model';
+import {
+    GameRoom,
+    MappedPropertyCommand,
+    RoomName,
+    ShipDirection,
+    ShipState,
+    State,
+    cmdSender,
+    shipProperties,
+} from '@starwards/model';
 
 import EventEmitter from 'eventemitter3';
 import { noop } from 'ts-essentials';
@@ -23,6 +31,7 @@ function wireModelParamsEvents(state: ShipState, events: EventEmitter) {
         events.emit('modelParams.params.' + key, value);
         events.emit('modelParams.params');
     };
+    state.modelParams.params.onAdd = state.modelParams.params.onRemove = () => events.emit('modelParams.params');
 }
 
 function wireEvents(state: ShipState) {
@@ -52,8 +61,9 @@ function wireEvents(state: ShipState) {
         };
         state.chainGun.modelParams.params.onChange = (value: number, key: string) => {
             events.emit('chainGun.modelParams.params.' + key, value);
-            events.emit('chainGun.modelParams.params');
         };
+        state.chainGun.modelParams.params.onAdd = state.chainGun.modelParams.params.onRemove = () =>
+            events.emit('chainGun.modelParams.params');
     });
     events.once('smartPilot', () => {
         state.smartPilot.onChange = (changes) => {
@@ -207,12 +217,53 @@ export class ArmorDriver {
         }
     }
 }
+
+export class NumberMapDriver<R extends RoomName, P, K extends string> {
+    public map: Map<K, number>;
+    constructor(
+        private shipRoom: GameRoom<R>,
+        private p: MappedPropertyCommand<State<R>, P, K>,
+        path: P,
+        private events: EventEmitter,
+        private eventName: string
+    ) {
+        this.map = p.getValue(shipRoom.state, path);
+    }
+    private getValue(name: K) {
+        const val = this.map.get(name);
+        if (val === undefined) {
+            throw new Error(`missing constant value: ${name}`);
+        }
+        return val;
+    }
+
+    get fields() {
+        return this.map.keys();
+    }
+    onChange(cb: () => unknown) {
+        this.events.on(this.eventName, cb);
+    }
+    getApi(name: K): BaseApi<number> {
+        const sender = cmdSender(this.shipRoom, this.p, undefined);
+        return {
+            getValue: () => this.getValue(name),
+            setValue: (value: number) => sender([name, value]),
+        };
+    }
+}
+
 function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     return {
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
-        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined),
-        chainGunConstants: new NumberMapDriver(shipRoom, shipProperties.chainGunConstants, undefined),
+        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined, events, 'modelParams.params'),
+        chainGunConstants: new NumberMapDriver(
+            shipRoom,
+            shipProperties.chainGunConstants,
+            undefined,
+            events,
+            'chainGun.modelParams.params'
+        ),
         rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand, undefined),
         shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
         shellRange: wrapNumericProperty(shipRoom, shipProperties.shellRange, undefined),

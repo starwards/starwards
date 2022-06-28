@@ -11,7 +11,7 @@ import {
 } from 'tweakpane';
 
 import { Destructor } from '@starwards/model';
-import { DriverNumericApi } from '../driver';
+import { DriverNumericApi } from '../driver/utils';
 
 /*
     This module was written after ./property-panel
