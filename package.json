@@ -62,7 +62,7 @@
         "eslint": "^8.18.0",
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-no-only-tests": "^2.6.0",
-        "eslint-plugin-prettier": "^4.0.0",
+        "eslint-plugin-prettier": "^4.1.0",
         "eslint-plugin-react": "^7.30.1",
         "eslint-plugin-react-hooks": "^4.6.0",
         "fast-check": "^2.25.0",
