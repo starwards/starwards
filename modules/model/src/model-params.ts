@@ -9,7 +9,7 @@ export class ModelParams<T extends string> extends Schema implements Map<T, numb
     readonly [Symbol.toStringTag] = 'ModelParams';
 
     @type({ map: 'number' })
-    params = new MapSchema<number>();
+    params = new MapSchema<number, T>();
 
     constructor(initialValues?: Record<T, number>) {
         super();
@@ -34,7 +34,6 @@ export class ModelParams<T extends string> extends Schema implements Map<T, numb
         return this.params.delete(key);
     }
     forEach(callbackfn: (value: number, key: T, map: Map<T, number>) => void): void {
-        // @ts-ignore : assume key is always T
         return this.params.forEach(callbackfn);
     }
     has(key: T): boolean {
@@ -43,16 +42,16 @@ export class ModelParams<T extends string> extends Schema implements Map<T, numb
     get size() {
         return this.params.size;
     }
-    entries(): IterableIterator<[T, number]> {
-        return this.params.entries() as IterableIterator<[T, number]>;
+    entries() {
+        return this.params.entries();
     }
     keys(): IterableIterator<T> {
-        return this.params.keys() as IterableIterator<T>;
+        return this.params.keys();
     }
     values(): IterableIterator<number> {
         return this.params.values();
     }
-    [Symbol.iterator](): IterableIterator<[T, number]> {
+    [Symbol.iterator]() {
         return this.entries();
     }
 }
