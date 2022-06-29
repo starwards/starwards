@@ -37,7 +37,7 @@
         ]
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.32",
+        "@colyseus/schema": "^1.0.35",
         "detect-collisions": "^5.0.1",
         "normal-distribution": "^1.1.1",
         "tslib": "^2.4.0"
