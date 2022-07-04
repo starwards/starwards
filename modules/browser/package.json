@@ -21,7 +21,7 @@
         "@tweakpane/plugin-camerakit": "^0.2.2",
         "@xstate/react": "^3.0.0",
         "colyseus.js": "^0.14.13",
-        "d3": "^7.5.0",
+        "d3": "^7.6.1",
         "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
         "hotkeys-js": "^3.9.0",
