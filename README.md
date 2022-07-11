@@ -13,7 +13,8 @@
 
 </p>
 
-![screen-capture](https://user-images.githubusercontent.com/6019373/172685031-e3bf9db0-268a-41a6-81e2-a5e74dbbc464.gif)
+<video src='https://user-images.githubusercontent.com/6019373/178277941-01a61ddb-c6cb-4620-b5aa-966291710d69.mp4' width=180/>
+
 
 # What is this?
 
