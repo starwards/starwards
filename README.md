@@ -11,9 +11,9 @@
   <a href="https://discord.gg/p56nSVEjdb"><img alt="Discord Chat" src="https://img.shields.io/discord/843041591772971028?color=5865F2&label=discord&style=flat-square"></a>
   <a href="https://circleci.com/gh/starwards/starwards/tree/master"><img alt="CircleCI" src="https://circleci.com/gh/starwards/starwards/tree/master.svg?style=svg"></a>
 
+<video src='https://user-images.githubusercontent.com/6019373/178277941-01a61ddb-c6cb-4620-b5aa-966291710d69.mp4' width=180/>
 </p>
 
-<video src='https://user-images.githubusercontent.com/6019373/178277941-01a61ddb-c6cb-4620-b5aa-966291710d69.mp4' width=180/>
 
 
 # What is this?
