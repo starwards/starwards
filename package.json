@@ -74,7 +74,7 @@
         "lint-staged": "^13.0.3",
         "ncp": "^2.0.0",
         "nodemon": "^2.0.19",
-        "pkg": "^5.6.0",
+        "pkg": "^5.8.0",
         "playwright": "^1.22.2",
         "prettier": "^2.7.1",
         "pretty-quick": "^3.1.0",
