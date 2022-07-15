@@ -36,7 +36,7 @@
         "xstate": "^4.32.1"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.13.1",
+        "@babylonjs/gui": "5.15.1",
         "@babylonjs/inspector": "5.13.1",
         "@tweakpane/core": "^1.1.0"
     }
