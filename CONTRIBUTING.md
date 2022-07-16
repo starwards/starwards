@@ -32,7 +32,7 @@ Utility scripts are stored in the `scripts` folder:
 
 ### Installing and running commands
 
-to install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installd. nodejs should be at version 15.11 at least and npm should be at version 7.6 at least
+To install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installd. nodejs should be at version 15.11 at least and npm should be at version 7.6 at least
 Then, `git clone` this repository locally and make sure you can run the following:
 
 ```sh
@@ -108,19 +108,19 @@ conditions are met:
 -   Your new code **adheres to the code style** through running `npm run test:format`.
 -   Your new code **passes all existing and new tests** through running `npm run test` and `npm run test:e2e`.
 
-please keep in mind that this project is not well covered with tests. For now, a lot of the testing is done manually. Please make sure you are familiar with the areas that are affected by changes you make in the code.
+Please keep in mind that this project is not well covered with tests. For now, a lot of the testing is done manually. Please make sure you are familiar with the areas that are affected by changes you make in the code.
 
 ## VSCode setup
 
 This project comes pre-configured for [VSCode](https://code.visualstudio.com/). We assume yuo have instlled all recommended plugins.
 
-## running and debugging a local development environment
+## Running and debugging a local development environment
 
-running and debugging requires three running processes.
+Running and debugging requires three running processes.
 
 1. Continously build the model module
 
-    builds the model module and watches for changes. It is recommended to keep it running at the background while making code changes.
+    Builds the model module and watches for changes. It is recommended to keep it running at the background while making code changes.
 
     In VSCode: The `build:model` task (a button at the left of the statusbar).
 
@@ -130,7 +130,7 @@ running and debugging requires three running processes.
 
 2. Web development server
 
-    runs a frontend development server that will automatically re-load the client appilcation when changes are made to it, and proxies all API and static files requests to the API server. It is recommended to keep it running at the background while making code changes.
+    Runs a frontend development server that will automatically re-load the client appilcation when changes are made to it, and proxies all API and static files requests to the API server. It is recommended to keep it running at the background while making code changes.
 
     In VSCode: The `webpack:dev server` task (a button at the left of the statusbar).
 
@@ -140,7 +140,7 @@ running and debugging requires three running processes.
 
 3. API server
 
-    runs a local development API server (game logic and static files serving) in debug mode. you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `model` modules).
+    Runs a local development API server (game logic and static files serving) in debug mode. you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `model` modules).
 
     In VSCode: The `run server` debug configuration (more about debugging in vscode [Here](https://code.visualstudio.com/docs/editor/debugging))
 
@@ -150,7 +150,7 @@ running and debugging requires three running processes.
 
 After all three processes are up, open your chrome browser at `http://localhost/`.
 
-### hosting an internet game
+### Hosting an internet game
 
 To quickly host a local game with a remote party outside your network, I reccommend you use [ngrok](https://ngrok.com/). just download the executable file to the root of this project and run `./ngrok http` to create an HTTP tunnel to your local server.
 
