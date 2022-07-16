@@ -1,0 +1,59 @@
+<svg id="Outline" xmlns="http://www.w3.org/2000/svg" width="3534" height="5300" viewBox="0 0 1767 2650">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke: #271b18;
+        stroke-width: 4px;
+        fill-rule: evenodd;
+      }
+    </style>
+  </defs>
+  <path id="Outside" class="cls-1" d="M1597,2118.01l-29,8L1436,2480l-2,29-2,80-68,20-106-2-90-25,3-24-80,1-7,17s-108.4.22-209,.99V2577h-1v-0.01c-100.574-.77-205-0.99-205-0.99l-7-17-80-1,3,24-90,25-106,2-68-20-2-81-2-28L185,2126l-29-8-21-66,5-219,27-73,22-3,149-359v-45l235-4,8-129,33-203,52-116,7-93s-8.693-249.477-5-379c12.43-142.423,29-167,29-167s27.637-64.075,69-119c43.417-68.619,97-125,97-125s4.772-4.74,14-5c9.811,1.26,13,5.031,13,5.031s53.583,56.381,97,125c41.36,54.924,69,119,69,119s16.57,24.577,29,167c3.69,129.521-5,379-5,379l7,93,52,116,33,203,8,129,235,4v44.99l149,359,22,3,27,73,5,219Z"/>
+  <path id="Shape_8_copy_2" data-name="Shape 8 copy 2" class="cls-1" d="M1096.19,2503H657.81L633,2479l3.1-366,3.1-51,236.8-2.97V2059l1,0.01,1-.01v0.03l236.8,2.97,3.1,51,3.1,366Z"/>
+  <path class="cls-1" d="M565,2480H384L279,2153l-2-390,122-343,175-2Z"/>
+  <path id="Shape_9_copy_3" data-name="Shape 9 copy 3" class="cls-1" d="M1186.5,2480h181l105-327,2-390-122-343-175-2Z"/>
+  <path class="cls-1" d="M571,1761H277l2,393H568Z"/>
+  <path id="Shape_10_copy" data-name="Shape 10 copy" class="cls-1" d="M1180.5,1761h294l-2,393h-289Z"/>
+  <path id="Shape_11_copy" data-name="Shape 11 copy" class="cls-1" d="M876,1272l-298,1,6-60,46-26,20-178,226.5,1,226.5-1,20,178,46,26,6,60Z"/>
+  <path class="cls-1" d="M769,1010l7-625,18-189L844,41"/>
+  <path id="Shape_11_copy_2" data-name="Shape 11 copy 2" class="cls-1" d="M985.5,1010l-7-625-18-189-50-155"/>
+  <path class="cls-1" d="M771,808H984"/>
+  <path id="Shape_12_copy" data-name="Shape 12 copy" class="cls-1" d="M776,382s46.579-3,100-7c51.078,4,103,7,103,7"/>
+  <path id="Shape_12_copy_2" data-name="Shape 12 copy 2" class="cls-1" d="M962,194s-47.043-16.289-86-31c-40.978,15.03-83,31-83,31L726,412l46,360"/>
+  <path id="Shape_12_copy_3" data-name="Shape 12 copy 3" class="cls-1" d="M792.5,194s47.043-16.289,86-31c40.978,15.03,83,31,83,31l67,218L983,771"/>
+  <g id="Mid_Engine" data-name="Mid Engine">
+    <path id="Shape_9_copy" data-name="Shape 9 copy" class="cls-1" d="M876,1522l138,29,4,214-141,31m0,0-145-31,4-214,140-29"/>
+    <path id="Shape_9_copy_2" data-name="Shape 9 copy 2" class="cls-1" d="M877,1812l-159-42,8-285,151-19,147,19,9,285-156,42"/>
+  </g>
+  <g id="left_engines" data-name="left engines">
+    <g>
+      <g>
+        <path class="cls-1" d="M259,2132l4-376H191l-24,6-28,74-4,218,20,68,32,6Z"/>
+        <path class="cls-1" d="M238,2132l-103-81,5-217,107-78h17l-5,376H238Z"/>
+      </g>
+      <g>
+        <path class="cls-1" d="M338,1394H523l50-6v-38s-27.205.35-63.141,0.8L337,1353Z"/>
+        <path class="cls-1" d="M523,1394l-12-43-112,1v42H523Z"/>
+      </g>
+    </g>
+    <g>
+      <path class="cls-1" d="M318,2481l69,20,111-1,63-2,2,50,19,11,4,23-90,25-108,2-67-20Z"/>
+      <path class="cls-1" d="M387,2609V2501l110-1v107Z"/>
+    </g>
+  </g>
+  <g id="right_engines" data-name="right engines">
+    <g id="Group_5_copy" data-name="Group 5 copy">
+      <path class="cls-1" d="M1435.94,2480.69l-68.91,20.05-110.86-1.01-62.92-2-2,50.11-18.98,11.02-3.99,23.05,89.88,25.05,107.87,2,66.91-20.04Z"/>
+      <path class="cls-1" d="M1367.03,2608.96V2500.74l-109.86-1.01v107.23Z"/>
+    </g>
+    <g id="Group_3_copy" data-name="Group 3 copy">
+      <path class="cls-1" d="M1494.03,2131.88l-4-375.88H1562l23.98,6,27.99,73.97,4,217.93-19.99,67.98-31.99,6Z"/>
+      <path class="cls-1" d="M1515.02,2131.88l102.95-80.98-5-216.93L1506.02,1756h-16.99l5,375.88h20.99Z"/>
+    </g>
+    <g>
+      <path id="Shape_3_copy_2" data-name="Shape 3 copy 2" class="cls-1" d="M1229,1394l12-43,112,1v42H1229Z"/>
+      <path id="Shape_3_copy" data-name="Shape 3 copy" class="cls-1" d="M1414,1394H1229l-50-6v-38s27.2,0.35,63.14.8L1415,1353Zm-185,0,12-43,112,1v42H1229Z"/>
+    </g>
+  </g>
+</svg>
