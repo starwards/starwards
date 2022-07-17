@@ -4,7 +4,7 @@ import { SpaceObject, SpaceObjects } from '@starwards/model';
 
 import { CameraView } from '../camera-view';
 import { SpaceDriver } from '../../driver';
-import { TrackObjects } from './track-objects';
+import { TrackObjects } from '../../driver/space';
 
 export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
 export type Selection = { has(o: SpaceObject): boolean };

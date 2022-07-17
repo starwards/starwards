@@ -8,6 +8,9 @@ export type RTuple2 = readonly [number, number];
 
 export type Tuple2 = [number, number];
 
+export function calcArcAngle(arcLength: number, radius: number) {
+    return arcLength / radius / degToRad;
+}
 /**
  * simple sin wave with control over period/frequency
  * from:  https://riptutorial.com/javascript/example/10173/periodic-functions-using-math-sin
@@ -56,6 +59,16 @@ export function archIntersection(a: RTuple2, b: RTuple2): boolean {
 
 export function padArch(arch: RTuple2, pad: number): RTuple2 {
     return [toPositiveDegreesDelta(arch[0] - pad), toPositiveDegreesDelta(arch[1] + pad)];
+}
+/**
+ * normalize drgrees to value between (0, 360]
+ */
+export function toStrictPositiveDegreesDelta(degrees: number) {
+    const deg = degrees % 360;
+    if (deg <= 0) {
+        return deg + 360;
+    }
+    return deg;
 }
 /**
  * normalize drgrees to value between [0, 360)
