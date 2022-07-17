@@ -88,7 +88,7 @@ export class GmWidgets {
                         () => {
                             fovGraphics.clear();
                             fovGraphics.lineStyle(0);
-                            for (const fov of rangeFilter.radarRanges.values()) {
+                            for (const fov of rangeFilter.fieldsOfView()) {
                                 if (fov.object.faction === faction) {
                                     fovGraphics.beginFill(getFactionColor(faction), 1);
                                     fov.draw(root, fovGraphics);

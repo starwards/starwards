@@ -58,7 +58,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                         rangeFilter.update();
                         fovGraphics.clear();
                         fovGraphics.lineStyle(0);
-                        for (const fov of rangeFilter.radarRanges.values()) {
+                        for (const fov of rangeFilter.fieldsOfView()) {
                             fovGraphics.beginFill(radarVisibleBg, 1);
                             fov.draw(root, fovGraphics);
                             fovGraphics.endFill();

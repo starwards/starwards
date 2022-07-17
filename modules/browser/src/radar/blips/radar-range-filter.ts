@@ -1,6 +1,5 @@
 import {
     EPSILON,
-    Faction,
     SpaceObject,
     XY,
     calcArcAngle,
@@ -140,25 +139,29 @@ export class RadarRangeFilter {
 
     private createFieldOfView = (o: SpaceObject) => new FieldOfView(this.spaceDriver.spatial, o);
     private updateFieldOfView = (_: SpaceObject, r: FieldOfView) => r.update();
-    public radarRanges = new TrackObjects<FieldOfView>(
+    private fovs = new TrackObjects<FieldOfView>(
         this.spaceDriver,
         this.createFieldOfView,
         this.updateFieldOfView,
         noop,
-        this.shouldTrack
+        this.shouldTrackFov
     );
-    constructor(private spaceDriver: SpaceDriver, private shouldTrack?: (o: SpaceObject) => boolean) {}
+    constructor(private spaceDriver: SpaceDriver, private shouldTrackFov?: (o: SpaceObject) => boolean) {}
 
     public update = () => {
         this.visibleObjects.clear();
-        this.radarRanges.update();
-        for (const fov of this.radarRanges.values()) {
+        this.fovs.update();
+        for (const fov of this.fieldsOfView()) {
             this.visibleObjects.add(fov.object);
             for (const visibleArc of fov.view) {
                 visibleArc.object && this.visibleObjects.add(visibleArc.object);
             }
         }
     };
+
+    public fieldsOfView() {
+        return this.fovs.values();
+    }
 
     public isInRange = (obj: SpaceObject) => {
         return this.visibleObjects.has(obj);
