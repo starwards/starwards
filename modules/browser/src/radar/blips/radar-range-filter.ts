@@ -140,7 +140,6 @@ export class RadarRangeFilter {
 
     private createFieldOfView = (o: SpaceObject) => new FieldOfView(this.spaceDriver.spatial, o);
     private updateFieldOfView = (_: SpaceObject, r: FieldOfView) => r.update();
-    private shouldTrack = (o: SpaceObject) => o.faction === this.faction;
     public radarRanges = new TrackObjects<FieldOfView>(
         this.spaceDriver,
         this.createFieldOfView,
@@ -148,7 +147,7 @@ export class RadarRangeFilter {
         noop,
         this.shouldTrack
     );
-    constructor(private spaceDriver: SpaceDriver, private faction: Faction) {}
+    constructor(private spaceDriver: SpaceDriver, private shouldTrack?: (o: SpaceObject) => boolean) {}
 
     public update = () => {
         this.visibleObjects.clear();

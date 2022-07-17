@@ -54,7 +54,10 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
                 root.view.setAttribute('data-id', 'Tactical Radar');
                 root.setSquare();
-                const rangeFilter = new RadarRangeFilter(spaceDriver, shipDriver.faction.getValue());
+                const rangeFilter = new RadarRangeFilter(
+                    spaceDriver,
+                    (o: SpaceObject) => o.faction === shipDriver.faction.getValue()
+                );
                 const fovGraphics = new Graphics();
                 root.stage.addChild(fovGraphics);
 

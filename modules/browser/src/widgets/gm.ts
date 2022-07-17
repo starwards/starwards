@@ -1,7 +1,6 @@
 import { CannonShell, Faction, SpaceObject } from '@starwards/model';
-import { Loader, filters } from 'pixi.js';
+import { Graphics, Loader, UPDATE_PRIORITY, filters } from 'pixi.js';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
-import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -12,8 +11,10 @@ import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
+import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import { makeRadarHeaders } from './radar';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
 export interface RadarState {
@@ -39,6 +40,7 @@ export class GmWidgets {
                 root.view.setAttribute('data-id', 'GM Radar');
                 root.view.setAttribute('data-zoom', `${camera.zoom}`);
                 root.events.on('screenChanged', () => root.view.setAttribute('data-zoom', `${camera.zoom}`));
+
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
                 void this.init(root);
@@ -55,17 +57,18 @@ export class GmWidgets {
                 const fragCounter = new FragCounter(adminDriver.state);
                 // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
-                const getColor = (s: SpaceObject) => {
-                    switch (s.faction) {
+                const getFactionColor = (faction: Faction) => {
+                    switch (faction) {
                         case Faction.none:
                         case Faction.factionCount:
-                            return CannonShell.isInstance(s) ? white : yellow;
+                            return yellow;
                         case Faction.Gravitas:
                             return red;
                         case Faction.Raiders:
                             return blue;
                     }
                 };
+                const getColor = (s: SpaceObject) => (CannonShell.isInstance(s) ? white : getFactionColor(s.faction));
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver,
@@ -74,18 +77,28 @@ export class GmWidgets {
                     tacticalDrawFunctions,
                     selectionContainer
                 );
+                const rangeFilter = new RadarRangeFilter(spaceDriver);
+                root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
                 for (let faction = 0; faction < Faction.factionCount; faction++) {
-                    const radarRangeLayer = new ObjectsLayer(
-                        root,
-                        spaceDriver,
-                        64,
-                        getColor,
-                        rangeRangeDrawFunctions,
-                        undefined,
-                        (o: SpaceObject) => o.faction === faction && o.radarRange > 0
+                    const fovGraphics = new Graphics();
+                    fovGraphics.filters = [new filters.AlphaFilter(0.1)];
+                    root.addLayer(fovGraphics);
+
+                    root.ticker.add(
+                        () => {
+                            fovGraphics.clear();
+                            fovGraphics.lineStyle(0);
+                            for (const fov of rangeFilter.radarRanges.values()) {
+                                if (fov.object.faction === faction) {
+                                    fovGraphics.beginFill(getFactionColor(faction), 1);
+                                    fov.draw(root, fovGraphics);
+                                    fovGraphics.endFill();
+                                }
+                            }
+                        },
+                        null,
+                        UPDATE_PRIORITY.LOW
                     );
-                    radarRangeLayer.renderRoot.filters = [new filters.AlphaFilter(0.2)];
-                    root.addLayer(radarRangeLayer.renderRoot);
                 }
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
