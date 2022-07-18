@@ -1,7 +1,6 @@
 import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver } from '../driver';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
-import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -15,6 +14,7 @@ import { SelectionContainer } from '../radar/selection-container';
 import { SpaceObject } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { crosshairs } from '../radar/tactical-radar-layers';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
