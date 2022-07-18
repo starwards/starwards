@@ -34,7 +34,7 @@ export class Camera {
     }
 
     /**
-     * the pixel / meter ratio
+     * the angle of the camera, in degrees
      */
     public get angle() {
         return this._angle;

@@ -17,6 +17,9 @@ export namespace XY {
             y: vector.y,
         };
     }
+    export function tuple({ x, y }: XY): [number, number] {
+        return [x, y];
+    }
     export function sum(...vectors: XY[]): XY {
         return {
             x: limitPercision(vectors.reduce((acc, curr) => acc + curr.x, 0)),

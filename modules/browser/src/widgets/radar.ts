@@ -67,7 +67,10 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 root.addLayer(radarRangeLayer.renderRoot);
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
-                const rangeFilter = new RadarRangeFilter(spaceDriver, shipDriver.faction.getValue());
+                const rangeFilter = new RadarRangeFilter(
+                    spaceDriver,
+                    (o: SpaceObject) => o.faction === shipDriver.faction.getValue()
+                );
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
                 const blipLayer = new ObjectsLayer(
                     root,

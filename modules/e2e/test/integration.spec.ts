@@ -25,10 +25,13 @@ const testMap = {
         const ship = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22');
         ship.faction = Faction.Gravitas;
         game.addSpaceship(ship);
-        const asteroidInRange = new Asteroid().init('astro1', new Vec2(3000, 1000));
+        const asteroidHiddenInRange = new Asteroid().init('astro1', new Vec2(2000, 2000));
+        asteroidHiddenInRange.radius = 200;
+        game.addObject(asteroidHiddenInRange);
+        const asteroidInRange = new Asteroid().init('astro2', new Vec2(1000, 1000));
         asteroidInRange.radius = 350;
         game.addObject(asteroidInRange);
-        const asteroidOutOfRange = new Asteroid().init('astro2', new Vec2(3000, 2000));
+        const asteroidOutOfRange = new Asteroid().init('astro3', new Vec2(3000, -2000));
         asteroidOutOfRange.radius = 50;
         game.addObject(asteroidOutOfRange);
     },

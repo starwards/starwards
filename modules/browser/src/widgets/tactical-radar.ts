@@ -1,9 +1,8 @@
-import { Loader, UPDATE_PRIORITY } from 'pixi.js';
+import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver } from '../driver';
 import { SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
-import { rangeRangeDrawFunctions, tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -15,6 +14,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
+import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
@@ -54,16 +54,28 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
                 root.view.setAttribute('data-id', 'Tactical Radar');
                 root.setSquare();
-                const radarRangeLayer = new ObjectsLayer(
-                    root,
+                const rangeFilter = new RadarRangeFilter(
                     spaceDriver,
-                    64,
-                    () => radarVisibleBg,
-                    rangeRangeDrawFunctions,
-                    undefined,
-                    (s: SpaceObject) => s.faction === shipDriver.faction.getValue()
+                    (o: SpaceObject) => o.faction === shipDriver.faction.getValue()
                 );
-                root.addLayer(radarRangeLayer.renderRoot);
+                const fovGraphics = new Graphics();
+                root.stage.addChild(fovGraphics);
+
+                root.ticker.add(
+                    () => {
+                        rangeFilter.update();
+                        fovGraphics.clear();
+                        fovGraphics.lineStyle(0);
+                        for (const fov of rangeFilter.fieldsOfView()) {
+                            fovGraphics.beginFill(radarVisibleBg, 1);
+                            fov.draw(root, fovGraphics);
+                            fovGraphics.endFill();
+                        }
+                    },
+                    null,
+                    UPDATE_PRIORITY.LOW
+                );
+
                 const background = new MovementAnchorLayer(
                     root,
                     {
@@ -92,8 +104,6 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 const shipTarget = trackTargetObject(spaceDriver, shipDriver);
                 root.addLayer(crosshairs(root, shipDriver.state, shipTarget));
                 root.addLayer(speedLines(root, shipDriver.state, shipTarget));
-                const rangeFilter = new RadarRangeFilter(spaceDriver, shipDriver.faction.getValue());
-                root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver,
