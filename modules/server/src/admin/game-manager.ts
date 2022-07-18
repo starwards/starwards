@@ -28,6 +28,10 @@ export class GameManager {
     public readonly scriptApi: GameApi = {
         getShip: (shipId: string) => this.ships.get(shipId) as unknown as ShipApi,
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
+            const existing = this.spaceManager.state.get(obj.id);
+            if (existing) {
+                throw new Error(`existing object ${existing.type} with ID ${obj.id}`);
+            }
             this.spaceManager.insert(obj);
         },
         addSpaceship: (ship: Spaceship) => this.initShip(ship) as unknown as ShipApi,
