@@ -12,7 +12,6 @@ import {
 import { GameApi, GameMap, ShipApi } from './scripts-api';
 import { defaultMap, resetShip } from './map-helper';
 
-import { MapSchema } from '@colyseus/schema';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 
@@ -40,9 +39,7 @@ export class GameManager {
         },
     };
 
-    constructor(private shipMessenger?: ShipStateMessenger) {
-        this.state.points = new MapSchema();
-    }
+    constructor(private shipMessenger?: ShipStateMessenger) {}
 
     update(deltaSeconds: number) {
         this.shipMessenger?.update(deltaSeconds);
@@ -89,7 +86,6 @@ export class GameManager {
 
     private initShip(spaceObject: Spaceship, sendMessages = false) {
         this.spaceManager.insert(spaceObject);
-        this.state.points.set(spaceObject.id, 0);
         const die = new ShipDie(3);
         if (!spaceObject.model) {
             throw new Error(`missing ship model for ship ${spaceObject.id}`);
@@ -102,7 +98,6 @@ export class GameManager {
             die,
             this.ships,
             () => {
-                this.state.points.set(spaceObject.id, (this.state.points.get(spaceObject.id) || 0) + 1);
                 resetShipState(shipManager.state);
                 resetShip(spaceObject);
             }
