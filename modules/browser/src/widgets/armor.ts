@@ -13,12 +13,12 @@ WebFont.load({
         families: ['Bebas'],
     },
 });
-export const preloadList = ['images/test-circle.svg'];
+export const preloadList = ['images/dragonfly-armor.svg'];
 
 Loader.shared.add(preloadList);
 
 const sizeFactor = 0.95;
-const plateMarginFactor = 0.2;
+const plateMarginRadians = 3 * degToRad;
 export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
     class ArmorComponent {
         constructor(container: Container) {
@@ -27,6 +27,7 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
             Loader.shared.load(() => {
                 // initialization. extracted from CameraView
                 const root = new Application({ backgroundColor: radarVisibleBg });
+                root.view.setAttribute('data-id', 'Armor');
                 container.on('resize', () => {
                     root.renderer.resize(size(), size());
                 });
@@ -37,7 +38,7 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
                     return false;
                 });
                 // ---
-                const texture = Loader.shared.resources['images/test-circle.svg'].texture; // assumed to be pre-loaded
+                const texture = Loader.shared.resources['images/dragonfly-armor.svg'].texture; // assumed to be pre-loaded
                 const plateSize = degToRad * shipDriver.state.armor.degreesPerPlate;
                 for (let plateIdx = 0; plateIdx < shipDriver.state.armor.numberOfPlates; plateIdx++) {
                     const sprite = new Sprite(texture);
@@ -48,8 +49,8 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
                     root.stage.addChild(sprite);
                     const mask = new Graphics();
                     sprite.mask = mask;
-                    const angleStart = 0 - Math.PI / 2 + plateIdx * plateSize + plateMarginFactor / 2;
-                    const angle = (1 - plateMarginFactor) * plateSize + angleStart;
+                    const angleStart = 0 - Math.PI / 2 + plateIdx * plateSize + plateMarginRadians / 2;
+                    const angle = angleStart + plateSize - plateMarginRadians;
                     const draw = () => {
                         const health =
                             shipDriver.state.armor.armorPlates[plateIdx].health / shipDriver.state.armor.plateMaxHealth;
@@ -69,7 +70,7 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
                         mask.beginFill(0xff0000, 1);
                         mask.moveTo(0, 0);
                         mask.lineTo(x1, y1);
-                        mask.arc(0, 0, radius, angleStart, angle, false);
+                        mask.arc(0, 0, Math.hypot(radius, radius), angleStart, angle, false);
                         mask.lineTo(0, 0);
                         mask.endFill();
                     };

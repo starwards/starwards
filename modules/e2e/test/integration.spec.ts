@@ -37,6 +37,14 @@ const testMap = {
     },
 };
 
+test('armor view', async ({ page }) => {
+    await gameDriver.gameManager.startGame(testMap);
+    await page.goto(`/ship.html?ship=${testShipId}`);
+    await page.locator('[data-id="menu-armor"]').dragTo(page.locator('#layoutContainer'));
+    const radarCanvas = page.locator('[data-id="Armor"]');
+    expect(await radarCanvas.screenshot()).toMatchSnapshot();
+});
+
 test('tactical radar view', async ({ page }) => {
     await gameDriver.gameManager.startGame(testMap);
     await page.goto(`/ship.html?ship=${testShipId}`);
