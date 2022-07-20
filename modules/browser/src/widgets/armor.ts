@@ -17,12 +17,11 @@ export const preloadList = ['images/dragonfly-armor.svg'];
 
 Loader.shared.add(preloadList);
 
-const sizeFactor = 0.95;
 const plateMarginRadians = 3 * degToRad;
 export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
     class ArmorComponent {
         constructor(container: Container) {
-            const size = () => Math.min(container.width, container.height) * sizeFactor;
+            const size = () => Math.min(container.width, container.height);
 
             Loader.shared.load(() => {
                 // initialization. extracted from CameraView
