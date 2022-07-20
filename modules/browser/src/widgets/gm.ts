@@ -7,7 +7,6 @@ import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
-import { FragCounter } from './frag';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
@@ -49,12 +48,7 @@ export class GmWidgets {
             // the async part of initializing
             private async init(root: CameraView) {
                 const pixiLoaded = new Promise((res) => Loader.shared.load(res));
-                const [spaceDriver, adminDriver] = await Promise.all([
-                    driver.getSpaceDriver(),
-                    driver.getAdminDriver(),
-                    pixiLoaded,
-                ]);
-                const fragCounter = new FragCounter(adminDriver.state);
+                const [spaceDriver] = await Promise.all([driver.getSpaceDriver(), pixiLoaded]);
                 // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
                 const getFactionColor = (faction: Faction) => {
@@ -102,8 +96,6 @@ export class GmWidgets {
                 }
                 root.addLayer(blipLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
-                // root.addLayer(fps.renderRoot);
-                root.addLayer(fragCounter);
             }
         }
         // todo make lazy
