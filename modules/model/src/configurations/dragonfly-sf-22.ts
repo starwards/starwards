@@ -1,9 +1,9 @@
 import { ShipModel } from '../ship/ship-configuration';
 
 export const dragonflyArmor = {
-    numberOfPlates: 60,
-    healRate: 3.3333,
-    plateMaxHealth: 200,
+    numberOfPlates: 12,
+    healRate: 3,
+    plateMaxHealth: 1500,
 };
 export const dragonflyThruster = {
     maxAngleError: 45,

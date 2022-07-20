@@ -5,7 +5,7 @@ import { ArmorModel } from './ship-configuration';
 import { ModelParams } from '../model-params';
 
 export class ArmorPlate extends Schema {
-    @type('uint8')
+    @type('float32')
     health!: number;
 }
 
