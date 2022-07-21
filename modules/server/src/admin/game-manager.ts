@@ -42,10 +42,17 @@ export class GameManager {
     constructor(private shipMessenger?: ShipStateMessenger) {}
 
     async update(deltaSeconds: number) {
-        this.shipMessenger?.update(deltaSeconds);
-        this.map?.update?.(deltaSeconds);
-        for (const die of this.dice) {
-            die.update(deltaSeconds);
+        const adjustedDeltaSeconds = deltaSeconds * this.state.speed;
+        if (adjustedDeltaSeconds) {
+            this.shipMessenger?.update(adjustedDeltaSeconds);
+            this.map?.update?.(adjustedDeltaSeconds);
+            for (const die of this.dice) {
+                die.update(adjustedDeltaSeconds);
+            }
+            for (const shipManager of this.ships.values()) {
+                shipManager.update(adjustedDeltaSeconds);
+            }
+            this.spaceManager.update(adjustedDeltaSeconds);
         }
         if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
             await this.stopGame();

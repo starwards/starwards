@@ -6,6 +6,9 @@ export class AdminState extends Schema {
     @type('boolean')
     isGameRunning = false;
 
+    @type('float32')
+    speed = 1;
+
     // server only, used for commands
     shouldGameBeRunning = false;
 }
