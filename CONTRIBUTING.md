@@ -135,6 +135,11 @@ Running and debugging requires three running processes.
     In VSCode: The `webpack:dev server` task (a button at the left of the statusbar).
 
     ```sh
+    cd ./modules/browser && npm start
+    ```
+    Some versions of NodeJS (17) will require adding an extra flag for this command to work:
+
+    ```sh
     cd ./modules/browser && NODE_OPTIONS=--openssl-legacy-provider npm start
     ```
 
