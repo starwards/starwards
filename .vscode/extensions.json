@@ -6,7 +6,6 @@
         "jvandyke.vscode-circleci",
         "esbenp.prettier-vscode",
         "eamodio.gitlens",
-        "orta.vscode-jest",
         "actboy168.tasks"
     ]
 }
