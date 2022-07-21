@@ -15,15 +15,9 @@ export class AdminRoom extends Room<AdminState> {
         }
     }
 
-    onDispose() {
-        // eslint-disable-next-line no-console
-        console.error(`trying to dispose of AdminRoom`);
-        return new Promise(() => 0); // never surrender!
-    }
-
     public onCreate({ manager }: { manager: GameManager }) {
         this.setState(manager.state);
-        this.setSimulationInterval((deltaMs) => manager.update(deltaMs / 1000));
+        this.setSimulationInterval((deltaMs) => void manager.update(deltaMs / 1000));
         for (const [cmdName, handler] of cmdReceivers(adminProperties, manager)) {
             this.onMessage(cmdName, handler);
         }

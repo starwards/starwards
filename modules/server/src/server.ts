@@ -3,6 +3,7 @@ import * as http from 'http';
 
 import { Server, matchMaker } from 'colyseus';
 
+import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
 import { GameManager } from './admin/game-manager';
 import { ShipRoom } from './ship/room';
@@ -15,7 +16,8 @@ import { monitor } from '@colyseus/monitor';
 export async function server(port: number, staticDir: string, manager: GameManager) {
     const app = express();
     app.use(express.json() as express.RequestHandler);
-    const gameServer = new Server({ transport: new WebSocketTransport({ server: http.createServer(app) }) });
+    const httpServer = http.createServer(app);
+    const gameServer = new Server({ transport: new WebSocketTransport({ server: httpServer }) });
 
     gameServer.define('space', SpaceRoom);
     gameServer.define('admin', AdminRoom);
@@ -28,7 +30,12 @@ export async function server(port: number, staticDir: string, manager: GameManag
     app.use('/colyseus', auth, monitor());
 
     await gameServer.listen(port);
-    console.log(`Listening on port ${port}`);
+    const addressInfo = httpServer.address() as AddressInfo;
+    console.log(`Listening on port ${addressInfo.port}`);
 
     await matchMaker.createRoom('admin', { manager }); // create a room
+    return {
+        addressInfo,
+        close: async () => await gameServer.gracefullyShutdown(false),
+    };
 }

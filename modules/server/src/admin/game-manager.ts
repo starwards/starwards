@@ -41,16 +41,16 @@ export class GameManager {
 
     constructor(private shipMessenger?: ShipStateMessenger) {}
 
-    update(deltaSeconds: number) {
+    async update(deltaSeconds: number) {
         this.shipMessenger?.update(deltaSeconds);
-        if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
-            void this.stopGame();
-        } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
-            void this.startGame(defaultMap);
-        }
         this.map?.update?.(deltaSeconds);
         for (const die of this.dice) {
             die.update(deltaSeconds);
+        }
+        if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
+            await this.stopGame();
+        } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
+            await this.startGame(defaultMap);
         }
     }
 

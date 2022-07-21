@@ -8,9 +8,13 @@ import { server } from '@starwards/server/src/server';
 
 export function makeDriver(t: typeof test) {
     let gameManager: GameManager | null = null;
+    let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     t.beforeAll(async () => {
         gameManager = new GameManager();
-        await server(8080, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
+        serverInfo = await server(8080, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
+    });
+    t.afterAll(async () => {
+        await serverInfo?.close();
     });
 
     t.afterEach(async () => {
