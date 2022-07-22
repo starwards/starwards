@@ -17,3 +17,7 @@ export async function stringToFragment(serialized: string) {
     result.decode([...unzipped]);
     return result;
 }
+export async function getUnzipped(zipped: string) {
+    const unzipped = await do_unzip(Buffer.from(zipped, 'base64'));
+    return unzipped.toString('base64');
+}

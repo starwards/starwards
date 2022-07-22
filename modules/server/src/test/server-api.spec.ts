@@ -1,4 +1,5 @@
 import { HTTP_CONFLICT_STATUS } from '../server';
+import { getUnzipped } from '../admin/fragment-serialization';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
 
@@ -18,11 +19,13 @@ describe('server-API', () => {
         expect(response.status).toEqual(HTTP_CONFLICT_STATUS);
     });
 
-    test('save game returns same string', async () => {
+    test('save game returns same data', async () => {
         gameDriver.pauseGameCommand();
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
         const response = await supertest(gameDriver.httpServer).post('/save-game');
         expect(response.status).toEqual(200);
-        expect(response.text).toMatchSnapshot('test_map_1-save-game');
+        // compare unzipped data because zipped result is environment-dependent
+        // see https://stackoverflow.com/a/26521451/11813
+        expect(await getUnzipped(response.text)).toMatchSnapshot('test_map_1-save-game');
     });
 });
