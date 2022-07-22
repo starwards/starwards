@@ -19,13 +19,20 @@ describe('server-API', () => {
         expect(response.status).toEqual(HTTP_CONFLICT_STATUS);
     });
 
+    // regression test: dont break compatibility unknowingly
     test('save game returns same data', async () => {
         gameDriver.pauseGameCommand();
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
-        const response = await supertest(gameDriver.httpServer).post('/save-game');
-        expect(response.status).toEqual(200);
+        const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
         // compare unzipped data because zipped result is environment-dependent
         // see https://stackoverflow.com/a/26521451/11813
         expect(await getUnzipped(response.text)).toMatchSnapshot('test_map_1-save-game');
+    });
+
+    test('saved game contains same data as game state', async () => {
+        gameDriver.pauseGameCommand();
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
+        await gameDriver.assertSameState(response.text);
     });
 });
