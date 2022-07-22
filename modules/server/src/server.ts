@@ -14,12 +14,11 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import asyncHandler from 'express-async-handler';
 import basicAuth from 'express-basic-auth';
 import express from 'express';
-import { fragmentToString } from './admin/fragment-serialization';
 import { monitor } from '@colyseus/monitor';
+import { schemaToString } from './serialization/game-state-serialization';
 
-function isMapName(arg: unknown): arg is keyof typeof maps {
-    return typeof arg === 'string' && Object.keys(maps).includes(arg);
-}
+const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
+
 export const HTTP_CONFLICT_STATUS = 409;
 export const HTTP_BAD_REQUEST_STATUS = 400;
 export async function server(port: number, staticDir: string, manager: GameManager) {
@@ -52,8 +51,9 @@ export async function server(port: number, staticDir: string, manager: GameManag
         asyncHandler(async (req, res) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { mapName } = req.body;
-            if (isMapName(mapName)) {
-                await manager.startGame(maps[mapName]);
+            const map = mapsMap.get(String(mapName));
+            if (map) {
+                await manager.startGame(map);
                 res.send();
             } else {
                 res.sendStatus(HTTP_BAD_REQUEST_STATUS);
@@ -66,7 +66,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
         asyncHandler(async (_, res) => {
             const gameState = manager.saveGame();
             if (gameState) {
-                res.send(await fragmentToString(gameState));
+                res.send(await schemaToString(gameState));
             } else {
                 res.sendStatus(HTTP_CONFLICT_STATUS);
             }

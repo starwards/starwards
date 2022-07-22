@@ -10,8 +10,8 @@ import {
     shipConfigurations,
 } from '@starwards/model';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
+import { GameStateFragment, SavedGame } from '../serialization/game-state-protocol';
 
-import { GameStateFragment } from './game-state-fragment';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 import { resetShip } from './map-helper';
@@ -87,14 +87,17 @@ export class GameManager {
     }
 
     public saveGame() {
-        if (!this.state.isGameRunning) {
+        if (!this.state.isGameRunning || !this.map) {
             return null;
         }
-        const state = new GameStateFragment();
-        state.space = this.spaceManager.state;
+        const state = new SavedGame();
+        state.mapName = this.map.name;
+        state.fragment.space = this.spaceManager.state;
         for (const [shipId, shipManager] of this.ships.entries()) {
-            state.ship.set(shipId, shipManager.state);
+            state.fragment.ship.set(shipId, shipManager.state);
         }
+        // TODO clone output after null bug is fixed:
+        // https://github.com/colyseus/schema/pull/135
         return state; // this is risky - it should only be used for serialization
     }
 

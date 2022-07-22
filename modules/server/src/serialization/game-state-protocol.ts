@@ -11,3 +11,11 @@ export class GameStateFragment extends Schema {
     @type(SpaceState)
     public space = new SpaceState();
 }
+
+export class SavedGame extends Schema {
+    @type('string')
+    public mapName = '';
+
+    @type(GameStateFragment)
+    public fragment = new GameStateFragment();
+}

@@ -3,6 +3,7 @@ import { GameApi, GameMap } from './admin/scripts-api';
 import { newAsteroid, newShip } from './admin/map-helper';
 
 export const two_vs_one: GameMap = {
+    name: 'two_vs_one',
     init: (game: GameApi) => {
         for (let i = 0; i < 20; i++) {
             game.addObject(newAsteroid());
@@ -17,6 +18,7 @@ export const two_vs_one: GameMap = {
 
 const testShipId = 'GVTS';
 export const test_map_1 = {
+    name: 'test_map_1',
     testShipId,
     init: (game: GameApi) => {
         const ship = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22');

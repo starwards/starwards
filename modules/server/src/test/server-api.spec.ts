@@ -1,5 +1,5 @@
 import { HTTP_CONFLICT_STATUS } from '../server';
-import { getUnzipped } from '../admin/fragment-serialization';
+import { getUnzipped } from '../serialization/game-state-serialization';
 import { makeDriver } from './driver';
 import supertest from 'supertest';
 
