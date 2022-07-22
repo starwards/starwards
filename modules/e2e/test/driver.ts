@@ -1,10 +1,9 @@
 import * as path from 'path';
 
+import { GameManager, server } from '@starwards/server';
 import { Locator, expect, test } from '@playwright/test';
 
-import { GameManager } from '@starwards/server/src/admin/game-manager';
 import { limitPercision } from '@starwards/model';
-import { server } from '@starwards/server/src/server';
 
 export function makeDriver(t: typeof test) {
     let gameManager: GameManager | null = null;

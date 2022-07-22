@@ -10,10 +10,11 @@ import {
     shipConfigurations,
 } from '@starwards/model';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
-import { defaultMap, resetShip } from './map-helper';
 
+import { GameStateFragment } from './game-state-fragment';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
+import { resetShip } from './map-helper';
 
 type Die = {
     update: (deltaSeconds: number) => void;
@@ -35,15 +36,15 @@ export class GameManager {
         },
         addSpaceship: (ship: Spaceship) => this.initShip(ship) as unknown as ShipApi,
         stopGame: () => {
-            this.state.shouldGameBeRunning = false;
+            void this.stopGame();
         },
     };
 
     constructor(private shipMessenger?: ShipStateMessenger) {}
 
-    async update(deltaSeconds: number) {
+    update(deltaSeconds: number) {
         const adjustedDeltaSeconds = deltaSeconds * this.state.speed;
-        if (adjustedDeltaSeconds) {
+        if (this.state.isGameRunning && adjustedDeltaSeconds > 0) {
             this.shipMessenger?.update(adjustedDeltaSeconds);
             this.map?.update?.(adjustedDeltaSeconds);
             for (const die of this.dice) {
@@ -54,15 +55,9 @@ export class GameManager {
             }
             this.spaceManager.update(adjustedDeltaSeconds);
         }
-        if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
-            await this.stopGame();
-        } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
-            await this.startGame(defaultMap);
-        }
     }
 
     public async stopGame() {
-        this.state.shouldGameBeRunning = false;
         this.map = null;
         if (this.state.isGameRunning) {
             const shipRooms = await matchMaker.query({ name: 'ship' });
@@ -80,15 +75,27 @@ export class GameManager {
     }
 
     public async startGame(map: GameMap) {
-        this.state.shouldGameBeRunning = true;
         if (!this.state.isGameRunning) {
             this.state.isGameRunning = true;
             this.map = map;
+            this.ships = new Map<string, ShipManager>();
             this.spaceManager = new SpaceManager();
             map.init(this.scriptApi);
             this.spaceManager.forceFlushEntities();
             await matchMaker.createRoom('space', { manager: this.spaceManager });
         }
+    }
+
+    public saveGame() {
+        if (!this.state.isGameRunning) {
+            return null;
+        }
+        const state = new GameStateFragment();
+        state.space = this.spaceManager.state;
+        for (const [shipId, shipManager] of this.ships.entries()) {
+            state.ship.set(shipId, shipManager.state);
+        }
+        return state; // this is risky - it should only be used for serialization
     }
 
     private initShip(spaceObject: Spaceship, sendMessages = false) {

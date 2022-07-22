@@ -18,13 +18,12 @@ export function makeDriver() {
         await gameManager?.stopGame();
     });
     return {
-        async startGameCommand() {
-            adminProperties.shouldGameBeRunning.setValue(this.gameManager.state, true);
-            await this.gameManager.update(1);
+        get httpServer() {
+            if (!serverInfo) throw new Error('missing serverInfo');
+            return serverInfo.httpServer;
         },
-        async stopGameCommand() {
-            adminProperties.shouldGameBeRunning.setValue(this.gameManager.state, false);
-            await this.gameManager.update(1);
+        pauseGameCommand() {
+            adminProperties.speedCommand.setValue(this.gameManager.state, 0);
         },
         get gameManager() {
             if (!gameManager) throw new Error('missing gameManager');

@@ -133,7 +133,7 @@ export const Lobby = (p: Props) => {
 
                         {false === isGameRunning && adminDriver && (
                             <pre key="new game">
-                                <Button palette="success" onClick={adminDriver.startGame}>
+                                <Button palette="success" onClick={() => adminDriver.startGame('two_vs_one')}>
                                     <div data-id="new game">New Game</div>
                                 </Button>
                             </pre>

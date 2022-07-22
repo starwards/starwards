@@ -1,10 +1,5 @@
-import { NumericStatePropertyCommand, PropertyCommand } from '../api/property-constructors';
-
 import { AdminState } from '..';
-
-export const shouldGameBeRunning = PropertyCommand('shouldGameBeRunning', (state: AdminState, value: boolean) => {
-    state.shouldGameBeRunning = value;
-});
+import { NumericStatePropertyCommand } from '../api/property-constructors';
 
 export const speedCommand = NumericStatePropertyCommand(
     'speedCommand',

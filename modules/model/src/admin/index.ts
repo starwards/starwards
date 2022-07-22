@@ -8,9 +8,6 @@ export class AdminState extends Schema {
 
     @type('float32')
     speed = 1;
-
-    // server only, used for commands
-    shouldGameBeRunning = false;
 }
 
 export const adminProperties = _adminProperties;

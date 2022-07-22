@@ -9,18 +9,19 @@ export { SpaceDriver } from './space';
 
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
-export type AdminDriver = ReturnType<typeof AdminDriver>;
+export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
 
 // const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const ENDPOINT = protocol + '//' + window.location.host + '/api';
+const COLYSEUS_ENDPOINT = protocol + '//' + window.location.host + '/colyseus';
+const HTTP_ENDPOINT = window.location.protocol + '//' + window.location.host;
 
 export class Driver {
     private adminDriver: Promise<AdminDriver> | null = null;
     private spaceDriver: Promise<SpaceDriver> | null = null;
     private shipDrivers = new Map<string, Promise<ShipDriver>>();
 
-    private client = new Client(ENDPOINT);
+    private client = new Client(COLYSEUS_ENDPOINT);
 
     async isActiveGame() {
         const rooms = await this.client.getAvailableRooms('space');
@@ -90,7 +91,7 @@ export class Driver {
         if (this.adminDriver) {
             return await this.adminDriver;
         }
-        this.adminDriver = this.client.join('admin', {}, schemaClasses.admin).then(AdminDriver);
+        this.adminDriver = this.client.join('admin', {}, schemaClasses.admin).then(AdminDriver(HTTP_ENDPOINT));
         return await this.adminDriver;
     }
 }
