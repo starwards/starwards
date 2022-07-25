@@ -2,6 +2,7 @@ import {
     AdminState,
     ShipDie,
     ShipManager,
+    ShipState,
     SpaceManager,
     SpaceObject,
     Spaceship,
@@ -10,8 +11,8 @@ import {
     shipConfigurations,
 } from '@starwards/model';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
-import { GameStateFragment, SavedGame } from '../serialization/game-state-protocol';
 
+import { SavedGame } from '../serialization/game-state-protocol';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 import { resetShip } from './map-helper';
@@ -34,7 +35,7 @@ export class GameManager {
             }
             this.spaceManager.insert(obj);
         },
-        addSpaceship: (ship: Spaceship) => this.initShip(ship) as unknown as ShipApi,
+        addSpaceship: (ship: Spaceship) => this.addShip(ship) as unknown as ShipApi,
         stopGame: () => {
             void this.stopGame();
         },
@@ -92,38 +93,53 @@ export class GameManager {
         }
         const state = new SavedGame();
         state.mapName = this.map.name;
+        this.spaceManager.forceFlushEntities();
         state.fragment.space = this.spaceManager.state;
         for (const [shipId, shipManager] of this.ships.entries()) {
             state.fragment.ship.set(shipId, shipManager.state);
         }
-        // TODO clone output after null bug is fixed:
-        // https://github.com/colyseus/schema/pull/135
-        return state; // this is risky - it should only be used for serialization
+        return state.clone();
     }
 
-    private initShip(spaceObject: Spaceship, sendMessages = false) {
+    public async loadGame(source: SavedGame, map: GameMap) {
+        if (this.state.isGameRunning) {
+            await this.stopGame();
+        }
+        this.state.isGameRunning = true;
+        this.map = map;
+        this.spaceManager = new SpaceManager();
+        this.spaceManager.state = source.fragment.space;
+        await matchMaker.createRoom('space', { manager: this.spaceManager });
+        for (const [id, shipState] of source.fragment.ship) {
+            const so = source.fragment.space.spaceships.get(id);
+            if (so) {
+                this.initShipRoom(so, shipState);
+            }
+        }
+    }
+
+    private addShip(spaceObject: Spaceship, sendMessages = false) {
         this.spaceManager.insert(spaceObject);
-        const die = new ShipDie(3);
         if (!spaceObject.model) {
             throw new Error(`missing ship model for ship ${spaceObject.id}`);
         }
         const configuration = shipConfigurations[spaceObject.model];
-        const shipManager = new ShipManager(
-            spaceObject,
-            makeShipState(spaceObject.id, configuration),
-            this.spaceManager,
-            die,
-            this.ships,
-            () => {
-                resetShipState(shipManager.state);
-                resetShip(spaceObject);
-            }
-        ); // create a manager to manage the ship
-        this.ships.set(spaceObject.id, shipManager);
-        this.dice.push(die);
+        const shipState = makeShipState(spaceObject.id, configuration);
+        const shipManager = this.initShipRoom(spaceObject, shipState);
         if (sendMessages) {
             this.shipMessenger?.registerShip(shipManager.state);
         }
+        return shipManager;
+    }
+
+    private initShipRoom(spaceObject: Spaceship, shipState: ShipState) {
+        const die = new ShipDie(3);
+        const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships, () => {
+            resetShipState(shipManager.state);
+            resetShip(spaceObject);
+        }); // create a manager to manage the ship
+        this.ships.set(spaceObject.id, shipManager);
+        this.dice.push(die);
         void matchMaker.createRoom('ship', { manager: shipManager });
         return shipManager;
     }
