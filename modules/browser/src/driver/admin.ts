@@ -28,5 +28,26 @@ export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) 
                 body: JSON.stringify({ mapName }),
             });
         },
+        saveGame: async () => {
+            const response = await fetch(endpoint + '/save-game', {
+                method: 'POST',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: '{}',
+            });
+            return response.text();
+        },
+        loadGame: (data: string) => {
+            void fetch(endpoint + '/load-game', {
+                method: 'POST',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data }),
+            });
+        },
     };
 };

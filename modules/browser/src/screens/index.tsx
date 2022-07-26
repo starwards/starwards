@@ -1,5 +1,5 @@
 import { Driver } from '../driver';
-import { Lobby } from '../widgets/lobby';
+import { Lobby } from '../components/lobby';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
