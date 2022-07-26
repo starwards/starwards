@@ -13,7 +13,9 @@ export class ModelParams<T extends string> extends Schema implements Map<T, numb
 
     constructor(initialValues?: Record<T, number>) {
         super();
-        this.params = new MapSchema(initialValues);
+        if (initialValues) {
+            this.params = new MapSchema(initialValues);
+        }
     }
 
     get(name: T): number {

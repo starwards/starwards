@@ -15,7 +15,6 @@ export class ShipRoom extends Room<ShipState> {
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
-        this.setSimulationInterval((deltaMs) => manager.update(deltaMs / 1000));
         for (const [cmdName, handler] of cmdReceivers(shipProperties, manager)) {
             this.onMessage(cmdName, handler);
         }

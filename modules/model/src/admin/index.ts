@@ -6,8 +6,8 @@ export class AdminState extends Schema {
     @type('boolean')
     isGameRunning = false;
 
-    // server only, used for commands
-    shouldGameBeRunning = false;
+    @type('float32')
+    speed = 1;
 }
 
 export const adminProperties = _adminProperties;

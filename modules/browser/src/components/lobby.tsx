@@ -1,9 +1,9 @@
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from '@arwes/core';
+import { LoadGame, useSaveGameHandler } from './save-load-game';
 import { useAdminDriver, useIsGameRunning, useShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from '@arwes/animation';
 import { BleepsProvider } from '@arwes/sounds';
-import { DashboardWidget } from './dashboard';
 import { Driver } from '../driver';
 import React from 'react';
 import WebFont from 'webfontloader';
@@ -28,13 +28,16 @@ const generalAnimator = { duration: { enter: 200, exit: 200 } };
 const InGameMenu = (p: Props) => {
     const ships = useShips(p.driver);
     const adminDriver = useAdminDriver(p.driver);
-
+    const saveGame = useSaveGameHandler(adminDriver);
     return (
         <>
             {adminDriver && (
                 <pre key="Stop Game">
                     <Button palette="error" onClick={adminDriver?.stopGame}>
                         <div data-id="stop game">Stop Game</div>
+                    </Button>
+                    <Button palette="success" onClick={saveGame}>
+                        <div data-id="save game">Save Game</div>
                     </Button>
                 </pre>
             )}
@@ -114,6 +117,7 @@ function ShipOptions({ shipId }: { shipId: string }) {
         </Card>
     );
 }
+
 export const Lobby = (p: Props) => {
     const isGameRunning = useIsGameRunning(p.driver);
     const adminDriver = useAdminDriver(p.driver);
@@ -133,7 +137,10 @@ export const Lobby = (p: Props) => {
 
                         {false === isGameRunning && adminDriver && (
                             <pre key="new game">
-                                <Button palette="success" onClick={adminDriver.startGame}>
+                                <LoadGame adminDriver={adminDriver} />
+                                <br />
+
+                                <Button palette="success" onClick={() => adminDriver.startGame('two_vs_one')}>
                                     <div data-id="new game">New Game</div>
                                 </Button>
                             </pre>
@@ -156,9 +163,3 @@ export const Lobby = (p: Props) => {
 };
 
 export type Props = { driver: Driver };
-export const lobbyWidget: DashboardWidget<Props> = {
-    name: 'lobby',
-    type: 'react-component',
-    component: Lobby,
-    defaultProps: {},
-};

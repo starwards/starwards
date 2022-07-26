@@ -26,3 +26,4 @@ export * from './ship';
 export * from './space';
 export * from './utils';
 export * from './configurations';
+export * from './model-params';

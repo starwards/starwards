@@ -2,6 +2,7 @@ import {
     AdminState,
     ShipDie,
     ShipManager,
+    ShipState,
     SpaceManager,
     SpaceObject,
     Spaceship,
@@ -10,10 +11,11 @@ import {
     shipConfigurations,
 } from '@starwards/model';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
-import { defaultMap, resetShip } from './map-helper';
 
+import { SavedGame } from '../serialization/game-state-protocol';
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
+import { resetShip } from './map-helper';
 
 type Die = {
     update: (deltaSeconds: number) => void;
@@ -33,29 +35,30 @@ export class GameManager {
             }
             this.spaceManager.insert(obj);
         },
-        addSpaceship: (ship: Spaceship) => this.initShip(ship) as unknown as ShipApi,
+        addSpaceship: (ship: Spaceship) => this.addShip(ship) as unknown as ShipApi,
         stopGame: () => {
-            this.state.shouldGameBeRunning = false;
+            void this.stopGame();
         },
     };
 
     constructor(private shipMessenger?: ShipStateMessenger) {}
 
     update(deltaSeconds: number) {
-        this.shipMessenger?.update(deltaSeconds);
-        if (this.state.isGameRunning && !this.state.shouldGameBeRunning) {
-            void this.stopGame();
-        } else if (!this.state.isGameRunning && this.state.shouldGameBeRunning) {
-            void this.startGame(defaultMap);
-        }
-        this.map?.update?.(deltaSeconds);
-        for (const die of this.dice) {
-            die.update(deltaSeconds);
+        const adjustedDeltaSeconds = deltaSeconds * this.state.speed;
+        if (this.state.isGameRunning && adjustedDeltaSeconds > 0) {
+            this.shipMessenger?.update(adjustedDeltaSeconds);
+            this.map?.update?.(adjustedDeltaSeconds);
+            for (const die of this.dice) {
+                die.update(adjustedDeltaSeconds);
+            }
+            for (const shipManager of this.ships.values()) {
+                shipManager.update(adjustedDeltaSeconds);
+            }
+            this.spaceManager.update(adjustedDeltaSeconds);
         }
     }
 
     public async stopGame() {
-        this.state.shouldGameBeRunning = false;
         this.map = null;
         if (this.state.isGameRunning) {
             const shipRooms = await matchMaker.query({ name: 'ship' });
@@ -73,10 +76,10 @@ export class GameManager {
     }
 
     public async startGame(map: GameMap) {
-        this.state.shouldGameBeRunning = true;
         if (!this.state.isGameRunning) {
             this.state.isGameRunning = true;
             this.map = map;
+            this.ships = new Map<string, ShipManager>();
             this.spaceManager = new SpaceManager();
             map.init(this.scriptApi);
             this.spaceManager.forceFlushEntities();
@@ -84,29 +87,59 @@ export class GameManager {
         }
     }
 
-    private initShip(spaceObject: Spaceship, sendMessages = false) {
+    public saveGame() {
+        if (!this.state.isGameRunning || !this.map) {
+            return null;
+        }
+        const state = new SavedGame();
+        state.mapName = this.map.name;
+        this.spaceManager.forceFlushEntities();
+        state.fragment.space = this.spaceManager.state;
+        for (const [shipId, shipManager] of this.ships.entries()) {
+            state.fragment.ship.set(shipId, shipManager.state);
+        }
+        return state.clone();
+    }
+
+    public async loadGame(source: SavedGame, map: GameMap) {
+        if (this.state.isGameRunning) {
+            await this.stopGame();
+        }
+        this.state.isGameRunning = true;
+        this.map = map;
+        this.spaceManager = new SpaceManager();
+        this.spaceManager.insertBulk(source.fragment.space);
+        await matchMaker.createRoom('space', { manager: this.spaceManager });
+        for (const [id, shipState] of source.fragment.ship) {
+            const so = source.fragment.space.spaceships.get(id);
+            if (so) {
+                this.initShipRoom(so, shipState);
+            }
+        }
+    }
+
+    private addShip(spaceObject: Spaceship, sendMessages = false) {
         this.spaceManager.insert(spaceObject);
-        const die = new ShipDie(3);
         if (!spaceObject.model) {
             throw new Error(`missing ship model for ship ${spaceObject.id}`);
         }
         const configuration = shipConfigurations[spaceObject.model];
-        const shipManager = new ShipManager(
-            spaceObject,
-            makeShipState(spaceObject.id, configuration),
-            this.spaceManager,
-            die,
-            this.ships,
-            () => {
-                resetShipState(shipManager.state);
-                resetShip(spaceObject);
-            }
-        ); // create a manager to manage the ship
-        this.ships.set(spaceObject.id, shipManager);
-        this.dice.push(die);
+        const shipState = makeShipState(spaceObject.id, configuration);
+        const shipManager = this.initShipRoom(spaceObject, shipState);
         if (sendMessages) {
             this.shipMessenger?.registerShip(shipManager.state);
         }
+        return shipManager;
+    }
+
+    private initShipRoom(spaceObject: Spaceship, shipState: ShipState) {
+        const die = new ShipDie(3);
+        const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships, () => {
+            resetShipState(shipManager.state);
+            resetShip(spaceObject);
+        }); // create a manager to manage the ship
+        this.ships.set(spaceObject.id, shipManager);
+        this.dice.push(die);
         void matchMaker.createRoom('ship', { manager: shipManager });
         return shipManager;
     }

@@ -1,5 +1,4 @@
 import { Asteroid, Faction, ShipModel, Spaceship, Vec2, makeId, sectorSize } from '@starwards/model';
-import { GameApi, GameMap } from './scripts-api';
 
 const speedMax = 50;
 
@@ -30,16 +29,3 @@ export function resetShip(ship: Spaceship) {
     ship.velocity = Vec2.Rotate({ x: Math.random() * speedMax, y: 0 }, Math.random() * 360);
     return ship;
 }
-
-export const defaultMap: GameMap = {
-    init: (game: GameApi) => {
-        for (let i = 0; i < 20; i++) {
-            game.addObject(newAsteroid());
-        }
-        game.addSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
-        game.addSpaceship(newShip('GVTS2', Faction.Gravitas, 'dragonfly-SF22'));
-        const ship2 = game.addSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
-        ship2.setTarget('GVTS');
-        // bManager.bot = jouster();
-    },
-};

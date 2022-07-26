@@ -24,7 +24,7 @@
             "windows": {
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             },
-            "args": ["${fileBasename}", "--verbose", "-i", "--no-cache", "--watchAll"],
+            "args": ["${fileBasename}", "--verbose", "-i", "--no-cache", "--watchAll", "--testTimeout=100000000"],
             "cwd": "${workspaceRoot}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",

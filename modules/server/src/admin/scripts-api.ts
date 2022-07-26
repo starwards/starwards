@@ -12,6 +12,7 @@ export interface GameApi {
     stopGame(): void;
 }
 export interface GameMap {
+    name: string;
     init: (game: GameApi) => void;
     update?: (deltaseconds: number) => void;
 }

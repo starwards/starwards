@@ -17,6 +17,7 @@
         "async-mqtt": "^2.6.2",
         "colyseus": "^0.14.23",
         "express": "^4.18.1",
+        "express-async-handler": "^1.2.0",
         "express-basic-auth": "^1.2.1"
     },
     "pkg": {

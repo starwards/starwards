@@ -145,7 +145,7 @@ export class SpaceManager {
         this.toInsert.push(object);
     }
 
-    public insertBulk(objects: SpaceObject[]) {
+    public insertBulk(objects: Iterable<SpaceObject>) {
         this.toInsert.push(...objects);
     }
 

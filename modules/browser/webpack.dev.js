@@ -11,7 +11,7 @@ module.exports = merge(common, {
         allowedHosts: 'all',
         // contentBase: ''
         proxy: {
-            '/api': {
+            '/colyseus': {
                 target: 'http://localhost:8080',
                 ws: true,
                 // changeOrigin: true,
