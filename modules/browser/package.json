@@ -27,7 +27,7 @@
         "hotkeys-js": "^3.9.0",
         "jquery": "^3.6.0",
         "js-file-download": "^0.4.12",
-        "pixi.js": "^6.4.2",
+        "pixi.js": "^6.5.1",
         "pixi-filters": "^4.1.6",
         "pluralize": "^8.0.0",
         "react": "^17.0.2",
