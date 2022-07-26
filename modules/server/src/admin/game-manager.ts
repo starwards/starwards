@@ -108,7 +108,7 @@ export class GameManager {
         this.state.isGameRunning = true;
         this.map = map;
         this.spaceManager = new SpaceManager();
-        this.spaceManager.state = source.fragment.space;
+        this.spaceManager.insertBulk(source.fragment.space);
         await matchMaker.createRoom('space', { manager: this.spaceManager });
         for (const [id, shipState] of source.fragment.ship) {
             const so = source.fragment.space.spaceships.get(id);

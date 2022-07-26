@@ -13,7 +13,7 @@ export async function schemaToString(fragment: Schema) {
 type Constructor<T extends Schema> = new (...args: never[]) => T;
 
 export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, serialized: string) {
-    return await stringToSchemaObject(new ctor(), serialized); //.clone(); //cloning after inflation avoids at least one edge bug: see https://github.com/colyseus/schema/issues/138
+    return (await stringToSchemaObject(new ctor(), serialized)).clone(); //cloning after inflation avoids at least one edge bug: see https://github.com/colyseus/schema/issues/138
 }
 
 export async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
