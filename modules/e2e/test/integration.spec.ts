@@ -35,7 +35,7 @@ test('tactical radar view', async ({ page }) => {
     expect(await radarCanvas.screenshot()).toMatchSnapshot();
 });
 
-test('main screen', async ({ page }) => {
+test.skip('main screen', async ({ page }) => {
     test.setTimeout(1 * 60 * 1000);
     await gameDriver.gameManager.startGame(test_map_1);
     await page.goto(`/main-screen.html?ship=${test_map_1.testShipId}`);

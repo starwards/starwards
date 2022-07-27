@@ -33,7 +33,7 @@ export const babylonInit = async (): Promise<void> => {
         engine.runRenderLoop(function () {
             objects.onRender();
             scene.render();
-            if (frameNum < NUM_OF_FRAMES_FOR_LOADED) {
+            if (scene.isReady() && frameNum <= NUM_OF_FRAMES_FOR_LOADED) {
                 frameNum++;
             }
             if (frameNum === NUM_OF_FRAMES_FOR_LOADED) {
