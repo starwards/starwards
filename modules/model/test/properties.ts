@@ -2,15 +2,21 @@ import { EPSILON, Tuple2, XY, limitPercisionHard, sign } from '../src';
 
 import fc from 'fast-check';
 
+const f = (num: number) => new Float32Array([num])[0];
 export const safeFloat = () => floatIn(Math.pow(2, 30));
 export const xy = (range: number, minRange = 0) =>
     fc.tuple(floatIn(360), floatIn(range, minRange)).map<XY>((t) => XY.rotate(XY.scale(XY.one, t[1]), t[0]));
 export const floatIn = (range: number, minRange = 0) =>
     fc
-        .float({ min: -range, max: range })
+        .float({ min: f(-range), max: f(range) })
         .filter((n) => Math.abs(n) >= minRange)
         .map(limitPercisionHard);
-export const float = (min: number, max: number) => fc.float({ min, max }).map(limitPercisionHard);
+export const float = (min: number, max: number) => {
+    return fc
+        .float({ min: f(min), max: f(max) })
+        .filter((t) => !Number.isNaN(t))
+        .map(limitPercisionHard);
+};
 export const fromTo = (range: number, minDiff: number) =>
     fc.tuple(floatIn(range), floatIn(range)).filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const range = (min: number, max: number, minDiff = 0) =>
@@ -30,11 +36,11 @@ export const orderedTuple3 = () =>
         .map((t) => t.sort((a, b) => a - b))
         .filter((t) => t[0] < t[2]);
 
-export const degree = () => float(0, 360 - EPSILON);
+export const degree = () => float(0.0, 360.0 - EPSILON);
 export type Tuple4 = [number, number, number, number];
 
 export const orderedDegreesTuple4 = () =>
-    float(-360 * 2, 360).chain((delta) =>
+    float(-360.0 * 2, 360.0).chain((delta) =>
         fc
             .tuple(degree(), degree(), degree(), degree())
             .map((t) => t.sort((a, b) => a - b))

@@ -50,7 +50,7 @@ describe('thrusters-ship integration', function () {
                     for (const thruster of harness.shipState.angleThrusters(direction)) {
                         thruster.availableCapacity = 0;
                     }
-                    expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.eql(0);
+                    expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.be.closeTo(0, 0);
                 })
             );
         });
@@ -66,7 +66,7 @@ describe('thrusters-ship integration', function () {
                 }
                 setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
                 harness.simulate(1, iterationsPerSecond);
-                expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.eql(0);
+                expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.be.closeTo(0, 0);
             })
         );
     });
@@ -80,8 +80,9 @@ describe('thrusters-ship integration', function () {
                 }
                 setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
                 harness.simulate(1, iterationsPerSecond);
-                expect(limitPercisionHard(XY.angleOf(harness.shipObj.velocity)), 'velocity').to.eql(
-                    limitPercisionHard(toPositiveDegreesDelta(offset))
+                expect(limitPercisionHard(XY.angleOf(harness.shipObj.velocity)), 'velocity').to.be.closeTo(
+                    limitPercisionHard(toPositiveDegreesDelta(offset)),
+                    0
                 );
             })
         );
