@@ -4,7 +4,7 @@ import { useAdminDriver, useIsGameRunning, useShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from '@arwes/animation';
 import { BleepsProvider } from '@arwes/sounds';
-import { Driver } from '../driver';
+import { Driver } from '@starwards/model';
 import React from 'react';
 import WebFont from 'webfontloader';
 

@@ -3,7 +3,7 @@ import { SpaceObject, XY } from '@starwards/model';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
-import { SpaceDriver } from '../driver';
+import { SpaceDriver } from '@starwards/model';
 import { selectionColor } from '../colors';
 
 enum MouseButton {

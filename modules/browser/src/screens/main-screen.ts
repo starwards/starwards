@@ -1,4 +1,4 @@
-import { Driver } from '../driver';
+import { Driver } from '@starwards/model';
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core';
 import { Objects3D } from '../3d/objects';
@@ -6,7 +6,7 @@ import { loadMeshes } from '../3d/meshes';
 import { placeSceneEnv } from '../3d/space-scene';
 import { wireSinglePilotInput } from '../input/wiring';
 
-const driver = new Driver();
+const driver = new Driver(window.location);
 
 const NUM_OF_FRAMES_FOR_LOADED = 1;
 export const babylonInit = async (): Promise<void> => {

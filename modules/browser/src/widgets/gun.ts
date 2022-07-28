@@ -1,7 +1,7 @@
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../panel';
-import { ShipDriver } from '../driver';
+import { ShipDriver } from '@starwards/model';
 
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
     class GunComponent {

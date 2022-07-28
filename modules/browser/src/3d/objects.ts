@@ -2,7 +2,7 @@ import { SpaceObject, degToRad } from '@starwards/model';
 import { TransformNode, Vector3 } from '@babylonjs/core';
 
 import { Meshes } from './meshes';
-import { SpaceDriver } from '../driver';
+import { SpaceDriver } from '@starwards/model';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();

@@ -11,16 +11,9 @@ import {
     wrapStateProperty,
     wrapStringStateProperty,
 } from './utils';
-import {
-    GameRoom,
-    MappedPropertyCommand,
-    RoomName,
-    ShipDirection,
-    ShipState,
-    State,
-    cmdSender,
-    shipProperties,
-} from '@starwards/model';
+import { GameRoom, RoomName, State } from '..';
+import { MappedPropertyCommand, cmdSender } from '../api';
+import { ShipDirection, ShipState, shipProperties } from '../ship';
 
 import EventEmitter from 'eventemitter3';
 import { noop } from 'ts-essentials';

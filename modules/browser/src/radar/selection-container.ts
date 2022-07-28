@@ -1,6 +1,6 @@
+import { SpaceDriver, SpaceObject } from '@starwards/model';
+
 import EventEmitter from 'eventemitter3';
-import { SpaceDriver } from '../driver';
-import { SpaceObject } from '@starwards/model';
 
 export class SelectionContainer {
     /**

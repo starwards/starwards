@@ -1,4 +1,4 @@
-import { BaseEventsApi, EventApi } from '../driver/utils';
+import { BaseEventsApi, Destructor, DriverNumericApi, EventApi } from '@starwards/model';
 import {
     FolderApi,
     InputParams,
@@ -9,9 +9,6 @@ import {
     TextApi,
     TextBladeParams,
 } from 'tweakpane';
-
-import { Destructor } from '@starwards/model';
-import { DriverNumericApi } from '../driver/utils';
 
 /*
     This module was written after ./property-panel

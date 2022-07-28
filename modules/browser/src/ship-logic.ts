@@ -1,4 +1,4 @@
-import { ShipDriverRead, SpaceDriver } from './driver';
+import { ShipDriverRead, SpaceDriver } from '@starwards/model';
 
 import { SelectionContainer } from './radar/selection-container';
 

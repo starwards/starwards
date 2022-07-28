@@ -1,9 +1,11 @@
 import { Body, System } from 'detect-collisions';
-import { GameRoom, SpaceObject, SpaceState, XY, cmdSender, spaceProperties } from '@starwards/model';
+import { SpaceObject, SpaceState, spaceProperties } from '../space';
 import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
-import { SelectionContainer } from '../radar/selection-container';
+import { GameRoom } from '..';
+import { XY } from '../logic';
+import { cmdSender } from '../api';
 import { noop } from 'ts-essentials';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
@@ -38,6 +40,7 @@ function wireEvents(state: SpaceState) {
     });
     return events;
 }
+
 export type TrackableObjects = {
     events: EventEmitter;
 } & Iterable<SpaceObject>;
@@ -167,12 +170,12 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         commandRotateObjects: cmdSender(spaceRoom, spaceProperties.bulkRotate, undefined),
         commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.bulkFreezeToggle, undefined),
         commandBotOrder: cmdSender(spaceRoom, spaceProperties.bulkBotOrder, undefined),
-        selectionActions(selectionContainer: SelectionContainer) {
+        selectionActions(ids: () => string[]) {
             return {
                 rotate: {
                     setValue: (delta: number) =>
                         spaceDriver.commandRotateObjects({
-                            ids: selectionContainer.selectedItemsIds,
+                            ids: ids(),
                             delta,
                         }),
                 },
@@ -180,7 +183,7 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                     setValue: (v: boolean) =>
                         v &&
                         spaceDriver.commandToggleFreeze({
-                            ids: selectionContainer.selectedItemsIds,
+                            ids: ids(),
                         }),
                 },
             };
