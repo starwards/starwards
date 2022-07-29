@@ -10,7 +10,7 @@ export function trackTargetObject(spaceDriver: SpaceDriver, ship: ShipDriverRead
         result.set(targetObj ? [targetObj] : []);
     };
     ship.events.on('targetId', updateSelectedTarget);
-    spaceDriver.events.on('add', () => setTimeout(updateSelectedTarget, 0));
+    spaceDriver.events.on('/$add', () => setTimeout(updateSelectedTarget, 0));
     updateSelectedTarget();
     return result;
 }

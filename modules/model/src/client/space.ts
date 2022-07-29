@@ -1,5 +1,6 @@
+import { Add, Event, Remove, Replace, Visitor, coreVisitors, customWireEvents, handleMapSchema } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
-import { SpaceObject, SpaceState, spaceProperties } from '../space';
+import { SpaceObject, SpaceState, Vec2, spaceProperties } from '../space';
 import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
@@ -9,40 +10,45 @@ import { cmdSender } from '../api';
 import { noop } from 'ts-essentials';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
-
-function wireEvents(state: SpaceState) {
-    const events = new EventEmitter();
-    const collections = [state.cannonShells, state.asteroids, state.spaceships, state.explosions];
-    const onAdd = (so: SpaceObject) => events.emit('add', so);
-    const onRemove = (so: SpaceObject) => events.emit('remove', so);
-    for (const c of collections) {
-        c.onAdd = onAdd;
-        c.onRemove = onRemove;
-    }
-    events.on('add', (so: SpaceObject) => {
-        so.onChange = (changes) => {
-            if (so.destroyed) {
-                onRemove(so);
-            }
-            for (const { field } of changes) {
-                events.emit(so.id, field); // old event format
-                events.emit(so.id + '.' + field); // new event format
-            }
+const visitSpaceState: Visitor = {
+    visit: (traverse, state, events, jsonPath) => {
+        if (!(state instanceof SpaceState)) {
+            return false;
+        }
+        const eventsWrapper = {
+            emit(eventName: string, event: Event) {
+                events.emit(eventName, event);
+                if (event.path.lastIndexOf('/') === jsonPath.length) {
+                    // current level event (not deep)
+                    const opEventName = `${jsonPath}/$${event.op}`;
+                    events.emit(opEventName, event);
+                }
+            },
         };
-        so.position.onChange = (_) => {
-            events.emit(so.id, 'position'); // old event format
-            events.emit(so.id + '.position'); // new event format
+        // treat SpaceState as one big map - wire all its maps as if they are the same object (same json path)
+        for (const map of state.maps()) {
+            handleMapSchema.visit(traverse, map, eventsWrapper, jsonPath);
+        }
+        return true;
+    },
+};
+const visitVec2: Visitor = {
+    visit: (_, state, events, jsonPath) => {
+        if (!(state instanceof Vec2)) {
+            return false;
+        }
+        // treat Vec2 as a primitive- any change to x or y is wired as a change to the entire object
+        state.onChange = () => {
+            events.emit(jsonPath, Replace(jsonPath, state));
         };
-        so.velocity.onChange = (_) => {
-            events.emit(so.id, 'velocity'); // old event format
-            events.emit(so.id + '.velocity'); // new event format
-        };
-    });
-    return events;
-}
+        return true;
+    },
+};
+const wireEvents = customWireEvents([visitSpaceState, visitVec2, ...coreVisitors]);
 
 export type TrackableObjects = {
     events: EventEmitter;
+    get(id: string): SpaceObject | undefined;
 } & Iterable<SpaceObject>;
 export class TrackObjects<C> {
     public contexts = new Map<string, C>();
@@ -53,13 +59,13 @@ export class TrackObjects<C> {
         private destroyCtx: (ctx: C) => void = noop,
         private shouldTrack = (_object: SpaceObject) => true
     ) {
-        objects.events.on('remove', this.stopTracking);
+        objects.events.on('/$remove', (event: Remove) => this.stopTracking(event.path.split('/')[1]));
     }
 
-    private stopTracking = (destroyed: SpaceObject) => {
-        const context = this.contexts.get(destroyed.id);
+    private stopTracking = (id: string) => {
+        const context = this.contexts.get(id);
         if (context) {
-            this.contexts.delete(destroyed.id);
+            this.contexts.delete(id);
             this.destroyCtx(context);
         }
     };
@@ -74,7 +80,7 @@ export class TrackObjects<C> {
                     this.contexts.set(object.id, this.createCtx(object));
                 }
             } else {
-                this.stopTracking(object);
+                this.stopTracking(object.id);
             }
         }
     };
@@ -86,66 +92,68 @@ export class TrackObjects<C> {
 
 export class SpatialIndex {
     private collisions = new System(1);
-    private collisionToState = new WeakMap<Body, SpaceObject>();
-    private stateToCollisions = new WeakMap<SpaceObject, Body>();
-    private stateToUpdate = new WeakMap<SpaceObject, () => void>();
+    private collisionToId = new WeakMap<Body, string>();
+    private stateToCollisions = new Map<string, Body>();
+    private stateToUpdate = new Map<string, () => void>();
 
     private createBody = (o: SpaceObject) => {
+        const { id } = o;
         const body = this.collisions.createCircle(XY.clone(o.position), o.radius);
-        this.collisionToState.set(body, o);
-        this.stateToCollisions.set(o, body);
+        this.collisionToId.set(body, id);
+        this.stateToCollisions.set(id, body);
         const update = () => {
             body.r = o.radius; // order matters!
             body.setPosition(o.position.x, o.position.y); // this call implicitly updates the collision body
         };
-        this.stateToUpdate.set(o, update);
-        this.spaceDriver.events.on(o.id + '.position', update);
-        this.spaceDriver.events.on(o.id + '.radius', update);
+        this.stateToUpdate.set(id, update);
+        this.spaceDriver.events.on(`/${id}/position`, update);
+        this.spaceDriver.events.on(`/${id}/radius`, update);
         return body;
     };
-    private destroyBody = (o: SpaceObject) => {
-        const body = this.stateToCollisions.get(o);
+
+    private destroyBody = (id: string) => {
+        const body = this.stateToCollisions.get(id);
         if (body) {
-            const update = this.stateToUpdate.get(o);
-            this.spaceDriver.events.off(o.id + '.position', update);
-            this.spaceDriver.events.off(o.id + '.radius', update);
-            this.stateToCollisions.delete(o);
-            this.stateToUpdate.delete(o);
-            this.collisionToState.delete(body);
+            const update = this.stateToUpdate.get(id);
+            this.spaceDriver.events.off(`/${id}/position`, update);
+            this.spaceDriver.events.off(`/${id}/radius`, update);
+            this.stateToCollisions.delete(id);
+            this.stateToUpdate.delete(id);
+            this.collisionToId.delete(body);
             this.collisions.remove(body);
         }
     };
     constructor(private spaceDriver: TrackableObjects) {
-        spaceDriver.events.on('remove', this.destroyBody);
-        spaceDriver.events.on('add', this.createBody);
+        spaceDriver.events.on('/$remove', (event: Remove) => this.destroyBody(event.path.split('/')[1]));
+        spaceDriver.events.on('/$add', (event: Add) => this.createBody(event.value as SpaceObject));
     }
 
     *selectPotentials(area: Body): Generator<SpaceObject> {
         for (const potential of this.collisions.getPotentials(area)) {
-            // if (this.collisions.checkCollision(area, potential)) {
-            const object = this.collisionToState.get(potential);
-            if (object) {
+            const id = this.collisionToId.get(potential);
+            const object = id && this.spaceDriver.get(id);
+            if (object && !object.destroyed) {
                 yield object;
             }
-            // }
         }
     }
 }
 
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
-    const events = wireEvents(spaceRoom.state);
+    const events = wireEvents(spaceRoom.state, new EventEmitter());
     const objectsApi = new ObjectsApi(spaceRoom, events);
-    const spaceDriver = {
+    const coreDriver: TrackableObjects = {
         events,
-        spatial: new SpatialIndex({
-            events,
-            [Symbol.iterator]() {
-                return spaceRoom.state[Symbol.iterator]();
-            },
-        }),
         [Symbol.iterator]() {
             return spaceRoom.state[Symbol.iterator]();
         },
+        get(id: string) {
+            return spaceRoom.state.get(id);
+        },
+    };
+    const spaceDriver = {
+        ...coreDriver,
+        spatial: new SpatialIndex(coreDriver),
         get state(): SpaceState {
             return spaceRoom.state;
         },
@@ -155,13 +163,13 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                 return Promise.resolve(tracked);
             } else {
                 return new Promise((res) => {
-                    const tracker = (spaceObject: SpaceObject) => {
-                        if (spaceObject.id === id) {
-                            events.removeListener('add', tracker);
-                            res(spaceObject);
+                    const tracker = (event: Event) => {
+                        if (event.op === 'add') {
+                            events.removeListener('/' + id, tracker);
+                            res(event.value as SpaceObject);
                         }
                     };
-                    events.addListener('add', tracker);
+                    events.addListener('/' + id, tracker);
                 });
             }
         },

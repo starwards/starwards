@@ -50,11 +50,17 @@ export class SpaceState extends Schema {
         return mapSchemaValues(this.getMap(typeField));
     }
 
+    public *maps(): IterableIterator<MapSchema<SpaceObject>> {
+        yield this.cannonShells;
+        yield this.explosions;
+        yield this.asteroids;
+        yield this.spaceships;
+    }
+
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
-        yield* mapSchemaValues(this.cannonShells, destroyed);
-        yield* mapSchemaValues(this.explosions, destroyed);
-        yield* mapSchemaValues(this.asteroids, destroyed);
-        yield* mapSchemaValues(this.spaceships, destroyed);
+        for (const map of this.maps()) {
+            yield* mapSchemaValues(map, destroyed);
+        }
     }
 
     private getMap<T extends keyof SpaceObjects>(typeField: T): MapSchema<SpaceObjects[T]> {
