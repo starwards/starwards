@@ -1,50 +1,18 @@
-import { Add, Event, Remove, Replace, Visitor, coreVisitors, customWireEvents, handleMapSchema } from 'colyseus-events';
+import { Add, Event, Remove, customWireEvents } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
-import { SpaceObject, SpaceState, Vec2, spaceProperties } from '../space';
+import { SpaceObject, SpaceState, spaceProperties } from '../space';
 import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
 import { GameRoom } from '..';
 import { XY } from '../logic';
 import { cmdSender } from '../api';
+import { customVisitors } from './events';
 import { noop } from 'ts-essentials';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
-const visitSpaceState: Visitor = {
-    visit: (traverse, state, events, jsonPath) => {
-        if (!(state instanceof SpaceState)) {
-            return false;
-        }
-        const eventsWrapper = {
-            emit(eventName: string, event: Event) {
-                events.emit(eventName, event);
-                if (event.path.lastIndexOf('/') === jsonPath.length) {
-                    // current level event (not deep)
-                    const opEventName = `${jsonPath}/$${event.op}`;
-                    events.emit(opEventName, event);
-                }
-            },
-        };
-        // treat SpaceState as one big map - wire all its maps as if they are the same object (same json path)
-        for (const map of state.maps()) {
-            handleMapSchema.visit(traverse, map, eventsWrapper, jsonPath);
-        }
-        return true;
-    },
-};
-const visitVec2: Visitor = {
-    visit: (_, state, events, jsonPath) => {
-        if (!(state instanceof Vec2)) {
-            return false;
-        }
-        // treat Vec2 as a primitive- any change to x or y is wired as a change to the entire object
-        state.onChange = () => {
-            events.emit(jsonPath, Replace(jsonPath, state));
-        };
-        return true;
-    },
-};
-const wireEvents = customWireEvents([visitSpaceState, visitVec2, ...coreVisitors]);
+
+const wireEvents = customWireEvents(customVisitors);
 
 export type TrackableObjects = {
     events: EventEmitter;
