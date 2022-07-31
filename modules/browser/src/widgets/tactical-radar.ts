@@ -1,6 +1,5 @@
 import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver } from '../driver';
-import { SpaceObject, degToRad } from '@starwards/model';
+import { ShipDriver, SpaceDriver, SpaceObject, degToRad } from '@starwards/model';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 
@@ -29,20 +28,6 @@ Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
-
-function trackObject(camera: Camera, spaceDriver: SpaceDriver, subjectId: string) {
-    let tracked = spaceDriver.state.get(subjectId);
-    if (tracked) {
-        camera.followSpaceObject(tracked, spaceDriver.events, true);
-    } else {
-        spaceDriver.events.on('add', (spaceObject: SpaceObject) => {
-            if (!tracked && spaceObject.id === subjectId) {
-                tracked = spaceObject;
-                camera.followSpaceObject(tracked, spaceDriver.events, true);
-            }
-        });
-    }
-}
 
 export type Props = { range: number };
 export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
@@ -114,7 +99,10 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                     rangeFilter.isInRange
                 );
                 root.addLayer(blipLayer.renderRoot);
-                trackObject(camera, spaceDriver, shipDriver.state.id);
+
+                void spaceDriver
+                    .waitForObject(shipDriver.id)
+                    .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.events, true));
             });
         }
     }

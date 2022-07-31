@@ -1,11 +1,10 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
 import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
+import { BaseApi, DriverNumericApi } from '@starwards/model';
 import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
 
-import { BaseApi } from '../driver/utils';
 import { Container } from 'golden-layout';
-import { DriverNumericApi } from '../driver/utils';
 import { EmitterLoop } from '../loop';
 import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
 

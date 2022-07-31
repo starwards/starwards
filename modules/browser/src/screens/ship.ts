@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
-import { Driver } from '../driver';
+import { Driver } from '@starwards/model';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { gunWidget } from '../widgets/gun';
@@ -21,7 +21,7 @@ import { wireSinglePilotInput } from '../input/wiring';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
 
-const driver = new Driver();
+const driver = new Driver(window.location);
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipUrlParam = urlParams.get('ship');

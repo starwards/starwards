@@ -1,4 +1,4 @@
-import { NumberMapDriver, ShipDriver } from '../driver';
+import { NumberMapDriver, ShipDriver } from '@starwards/model';
 import { Panel, PropertyPanel } from '../panel';
 
 import $ from 'jquery';

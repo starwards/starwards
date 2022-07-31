@@ -3,7 +3,7 @@
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 
 import $ from 'jquery';
-import { Driver } from '../driver';
+import { Driver } from '@starwards/model';
 import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
 import { armorWidget } from '../widgets/armor';
@@ -20,7 +20,7 @@ import { targetRadarWidget } from '../widgets/target-radar';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 // window.PIXI = PIXI;
-const driver = new Driver();
+const driver = new Driver(window.location);
 const gmWidgets = new GmWidgets(driver);
 const dashboard = new Dashboard(
     {
@@ -47,7 +47,7 @@ dashboard.setup();
 // constantly scan for new ships and add widgets for them
 void (async () => {
     const spaceDriver = await driver.getSpaceDriver();
-    const spaceActions = spaceDriver.selectionActions(gmWidgets.selectionContainer);
+    const spaceActions = spaceDriver.selectionActions(() => gmWidgets.selectionContainer.selectedItemsIds);
 
     const input = new InputManager();
     input.addStepsAction(spaceActions.rotate, gmInputConfig.rotate);

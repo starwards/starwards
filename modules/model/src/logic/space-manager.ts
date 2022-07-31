@@ -218,7 +218,7 @@ export class SpaceManager {
     }
 
     public changeShipRadarRange(id: string, radarRange: number) {
-        const ship = this.state.spaceships.get(id);
+        const ship = this.state.getShip(id);
         if (ship && !ship.destroyed) {
             ship.radarRange = radarRange;
         }

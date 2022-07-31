@@ -2,7 +2,7 @@ import { Application, Graphics, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js'
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { ShipDriver } from '../driver';
+import { ShipDriver } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { degToRad } from '@starwards/model';
 import { radarVisibleBg } from '../colors';

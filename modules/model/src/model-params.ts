@@ -9,7 +9,7 @@ export class ModelParams<T extends string> extends Schema implements Map<T, numb
     readonly [Symbol.toStringTag] = 'ModelParams';
 
     @type({ map: 'number' })
-    params = new MapSchema<number, T>();
+    public readonly params = new MapSchema<number, T>();
 
     constructor(initialValues?: Record<T, number>) {
         super();

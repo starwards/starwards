@@ -1,45 +1,20 @@
+import { Add, Event, Remove } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
-import { GameRoom, SpaceObject, SpaceState, XY, cmdSender, spaceProperties } from '@starwards/model';
+import { SpaceObject, SpaceState, spaceProperties } from '../space';
 import { addEventsApi, wrapStateProperty } from './utils';
 
 import EventEmitter from 'eventemitter3';
-import { SelectionContainer } from '../radar/selection-container';
+import { GameRoom } from '..';
+import { XY } from '../logic';
+import { cmdSender } from '../api';
 import { noop } from 'ts-essentials';
+import { wireEvents } from './events';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
-function wireEvents(state: SpaceState) {
-    const events = new EventEmitter();
-    const collections = [state.cannonShells, state.asteroids, state.spaceships, state.explosions];
-    const onAdd = (so: SpaceObject) => events.emit('add', so);
-    const onRemove = (so: SpaceObject) => events.emit('remove', so);
-    for (const c of collections) {
-        c.onAdd = onAdd;
-        c.onRemove = onRemove;
-    }
-    events.on('add', (so: SpaceObject) => {
-        so.onChange = (changes) => {
-            if (so.destroyed) {
-                onRemove(so);
-            }
-            for (const { field } of changes) {
-                events.emit(so.id, field); // old event format
-                events.emit(so.id + '.' + field); // new event format
-            }
-        };
-        so.position.onChange = (_) => {
-            events.emit(so.id, 'position'); // old event format
-            events.emit(so.id + '.position'); // new event format
-        };
-        so.velocity.onChange = (_) => {
-            events.emit(so.id, 'velocity'); // old event format
-            events.emit(so.id + '.velocity'); // new event format
-        };
-    });
-    return events;
-}
 export type TrackableObjects = {
     events: EventEmitter;
+    get(id: string): SpaceObject | undefined;
 } & Iterable<SpaceObject>;
 export class TrackObjects<C> {
     public contexts = new Map<string, C>();
@@ -50,13 +25,13 @@ export class TrackObjects<C> {
         private destroyCtx: (ctx: C) => void = noop,
         private shouldTrack = (_object: SpaceObject) => true
     ) {
-        objects.events.on('remove', this.stopTracking);
+        objects.events.on('/$remove', (event: Remove) => this.stopTracking(event.path.split('/')[1]));
     }
 
-    private stopTracking = (destroyed: SpaceObject) => {
-        const context = this.contexts.get(destroyed.id);
+    private stopTracking = (id: string) => {
+        const context = this.contexts.get(id);
         if (context) {
-            this.contexts.delete(destroyed.id);
+            this.contexts.delete(id);
             this.destroyCtx(context);
         }
     };
@@ -71,7 +46,7 @@ export class TrackObjects<C> {
                     this.contexts.set(object.id, this.createCtx(object));
                 }
             } else {
-                this.stopTracking(object);
+                this.stopTracking(object.id);
             }
         }
     };
@@ -83,66 +58,68 @@ export class TrackObjects<C> {
 
 export class SpatialIndex {
     private collisions = new System(1);
-    private collisionToState = new WeakMap<Body, SpaceObject>();
-    private stateToCollisions = new WeakMap<SpaceObject, Body>();
-    private stateToUpdate = new WeakMap<SpaceObject, () => void>();
+    private collisionToId = new WeakMap<Body, string>();
+    private stateToCollisions = new Map<string, Body>();
+    private stateToUpdate = new Map<string, () => void>();
 
     private createBody = (o: SpaceObject) => {
+        const { id } = o;
         const body = this.collisions.createCircle(XY.clone(o.position), o.radius);
-        this.collisionToState.set(body, o);
-        this.stateToCollisions.set(o, body);
+        this.collisionToId.set(body, id);
+        this.stateToCollisions.set(id, body);
         const update = () => {
             body.r = o.radius; // order matters!
             body.setPosition(o.position.x, o.position.y); // this call implicitly updates the collision body
         };
-        this.stateToUpdate.set(o, update);
-        this.spaceDriver.events.on(o.id + '.position', update);
-        this.spaceDriver.events.on(o.id + '.radius', update);
+        this.stateToUpdate.set(id, update);
+        this.spaceDriver.events.on(`/${id}/position`, update);
+        this.spaceDriver.events.on(`/${id}/radius`, update);
         return body;
     };
-    private destroyBody = (o: SpaceObject) => {
-        const body = this.stateToCollisions.get(o);
+
+    private destroyBody = (id: string) => {
+        const body = this.stateToCollisions.get(id);
         if (body) {
-            const update = this.stateToUpdate.get(o);
-            this.spaceDriver.events.off(o.id + '.position', update);
-            this.spaceDriver.events.off(o.id + '.radius', update);
-            this.stateToCollisions.delete(o);
-            this.stateToUpdate.delete(o);
-            this.collisionToState.delete(body);
+            const update = this.stateToUpdate.get(id);
+            this.spaceDriver.events.off(`/${id}/position`, update);
+            this.spaceDriver.events.off(`/${id}/radius`, update);
+            this.stateToCollisions.delete(id);
+            this.stateToUpdate.delete(id);
+            this.collisionToId.delete(body);
             this.collisions.remove(body);
         }
     };
     constructor(private spaceDriver: TrackableObjects) {
-        spaceDriver.events.on('remove', this.destroyBody);
-        spaceDriver.events.on('add', this.createBody);
+        spaceDriver.events.on('/$remove', (event: Remove) => this.destroyBody(event.path.split('/')[1]));
+        spaceDriver.events.on('/$add', (event: Add) => this.createBody(event.value as SpaceObject));
     }
 
     *selectPotentials(area: Body): Generator<SpaceObject> {
         for (const potential of this.collisions.getPotentials(area)) {
-            // if (this.collisions.checkCollision(area, potential)) {
-            const object = this.collisionToState.get(potential);
-            if (object) {
+            const id = this.collisionToId.get(potential);
+            const object = id && this.spaceDriver.get(id);
+            if (object && !object.destroyed) {
                 yield object;
             }
-            // }
         }
     }
 }
 
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
-    const events = wireEvents(spaceRoom.state);
+    const events = wireEvents(spaceRoom.state, new EventEmitter());
     const objectsApi = new ObjectsApi(spaceRoom, events);
-    const spaceDriver = {
+    const coreDriver: TrackableObjects = {
         events,
-        spatial: new SpatialIndex({
-            events,
-            [Symbol.iterator]() {
-                return spaceRoom.state[Symbol.iterator]();
-            },
-        }),
         [Symbol.iterator]() {
             return spaceRoom.state[Symbol.iterator]();
         },
+        get(id: string) {
+            return spaceRoom.state.get(id);
+        },
+    };
+    const spaceDriver = {
+        ...coreDriver,
+        spatial: new SpatialIndex(coreDriver),
         get state(): SpaceState {
             return spaceRoom.state;
         },
@@ -152,13 +129,13 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                 return Promise.resolve(tracked);
             } else {
                 return new Promise((res) => {
-                    const tracker = (spaceObject: SpaceObject) => {
-                        if (spaceObject.id === id) {
-                            events.removeListener('add', tracker);
-                            res(spaceObject);
+                    const tracker = (event: Event) => {
+                        if (event.op === 'add') {
+                            events.removeListener('/' + id, tracker);
+                            res(event.value as SpaceObject);
                         }
                     };
-                    events.addListener('add', tracker);
+                    events.addListener('/' + id, tracker);
                 });
             }
         },
@@ -167,12 +144,12 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         commandRotateObjects: cmdSender(spaceRoom, spaceProperties.bulkRotate, undefined),
         commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.bulkFreezeToggle, undefined),
         commandBotOrder: cmdSender(spaceRoom, spaceProperties.bulkBotOrder, undefined),
-        selectionActions(selectionContainer: SelectionContainer) {
+        selectionActions(ids: () => string[]) {
             return {
                 rotate: {
                     setValue: (delta: number) =>
                         spaceDriver.commandRotateObjects({
-                            ids: selectionContainer.selectedItemsIds,
+                            ids: ids(),
                             delta,
                         }),
                 },
@@ -180,7 +157,7 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                     setValue: (v: boolean) =>
                         v &&
                         spaceDriver.commandToggleFreeze({
-                            ids: selectionContainer.selectedItemsIds,
+                            ids: ids(),
                         }),
                 },
             };
@@ -209,7 +186,7 @@ class ObjectsApi {
             freeze: addEventsApi(
                 wrapStateProperty(this.spaceRoom, spaceProperties.freeze, subject.id),
                 this.events,
-                `${subject.id}.freeze`
+                `/${subject.id}/freeze`
             ),
         };
     }

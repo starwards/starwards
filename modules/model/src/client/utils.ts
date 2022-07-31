@@ -1,16 +1,14 @@
+import { GameRoom, RoomName, State } from '..';
 import {
-    Destructor,
-    GameRoom,
     IteratorStatePropertyCommand,
     NormalNumericStateProperty,
     NumericStateProperty,
-    RoomName,
-    State,
     StateProperty,
     cmdSender,
     isStatePropertyCommand,
-} from '@starwards/model';
+} from '../api';
 
+import { Destructor } from '../utils';
 import EventEmitter from 'eventemitter3';
 import { noop } from 'ts-essentials';
 

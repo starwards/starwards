@@ -1,7 +1,7 @@
-import { Driver } from '../driver';
+import { Driver } from '@starwards/model';
 import { Lobby } from '../components/lobby';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-const driver = new Driver();
+const driver = new Driver(window.location);
 ReactDOM.render(<Lobby driver={driver} />, document.querySelector('#wrapper'));

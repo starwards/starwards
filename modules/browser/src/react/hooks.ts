@@ -1,6 +1,5 @@
-import { AdminDriver, Driver, ShipDriver } from '../driver';
+import { AdminDriver, Driver, ShipDriver, SpaceObject, Spaceship } from '@starwards/model';
 import { DependencyList, useEffect, useRef, useState } from 'react';
-import { SpaceObject, Spaceship } from '@starwards/model';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { TaskLoop } from '../task-loop';

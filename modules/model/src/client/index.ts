@@ -2,29 +2,35 @@ import { AdminDriver } from './admin';
 import { Client } from 'colyseus.js';
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
-import { schemaClasses } from '@starwards/model';
+import { schemaClasses } from '..';
 
-export { NumberMapDriver, ShipDriver } from './ship';
-export { SpaceDriver } from './space';
+export * from './ship';
+export * from './space';
+export * from './utils';
 
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
 export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
 
-// const ENDPOINT = 'ws:' + window.location.href.substring(window.location.protocol.length);
-const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const COLYSEUS_ENDPOINT = protocol + '//' + window.location.host + '/colyseus';
-const HTTP_ENDPOINT = window.location.protocol + '//' + window.location.host;
-
 export class Driver {
+    public httpEndpoint: string;
+    private rooms: Client;
+
     private adminDriver: Promise<AdminDriver> | null = null;
     private spaceDriver: Promise<SpaceDriver> | null = null;
     private shipDrivers = new Map<string, Promise<ShipDriver>>();
 
-    private client = new Client(COLYSEUS_ENDPOINT);
-
+    /**
+     *
+     * @param location window.location compatible object
+     */
+    constructor(location: { protocol: string; host: string }) {
+        const colyseusEndpoint = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
+        this.httpEndpoint = location.protocol + '//' + location.host;
+        this.rooms = new Client(colyseusEndpoint);
+    }
     async isActiveGame() {
-        const rooms = await this.client.getAvailableRooms('space');
+        const rooms = await this.rooms.getAvailableRooms('space');
         return !!rooms.length;
     }
 
@@ -32,7 +38,7 @@ export class Driver {
      * Returns a finite iterator for the IDs of the ships currently active
      */
     async getCurrentShipIds(): Promise<Iterable<string>> {
-        const rooms = await this.client.getAvailableRooms('ship');
+        const rooms = await this.rooms.getAvailableRooms('ship');
         return rooms.map((r) => r.roomId);
     }
 
@@ -75,7 +81,7 @@ export class Driver {
     }
 
     private async makeShipDriver(shipId: string) {
-        const room = await this.client.joinById(shipId, {}, schemaClasses.ship);
+        const room = await this.rooms.joinById(shipId, {}, schemaClasses.ship);
         return await ShipDriver(room);
     }
 
@@ -83,7 +89,7 @@ export class Driver {
         if (this.spaceDriver) {
             return await this.spaceDriver;
         }
-        this.spaceDriver = this.client.join('space', {}, schemaClasses.space).then(SpaceDriver);
+        this.spaceDriver = this.rooms.join('space', {}, schemaClasses.space).then(SpaceDriver);
         return await this.spaceDriver;
     }
 
@@ -91,7 +97,7 @@ export class Driver {
         if (this.adminDriver) {
             return await this.adminDriver;
         }
-        this.adminDriver = this.client.join('admin', {}, schemaClasses.admin).then(AdminDriver(HTTP_ENDPOINT));
+        this.adminDriver = this.rooms.join('admin', {}, schemaClasses.admin).then(AdminDriver(this.httpEndpoint));
         return await this.adminDriver;
     }
 }

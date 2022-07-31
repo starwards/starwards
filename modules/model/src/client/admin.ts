@@ -1,4 +1,6 @@
-import { GameRoom, adminProperties, cmdSender } from '@starwards/model';
+import { GameRoom } from '..';
+import { adminProperties } from '../admin';
+import { cmdSender } from '../api';
 
 export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
     const speedCommand = cmdSender(adminRoom, adminProperties.speedCommand, undefined);

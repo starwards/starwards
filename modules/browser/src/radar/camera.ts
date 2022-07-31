@@ -124,20 +124,24 @@ export class Camera {
     }
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter, angle = false) {
-        const listener = (field: string) => {
-            if (field === 'position') {
-                this.set(spaceObject.position);
-            } else if (angle && field === 'angle') {
-                this.setAngle(spaceObject.angle + 90);
-            }
+        const setPosition = () => {
+            this.set(spaceObject.position);
         };
-        changeEvents.on(spaceObject.id, listener);
-        this.set(spaceObject.position);
-        if (angle) {
+        const setAngle = () => {
             this.setAngle(spaceObject.angle + 90);
+        };
+
+        changeEvents.on(`/${spaceObject.id}/position`, setPosition);
+        setPosition();
+        if (angle) {
+            changeEvents.on(`/${spaceObject.id}/angle`, setAngle);
+            setAngle();
         }
         return () => {
-            changeEvents.off(spaceObject.id, listener);
+            changeEvents.off(`/${spaceObject.id}/position`, setPosition);
+            if (angle) {
+                changeEvents.off(`/${spaceObject.id}/angle`, setAngle);
+            }
         };
     }
 }
