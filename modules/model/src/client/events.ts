@@ -1,6 +1,8 @@
-import { Event, Replace, Visitor, coreVisitors, handleMapSchema } from 'colyseus-events';
+import { Armor, ArmorPlate } from '../ship';
+import { Container, Event, Replace, Visitor, coreVisitors, customWireEvents, handleMapSchema } from 'colyseus-events';
 import { SpaceState, Vec2 } from '../space';
 
+import { ArraySchema } from '@colyseus/schema';
 import { ModelParams } from '../model-params';
 
 const visitSpaceState: Visitor = {
@@ -64,4 +66,33 @@ const visitModelParams: Visitor = {
         return true;
     },
 };
-export const customVisitors = [visitSpaceState, visitVec2, visitModelParams, ...coreVisitors];
+
+function isArmorPlates(state: Container, namespace: string): state is ArraySchema<ArmorPlate> {
+    return (
+        state instanceof ArraySchema &&
+        state['$changes'].parent instanceof Armor &&
+        namespace.split('/').pop() === 'armorPlates'
+    );
+}
+
+const visitArmorPlates: Visitor = {
+    visit: (_, state, events, namespace) => {
+        if (!isArmorPlates(state, namespace)) {
+            return false;
+        }
+        // treat the armorPlates colleaction as a primitive- any change is wired as a change to the entire collection
+        const emitChanged = () => events.emit(namespace, Replace(namespace, state));
+        state.onChange = state.onAdd = (value) => {
+            emitChanged();
+            value.onChange = emitChanged;
+        };
+        state.onRemove = emitChanged;
+        for (const value of state.values()) {
+            value.onChange = emitChanged;
+        }
+        return true;
+    },
+};
+const customVisitors = [visitArmorPlates, visitSpaceState, visitVec2, visitModelParams, ...coreVisitors];
+
+export const wireEvents = customWireEvents(customVisitors);

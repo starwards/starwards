@@ -1,4 +1,4 @@
-import { Add, Event, Remove, customWireEvents } from 'colyseus-events';
+import { Add, Event, Remove } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
 import { addEventsApi, wrapStateProperty } from './utils';
@@ -7,12 +7,10 @@ import EventEmitter from 'eventemitter3';
 import { GameRoom } from '..';
 import { XY } from '../logic';
 import { cmdSender } from '../api';
-import { customVisitors } from './events';
 import { noop } from 'ts-essentials';
+import { wireEvents } from './events';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
-
-const wireEvents = customWireEvents(customVisitors);
 
 export type TrackableObjects = {
     events: EventEmitter;
@@ -188,7 +186,7 @@ class ObjectsApi {
             freeze: addEventsApi(
                 wrapStateProperty(this.spaceRoom, spaceProperties.freeze, subject.id),
                 this.events,
-                `${subject.id}.freeze`
+                `/${subject.id}/freeze`
             ),
         };
     }
