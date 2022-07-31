@@ -124,7 +124,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                 for (const subject of selectionContainer.selectedItems) {
                     const itemFolder = guiFolder.addFolder({
                         title: `${subject.type} ${subject.id}`,
-                        expanded: selectionContainer.selectedItems.size === 1,
+                        expanded: [...selectionContainer.selectedItems].length === 1,
                     });
                     this.selectionCleanup.add(() => {
                         itemFolder.dispose();

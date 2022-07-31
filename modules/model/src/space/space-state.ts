@@ -50,7 +50,7 @@ export class SpaceState extends Schema {
         return mapSchemaValues(this.getMap(typeField));
     }
 
-    public *maps(): IterableIterator<MapSchema<SpaceObject>> {
+    public *maps(): IterableIterator<MapSchema> {
         yield this.cannonShells;
         yield this.explosions;
         yield this.asteroids;
