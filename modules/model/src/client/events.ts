@@ -17,6 +17,9 @@ const visitSpaceState: Visitor = {
                 }
             },
         };
+        state.onChange = () => {
+            throw new Error('BUG: Cant handle events when replacing root map of SpaceState');
+        };
         // treat SpaceState as one big map - wire all its maps as if they are the same object (same json path)
         for (const map of state.maps()) {
             handleMapSchema.visit(traverse, map, eventsWrapper, jsonPath);

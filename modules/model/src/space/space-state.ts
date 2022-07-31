@@ -13,16 +13,16 @@ function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
 
 export class SpaceState extends Schema {
     @type({ map: CannonShell })
-    public cannonShells = new MapSchema<CannonShell>();
+    public readonly cannonShells = new MapSchema<CannonShell>();
 
     @type({ map: Explosion })
-    public explosions = new MapSchema<Explosion>();
+    public readonly explosions = new MapSchema<Explosion>();
 
     @type({ map: Asteroid })
-    public asteroids = new MapSchema<Asteroid>();
+    public readonly asteroids = new MapSchema<Asteroid>();
 
     @type({ map: Spaceship })
-    public spaceships = new MapSchema<Spaceship>();
+    public readonly spaceships = new MapSchema<Spaceship>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
