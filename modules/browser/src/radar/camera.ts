@@ -125,11 +125,9 @@ export class Camera {
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter, angle = false) {
         const setPosition = () => {
-            console.log('position');
             this.set(spaceObject.position);
         };
         const setAngle = () => {
-            console.log('angle');
             this.setAngle(spaceObject.angle + 90);
         };
 
