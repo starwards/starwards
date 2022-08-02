@@ -20,6 +20,7 @@ import { targetRadarWidget } from '../widgets/target-radar';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 // window.PIXI = PIXI;
+
 const driver = new Driver();
 const gmWidgets = new GmWidgets(driver);
 const dashboard = new Dashboard(
@@ -39,6 +40,23 @@ const dashboard = new Dashboard(
     $('#layoutContainer'),
     $('#menuContainer')
 );
+
+// Navot added jQuery
+$('#collapseSidebar').on('click', function (event) {
+    
+    $('#menuContainer').toggleClass('collapsed');
+    $('#collapseSidebar').toggleClass('collapsed');
+    $('#layoutContainer').toggleClass('collapsed');
+    $('#wrapper').toggleClass('collapsed');
+    let wrap = $('#wrapper');
+    let basic = $(window).width();
+    if (wrap.hasClass('collapsed')) {
+        dashboard.updateSize($(window).width(), $(window).height());
+    } else {
+        dashboard.updateSize(basic*0.8, $(window).height());
+    }
+    
+});
 
 dashboard.registerWidget(gmWidgets.radar);
 dashboard.registerWidget(gmWidgets.tweak);
