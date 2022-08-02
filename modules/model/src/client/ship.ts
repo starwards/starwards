@@ -11,14 +11,13 @@ import {
     wrapStateProperty,
     wrapStringStateProperty,
 } from './utils';
+import { EventEmitter, makeEventsEmitter } from './events';
 import { GameRoom, RoomName, State } from '..';
 import { MappedPropertyCommand, cmdSender } from '../api';
 import { ShipDirection, shipProperties } from '../ship';
 
-import EventEmitter from 'eventemitter3';
 import { noop } from 'ts-essentials';
 import { waitForEvents } from './async-utils';
-import { wireEvents } from './events';
 
 export type ThrusterDriver = {
     index: number;
@@ -76,7 +75,7 @@ export class ArmorDriver {
     public numPlates = addEventsApi(
         wrapStateProperty(this.shipRoom, shipProperties.numPlates, undefined),
         this.events,
-        '/armor/armorPlates'
+        '/armor/armorPlates/*'
     );
     public numHealthyPlates = addEventsApi(
         {
@@ -92,7 +91,7 @@ export class ArmorDriver {
             setValue: noop,
         },
         this.events,
-        '/armor/armorPlates'
+        '/armor/armorPlates/*/health'
     );
     private cache = new Map<number, PlateDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
@@ -107,7 +106,7 @@ export class ArmorDriver {
                 health: addEventsApi(
                     wrapStateProperty(this.shipRoom, shipProperties.plateHealth, index),
                     this.events,
-                    `/armor/armorPlates`
+                    `/armor/armorPlates/${index}/health`
                 ),
             };
             this.cache.set(index, newValue);
@@ -159,13 +158,13 @@ function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     return {
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
-        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined, events, '/modelParams'),
+        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined, events, '/modelParams/params/*'),
         chainGunConstants: new NumberMapDriver(
             shipRoom,
             shipProperties.chainGunConstants,
             undefined,
             events,
-            '/chainGun/modelParams'
+            '/chainGun/modelParams/params/*'
         ),
         rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand, undefined),
         shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
@@ -212,7 +211,7 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
 }
 
 export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
-    const events = wireEvents(shipRoom.state, new EventEmitter());
+    const events = makeEventsEmitter(shipRoom.state);
     const pendingEvents = [];
     if (!shipRoom.state.chainGun) {
         pendingEvents.push('/chainGun');

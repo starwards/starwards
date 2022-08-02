@@ -1,4 +1,4 @@
-import EventEmitter from 'eventemitter3';
+import { EventEmitter } from './events';
 
 export function once(events: EventEmitter, event: string) {
     return new Promise((res) => events.once(event, res));

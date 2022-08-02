@@ -22,8 +22,8 @@ export class SelectionContainer {
     }
 
     init(spaceDriver: SpaceDriver) {
-        spaceDriver.events.on('/$remove', (event: Remove) => {
-            const id = event.path.split('/')[1];
+        spaceDriver.events.on('$remove', (event: Remove) => {
+            const id = event.path.split('/')[2];
             if (this.selected.delete(id)) {
                 this.events.emit(id);
                 this.events.emit('changed');

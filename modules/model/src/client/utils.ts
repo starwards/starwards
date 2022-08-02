@@ -9,7 +9,7 @@ import {
 } from '../api';
 
 import { Destructor } from '../utils';
-import EventEmitter from 'eventemitter3';
+import { EventEmitter } from './events';
 import { noop } from 'ts-essentials';
 
 export type DriverNumericApi = {

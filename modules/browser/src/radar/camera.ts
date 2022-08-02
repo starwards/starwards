@@ -2,6 +2,7 @@ import { SpaceObject, XY } from '@starwards/model';
 
 import { Container } from 'golden-layout';
 import EventEmitter from 'eventemitter3';
+import { SpaceEventEmitter } from '@starwards/model';
 
 export interface Screen {
     width: number;
@@ -123,7 +124,7 @@ export class Camera {
         });
     }
 
-    followSpaceObject(spaceObject: SpaceObject, changeEvents: EventEmitter, angle = false) {
+    followSpaceObject(spaceObject: SpaceObject, changeEvents: SpaceEventEmitter, angle = false) {
         const setPosition = () => {
             this.set(spaceObject.position);
         };
@@ -131,16 +132,18 @@ export class Camera {
             this.setAngle(spaceObject.angle + 90);
         };
 
-        changeEvents.on(`/${spaceObject.id}/position`, setPosition);
+        changeEvents.on(`/${spaceObject.type}/${spaceObject.id}/position/x`, setPosition);
+        changeEvents.on(`/${spaceObject.type}/${spaceObject.id}/position/y`, setPosition);
         setPosition();
         if (angle) {
-            changeEvents.on(`/${spaceObject.id}/angle`, setAngle);
+            changeEvents.on(`/${spaceObject.type}/${spaceObject.id}/angle`, setAngle);
             setAngle();
         }
         return () => {
-            changeEvents.off(`/${spaceObject.id}/position`, setPosition);
+            changeEvents.off(`/${spaceObject.type}/${spaceObject.id}/position/x`, setPosition);
+            changeEvents.off(`/${spaceObject.type}/${spaceObject.id}/position/y`, setPosition);
             if (angle) {
-                changeEvents.off(`/${spaceObject.id}/angle`, setAngle);
+                changeEvents.off(`/${spaceObject.type}/${spaceObject.id}/angle`, setAngle);
             }
         };
     }
