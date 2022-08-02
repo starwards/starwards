@@ -10,10 +10,5 @@
     ],
     "scripts": {
         "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
-    },
-    "dependencies": {
-        "eventemitter2": "^6.4.6",
-        "nanoid": "^3.3.4",
-        "normal-distribution": "^1.1.1"
     }
 }

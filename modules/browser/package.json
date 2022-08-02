@@ -18,10 +18,10 @@
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
         "@pixi/graphics-extras": "^6.5.1",
+        "@tweakpane/core": "^1.1.0",
         "@tweakpane/plugin-camerakit": "^0.2.2",
         "@xstate/react": "^3.0.0",
         "colyseus.js": "^0.14.13",
-        "colyseus-events": "^2.1.0",
         "d3": "^7.6.1",
         "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
@@ -40,7 +40,6 @@
     },
     "devDependencies": {
         "@babylonjs/gui": "5.16.0",
-        "@babylonjs/inspector": "5.16.0",
-        "@tweakpane/core": "^1.1.0"
+        "@babylonjs/inspector": "5.16.0"
     }
 }

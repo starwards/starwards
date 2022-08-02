@@ -38,7 +38,10 @@
     },
     "dependencies": {
         "@colyseus/schema": "^1.0.36",
+        "colyseus-events": "^2.1.0",
         "detect-collisions": "^6.2.1",
+        "eventemitter2": "^6.4.6",
+        "nanoid": "^3.3.4",
         "normal-distribution": "^1.1.1",
         "tslib": "^2.4.0"
     },
