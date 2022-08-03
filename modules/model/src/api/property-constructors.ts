@@ -1,5 +1,9 @@
 import * as types from './properties';
 
+import { JsonPointer, JsonStringPointer } from 'json-ptr';
+import { SpaceObject, SpaceState } from '../space';
+
+import { Primitive } from 'colyseus-events';
 import { Schema } from '@colyseus/schema';
 
 export function StateProperty<T, S extends Schema, P = void>(
@@ -19,6 +23,16 @@ export function StatePropertyCommand<T, S extends Schema, P = void>(
     getValue: (state: S, path: P) => T
 ): types.StatePropertyCommand<T, S, P> {
     return { cmdName, setValue, getValue };
+}
+export function SpaceObjectProperty<T extends Primitive>(pointerStr: JsonStringPointer): types.SpaceObjectProperty<T> {
+    const pointer = JsonPointer.create(pointerStr);
+    return {
+        pointer,
+        eventName: (o: { id: string; type: string }) => `/${o.type}/${o.id}${pointerStr}`,
+        cmdName: '$SpaceObject' + pointerStr,
+        setValue: (state: SpaceState, value: T, id: string) => pointer.set(state.get(id), value),
+        getValueFromObject: (state: SpaceObject): T => pointer.get(state) as T,
+    };
 }
 export function NumericStateProperty<S extends Schema, P = void>(
     getValue: (state: S, path: P) => number,

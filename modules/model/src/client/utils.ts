@@ -51,22 +51,24 @@ export function wrapStateProperty<T, R extends RoomName, P>(
     };
 }
 
-export function addEventsApi<T, A extends ReadApi<T>>(api: A, events: EventEmitter, eventName: string): A & EventApi {
-    return {
-        ...api,
-        onChange: (cb: () => unknown) => {
-            let lastValue = api.getValue();
-            const listener = () => {
-                const newValue = api.getValue();
-                if (newValue !== lastValue) {
-                    lastValue = newValue;
-                    cb();
-                }
-            };
-            events.on(eventName, listener);
-            return () => events.off(eventName, listener);
-        },
+export function makeOnChange(getValue: () => unknown, events: EventEmitter, eventName: string) {
+    return (cb: () => unknown): Destructor => {
+        let lastValue = getValue();
+        const listener = () => {
+            const newValue = getValue();
+            if (newValue !== lastValue) {
+                lastValue = newValue;
+                cb();
+            }
+        };
+        events.on(eventName, listener);
+        return () => events.off(eventName, listener);
     };
+}
+
+export function addEventsApi<T, A extends ReadApi<T>>(api: A, events: EventEmitter, eventName: string): A & EventApi {
+    const onChange = makeOnChange(api.getValue, events, eventName);
+    return { ...api, onChange };
 }
 
 export function wrapNumericProperty<R extends RoomName, P>(

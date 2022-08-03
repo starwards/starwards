@@ -1,12 +1,11 @@
-import { Add, Event, Remove } from 'colyseus-events';
+import { Add, Event, Primitive, Remove } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
+import { GameRoom, makeOnChange } from '..';
 import { SpaceEventEmitter, makeSpaceEventsEmitter } from './events';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
-import { addEventsApi, wrapStateProperty } from './utils';
+import { SpaceObjectProperty, cmdSender } from '../api';
 
-import { GameRoom } from '..';
 import { XY } from '../logic';
-import { cmdSender } from '../api';
 import { noop } from 'ts-essentials';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
@@ -181,11 +180,15 @@ class ObjectsApi {
     private makeObjectApi(subject: SpaceObject) {
         return {
             id: subject.id,
-            freeze: addEventsApi(
-                wrapStateProperty(this.spaceRoom, spaceProperties.freeze, subject.id),
-                this.events,
-                `/${subject.type}/${subject.id}/freeze`
-            ),
+            freeze: this.makePropertyApi(spaceProperties.freeze, subject),
+        };
+    }
+    private makePropertyApi<T extends Primitive>(prop: SpaceObjectProperty<T>, subject: SpaceObject) {
+        const getValue = () => prop.getValueFromObject(subject);
+        return {
+            getValue,
+            setValue: cmdSender(this.spaceRoom, prop, subject.id),
+            onChange: makeOnChange(getValue, this.events, prop.eventName(subject)),
         };
     }
 }
