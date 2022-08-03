@@ -42,15 +42,14 @@ const dashboard = new Dashboard(
 );
 
 // Navot added jQuery
-$('#collapseSidebar').on('click', function (event) {
+$('#collapseSidebar').on('click', function () {
     
     $('#menuContainer').toggleClass('collapsed');
     $('#collapseSidebar').toggleClass('collapsed');
     $('#layoutContainer').toggleClass('collapsed');
-    $('#wrapper').toggleClass('collapsed');
-    let wrap = $('#wrapper');
-    let basic = $(window).width();
-    if (wrap.hasClass('collapsed')) {
+    $('#wrapper').toggleClass('collapsed'); 
+    let basic:number = $(window).width() || 1920;   
+    if ($('#wrapper').hasClass('collapsed')) {
         dashboard.updateSize($(window).width(), $(window).height());
     } else {
         dashboard.updateSize(basic*0.8, $(window).height());
