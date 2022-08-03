@@ -1,13 +1,11 @@
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
 import React, { Component, useEffect, useRef } from 'react';
+import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/model';
 import { useConstant, useLoop, useProperty, useSorted } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
-import { ShipDirection } from '@starwards/model';
-import { ShipDriver } from '../driver';
-import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
 import { createMachine } from 'xstate';
 import { useMachine } from '@xstate/react';

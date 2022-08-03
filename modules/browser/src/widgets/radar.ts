@@ -1,6 +1,5 @@
-import { Faction, SpaceObject } from '@starwards/model';
+import { Faction, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/model';
 import { Loader, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver } from '../driver';
 import { blue, radarFogOfWar, radarVisibleBg, red, yellow } from '../colors';
 import { dradisDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
 

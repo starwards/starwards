@@ -1,6 +1,9 @@
 import {
     EPSILON,
+    SpaceDriver,
     SpaceObject,
+    SpatialIndex,
+    TrackObjects,
     XY,
     calcArcAngle,
     degToRad,
@@ -8,12 +11,10 @@ import {
     toPositiveDegreesDelta,
     toStrictPositiveDegreesDelta,
 } from '@starwards/model';
-import { SpatialIndex, TrackObjects } from '../../driver/space';
 
 import { CameraView } from '../camera-view';
 import { Circle } from 'detect-collisions';
 import { Graphics } from 'pixi.js';
-import { SpaceDriver } from '../../driver';
 import { noop } from 'ts-essentials';
 
 const MIN_RADIUS_RADAR_BLOCK = 1;

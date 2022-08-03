@@ -6,7 +6,7 @@ import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { Driver } from '../driver';
+import { Driver } from '@starwards/model';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';

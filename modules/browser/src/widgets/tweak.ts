@@ -1,5 +1,4 @@
-import { Destructor, Destructors, ShipDirection, SpaceObject, Spaceship } from '@starwards/model';
-import { Driver, SpaceDriver } from '../driver';
+import { Destructor, Destructors, Driver, ShipDirection, SpaceDriver, SpaceObject, Spaceship } from '@starwards/model';
 import { FolderApi, Pane } from 'tweakpane';
 import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 
@@ -125,7 +124,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                 for (const subject of selectionContainer.selectedItems) {
                     const itemFolder = guiFolder.addFolder({
                         title: `${subject.type} ${subject.id}`,
-                        expanded: selectionContainer.selectedItems.size === 1,
+                        expanded: [...selectionContainer.selectedItems].length === 1,
                     });
                     this.selectionCleanup.add(() => {
                         itemFolder.dispose();

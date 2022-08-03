@@ -1,14 +1,15 @@
+import { Add, Remove } from 'colyseus-events';
 import { SpaceObject, degToRad } from '@starwards/model';
 import { TransformNode, Vector3 } from '@babylonjs/core';
 
 import { Meshes } from './meshes';
-import { SpaceDriver } from '../driver';
+import { SpaceDriver } from '@starwards/model';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();
     constructor(driver: SpaceDriver, private meshes: Meshes, private shipId: string) {
-        driver.events.on('add', (spaceObject: SpaceObject) => this.onNewSpaceObject(spaceObject));
-        driver.events.on('remove', (spaceObject: SpaceObject) => this.graphics.get(spaceObject.id)?.destroy());
+        driver.events.on('/$add', (event: Add) => this.onNewSpaceObject(event.value as SpaceObject));
+        driver.events.on('/$remove', (event: Remove) => this.graphics.get(event.path.split('/')[1])?.destroy());
 
         for (const spaceObject of driver.state) {
             this.onNewSpaceObject(spaceObject);

@@ -11,110 +11,14 @@ import {
     wrapStateProperty,
     wrapStringStateProperty,
 } from './utils';
-import {
-    GameRoom,
-    MappedPropertyCommand,
-    RoomName,
-    ShipDirection,
-    ShipState,
-    State,
-    cmdSender,
-    shipProperties,
-} from '@starwards/model';
+import { GameRoom, RoomName, State } from '..';
+import { MappedPropertyCommand, cmdSender } from '../api';
+import { ShipDirection, shipProperties } from '../ship';
 
 import EventEmitter from 'eventemitter3';
 import { noop } from 'ts-essentials';
 import { waitForEvents } from './async-utils';
-
-function wireModelParamsEvents(state: ShipState, events: EventEmitter) {
-    state.modelParams.params.onChange = (value: number, key: string) => {
-        events.emit('modelParams.params.' + key, value);
-        events.emit('modelParams.params');
-    };
-    state.modelParams.params.onAdd = state.modelParams.params.onRemove = () => events.emit('modelParams.params');
-}
-
-function wireEvents(state: ShipState) {
-    const events = new EventEmitter();
-    state.onChange = (changes) => {
-        for (const { field, value } of changes) {
-            events.emit(field, value);
-        }
-    };
-    events.once('modelParams', () => {
-        state.modelParams.onChange = (changes) => {
-            for (const { field, value } of changes) {
-                events.emit(`modelParams.${field}`, value);
-            }
-        };
-    });
-    events.once('modelParams.params', () => {
-        wireModelParamsEvents(state, events);
-    });
-    state.position.onChange = (_) => events.emit('position', state.position);
-    state.velocity.onChange = (_) => events.emit('velocity', state.velocity);
-    events.once('chainGun', () => {
-        state.chainGun.onChange = (changes) => {
-            for (const { field, value } of changes) {
-                events.emit(`chainGun.${field}`, value);
-            }
-        };
-        state.chainGun.modelParams.params.onChange = (value: number, key: string) => {
-            events.emit('chainGun.modelParams.params.' + key, value);
-        };
-        state.chainGun.modelParams.params.onAdd = state.chainGun.modelParams.params.onRemove = () =>
-            events.emit('chainGun.modelParams.params');
-    });
-    events.once('smartPilot', () => {
-        state.smartPilot.onChange = (changes) => {
-            for (const { field, value } of changes) {
-                events.emit(`smartPilot.${field}`, value);
-            }
-        };
-        state.smartPilot.maneuvering.onChange = (_) =>
-            events.emit('smartPilot.maneuvering', state.smartPilot.maneuvering);
-    });
-    events.once('thrusters', () => {
-        state.thrusters.onAdd = (thruster, key) => {
-            thruster.onChange = (changes) => {
-                for (const { field, value } of changes) {
-                    events.emit(`thrusters.${key}.${field}`, value);
-                }
-            };
-            thruster.modelParams.params.onChange = (value: number, constKey: string) => {
-                events.emit(`thrusters.${key}.modelParams.params.${constKey}`, value);
-                events.emit(`thrusters.${key}.modelParams.params`);
-            };
-        };
-        state.thrusters.onRemove = () => {
-            events.emit(`armor`);
-        };
-    });
-    events.once('armor', () => {
-        state.armor.onChange = (changes) => {
-            for (const { field, value } of changes) {
-                events.emit(`armor.${field}`, value);
-            }
-        };
-        state.armor.modelParams.params.onChange = (value: number, key: string) => {
-            events.emit('armor.modelParams.params.' + key, value);
-            events.emit('armor.modelParams.params');
-        };
-        state.armor.armorPlates.onAdd = (plate, key) => {
-            events.emit(`armor`);
-            plate.onChange = (changes) => {
-                for (const { field, value } of changes) {
-                    events.emit(`armor.${key}.${field}`, value);
-                    events.emit(`armor`);
-                }
-            };
-        };
-        state.armor.armorPlates.onRemove = () => {
-            events.emit(`armor`);
-        };
-    });
-    return events;
-}
+import { wireEvents } from './events';
 
 export type ThrusterDriver = {
     index: number;
@@ -139,17 +43,17 @@ export class ThrustersDriver {
                 angle: addEventsApi(
                     wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
                     this.events,
-                    `thrusters.${index}.angle`
+                    `/thrusters/${index}/angle`
                 ),
                 angleError: addEventsApi(
                     wrapNumericProperty(this.shipRoom, shipProperties.thrusterAngleError, index),
                     this.events,
-                    `thrusters.${index}.angle`
+                    `/thrusters/${index}/angleError`
                 ),
                 availableCapacity: addEventsApi(
                     wrapNormalNumericProperty(this.shipRoom, shipProperties.thrusterAvailableCapacity, index),
                     this.events,
-                    `thrusters.${index}.availableCapacity`
+                    `/thrusters/${index}/availableCapacity`
                 ),
             };
             this.cache.set(index, newValue);
@@ -168,12 +72,11 @@ export type PlateDriver = {
     health: BaseEventsApi<ShipDirection>;
 };
 
-const NO_EVENT = 'never';
 export class ArmorDriver {
     public numPlates = addEventsApi(
         wrapStateProperty(this.shipRoom, shipProperties.numPlates, undefined),
         this.events,
-        NO_EVENT
+        '/armor/armorPlates'
     );
     public numHealthyPlates = addEventsApi(
         {
@@ -189,7 +92,7 @@ export class ArmorDriver {
             setValue: noop,
         },
         this.events,
-        'armor'
+        '/armor/armorPlates'
     );
     private cache = new Map<number, PlateDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
@@ -204,7 +107,7 @@ export class ArmorDriver {
                 health: addEventsApi(
                     wrapStateProperty(this.shipRoom, shipProperties.plateHealth, index),
                     this.events,
-                    `armor.${index}.health`
+                    `/armor/armorPlates`
                 ),
             };
             this.cache.set(index, newValue);
@@ -256,13 +159,13 @@ function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
     return {
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
-        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined, events, 'modelParams.params'),
+        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined, events, '/modelParams'),
         chainGunConstants: new NumberMapDriver(
             shipRoom,
             shipProperties.chainGunConstants,
             undefined,
             events,
-            'chainGun.modelParams.params'
+            '/chainGun/modelParams'
         ),
         rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand, undefined),
         shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
@@ -309,19 +212,19 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
 }
 
 export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
-    const events = wireEvents(shipRoom.state);
+    const events = wireEvents(shipRoom.state, new EventEmitter());
     const pendingEvents = [];
     if (!shipRoom.state.chainGun) {
-        pendingEvents.push('chainGun');
+        pendingEvents.push('/chainGun');
     }
     if (!shipRoom.state.modelParams) {
-        pendingEvents.push('modelParams');
+        pendingEvents.push('/modelParams');
     }
     if (!shipRoom.state.thrusters) {
-        pendingEvents.push('thrusters');
+        pendingEvents.push('/thrusters');
     }
     if (!shipRoom.state.armor) {
-        pendingEvents.push('armor');
+        pendingEvents.push('/armor');
     }
     await waitForEvents(events, pendingEvents);
     const driver = newShipDriverObj(shipRoom, events);

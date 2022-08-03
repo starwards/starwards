@@ -13,16 +13,16 @@ function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
 
 export class SpaceState extends Schema {
     @type({ map: CannonShell })
-    public cannonShells = new MapSchema<CannonShell>();
+    private readonly cannonShells = new MapSchema<CannonShell>();
 
     @type({ map: Explosion })
-    public explosions = new MapSchema<Explosion>();
+    private readonly explosions = new MapSchema<Explosion>();
 
     @type({ map: Asteroid })
-    public asteroids = new MapSchema<Asteroid>();
+    private readonly asteroids = new MapSchema<Asteroid>();
 
     @type({ map: Spaceship })
-    public spaceships = new MapSchema<Spaceship>();
+    private readonly spaceships = new MapSchema<Spaceship>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
@@ -32,6 +32,10 @@ export class SpaceState extends Schema {
         return (
             this.cannonShells.get(id) ?? this.asteroids.get(id) ?? this.spaceships.get(id) ?? this.explosions.get(id)
         );
+    }
+
+    public getShip(id: string): Spaceship | undefined {
+        return this.spaceships.get(id);
     }
 
     public getBatch(ids: Array<string>): Array<SpaceObject> {
@@ -50,11 +54,17 @@ export class SpaceState extends Schema {
         return mapSchemaValues(this.getMap(typeField));
     }
 
+    public *maps(): IterableIterator<MapSchema> {
+        yield this.cannonShells;
+        yield this.explosions;
+        yield this.asteroids;
+        yield this.spaceships;
+    }
+
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
-        yield* mapSchemaValues(this.cannonShells, destroyed);
-        yield* mapSchemaValues(this.explosions, destroyed);
-        yield* mapSchemaValues(this.asteroids, destroyed);
-        yield* mapSchemaValues(this.spaceships, destroyed);
+        for (const map of this.maps()) {
+            yield* mapSchemaValues(map, destroyed);
+        }
     }
 
     private getMap<T extends keyof SpaceObjects>(typeField: T): MapSchema<SpaceObjects[T]> {

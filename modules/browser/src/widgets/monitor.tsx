@@ -2,12 +2,10 @@
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
 import React, { Component } from 'react';
 import { ReadProperty, useProperty } from '../react/hooks';
+import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/model';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
-import { ShipDirection } from '@starwards/model';
-import { ShipDriver } from '../driver';
-import { ThrusterDriver } from '../driver/ship';
 import WebFont from 'webfontloader';
 
 WebFont.load({
