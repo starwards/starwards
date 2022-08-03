@@ -42,17 +42,17 @@ const dashboard = new Dashboard(
 );
 
 // Navot added jQuery
-$('#collapseSidebar').on('click', function () {    
+$('#collapseSidebar').on('click', function () {
     $('#menuContainer').toggleClass('collapsed');
     $('#collapseSidebar').toggleClass('collapsed');
     $('#layoutContainer').toggleClass('collapsed');
-    $('#wrapper').toggleClass('collapsed'); 
-    const basic : number = $(window).width() || 1920;   
+    $('#wrapper').toggleClass('collapsed');
+    const basic: number = $(window).width() || 1920;
     if ($('#wrapper').hasClass('collapsed')) {
         dashboard.updateSize($(window).width(), $(window).height());
     } else {
         dashboard.updateSize(basic * 0.8, $(window).height());
-    }    
+    }
 });
 
 dashboard.registerWidget(gmWidgets.radar);
