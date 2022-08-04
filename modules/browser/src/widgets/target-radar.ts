@@ -1,17 +1,16 @@
 import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver } from '@starwards/model';
+import { SpaceEventEmitter, SpaceObject } from '@starwards/model';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import EventEmitter from 'eventemitter3';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
-import { SpaceObject } from '@starwards/model';
 import WebFont from 'webfontloader';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
@@ -26,7 +25,7 @@ WebFont.load({
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
-function trackObject(camera: Camera, changeEvents: EventEmitter, target: SelectionContainer) {
+function trackObject(camera: Camera, changeEvents: SpaceEventEmitter, target: SelectionContainer) {
     let unfollow = (): void => undefined;
     const follow = () => {
         unfollow();

@@ -8,8 +8,8 @@ import { SpaceDriver } from '@starwards/model';
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();
     constructor(driver: SpaceDriver, private meshes: Meshes, private shipId: string) {
-        driver.events.on('/$add', (event: Add) => this.onNewSpaceObject(event.value as SpaceObject));
-        driver.events.on('/$remove', (event: Remove) => this.graphics.get(event.path.split('/')[1])?.destroy());
+        driver.events.on('$add', (event: Add) => this.onNewSpaceObject(event.value as SpaceObject));
+        driver.events.on('$remove', (event: Remove) => this.graphics.get(event.path.split('/')[2])?.destroy());
 
         for (const spaceObject of driver.state) {
             this.onNewSpaceObject(spaceObject);

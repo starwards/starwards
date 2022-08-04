@@ -1,5 +1,7 @@
-import { Stateful, capToRange } from '..';
+import { SpaceObject, SpaceState, Stateful, capToRange } from '..';
 
+import { JsonPointer } from 'json-ptr';
+import { Primitive } from 'colyseus-events';
 import { Schema } from '@colyseus/schema';
 
 export interface StateCommand<T, S extends Schema, P> {
@@ -10,6 +12,12 @@ export interface StateCommand<T, S extends Schema, P> {
 export interface StateProperty<T, S extends Schema, P> {
     getValue(state: S, path: P): T;
 }
+
+export type SpaceObjectProperty<T extends Primitive> = StateCommand<T, SpaceState, string> & {
+    pointer: JsonPointer;
+    eventName: (o: { id: string; type: string }) => string;
+    getValueFromObject: (state: SpaceObject) => T;
+};
 
 export interface IteratorStatePropertyCommand<S extends Schema, P>
     extends StateProperty<string, S, P>,
