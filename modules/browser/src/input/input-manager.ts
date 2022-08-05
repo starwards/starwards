@@ -12,17 +12,17 @@ import { capToRange, isInRange } from '@starwards/model';
 import { EmitterLoop } from '../loop';
 import hotkeys from 'hotkeys-js';
 
-type AxisListener = { axis: GamepadAxisConfig; range: [number, number]; setValue: (v: number) => unknown };
+type AxisListener = { axis: GamepadAxisConfig; range: readonly [number, number]; setValue: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 type KeyListener = { key: string; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 
 // equiv. to lerp([-1, 1], range, axisValue)
-function lerpAxisToRange(range: [number, number], axisValue: number) {
+function lerpAxisToRange(range: readonly [number, number], axisValue: number) {
     const t = (axisValue + 1) / 2;
     return (1 - t) * range[0] + t * range[1];
 }
 export interface RangeAction {
-    range: [number, number];
+    range: readonly [number, number];
     setValue: (v: number) => unknown;
 }
 export interface TriggerAction {
@@ -145,7 +145,7 @@ export class InputManager {
     }
 }
 
-function getStepOfRange(step: number, range: [number, number]) {
+function getStepOfRange(step: number, range: readonly [number, number]) {
     return (step * (range[1] - range[0])) / 2;
 }
 class CombinedRangeCallbacks {

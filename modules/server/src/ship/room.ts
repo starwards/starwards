@@ -1,12 +1,5 @@
 import { Client, Room } from 'colyseus';
-import {
-    ShipManager,
-    ShipState,
-    cmdReceivers,
-    getJsonPointer,
-    isSetValueCommand,
-    shipProperties,
-} from '@starwards/model';
+import { ShipManager, ShipState, getJsonPointer, isSetValueCommand } from '@starwards/model';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -22,15 +15,19 @@ export class ShipRoom extends Room<ShipState> {
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
-        for (const [cmdName, handler] of cmdReceivers(shipProperties, manager)) {
-            this.onMessage(cmdName, handler);
-        }
         // handle all other messages
         this.onMessage('*', (_, type, message: unknown) => {
             if (isSetValueCommand(message)) {
                 const pointer = getJsonPointer(type);
                 if (pointer) {
-                    pointer.set(manager.state, message.value);
+                    try {
+                        pointer.set(manager.state, message.value);
+                    } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.error(
+                            `Error setting value ${String(message.value)} in ${type} : ${String((e as Error).stack)}`
+                        );
+                    }
                 } else {
                     // eslint-disable-next-line no-console
                     console.error(`onMessage for type="${type}" not registered.`);

@@ -13,7 +13,6 @@ import {
     calcShellSecondsToLive,
     concatinateArchs,
 } from '../src';
-import { afterBurner, boostCommand, shellRange } from '../src/ship/ship-properties';
 
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
@@ -122,7 +121,7 @@ describe('SpaceManager', () => {
             const shipMgr = sim.withShip(ship, new ShipDie(0));
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
             shipMgr.state.chainGun.modelParams.set('maxShellRange', 10_000);
-            shellRange.setValue(shipMgr.state, 1);
+            shipMgr.state.chainGun.shellRange = 1;
             shipMgr.chainGun(true);
 
             // stop simulation when first bullet reaches its range
@@ -134,9 +133,9 @@ describe('SpaceManager', () => {
             const speed = bulletSpeed;
             const numIterationsPerSecond = 20;
             const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
+            shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
+            shipMgr.state.afterBurnerCommand = 1; // afterburner
 
-            boostCommand.setValue(shipMgr.state, 1); // fly forward
-            afterBurner.setValue(shipMgr.state, 1); // afterburner
             shipMgr.state.armor.modelParams.set('healRate', 0);
 
             sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {

@@ -3,10 +3,16 @@ import { RTuple2, toPositiveDegreesDelta } from '..';
 
 import { ArmorModel } from './ship-configuration';
 import { ModelParams } from '../model-params';
+import { range } from '../range';
 
 export class ArmorPlate extends Schema {
     @type('float32')
+    @range((t: ArmorPlate) => [0, t.maxHealth])
     health!: number;
+
+    @type('float32')
+    @range([0, Number.MAX_VALUE])
+    maxHealth!: number;
 }
 
 export class Armor extends Schema {

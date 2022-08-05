@@ -1,8 +1,8 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
 import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
-import { BaseApi, DriverNumericApi } from '@starwards/model';
 import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
+import { Model, NumericModel } from './blades';
 
 import { Container } from 'golden-layout';
 import { EmitterLoop } from '../loop';
@@ -17,12 +17,11 @@ import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
 
 export type TextProperty = {
     getValue: () => string;
-    setValue: (v: boolean) => unknown;
 };
 
 export interface Panel {
-    addConfig(name: string, property: BaseApi<number>): this;
-    addProperty(name: string, property: DriverNumericApi): this;
+    addConfig(name: string, property: Model<number>): this;
+    addProperty(name: string, property: NumericModel): this;
     addText(name: string, property: TextProperty): this;
 }
 type ViewModel = Record<string, number | string>;
@@ -60,24 +59,32 @@ export class PropertyPanel implements Panel {
         return guiController;
     }
 
-    private contextAddConfig(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: BaseApi<number>) {
+    private contextAddConfig(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: Model<number>) {
         const { getValue, setValue } = property;
         const options = {
             view: 'cameraring',
             series: 0,
         };
         const guiController = this.addInput(guiFolder, viewModel, name, getValue, options);
-        guiController.on('change', (ev) => setValue(ev.value));
+        if (setValue) {
+            guiController.on('change', (ev) => setValue(ev.value));
+        } else {
+            guiController.disabled = true;
+        }
     }
 
-    private contextAddProperty(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: DriverNumericApi) {
+    private contextAddProperty(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: NumericModel) {
         const { getValue, range, setValue } = property;
         const options: InputParams = { min: range[0], max: range[1] };
         if (range[1] === 1) {
             options.step = 0.01;
         }
         const guiController = this.addInput(guiFolder, viewModel, name, getValue, options);
-        guiController.on('change', (ev) => setValue(ev.value));
+        if (setValue) {
+            guiController.on('change', (ev) => setValue(ev.value));
+        } else {
+            guiController.disabled = true;
+        }
     }
 
     private contextAddText(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: TextProperty) {
@@ -85,12 +92,12 @@ export class PropertyPanel implements Panel {
         this.addInput(guiFolder, viewModel, name, getValue, {});
     }
 
-    addConfig(name: string, property: BaseApi<number>) {
+    addConfig(name: string, property: Model<number>) {
         this.contextAddConfig(this.pane, this.rootViewModel, name, property);
         return this;
     }
 
-    addProperty(name: string, property: DriverNumericApi) {
+    addProperty(name: string, property: NumericModel) {
         this.contextAddProperty(this.pane, this.rootViewModel, name, property);
         return this;
     }
@@ -104,11 +111,11 @@ export class PropertyPanel implements Panel {
         const guiFolder = this.pane.addFolder({ title: folderName, expanded: true });
         const folderViewModel: ViewModel = {};
         const folder: Panel = {
-            addConfig: (name: string, property: BaseApi<number>) => {
+            addConfig: (name: string, property: Model<number>) => {
                 this.contextAddConfig(guiFolder, folderViewModel, name, property);
                 return folder;
             },
-            addProperty: (name: string, property: DriverNumericApi) => {
+            addProperty: (name: string, property: NumericModel) => {
                 this.contextAddProperty(guiFolder, folderViewModel, name, property);
                 return folder;
             },

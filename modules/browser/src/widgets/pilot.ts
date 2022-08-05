@@ -1,7 +1,8 @@
+import { ShipDriver, SmartPilotMode } from '@starwards/model';
+
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../panel';
-import { ShipDriver } from '@starwards/model';
 
 export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
     class PilotComponent {
@@ -11,10 +12,10 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
                 panel.destroy();
             });
 
-            panel.addText('rotationMode', shipDriver.rotationMode);
+            panel.addText('rotationMode', { getValue: () => SmartPilotMode[shipDriver.rotationMode.getValue()] });
             panel.addProperty('rotationCommand', shipDriver.rotationCommand);
             panel.addProperty('rotation', shipDriver.rotation);
-            panel.addText('maneuveringMode', shipDriver.maneuveringMode);
+            panel.addText('maneuveringMode', { getValue: () => SmartPilotMode[shipDriver.maneuveringMode.getValue()] });
             panel.addProperty('strafeCommand', shipDriver.strafeCommand);
             panel.addProperty('boostCommand', shipDriver.boostCommand);
             panel.addProperty('strafe', shipDriver.strafe);
@@ -29,7 +30,7 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
             panel.addProperty('angle', shipDriver.angle);
             panel.addProperty('speedDirection', shipDriver.speedDirection);
             panel.addProperty('speed', shipDriver.speed);
-            panel.addText('targeted', shipDriver.targeted);
+            panel.addText('targeted', { getValue: () => String(shipDriver.targeted.getValue()) });
         }
     }
     return {

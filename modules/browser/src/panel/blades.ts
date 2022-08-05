@@ -1,4 +1,3 @@
-import { BaseEventsApi, Destructor, DriverNumericApi, EventApi } from '@starwards/model';
 import {
     FolderApi,
     InputParams,
@@ -10,29 +9,46 @@ import {
     TextBladeParams,
 } from 'tweakpane';
 
+import { Destructor } from '@starwards/model';
+
+export type NumericModel = {
+    getValue: () => number;
+    setValue?: (v: number) => unknown;
+    onChange: (cb: () => unknown) => Destructor;
+    range: readonly [number, number];
+};
+
+export type Model<T> = {
+    getValue: () => T;
+    setValue?: (v: T) => unknown;
+    onChange: (cb: () => unknown) => Destructor;
+};
 /*
     This module was written after ./property-panel
     This is the module to use to creatte new panels
 */
-export function addSliderBlade<T>(
+export function addSliderBlade(
     guiFolder: FolderApi,
-    api: DriverNumericApi & EventApi,
+    model: NumericModel,
     params: Partial<SliderBladeParams>,
     cleanup: (d: Destructor) => void
 ) {
+    const { getValue, range, onChange, setValue } = model;
     const guiController = guiFolder.addBlade({
-        parse: (v: T) => String(v),
+        parse: (v: number) => String(v),
         ...params,
         view: 'slider',
-        min: api.range[0],
-        max: api.range[1],
-        value: api.getValue(),
+        min: range[0],
+        max: range[1],
+        value: getValue(),
     }) as SliderApi;
-    guiController.on('change', (e) => {
-        api.setValue(e.value);
-    });
-    const removeStateListener = api.onChange(() => {
-        guiController.value = api.getValue();
+    if (setValue) {
+        guiController.on('change', (ev) => setValue(ev.value));
+    } else {
+        guiController.disabled = true;
+    }
+    const removeStateListener = onChange(() => {
+        guiController.value = getValue();
     });
     cleanup(() => {
         guiController.dispose();
@@ -42,21 +58,24 @@ export function addSliderBlade<T>(
 
 export function addTextBlade<T>(
     guiFolder: FolderApi,
-    api: BaseEventsApi<T>,
+    model: Model<T>,
     params: Partial<TextBladeParams<T>>,
     cleanup: (d: Destructor) => void
 ) {
+    const { getValue, onChange, setValue } = model;
     const guiController = guiFolder.addBlade({
         parse: (v: T) => String(v),
         ...params,
         view: 'text',
-        value: api.getValue(),
+        value: getValue(),
     }) as TextApi<T>;
-    guiController.on('change', (e) => {
-        api.setValue(e.value);
-    });
-    const removeStateListener = api.onChange(() => {
-        guiController.value = api.getValue();
+    if (setValue) {
+        guiController.on('change', (ev) => setValue(ev.value));
+    } else {
+        guiController.disabled = true;
+    }
+    const removeStateListener = onChange(() => {
+        guiController.value = getValue();
     });
     cleanup(() => {
         guiController.dispose();
@@ -66,11 +85,12 @@ export function addTextBlade<T>(
 
 export function addEnumListBlade<T>(
     guiFolder: FolderApi,
-    api: BaseEventsApi<T>,
+    model: Model<T>,
     params: Partial<ListBladeParams<T>>,
     cleanup: (d: Destructor) => void
 ) {
-    let lastValue = api.getValue();
+    const { getValue, onChange, setValue } = model;
+    let lastValue = getValue();
     const guiController = guiFolder.addBlade({
         parse: (v: T) => String(v),
         options: [],
@@ -78,14 +98,17 @@ export function addEnumListBlade<T>(
         view: 'list',
         value: lastValue,
     }) as ListApi<T>;
-    guiController.on('change', (e) => {
-        const newValue = e.value;
-        if (newValue !== lastValue) {
-            api.setValue(newValue);
-        }
-    });
-    const removeStateListener = api.onChange(() => {
-        const newValue = api.getValue();
+    if (setValue) {
+        guiController.on('change', (e) => {
+            if (e.value !== lastValue) {
+                setValue(e.value);
+            }
+        });
+    } else {
+        guiController.disabled = true;
+    }
+    const removeStateListener = onChange(() => {
+        const newValue = getValue();
         if (newValue !== lastValue) {
             lastValue = newValue;
             guiController.value = newValue;
@@ -100,23 +123,28 @@ export function addEnumListBlade<T>(
 export type InputBladeParams = { label: string } & Partial<InputParams>;
 export function addInputBlade<T>(
     guiFolder: FolderApi,
-    api: BaseEventsApi<T>,
+    model: Model<T>,
     params: InputBladeParams,
     cleanup: (d: Destructor) => void
 ) {
+    const { getValue, onChange, setValue } = model;
     const viewModel: Record<string, T> = {};
     const { label } = params;
-    let lastValue = (viewModel[label] = api.getValue());
+    let lastValue = (viewModel[label] = getValue());
     const guiController = guiFolder.addInput(viewModel, label, params);
-    const removeStateListener = api.onChange(() => {
-        lastValue = viewModel[label] = api.getValue();
+    const removeStateListener = onChange(() => {
+        lastValue = viewModel[label] = getValue();
         guiController.refresh();
     });
-    guiController.on('change', (e) => {
-        if (e.value !== lastValue) {
-            api.setValue(e.value);
-        }
-    });
+    if (setValue) {
+        guiController.on('change', (e) => {
+            if (e.value !== lastValue) {
+                setValue(e.value);
+            }
+        });
+    } else {
+        guiController.disabled = true;
+    }
     cleanup(() => {
         guiController.dispose();
         removeStateListener();

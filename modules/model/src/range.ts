@@ -2,27 +2,82 @@ import 'reflect-metadata';
 
 import { JsonPointer } from 'json-ptr';
 import { Schema } from '@colyseus/schema';
+import { getJsonPointer } from './json-ptr';
 
-const rangeMetadataKey = Symbol('rangeMetadata');
-export type Range<T extends Schema> = [number, number] | ((target: T) => [number, number]);
+const propertyMetadataKey = Symbol('range:propertyMetadata');
+const descendantMetadataKey = Symbol('range:descendantMetadata');
 
-export function range<T extends Schema>(r: Range<T>) {
-    return (target: T, propertyKey: string | symbol) => {
-        Reflect.defineMetadata(rangeMetadataKey, r, target, propertyKey);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
+export type Constructor = { readonly prototype: Schema } & Function; // https://stackoverflow.com/a/38642922
+
+export type SchemaRanges = {
+    [pointer: string]: Range<Schema>;
+};
+export type Range<T extends Schema> = readonly [number, number] | ((target: T) => readonly [number, number]);
+
+function isRange<T extends Schema>(r: Range<T> | SchemaRanges): r is Range<T> {
+    return typeof r === 'function' || Array.isArray(r);
+}
+export function rangeSchema(r: SchemaRanges) {
+    return (target: Constructor) => {
+        for (const [k, v] of Object.entries<Range<Schema>>(r)) {
+            const path = JsonPointer.decode(k);
+            if (path.length === 1) {
+                Reflect.defineMetadata(propertyMetadataKey, v, target.prototype as Schema, String(path[0]));
+            } else {
+                appendDecendantRange(target.prototype as Schema, String(path[0]), {
+                    [['', ...path.slice(1)].join('/')]: v,
+                });
+            }
+        }
     };
 }
-export function getRange<T extends Schema>(target: T, propertyKey: string): [number, number] {
-    const r = Reflect.getMetadata(rangeMetadataKey, target, propertyKey) as Range<T> | undefined;
-    if (!r) {
-        throw new Error(`property ${propertyKey} in ${String(target)} has no range set!`);
+
+export function range<T extends Schema>(r: Range<T> | SchemaRanges) {
+    if (isRange(r)) {
+        return (target: T, propertyKey: string | symbol) => {
+            Reflect.defineMetadata(propertyMetadataKey, r, target, propertyKey);
+        };
+    } else {
+        return (target: Schema, propertyKey: string | symbol) => {
+            appendDecendantRange(target, propertyKey, r);
+        };
     }
+}
+
+function appendDecendantRange(target: Schema, propertyKey: string | symbol, r: SchemaRanges) {
+    const ranges = (Reflect.getMetadata(descendantMetadataKey, target, propertyKey) || {}) as SchemaRanges;
+    Reflect.defineMetadata(descendantMetadataKey, { ...ranges, ...r }, target, propertyKey);
+}
+
+function getRange<T extends Schema>(target: T, propertyKey: string): readonly [number, number] | undefined {
+    const r = Reflect.getMetadata(propertyMetadataKey, target, propertyKey) as Range<T> | undefined;
     if (typeof r === 'function') {
         return r(target);
     }
     return r;
 }
-export function getRangeFromPointer(root: Schema, pointer: JsonPointer): [number, number] {
-    const target = pointer.parent(root);
+
+function getRangeFromAncestor<T extends Schema>(
+    ancestor: T,
+    propertyKey: string,
+    descendantPath: string
+): readonly [number, number] | undefined {
+    const ranges = Reflect.getMetadata(descendantMetadataKey, ancestor, propertyKey) as SchemaRanges | undefined;
+    if (ranges) {
+        const r = ranges[descendantPath];
+        if (r) {
+            if (typeof r === 'function') {
+                return r(ancestor);
+            }
+            return r;
+        }
+    }
+    return undefined;
+}
+
+export function getRangeFromPointer(root: Schema, pointer: JsonPointer): readonly [number, number] {
+    const target = pointer.path.length === 1 ? root : pointer.parent(root); // pending bug fix https://github.com/flitbit/json-ptr/pull/56
     const propertyName = pointer.path.at(-1);
     if (!(target instanceof Schema) || typeof propertyName !== 'string') {
         throw new Error(
@@ -31,5 +86,28 @@ export function getRangeFromPointer(root: Schema, pointer: JsonPointer): [number
             )}, propertyName=${JSON.stringify(propertyName)}`
         );
     }
-    return getRange(target, propertyName);
+    let r = getRange(target, propertyName);
+    // while no range was found, look for range in ancestors
+    for (let i = pointer.path.length - 2; !r && i >= 0; i--) {
+        const ancestorPath = ['', ...pointer.path.slice(0, i)].join('/');
+        const ancestorPropertyName = pointer.path.at(i);
+        const descendantPath = ['', ...pointer.path.slice(i + 1)].join('/');
+        const ancestorPointer = getJsonPointer(ancestorPath);
+        if (!ancestorPointer) {
+            throw new Error(`Unexpected! ${ancestorPath} is an illegal json pointer`);
+        }
+        const ancestor = ancestorPointer.get(root);
+        if (!(ancestor instanceof Schema) || typeof ancestorPropertyName !== 'string') {
+            throw new Error(
+                `pointer ${pointer.pointer} does not point at a legal location: ancestor=${JSON.stringify(
+                    ancestor
+                )}, ancestorPropertyName=${JSON.stringify(ancestorPropertyName)}`
+            );
+        }
+        r = getRangeFromAncestor(ancestor, ancestorPropertyName, descendantPath);
+    }
+    if (!r) {
+        throw new Error(`Property ${propertyName} in ${String(target)} has no range set!`);
+    }
+    return r;
 }

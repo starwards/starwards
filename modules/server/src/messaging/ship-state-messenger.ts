@@ -1,4 +1,4 @@
-import { NumericStateProperty, ShipState, shipProperties } from '@starwards/model';
+import { ShipState, getJsonPointer } from '@starwards/model';
 
 function getShipNamespace(shipId: string) {
     return `ship/${shipId}`;
@@ -37,13 +37,8 @@ export class ShipStateMessenger {
     }
 }
 
-type ShipProperties = typeof shipProperties;
-type ExtractNumeric<T extends keyof ShipProperties> = ShipProperties[T] extends NumericStateProperty<ShipState, void>
-    ? T
-    : never;
-
 class ShipMonitor {
-    private monitoredAttributes = new Map<string, number>();
+    private monitoredAttributes = new Map<string, string>();
     readonly forceMessageInterval = 1000;
     private secondsSinceUpdate = Number.MAX_SAFE_INTEGER;
 
@@ -51,17 +46,19 @@ class ShipMonitor {
 
     public update(deltaSeconds: number) {
         this.secondsSinceUpdate += deltaSeconds;
-        this.updateAndReportAttribute('energy');
+        this.updateAndReportAttribute('/reactor/energy');
     }
 
-    private updateAndReportAttribute<T extends keyof ShipProperties>(attrName: ExtractNumeric<T>) {
-        const getter = shipProperties[attrName] as NumericStateProperty<ShipState, void>;
-        const startingState = this.monitoredAttributes.get(attrName);
-        const currentState = getter.getValue(this.shipState);
-        if (currentState !== startingState || this.secondsSinceUpdate >= this.forceMessageInterval) {
-            this.secondsSinceUpdate = 0;
-            this.monitoredAttributes.set(attrName, currentState);
-            void this.mqttClient.publish(`${getShipNamespace(this.shipState.id)}/${attrName}`, `${currentState}`);
+    private updateAndReportAttribute(pointerStr: string) {
+        const pointer = getJsonPointer(pointerStr);
+        if (pointer) {
+            const startingState = this.monitoredAttributes.get(pointerStr);
+            const currentState = String(pointer.get(this.shipState));
+            if (currentState !== startingState || this.secondsSinceUpdate >= this.forceMessageInterval) {
+                this.secondsSinceUpdate = 0;
+                this.monitoredAttributes.set(pointerStr, currentState);
+                void this.mqttClient.publish(`${getShipNamespace(this.shipState.id)}${pointerStr}`, `${currentState}`);
+            }
         }
     }
 }

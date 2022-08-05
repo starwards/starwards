@@ -1,57 +1,48 @@
+import { EventEmitter, makeEventsEmitter } from './events';
+import { Faction, GameRoom, RoomName } from '..';
+import { SmartPilotMode, TargetedStatus } from '../ship';
 import {
-    BaseApi,
-    BaseEventsApi,
-    DriverNumericApi,
-    EventApi,
-    ReadApi,
-    addEventsApi,
+    makeOnChange,
     pointerBaseEventsApi,
     pointerBaseNumericEventsApi,
-    wrapIteratorStateProperty,
-    wrapNormalNumericProperty,
-    wrapNumericProperty,
-    wrapStateProperty,
-    wrapStringStateProperty,
+    pointerReadEventsApi,
+    pointerReadNumericEventsApi,
+    pointerWriteApi,
 } from './utils';
-import { EventEmitter, makeEventsEmitter } from './events';
-import { GameRoom, RoomName, State } from '..';
-import { MappedPropertyCommand, cmdSender } from '../api';
-import { ShipDirection, shipProperties } from '../ship';
 
-import { noop } from 'ts-essentials';
+import { JsonStringPointer } from 'json-ptr';
 import { waitForEvents } from './async-utils';
 
-export type ThrusterDriver = {
-    index: number;
-    broken: ReadApi<boolean>;
-    angle: BaseEventsApi<number>;
-    angleError: DriverNumericApi & EventApi;
-    availableCapacity: DriverNumericApi & EventApi;
-};
+export type ThrusterDriver = ReturnType<ThrustersDriver['makeDriver']>;
 export class ThrustersDriver {
     private cache = new Map<number, ThrusterDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
 
-    getApi(index: number) {
+    getApi(index: number): ThrusterDriver {
         const result = this.cache.get(index);
         if (result) {
             return result;
         } else {
-            const newValue: ThrusterDriver = {
-                index,
-                broken: { getValue: () => this.shipRoom.state.thrusters[index].broken },
-                angle: pointerBaseEventsApi(this.shipRoom, this.events, `/thrusters/${index}/angle`),
-                angleError: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/thrusters/${index}/angleError`),
-                availableCapacity: pointerBaseNumericEventsApi(
-                    this.shipRoom,
-                    this.events,
-                    `/thrusters/${index}/availableCapacity`
-                ),
-            };
+            const newValue = this.makeDriver(index);
             this.cache.set(index, newValue);
             return newValue;
         }
     }
+
+    private makeDriver(index: number) {
+        return {
+            index,
+            broken: { getValue: () => this.shipRoom.state.thrusters[index].broken },
+            angle: pointerBaseEventsApi<number>(this.shipRoom, this.events, `/thrusters/${index}/angle`),
+            angleError: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/thrusters/${index}/angleError`),
+            availableCapacity: pointerBaseNumericEventsApi(
+                this.shipRoom,
+                this.events,
+                `/thrusters/${index}/availableCapacity`
+            ),
+        };
+    }
+
     public *[Symbol.iterator](): IterableIterator<ThrusterDriver> {
         for (let i = 0; i < this.shipRoom.state.thrusters.length; i++) {
             yield this.getApi(i);
@@ -59,49 +50,34 @@ export class ThrustersDriver {
     }
 }
 
-export type PlateDriver = {
-    index: number;
-    health: BaseEventsApi<ShipDirection>;
-};
-
+export type PlateDriver = ReturnType<ArmorDriver['makePlateDriver']>;
 export class ArmorDriver {
-    public numPlates = addEventsApi(
-        wrapStateProperty(this.shipRoom, shipProperties.numPlates, undefined),
-        this.events,
-        '/armor/armorPlates/*'
-    );
-    public numHealthyPlates = addEventsApi(
-        {
-            getValue: () => {
-                let count = 0;
-                for (const plate of this.shipRoom.state.armor.armorPlates) {
-                    if (plate.health > 0) {
-                        count++;
-                    }
-                }
-                return count;
-            },
-            setValue: noop,
-        },
-        this.events,
-        '/armor/armorPlates/*/health'
-    );
+    public numPlates = pointerReadEventsApi<number>(this.shipRoom, this.events, '/armor/numberOfPlates');
+    private countHealthyPlayes = () => {
+        let count = 0;
+        for (const plate of this.shipRoom.state.armor.armorPlates) if (plate.health > 0) count++;
+        return count;
+    };
+    public numHealthyPlates = {
+        getValue: this.countHealthyPlayes,
+        onChange: makeOnChange(this.countHealthyPlayes, this.events, '/armor/armorPlates/*/health'),
+    };
     private cache = new Map<number, PlateDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
 
-    getApi(index: number) {
+    private makePlateDriver(index: number) {
+        return {
+            index,
+            health: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/armor/armorPlates/${index}/health`),
+            maxHealth: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/armor/armorPlates/${index}/maxHealth`),
+        };
+    }
+    getApi(index: number): PlateDriver {
         const result = this.cache.get(index);
         if (result) {
             return result;
         } else {
-            const newValue: PlateDriver = {
-                index,
-                health: addEventsApi(
-                    wrapStateProperty(this.shipRoom, shipProperties.plateHealth, index),
-                    this.events,
-                    `/armor/armorPlates/${index}/health`
-                ),
-            };
+            const newValue: PlateDriver = this.makePlateDriver(index);
             this.cache.set(index, newValue);
             return newValue;
         }
@@ -113,93 +89,65 @@ export class ArmorDriver {
     }
 }
 
-export class NumberMapDriver<R extends RoomName, P, K extends string> {
-    public map: Map<K, number>;
-    constructor(
-        private shipRoom: GameRoom<R>,
-        private p: MappedPropertyCommand<State<R>, P, K>,
-        path: P,
-        private events: EventEmitter,
-        private eventName: string
-    ) {
-        this.map = p.getValue(shipRoom.state, path);
+export class NumberMapDriver<R extends RoomName, K extends string> {
+    public mapApi = pointerBaseEventsApi<Map<K, number>>(this.shipRoom, this.events, this.pointerStr);
+    constructor(private shipRoom: GameRoom<R>, private events: EventEmitter, private pointerStr: JsonStringPointer) {}
+    get map(): Map<K, number> {
+        return this.mapApi.getValue();
     }
-    private getValue(name: K) {
-        const val = this.map.get(name);
-        if (val === undefined) {
-            throw new Error(`missing constant value: ${name}`);
-        }
-        return val;
-    }
-
     get fields() {
         return this.map.keys();
     }
     onChange(cb: () => unknown) {
-        this.events.on(this.eventName, cb);
+        return this.mapApi.onChange(cb);
     }
-    getApi(name: K): BaseApi<number> {
-        const sender = cmdSender(this.shipRoom, this.p, undefined);
-        return {
-            getValue: () => this.getValue(name),
-            setValue: (value: number) => sender([name, value]),
-        };
+    getApi(name: K) {
+        return pointerBaseEventsApi<number>(this.shipRoom, this.events, this.pointerStr + '/' + name);
     }
-}
-
-function wireCommands(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
-    return {
-        armor: new ArmorDriver(shipRoom, events),
-        thrusters: new ThrustersDriver(shipRoom, events),
-        constants: new NumberMapDriver(shipRoom, shipProperties.constants, undefined, events, '/modelParams/params/*'),
-        chainGunConstants: new NumberMapDriver(
-            shipRoom,
-            shipProperties.chainGunConstants,
-            undefined,
-            events,
-            '/chainGun/modelParams/params/*'
-        ),
-        rotationCommand: wrapNumericProperty(shipRoom, shipProperties.rotationCommand, undefined),
-        shellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
-        shellRange: wrapNumericProperty(shipRoom, shipProperties.shellRange, undefined),
-        rotation: wrapNumericProperty(shipRoom, shipProperties.rotation, undefined),
-        strafeCommand: wrapNumericProperty(shipRoom, shipProperties.strafeCommand, undefined),
-        boostCommand: wrapNumericProperty(shipRoom, shipProperties.boostCommand, undefined),
-        strafe: wrapNumericProperty(shipRoom, shipProperties.strafe, undefined),
-        boost: wrapNumericProperty(shipRoom, shipProperties.boost, undefined),
-        energy: wrapNumericProperty(shipRoom, shipProperties.energy, undefined),
-        afterBurnerFuel: wrapNumericProperty(shipRoom, shipProperties.afterBurnerFuel, undefined),
-        turnSpeed: wrapNumericProperty(shipRoom, shipProperties.turnSpeed, undefined),
-        angle: wrapNumericProperty(shipRoom, shipProperties.angle, undefined),
-        speedDirection: wrapNumericProperty(shipRoom, shipProperties.velocityAngle, undefined),
-        speed: wrapNumericProperty(shipRoom, shipProperties.speed, undefined),
-        chainGunCooldown: wrapNumericProperty(shipRoom, shipProperties.chainGunCoolDown, undefined),
-        chainGunShellSecondsToLive: wrapNumericProperty(shipRoom, shipProperties.shellSecondsToLive, undefined),
-        rotationTargetOffset: wrapNormalNumericProperty(shipRoom, shipProperties.rotationTargetOffset, undefined),
-        afterBurner: wrapNormalNumericProperty(shipRoom, shipProperties.afterBurner, undefined),
-        antiDrift: wrapNormalNumericProperty(shipRoom, shipProperties.antiDrift, undefined),
-        breaks: wrapNormalNumericProperty(shipRoom, shipProperties.breaks, undefined),
-        targeted: wrapStringStateProperty(shipRoom, shipProperties.targeted, undefined),
-        chainGunIsFiring: wrapIteratorStateProperty(shipRoom, shipProperties.chainGunIsFiring, undefined),
-        target: wrapIteratorStateProperty(shipRoom, shipProperties.target, undefined),
-        clearTarget: wrapIteratorStateProperty(shipRoom, shipProperties.clearTarget, undefined),
-        rotationMode: wrapIteratorStateProperty(shipRoom, shipProperties.rotationMode, undefined),
-        maneuveringMode: wrapIteratorStateProperty(shipRoom, shipProperties.maneuveringMode, undefined),
-        faction: wrapStateProperty(shipRoom, shipProperties.faction, undefined),
-    };
 }
 
 export type ShipDriver = ReturnType<typeof newShipDriverObj>;
 
 function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
-    const commands = wireCommands(shipRoom, events);
     return {
         events,
         id: shipRoom.state.id,
         get state() {
             return shipRoom.state;
         },
-        ...commands,
+        armor: new ArmorDriver(shipRoom, events),
+        thrusters: new ThrustersDriver(shipRoom, events),
+        constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
+        chainGunConstants: new NumberMapDriver(shipRoom, events, '/chainGun/modelParams/params'),
+        rotationCommand: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/rotation`),
+        shellSecondsToLive: pointerReadNumericEventsApi(shipRoom, events, '/chainGun/shellSecondsToLive'),
+        shellRange: pointerBaseNumericEventsApi(shipRoom, events, `/chainGun/shellRange`),
+        rotation: pointerReadNumericEventsApi(shipRoom, events, `/rotation`),
+        strafeCommand: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/maneuvering/y`),
+        boostCommand: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/maneuvering/x`),
+        strafe: pointerReadNumericEventsApi(shipRoom, events, `/strafe`),
+        boost: pointerReadNumericEventsApi(shipRoom, events, `/boost`),
+        energy: pointerReadNumericEventsApi(shipRoom, events, `/reactor/energy`),
+        afterBurnerFuel: pointerReadNumericEventsApi(shipRoom, events, `/reactor/afterBurnerFuel`),
+        turnSpeed: pointerReadNumericEventsApi(shipRoom, events, `/turnSpeed`),
+        angle: pointerReadNumericEventsApi(shipRoom, events, `/angle`),
+        speedDirection: pointerReadNumericEventsApi(shipRoom, events, `/velocityAngle`),
+        speed: pointerReadNumericEventsApi(shipRoom, events, `/speed`),
+        chainGunCooldown: pointerReadNumericEventsApi(shipRoom, events, `/chainGun/cooldown`),
+        rotationTargetOffset: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/rotationTargetOffset`),
+        afterBurner: pointerBaseNumericEventsApi(shipRoom, events, `/afterBurnerCommand`),
+        antiDrift: pointerBaseNumericEventsApi(shipRoom, events, `/antiDrift`),
+        breaks: pointerBaseNumericEventsApi(shipRoom, events, `/breaks`),
+        targeted: pointerReadEventsApi<TargetedStatus>(shipRoom, events, '/targeted'),
+        chainGunIsFiring: pointerBaseEventsApi<boolean>(shipRoom, events, '/chainGun/isFiring'),
+        target: pointerReadEventsApi<string | null>(shipRoom, events, '/targetId'),
+        nextTargetCommand: pointerWriteApi<boolean>(shipRoom, '/nextTargetCommand'),
+        clearTargetCommand: pointerWriteApi<boolean>(shipRoom, '/clearTargetCommand'),
+        rotationMode: pointerReadEventsApi<SmartPilotMode>(shipRoom, events, '/smartPilot/rotationMode'),
+        rotationModeCommand: pointerWriteApi<boolean>(shipRoom, '/rotationModeCommand'),
+        maneuveringMode: pointerReadEventsApi<SmartPilotMode>(shipRoom, events, '/smartPilot/maneuveringMode'),
+        maneuveringModeCommand: pointerWriteApi<boolean>(shipRoom, '/maneuveringModeCommand'),
+        faction: pointerBaseEventsApi<Faction>(shipRoom, events, '/faction'),
     };
 }
 

@@ -18,6 +18,10 @@ const baseConfig = {
                 warnOnly: true,
             },
             isolatedModules: true,
+            tsConfig: {
+                target: 'es2019',
+                experimentalDecorators: true,
+            },
         },
     },
 };

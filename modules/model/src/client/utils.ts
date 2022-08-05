@@ -1,56 +1,39 @@
-import { GameRoom, RoomName, State, getRangeFromPointer } from '..';
-import {
-    IteratorStatePropertyCommand,
-    NormalNumericStateProperty,
-    NumericStateProperty,
-    StateProperty,
-    cmdSender,
-    isStatePropertyCommand,
-} from '../api';
+import { GameRoom, RoomName, getJsonPointer, getRangeFromPointer } from '..';
 import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
 import { Destructor } from '../utils';
 import { EventEmitter } from './events';
-import { noop } from 'ts-essentials';
+import { cmdSender } from '../api';
 
-export type DriverNumericApi = {
-    range: [number, number];
-    setValue: (v: number) => unknown;
-    getValue: () => number;
-};
-
-export type DriverNormalNumericApi = {
-    range: [0, 1];
-    setValue: (v: number | boolean) => unknown;
-    getValue: () => number;
-};
-
-export type BaseApi<T> = {
+export type ReadEventsApi<T> = {
+    pointer: JsonPointer;
     getValue: () => T;
-    setValue: (v: T) => unknown;
-};
-export type ReadApi<T> = {
-    getValue: () => T;
-};
-export type EventApi = {
     onChange: (cb: () => unknown) => Destructor;
 };
-export type BaseEventsApi<T> = BaseApi<T> & EventApi;
-export type TriggerApi = {
-    getValue: () => string;
-    setValue: (v: boolean) => unknown;
+export type BaseEventsApi<T> = {
+    pointer: JsonPointer;
+    getValue: () => T;
+    setValue: (v: T) => unknown;
+    onChange: (cb: () => unknown) => Destructor;
+};
+export type WriteApi<T> = {
+    setValue: (v: T) => unknown;
 };
 
-export function wrapStateProperty<T, R extends RoomName, P>(
-    shipRoom: GameRoom<R>,
-    p: StateProperty<T, State<R>, P>,
-    path: P
-): BaseApi<T> {
-    return {
-        getValue: () => p.getValue(shipRoom.state, path),
-        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
-    };
-}
+export type BaseNumbericEventsApi = {
+    pointer: JsonPointer;
+    getValue: () => number;
+    setValue: (v: number) => unknown;
+    onChange: (cb: () => unknown) => Destructor;
+    range: readonly [number, number];
+};
+
+export type ReadNumbericEventsApi = {
+    pointer: JsonPointer;
+    getValue: () => number;
+    onChange: (cb: () => unknown) => Destructor;
+    range: readonly [number, number];
+};
 
 export function makeOnChange(getValue: () => unknown, events: EventEmitter, eventName: string) {
     return (cb: () => unknown): Destructor => {
@@ -67,87 +50,48 @@ export function makeOnChange(getValue: () => unknown, events: EventEmitter, even
     };
 }
 
-export function addEventsApi<T, A extends ReadApi<T>>(api: A, events: EventEmitter, eventName: string): A & EventApi {
-    const onChange = makeOnChange(api.getValue, events, eventName);
-    return { ...api, onChange };
-}
-
-export function pointerBaseEventsApi<T, R extends RoomName>(
-    room: GameRoom<R>,
+export function pointerReadEventsApi<T>(
+    room: GameRoom<RoomName>,
     events: EventEmitter,
     pointerStr: JsonStringPointer
-) {
-    const pointer = JsonPointer.create(pointerStr);
+): ReadEventsApi<T> {
+    const pointer = getJsonPointer(pointerStr);
+    if (!pointer) {
+        throw new Error(`Illegal json path:${pointerStr}`);
+    }
     const getValue = () => pointer.get(room.state) as T;
+    return { pointer, getValue, onChange: makeOnChange(getValue, events, pointerStr) };
+}
+
+export function pointerBaseEventsApi<T>(
+    room: GameRoom<RoomName>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+): BaseEventsApi<T> {
+    const readApi = pointerReadEventsApi<T>(room, events, pointerStr);
     return {
-        pointer,
-        onChange: makeOnChange(getValue, events, pointerStr),
-        setValue: cmdSender<T, R>(room, { cmdName: pointerStr }, undefined),
-        getValue,
+        ...readApi,
+        ...pointerWriteApi(room, pointerStr),
     };
 }
 
-export function pointerBaseNumericEventsApi<T, R extends RoomName>(
-    room: GameRoom<R>,
+export function pointerWriteApi<T>(room: GameRoom<RoomName>, pointerStr: string): WriteApi<T> {
+    return { setValue: cmdSender<T, RoomName>(room, { cmdName: pointerStr }, undefined) };
+}
+
+export function pointerBaseNumericEventsApi(
+    room: GameRoom<RoomName>,
     events: EventEmitter,
     pointerStr: JsonStringPointer
-) {
-    const api = pointerBaseEventsApi<T, R>(room, events, pointerStr);
+): BaseNumbericEventsApi {
+    const api = pointerBaseEventsApi<number>(room, events, pointerStr);
     return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
 }
-
-export function wrapNumericProperty<R extends RoomName, P>(
-    shipRoom: GameRoom<R>,
-    p: NumericStateProperty<State<R>, P>,
-    path: P
-): DriverNumericApi {
-    const range = typeof p.range === 'function' ? p.range(shipRoom.state, path) : p.range;
-    return {
-        getValue: () => p.getValue(shipRoom.state, path),
-        range,
-        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, path) : noop,
-    };
-}
-
-export function wrapNormalNumericProperty<R extends RoomName, P>(
-    shipRoom: GameRoom<R>,
-    p: NormalNumericStateProperty<State<R>, P>,
-    path: P
-): DriverNormalNumericApi {
-    let setValue: (v: number | boolean) => unknown = noop;
-    if (isStatePropertyCommand(p)) {
-        const sender = cmdSender(shipRoom, p, path);
-        setValue = (v: number | boolean) => {
-            if (v === true) return sender(1);
-            if (v === false) return sender(0);
-            return sender(v);
-        };
-    }
-    return {
-        getValue: () => p.getValue(shipRoom.state, path),
-        range: [0, 1],
-        setValue,
-    };
-}
-
-export function wrapIteratorStateProperty<R extends RoomName, P>(
-    shipRoom: GameRoom<R>,
-    p: IteratorStatePropertyCommand<State<R>, P>,
-    path: P
-): TriggerApi {
-    return {
-        getValue: () => p.getValue(shipRoom.state, path),
-        setValue: cmdSender(shipRoom, p, path),
-    };
-}
-
-export function wrapStringStateProperty<R extends RoomName, P>(
-    shipRoom: GameRoom<R>,
-    p: StateProperty<string, State<R>, P>,
-    path: P
-): TriggerApi {
-    return {
-        getValue: () => p.getValue(shipRoom.state, path),
-        setValue: isStatePropertyCommand(p) ? cmdSender(shipRoom, p, undefined) : noop,
-    };
+export function pointerReadNumericEventsApi(
+    room: GameRoom<RoomName>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+): ReadNumbericEventsApi {
+    const api = pointerReadEventsApi<number>(room, events, pointerStr);
+    return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
 }

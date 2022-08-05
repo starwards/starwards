@@ -44,8 +44,8 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
 }
 
 function ThrusterMonitor({ driver }: { driver: ThrusterDriver }) {
-    const angle = useProperty(driver.angle);
-    const broken = useProperty(driver.broken);
+    const angle = useProperty<ShipDirection>(driver.angle);
+    const broken = useProperty<boolean>(driver.broken);
     const palette: Palette = broken ? 'error' : 'success';
     const status = broken ? 'ERROR' : 'OK';
     return (

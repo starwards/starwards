@@ -3,9 +3,10 @@ import { Body, System } from 'detect-collisions';
 import { GameRoom, makeOnChange } from '..';
 import { SpaceEventEmitter, makeSpaceEventsEmitter } from './events';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
-import { SpaceObjectProperty, cmdSender } from '../api';
 
+import { SpaceObjectProperty } from '../space/space-properties';
 import { XY } from '../logic';
+import { cmdSender } from '../api';
 import { noop } from 'ts-essentials';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;

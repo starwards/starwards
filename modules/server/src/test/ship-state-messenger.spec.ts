@@ -29,7 +29,7 @@ describe('ShipStateMessenger', () => {
 
         shipMessenger.update(0);
 
-        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/energy`, `${shipState.reactor.energy}`);
+        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/reactor/energy`, `${shipState.reactor.energy}`);
     });
 
     it('not publish if energy did not change', () => {
@@ -46,7 +46,7 @@ describe('ShipStateMessenger', () => {
 
         shipMessenger.update(1001);
 
-        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/energy`, `${shipState.reactor.energy}`);
+        expect(mqttClient.publish).toHaveBeenCalledWith(`ship/${shipId}/reactor/energy`, `${shipState.reactor.energy}`);
     });
 
     it('unRegisterAll() stops updates on ship', () => {
