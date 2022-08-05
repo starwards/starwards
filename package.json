@@ -44,6 +44,7 @@
         "json-ptr": "^3.1.1",
         "nanoid": "^3.3.4",
         "normal-distribution": "^1.1.1",
+        "reflect-metadata": "^0.1.13",
         "tslib": "^2.4.0"
     },
     "devDependencies": {
@@ -61,7 +62,7 @@
         "@types/supertest": "^2.0.12",
         "@types/webfontloader": "^1.6.34",
         "@types/webpack": "^5.28.0",
-        "@typescript-eslint/eslint-plugin": "^5.31.0",
+        "@typescript-eslint/eslint-plugin": "^5.32.0",
         "@typescript-eslint/parser": "^5.31.0",
         "chai": "^4.3.6",
         "eslint": "^8.20.0",
