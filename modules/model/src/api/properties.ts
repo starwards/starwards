@@ -1,85 +1,78 @@
-import { SpaceObject, SpaceState, Stateful, capToRange } from '..';
+import { GameRoom, RoomName, getJsonPointer, getRangeFromPointer } from '..';
+import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
-import { JsonPointer } from 'json-ptr';
-import { Primitive } from 'colyseus-events';
-import { Schema } from '@colyseus/schema';
+import { Destructor } from '../utils';
+import { EventEmitter } from '../client/events';
+import { cmdSender } from '.';
 
-export interface StateCommand<T, S extends Schema, P> {
-    cmdName: string;
-    setValue(state: S, value: T, path: P): unknown;
-}
-
-export interface StateProperty<T, S extends Schema, P> {
-    getValue(state: S, path: P): T;
-}
-
-export type SpaceObjectProperty<T extends Primitive> = StateCommand<T, SpaceState, string> & {
+export type ReadProp<T> = {
     pointer: JsonPointer;
-    eventName: (o: { id: string; type: string }) => string;
-    getValueFromObject: (state: SpaceObject) => T;
+    getValue: () => T;
+    onChange: (cb: () => unknown) => Destructor;
 };
+export type WriteProp<T> = {
+    setValue: (v: T) => unknown;
+};
+export type ReadWriteProp<T> = ReadProp<T> & WriteProp<T>;
+export type ReadNumberProp = ReadProp<number> & { range: readonly [number, number] };
+export type ReadWriteNumberProp = ReadProp<number> & WriteProp<number> & { range: readonly [number, number] };
 
-export interface IteratorStatePropertyCommand<S extends Schema, P>
-    extends StateProperty<string, S, P>,
-        StateCommand<boolean, S, P> {}
-
-export interface StatePropertyCommand<T, S extends Schema, P> extends StateProperty<T, S, P>, StateCommand<T, S, P> {}
-export interface NumericStateProperty<S extends Schema, P> extends StateProperty<number, S, P> {
-    range: [number, number] | ((state: S, path: P) => [number, number]);
-}
-export interface NormalNumericStateProperty<S extends Schema, P> extends NumericStateProperty<S, P> {
-    range: [0, 1];
-}
-
-export function isNormalNumericStateProperty<S extends Schema, P>(
-    v: NumericStateProperty<S, P>
-): v is NormalNumericStateProperty<S, P> {
-    return typeof v.range === 'object' && v.range[0] === 0 && v.range[1] === 1;
-}
-export function isStatePropertyCommand<T, S extends Schema, P>(
-    v: StateProperty<unknown, S, P>
-): v is StatePropertyCommand<T, S, P> {
-    return (
-        typeof (v as StatePropertyCommand<T, S, P>).cmdName === 'string' &&
-        typeof (v as StatePropertyCommand<T, S, P>).setValue === 'function'
-    );
+export function makeOnChange(getValue: () => unknown, events: EventEmitter, eventName: string) {
+    return (cb: () => unknown): Destructor => {
+        let lastValue = getValue();
+        const listener = () => {
+            const newValue = getValue();
+            if (newValue !== lastValue) {
+                lastValue = newValue;
+                cb();
+            }
+        };
+        events.on(eventName, listener);
+        return () => events.off(eventName, listener);
+    };
 }
 
-export function isStateCommand<T, S extends Schema, P>(v: unknown): v is StateCommand<T, S, P> {
-    return (
-        !!v &&
-        typeof (v as StatePropertyCommand<T, S, P>).cmdName === 'string' &&
-        typeof (v as StatePropertyCommand<T, S, P>).setValue === 'function'
-    );
+export function readProp<T>(
+    room: GameRoom<RoomName>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+): ReadProp<T> {
+    const pointer = getJsonPointer(pointerStr);
+    if (!pointer) {
+        throw new Error(`Illegal json path:${pointerStr}`);
+    }
+    const getValue = () => pointer.get(room.state) as T;
+    return { pointer, getValue, onChange: makeOnChange(getValue, events, pointerStr) };
 }
 
-export function isNumericStatePropertyCommand<S extends Schema, P>(v: unknown): v is NumericStatePropertyCommand<S, P> {
-    return isNumericStateProperty(v) && isStatePropertyCommand(v);
+export function readWriteProp<T>(
+    room: GameRoom<RoomName>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+): ReadWriteProp<T> {
+    return {
+        ...readProp<T>(room, events, pointerStr),
+        ...writeProp(room, pointerStr),
+    };
 }
 
-export function isNumericStateProperty<S extends Schema, P>(v: unknown): v is NumericStateProperty<S, P> {
-    return (
-        !!v &&
-        typeof (v as NumericStateProperty<S, P>).getValue === 'function' &&
-        !!(v as NumericStateProperty<S, P>).range
-    );
-}
-export interface NumericStatePropertyCommand<S extends Schema, P>
-    extends NumericStateProperty<S, P>,
-        StatePropertyCommand<number, S, P> {}
-
-export interface MappedPropertyCommand<S extends Schema, P, K extends string>
-    extends StateProperty<Map<K, number>, S, P>,
-        StateCommand<[K, number], S, P> {}
-
-export function setNumericProperty<S extends Schema, P>(
-    manager: Stateful<S>,
-    p: NumericStatePropertyCommand<S, P>,
-    value: number,
-    path: P
-) {
-    const range = typeof p.range === 'function' ? p.range(manager.state, path) : p.range;
-    p.setValue(manager.state, capToRange(range[0], range[1], value), path);
+export function writeProp<T>(room: GameRoom<RoomName>, pointerStr: string): WriteProp<T> {
+    return { setValue: cmdSender<T, RoomName>(room, { cmdName: pointerStr }, undefined) };
 }
 
-export type StatePropertyValue<T> = T extends StatePropertyCommand<infer R, never, never> ? R : never;
+export function readWriteNumberProp(
+    room: GameRoom<RoomName>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+): ReadWriteNumberProp {
+    const api = readWriteProp<number>(room, events, pointerStr);
+    return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
+}
+export function readNumberProp(
+    room: GameRoom<RoomName>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+): ReadNumberProp {
+    const api = readProp<number>(room, events, pointerStr);
+    return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
+}

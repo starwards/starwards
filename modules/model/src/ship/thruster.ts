@@ -1,9 +1,11 @@
+import 'reflect-metadata';
+
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
-import { ShipDirection } from './ship-direction';
 import { ShipState } from '.';
 import { ThrusterModel } from './ship-configuration';
+import { range } from '../range';
 
 export class Thruster extends Schema {
     public static isInstance = (o: unknown): o is Thruster => {
@@ -29,9 +31,11 @@ export class Thruster extends Schema {
     angle = 0.0;
 
     @type('float32')
+    @range((t: Thruster) => [-t.maxAngleError, t.maxAngleError])
     angleError = 0.0;
 
     @type('float32')
+    @range([0, 1])
     availableCapacity = 1.0;
 
     @type(ModelParams)
@@ -54,7 +58,7 @@ export class Thruster extends Schema {
         );
     }
 
-    get maxAngleError(): ShipDirection {
+    get maxAngleError(): number {
         return this.modelParams.get('maxAngleError');
     }
     get capacity(): number {

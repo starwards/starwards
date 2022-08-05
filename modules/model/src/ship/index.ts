@@ -9,6 +9,3 @@ export * from './ship-areas';
 export * from './ship-die';
 export * from './reactor';
 export * from './make-ship-state';
-
-import * as _shipProperties from './ship-properties';
-export const shipProperties = _shipProperties;

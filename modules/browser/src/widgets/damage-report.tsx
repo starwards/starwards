@@ -46,8 +46,8 @@ const disappearMachine = createMachine({
 });
 
 function ThrusterDamageReport({ driver }: { driver: ThrusterDriver }) {
-    const angle = useProperty(driver.angle);
-    const broken = useProperty(driver.broken);
+    const angle = useProperty<ShipDirection>(driver.angle);
+    const broken = useProperty<boolean>(driver.broken);
     const [current, send] = useMachine(disappearMachine);
 
     useEffect(() => {

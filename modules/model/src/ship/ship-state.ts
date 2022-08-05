@@ -1,4 +1,6 @@
 import { ArraySchema, type } from '@colyseus/schema';
+import { XY, toDegreesDelta } from '..';
+import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
@@ -10,14 +12,13 @@ import { ShipPropertiesModel } from './ship-configuration';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
 import { Thruster } from './thruster';
-import { toDegreesDelta } from '..';
 
 export enum TargetedStatus {
     NONE,
     LOCKED,
     FIRED_UPON,
 }
-
+@rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {
     @type(ModelParams)
     modelParams!: ModelParams<keyof ShipPropertiesModel>;
@@ -38,17 +39,27 @@ export class ShipState extends Spaceship {
     smartPilot!: SmartPilot;
 
     @type('float32')
+    @range([-1, 1])
     rotation = 0;
+
     @type('float32')
+    @range([-1, 1])
     boost = 0;
+
     @type('float32')
+    @range([-1, 1])
     strafe = 0;
 
     @type('float32')
+    @range([0, 1])
     antiDrift = 0;
+
     @type('float32')
+    @range([0, 1])
     breaks = 0;
+
     @type('float32')
+    @range([0, 1])
     afterBurner = 0;
 
     @type('int8')
@@ -61,12 +72,21 @@ export class ShipState extends Spaceship {
     chainGunAmmo = 0;
 
     // server only, used for commands
+    @range([0, 1])
     public afterBurnerCommand = 0;
     public nextTargetCommand = false;
     public clearTargetCommand = false;
     public rotationModeCommand = false;
     public maneuveringModeCommand = false;
 
+    @range([0, 360])
+    get velocityAngle() {
+        return XY.angleOf(this.velocity);
+    }
+    @range((t: ShipState) => [0, t.maxMaxSpeed])
+    get speed() {
+        return XY.lengthOf(this.velocity);
+    }
     // TODO: move to logic (not part of state)
     get rotationCapacity(): number {
         return this.modelParams.get('rotationCapacity');

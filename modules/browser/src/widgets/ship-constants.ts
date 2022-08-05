@@ -6,7 +6,7 @@ import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { RoomName } from '@starwards/model';
 
-function addMapToPanel(panel: Panel, p: NumberMapDriver<RoomName, unknown, string>) {
+function addMapToPanel(panel: Panel, p: NumberMapDriver<RoomName, string>) {
     const fields = new Set(p.fields);
     for (const constName of p.fields) {
         panel.addConfig(constName, p.getApi(constName));

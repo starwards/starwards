@@ -3,6 +3,7 @@ import { Schema, type } from '@colyseus/schema';
 import { ChaingunModel } from './ship-configuration';
 import { ModelParams } from '../model-params';
 import { SmartPilotMode } from '.';
+import { range } from '../range';
 
 export class ChainGun extends Schema {
     public static isInstance = (o: unknown): o is ChainGun => {
@@ -20,12 +21,15 @@ export class ChainGun extends Schema {
     isFiring = false;
 
     @type('float32')
+    @range([0, 1])
     cooldown = 0;
 
     @type('float32')
+    @range((t: ChainGun) => [t.minShellSecondsToLive, t.maxShellSecondsToLive])
     shellSecondsToLive = 10;
 
     @type('float32')
+    @range([-1, 1])
     shellRange = 0; // just used for command, not for firing
 
     @type('int8')

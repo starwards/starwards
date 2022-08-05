@@ -3,6 +3,7 @@
     "editor.formatOnSave": true,
     "files.eol": "\n",
     "typescript.enablePromptUseWorkspaceTsdk": true,
+    "js/ts.implicitProjectConfig.experimentalDecorators": true,
     "typescript.tsdk": "node_modules\\typescript\\lib",
     "cSpell.words": [
         "Arwes",

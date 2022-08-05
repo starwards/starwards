@@ -11,10 +11,8 @@ import {
     lerp,
     matchGlobalSpeed,
     moveToTarget,
-    shipProperties as p,
     predictHitLocation,
     rotateToTarget,
-    setNumericProperty,
 } from '../';
 
 // TODO: use ShipApi
@@ -23,9 +21,9 @@ export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: Sh
 export function cleanupBot(shipManager: ShipManager) {
     shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
     shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
-    setNumericProperty(shipManager, p.rotationCommand, 0, undefined);
-    setNumericProperty(shipManager, p.boostCommand, 0, undefined);
-    setNumericProperty(shipManager, p.strafeCommand, 0, undefined);
+    shipManager.state.smartPilot.rotation = 0;
+    shipManager.state.smartPilot.maneuvering.x = 0;
+    shipManager.state.smartPilot.maneuvering.y = 0;
     shipManager.chainGun(false);
     shipManager.setTarget(null);
     shipManager.bot = null;
@@ -43,9 +41,9 @@ export function p2pGoto(destination: XY): Bot {
             shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
             const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
             const maneuvering = moveToTarget(deltaSeconds, ship, destination);
-            setNumericProperty(shipManager, p.rotationCommand, rotation, undefined);
-            setNumericProperty(shipManager, p.boostCommand, maneuvering.boost, undefined);
-            setNumericProperty(shipManager, p.strafeCommand, maneuvering.strafe, undefined);
+            shipManager.state.smartPilot.rotation = rotation;
+            shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
+            shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
         }
     };
 }
@@ -65,32 +63,34 @@ export function jouster(targetId: string): Bot {
             const hitLocation = predictHitLocation(shipManager.state, target, targetAccel);
             const rangeDiff = calcRangediff(shipManager.state, target, hitLocation);
             const range = shipManager.state.chainGun.maxShellRange - shipManager.state.chainGun.minShellRange;
-            setNumericProperty(shipManager, p.shellRange, lerp([-range / 2, range / 2], [-1, 1], rangeDiff), undefined);
+            shipManager.state.chainGun.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
             const rotation = rotateToTarget(
                 deltaSeconds,
                 ship,
                 XY.add(hitLocation, getShellAimVelocityCompensation(ship)),
                 0
             );
-            setNumericProperty(shipManager, p.rotationCommand, rotation, undefined);
+            shipManager.state.smartPilot.rotation = rotation;
             const shipToTarget = XY.difference(hitLocation, ship.position);
             const distanceToTarget = XY.lengthOf(shipToTarget);
             const killRadius = getKillZoneRadiusRange(ship);
             if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
                 // if close enough to target, tail it
                 const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
-                setNumericProperty(shipManager, p.boostCommand, maneuvering.boost, undefined);
-                setNumericProperty(shipManager, p.strafeCommand, maneuvering.strafe, undefined);
+
+                shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
+                shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
             } else {
                 const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
                 // close distance to target
                 if (distanceToTarget > killRadius[1]) {
-                    setNumericProperty(shipManager, p.boostCommand, maneuvering.boost, undefined);
-                    setNumericProperty(shipManager, p.strafeCommand, maneuvering.strafe, undefined);
+                    shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
+                    shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
                 } else {
                     // distanceToTarget < killRadius[0]
-                    setNumericProperty(shipManager, p.boostCommand, -maneuvering.boost, undefined);
-                    setNumericProperty(shipManager, p.strafeCommand, -maneuvering.strafe, undefined);
+
+                    shipManager.state.smartPilot.maneuvering.x = -maneuvering.boost;
+                    shipManager.state.smartPilot.maneuvering.y = -maneuvering.strafe;
                 }
             }
             lastTargetVelocity = XY.clone(target.velocity);

@@ -32,7 +32,7 @@ function makeArmor(model: ArmorModel): Armor {
     armor.modelParams = new ModelParams(model);
     for (let i = 0; i < model.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = model.plateMaxHealth;
+        plate.health = plate.maxHealth = model.plateMaxHealth;
         armor.armorPlates.push(plate);
     }
     return armor;

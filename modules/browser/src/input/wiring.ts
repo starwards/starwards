@@ -8,14 +8,23 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
     input.addRangeAction(shipDriver.strafeCommand, shipInputConfig.strafeCommand);
     input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
-    input.addButtonAction(shipDriver.rotationTargetOffset, shipInputConfig.resetRotatioTargetOffset);
-    input.addButtonAction(shipDriver.rotationMode, shipInputConfig.rotationMode);
-    input.addButtonAction(shipDriver.maneuveringMode, shipInputConfig.maneuveringMode);
-    input.addButtonAction(shipDriver.afterBurner, shipInputConfig.afterBurner);
-    input.addButtonAction(shipDriver.antiDrift, shipInputConfig.antiDrift);
-    input.addButtonAction(shipDriver.breaks, shipInputConfig.breaks);
+    input.addButtonAction(
+        { setValue: (v: boolean) => shipDriver.rotationTargetOffset.setValue(Number(v)) },
+        shipInputConfig.resetRotatioTargetOffset
+    );
+    input.addButtonAction(shipDriver.rotationModeCommand, shipInputConfig.rotationMode);
+    input.addButtonAction(shipDriver.maneuveringModeCommand, shipInputConfig.maneuveringMode);
+    input.addButtonAction(
+        { setValue: (v: boolean) => shipDriver.afterBurner.setValue(Number(v)) },
+        shipInputConfig.afterBurner
+    );
+    input.addButtonAction(
+        { setValue: (v: boolean) => shipDriver.antiDrift.setValue(Number(v)) },
+        shipInputConfig.antiDrift
+    );
+    input.addButtonAction({ setValue: (v: boolean) => shipDriver.breaks.setValue(Number(v)) }, shipInputConfig.breaks);
     input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
-    input.addButtonAction(shipDriver.target, shipInputConfig.target);
-    input.addButtonAction(shipDriver.clearTarget, shipInputConfig.clearTarget);
+    input.addButtonAction(shipDriver.nextTargetCommand, shipInputConfig.target);
+    input.addButtonAction(shipDriver.clearTargetCommand, shipInputConfig.clearTarget);
     input.init();
 }

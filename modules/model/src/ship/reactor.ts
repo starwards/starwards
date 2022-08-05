@@ -2,6 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
 import { ReactorModel } from './ship-configuration';
+import { range } from '../range';
 
 export class Reactor extends Schema {
     public static isInstance = (o: unknown): o is Reactor => {
@@ -14,8 +15,11 @@ export class Reactor extends Schema {
     modelParams!: ModelParams<keyof ReactorModel>;
 
     @type('number')
+    @range((t: Reactor) => [0, t.maxEnergy])
     energy = 1000;
+
     @type('number')
+    @range((t: Reactor) => [0, t.maxAfterBurnerFuel])
     afterBurnerFuel = 0;
 
     @type('float32')

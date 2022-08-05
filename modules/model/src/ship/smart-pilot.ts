@@ -3,6 +3,7 @@ import { Schema, type } from '@colyseus/schema';
 import { ModelParams } from '../model-params';
 import { SmartPilotModel } from './ship-configuration';
 import { Vec2 } from '../space';
+import { range } from '../range';
 
 export enum SmartPilotMode {
     DIRECT,
@@ -22,19 +23,27 @@ export class SmartPilot extends Schema {
 
     @type('int8')
     rotationMode!: SmartPilotMode;
+
     @type('int8')
     maneuveringMode!: SmartPilotMode;
+
     @type('float32')
+    @range([-1, 1])
     rotation = 0;
+
     @type('float32')
+    @range([-1, 1])
     rotationTargetOffset = 0;
+
     @type(Vec2)
+    @range({ '/x': [-1, 1], '/y': [-1, 1] })
     maneuvering: Vec2 = new Vec2(0, 0);
 
     /**
-     * factor of error vector when active - (0-1)
+     * factor of error vector when active
      */
     @type('float32')
+    @range([0, 1])
     offsetFactor = 0;
 
     get maxTargetAimOffset(): number {

@@ -1,4 +1,4 @@
-import { ManeuveringCommand, Vec2, XY, setNumericProperty, shipProperties as sp } from '../src';
+import { ManeuveringCommand, Vec2, XY } from '../src';
 import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
 import { limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
 
@@ -23,8 +23,8 @@ describe('thrusters-ship integration', function () {
                         const startVelocity = harness.shipState.maxSpeed;
                         harness.shipObj.velocity = Vec2.make(XY.rotate({ x: -startVelocity, y: 0 }, direction));
                         const thrusterCapacity = harness.shipState.velocityCapacity(direction);
-                        setNumericProperty(harness.shipMgr, sp.boostCommand, maneuveringCommand.boost, undefined);
-                        setNumericProperty(harness.shipMgr, sp.strafeCommand, maneuveringCommand.strafe, undefined);
+                        harness.shipMgr.state.smartPilot.maneuvering.x = maneuveringCommand.boost;
+                        harness.shipMgr.state.smartPilot.maneuvering.y = maneuveringCommand.strafe;
                         const metrics = new TimedTestMetrics(
                             iterationsPerSecond,
                             startVelocity / thrusterCapacity,
@@ -64,7 +64,7 @@ describe('thrusters-ship integration', function () {
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
                     thruster.availableCapacity = 0;
                 }
-                setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
+                harness.shipMgr.state.smartPilot.maneuvering.x = 1;
                 harness.simulate(1, iterationsPerSecond);
                 expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.be.closeTo(0, 0);
             })
@@ -78,7 +78,7 @@ describe('thrusters-ship integration', function () {
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
                     thruster.angleError = offset;
                 }
-                setNumericProperty(harness.shipMgr, sp.boostCommand, 1, undefined);
+                harness.shipMgr.state.smartPilot.maneuvering.x = 1;
                 harness.simulate(1, iterationsPerSecond);
                 expect(limitPercisionHard(XY.angleOf(harness.shipObj.velocity)), 'velocity').to.be.closeTo(
                     limitPercisionHard(toPositiveDegreesDelta(offset)),

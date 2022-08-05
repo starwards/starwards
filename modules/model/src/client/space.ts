@@ -1,12 +1,13 @@
-import { Add, Event, Primitive, Remove } from 'colyseus-events';
+import { Add, Event, Remove } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
-import { GameRoom, makeOnChange } from '..';
+import { GameRoom, getJsonPointer, makeOnChange } from '..';
 import { SpaceEventEmitter, makeSpaceEventsEmitter } from './events';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
-import { SpaceObjectProperty, cmdSender } from '../api';
 
 import { XY } from '../logic';
+import { cmdSender } from '../api';
 import { noop } from 'ts-essentials';
+import { pointerStrToObjectCommand } from '../space/space-properties';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
@@ -180,15 +181,21 @@ class ObjectsApi {
     private makeObjectApi(subject: SpaceObject) {
         return {
             id: subject.id,
-            freeze: this.makePropertyApi(spaceProperties.freeze, subject),
+            freeze: this.makeObjectProperty<boolean>(subject, '/freeze'),
         };
     }
-    private makePropertyApi<T extends Primitive>(prop: SpaceObjectProperty<T>, subject: SpaceObject) {
-        const getValue = () => prop.getValueFromObject(subject);
+
+    private makeObjectProperty<T>(subject: SpaceObject, pointerStr: string) {
+        const pointer = getJsonPointer(pointerStr);
+        if (!pointer) {
+            throw new Error(`Illegal json path:${pointerStr}`);
+        }
+        const getValue = () => pointer.get(subject) as T;
+        const cmdName = pointerStrToObjectCommand(pointerStr);
         return {
             getValue,
-            setValue: cmdSender(this.spaceRoom, prop, subject.id),
-            onChange: makeOnChange(getValue, this.events, prop.eventName(subject)),
+            onChange: makeOnChange(getValue, this.events, `/${subject.type}/${subject.id}${pointerStr}`),
+            setValue: cmdSender<T, 'space', string>(this.spaceRoom, { cmdName }, subject.id),
         };
     }
 }
