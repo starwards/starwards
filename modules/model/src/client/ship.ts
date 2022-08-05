@@ -3,12 +3,12 @@ import { Faction, GameRoom, RoomName } from '..';
 import { SmartPilotMode, TargetedStatus } from '../ship';
 import {
     makeOnChange,
-    pointerBaseEventsApi,
-    pointerBaseNumericEventsApi,
-    pointerReadEventsApi,
-    pointerReadNumericEventsApi,
-    pointerWriteApi,
-} from './utils';
+    readNumberProp,
+    readProp,
+    readWriteNumberProp,
+    readWriteProp,
+    writeProp,
+} from '../api/properties';
 
 import { JsonStringPointer } from 'json-ptr';
 import { waitForEvents } from './async-utils';
@@ -33,13 +33,9 @@ export class ThrustersDriver {
         return {
             index,
             broken: { getValue: () => this.shipRoom.state.thrusters[index].broken },
-            angle: pointerBaseEventsApi<number>(this.shipRoom, this.events, `/thrusters/${index}/angle`),
-            angleError: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/thrusters/${index}/angleError`),
-            availableCapacity: pointerBaseNumericEventsApi(
-                this.shipRoom,
-                this.events,
-                `/thrusters/${index}/availableCapacity`
-            ),
+            angle: readWriteProp<number>(this.shipRoom, this.events, `/thrusters/${index}/angle`),
+            angleError: readWriteNumberProp(this.shipRoom, this.events, `/thrusters/${index}/angleError`),
+            availableCapacity: readWriteNumberProp(this.shipRoom, this.events, `/thrusters/${index}/availableCapacity`),
         };
     }
 
@@ -52,7 +48,7 @@ export class ThrustersDriver {
 
 export type PlateDriver = ReturnType<ArmorDriver['makePlateDriver']>;
 export class ArmorDriver {
-    public numPlates = pointerReadEventsApi<number>(this.shipRoom, this.events, '/armor/numberOfPlates');
+    public numPlates = readProp<number>(this.shipRoom, this.events, '/armor/numberOfPlates');
     private countHealthyPlayes = () => {
         let count = 0;
         for (const plate of this.shipRoom.state.armor.armorPlates) if (plate.health > 0) count++;
@@ -68,8 +64,8 @@ export class ArmorDriver {
     private makePlateDriver(index: number) {
         return {
             index,
-            health: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/armor/armorPlates/${index}/health`),
-            maxHealth: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/armor/armorPlates/${index}/maxHealth`),
+            health: readWriteNumberProp(this.shipRoom, this.events, `/armor/armorPlates/${index}/health`),
+            maxHealth: readWriteNumberProp(this.shipRoom, this.events, `/armor/armorPlates/${index}/maxHealth`),
         };
     }
     getApi(index: number): PlateDriver {
@@ -90,7 +86,7 @@ export class ArmorDriver {
 }
 
 export class NumberMapDriver<R extends RoomName, K extends string> {
-    public mapApi = pointerBaseEventsApi<Map<K, number>>(this.shipRoom, this.events, this.pointerStr);
+    public mapApi = readWriteProp<Map<K, number>>(this.shipRoom, this.events, this.pointerStr);
     constructor(private shipRoom: GameRoom<R>, private events: EventEmitter, private pointerStr: JsonStringPointer) {}
     get map(): Map<K, number> {
         return this.mapApi.getValue();
@@ -102,7 +98,7 @@ export class NumberMapDriver<R extends RoomName, K extends string> {
         return this.mapApi.onChange(cb);
     }
     getApi(name: K) {
-        return pointerBaseEventsApi<number>(this.shipRoom, this.events, this.pointerStr + '/' + name);
+        return readWriteProp<number>(this.shipRoom, this.events, this.pointerStr + '/' + name);
     }
 }
 
@@ -119,35 +115,35 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
         thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
         chainGunConstants: new NumberMapDriver(shipRoom, events, '/chainGun/modelParams/params'),
-        rotationCommand: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/rotation`),
-        shellSecondsToLive: pointerReadNumericEventsApi(shipRoom, events, '/chainGun/shellSecondsToLive'),
-        shellRange: pointerBaseNumericEventsApi(shipRoom, events, `/chainGun/shellRange`),
-        rotation: pointerReadNumericEventsApi(shipRoom, events, `/rotation`),
-        strafeCommand: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/maneuvering/y`),
-        boostCommand: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/maneuvering/x`),
-        strafe: pointerReadNumericEventsApi(shipRoom, events, `/strafe`),
-        boost: pointerReadNumericEventsApi(shipRoom, events, `/boost`),
-        energy: pointerReadNumericEventsApi(shipRoom, events, `/reactor/energy`),
-        afterBurnerFuel: pointerReadNumericEventsApi(shipRoom, events, `/reactor/afterBurnerFuel`),
-        turnSpeed: pointerReadNumericEventsApi(shipRoom, events, `/turnSpeed`),
-        angle: pointerReadNumericEventsApi(shipRoom, events, `/angle`),
-        speedDirection: pointerReadNumericEventsApi(shipRoom, events, `/velocityAngle`),
-        speed: pointerReadNumericEventsApi(shipRoom, events, `/speed`),
-        chainGunCooldown: pointerReadNumericEventsApi(shipRoom, events, `/chainGun/cooldown`),
-        rotationTargetOffset: pointerBaseNumericEventsApi(shipRoom, events, `/smartPilot/rotationTargetOffset`),
-        afterBurner: pointerBaseNumericEventsApi(shipRoom, events, `/afterBurnerCommand`),
-        antiDrift: pointerBaseNumericEventsApi(shipRoom, events, `/antiDrift`),
-        breaks: pointerBaseNumericEventsApi(shipRoom, events, `/breaks`),
-        targeted: pointerReadEventsApi<TargetedStatus>(shipRoom, events, '/targeted'),
-        chainGunIsFiring: pointerBaseEventsApi<boolean>(shipRoom, events, '/chainGun/isFiring'),
-        target: pointerReadEventsApi<string | null>(shipRoom, events, '/targetId'),
-        nextTargetCommand: pointerWriteApi<boolean>(shipRoom, '/nextTargetCommand'),
-        clearTargetCommand: pointerWriteApi<boolean>(shipRoom, '/clearTargetCommand'),
-        rotationMode: pointerReadEventsApi<SmartPilotMode>(shipRoom, events, '/smartPilot/rotationMode'),
-        rotationModeCommand: pointerWriteApi<boolean>(shipRoom, '/rotationModeCommand'),
-        maneuveringMode: pointerReadEventsApi<SmartPilotMode>(shipRoom, events, '/smartPilot/maneuveringMode'),
-        maneuveringModeCommand: pointerWriteApi<boolean>(shipRoom, '/maneuveringModeCommand'),
-        faction: pointerBaseEventsApi<Faction>(shipRoom, events, '/faction'),
+        rotationCommand: readWriteNumberProp(shipRoom, events, `/smartPilot/rotation`),
+        shellSecondsToLive: readNumberProp(shipRoom, events, '/chainGun/shellSecondsToLive'),
+        shellRange: readWriteNumberProp(shipRoom, events, `/chainGun/shellRange`),
+        rotation: readNumberProp(shipRoom, events, `/rotation`),
+        strafeCommand: readWriteNumberProp(shipRoom, events, `/smartPilot/maneuvering/y`),
+        boostCommand: readWriteNumberProp(shipRoom, events, `/smartPilot/maneuvering/x`),
+        strafe: readNumberProp(shipRoom, events, `/strafe`),
+        boost: readNumberProp(shipRoom, events, `/boost`),
+        energy: readNumberProp(shipRoom, events, `/reactor/energy`),
+        afterBurnerFuel: readNumberProp(shipRoom, events, `/reactor/afterBurnerFuel`),
+        turnSpeed: readNumberProp(shipRoom, events, `/turnSpeed`),
+        angle: readNumberProp(shipRoom, events, `/angle`),
+        speedDirection: readNumberProp(shipRoom, events, `/velocityAngle`),
+        speed: readNumberProp(shipRoom, events, `/speed`),
+        chainGunCooldown: readNumberProp(shipRoom, events, `/chainGun/cooldown`),
+        rotationTargetOffset: readWriteNumberProp(shipRoom, events, `/smartPilot/rotationTargetOffset`),
+        afterBurner: readWriteNumberProp(shipRoom, events, `/afterBurnerCommand`),
+        antiDrift: readWriteNumberProp(shipRoom, events, `/antiDrift`),
+        breaks: readWriteNumberProp(shipRoom, events, `/breaks`),
+        targeted: readProp<TargetedStatus>(shipRoom, events, '/targeted'),
+        chainGunIsFiring: readWriteProp<boolean>(shipRoom, events, '/chainGun/isFiring'),
+        target: readProp<string | null>(shipRoom, events, '/targetId'),
+        nextTargetCommand: writeProp<boolean>(shipRoom, '/nextTargetCommand'),
+        clearTargetCommand: writeProp<boolean>(shipRoom, '/clearTargetCommand'),
+        rotationMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/rotationMode'),
+        rotationModeCommand: writeProp<boolean>(shipRoom, '/rotationModeCommand'),
+        maneuveringMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/maneuveringMode'),
+        maneuveringModeCommand: writeProp<boolean>(shipRoom, '/maneuveringModeCommand'),
+        faction: readWriteProp<Faction>(shipRoom, events, '/faction'),
     };
 }
 

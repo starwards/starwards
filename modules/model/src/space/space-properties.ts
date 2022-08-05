@@ -1,8 +1,5 @@
 import { BotOrder, SpaceObjectBase, XY } from '..';
-import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
-import { Primitive } from 'colyseus-events';
-import { SpaceObject } from '../space';
 import { SpaceState } from '.';
 
 export type BulkMoveArg = {
@@ -57,20 +54,13 @@ export const bulkBotOrder = {
     },
 };
 
-function SpaceObjectProperty<T extends Primitive>(pointerStr: JsonStringPointer) {
-    const pointer = JsonPointer.create(pointerStr);
-    return {
-        pointer,
-        eventName: (o: { id: string; type: string }) => `/${o.type}/${o.id}${pointerStr}`,
-        cmdName: '$SpaceObject' + pointerStr,
-        setValue: (state: SpaceState, value: T, id: string) => pointer.set(state.get(id), value),
-        getValueFromObject: (state: SpaceObject): T => pointer.get(state) as T,
-    };
+export const JSON_CMD_NS = '$SpaceObject';
+export function objectCommandToPointerStr(type: unknown) {
+    if (typeof type === 'string' && type.startsWith(JSON_CMD_NS)) {
+        return type.substring(JSON_CMD_NS.length);
+    }
+    return null;
 }
-
-export type SpaceObjectProperty<T extends Primitive> = {
-    cmdName: string;
-    eventName: (o: { id: string; type: string }) => string;
-    getValueFromObject: (state: SpaceObject) => T;
-};
-export const freeze = SpaceObjectProperty<boolean>(`/freeze`);
+export function pointerStrToObjectCommand(pointerStr: string) {
+    return JSON_CMD_NS + pointerStr;
+}

@@ -6,7 +6,7 @@ import { schemaClasses } from '..';
 
 export * from './ship';
 export * from './space';
-export * from './utils';
+export * from '../api/properties';
 export * from './events';
 
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;

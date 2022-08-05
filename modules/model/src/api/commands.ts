@@ -70,6 +70,6 @@ export function cmdReceiver<T, S extends Schema, P>(
 
 export type CmdReceiver = ReturnType<typeof cmdReceiver>;
 
-export function isSetValueCommand(val: unknown): val is { value: unknown } {
+export function isSetValueCommand(val: unknown): val is { value: unknown; path?: unknown } {
     return (val as { value: unknown })?.value !== undefined;
 }
