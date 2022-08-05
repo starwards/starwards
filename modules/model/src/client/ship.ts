@@ -1,10 +1,12 @@
 import {
     BaseApi,
     BaseEventsApi,
-    DriverNormalNumericApi,
     DriverNumericApi,
     EventApi,
+    ReadApi,
     addEventsApi,
+    pointerBaseEventsApi,
+    pointerBaseNumericEventsApi,
     wrapIteratorStateProperty,
     wrapNormalNumericProperty,
     wrapNumericProperty,
@@ -21,13 +23,12 @@ import { waitForEvents } from './async-utils';
 
 export type ThrusterDriver = {
     index: number;
-    broken: BaseApi<boolean>;
-    angle: BaseEventsApi<ShipDirection>;
+    broken: ReadApi<boolean>;
+    angle: BaseEventsApi<number>;
     angleError: DriverNumericApi & EventApi;
-    availableCapacity: DriverNormalNumericApi & EventApi;
+    availableCapacity: DriverNumericApi & EventApi;
 };
 export class ThrustersDriver {
-    public numThrusters = wrapNumericProperty(this.shipRoom, shipProperties.numThrusters, undefined);
     private cache = new Map<number, ThrusterDriver>();
     constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
 
@@ -38,19 +39,11 @@ export class ThrustersDriver {
         } else {
             const newValue: ThrusterDriver = {
                 index,
-                broken: wrapStateProperty(this.shipRoom, shipProperties.thrusterBroken, index),
-                angle: addEventsApi(
-                    wrapStateProperty(this.shipRoom, shipProperties.thrusterAngle, index),
-                    this.events,
-                    `/thrusters/${index}/angle`
-                ),
-                angleError: addEventsApi(
-                    wrapNumericProperty(this.shipRoom, shipProperties.thrusterAngleError, index),
-                    this.events,
-                    `/thrusters/${index}/angleError`
-                ),
-                availableCapacity: addEventsApi(
-                    wrapNormalNumericProperty(this.shipRoom, shipProperties.thrusterAvailableCapacity, index),
+                broken: { getValue: () => this.shipRoom.state.thrusters[index].broken },
+                angle: pointerBaseEventsApi(this.shipRoom, this.events, `/thrusters/${index}/angle`),
+                angleError: pointerBaseNumericEventsApi(this.shipRoom, this.events, `/thrusters/${index}/angleError`),
+                availableCapacity: pointerBaseNumericEventsApi(
+                    this.shipRoom,
                     this.events,
                     `/thrusters/${index}/availableCapacity`
                 ),
@@ -60,7 +53,7 @@ export class ThrustersDriver {
         }
     }
     public *[Symbol.iterator](): IterableIterator<ThrusterDriver> {
-        for (let i = 0; i < this.numThrusters.getValue(); i++) {
+        for (let i = 0; i < this.shipRoom.state.thrusters.length; i++) {
             yield this.getApi(i);
         }
     }

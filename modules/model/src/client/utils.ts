@@ -1,4 +1,4 @@
-import { GameRoom, RoomName, State } from '..';
+import { GameRoom, RoomName, State, getRangeFromPointer } from '..';
 import {
     IteratorStatePropertyCommand,
     NormalNumericStateProperty,
@@ -7,6 +7,7 @@ import {
     cmdSender,
     isStatePropertyCommand,
 } from '../api';
+import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
 import { Destructor } from '../utils';
 import { EventEmitter } from './events';
@@ -69,6 +70,30 @@ export function makeOnChange(getValue: () => unknown, events: EventEmitter, even
 export function addEventsApi<T, A extends ReadApi<T>>(api: A, events: EventEmitter, eventName: string): A & EventApi {
     const onChange = makeOnChange(api.getValue, events, eventName);
     return { ...api, onChange };
+}
+
+export function pointerBaseEventsApi<T, R extends RoomName>(
+    room: GameRoom<R>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+) {
+    const pointer = JsonPointer.create(pointerStr);
+    const getValue = () => pointer.get(room.state) as T;
+    return {
+        pointer,
+        onChange: makeOnChange(getValue, events, pointerStr),
+        setValue: cmdSender<T, R>(room, { cmdName: pointerStr }, undefined),
+        getValue,
+    };
+}
+
+export function pointerBaseNumericEventsApi<T, R extends RoomName>(
+    room: GameRoom<R>,
+    events: EventEmitter,
+    pointerStr: JsonStringPointer
+) {
+    const api = pointerBaseEventsApi<T, R>(room, events, pointerStr);
+    return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
 }
 
 export function wrapNumericProperty<R extends RoomName, P>(

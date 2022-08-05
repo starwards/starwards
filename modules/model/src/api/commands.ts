@@ -1,4 +1,4 @@
-import { GameRoom, RoomName, State, Stateful } from '..';
+import { GameRoom, RoomName, Stateful } from '..';
 import {
     StateCommand,
     StateProperty,
@@ -9,11 +9,7 @@ import {
 
 import { Schema } from '@colyseus/schema';
 
-export function cmdSender<T, R extends RoomName, P = void>(
-    room: GameRoom<R>,
-    p: StateCommand<T, State<R>, P>,
-    path: P
-) {
+export function cmdSender<T, R extends RoomName, P = void>(room: GameRoom<R>, p: { cmdName: string }, path: P) {
     return (value: T) => room.send(p.cmdName, { value, path });
 }
 
@@ -40,4 +36,9 @@ export function cmdReceiver<T, S extends Schema, P>(
         return (_: unknown, { value, path }: { value: T; path: P }) => p.setValue(manager.state, value, path);
     }
 }
+
 export type CmdReceiver = ReturnType<typeof cmdReceiver>;
+
+export function isSetValueCommand(val: unknown): val is { value: unknown } {
+    return (val as { value: unknown })?.value !== undefined;
+}

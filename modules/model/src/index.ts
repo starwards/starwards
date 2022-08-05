@@ -28,3 +28,5 @@ export * from './space';
 export * from './utils';
 export * from './configurations';
 export * from './model-params';
+export * from './range';
+export * from './json-ptr';
