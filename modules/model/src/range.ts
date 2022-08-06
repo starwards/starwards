@@ -10,10 +10,10 @@ const descendantMetadataKey = Symbol('range:descendantMetadata');
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export type Constructor = { readonly prototype: Schema } & Function; // https://stackoverflow.com/a/38642922
 
-export type SchemaRanges = {
+type SchemaRanges = {
     [pointer: string]: Range<Schema>;
 };
-export type Range<T extends Schema> = readonly [number, number] | ((target: T) => readonly [number, number]);
+type Range<T extends Schema> = readonly [number, number] | ((target: T) => readonly [number, number]);
 
 function isRange<T extends Schema>(r: Range<T> | SchemaRanges): r is Range<T> {
     return typeof r === 'function' || Array.isArray(r);

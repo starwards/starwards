@@ -1,4 +1,3 @@
-export type StateValue<T extends StatesToggle<string>> = T extends StatesToggle<infer S> ? S : never;
 export class StatesToggle<S> {
     private readonly states: ReadonlyArray<S>;
     private readonly legalStates: Set<S>;

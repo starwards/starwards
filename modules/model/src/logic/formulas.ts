@@ -229,7 +229,7 @@ export function limitPercisionHard(num: number) {
     return Math.round(num * 1e2) / 1e2;
 }
 
-export type Sign = 1 | -1 | 0;
+type Sign = 1 | -1 | 0;
 export function sign(x: number): Sign {
     return typeof x === 'number' && x ? (x < 0 ? -1 : 1) : 0;
 }
