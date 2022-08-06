@@ -4,7 +4,7 @@ import { Container } from 'golden-layout';
 import EventEmitter from 'eventemitter3';
 import { SpaceEventEmitter } from '@starwards/model';
 
-export interface Screen {
+interface Screen {
     width: number;
     height: number;
 }

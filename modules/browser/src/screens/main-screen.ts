@@ -9,7 +9,7 @@ import { wireSinglePilotInput } from '../input/wiring';
 const driver = new Driver(window.location);
 
 const NUM_OF_FRAMES_FOR_LOADED = 1;
-export const babylonInit = async (): Promise<void> => {
+const babylonInit = async (): Promise<void> => {
     // todo extract to configurable widget
 
     const urlParams = new URLSearchParams(window.location.search);

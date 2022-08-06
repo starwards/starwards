@@ -14,9 +14,9 @@ declare global {
 window.React = React;
 window.ReactDOM = ReactDOM;
 
-export type MakeHeaders<T> = (container: Container, state: T) => Array<JQuery<HTMLElement>>;
+type MakeHeaders<T> = (container: Container, state: T) => Array<JQuery<HTMLElement>>;
 
-export type GLComponent<T> = { new (container: Container, state: T): unknown };
+type GLComponent<T> = { new (container: Container, state: T): unknown };
 
 export interface DashboardWidget<T = Obj> {
     name: string;

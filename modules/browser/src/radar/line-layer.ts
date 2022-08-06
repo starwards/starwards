@@ -4,7 +4,7 @@ import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
 
 // extract line style argument from lineStyle method
-export type Linestyle = Parameters<Graphics['lineStyle']>[0];
+type Linestyle = Parameters<Graphics['lineStyle']>[0];
 
 export class LineLayer {
     private readonly graphics = new Graphics();

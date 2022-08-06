@@ -21,14 +21,14 @@ function lerpAxisToRange(range: readonly [number, number], axisValue: number) {
     const t = (axisValue + 1) / 2;
     return (1 - t) * range[0] + t * range[1];
 }
-export interface RangeAction {
+interface RangeAction {
     range: readonly [number, number];
     setValue: (v: number) => unknown;
 }
-export interface TriggerAction {
+interface TriggerAction {
     setValue: (v: boolean) => unknown;
 }
-export interface StepAction {
+interface StepAction {
     setValue: (v: number) => unknown;
 }
 export class InputManager {

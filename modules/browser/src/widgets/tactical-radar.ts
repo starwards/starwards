@@ -22,14 +22,14 @@ WebFont.load({
     },
 });
 
-export const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
+const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
 
 Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
 
-export type Props = { range: number };
+type Props = { range: number };
 export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
     class TacticalRadarComponent {
         constructor(container: Container, p: Props) {

@@ -16,7 +16,7 @@ import { makeRadarHeaders } from './radar';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
-export interface RadarState {
+interface RadarState {
     zoom: number;
 }
 export class GmWidgets {
