@@ -7,7 +7,7 @@
         "cjs"
     ],
     "scripts": {
-        "start": "nodemon -r ts-node/register/transpile-only ./src/dev.ts",
+        "start": "node -r ts-node/register/transpile-only ./src/dev.ts",
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080",
         "test": "jest"
     },
