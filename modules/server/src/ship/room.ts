@@ -1,5 +1,5 @@
 import { Client, Room } from 'colyseus';
-import { ShipManager, ShipState, getJsonPointer, isSetValueCommand } from '@starwards/model';
+import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/model';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -17,22 +17,7 @@ export class ShipRoom extends Room<ShipState> {
         this.setState(manager.state);
         // handle all other messages
         this.onMessage('*', (_, type, message: unknown) => {
-            if (isSetValueCommand(message)) {
-                const pointer = getJsonPointer(type);
-                if (pointer) {
-                    try {
-                        pointer.set(manager.state, message.value);
-                    } catch (e) {
-                        // eslint-disable-next-line no-console
-                        console.error(
-                            `Error setting value ${String(message.value)} in ${type} : ${String((e as Error).stack)}`
-                        );
-                    }
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`onMessage for type="${type}" not registered.`);
-                }
-            } else {
+            if (!handleJsonPointerCommand(message, type, manager.state)) {
                 // eslint-disable-next-line no-console
                 console.error(`onMessage for message="${JSON.stringify(message)}" not registered.`);
             }

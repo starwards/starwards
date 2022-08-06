@@ -1,5 +1,5 @@
 import { Schema, type } from '@colyseus/schema';
-import { getRangeFromPointer, range, rangeSchema } from '../src/range';
+import { getRange, range, rangeSchema } from '../src/range';
 
 import { JsonPointer } from 'json-ptr';
 import { expect } from 'chai';
@@ -13,7 +13,7 @@ describe('range', () => {
             property = 0;
         }
 
-        const r = getRangeFromPointer(new Target(), JsonPointer.create('/property'));
+        const r = getRange(new Target(), JsonPointer.create('/property'));
         expect(r).to.eql(RANGE);
     });
 
@@ -26,7 +26,7 @@ describe('range', () => {
             range = RANGE;
         }
 
-        const r = getRangeFromPointer(new Target(), JsonPointer.create('/property'));
+        const r = getRange(new Target(), JsonPointer.create('/property'));
         expect(r).to.eql(RANGE);
     });
 
@@ -41,7 +41,7 @@ describe('range', () => {
             inner = new ModelWithNoRange();
         }
 
-        const r = getRangeFromPointer(new Target(), JsonPointer.create('/inner/property'));
+        const r = getRange(new Target(), JsonPointer.create('/inner/property'));
         expect(r).to.eql(RANGE);
     });
 
@@ -53,7 +53,7 @@ describe('range', () => {
         @rangeSchema({ '/property': RANGE })
         class Target extends ModelWithNoRange {}
 
-        const r = getRangeFromPointer(new Target(), JsonPointer.create('/property'));
+        const r = getRange(new Target(), JsonPointer.create('/property'));
         expect(r).to.eql(RANGE);
     });
 });

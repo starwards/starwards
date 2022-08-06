@@ -3,7 +3,7 @@ import {
     SpaceManager,
     SpaceState,
     cmdReceivers,
-    getJsonPointer,
+    handleJsonPointerCommand,
     isSetValueCommand,
     spaceProperties,
 } from '@starwards/model';
@@ -30,26 +30,27 @@ export class SpaceRoom extends Room<SpaceState> {
         }
         // handle all other messages
         this.onMessage('*', (_, type, message: unknown) => {
-            const pointerStr = spaceProperties.objectCommandToPointerStr(type);
-            if (isSetValueCommand(message) && pointerStr) {
-                const { path, value } = message;
-                const pointer = getJsonPointer(pointerStr);
-                if (typeof path === 'string' && pointer) {
-                    try {
-                        pointer.set(manager.state.get(path), value);
-                    } catch (e) {
-                        // eslint-disable-next-line no-console
-                        console.error(
-                            `Error setting value ${String(value)} in ${type} : ${String((e as Error).stack)}`
-                        );
-                    }
-                } else {
+            if (isSetValueCommand(message) && typeof message.path === 'string') {
+                const pointerStr = spaceProperties.objectCommandToPointerStr(type);
+                if (!pointerStr) {
                     // eslint-disable-next-line no-console
-                    console.error(`onMessage for type="${type}" and path="${JSON.stringify(path)}" not registered.`);
+                    console.error(`message type="${type}" not registered. message="${JSON.stringify(message)}"`);
+                    return;
                 }
-            } else {
-                // eslint-disable-next-line no-console
-                console.error(`onMessage for message="${JSON.stringify(message)}" not registered.`);
+                const obj = manager.state.get(message.path);
+                if (!obj) {
+                    // eslint-disable-next-line no-console
+                    console.error(
+                        `no object found for object command. message="${JSON.stringify(message)}" type="${type}"`
+                    );
+                    return;
+                }
+                if (!handleJsonPointerCommand(message, pointerStr, obj)) {
+                    // eslint-disable-next-line no-console
+                    console.error(
+                        `object command can't be handled. message="${JSON.stringify(message)}" type="${type}"`
+                    );
+                }
             }
         });
     }

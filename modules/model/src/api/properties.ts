@@ -1,4 +1,4 @@
-import { GameRoom, RoomName, getJsonPointer, getRangeFromPointer } from '..';
+import { GameRoom, RoomName, getJsonPointer, getRange } from '..';
 import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
 import { Destructor } from '../utils';
@@ -66,7 +66,7 @@ export function readWriteNumberProp(
     pointerStr: JsonStringPointer
 ): ReadWriteNumberProp {
     const api = readWriteProp<number>(room, events, pointerStr);
-    return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
+    return { ...api, range: getRange(room.state, api.pointer) };
 }
 export function readNumberProp(
     room: GameRoom<RoomName>,
@@ -74,5 +74,5 @@ export function readNumberProp(
     pointerStr: JsonStringPointer
 ): ReadNumberProp {
     const api = readProp<number>(room, events, pointerStr);
-    return { ...api, range: getRangeFromPointer(room.state, api.pointer) };
+    return { ...api, range: getRange(room.state, api.pointer) };
 }
