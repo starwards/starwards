@@ -16,11 +16,11 @@ export type Damage = {
     damageDurationSeconds: number;
 };
 
-export type MoveOrder = {
+type MoveOrder = {
     type: 'move';
     position: XY;
 };
-export type AttackOrder = {
+type AttackOrder = {
     type: 'attack';
     targetId: string;
 };

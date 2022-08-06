@@ -13,7 +13,7 @@ export const bulkMove = {
     },
 };
 
-export type BulkRotateArg = {
+type BulkRotateArg = {
     ids: Array<SpaceObjectBase['id']>;
     delta: number;
 };
@@ -29,7 +29,7 @@ export const bulkRotate = {
     },
 };
 
-export type BulkFreezeToggleArg = {
+type BulkFreezeToggleArg = {
     ids: Array<SpaceObjectBase['id']>;
 };
 export const bulkFreezeToggle = {
@@ -54,7 +54,7 @@ export const bulkBotOrder = {
     },
 };
 
-export const JSON_CMD_NS = '$SpaceObject';
+const JSON_CMD_NS = '$SpaceObject';
 export function objectCommandToPointerStr(type: unknown) {
     if (typeof type === 'string' && type.startsWith(JSON_CMD_NS)) {
         return type.substring(JSON_CMD_NS.length);

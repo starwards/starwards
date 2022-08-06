@@ -1,14 +1,3 @@
-export class MultiMap<K, V> extends Map<K, Array<V>> {
-    push(k: K, ...v: V[]) {
-        let arr = this.get(k);
-        if (!arr) {
-            arr = [];
-            this.set(k, arr);
-        }
-        arr.push(...v);
-    }
-}
-
 export type Destructor = () => unknown;
 export class Destructors {
     private _destroyed = false;

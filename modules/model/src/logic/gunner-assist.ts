@@ -72,7 +72,7 @@ export function getShellExplosionLocation(ship: ShipState): XY {
     return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
 }
 
-export function getShellDangerZoneRadius(ship: ShipState): number {
+function getShellDangerZoneRadius(ship: ShipState): number {
     const explosionRadius = ship.chainGun.explosionSecondsToLive * ship.chainGun.explosionExpansionSpeed;
     const shellExplosionDistance = ship.chainGun.shellSecondsToLive * ship.chainGun.bulletSpeed;
     const spreadDegrees = 3.0 * ship.chainGun.bulletDegreesDeviation;

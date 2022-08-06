@@ -37,13 +37,13 @@ import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 import { uniqueId } from '../id';
 
-export function fixArmor(armor: Armor) {
+function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.plateMaxHealth;
     for (const plate of armor.armorPlates) {
         plate.health = plateMaxHealth;
     }
 }
-export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.maxEnergy;
@@ -65,8 +65,6 @@ function resetThruster(thruster: Thruster) {
     thruster.angleError = 0;
     thruster.availableCapacity = 1.0;
 }
-
-export const DEGREES_PER_AREA = 180;
 
 export type Die = {
     getRoll: (id: string) => number;

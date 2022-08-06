@@ -2,6 +2,7 @@ import { ArraySchema, Schema, type } from '@colyseus/schema';
 import { RTuple2, toPositiveDegreesDelta } from '..';
 
 import { ArmorModel } from './ship-configuration';
+import { MAX_SAFE_FLOAT } from '../logic';
 import { ModelParams } from '../model-params';
 import { range } from '../range';
 
@@ -11,7 +12,7 @@ export class ArmorPlate extends Schema {
     health!: number;
 
     @type('float32')
-    @range([0, Number.MAX_VALUE])
+    @range([0, MAX_SAFE_FLOAT])
     maxHealth!: number;
 }
 

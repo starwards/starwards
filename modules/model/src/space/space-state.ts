@@ -71,7 +71,7 @@ export class SpaceState extends Schema {
     }
 }
 
-export function* mapSchemaValues<T extends SpaceObject>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
+function* mapSchemaValues<T extends SpaceObject>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
     for (const result of map.values()) {
         if (result && result.destroyed === destroyed) {
             yield result;
