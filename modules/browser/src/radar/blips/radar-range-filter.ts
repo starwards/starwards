@@ -1,5 +1,6 @@
 import {
     EPSILON,
+    MAX_SAFE_FLOAT,
     SpaceDriver,
     SpaceObject,
     SpatialIndex,
@@ -18,15 +19,18 @@ import { Graphics } from 'pixi.js';
 import { noop } from 'ts-essentials';
 
 const MIN_RADIUS_RADAR_BLOCK = 1;
-type VisibleArc = {
+
+type VisibleObject = {
     object: SpaceObject | null;
     distance: number;
+};
+type VisibleArc = VisibleObject & {
     fromAngle: number;
     toAngle: number;
 };
 type EndPoint = {
     angle: number;
-    visible: VisibleArc;
+    visible: VisibleObject;
     type: 'start' | 'stop';
 };
 class FieldOfView {
@@ -63,41 +67,34 @@ class FieldOfView {
     }
 
     private *visibleArcs(sortedEndPoints: Array<EndPoint>): Generator<VisibleArc> {
-        const radarRangeArc = {
-            object: null,
-            distance: Number.MAX_VALUE,
-            fromAngle: 0,
-            toAngle: 360,
-        };
-        const open: VisibleArc[] = [radarRangeArc]; // list of objects the sweep line intersects (at current angle)
-        let nearestStart: EndPoint = { visible: radarRangeArc, angle: 0, type: 'start' };
-        sortedEndPoints.push({ visible: radarRangeArc, angle: 360, type: 'stop' });
+        // to avoid checking for empty data structures, we place a fake null object at the maximum distance at 360 degrees.
+        // This serves as a marker for "nothing blocks the view"
+        const dummyObject: VisibleObject = { object: null, distance: MAX_SAFE_FLOAT };
+        const currObjsByDistance = [dummyObject]; // list of objects the sweep line intersects (at current angle), sorted by distance
+        let closestObj = { visible: dummyObject, fromAngle: 0 }; // the closest object and the angle in which we started seeing it
+        sortedEndPoints.push({ visible: dummyObject, angle: 360, type: 'stop' });
         // sweep from angle 0 to 360
         // put in this.view objects that are nearest to the sweep line across the entire sweep
         for (const ep of sortedEndPoints) {
             if (ep.type === 'start') {
-                open.push(ep.visible);
-                open.sort((a, b) => a.distance - b.distance);
+                // add a visible object and re-order by distance
+                currObjsByDistance.push(ep.visible);
+                currObjsByDistance.sort((a, b) => a.distance - b.distance);
             } else {
                 // ep.type === 'stop'
-                if (!nearestStart || open.indexOf(ep.visible) === -1) {
-                    // eslint-disable-next-line no-console
-                    console.error('debug', { ep, nearestStart, open, sortedEndPoints });
-                    throw new Error('obstacle stop with no start?');
-                }
-                open.splice(open.indexOf(ep.visible), 1);
+                currObjsByDistance.splice(currObjsByDistance.indexOf(ep.visible), 1); // remove a visible object
             }
-            if (nearestStart.visible !== open[0]) {
-                if (nearestStart.angle < ep.angle) {
+            if (closestObj.visible !== currObjsByDistance[0]) {
+                if (closestObj.fromAngle < ep.angle) {
                     // record previous nearest obstacle before starting new obstacle
                     yield {
-                        object: nearestStart.visible.object,
-                        distance: Math.min(nearestStart.visible.distance, this.object.radarRange),
-                        fromAngle: nearestStart.angle,
+                        object: closestObj.visible.object,
+                        distance: Math.min(closestObj.visible.distance, this.object.radarRange),
+                        fromAngle: closestObj.fromAngle,
                         toAngle: ep.angle,
                     };
                 }
-                nearestStart = { visible: open[0], angle: ep.angle, type: 'start' };
+                closestObj = { visible: currObjsByDistance[0], fromAngle: ep.angle };
             }
         }
     }
@@ -114,21 +111,15 @@ class FieldOfView {
                         const arcAngle = calcArcAngle(object.radius * 2, distance);
                         const centerAngle = XY.angleOf(posDiff);
                         // in radar range
-                        const visible = {
-                            object,
-                            distance,
-                            fromAngle: limitPercisionHard(toPositiveDegreesDelta(centerAngle - arcAngle / 2)),
-                            toAngle: limitPercisionHard(toStrictPositiveDegreesDelta(centerAngle + arcAngle / 2)),
-                        };
-                        if (visible.fromAngle < visible.toAngle) {
-                            yield { visible, angle: visible.fromAngle, type: 'start' };
-                            yield { visible, angle: visible.toAngle, type: 'stop' };
-                        } else {
-                            yield { visible, angle: visible.fromAngle, type: 'start' };
+                        const visible = { object, distance };
+                        const fromAngle = limitPercisionHard(toPositiveDegreesDelta(centerAngle - arcAngle / 2));
+                        const toAngle = limitPercisionHard(toStrictPositiveDegreesDelta(centerAngle + arcAngle / 2));
+                        yield { visible, angle: fromAngle, type: 'start' };
+                        if (fromAngle > toAngle) {
                             yield { visible, angle: 360, type: 'stop' };
                             yield { visible, angle: 0, type: 'start' };
-                            yield { visible, angle: visible.toAngle, type: 'stop' };
                         }
+                        yield { visible, angle: toAngle, type: 'stop' };
                     }
                 }
             }
