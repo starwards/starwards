@@ -50,7 +50,7 @@ function appendDecendantRange(target: Schema, propertyKey: string | symbol, r: S
     Reflect.defineMetadata(descendantMetadataKey, { ...ranges, ...r }, target, propertyKey);
 }
 
-function getRange<T extends Schema>(target: T, propertyKey: string): readonly [number, number] | undefined {
+function getRangeFromProperty<T extends Schema>(target: T, propertyKey: string): readonly [number, number] | undefined {
     const r = Reflect.getMetadata(propertyMetadataKey, target, propertyKey) as Range<T> | undefined;
     if (typeof r === 'function') {
         return r(target);
@@ -75,8 +75,14 @@ function getRangeFromAncestor<T extends Schema>(
     }
     return undefined;
 }
-
-export function getRangeFromPointer(root: Schema, pointer: JsonPointer): readonly [number, number] {
+export function getRange(root: Schema, pointer: JsonPointer): readonly [number, number] {
+    const r = tryGetRange(root, pointer);
+    if (!r) {
+        throw new Error(`pointer ${pointer.pointer} has no range set!`);
+    }
+    return r;
+}
+export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | readonly [number, number] {
     const target = pointer.path.length === 1 ? root : pointer.parent(root); // pending bug fix https://github.com/flitbit/json-ptr/pull/56
     const propertyName = pointer.path.at(-1);
     if (!(target instanceof Schema) || typeof propertyName !== 'string') {
@@ -86,7 +92,7 @@ export function getRangeFromPointer(root: Schema, pointer: JsonPointer): readonl
             )}, propertyName=${JSON.stringify(propertyName)}`
         );
     }
-    let r = getRange(target, propertyName);
+    let r = getRangeFromProperty(target, propertyName);
     // while no range was found, look for range in ancestors
     for (let i = pointer.path.length - 2; !r && i >= 0; i--) {
         const ancestorPath = ['', ...pointer.path.slice(0, i)].join('/');
@@ -105,9 +111,6 @@ export function getRangeFromPointer(root: Schema, pointer: JsonPointer): readonl
             );
         }
         r = getRangeFromAncestor(ancestor, ancestorPropertyName, descendantPath);
-    }
-    if (!r) {
-        throw new Error(`Property ${propertyName} in ${String(target)} has no range set!`);
     }
     return r;
 }

@@ -1,4 +1,4 @@
-import { GameRoom, RoomName, Stateful, capToRange } from '..';
+import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, tryGetRange } from '..';
 
 import { Schema } from '@colyseus/schema';
 
@@ -70,6 +70,33 @@ export function cmdReceiver<T, S extends Schema, P>(
 
 export type CmdReceiver = ReturnType<typeof cmdReceiver>;
 
-export function isSetValueCommand(val: unknown): val is { value: unknown; path?: unknown } {
+export type SetValueCommand = { value: unknown; path?: unknown };
+export function isSetValueCommand(val: unknown): val is SetValueCommand {
     return (val as { value: unknown })?.value !== undefined;
+}
+
+export function handleJsonPointerCommand(message: unknown, type: string | number, root: Schema) {
+    if (isSetValueCommand(message)) {
+        let { value } = message;
+        const pointer = getJsonPointer(type);
+        if (pointer) {
+            try {
+                if (typeof value === 'number') {
+                    const range = tryGetRange(root, pointer);
+                    if (range) {
+                        value = capToRange(range[0], range[1], value);
+                    }
+                }
+                pointer.set(root, value);
+                return true;
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error(`Error setting value ${String(value)} in ${type} : ${String((e as Error).stack)}`);
+            }
+        } else {
+            // eslint-disable-next-line no-console
+            console.error(`onMessage for type="${type}" not registered.`);
+        }
+    }
+    return false;
 }
