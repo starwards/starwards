@@ -38,7 +38,7 @@ export function makeRadarHeaders(container: Container, _: unknown): Array<JQuery
     return [zoomIn, zoomOut];
 }
 
-export type Props = { zoom: number };
+type Props = { zoom: number };
 export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
     class RadarComponent {
         constructor(container: Container, p: Props) {

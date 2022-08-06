@@ -162,4 +162,4 @@ export const Lobby = (p: Props) => {
     );
 };
 
-export type Props = { driver: Driver };
+type Props = { driver: Driver };

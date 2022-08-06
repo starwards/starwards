@@ -5,7 +5,7 @@ import { Container, DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
 
-export type Style = {
+type Style = {
     width: number;
     color: number;
     alpha: number;

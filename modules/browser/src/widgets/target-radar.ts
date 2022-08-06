@@ -38,7 +38,7 @@ function trackObject(camera: Camera, changeEvents: SpaceEventEmitter, target: Se
     follow();
 }
 
-export type Props = { range: number };
+type Props = { range: number };
 export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
     class TargetRadarComponent {
         constructor(container: Container, p: Props) {

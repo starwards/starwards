@@ -13,7 +13,7 @@ WebFont.load({
         families: ['Bebas'],
     },
 });
-export const preloadList = ['images/dragonfly-armor.svg'];
+const preloadList = ['images/dragonfly-armor.svg'];
 
 Loader.shared.add(preloadList);
 

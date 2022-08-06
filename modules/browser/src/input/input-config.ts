@@ -14,10 +14,10 @@ export class GamepadButtonConfig {
 export class KeysStepsConfig {
     constructor(public up: string, public down: string, public step: number) {}
 }
-export class GamepadButtonsCenterConfig {
+class GamepadButtonsCenterConfig {
     constructor(public center: GamepadButtonConfig) {}
 }
-export class GamepadButtonsRangeConfig {
+class GamepadButtonsRangeConfig {
     constructor(
         public up: GamepadButtonConfig,
         public down: GamepadButtonConfig,
@@ -31,7 +31,7 @@ export function isGamepadButtonsRangeConfig(
 ): v is GamepadButtonsRangeConfig {
     return !!(v as GamepadButtonsRangeConfig).step;
 }
-export class KeysRangeConfig {
+class KeysRangeConfig {
     constructor(public up: string, public down: string, public center: string, public step: number) {}
 }
 export interface RangeConfig {
@@ -39,7 +39,7 @@ export interface RangeConfig {
     buttons?: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig;
     keys?: KeysRangeConfig;
 }
-export interface ShipInputConfig {
+interface ShipInputConfig {
     chainGunIsFiring?: GamepadButtonConfig;
     target?: GamepadButtonConfig;
     clearTarget?: GamepadButtonConfig;
@@ -85,7 +85,7 @@ export const shipInputConfig: ShipInputConfig = {
     },
     resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
 };
-export interface GmInputConfig {
+interface GmInputConfig {
     rotate?: KeysStepsConfig;
     toggleFreeze?: string;
 }

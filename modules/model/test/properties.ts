@@ -17,8 +17,6 @@ export const float = (min: number, max: number) => {
         .filter((t) => !Number.isNaN(t))
         .map(limitPercisionHard);
 };
-export const fromTo = (range: number, minDiff: number) =>
-    fc.tuple(floatIn(range), floatIn(range)).filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const range = (min: number, max: number, minDiff = 0) =>
     fc
         .tuple(float(min, max), float(min, max))
@@ -36,8 +34,8 @@ export const orderedTuple3 = () =>
         .map((t) => t.sort((a, b) => a - b))
         .filter((t) => t[0] < t[2]);
 
-export const degree = () => float(0.0, 360.0 - EPSILON);
-export type Tuple4 = [number, number, number, number];
+const degree = () => float(0.0, 360.0 - EPSILON);
+type Tuple4 = [number, number, number, number];
 
 export const orderedDegreesTuple4 = () =>
     float(-360.0 * 2, 360.0).chain((delta) =>

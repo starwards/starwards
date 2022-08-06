@@ -4,9 +4,9 @@ import { SpaceDriver, SpaceObject, SpaceObjects, TrackObjects } from '@starwards
 
 import { CameraView } from '../camera-view';
 
-export type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
-export type Selection = { has(o: SpaceObject): boolean };
-export type Filter = (o: SpaceObject) => boolean;
+type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
+type Selection = { has(o: SpaceObject): boolean };
+type Filter = (o: SpaceObject) => boolean;
 export class ObjectsLayer {
     private stage = new Container();
 

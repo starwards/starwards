@@ -21,7 +21,7 @@ import { monitor } from '@colyseus/monitor';
 const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
 
 export const HTTP_CONFLICT_STATUS = 409;
-export const HTTP_BAD_REQUEST_STATUS = 400;
+const HTTP_BAD_REQUEST_STATUS = 400;
 export async function server(port: number, staticDir: string, manager: GameManager) {
     const app = express();
     app.use(express.json() as express.RequestHandler);

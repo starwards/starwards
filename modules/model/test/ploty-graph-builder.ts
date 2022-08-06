@@ -1,4 +1,4 @@
-export type LineData = {
+type LineData = {
     name: string;
     y: number[];
     x: number[];

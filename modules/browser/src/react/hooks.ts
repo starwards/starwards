@@ -1,7 +1,6 @@
-import { AdminDriver, Driver, ShipDriver, SpaceObject, Spaceship } from '@starwards/model';
+import { AdminDriver, Driver } from '@starwards/model';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 
-import { SelectionContainer } from '../radar/selection-container';
 import { TaskLoop } from '../task-loop';
 
 export function useConstant<T>(init: () => T): T {
@@ -24,31 +23,10 @@ export function useSorted<T>(elements: T[]): [T[], (t: T) => void] {
     return [sorted, pushToEnd];
 }
 
-export function useSelected(selectionContainer: SelectionContainer): Array<SpaceObject> {
-    const [selected, setSelected] = useState([...selectionContainer.selectedItems]);
-
-    useEffect(() => {
-        const handleSelectionChange = () => setSelected([...selectionContainer.selectedItems]);
-        selectionContainer.events.addListener('changed', handleSelectionChange);
-        return () => void selectionContainer.events.removeListener('changed', handleSelectionChange);
-    }, [selectionContainer]);
-    return selected;
-}
-
 export function useAdminDriver(driver: Driver): AdminDriver | null {
     const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
     useEffect(() => void driver.getAdminDriver().then(setAdminDriver), [driver]);
     return adminDriver;
-}
-
-export function useShipDriver(subject: SpaceObject | undefined, driver: Driver): ShipDriver | undefined {
-    const [shipDriver, setShipDriver] = useState<ShipDriver | undefined>(undefined);
-    useEffect(() => {
-        if (Spaceship.isInstance(subject)) {
-            void driver.getShipDriver(subject.id).then(setShipDriver);
-        }
-    }, [driver, subject]);
-    return shipDriver;
 }
 
 export function useIsGameRunning(driver: Driver): boolean | null {

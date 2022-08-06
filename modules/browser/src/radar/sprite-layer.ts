@@ -3,12 +3,12 @@ import { DisplayObject, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js';
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/model';
 
-export type SpriteStylePx = {
+type SpriteStylePx = {
     fileName: string;
     tint: number;
     sizePx: number;
 };
-export type SpriteStyleMeters = {
+type SpriteStyleMeters = {
     fileName: string;
     tint: number;
     radiusMeters: number;
