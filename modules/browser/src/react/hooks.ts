@@ -1,4 +1,4 @@
-import { AdminDriver, Driver } from '@starwards/model';
+import { AdminDriver, Driver } from '@starwards/core';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 
 import { TaskLoop } from '../task-loop';

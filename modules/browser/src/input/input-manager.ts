@@ -7,7 +7,7 @@ import {
     RangeConfig,
     isGamepadButtonsRangeConfig,
 } from './input-config';
-import { capToRange, isInRange } from '@starwards/model';
+import { capToRange, isInRange } from '@starwards/core';
 
 import { EmitterLoop } from '../loop';
 import hotkeys from 'hotkeys-js';

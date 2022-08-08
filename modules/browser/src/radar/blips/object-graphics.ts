@@ -1,6 +1,6 @@
 import { CameraView } from '../camera-view';
 import { Container } from 'pixi.js';
-import { SpaceObject } from '@starwards/model';
+import { SpaceObject } from '@starwards/core';
 
 export interface SpaceObjectRenderer {
     redraw(): void;

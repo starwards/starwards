@@ -1,4 +1,4 @@
-import { Bot, SpaceObject, Spaceship } from '@starwards/model';
+import { Bot, SpaceObject, Spaceship } from '@starwards/core';
 
 export interface ShipApi {
     setTarget(id: string | null): void;

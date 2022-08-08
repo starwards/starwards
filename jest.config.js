@@ -35,8 +35,8 @@ module.exports = {
         },
         {
             ...baseConfig,
-            displayName: 'model',
-            testRegex: 'modules/model/.*\\.spec\\.(ts|js|tsx|jsx)$',
+            displayName: 'core',
+            testRegex: 'modules/core/.*\\.spec\\.(ts|js|tsx|jsx)$',
         },
     ],
 };

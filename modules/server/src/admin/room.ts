@@ -1,4 +1,4 @@
-import { AdminState, adminProperties, cmdReceivers } from '@starwards/model';
+import { AdminState, adminProperties, cmdReceivers } from '@starwards/core';
 import { Client, Room } from 'colyseus';
 
 import { GameManager } from './game-manager';

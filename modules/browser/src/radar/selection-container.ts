@@ -1,4 +1,4 @@
-import { SpaceDriver, SpaceObject } from '@starwards/model';
+import { SpaceDriver, SpaceObject } from '@starwards/core';
 
 import EventEmitter from 'eventemitter3';
 import { Remove } from 'colyseus-events';

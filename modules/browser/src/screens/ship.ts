@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
-import { Driver } from '@starwards/model';
+import { Driver } from '@starwards/core';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { gunWidget } from '../widgets/gun';

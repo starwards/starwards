@@ -1,7 +1,7 @@
 import { DisplayObject, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
-import { XY } from '@starwards/model';
+import { XY } from '@starwards/core';
 
 type SpriteStylePx = {
     fileName: string;

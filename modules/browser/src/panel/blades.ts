@@ -9,7 +9,7 @@ import {
     TextBladeParams,
 } from 'tweakpane';
 
-import { Destructor } from '@starwards/model';
+import { Destructor } from '@starwards/core';
 
 export type NumericModel = {
     getValue: () => number;

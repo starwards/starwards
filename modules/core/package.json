@@ -1,6 +1,6 @@
 {
-    "name": "@starwards/model",
-    "version": "0.0.0",
+    "name": "@starwards/core",
+    "version": "0.0.1",
     "main": "cjs/index.js",
     "types": "cjs/index.d.ts",
     "private": true,

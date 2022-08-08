@@ -1,5 +1,5 @@
 import { InputManager } from '../input/input-manager';
-import { ShipDriver } from '@starwards/model';
+import { ShipDriver } from '@starwards/core';
 import { shipInputConfig } from '../input/input-config';
 
 export function wireSinglePilotInput(shipDriver: ShipDriver) {

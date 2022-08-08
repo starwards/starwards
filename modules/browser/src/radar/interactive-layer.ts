@@ -1,9 +1,9 @@
 import { Container, DisplayObject, Graphics, InteractionEvent, Rectangle } from 'pixi.js';
-import { SpaceObject, XY } from '@starwards/model';
+import { SpaceObject, XY } from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
-import { SpaceDriver } from '@starwards/model';
+import { SpaceDriver } from '@starwards/core';
 import { selectionColor } from '../colors';
 
 enum MouseButton {

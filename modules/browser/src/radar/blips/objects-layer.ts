@@ -1,6 +1,6 @@
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
 import { ObjectGraphics, ObjectRendererCtor } from './object-graphics';
-import { SpaceDriver, SpaceObject, SpaceObjects, TrackObjects } from '@starwards/model';
+import { SpaceDriver, SpaceObject, SpaceObjects, TrackObjects } from '@starwards/core';
 
 import { CameraView } from '../camera-view';
 

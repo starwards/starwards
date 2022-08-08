@@ -6,7 +6,7 @@ import {
     stringToSchemaObject,
 } from '../serialization/game-state-serialization';
 
-import { ModelParams } from '@starwards/model';
+import { ModelParams } from '@starwards/core';
 
 describe('game-state-serialization', () => {
     class TestMapSchema extends Schema {

@@ -1,6 +1,6 @@
 import { AbstractMesh, Color4, ParticleSystem, Scene, Texture, Vector3 } from '@babylonjs/core';
 
-import { XYZ } from '@starwards/model';
+import { XYZ } from '@starwards/core';
 
 type ParticleConfig = {
     blendMode: number;

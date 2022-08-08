@@ -1,4 +1,4 @@
-import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/model';
+import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { Container } from 'pixi.js';

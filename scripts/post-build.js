@@ -12,7 +12,7 @@ const distPath = path.join(rootPath, 'dist');
 const staticDistPath = path.join(distPath, 'static');
 const serverDistPath = path.join(distPath, 'server');
 const serverModulePath = path.join(rootPath, 'modules', 'server');
-const modelModulePath = path.join(rootPath, 'modules', 'model');
+const modelModulePath = path.join(rootPath, 'modules', 'core');
 const browserModulePath = path.join(rootPath, 'modules', 'browser');
 (async () => {
     try {
@@ -33,7 +33,7 @@ const browserModulePath = path.join(rootPath, 'modules', 'browser');
         const dependencies = {
             ...modelDependencies,
             ...serverDependencies,
-            '@starwards/model': 'file:./' + modulePackageFileName,
+            '@starwards/core': 'file:./' + modulePackageFileName,
         };
 
         await writeFile(

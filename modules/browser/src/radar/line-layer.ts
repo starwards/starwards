@@ -1,7 +1,7 @@
 import { DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
-import { XY } from '@starwards/model';
+import { XY } from '@starwards/core';
 
 // extract line style argument from lineStyle method
 type Linestyle = Parameters<Graphics['lineStyle']>[0];

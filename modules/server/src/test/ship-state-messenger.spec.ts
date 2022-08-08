@@ -1,4 +1,4 @@
-import { Reactor, ShipState } from '@starwards/model';
+import { Reactor, ShipState } from '@starwards/core';
 
 import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 

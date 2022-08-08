@@ -1,8 +1,8 @@
-import { ShipDriverRead, SpaceDriver } from '@starwards/model';
+import { ShipDriverRead, SpaceDriver } from '@starwards/core';
 
 import { SelectionContainer } from './radar/selection-container';
 
-// TODO: move to model? (along with SelectionContainer)
+// TODO: move to core? (along with SelectionContainer)
 export function trackTargetObject(spaceDriver: SpaceDriver, ship: ShipDriverRead): SelectionContainer {
     const result = new SelectionContainer().init(spaceDriver);
     const updateSelectedTarget = () => {

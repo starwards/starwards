@@ -1,9 +1,9 @@
 import { Add, Remove } from 'colyseus-events';
-import { SpaceObject, degToRad } from '@starwards/model';
+import { SpaceObject, degToRad } from '@starwards/core';
 import { TransformNode, Vector3 } from '@babylonjs/core';
 
 import { Meshes } from './meshes';
-import { SpaceDriver } from '@starwards/model';
+import { SpaceDriver } from '@starwards/core';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();

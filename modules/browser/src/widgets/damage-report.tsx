@@ -1,7 +1,7 @@
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
 import React, { Component, useEffect, useRef } from 'react';
-import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/model';
+import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/core';
 import { useConstant, useLoop, useProperty, useSorted } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';

@@ -1,4 +1,4 @@
-import { Destructor, Destructors, Driver, ShipDirection, SpaceDriver, SpaceObject, Spaceship } from '@starwards/model';
+import { Destructor, Destructors, Driver, ShipDirection, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 

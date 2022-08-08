@@ -3,7 +3,7 @@
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 
 import $ from 'jquery';
-import { Driver } from '@starwards/model';
+import { Driver } from '@starwards/core';
 import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
 import { armorWidget } from '../widgets/armor';

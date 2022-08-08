@@ -1,4 +1,4 @@
-import { Asteroid, SpaceObject, Spaceship } from '@starwards/model';
+import { Asteroid, SpaceObject, Spaceship } from '@starwards/core';
 import { Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
 import { ObjectGraphics, SpaceObjectRenderer } from './object-graphics';
 import { selectionColor, white } from '../../colors';
