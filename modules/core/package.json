@@ -1,12 +1,32 @@
 {
     "name": "@starwards/core",
-    "version": "0.0.1",
+    "description": "a space and starship simulator designed specifically for LARPs",
+    "keywords": [
+        "sbs",
+        "larp",
+        "game",
+        "simulator",
+        "starship",
+        "space",
+        "colyseus"
+    ],
+    "version": "0.0.2",
     "main": "cjs/index.js",
     "types": "cjs/index.d.ts",
-    "private": true,
+    "repository": "git@github.com:starwards/starwards.git",
+    "author": "amir-arad <greenshade@gmail.com>",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "engines": {
+        "node": ">= 18.3",
+        "npm": ">= 7.5.4"
+    },
     "license": "SEE LICENSE IN LICENSE.md",
     "files": [
-        "cjs"
+        "cjs",
+        "src"
     ],
     "scripts": {
         "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
