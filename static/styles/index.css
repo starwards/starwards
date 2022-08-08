@@ -1,111 +1,171 @@
 @font-face {
-  font-family: "Bebas";
-  src: url(../fonts/BebasNeue-Regular.ttf);
+    font-family: 'Bebas';
+    src: url(../fonts/BebasNeue-Regular.ttf);
 }
 
 @font-face {
-  font-family: "Electrolize";
-  src: url(../fonts/Electrolize-Regular.ttf);
+    font-family: 'Electrolize';
+    src: url(../fonts/Electrolize-Regular.ttf);
 }
 
 @font-face {
-  font-family: "Titillium Web";
-  src: url(../fonts/TitilliumWeb-Regular.ttf);
+    font-family: 'Titillium Web';
+    src: url(../fonts/TitilliumWeb-Regular.ttf);
 }
 
 @font-face {
-  font-family: 'Material Icons';
-  font-style: normal;
-  font-weight: 400;
-  src: url(../fonts/MaterialIcons-Regular.woff2) format('woff2');
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    src: url(../fonts/MaterialIcons-Regular.woff2) format('woff2');
 }
 
 .material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 18px;  /* Preferred icon size */
-  display: inline-block;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  word-wrap: normal;
-  white-space: nowrap;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  /* Support for all WebKit browsers. */
-  -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
-  text-rendering: optimizeLegibility;
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 18px; /* Preferred icon size */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    /* Support for all WebKit browsers. */
+    -webkit-font-smoothing: antialiased;
+    /* Support for Safari and Chrome. */
+    text-rendering: optimizeLegibility;
 
-  /* Support for Firefox. */
-  -moz-osx-font-smoothing: grayscale;
+    /* Support for Firefox. */
+    -moz-osx-font-smoothing: grayscale;
 
-  /* Support for IE. */
-  font-feature-settings: 'liga';
+    /* Support for IE. */
+    font-feature-settings: 'liga';
 }
-.material-icons { color: rgba(255, 255, 255, 1); }
-.material-icons.md-inactive { color: rgba(255, 255, 255, 0.3); }
+.material-icons {
+    color: rgba(255, 255, 255, 1);
+}
+.material-icons.md-inactive {
+    color: rgba(255, 255, 255, 0.3);
+}
 
 h2 {
-  /* font: 14px Arial, sans-serif; */
-  color: #fff;
-  padding: 10px;
-  text-align: center;
+    /* font: 14px Arial, sans-serif; */
+    color: #fff;
+    padding: 10px;
+    text-align: center;
 }
 
 html,
 body {
-  height: 100%;
+    height: 100%;
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  list-style-type: none;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
 }
 
 #wrapper {
-  height: 100%;
-  position: relative;
-  width: 100%;
-  overflow: auto;
+    height: 100%;
+    max-height: 100vh;
+    position: relative;
+    width: 100%;
+    overflow: auto;
 }
 
+#collapseSidebar {
+    width: 30px;
+    background-color: #333;
+    height: 30px;
+    left: calc(20% - 54px);
+    top: 20px;
+    z-index: 10;
+    position: absolute;
+    border-radius: 20px;
+    box-shadow: 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow;
+    transition: all ease 0.2s;
+}
+#collapseSidebar.collapsed {
+    left: 4px;
+    transition: all ease 0.2s;
+    background-color: greenyellow;
+}
+
+#collapseSidebar:hover {
+    width: 30px;
+    background-color: greenyellow;
+    height: 30px;
+    top: 20px;
+    z-index: 10;
+    position: absolute;
+    border-radius: 20px;
+    box-shadow: 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow,
+        0 0 4px greenyellow, 0 0 4px greenyellow;
+    transition: all ease 0.2s;
+}
+#collapseSidebar:focus {
+    background-color: greenyellow;
+    box-shadow: 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow, 0 0 4px greenyellow,
+        0 0 4px greenyellow, 0 0 4px greenyellow;
+    transition: all ease 0.2s;
+}
 #menuContainer {
-  width: 20%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: #222;
+    width: 20%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #222;
+    max-height: 100vh;
+    overflow: scroll;
+    overflow-x: hidden;
+    transition: all 0.3s ease;
 }
-
+#menuContainer.collapsed {
+    width: 0%;
+    transition: all 0.3s ease;
+}
 #menuContainer li {
-  cursor: move;
-  border-bottom: 1px solid #000;
-  border-top: 1px solid #333;
-  cursor: pointer;
-  padding: 10px 5px;
-  color: #bbb;
-  background: #1a1a1a;
-  /* font: 12px Arial, sans-serif; */
+    cursor: move;
+    border-bottom: 1px solid #000;
+    border-top: 1px solid #333;
+    cursor: pointer;
+    padding: 10px 5px;
+    color: #bbb;
+    background: #1a1a1a;
+    /* font: 12px Arial, sans-serif; */
 }
 
 #menuContainer li:hover {
-  background: #111;
-  color: #ccc;
+    background: #111;
+    color: #ccc;
 }
 
 #layoutContainer {
-  width: 80%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 20%;
-  box-shadow: -3px 0px 9px 0px rgba(0, 0, 0, 0.4);
+    width: 80%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 20%;
+    box-shadow: -3px 0px 9px 0px rgba(0, 0, 0, 0.4);
+    transition: 0.3s all ease;
 }
 
+#layoutContainer.collapsed {
+    width: 100%;
+    left: 0;
+    transition: 0.3s all ease;
+}
+.lm_root {
+    width: 80%;
+}
+.lm_root.collapsed {
+    width: 100vw !important;
+}
 .lm_content {
-  overflow-y: auto;
+    overflow-y: auto;
 }
