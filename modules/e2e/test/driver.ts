@@ -3,7 +3,7 @@ import * as path from 'path';
 import { GameManager, server } from '@starwards/server';
 import { Locator, expect, test } from '@playwright/test';
 
-import { limitPercision } from '@starwards/model';
+import { limitPercision } from '@starwards/core';
 
 export function makeDriver(t: typeof test) {
     let gameManager: GameManager | null = null;

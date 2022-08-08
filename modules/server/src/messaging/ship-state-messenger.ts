@@ -1,4 +1,4 @@
-import { ShipState, getJsonPointer } from '@starwards/model';
+import { ShipState, getJsonPointer } from '@starwards/core';
 
 function getShipNamespace(shipId: string) {
     return `ship/${shipId}`;

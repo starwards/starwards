@@ -2,7 +2,7 @@ import { Blockquote, FrameCorners, Text } from '@arwes/core';
 import { FileRejection, useDropzone } from 'react-dropzone';
 import React, { useCallback, useState } from 'react';
 
-import { AdminDriver } from '@starwards/model';
+import { AdminDriver } from '@starwards/core';
 import fileDownload from 'js-file-download';
 
 const saveFileExtention = '.ssg';

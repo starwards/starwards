@@ -3,7 +3,7 @@ import '@pixi/graphics-extras';
 import { Container, DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
-import { XY } from '@starwards/model';
+import { XY } from '@starwards/core';
 
 type Style = {
     width: number;

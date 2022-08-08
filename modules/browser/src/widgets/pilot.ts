@@ -1,4 +1,4 @@
-import { ShipDriver, SmartPilotMode } from '@starwards/model';
+import { ShipDriver, SmartPilotMode } from '@starwards/core';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';

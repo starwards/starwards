@@ -1,5 +1,5 @@
 import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject, degToRad } from '@starwards/model';
+import { ShipDriver, SpaceDriver, SpaceObject, degToRad } from '@starwards/core';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 

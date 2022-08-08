@@ -29,7 +29,7 @@ jobs:
             - run: env
             - node/install-packages:
                   cache-version: playwright
-            - run: npm run build:model
+            - run: npm run build:core
             - run: npm run build:server
             - run: npm run test:e2e
             - store_test_results:

@@ -12,7 +12,7 @@ const assertRotation = (vec: XY) => (deg: number) =>
         GRACE
     );
 
-describe('model', () => {
+describe('core', () => {
     describe('XY.byLengthAndDirection() ', () => {
         it('is correct angle and length', () =>
             fc.assert(

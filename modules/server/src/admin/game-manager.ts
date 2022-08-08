@@ -9,7 +9,7 @@ import {
     makeShipState,
     resetShipState,
     shipConfigurations,
-} from '@starwards/model';
+} from '@starwards/core';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
 
 import { SavedGame } from '../serialization/game-state-protocol';

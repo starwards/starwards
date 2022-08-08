@@ -2,9 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build:model",
+            "label": "build:core",
             "options": {
-                "cwd": "./modules/model"
+                "cwd": "./modules/core"
             },
             "type": "npm",
             "script": "build:watch",

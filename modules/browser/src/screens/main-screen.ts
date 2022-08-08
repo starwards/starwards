@@ -1,4 +1,4 @@
-import { Driver } from '@starwards/model';
+import { Driver } from '@starwards/core';
 // https://github.com/RaananW/babylonjs-webpack-es6/tree/master/src
 import { Engine } from '@babylonjs/core';
 import { Objects3D } from '../3d/objects';

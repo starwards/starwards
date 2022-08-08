@@ -1,5 +1,5 @@
 import { Client, Room } from 'colyseus';
-import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/model';
+import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/core';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {

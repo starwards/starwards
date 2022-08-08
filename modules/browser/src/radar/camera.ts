@@ -1,8 +1,8 @@
-import { SpaceObject, XY } from '@starwards/model';
+import { SpaceObject, XY } from '@starwards/core';
 
 import { Container } from 'golden-layout';
 import EventEmitter from 'eventemitter3';
-import { SpaceEventEmitter } from '@starwards/model';
+import { SpaceEventEmitter } from '@starwards/core';
 
 interface Screen {
     width: number;

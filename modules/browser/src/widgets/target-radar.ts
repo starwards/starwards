@@ -1,6 +1,5 @@
 import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver } from '@starwards/model';
-import { SpaceEventEmitter, SpaceObject } from '@starwards/model';
+import { ShipDriver, SpaceDriver, SpaceEventEmitter, SpaceObject } from '@starwards/core';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 
 import { Camera } from '../radar/camera';

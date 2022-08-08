@@ -1,5 +1,5 @@
 import { Container, DisplayObject, Graphics, TextStyle } from 'pixi.js';
-import { XY, getSectorName, sectorSize } from '@starwards/model';
+import { XY, getSectorName, sectorSize } from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';

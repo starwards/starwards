@@ -50,7 +50,7 @@
             "name": "run server",
             "type": "pwa-node",
             "request": "launch",
-            "preLaunchTask": "build:model",
+            "preLaunchTask": "build:core",
             "cwd": "${workspaceFolder}",
             "args": ["-r", "ts-node/register/transpile-only", "${workspaceFolder}/modules/server/src/dev.ts"],
             "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],

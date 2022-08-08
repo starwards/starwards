@@ -2,7 +2,7 @@
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
 import React, { Component } from 'react';
 import { ReadProperty, useProperty } from '../react/hooks';
-import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/model';
+import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/core';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';

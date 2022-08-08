@@ -11,7 +11,7 @@ import {
     limitPercisionHard,
     toPositiveDegreesDelta,
     toStrictPositiveDegreesDelta,
-} from '@starwards/model';
+} from '@starwards/core';
 
 import { CameraView } from '../camera-view';
 import { Circle } from 'detect-collisions';

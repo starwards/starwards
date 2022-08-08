@@ -1,6 +1,6 @@
 import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
-import { adminProperties } from '@starwards/model';
+import { adminProperties } from '@starwards/core';
 import path from 'path';
 import { server } from '../server';
 import { stringToSchema } from '../serialization/game-state-serialization';

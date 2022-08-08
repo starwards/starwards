@@ -1,10 +1,9 @@
-import { NumberMapDriver, ShipDriver } from '@starwards/model';
+import { NumberMapDriver, RoomName, ShipDriver } from '@starwards/core';
 import { Panel, PropertyPanel } from '../panel';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
-import { RoomName } from '@starwards/model';
 
 function addMapToPanel(panel: Panel, p: NumberMapDriver<RoomName, string>) {
     const fields = new Set(p.fields);

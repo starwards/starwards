@@ -1,4 +1,4 @@
-import { Asteroid, Faction, Spaceship, Vec2 } from '@starwards/model';
+import { Asteroid, Faction, Spaceship, Vec2 } from '@starwards/core';
 import { GameApi, GameMap } from './admin/scripts-api';
 import { newAsteroid, newShip } from './admin/map-helper';
 

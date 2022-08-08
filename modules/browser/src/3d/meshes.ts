@@ -10,7 +10,7 @@ import {
     Vector3,
 } from '@babylonjs/core';
 
-import { Spaceship } from '@starwards/model';
+import { Spaceship } from '@starwards/core';
 import { placeSkybox } from './skybox';
 import { thruster } from './particles-config';
 

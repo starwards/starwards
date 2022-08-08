@@ -6,7 +6,7 @@ import {
     handleJsonPointerCommand,
     isSetValueCommand,
     spaceProperties,
-} from '@starwards/model';
+} from '@starwards/core';
 
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';

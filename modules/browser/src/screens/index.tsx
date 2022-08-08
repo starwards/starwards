@@ -1,4 +1,4 @@
-import { Driver } from '@starwards/model';
+import { Driver } from '@starwards/core';
 import { Lobby } from '../components/lobby';
 import React from 'react';
 import ReactDOM from 'react-dom';

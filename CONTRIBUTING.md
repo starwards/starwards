@@ -19,7 +19,7 @@ The project is a monorepo, based on [npm workspaces](https://docs.npmjs.com/cli/
 The sub-modules are in the `modules` folder:
 
 -   browser - The web client for the game (including 3D)
--   model - The game core logic and API objects, may be used by client and/or server
+-   core - The game core logic and API objects, may be used by client and/or server
 -   server - The game's server
 -   e2e - not strictly a module. The End-to-End tests reside here.
 
@@ -118,14 +118,14 @@ This project comes pre-configured for [VSCode](https://code.visualstudio.com/). 
 
 Running and debugging requires three running processes.
 
-1. Continously build the model module
+1. Continously build the core module
 
-    Builds the model module and watches for changes. It is recommended to keep it running at the background while making code changes.
+    Builds the core module and watches for changes. It is recommended to keep it running at the background while making code changes.
 
-    In VSCode: The `build:model` task (a button at the left of the statusbar).
+    In VSCode: The `build:core` task (a button at the left of the statusbar).
 
     ```sh
-    cd ./modules/model && npm run build:watch
+    cd ./modules/core && npm run build:watch
     ```
 
 2. Web development server
@@ -137,6 +137,7 @@ Running and debugging requires three running processes.
     ```sh
     cd ./modules/browser && npm start
     ```
+
     Some versions of NodeJS (17) will require adding an extra flag for this command to work:
 
     ```sh
@@ -145,7 +146,7 @@ Running and debugging requires three running processes.
 
 3. API server
 
-    Runs a local development API server (game logic and static files serving) in debug mode. you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `model` modules).
+    Runs a local development API server (game logic and static files serving) in debug mode. you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `core` modules).
 
     In VSCode: The `run server` debug configuration (more about debugging in vscode [Here](https://code.visualstudio.com/docs/editor/debugging))
 
