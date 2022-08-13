@@ -3,7 +3,7 @@ import glob from 'glob';
 import packageJson from './package.json';
 import path from 'path';
 import process from 'process';
-import typescript from '@rollup/plugin-typescript';
+import sucrase from '@rollup/plugin-sucrase';
 
 const allNodeTypes = Object.keys(packageJson['node-red'].nodes);
 const basePath = path
@@ -28,16 +28,9 @@ const makeConfigItem = (nodeType) => ({
                 htmlFiles.map((file) => this.addWatchFile(file));
             },
         },
-        typescript({
-            lib: ['es5', 'es6', 'dom'],
-            include: [
-                `${basePath}src/${nodeType}/${nodeType}.html/**/*.ts`,
-                `${basePath}src/${nodeType}/shared/**/*.ts`,
-                `${basePath}src/shared/**/*.ts`,
-            ],
-            target: 'ES2019',
-            tsconfig: false,
-            noEmitOnError: process.env.ROLLUP_WATCH ? false : true,
+        sucrase({
+            exclude: ['node_modules/**'],
+            transforms: ['typescript', 'imports'],
         }),
         {
             name: 'htmlBundle',

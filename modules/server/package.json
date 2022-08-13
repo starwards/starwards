@@ -7,6 +7,9 @@
         "cjs"
     ],
     "scripts": {
+        "clean": "rimraf ./cjs",
+        "prebuild": "npm run clean",
+        "build": "tsc --module CommonJS --outDir ./cjs",
         "start": "node -r ts-node/register/transpile-only ./src/dev.ts",
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080",
         "test": "jest"

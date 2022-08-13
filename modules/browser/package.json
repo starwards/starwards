@@ -5,6 +5,9 @@
     "private": true,
     "license": "SEE LICENSE IN LICENSE.md",
     "scripts": {
+        "clean": "rimraf ./dist",
+        "prebuild": "npm run clean",
+        "build": "webpack --config ./webpack.prod.js",
         "start": "webpack serve -c ./webpack.dev.js --hot",
         "test": "echo \"no tests here\" && exit 0"
     },

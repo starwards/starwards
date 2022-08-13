@@ -12,7 +12,7 @@ const distPath = path.join(rootPath, 'dist');
 const staticDistPath = path.join(distPath, 'static');
 const serverDistPath = path.join(distPath, 'server');
 const serverModulePath = path.join(rootPath, 'modules', 'server');
-const modelModulePath = path.join(rootPath, 'modules', 'core');
+const coreModulePath = path.join(rootPath, 'modules', 'core');
 const browserModulePath = path.join(rootPath, 'modules', 'browser');
 (async () => {
     try {
@@ -23,7 +23,7 @@ const browserModulePath = path.join(rootPath, 'modules', 'browser');
         await ncp(path.join(rootPath, 'static'), staticDistPath);
         await ncp(path.join(browserModulePath, 'dist'), staticDistPath);
         await ncp(path.join(serverModulePath, 'cjs'), serverDistPath);
-        const { stdout, stderr } = await exec('npm pack ' + modelModulePath, { cwd: distPath });
+        const { stdout, stderr } = await exec('npm pack ' + coreModulePath, { cwd: distPath });
         console.error(stderr);
         console.log(stdout);
         const modulePackageFileName = stdout.trim().split('\n').pop().trim(); // last line is the file name
