@@ -32,9 +32,8 @@
         "clean": "rimraf ./cjs",
         "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
-        "_build": "tsc -p ./tsconfig.runtime.json",
         "build": "tsup-node",
-        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
+        "build:watch": "tsup-node --watch"
     },
     "dependencies": {
         "@colyseus/schema": "^1.0.36",
