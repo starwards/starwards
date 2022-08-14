@@ -32,7 +32,8 @@
         "clean": "rimraf ./cjs",
         "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
-        "build": "tsc -p ./tsconfig.runtime.json",
+        "_build": "tsc -p ./tsconfig.runtime.json",
+        "build": "tsup-node",
         "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
     },
     "dependencies": {
