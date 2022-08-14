@@ -30,8 +30,9 @@
     ],
     "scripts": {
         "clean": "rimraf ./cjs",
+        "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
-        "build": "tsc --module CommonJS --outDir ./cjs",
+        "build": "tsc -p ./tsconfig.runtime.json",
         "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
     },
     "dependencies": {

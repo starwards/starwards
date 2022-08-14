@@ -1,5 +1,5 @@
 import fs from 'fs';
-import glob from 'glob';
+import globby from 'globby';
 import packageJson from './package.json';
 import path from 'path';
 import process from 'process';
@@ -24,7 +24,7 @@ const makeConfigItem = (nodeType) => ({
             name: 'htmlWatch',
             load(id) {
                 const editorDir = path.dirname(id);
-                const htmlFiles = glob.sync(path.join(editorDir, '*.html'));
+                const htmlFiles = globby.sync(path.join(editorDir, '*.html'));
                 htmlFiles.map((file) => this.addWatchFile(file));
             },
         },
@@ -36,7 +36,7 @@ const makeConfigItem = (nodeType) => ({
             name: 'htmlBundle',
             renderChunk(code, chunk) {
                 const editorDir = path.dirname(chunk.facadeModuleId);
-                const htmlFiles = glob.sync(path.join(editorDir, '*.html').replace(/\\/g, '/'));
+                const htmlFiles = globby.sync(path.join(editorDir, '*.html').replace(/\\/g, '/'));
                 const htmlContents = htmlFiles.map((fPath) => fs.readFileSync(fPath));
 
                 code = '<script type="text/javascript">\n' + code + '\n' + '</script>\n' + htmlContents.join('\n');

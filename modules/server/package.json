@@ -8,8 +8,9 @@
     ],
     "scripts": {
         "clean": "rimraf ./cjs",
+        "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
-        "build": "tsc --module CommonJS --outDir ./cjs",
+        "build": "tsc -p ./tsconfig.runtime.json",
         "start": "node -r ts-node/register/transpile-only ./src/dev.ts",
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080",
         "test": "jest"
@@ -22,9 +23,5 @@
         "express": "^4.18.1",
         "express-async-handler": "^1.2.0",
         "express-basic-auth": "^1.2.1"
-    },
-    "pkg": {
-        "scripts": "build/**/*.js",
-        "assets": "views/**/*"
     }
 }

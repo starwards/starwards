@@ -2,38 +2,50 @@
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const globby = require('globby');
 const ncp = util.promisify(require('ncp').ncp);
 const rimraf = util.promisify(require('rimraf'));
 const mkdir = util.promisify(fs.mkdir);
 const writeFile = util.promisify(fs.writeFile);
-const rootPath = path.resolve(__dirname, '..');
+const rootPath = path
+    .relative(process.cwd(), path.resolve(__dirname, '..'))
+    .split(path.sep)
+    .filter((e) => !!e)
+    .map((e) => e + '/')
+    .join('');
+
 const distPath = path.join(rootPath, 'dist');
 const staticDistPath = path.join(distPath, 'static');
-const serverDistPath = path.join(distPath, 'server');
 const serverModulePath = path.join(rootPath, 'modules', 'server');
 const coreModulePath = path.join(rootPath, 'modules', 'core');
 const browserModulePath = path.join(rootPath, 'modules', 'browser');
+
+async function getPackage(modulePath) {
+    const pattern = path.join(modulePath, 'starwards-*.tgz').split(path.sep).join('/');
+    const arr = await globby(pattern);
+    if (!arr.length) {
+        throw new Error('Package not found: ' + pattern);
+    }
+    if (arr.length > 1) {
+        throw new Error('More than one package found: ' + modulePath + ': ' + arr.join());
+    }
+    return arr[0];
+}
 (async () => {
     try {
+        const [serverPackage, corePackage] = await Promise.all([
+            getPackage(serverModulePath),
+            getPackage(coreModulePath),
+        ]);
         await rimraf(distPath);
         await mkdir(distPath);
         await mkdir(staticDistPath);
-        await mkdir(serverDistPath);
         await ncp(path.join(rootPath, 'static'), staticDistPath);
         await ncp(path.join(browserModulePath, 'dist'), staticDistPath);
-        await ncp(path.join(serverModulePath, 'cjs'), serverDistPath);
-        const { stdout, stderr } = await exec('npm pack ' + coreModulePath, { cwd: distPath });
-        console.error(stderr);
-        console.log(stdout);
-        const modulePackageFileName = stdout.trim().split('\n').pop().trim(); // last line is the file name
-        const serverDependencies = require(path.join(serverModulePath, 'package.json')).dependencies;
-        const modelDependencies = require(path.join(serverModulePath, 'package.json')).dependencies;
 
         const dependencies = {
-            ...modelDependencies,
-            ...serverDependencies,
-            '@starwards/core': 'file:./' + modulePackageFileName,
+            '@starwards/core': 'file:../' + corePackage,
+            '@starwards/server': 'file:../' + serverPackage,
         };
 
         await writeFile(
@@ -41,13 +53,13 @@ const browserModulePath = path.join(rootPath, 'modules', 'browser');
             JSON.stringify(
                 {
                     name: 'starwards',
-                    bin: 'server/prod.js',
+                    bin: 'node_modules/@starwards/server/cjs/prod.js',
                     scripts: {
-                        start: 'node server/prod.js',
+                        start: 'node node_modules/@starwards/server/cjs/prod.js',
                     },
                     pkg: {
                         assets: 'static/**/*',
-                        targets: ['node16-win-x64', 'node16-linux-x64', 'node16-osx-x64'],
+                        targets: ['node18-win-x64', 'node18-linux-x64', 'node18-osx-x64'],
                     },
                     dependencies,
                 },
