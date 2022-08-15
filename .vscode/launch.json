@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "test all",
             "program": "${workspaceFolder}/node_modules/jest/.bin/jest",
@@ -17,14 +17,14 @@
             "skipFiles": ["<node_internals>/**"]
         },
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
-            "name": "Test watch current file",
+            "name": "Test current file",
             "program": "${workspaceFolder}/node_modules/jest/.bin/jest",
             "windows": {
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             },
-            "args": ["${fileBasename}", "--verbose", "-i", "--no-cache", "--watchAll", "--testTimeout=100000000"],
+            "args": ["${fileBasename}", "--testTimeout=100000000"],
             "cwd": "${workspaceRoot}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
@@ -32,7 +32,22 @@
             "skipFiles": ["<node_internals>/**"]
         },
         {
-            "type": "pwa-node",
+            "type": "node",
+            "request": "launch",
+            "name": "Test watch current file",
+            "program": "${workspaceFolder}/node_modules/jest/.bin/jest",
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            },
+            "args": ["${fileBasename}", "--watch", "--testTimeout=100000000"],
+            "cwd": "${workspaceRoot}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
+            "skipFiles": ["<node_internals>/**"]
+        },
+        {
+            "type": "node",
             "request": "launch",
             "name": "debug e2e test",
             "program": "${workspaceFolder}/node_modules/@playwright/test/cli.js",
@@ -48,7 +63,7 @@
         },
         {
             "name": "run server",
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "preLaunchTask": "build:core",
             "cwd": "${workspaceFolder}",

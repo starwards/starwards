@@ -1,11 +1,8 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
-
 const baseConfig = {
     testPathIgnorePatterns: ['/node_modules/', '/cjs/'],
-    preset: 'ts-jest/presets/js-with-ts',
     testEnvironment: 'node',
     transform: {
-        '^.+\\.(ts|js|tsx|jsx)$': 'ts-jest',
+        '^.+\\.tsx?$': ['esbuild-jest', { sourcemap: true }],
     },
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
@@ -13,18 +10,7 @@ const baseConfig = {
         '^@starwards/([a-zA-Z0-9$_-]+)$': '<rootDir>/modules/$1/src',
         '^@starwards/([a-zA-Z0-9$_-]+)/(.*)$': '<rootDir>/modules/$1/$2',
     },
-    globals: {
-        'ts-jest': {
-            diagnostics: {
-                warnOnly: true,
-            },
-            isolatedModules: true,
-            tsConfig: {
-                target: 'es2019',
-                experimentalDecorators: true,
-            },
-        },
-    },
+    watchman: false,
 };
 
 module.exports = {

@@ -9,7 +9,6 @@ import { maps } from '@starwards/server';
 const { test_map_1 } = maps;
 type FlowsItem = TestFlowsItem<NodeDef & StarwardsConfigOptions>;
 type Flows = Array<FlowsItem>;
-
 helper.init(require.resolve('node-red'));
 
 describe('starwards-config', () => {
