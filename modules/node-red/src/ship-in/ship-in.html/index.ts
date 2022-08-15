@@ -14,6 +14,10 @@ RED.nodes.registerType<ShipInEditorNodeProperties>('ship-in', {
         configNode: { value: '', type: 'starwards-config' },
         shipId: { value: '', required: true },
         pattern: { value: '**', required: true },
+        checkEvery: {
+            value: 1000,
+            validate: (v: string) => v !== '' && Number(v) > 0,
+        },
     },
     inputs: 0,
     outputs: 1,

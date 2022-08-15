@@ -11,6 +11,7 @@ export interface ShipInOptions {
     configNode: string;
     shipId: string;
     pattern: string;
+    checkEvery: number;
 }
 export interface ShipInNode extends Node {
     configNode: StarwardsConfigNode;
@@ -20,6 +21,9 @@ export interface ShipInNode extends Node {
     lastGameError: unknown;
 }
 
+function isErrorLike(e: unknown): e is { message: string } {
+    return typeof (e as Error)?.message === 'string';
+}
 function handleError(node: ShipInNode) {
     const e = node.lastGameError;
     if (!e) {
@@ -31,7 +35,7 @@ function handleError(node: ShipInNode) {
         } else {
             node.status({ fill: 'red', shape: 'ring', text: `code ${e.code}` });
         }
-    } else if (e instanceof Error) {
+    } else if (e instanceof Error || isErrorLike(e)) {
         node.status({ fill: 'red', shape: 'ring', text: 'err:' + e.message });
     } else {
         node.status({ fill: 'red', shape: 'ring', text: JSON.stringify(e) });
@@ -39,7 +43,7 @@ function handleError(node: ShipInNode) {
     return true;
 }
 
-function nodeLogic(node: ShipInNode, { pattern, shipId }: ShipInOptions) {
+function nodeLogic(node: ShipInNode, { pattern, shipId, checkEvery }: ShipInOptions) {
     const handleStateEvent = (e: Event) => {
         node.send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value } as NodeMessage);
     };
@@ -85,7 +89,7 @@ function nodeLogic(node: ShipInNode, { pattern, shipId }: ShipInOptions) {
             node.lastGameError = e;
         }
         handleError(node);
-    }, 1000);
+    }, checkEvery);
 
     statusLoop.start();
     node.destructors.add(statusLoop.stop);

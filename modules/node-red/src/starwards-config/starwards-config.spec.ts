@@ -7,8 +7,8 @@ import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
-type FlowsItem = TestFlowsItem<NodeDef & StarwardsConfigOptions>;
-type Flows = Array<FlowsItem>;
+type StarwardsConfigFlowItem = { type: 'starwards-config' } & TestFlowsItem<NodeDef & StarwardsConfigOptions>;
+type Flows = Array<StarwardsConfigFlowItem>;
 helper.init(require.resolve('node-red'));
 
 describe('starwards-config', () => {
@@ -21,7 +21,7 @@ describe('starwards-config', () => {
         await new Promise<void>((done) => helper.stopServer(done));
     });
 
-    it('should be loaded', async () => {
+    it('loads', async () => {
         const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: 'http://localhost/' }];
         await helper.load(starwardsConfigNode, flows);
         const n1 = helper.getNode('n1') as StarwardsConfigNode;
