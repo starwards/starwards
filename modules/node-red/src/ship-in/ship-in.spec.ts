@@ -22,25 +22,32 @@ const initNodes: NodeInitializer = async (NODE) => {
 };
 helper.init(require.resolve('node-red'));
 
-async function load(flows: Flows) {
-    await helper.load(initNodes, flows);
-    const node = helper.getNode('n1') as ShipInNode & SpiedNode;
-    expect(node).toBeTruthy();
-    async function waitForStatus(expected: Partial<NodeStatus>, timeout = 5_000): Promise<void> {
+async function waitFor<T>(body: () => T | Promise<T>, timeout: number): Promise<T> {
+    let error: unknown = new Error('timeout is not a positive number');
+    while (timeout > 0) {
         const startTime = Date.now();
         try {
-            expect(node.status.callCount).toBeGreaterThan(0);
-            expect(node.status.lastCall.firstArg).toEqual(expected);
-            return;
+            return await body();
         } catch (e) {
-            if (timeout < 0) {
-                throw e;
-            }
-            await setTimeout(20);
-            return waitForStatus(expected, timeout - (Date.now() - startTime));
+            error = e;
         }
+        await setTimeout(20);
+        timeout -= Date.now() - startTime;
     }
-    return { node, waitForStatus };
+    throw error;
+}
+
+function getNode(id: string) {
+    const node = helper.getNode(id) as ShipInNode & SpiedNode;
+    expect(node).toBeTruthy();
+    return {
+        node,
+        waitForStatus: (expected: Partial<NodeStatus>) =>
+            waitFor(() => {
+                expect(node.status.callCount).toBeGreaterThan(0);
+                expect(node.status.lastCall.firstArg).toEqual(expected);
+            }, 5_000),
+    };
 }
 
 describe('ship-in', () => {
@@ -55,7 +62,8 @@ describe('ship-in', () => {
 
     it('loads', async () => {
         const flows: Flows = [{ id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' }];
-        const { waitForStatus } = await load(flows);
+        await helper.load(initNodes, flows);
+        const { waitForStatus } = getNode('n1');
         await waitForStatus({ fill: 'red', shape: 'ring', text: 'Server config missing or inactive' });
     });
 
@@ -65,7 +73,8 @@ describe('ship-in', () => {
                 { id: 'n0', type: 'starwards-config', url: 'http://localhost/' },
                 { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0', checkEvery: 10 },
             ];
-            const { waitForStatus } = await load(flows);
+            await helper.load(initNodes, flows);
+            const { waitForStatus } = getNode('n1');
             await waitForStatus({ fill: 'red', shape: 'ring', text: 'err:connect ECONNREFUSED ::1:80' });
         });
     });
