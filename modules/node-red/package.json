@@ -6,6 +6,7 @@
         "clean": "rimraf ./dist",
         "build:copy": "copyfiles -u 1 \"src/*/icons/*.{png,svg}\" \"./dist/\"",
         "prebuild": "npm run clean",
+        "postbuild": "npm pack --quiet",
         "build:editor": "rollup -c rollup.config.editor.js",
         "build:runtime": "tsc -p tsconfig.runtime.json",
         "build": "concurrently --kill-others-on-fail -c blue,yellow,magenta \"npm:build:*\""
