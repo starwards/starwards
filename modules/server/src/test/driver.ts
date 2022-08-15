@@ -20,6 +20,10 @@ export function makeDriver() {
         await gameManager?.stopGame();
     });
     return {
+        get addressInfo() {
+            if (!serverInfo) throw new Error('missing serverInfo');
+            return serverInfo.addressInfo;
+        },
         get httpServer() {
             if (!serverInfo) throw new Error('missing serverInfo');
             return serverInfo.httpServer;

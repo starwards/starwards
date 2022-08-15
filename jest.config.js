@@ -10,7 +10,8 @@ const baseConfig = {
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
-        '^@starwards/(.+)': '<rootDir>/modules/$1/src',
+        '^@starwards/([a-zA-Z0-9$_-]+)$': '<rootDir>/modules/$1/src',
+        '^@starwards/([a-zA-Z0-9$_-]+)/(.*)$': '<rootDir>/modules/$1/$2',
     },
     globals: {
         'ts-jest': {

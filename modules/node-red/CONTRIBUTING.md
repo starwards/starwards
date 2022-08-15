@@ -24,11 +24,11 @@ node-red/                            * root of the project
  │       │   ├──help.html            * html template for the help in the info tab
  │       │   ├──index.ts             * entry file
  │       │   ├── *.ts                * other runtime files for the editor side
- │       │   └── *.test.ts           * tests
+ │       │   └── *.spec.ts           * tests
  │       │
  |       ├──<node-name>.ts           * entry file for the runtime side (<node-name>.js file) of the node
  |       ├── *.ts                    * other runtime files for the runtime side
- |       └── *.test.ts               * tests
+ |       └── *.spec.ts               * tests
  |
  ├──package.json                     * dependencies and node types for the Node-RED runtime to load
  ├──rollup.config.editor.json        * rollup config for building the editor side of the nodes
