@@ -39,7 +39,7 @@
             "windows": {
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             },
-            "args": ["${fileBasename}", "--watch", "--testTimeout=100000000"],
+            "args": ["${fileBasename}", "--verbose", "-i", "--no-cache", "--watchAll", "--testTimeout=100000000"],
             "cwd": "${workspaceRoot}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
