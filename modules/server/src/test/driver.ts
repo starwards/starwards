@@ -8,16 +8,12 @@ import { stringToSchema } from '../serialization/game-state-serialization';
 export function makeDriver() {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
-    beforeAll(async () => {
+    beforeEach(async () => {
         gameManager = new GameManager();
         serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
     });
-    afterAll(async () => {
-        await serverInfo?.close();
-    });
-
     afterEach(async () => {
-        await gameManager?.stopGame();
+        await serverInfo?.close();
     });
     return {
         get addressInfo() {

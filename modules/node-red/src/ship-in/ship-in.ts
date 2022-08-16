@@ -75,6 +75,7 @@ function nodeLogic(node: ShipInNode, { pattern, shipId, checkEvery }: ShipInOpti
                 return;
             }
             node.status({ fill: 'blue', shape: 'ring', text: 'connecting' });
+            node.lastGameError = null;
             const shipDriver = await node.configNode.driver.getShipDriver(shipId).catch((e: unknown) => {
                 node.lastGameError = e;
             });

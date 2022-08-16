@@ -1,9 +1,9 @@
 import { Node, NodeDef, NodeInitializer, NodeMessage, NodeStatus } from 'node-red';
 import helper, { TestFlowsItem } from 'node-red-node-test-helper';
 import shipInConfigNode, { ShipInOptions } from './ship-in/ship-in';
-import sinon, { SinonSpy } from 'sinon';
 import starwardsConfigNode, { StarwardsConfigOptions } from './starwards-config/starwards-config';
 
+import { SinonSpy } from 'sinon';
 import { setTimeout } from 'timers/promises';
 
 type SpiedNode = {
@@ -12,7 +12,6 @@ type SpiedNode = {
     warn: SinonSpy;
     log: SinonSpy;
     status: SinonSpy;
-    send: SinonSpy;
 };
 type StarwardsConfigFlowItem = { type: 'starwards-config' } & TestFlowsItem<NodeDef & StarwardsConfigOptions>;
 type ShipInFlowItem = { type: 'ship-in' } & TestFlowsItem<NodeDef & ShipInOptions>;
@@ -42,7 +41,18 @@ async function waitFor<T>(body: () => T | Promise<T>, timeout: number): Promise<
 export function getNode<T extends Node = Node>(id: string) {
     const node = helper.getNode(id) as T & SpiedNode;
     expect(node).toBeTruthy();
-    sinon.spy(node, 'send');
+    const output: NodeMessage[] = [];
+    node.send = (msg?: NodeMessage | Array<NodeMessage | NodeMessage[] | null>) => {
+        if (Array.isArray(msg)) {
+            for (const m of msg.flat()) {
+                if (m) {
+                    output.push(m);
+                }
+            }
+        } else if (msg) {
+            output.push(msg);
+        }
+    };
     return {
         node,
         waitForStatus: (expected: Partial<NodeStatus>) =>
@@ -50,10 +60,10 @@ export function getNode<T extends Node = Node>(id: string) {
                 expect(node.status.callCount).toBeGreaterThan(0);
                 expect(node.status.lastCall.firstArg).toEqual(expected);
             }, 5_000),
-        waitForOutput: (expected: Partial<NodeMessage>) =>
-            waitFor(() => {
-                expect(node.send.callCount).toBeGreaterThan(0);
-                expect(node.send.calledWith(expected)).toEqual(true);
-            }, 5_000),
+        waitForOutput: (msg: Partial<NodeMessage>) => {
+            return waitFor(() => {
+                expect(output).toEqual(expect.arrayContaining([msg]));
+            }, 5_000);
+        },
     };
 }

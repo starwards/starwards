@@ -41,6 +41,7 @@ describe('ship-in', () => {
 
         beforeEach(async () => {
             await gameDriver.gameManager.startGame(test_map_1);
+            // gameDriver.pauseGameCommand();
         });
 
         it('detects game status ', async () => {
@@ -61,8 +62,9 @@ describe('ship-in', () => {
             await helper.load(initNodes, flows);
             const { waitForOutput, waitForStatus } = getNode<ShipInNode>('n1');
             await waitForStatus({ fill: 'green', shape: 'dot', text: 'connected' });
+            const eventPromise = waitForOutput({ topic: '/chainGunAmmo', payload: 1234 });
             gameDriver.getShip('GVTS').state.chainGunAmmo = 1234;
-            await waitForOutput({ topic: '/chainGunAmmo', payload: 1234 });
+            await eventPromise;
         });
     });
 });

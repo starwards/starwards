@@ -78,6 +78,7 @@ export class GameManager {
     public async startGame(map: GameMap) {
         if (!this.state.isGameRunning) {
             this.state.isGameRunning = true;
+            this.state.speed = 1;
             this.map = map;
             this.ships = new Map<string, ShipManager>();
             this.spaceManager = new SpaceManager();
