@@ -4,5 +4,5 @@
     "compilerOptions": {
         "paths": { "@starwards/core": ["../core/cjs"] }
     },
-    "exclude": ["node_modules", "src/**/*.test.ts", "src/*/*.html"]
+    "exclude": ["node_modules", "src/**/*.spec.ts", "src/*/*.html"]
 }

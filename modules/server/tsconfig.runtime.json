@@ -5,5 +5,5 @@
         "outDir": "cjs",
         "paths": { "@starwards/core": ["../core/cjs"] }
     },
-    "exclude": ["node_modules", "src/**/*.test.ts"]
+    "exclude": ["node_modules", "src/**/*.spec.ts"]
 }
