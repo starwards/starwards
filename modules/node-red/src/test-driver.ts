@@ -1,15 +1,10 @@
 import { Node, NodeDef, NodeInitializer, NodeMessage, NodeStatus } from 'node-red';
 import helper, { TestFlowsItem } from 'node-red-node-test-helper';
-import shipInConfigNode, { ShipInNode, ShipInOptions } from './ship-in/ship-in';
+import shipInConfigNode, { ShipInOptions } from './ship-in/ship-in';
+import sinon, { SinonSpy } from 'sinon';
 import starwardsConfigNode, { StarwardsConfigOptions } from './starwards-config/starwards-config';
 
-import { SinonSpy } from 'sinon';
-import { makeDriver } from '@starwards/server/src/test/driver';
-import { maps } from '@starwards/server';
 import { setTimeout } from 'timers/promises';
-import sinon from 'sinon';
-
-const { test_map_1 } = maps;
 
 type SpiedNode = {
     trace: SinonSpy;
