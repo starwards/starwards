@@ -1,15 +1,12 @@
-import helper, { TestFlowsItem } from 'node-red-node-test-helper';
-import starwardsConfigNode, { StarwardsConfigNode, StarwardsConfigOptions } from './starwards-config';
+import { Flows, getNode, initNodes } from '../test-driver';
 
 import { Driver } from '@starwards/core';
-import { NodeDef } from 'node-red';
+import { StarwardsConfigNode } from './starwards-config';
+import helper from 'node-red-node-test-helper';
 import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
-type StarwardsConfigFlowItem = { type: 'starwards-config' } & TestFlowsItem<NodeDef & StarwardsConfigOptions>;
-type Flows = Array<StarwardsConfigFlowItem>;
-helper.init(require.resolve('node-red'));
 
 describe('starwards-config', () => {
     beforeEach((done) => {
@@ -23,10 +20,9 @@ describe('starwards-config', () => {
 
     it('loads', async () => {
         const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: 'http://localhost/' }];
-        await helper.load(starwardsConfigNode, flows);
-        const n1 = helper.getNode('n1') as StarwardsConfigNode;
-        expect(n1).toBeTruthy();
-        expect(n1.driver).toBeInstanceOf(Driver);
+        await helper.load(initNodes, flows);
+        const { node } = getNode<StarwardsConfigNode>('n1');
+        expect(node.driver).toBeInstanceOf(Driver);
     });
 
     describe('integration with server', () => {
@@ -36,11 +32,11 @@ describe('starwards-config', () => {
             const flows: Flows = [
                 { id: 'n1', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
             ];
-            await helper.load(starwardsConfigNode, flows);
-            const n1 = helper.getNode('n1') as StarwardsConfigNode;
-            expect(await n1.driver.isActiveGame()).toEqual(false);
+            await helper.load(initNodes, flows);
+            const { node } = getNode<StarwardsConfigNode>('n1');
+            expect(await node.driver.isActiveGame()).toEqual(false);
             await gameDriver.gameManager.startGame(test_map_1);
-            expect(await n1.driver.isActiveGame()).toEqual(true);
+            expect(await node.driver.isActiveGame()).toEqual(true);
         });
     });
 });

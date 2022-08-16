@@ -45,6 +45,13 @@ export function makeDriver() {
             // @ts-ignore : access private field
             return gameManager.ships;
         },
+        getShip(id: string) {
+            if (!gameManager) throw new Error('missing gameManager');
+            // @ts-ignore : access private field
+            const ship = gameManager.ships.get(id);
+            if (!ship) throw new Error('missing ship ' + id);
+            return ship;
+        },
         get map() {
             if (!gameManager) throw new Error('missing gameManager');
             // @ts-ignore : access private field

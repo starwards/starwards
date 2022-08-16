@@ -1,54 +1,11 @@
-import { NodeDef, NodeInitializer, NodeStatus } from 'node-red';
-import helper, { TestFlowsItem } from 'node-red-node-test-helper';
-import shipInConfigNode, { ShipInNode, ShipInOptions } from './ship-in';
-import starwardsConfigNode, { StarwardsConfigOptions } from '../starwards-config/starwards-config';
-import { SinonSpy } from 'sinon';
-import { setTimeout } from 'timers/promises';
+import { Flows, getNode, initNodes } from '../test-driver';
 
-type SpiedNode = {
-    trace: SinonSpy;
-    debug: SinonSpy;
-    warn: SinonSpy;
-    log: SinonSpy;
-    status: SinonSpy;
-    send: SinonSpy;
-};
-type StarwardsConfigFlowItem = { type: 'starwards-config' } & TestFlowsItem<NodeDef & StarwardsConfigOptions>;
-type ShipInFlowItem = { type: 'ship-in' } & TestFlowsItem<NodeDef & ShipInOptions>;
-type Flows = Array<ShipInFlowItem | StarwardsConfigFlowItem>;
-const initNodes: NodeInitializer = async (NODE) => {
-    await starwardsConfigNode(NODE);
-    await shipInConfigNode(NODE);
-};
-helper.init(require.resolve('node-red'));
+import { ShipInNode } from './ship-in';
+import helper from 'node-red-node-test-helper';
+import { makeDriver } from '@starwards/server/src/test/driver';
+import { maps } from '@starwards/server';
 
-async function waitFor<T>(body: () => T | Promise<T>, timeout: number): Promise<T> {
-    let error: unknown = new Error('timeout is not a positive number');
-    while (timeout > 0) {
-        const startTime = Date.now();
-        try {
-            return await body();
-        } catch (e) {
-            error = e;
-        }
-        await setTimeout(20);
-        timeout -= Date.now() - startTime;
-    }
-    throw error;
-}
-
-function getNode(id: string) {
-    const node = helper.getNode(id) as ShipInNode & SpiedNode;
-    expect(node).toBeTruthy();
-    return {
-        node,
-        waitForStatus: (expected: Partial<NodeStatus>) =>
-            waitFor(() => {
-                expect(node.status.callCount).toBeGreaterThan(0);
-                expect(node.status.lastCall.firstArg).toEqual(expected);
-            }, 5_000),
-    };
-}
+const { test_map_1 } = maps;
 
 describe('ship-in', () => {
     beforeEach((done) => {
@@ -76,6 +33,36 @@ describe('ship-in', () => {
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode('n1');
             await waitForStatus({ fill: 'red', shape: 'ring', text: 'err:connect ECONNREFUSED ::1:80' });
+        });
+    });
+
+    describe('integration with server', () => {
+        const gameDriver = makeDriver();
+
+        beforeEach(async () => {
+            await gameDriver.gameManager.startGame(test_map_1);
+        });
+
+        it('detects game status ', async () => {
+            const flows: Flows = [
+                { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
+                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0', checkEvery: 10 },
+            ];
+            await helper.load(initNodes, flows);
+            const { waitForStatus } = getNode<ShipInNode>('n1');
+            await waitForStatus({ fill: 'green', shape: 'dot', text: 'connected' });
+        });
+
+        it('sends ship state changes', async () => {
+            const flows: Flows = [
+                { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
+                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0', checkEvery: 10 },
+            ];
+            await helper.load(initNodes, flows);
+            const { waitForOutput, waitForStatus } = getNode<ShipInNode>('n1');
+            await waitForStatus({ fill: 'green', shape: 'dot', text: 'connected' });
+            gameDriver.getShip('GVTS').state.chainGunAmmo = 1234;
+            await waitForOutput({ topic: '/chainGunAmmo', payload: 1234 });
         });
     });
 });
