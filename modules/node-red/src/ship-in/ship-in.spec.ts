@@ -37,7 +37,7 @@ describe('ship-in', () => {
                 expect.objectContaining({
                     fill: 'red',
                     shape: 'ring',
-                    text: expect.stringMatching(/^err:connect ECONNREFUSED .*:80$/) as unknown,
+                    text: expect.stringContaining('ECONNREFUSED') as unknown,
                 }) as NodeStatus
             );
         });
