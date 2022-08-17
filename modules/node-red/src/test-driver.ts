@@ -59,11 +59,11 @@ export function getNode<T extends Node = Node>(id: string) {
             waitFor(() => {
                 expect(node.status.callCount).toBeGreaterThan(0);
                 expect(node.status.lastCall.firstArg).toEqual(expected);
-            }, 5_000),
+            }, 3_000),
         waitForOutput: (msg: Partial<NodeMessage>) => {
             return waitFor(() => {
                 expect(output).toEqual(expect.arrayContaining([msg]));
-            }, 5_000);
+            }, 3_000);
         },
     };
 }
