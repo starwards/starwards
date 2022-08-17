@@ -15,6 +15,7 @@ jobs:
                   cache-version: default
             - run: npm run test:types
             - run: npm run test:format
+            - run: npm run build
     Test-E2e:
         docker:
             - image: mcr.microsoft.com/playwright:v1.22.2
