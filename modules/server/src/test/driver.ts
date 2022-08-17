@@ -13,6 +13,7 @@ export function makeDriver() {
         serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
     });
     afterEach(async () => {
+        await gameManager?.stopGame();
         await serverInfo?.close();
     });
     return {
