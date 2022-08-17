@@ -95,4 +95,4 @@ typings/
 ngrok.*
 assets
 test-results
-tsconfig.tsbuildinfo
+*.tsbuildinfo

@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "commonjs",
+        "outDir": "cjs",
+        "paths": { "@starwards/*": ["core should not import other modules"] },
+        "incremental": false,
+        "strict": false,
+        "strictPropertyInitialization": false,
+        "useDefineForClassFields": false
+    },
+    "exclude": ["node_modules", "src/**/*.spec.ts"]
+}

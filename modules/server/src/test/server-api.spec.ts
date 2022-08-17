@@ -6,7 +6,7 @@ import supertest from 'supertest';
 describe('server-API', () => {
     const gameDriver = makeDriver();
 
-    test('start and stop a game (using gameManager API directly)', async () => {
+    it('start and stop a game (using gameManager API directly)', async () => {
         expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
         expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
@@ -14,7 +14,7 @@ describe('server-API', () => {
         expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
     });
 
-    test('save game when not running returns 409 conflict', async () => {
+    it('save game when not running returns 409 conflict', async () => {
         const response = await supertest(gameDriver.httpServer).post('/save-game');
         expect(response.status).toEqual(HTTP_CONFLICT_STATUS);
     });
@@ -30,23 +30,23 @@ describe('server-API', () => {
         // because zipped result is environment-dependent and sometimes depends on timestamps
         // see https://stackoverflow.com/a/26521451/11813
 
-        test('regression test: compatibility with saved games from older version', async () => {
+        it('regression test: compatibility with saved games from older version', async () => {
             const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
             expect(await getUnzipped(response.text)).toMatchSnapshot('test_map_1-save-game');
         });
 
-        test('two save game operations return same data', async () => {
+        it('two save game operations return same data', async () => {
             const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
             const response2 = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
             expect(await getUnzipped(response.text)).toEqual(await getUnzipped(response2.text));
         });
 
-        test('saved game contains same data as game state', async () => {
+        it('saved game contains same data as game state', async () => {
             const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
             await gameDriver.assertSameState(response.text);
         });
 
-        test('load saved game retains data', async () => {
+        it('load saved game retains data', async () => {
             // create a save game
             const firstSaveGame = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
             const savedGameRawData = firstSaveGame.text;

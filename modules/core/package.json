@@ -29,17 +29,23 @@
         "src"
     ],
     "scripts": {
-        "build:watch": "tsc -p ./tsconfig.json --module CommonJS --outDir ./cjs --watch"
+        "clean": "rimraf ./cjs",
+        "postbuild": "npm pack --quiet",
+        "prebuild": "npm run clean",
+        "build": "tsup-node",
+        "build:watch": "tsup-node --watch"
     },
     "dependencies": {
         "@colyseus/schema": "^1.0.36",
         "colyseus-events": "^2.1.0",
+        "colyseus.js": "^0.14.13",
         "detect-collisions": "^6.3.5",
         "eventemitter2": "^6.4.7",
         "json-ptr": "^3.1.1",
         "nanoid": "^3.3.4",
         "normal-distribution": "^1.1.1",
         "reflect-metadata": "^0.1.13",
+        "ts-essentials": "^9.2.0",
         "tslib": "^2.4.0"
     }
 }

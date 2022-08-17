@@ -1,0 +1,25 @@
+{
+    "name": "@starwards/node-red",
+    "version": "0.0.2",
+    "description": "Starwards nodes for Node-RED",
+    "scripts": {
+        "clean": "rimraf ./dist",
+        "build:copy": "copyfiles -u 1 \"src/*/icons/*.{png,svg}\" \"./dist/\"",
+        "prebuild": "npm run clean",
+        "postbuild": "npm pack --quiet",
+        "build:editor": "rollup -c rollup.config.editor.js",
+        "build:runtime": "tsc -p tsconfig.runtime.json",
+        "build": "concurrently --kill-others-on-fail -c blue,yellow,magenta \"npm:build:*\""
+    },
+    "author": "amir-arad <greenshade@gmail.com>",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "node-red": {
+        "nodes": {
+            "ship-in": "./dist/ship-in/ship-in.js",
+            "starwards-config": "./dist/starwards-config/starwards-config.js"
+        }
+    },
+    "dependencies": {
+        "@starwards/core": "0.0.2"
+    }
+}

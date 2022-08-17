@@ -8,18 +8,19 @@ import { stringToSchema } from '../serialization/game-state-serialization';
 export function makeDriver() {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
-    beforeAll(async () => {
+    beforeEach(async () => {
         gameManager = new GameManager();
         serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
     });
-    afterAll(async () => {
-        await serverInfo?.close();
-    });
-
     afterEach(async () => {
         await gameManager?.stopGame();
+        await serverInfo?.close();
     });
     return {
+        get addressInfo() {
+            if (!serverInfo) throw new Error('missing serverInfo');
+            return serverInfo.addressInfo;
+        },
         get httpServer() {
             if (!serverInfo) throw new Error('missing serverInfo');
             return serverInfo.httpServer;
@@ -40,6 +41,13 @@ export function makeDriver() {
             if (!gameManager) throw new Error('missing gameManager');
             // @ts-ignore : access private field
             return gameManager.ships;
+        },
+        getShip(id: string) {
+            if (!gameManager) throw new Error('missing gameManager');
+            // @ts-ignore : access private field
+            const ship = gameManager.ships.get(id);
+            if (!ship) throw new Error('missing ship ' + id);
+            return ship;
         },
         get map() {
             if (!gameManager) throw new Error('missing gameManager');

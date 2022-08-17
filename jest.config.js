@@ -1,28 +1,14 @@
-/** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
-
 const baseConfig = {
-    testPathIgnorePatterns: ['/node_modules/', '/cjs/'],
-    preset: 'ts-jest/presets/js-with-ts',
+    testPathIgnorePatterns: ['/node_modules/', '/cjs/', '/dist/'],
     testEnvironment: 'node',
     transform: {
-        '^.+\\.(ts|js|tsx|jsx)$': 'ts-jest',
+        '^.+\\.tsx?$': ['esbuild-jest', { sourcemap: true }],
     },
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
-        '^@starwards/(.+)': '<rootDir>/modules/$1/src',
-    },
-    globals: {
-        'ts-jest': {
-            diagnostics: {
-                warnOnly: true,
-            },
-            isolatedModules: true,
-            tsConfig: {
-                target: 'es2019',
-                experimentalDecorators: true,
-            },
-        },
+        '^@starwards/([a-zA-Z0-9$_-]+)$': '<rootDir>/modules/$1/src',
+        '^@starwards/([a-zA-Z0-9$_-]+)/(.*)$': '<rootDir>/modules/$1/$2',
     },
 };
 
@@ -31,12 +17,17 @@ module.exports = {
         {
             ...baseConfig,
             displayName: 'server',
-            testRegex: 'modules/server/.*\\.spec\\.(ts|js|tsx|jsx)$',
+            testRegex: 'modules/server/.*\\.spec\\.ts$',
         },
         {
             ...baseConfig,
             displayName: 'core',
-            testRegex: 'modules/core/.*\\.spec\\.(ts|js|tsx|jsx)$',
+            testRegex: 'modules/core/.*\\.spec\\.ts$',
+        },
+        {
+            ...baseConfig,
+            displayName: 'node-red',
+            testRegex: 'modules/node-red/.*\\.spec\\.ts$',
         },
     ],
 };

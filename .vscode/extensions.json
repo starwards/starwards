@@ -2,10 +2,9 @@
     "recommendations": [
         "dbaeumer.vscode-eslint",
         "amatiasq.sort-imports",
-        "fabiospampinato.vscode-commands",
-        "jvandyke.vscode-circleci",
         "esbenp.prettier-vscode",
         "eamodio.gitlens",
-        "actboy168.tasks"
+        "actboy168.tasks",
+        "segevfiner.tsup-problem-matcher"
     ]
 }

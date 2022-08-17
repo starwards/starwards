@@ -14,17 +14,12 @@ module.exports = {
         rules: [
             {
                 test: /\.tsx?$/,
-                use: [
-                    {
-                        loader: 'ts-loader',
-                        options: {
-                            // disable type checker - use fork-ts-checker-webpack-plugin if must
-                            transpileOnly: true,
-                            onlyCompileBundledFiles: true,
-                            configFile: path.resolve(__dirname, 'tsconfig.json'),
-                        },
-                    },
-                ],
+                loader: 'esbuild-loader',
+                options: {
+                    loader: 'tsx',
+                    target: 'es2020',
+                    tsconfigRaw: require('./tsconfig.json'),
+                },
             },
             {
                 test: /\.(png|woff|woff2|eot|ttf|svg)$/,
@@ -66,7 +61,7 @@ module.exports = {
         }),
     ],
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'], // ,
-        plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('../../tsconfig.json') })],
+        extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'],
+        plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.json') })],
     },
 };

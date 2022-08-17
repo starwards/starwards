@@ -1,7 +1,5 @@
-import { AdminDriver, Driver } from '@starwards/core';
+import { AdminDriver, Driver, TaskLoop } from '@starwards/core';
 import { DependencyList, useEffect, useRef, useState } from 'react';
-
-import { TaskLoop } from '../task-loop';
 
 export function useConstant<T>(init: () => T): T {
     const ref = useRef<{ v: T } | null>(null);
