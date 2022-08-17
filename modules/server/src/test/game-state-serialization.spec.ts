@@ -18,23 +18,23 @@ describe('game-state-serialization', () => {
         src.value.set('k1', 1);
         src.value.set('k2', 2);
         const dist = await stringToSchema(TestMapSchema, await schemaToString(src));
-        expect(dist).toEqual(src);
+        expect(dist.toJSON()).toEqual(src.toJSON());
     });
 
     it('carbon-copy ModelParams', async () => {
         const src = new ModelParams({ k1: 1 });
         const dist = await stringToSchema(ModelParams, await schemaToString(src));
-        expect(dist).toEqual(src);
+        expect(dist.toJSON()).toEqual(src.toJSON());
     });
 
     it('multi carbon-copy ModelParams', async () => {
         const src = new ModelParams({ k1: 1 });
         const firstString = await schemaToString(src);
         const dist1 = await stringToSchema(ModelParams, firstString);
-        expect(dist1).toEqual(src);
+        expect(dist1.toJSON()).toEqual(src.toJSON());
         const secondString = await schemaToString(dist1);
         expect(await getUnzipped(secondString)).toEqual(await getUnzipped(firstString));
         const dist2 = await stringToSchemaObject(new ModelParams(), secondString);
-        expect(dist2).toEqual(src);
+        expect(dist2.toJSON()).toEqual(src.toJSON());
     });
 });
