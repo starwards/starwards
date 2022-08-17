@@ -1,5 +1,6 @@
 import { Flows, getNode, initNodes } from '../test-driver';
 
+import { NodeStatus } from 'node-red';
 import { ShipInNode } from './ship-in';
 import helper from 'node-red-node-test-helper';
 import { makeDriver } from '@starwards/server/src/test/driver';
@@ -32,7 +33,13 @@ describe('ship-in', () => {
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode('n1');
-            await waitForStatus({ fill: 'red', shape: 'ring', text: 'err:connect ECONNREFUSED ::1:80' });
+            await waitForStatus(
+                expect.objectContaining({
+                    fill: 'red',
+                    shape: 'ring',
+                    text: expect.stringMatching(/^err:connect ECONNREFUSED .*:80$/) as unknown,
+                }) as NodeStatus
+            );
         });
     });
 
