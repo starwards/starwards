@@ -46,6 +46,7 @@
         "normal-distribution": "^1.1.1",
         "reflect-metadata": "^0.1.13",
         "ts-essentials": "^9.2.0",
-        "tslib": "^2.4.0"
+        "tslib": "^2.4.0",
+        "xstate": "^4.33.1"
     }
 }
