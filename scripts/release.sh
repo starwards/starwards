@@ -34,14 +34,21 @@ echo "Bumped version to $VERSION_NAME"
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 if [ $CURRENT_BRANCH = "master" ]
 then 
-    PUSH = "y"
+    PUSH="y"
 else
-    read -p "Current branch is $CURRENT_BRANCH, push HEAD and tags to $VERSION_NAME? y/n " PUSH
+    read -p "Current branch is $CURRENT_BRANCH, go ahead with release? push HEAD and tags to $VERSION_NAME? y/n " PUSH
 fi
 if [ $PUSH = "y" ]
 then 
     echo "Pushing to git"
-    # git push && git push --tags
+    git push && git push --tags
+    echo "Publishing @starwards/core@$VERSION"
+    cd ../core
+    npm publish
+    echo "Publishing @starwards/node-red@$VERSION"
+    cd ../node-red
+    npm publish
 else
-    echo "Not pushing to git"
+    echo "Aborting"
 fi
+echo "Done!"
