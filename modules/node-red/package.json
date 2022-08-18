@@ -1,6 +1,6 @@
 {
     "name": "@starwards/node-red",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Starwards nodes for Node-RED",
     "scripts": {
         "clean": "rimraf ./dist",
@@ -32,6 +32,6 @@
         }
     },
     "dependencies": {
-        "@starwards/core": "0.0.3"
+        "@starwards/core": "0.0.4"
     }
 }
