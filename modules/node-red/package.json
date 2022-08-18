@@ -11,8 +11,20 @@
         "build:runtime": "tsc -p tsconfig.runtime.json",
         "build": "concurrently --kill-others-on-fail -c blue,yellow,magenta \"npm:build:*\""
     },
+    "repository": "git@github.com:starwards/starwards.git",
     "author": "amir-arad <greenshade@gmail.com>",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "engines": {
+        "node": ">= 18.3",
+        "npm": ">= 7.5.4"
+    },
     "license": "SEE LICENSE IN LICENSE.md",
+    "files": [
+        "dist"
+    ],
     "node-red": {
         "nodes": {
             "ship-in": "./dist/ship-in/ship-in.js",
