@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# exit when any command fails
+set -e
+
 if [ "$1" != "major" ] && [ "$1" != "minor" ] && [ "$1" != "patch" ];
 then
     echo "Could not release!"

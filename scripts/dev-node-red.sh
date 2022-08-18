@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# exit when any command fails
+set -e
+
 docker compose -f ./docker/docker-compose.yml down
 npm run build:core
 npm run build:node-red
