@@ -12,7 +12,7 @@ export const schemaClasses = {
 export type RoomName = keyof typeof schemaClasses;
 export type State<R extends RoomName> = typeof schemaClasses[R]['prototype'];
 export interface Stateful<S extends Schema> {
-    state: S;
+    readonly state: S;
 }
 export interface GameRoom<R extends RoomName> extends Stateful<State<R>> {
     send(type: string, message: unknown): void;
