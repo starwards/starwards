@@ -39,7 +39,7 @@
         "react-dropzone": "^14.2.2",
         "tweakpane": "^3.1.0",
         "webfontloader": "^1.6.28",
-        "xstate": "^4.33.1"
+        "xstate": "^4.33.3"
     },
     "devDependencies": {
         "@babylonjs/gui": "5.19.0",
