@@ -29,7 +29,7 @@ describe('ship-in', () => {
         it('reports connection issue', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: 'http://localhost/' },
-                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0', checkEvery: 10 },
+                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode('n1');
@@ -54,7 +54,7 @@ describe('ship-in', () => {
         it('detects game status ', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
-                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0', checkEvery: 10 },
+                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode<ShipInNode>('n1');
@@ -64,7 +64,7 @@ describe('ship-in', () => {
         it('sends ship state changes', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
-                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0', checkEvery: 10 },
+                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForOutput, waitForStatus } = getNode<ShipInNode>('n1');

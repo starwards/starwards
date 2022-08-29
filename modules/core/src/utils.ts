@@ -29,9 +29,6 @@ export class Destructors {
      * cleans up and keep state valid
      */
     cleanup = () => {
-        if (this._destroyed) {
-            throw new Error('cleaning up a destroyed state');
-        }
         for (const destructor of this.destructors) {
             destructor();
         }

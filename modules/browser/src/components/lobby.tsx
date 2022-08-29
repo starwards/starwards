@@ -121,7 +121,6 @@ function ShipOptions({ shipId }: { shipId: string }) {
 export const Lobby = (p: Props) => {
     const isGameRunning = useIsGameRunning(p.driver);
     const adminDriver = useAdminDriver(p.driver);
-
     return (
         <ArwesThemeProvider>
             <StylesBaseline styles={{ body: { fontFamily: 'Electrolize' } }} />

@@ -6,7 +6,7 @@ import { loadMeshes } from '../3d/meshes';
 import { placeSceneEnv } from '../3d/space-scene';
 import { wireSinglePilotInput } from '../input/wiring';
 
-const driver = new Driver(window.location);
+const driver = new Driver(window.location).connect();
 
 const NUM_OF_FRAMES_FOR_LOADED = 1;
 const babylonInit = async (): Promise<void> => {

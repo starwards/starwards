@@ -1,5 +1,5 @@
-import { EventEmitter, makeEventsEmitter } from './events';
 import { Faction, GameRoom, RoomName } from '..';
+import { RoomEventEmitter, makeEventsEmitter } from './events';
 import { SmartPilotMode, TargetedStatus } from '../ship';
 import {
     makeOnChange,
@@ -16,7 +16,7 @@ import { waitForEvents } from './async-utils';
 export type ThrusterDriver = ReturnType<ThrustersDriver['makeDriver']>;
 export class ThrustersDriver {
     private cache = new Map<number, ThrusterDriver>();
-    constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
+    constructor(private shipRoom: GameRoom<'ship'>, private events: RoomEventEmitter) {}
 
     getApi(index: number): ThrusterDriver {
         const result = this.cache.get(index);
@@ -59,7 +59,7 @@ export class ArmorDriver {
         onChange: makeOnChange(this.countHealthyPlayes, this.events, '/armor/armorPlates/*/health'),
     };
     private cache = new Map<number, PlateDriver>();
-    constructor(private shipRoom: GameRoom<'ship'>, private events: EventEmitter) {}
+    constructor(private shipRoom: GameRoom<'ship'>, private events: RoomEventEmitter) {}
 
     private makePlateDriver(index: number) {
         return {
@@ -87,7 +87,11 @@ export class ArmorDriver {
 
 export class NumberMapDriver<R extends RoomName, K extends string> {
     public mapApi = readWriteProp<Map<K, number>>(this.shipRoom, this.events, this.pointerStr);
-    constructor(private shipRoom: GameRoom<R>, private events: EventEmitter, private pointerStr: JsonStringPointer) {}
+    constructor(
+        private shipRoom: GameRoom<R>,
+        private events: RoomEventEmitter,
+        private pointerStr: JsonStringPointer
+    ) {}
     get map(): Map<K, number> {
         return this.mapApi.getValue();
     }
@@ -104,7 +108,7 @@ export class NumberMapDriver<R extends RoomName, K extends string> {
 
 export type ShipDriver = ReturnType<typeof newShipDriverObj>;
 
-function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: EventEmitter) {
+function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) {
     return {
         events,
         id: shipRoom.state.id,
