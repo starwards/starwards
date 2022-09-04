@@ -35,3 +35,18 @@ export class Destructors {
         this.destructors.clear();
     };
 }
+
+export async function waitFor<T>(body: () => T | Promise<T>, timeout: number, interval = 20): Promise<T> {
+    let error: unknown = new Error('timeout is not a positive number');
+    while (timeout > 0) {
+        const startTime = Date.now();
+        try {
+            return await body();
+        } catch (e) {
+            error = e;
+        }
+        await new Promise<void>((res) => void setTimeout(res, interval));
+        timeout -= Date.now() - startTime;
+    }
+    throw error;
+}

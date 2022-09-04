@@ -4,7 +4,7 @@ import shipInConfigNode, { ShipInOptions } from './ship-in/ship-in';
 import starwardsConfigNode, { StarwardsConfigOptions } from './starwards-config/starwards-config';
 
 import { SinonSpy } from 'sinon';
-import { setTimeout } from 'timers/promises';
+import { waitFor } from '@starwards/core';
 
 type SpiedNode = {
     trace: SinonSpy;
@@ -22,21 +22,6 @@ export const initNodes: NodeInitializer = async (NODE) => {
 };
 
 helper.init(require.resolve('node-red'));
-
-async function waitFor<T>(body: () => T | Promise<T>, timeout: number): Promise<T> {
-    let error: unknown = new Error('timeout is not a positive number');
-    while (timeout > 0) {
-        const startTime = Date.now();
-        try {
-            return await body();
-        } catch (e) {
-            error = e;
-        }
-        await setTimeout(20);
-        timeout -= Date.now() - startTime;
-    }
-    throw error;
-}
 
 export function getNode<T extends Node = Node>(id: string) {
     const node = helper.getNode(id) as T & SpiedNode;
