@@ -1,3 +1,4 @@
+import { EventEmitter, EventKey, EventMap, EventReceiver } from './events';
 export type Destructor = () => unknown;
 export class Destructors {
     private _destroyed = false;
@@ -13,6 +14,20 @@ export class Destructors {
         } else {
             this.destructors.add(d);
         }
+    };
+
+    child = () => {
+        const child = new Destructors();
+        this.add(child.destroy);
+        return child;
+    };
+    onEvent = <T extends EventMap, K extends EventKey<T>>(
+        eventEmitter: EventEmitter<T>,
+        eventName: K,
+        fn: EventReceiver<T[K]>
+    ) => {
+        eventEmitter.on(eventName, fn);
+        this.add(() => eventEmitter.off(eventName, fn));
     };
 
     /**
