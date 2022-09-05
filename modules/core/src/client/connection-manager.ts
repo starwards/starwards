@@ -4,7 +4,7 @@ import { createMachine, interpret } from 'xstate';
 import { ErrorCode } from 'colyseus.js';
 import EventEmitter from 'eventemitter3';
 import { isCoded } from './errors';
-import { raceEvents } from './async-utils';
+import { raceEvents } from '../async-utils';
 
 type StatusContext = { lastGameError: unknown };
 const statusMachine = createMachine({

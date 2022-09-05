@@ -11,7 +11,7 @@ import {
 } from '../api/properties';
 
 import { JsonStringPointer } from 'json-ptr';
-import { waitForEvents } from './async-utils';
+import { waitForEvents } from '../async-utils';
 
 export type ThrusterDriver = ReturnType<ThrustersDriver['makeDriver']>;
 export class ThrustersDriver {

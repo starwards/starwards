@@ -5,7 +5,7 @@ import { EventEmitter, schemaClasses } from '..';
 import { AdminDriver } from './admin';
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
-import { waitForEvents } from './async-utils';
+import { waitForEvents } from '../async-utils';
 
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
