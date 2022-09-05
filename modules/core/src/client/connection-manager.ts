@@ -98,9 +98,13 @@ export class ConnectionManager {
         }
     };
     onConnectionError = (err: unknown) => {
-        console.log(`onConnectionError(${String(err)})`);
-        this.statusService.state.context.lastGameError = err;
-        this.statusService.send('ERROR');
+        if (String(err) !== String(this.statusService.state.context.lastGameError)) {
+            console.log(`connection error: ${String(err)}`);
+        }
+        if (!this.isDestroyed) {
+            this.statusService.state.context.lastGameError = err;
+            this.statusService.send('ERROR');
+        }
     };
 
     destroy() {
