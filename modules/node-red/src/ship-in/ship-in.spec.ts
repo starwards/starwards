@@ -14,8 +14,8 @@ describe('ship-in', () => {
     });
 
     afterEach(async () => {
-        await helper.unload();
         await new Promise<void>((done) => helper.stopServer(done));
+        await helper.unload();
     });
 
     it('loads', async () => {
@@ -36,7 +36,6 @@ describe('ship-in', () => {
             await waitForStatus(
                 expect.objectContaining({
                     fill: 'red',
-                    shape: 'ring',
                     text: expect.stringContaining('ECONNREFUSED') as unknown,
                 }) as NodeStatus
             );
@@ -52,23 +51,24 @@ describe('ship-in', () => {
         });
 
         it('detects game status ', async () => {
+            console.log(gameDriver.addressInfo.port);
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
-                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode<ShipInNode>('n1');
-            await waitForStatus({ fill: 'green', shape: 'dot', text: 'connected' });
+            await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
         });
 
         it('sends ship state changes', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
-                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForOutput, waitForStatus } = getNode<ShipInNode>('n1');
-            await waitForStatus({ fill: 'green', shape: 'dot', text: 'connected' });
+            await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
             const eventPromise = waitForOutput({ topic: '/chainGunAmmo', payload: 1234 });
             gameDriver.getShip('GVTS').state.chainGunAmmo = 1234;
             await eventPromise;

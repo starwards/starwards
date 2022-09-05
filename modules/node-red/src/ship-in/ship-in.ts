@@ -19,37 +19,40 @@ function nodeLogic(node: ShipInNode, { pattern, shipId }: ShipInOptions) {
     const handleStateEvent = (e: Event) => {
         node.send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value } as NodeMessage);
     };
+    const listenOnEvents = async () => {
+        if (!node.listeningOnEvents) {
+            const shipDriver = await node.configNode.driver.getShipDriver(shipId);
+            shipListenerCleanup.add(() => {
+                node.listeningOnEvents = false;
+                shipDriver.events.off(pattern, handleStateEvent);
+            });
+            shipDriver.events.on(pattern, handleStateEvent);
+            node.listeningOnEvents = true;
+        }
+    };
+
     let checking = false;
-    const leventListenCleanup = new Destructors();
-    node.cleanups.add(leventListenCleanup.destroy);
+    const shipListenerCleanup = node.cleanups.child();
     const checkStatus = async () => {
         if (checking) return;
         checking = true;
         try {
             if (!(await node.configNode.driver.isActiveGame())) {
                 node.status({ fill: 'red', shape: 'dot', text: 'no active game' });
-                leventListenCleanup.cleanup();
+                shipListenerCleanup.cleanup();
             } else if (!(await node.configNode.driver.doesShipExist(shipId))) {
                 node.status({ fill: 'red', shape: 'ring', text: 'no ship found' });
-                leventListenCleanup.cleanup();
+                shipListenerCleanup.cleanup();
             } else {
-                if (!node.listeningOnEvents) {
-                    const shipDriver = await node.configNode.driver.getShipDriver(shipId);
-                    leventListenCleanup.add(() => {
-                        node.listeningOnEvents = false;
-                        shipDriver.events.off(pattern, handleStateEvent);
-                    });
-                    shipDriver.events.on(pattern, handleStateEvent);
-                    node.listeningOnEvents = true;
-                }
+                await listenOnEvents();
                 node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             }
         } finally {
             checking = false;
         }
     };
-
-    node.configNode.driver.connectionStatus.on('connecting', () => {
+    const connectionStatus = node.configNode.driver.connectionStatus;
+    node.cleanups.onEvent(connectionStatus, 'connecting', () => {
         const text = node.configNode.driver.errorMessage;
         if (text) {
             node.status({ fill: 'red', shape: 'dot', text });
@@ -57,17 +60,17 @@ function nodeLogic(node: ShipInNode, { pattern, shipId }: ShipInOptions) {
             node.status({ fill: 'blue', shape: 'ring', text: 'connecting' });
         }
     });
-    node.configNode.driver.connectionStatus.on('connected', () => {
+    node.cleanups.onEvent(connectionStatus, 'connected', () => {
         node.status({ fill: 'blue', shape: 'ring', text: 'connected' });
         void checkStatus();
         node.cleanups.add(node.configNode.driver.onGameStateChange(checkStatus));
     });
-    node.configNode.driver.connectionStatus.on('exit:connected', () => {
-        node.cleanups.cleanup();
+    node.cleanups.onEvent(connectionStatus, 'exit:connected', () => {
+        shipListenerCleanup.cleanup();
         const text = node.configNode.driver.errorMessage || 'not connected to server';
         node.status({ fill: 'red', shape: 'dot', text });
     });
-    node.configNode.driver.connectionStatus.on('error', () => {
+    node.cleanups.onEvent(connectionStatus, 'error', () => {
         const text = node.configNode.driver.errorMessage || 'unknown error';
         node.status({ fill: 'red', shape: 'dot', text });
     });
