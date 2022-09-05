@@ -96,4 +96,3 @@ ngrok.*
 assets
 test-results
 *.tsbuildinfo
-*.typegen.ts

@@ -22,7 +22,7 @@
         "build:server": "npm --prefix ./modules/server run build",
         "build": "npm run build:core && concurrently --kill-others-on-fail -c blue,yellow,green,magenta \"npm:build:*(!core)\"",
         "lint": "eslint .",
-        "postinstall": "xstate typegen \"./modules/core/src/**/*.ts?(x)\"",
+        "xstate-typegen": "xstate typegen \"./modules/core/src/**/*.ts?(x)\"",
         "prettier": "prettier --ignore-path .eslintignore -c **/*.{js,ts,jsx,tsx}",
         "test": "jest",
         "snapshots:ci": "docker-compose -f ./modules/e2e/docker-compose.yml up",
