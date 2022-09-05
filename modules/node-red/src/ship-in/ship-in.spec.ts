@@ -51,7 +51,6 @@ describe('ship-in', () => {
         });
 
         it('detects game status ', async () => {
-            console.log(gameDriver.addressInfo.port);
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
                 { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
