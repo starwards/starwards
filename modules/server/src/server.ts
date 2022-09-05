@@ -108,7 +108,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
 
     await gameServer.listen(port);
     const addressInfo = httpServer.address() as AddressInfo;
-    console.log(`Listening on port ${addressInfo.port}`);
+    // console.log(`Listening on port ${addressInfo.port}`);
 
     await matchMaker.createRoom('admin', { manager }); // create a room
     return {
