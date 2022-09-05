@@ -31,7 +31,6 @@
     "scripts": {
         "clean": "rimraf ./cjs",
         "postbuild": "npm pack --quiet",
-        "postinstall": "xstate typegen \"./src/**/*.ts?(x)\"",
         "prebuild": "npm run clean",
         "build": "tsup-node",
         "build:watch": "tsup-node --watch"
