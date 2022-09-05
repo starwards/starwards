@@ -1,20 +1,9 @@
 import { Add, Event, Remove, Replace, wireEvents } from 'colyseus-events';
 
+import { EventEmitter } from '../events';
 import { EventEmitter2 } from 'eventemitter2';
 import { Schema } from '@colyseus/schema';
 import { SpaceState } from '../space';
-
-type EventMap = Record<string, unknown>;
-
-type EventKey<T extends EventMap> = string & keyof T;
-type EventReceiver<T> = (params: T) => unknown;
-
-export interface EventEmitter<T extends EventMap> {
-    on<K extends EventKey<T>>(eventName: K, fn: EventReceiver<T[K]>): unknown;
-    once<K extends EventKey<T>>(eventName: K, fn: EventReceiver<T[K]>): unknown;
-    off<K extends EventKey<T>>(eventName: K, fn: EventReceiver<T[K]>): unknown;
-    emit<K extends EventKey<T>>(eventName: K, params: T[K]): unknown;
-}
 
 export type RoomEventEmitter = EventEmitter<{ [k in string]: Event }>;
 export type SpaceEventEmitter = RoomEventEmitter &
