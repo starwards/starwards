@@ -60,7 +60,7 @@ type StateName =
     | 'error.unknown'
     | 'destroyed';
 
-export type ConnectionStateEvent = StateName | `exit:${StateName}`;
+export type ConnectionStateEvent = '*' | StateName | `exit:${StateName}`;
 function isErrorLike(e: unknown): e is { message: string; stack?: string } {
     return typeof (e as Error)?.message === 'string';
 }
@@ -73,6 +73,7 @@ export class ConnectionManager {
                 for (const stateStr of (this.statusService.state.history?.toStrings() || []) as StateName[]) {
                     this.events.emit(`exit:${stateStr}`);
                 }
+                this.events.emit(`*`);
                 for (const stateStr of this.statusService.state.toStrings() as StateName[]) {
                     this.events.emit(stateStr);
                 }
@@ -109,6 +110,7 @@ export class ConnectionManager {
 
     destroy() {
         this.statusService.send('DESTROY');
+        this.events.removeAllListeners();
     }
     get stateConnected() {
         return this.statusService.state.matches('connected');
@@ -134,7 +136,7 @@ export class ConnectionManager {
         if (!this.stateConnected) {
             const e = this.statusService.state.context.lastGameError;
             if (!e) {
-                return 'Unknown Error, state is ' + JSON.stringify(this.statusService.state.toStrings().pop());
+                return null;
             }
             if (isCoded(e) && e.code in ErrorCode) {
                 return ErrorCode[e.code];

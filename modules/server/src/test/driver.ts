@@ -17,9 +17,9 @@ export function makeDriver() {
         await serverInfo?.close();
     });
     return {
-        get addressInfo() {
+        url: () => {
             if (!serverInfo) throw new Error('missing serverInfo');
-            return serverInfo.addressInfo;
+            return `http://localhost:${serverInfo.addressInfo.port}/`;
         },
         get httpServer() {
             if (!serverInfo) throw new Error('missing serverInfo');

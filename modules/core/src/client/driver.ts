@@ -77,8 +77,18 @@ export class Driver {
     }
 
     onGameStateChange(cb: () => unknown): () => void {
+        const wrappedListener: () => unknown = async () => {
+            try {
+                if (!this.connectionManager.isDestroyed) {
+                    await cb();
+                }
+            } catch (e) {
+                void 0;
+            }
+        };
         let abort = false;
         let unRegister = () => undefined as unknown;
+        this.connectionManager.events.on('*', wrappedListener);
         void (async () => {
             while (!abort && !this.connectionManager.isDestroyed) {
                 try {
@@ -90,15 +100,16 @@ export class Driver {
                     throw new Error('connected, but missing adminDriver');
                 }
                 const driver = await this.adminDriver;
-                cb();
-                driver.events.on('**', cb);
-                unRegister = () => driver.events.off('**', cb);
+                await wrappedListener();
+                driver.events.on('**', wrappedListener);
+                unRegister = () => driver.events.off('**', wrappedListener);
                 await waitForEvents(this.connectionManager.events, ['exit:connected']);
                 unRegister();
             }
         })();
         return () => {
             abort = true;
+            this.connectionManager.events.off('*', wrappedListener);
             unRegister();
         };
     }

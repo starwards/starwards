@@ -52,7 +52,7 @@ describe('ship-in', () => {
 
         it('detects game status ', async () => {
             const flows: Flows = [
-                { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
+                { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
                 { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
@@ -62,7 +62,7 @@ describe('ship-in', () => {
 
         it('sends ship state changes', async () => {
             const flows: Flows = [
-                { id: 'n0', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
+                { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
                 { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
