@@ -22,6 +22,9 @@ export class Driver {
     public get connectionStatus(): EventEmitter<{ [k in ConnectionStateEvent]: void }> {
         return this.connectionManager.events;
     }
+    public get isConnected() {
+        return this.connectionManager.stateConnected;
+    }
     public get errorMessage(): string | null {
         return this.connectionManager.getErrorMessage();
     }
@@ -78,7 +81,11 @@ export class Driver {
         let unRegister = () => undefined as unknown;
         void (async () => {
             while (!abort && !this.connectionManager.isDestroyed) {
-                await this.connectionManager.waitForConnected();
+                try {
+                    await this.connectionManager.waitForConnected();
+                } catch (e) {
+                    continue;
+                }
                 if (!this.adminDriver) {
                     throw new Error('connected, but missing adminDriver');
                 }
