@@ -93,7 +93,9 @@ export class ConnectionManager {
                     this.statusService.state.context.lastGameError = null;
                     this.statusService.send('CONNECTED');
                 } catch (e) {
-                    this.onConnectionError(e);
+                    if (!this.isDestroyed) {
+                        this.onConnectionError(e);
+                    }
                 }
             })();
         }

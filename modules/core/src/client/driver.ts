@@ -1,6 +1,6 @@
+import { AdminState, EventEmitter, schemaClasses } from '..';
 import { Client, Room } from 'colyseus.js';
 import { ConnectionManager, ConnectionStateEvent } from './connection-manager';
-import { EventEmitter, schemaClasses } from '..';
 
 import { AdminDriver } from './admin';
 import { ShipDriver } from './ship';
@@ -15,7 +15,7 @@ export class Driver {
     private connectionManager = new ConnectionManager(() => {
         this.adminDriver = this.rooms
             .join('admin', {}, schemaClasses.admin)
-            .then(this.hookRoomLifecycle)
+            .then(this.hookAdminRoomLifecycle)
             .then(AdminDriver(this.httpEndpoint));
         return this.adminDriver;
     });
@@ -44,6 +44,15 @@ export class Driver {
         this.connectionManager.events.once('exit:connected', () => void room.leave(true));
         this.connectionManager.events.once('destroyed', () => void room.leave(true));
         return room;
+    };
+
+    private hookAdminRoomLifecycle = (room: Room<AdminState>) => {
+        room.onLeave(() => {
+            if (!this.connectionManager.isDestroyed) {
+                this.connectionManager.onConnectionError(new Error(`disconnected from server`));
+            }
+        });
+        return this.hookRoomLifecycle(room);
     };
 
     /**

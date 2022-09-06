@@ -1,4 +1,4 @@
-import { ClientStatus, Status, StatusInfo, waitFor } from '../src';
+import { ClientStatus, Status, StatusInfo, waitFor, waitForEvents } from '../src';
 
 import { makeClient } from './driver';
 import { makeDriver } from '@starwards/server/src/test/driver';
@@ -9,6 +9,7 @@ const waitForStatus = (actual: () => Promise<StatusInfo>, expected: Partial<Stat
 
 const connectedNoActiveGame = Object.freeze({ status: Status.CONNECTED, text: 'no active game' });
 const shipFound = Object.freeze({ status: Status.SHIP_FOUND, text: '' });
+const disconnected = Object.freeze({ status: Status.DISCONNECTED, text: 'err: disconnected from server' });
 
 describe('client status', () => {
     describe('with no server', () => {
@@ -67,18 +68,15 @@ describe('client status', () => {
             await gameDriver.gameManager.startGame(test_map_1);
             await waitFor(() => expect(statuses.pop()).toEqual(shipFound), 3_000);
         });
-        it.only('onStatusChange() detects disconnection', async () => {
+        it('onStatusChange() detects disconnection and reconnection', async () => {
             const statuses: StatusInfo[] = [];
             new ClientStatus(clientDriver.driver, test_map_1.testShipId).onStatusChange((s) => statuses.push(s));
             await gameDriver.gameManager.startGame(test_map_1);
             await waitFor(() => expect(statuses.pop()).toEqual(shipFound), 3_000);
-            gameDriver.httpServer.close();
-            gameDriver.httpServer.closeAllConnections();
-            await waitFor(
-                () =>
-                    expect(statuses).toEqual([expect.objectContaining({ status: Status.DISCONNECTED }) as StatusInfo]),
-                3_000
-            );
+            await gameDriver.sockets.stop();
+            await waitFor(() => expect(statuses.pop()).toEqual(disconnected), 3_000);
+            await gameDriver.sockets.resume();
+            await waitFor(() => expect(statuses.pop()).toEqual(shipFound), 3_000);
         });
     });
 });

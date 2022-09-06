@@ -17,9 +17,11 @@ export class SpaceRoom extends Room<SpaceState> {
     }
 
     public async onLeave(client: Client, consented: boolean) {
-        if (!consented) {
-            await this.allowReconnection(client, 30);
-        }
+        try {
+            if (!consented) {
+                await this.allowReconnection(client, 30);
+            }
+        } catch (e) {}
     }
 
     public onCreate({ manager }: { manager: SpaceManager }) {

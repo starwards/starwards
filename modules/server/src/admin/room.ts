@@ -10,9 +10,11 @@ export class AdminRoom extends Room<AdminState> {
     }
 
     public async onLeave(client: Client, consented: boolean) {
-        if (!consented) {
-            await this.allowReconnection(client, 30);
-        }
+        try {
+            if (!consented) {
+                await this.allowReconnection(client, 30);
+            }
+        } catch (e) {}
     }
 
     public onCreate({ manager }: { manager: GameManager }) {

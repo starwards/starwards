@@ -8,9 +8,11 @@ export class ShipRoom extends Room<ShipState> {
     }
 
     public async onLeave(client: Client, consented: boolean) {
-        if (!consented) {
-            await this.allowReconnection(client, 30);
-        }
+        try {
+            if (!consented) {
+                await this.allowReconnection(client, 30);
+            }
+        } catch (e) {}
     }
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;

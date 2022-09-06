@@ -25,6 +25,10 @@ export function makeDriver() {
             if (!serverInfo) throw new Error('missing serverInfo');
             return serverInfo.httpServer;
         },
+        get sockets() {
+            if (!serverInfo) throw new Error('missing serverInfo');
+            return serverInfo.sockets;
+        },
         pauseGameCommand() {
             adminProperties.speedCommand.setValue(this.gameManager.state, 0);
         },
