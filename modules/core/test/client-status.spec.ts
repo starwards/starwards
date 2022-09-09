@@ -1,4 +1,4 @@
-import { ClientStatus, Status, StatusInfo, waitFor, waitForEvents } from '../src';
+import { ClientStatus, Status, StatusInfo, waitFor } from '../src';
 
 import { makeClient } from './driver';
 import { makeDriver } from '@starwards/server/src/test/driver';
