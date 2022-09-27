@@ -21,7 +21,7 @@ const emitter2Options = {
 export function makeEventsEmitter(state: Schema): RoomEventEmitter {
     const events = new EventEmitter2(emitter2Options);
     wireEvents(state, events);
-    return events;
+    return events as RoomEventEmitter;
 }
 
 export function makeSpaceEventsEmitter(state: SpaceState): SpaceEventEmitter {
@@ -36,5 +36,5 @@ export function makeSpaceEventsEmitter(state: SpaceState): SpaceEventEmitter {
         }
     });
     wireEvents(state, events);
-    return events;
+    return events as SpaceEventEmitter;
 }
