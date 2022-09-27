@@ -16,7 +16,6 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import asyncHandler from 'express-async-handler';
 import basicAuth from 'express-basic-auth';
 import express from 'express';
-import { makeSocketsControls } from './sockets-controls';
 import { monitor } from '@colyseus/monitor';
 
 const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
@@ -107,7 +106,6 @@ export async function server(port: number, staticDir: string, manager: GameManag
         res.render('error', { error: err });
     });
 
-    const sockets = makeSocketsControls(httpServer);
     await gameServer.listen(port);
     const addressInfo = httpServer.address() as AddressInfo;
     // console.log(`Listening on port ${addressInfo.port}`);
@@ -115,7 +113,6 @@ export async function server(port: number, staticDir: string, manager: GameManag
     await matchMaker.createRoom('admin', { manager }); // create a room
     return {
         httpServer,
-        sockets,
         addressInfo,
         close: async () => await gameServer.gracefullyShutdown(false),
     };

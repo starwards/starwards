@@ -1,5 +1,8 @@
+import { AddressInfo, Socket } from 'net';
+
 import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
+import { Server } from 'http';
 import { adminProperties } from '@starwards/core';
 import path from 'path';
 import { server } from '../server';
@@ -8,9 +11,11 @@ import { stringToSchema } from '../serialization/game-state-serialization';
 export function makeDriver() {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
+    let sockets: ReturnType<typeof makeSocketsControls> | null = null;
     beforeEach(async () => {
         gameManager = new GameManager();
         serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
+        sockets = makeSocketsControls(serverInfo.httpServer);
     });
     afterEach(async () => {
         await gameManager?.stopGame();
@@ -26,8 +31,8 @@ export function makeDriver() {
             return serverInfo.httpServer;
         },
         get sockets() {
-            if (!serverInfo) throw new Error('missing serverInfo');
-            return serverInfo.sockets;
+            if (!sockets) throw new Error('missing sockets');
+            return sockets;
         },
         pauseGameCommand() {
             adminProperties.speedCommand.setValue(this.gameManager.state, 0);
@@ -66,6 +71,41 @@ export function makeDriver() {
             expect([...data.fragment.ship].map(([k, v]) => [k, v.toJSON()])).toEqual(
                 [...this.ships].map(([k, v]) => [k, v.state.toJSON()])
             );
+        },
+    };
+}
+
+/**
+ * API to stop and resume the server's socket level communication
+ */
+export function makeSocketsControls(netServer: Server) {
+    const sockets: Socket[] = [];
+
+    const onConnection = (socket: Socket): void => {
+        sockets.push(socket);
+        socket.once('close', () => sockets.splice(sockets.indexOf(socket), 1));
+    };
+    netServer.on('connection', onConnection);
+    netServer.on('secureConnection', onConnection);
+
+    let lastPort = -1;
+    return {
+        stop: () => {
+            lastPort = (netServer.address() as AddressInfo).port;
+            const result = new Promise<void>((res, rej) => netServer.close((err?: Error) => (err ? rej(err) : res())));
+            for (const socket of sockets) {
+                socket.destroy();
+            }
+            sockets.splice(0);
+            return result;
+        },
+        resume: () => {
+            if (lastPort === -1) {
+                throw new Error('server was not stopped');
+            }
+            const result = new Promise<void>((res) => netServer.listen(lastPort, res));
+            lastPort = -1;
+            return result;
         },
     };
 }
