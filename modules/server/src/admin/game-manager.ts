@@ -61,6 +61,7 @@ export class GameManager {
     public async stopGame() {
         this.map = null;
         if (this.state.isGameRunning) {
+            this.state.shipIds.splice(0);
             const shipRooms = await matchMaker.query({ name: 'ship' });
             for (const shipRoom of shipRooms) {
                 await matchMaker.remoteRoomCall(shipRoom.roomId, 'disconnect', []);
@@ -129,6 +130,7 @@ export class GameManager {
         if (sendMessages) {
             this.shipMessenger?.registerShip(shipManager.state);
         }
+        this.state.shipIds.push(spaceObject.id);
         return shipManager;
     }
 

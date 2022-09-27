@@ -1,4 +1,3 @@
-import { Client, Room } from 'colyseus';
 import {
     SpaceManager,
     SpaceState,
@@ -8,18 +7,14 @@ import {
     spaceProperties,
 } from '@starwards/core';
 
+import { Room } from 'colyseus';
+
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';
 
     constructor() {
         super();
         this.autoDispose = false;
-    }
-
-    public async onLeave(client: Client, consented: boolean) {
-        if (!consented) {
-            await this.allowReconnection(client, 30);
-        }
     }
 
     public onCreate({ manager }: { manager: SpaceManager }) {

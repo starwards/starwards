@@ -2,7 +2,7 @@ import { GameRoom, RoomName, getJsonPointer, getRange } from '..';
 import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
 import { Destructor } from '../utils';
-import { EventEmitter } from '../client/events';
+import { RoomEventEmitter } from '../client/events';
 import { cmdSender } from '.';
 
 export type ReadProp<T> = {
@@ -17,7 +17,7 @@ export type ReadWriteProp<T> = ReadProp<T> & WriteProp<T>;
 export type ReadNumberProp = ReadProp<number> & { range: readonly [number, number] };
 export type ReadWriteNumberProp = ReadProp<number> & WriteProp<number> & { range: readonly [number, number] };
 
-export function makeOnChange(getValue: () => unknown, events: EventEmitter, eventName: string) {
+export function makeOnChange(getValue: () => unknown, events: RoomEventEmitter, eventName: string) {
     return (cb: () => unknown): Destructor => {
         let lastValue = getValue();
         const listener = () => {
@@ -34,7 +34,7 @@ export function makeOnChange(getValue: () => unknown, events: EventEmitter, even
 
 export function readProp<T>(
     room: GameRoom<RoomName>,
-    events: EventEmitter,
+    events: RoomEventEmitter,
     pointerStr: JsonStringPointer
 ): ReadProp<T> {
     const pointer = getJsonPointer(pointerStr);
@@ -47,7 +47,7 @@ export function readProp<T>(
 
 export function readWriteProp<T>(
     room: GameRoom<RoomName>,
-    events: EventEmitter,
+    events: RoomEventEmitter,
     pointerStr: JsonStringPointer
 ): ReadWriteProp<T> {
     return {
@@ -62,7 +62,7 @@ export function writeProp<T>(room: GameRoom<RoomName>, pointerStr: string): Writ
 
 export function readWriteNumberProp(
     room: GameRoom<RoomName>,
-    events: EventEmitter,
+    events: RoomEventEmitter,
     pointerStr: JsonStringPointer
 ): ReadWriteNumberProp {
     const api = readWriteProp<number>(room, events, pointerStr);
@@ -70,7 +70,7 @@ export function readWriteNumberProp(
 }
 export function readNumberProp(
     room: GameRoom<RoomName>,
-    events: EventEmitter,
+    events: RoomEventEmitter,
     pointerStr: JsonStringPointer
 ): ReadNumberProp {
     const api = readProp<number>(room, events, pointerStr);

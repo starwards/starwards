@@ -18,6 +18,6 @@ process.on('uncaughtException', function (err) {
 const shipMessenger = new ShipStateMessenger(new MqttClient(mqttHostame, mqttPort));
 const gameManager = new GameManager(shipMessenger);
 // this path has to match the setup in scripts/post-build.js and scripts/pkg.js
-void server(port, path.join(__dirname, '..', '..', '..', '..', 'static'), gameManager);
-
-// for local debugging run server(80, path.join(__dirname, '..', '..', 'browser', 'dist'));
+void server(port, path.join(__dirname, '..', '..', '..', '..', 'static'), gameManager).then(({ addressInfo }) => {
+    console.log(`Listening on port ${addressInfo.port}`);
+});

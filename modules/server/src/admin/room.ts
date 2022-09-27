@@ -1,18 +1,12 @@
 import { AdminState, adminProperties, cmdReceivers } from '@starwards/core';
-import { Client, Room } from 'colyseus';
 
 import { GameManager } from './game-manager';
+import { Room } from 'colyseus';
 
 export class AdminRoom extends Room<AdminState> {
     constructor() {
         super();
         this.autoDispose = false;
-    }
-
-    public async onLeave(client: Client, consented: boolean) {
-        if (!consented) {
-            await this.allowReconnection(client, 30);
-        }
     }
 
     public onCreate({ manager }: { manager: GameManager }) {

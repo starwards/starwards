@@ -1,10 +1,13 @@
-import { GameRoom } from '..';
+import { GameRoom, makeEventsEmitter } from '..';
+
 import { adminProperties } from '../admin';
 import { cmdSender } from '../api';
 
 export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
     const speedCommand = cmdSender(adminRoom, adminProperties.speedCommand, undefined);
+    const events = makeEventsEmitter(adminRoom.state);
     return {
+        events,
         get state() {
             return adminRoom.state;
         },

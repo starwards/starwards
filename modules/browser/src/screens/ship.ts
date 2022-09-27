@@ -21,7 +21,7 @@ import { wireSinglePilotInput } from '../input/wiring';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
 
-const driver = new Driver(window.location);
+const driver = new Driver(window.location).connect();
 
 const urlParams = new URLSearchParams(window.location.search);
 const shipUrlParam = urlParams.get('ship');

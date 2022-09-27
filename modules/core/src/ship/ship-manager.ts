@@ -628,7 +628,7 @@ export class ShipManager {
     trySpendAfterBurner(value: number): boolean {
         if (value < 0) {
             // eslint-disable-next-line no-console
-            console.log('probably an error: spending negative energy');
+            console.log('probably an error: spending negative afterBurnerFuel');
         }
         if (this.state.reactor.afterBurnerFuel > value) {
             this.state.reactor.afterBurnerFuel = this.state.reactor.afterBurnerFuel - value;

@@ -11,7 +11,11 @@
                 "view-show-welcome-tours": true,
                 "view-store-position": false,
                 "view-store-zoom": false
+            },
+            "tours": {
+                "welcome": "3.0.2"
             }
-        }
+        },
+        "menu-menu-item-sidebar": false
     }
 }

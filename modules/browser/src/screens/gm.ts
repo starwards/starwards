@@ -20,7 +20,7 @@ import { targetRadarWidget } from '../widgets/target-radar';
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
 // window.PIXI = PIXI;
-const driver = new Driver(window.location);
+const driver = new Driver(window.location).connect();
 const gmWidgets = new GmWidgets(driver);
 const dashboard = new Dashboard(
     {

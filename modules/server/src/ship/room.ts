@@ -1,5 +1,6 @@
-import { Client, Room } from 'colyseus';
 import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/core';
+
+import { Room } from 'colyseus';
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -7,11 +8,6 @@ export class ShipRoom extends Room<ShipState> {
         this.autoDispose = false;
     }
 
-    public async onLeave(client: Client, consented: boolean) {
-        if (!consented) {
-            await this.allowReconnection(client, 30);
-        }
-    }
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);

@@ -1,3 +1,4 @@
+import { EventEmitter, EventKey, EventMap, EventReceiver } from './events';
 export type Destructor = () => unknown;
 export class Destructors {
     private _destroyed = false;
@@ -15,6 +16,20 @@ export class Destructors {
         }
     };
 
+    child = () => {
+        const child = new Destructors();
+        this.add(child.destroy);
+        return child;
+    };
+    onEvent = <T extends EventMap, K extends EventKey<T>>(
+        eventEmitter: EventEmitter<T>,
+        eventName: K,
+        fn: EventReceiver<T[K]>
+    ) => {
+        eventEmitter.on(eventName, fn);
+        this.add(() => eventEmitter.off(eventName, fn));
+    };
+
     /**
      * cleans up and invalidates state
      */
@@ -29,12 +44,24 @@ export class Destructors {
      * cleans up and keep state valid
      */
     cleanup = () => {
-        if (this._destroyed) {
-            throw new Error('cleaning up a destroyed state');
-        }
         for (const destructor of this.destructors) {
             destructor();
         }
         this.destructors.clear();
     };
+}
+
+export async function waitFor<T>(body: () => T | Promise<T>, timeout: number, interval = 20): Promise<T> {
+    let error: unknown = new Error('timeout is not a positive number');
+    while (timeout > 0) {
+        const startTime = Date.now();
+        try {
+            return await body();
+        } catch (e) {
+            error = e;
+        }
+        await new Promise<void>((res) => void setTimeout(res, interval));
+        timeout -= Date.now() - startTime;
+    }
+    throw error;
 }

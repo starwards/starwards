@@ -1,6 +1,6 @@
+import { Driver, waitFor } from '@starwards/core';
 import { Flows, getNode, initNodes } from '../test-driver';
 
-import { Driver } from '@starwards/core';
 import { StarwardsConfigNode } from './starwards-config';
 import helper from 'node-red-node-test-helper';
 import { makeDriver } from '@starwards/server/src/test/driver';
@@ -29,14 +29,14 @@ describe('starwards-config', () => {
         const gameDriver = makeDriver();
 
         it('detects game status', async () => {
-            const flows: Flows = [
-                { id: 'n1', type: 'starwards-config', url: `http://localhost:${gameDriver.addressInfo.port}/` },
-            ];
+            const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: gameDriver.url() }];
             await helper.load(initNodes, flows);
             const { node } = getNode<StarwardsConfigNode>('n1');
             expect(await node.driver.isActiveGame()).toEqual(false);
             await gameDriver.gameManager.startGame(test_map_1);
-            expect(await node.driver.isActiveGame()).toEqual(true);
+            await waitFor(async () => {
+                expect(await node.driver.isActiveGame()).toEqual(true);
+            }, 100);
         });
     });
 });
