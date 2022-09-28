@@ -18,7 +18,6 @@
     "dependencies": {
         "@colyseus/monitor": "^0.14.22",
         "@colyseus/ws-transport": "^0.14.21",
-        "async-mqtt": "^2.6.2",
         "colyseus": "^0.14.23",
         "express": "^4.18.1",
         "express-async-handler": "^1.2.0",
