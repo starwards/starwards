@@ -13,7 +13,6 @@ import {
 import { GameApi, GameMap, ShipApi } from './scripts-api';
 
 import { SavedGame } from '../serialization/game-state-protocol';
-import { ShipStateMessenger } from '../messaging/ship-state-messenger';
 import { matchMaker } from 'colyseus';
 import { resetShip } from './map-helper';
 
@@ -41,12 +40,9 @@ export class GameManager {
         },
     };
 
-    constructor(private shipMessenger?: ShipStateMessenger) {}
-
     update(deltaSeconds: number) {
         const adjustedDeltaSeconds = deltaSeconds * this.state.speed;
         if (this.state.isGameRunning && adjustedDeltaSeconds > 0) {
-            this.shipMessenger?.update(adjustedDeltaSeconds);
             this.map?.update?.(adjustedDeltaSeconds);
             for (const die of this.dice) {
                 die.update(adjustedDeltaSeconds);
@@ -71,7 +67,6 @@ export class GameManager {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
             this.dice = [];
-            this.shipMessenger?.unRegisterAll();
             this.state.isGameRunning = false;
         }
     }
@@ -119,7 +114,7 @@ export class GameManager {
         }
     }
 
-    private addShip(spaceObject: Spaceship, sendMessages = false) {
+    private addShip(spaceObject: Spaceship) {
         this.spaceManager.insert(spaceObject);
         if (!spaceObject.model) {
             throw new Error(`missing ship model for ship ${spaceObject.id}`);
@@ -127,9 +122,6 @@ export class GameManager {
         const configuration = shipConfigurations[spaceObject.model];
         const shipState = makeShipState(spaceObject.id, configuration);
         const shipManager = this.initShipRoom(spaceObject, shipState);
-        if (sendMessages) {
-            this.shipMessenger?.registerShip(shipManager.state);
-        }
         this.state.shipIds.push(spaceObject.id);
         return shipManager;
     }
