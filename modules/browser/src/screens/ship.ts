@@ -1,9 +1,10 @@
 import * as PIXI from 'pixi.js';
 
+import { ClientStatus, Driver, Status } from '@starwards/core';
+
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
-import { Driver } from '@starwards/core';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { gunWidget } from '../widgets/gun';
@@ -22,14 +23,19 @@ import { wireSinglePilotInput } from '../input/wiring';
 window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
 
 const driver = new Driver(window.location).connect();
-
 const urlParams = new URLSearchParams(window.location.search);
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
+    const statusTracker = new ClientStatus(driver, shipUrlParam);
     const layoutUrlParam = urlParams.get('layout');
     const dashboard = makeDashboard(shipUrlParam, layoutUrlParam);
     void driver.waitForShip(shipUrlParam).then(
-        () => initScreen(dashboard, shipUrlParam),
+        async () => {
+            statusTracker.onStatusChange(({ status }) => {
+                if (status !== Status.SHIP_FOUND) location.reload();
+            });
+            await initScreen(dashboard, shipUrlParam);
+        },
         // eslint-disable-next-line no-console
         (e) => console.error(e)
     );

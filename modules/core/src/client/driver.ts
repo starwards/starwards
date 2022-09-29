@@ -166,6 +166,14 @@ export class Driver {
     }
 
     /**
+     * constantly scan for a game and return when a game is running
+     */
+    async waitForGame(): Promise<void> {
+        while (!(await this.isActiveGame())) {
+            await new Promise((res) => setTimeout(res, 500));
+        }
+    }
+    /**
      * constantly scan for new ships and return when current ship is found
      * @param shipToWaitFor id of the ship to wait for
      */
