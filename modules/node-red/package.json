@@ -28,6 +28,7 @@
     "node-red": {
         "nodes": {
             "ship-in": "./dist/ship-in/ship-in.js",
+            "ship-out": "./dist/ship-out/ship-out.js",
             "starwards-config": "./dist/starwards-config/starwards-config.js"
         }
     },

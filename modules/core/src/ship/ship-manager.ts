@@ -26,7 +26,7 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { Damage, SpaceManager } from '../logic/space-manager';
-import { EPSILON, RTuple2, sinWave } from '../logic';
+import { EPSILON, RTuple2, limitPercisionHard, sinWave } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
 
 import { Armor } from './armor';
@@ -558,12 +558,14 @@ export class ShipManager {
 
     private chargeAfterBurner(deltaSeconds: number) {
         if (this.state.reactor.afterBurnerFuel < this.state.reactor.maxAfterBurnerFuel) {
-            const speedToChange = Math.min(
+            const afterBurnerFuelDelta = Math.min(
                 this.state.reactor.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
                 this.state.reactor.afterBurnerCharge * deltaSeconds
             );
-            if (this.trySpendEnergy(speedToChange * this.state.reactor.afterBurnerEnergyCost)) {
-                this.state.reactor.afterBurnerFuel += speedToChange;
+            if (this.trySpendEnergy(afterBurnerFuelDelta * this.state.reactor.afterBurnerEnergyCost)) {
+                this.state.reactor.afterBurnerFuel = limitPercisionHard(
+                    this.state.reactor.afterBurnerFuel + afterBurnerFuelDelta
+                );
             }
         }
     }
@@ -631,7 +633,7 @@ export class ShipManager {
             console.log('probably an error: spending negative afterBurnerFuel');
         }
         if (this.state.reactor.afterBurnerFuel > value) {
-            this.state.reactor.afterBurnerFuel = this.state.reactor.afterBurnerFuel - value;
+            this.state.reactor.afterBurnerFuel = limitPercisionHard(this.state.reactor.afterBurnerFuel - value);
             return true;
         }
         this.state.reactor.afterBurnerFuel = 0;
