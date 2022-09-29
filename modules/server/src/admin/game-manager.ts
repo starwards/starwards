@@ -7,14 +7,12 @@ import {
     SpaceObject,
     Spaceship,
     makeShipState,
-    resetShipState,
     shipConfigurations,
 } from '@starwards/core';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
 
 import { SavedGame } from '../serialization/game-state-protocol';
 import { matchMaker } from 'colyseus';
-import { resetShip } from './map-helper';
 
 type Die = {
     update: (deltaSeconds: number) => void;
@@ -122,19 +120,17 @@ export class GameManager {
         const configuration = shipConfigurations[spaceObject.model];
         const shipState = makeShipState(spaceObject.id, configuration);
         const shipManager = this.initShipRoom(spaceObject, shipState);
-        this.state.shipIds.push(spaceObject.id);
         return shipManager;
     }
 
     private initShipRoom(spaceObject: Spaceship, shipState: ShipState) {
         const die = new ShipDie(3);
-        const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships, () => {
-            resetShipState(shipManager.state);
-            resetShip(spaceObject);
-        }); // create a manager to manage the ship
+        const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships); // create a manager to manage the ship
         this.ships.set(spaceObject.id, shipManager);
         this.dice.push(die);
-        void matchMaker.createRoom('ship', { manager: shipManager });
+        void matchMaker.createRoom('ship', { manager: shipManager }).then(() => {
+            this.state.shipIds.push(spaceObject.id);
+        });
         return shipManager;
     }
 }

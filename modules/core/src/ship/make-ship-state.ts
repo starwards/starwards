@@ -77,7 +77,9 @@ export function makeShipState(id: string, model: ShipModel) {
     for (const [angleConfig, thrusterConfig] of model.thrusters) {
         state.thrusters.push(makeThruster(thrusterConfig, angleConfig));
     }
-    state.chainGun = makeChainGun(model.chainGun);
+    if (model.chainGun) {
+        state.chainGun = makeChainGun(model.chainGun);
+    }
     state.smartPilot = makeSmartPilot(model.smartPilot);
 
     state.armor = makeArmor(model.armor);

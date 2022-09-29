@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
     EPSILON,
     Explosion,
@@ -60,10 +61,9 @@ describe('ShipManager', () => {
 
                 const brokenInsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
                 expect(brokenInsideExplosion).to.equal(2);
-
-                expect(shipMgr.state.chainGun.broken).to.be.false;
-                expect(shipMgr.state.chainGun.angleOffset).to.equal(0);
-                expect(shipMgr.state.chainGun.cooldownFactor).to.equal(1);
+                expect(shipMgr.state.chainGun!.broken).to.be.false;
+                expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
+                expect(shipMgr.state.chainGun!.cooldownFactor).to.equal(1);
             })
         );
     });
@@ -94,7 +94,7 @@ describe('ShipManager', () => {
                 }
                 const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
                 expect(cannonShells.length).to.be.closeTo(
-                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun.bulletsPerSecond),
+                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.bulletsPerSecond),
                     1
                 );
                 expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.maxChainGunAmmo - cannonShells.length);
@@ -121,7 +121,7 @@ describe('ShipManager', () => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun.cooldownFactor = 1;
+                    shipMgr.state.chainGun!.cooldownFactor = 1;
                     shipMgr.state.chainGunAmmo = availableAmmo;
                     shipMgr.chainGun(true);
                     let timePassed = 0;
@@ -157,8 +157,8 @@ describe('ShipManager', () => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun.angleOffset = angleOffset;
-                    shipMgr.state.chainGun.modelParams.set('bulletDegreesDeviation', 0);
+                    shipMgr.state.chainGun!.angleOffset = angleOffset;
+                    shipMgr.state.chainGun!.modelParams.set('bulletDegreesDeviation', 0);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -194,8 +194,8 @@ describe('ShipManager', () => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun.cooldownFactor = 2;
-                    shipMgr.state.chainGun.modelParams.set('bulletsPerSecond', bulletsPerSecond);
+                    shipMgr.state.chainGun!.cooldownFactor = 2;
+                    shipMgr.state.chainGun!.modelParams.set('bulletsPerSecond', bulletsPerSecond);
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -204,7 +204,7 @@ describe('ShipManager', () => {
                         timePassed += iterationTimeInSeconds;
                     }
                     expect([...spaceMgr.state.getAll('CannonShell')].length).to.be.closeTo(
-                        Math.floor(shipMgr.state.chainGun.bulletsPerSecond / shipMgr.state.chainGun.cooldownFactor),
+                        Math.floor(shipMgr.state.chainGun!.bulletsPerSecond / shipMgr.state.chainGun!.cooldownFactor),
                         1
                     );
                 }

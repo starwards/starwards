@@ -47,7 +47,7 @@ export type ShipPropertiesModel = {
 
 export type ShipModel = {
     properties: ShipPropertiesModel;
-    chainGun: ChaingunModel;
+    chainGun: ChaingunModel | null;
     thrusters: [ShipDirectionConfig, ThrusterModel][];
     armor: ArmorModel;
     radar: RadarModel;

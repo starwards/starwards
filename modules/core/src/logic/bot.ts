@@ -57,44 +57,43 @@ export function jouster(targetId: string): Bot {
         shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         const target = spaceState.get(targetId) || null;
         const ship = shipManager.state;
-        if (target && !target.destroyed) {
+        if (target && !target.destroyed && ship.chainGun) {
             shipManager.setTarget(targetId);
             const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
-            const hitLocation = predictHitLocation(shipManager.state, target, targetAccel);
-            const rangeDiff = calcRangediff(shipManager.state, target, hitLocation);
-            const range = shipManager.state.chainGun.maxShellRange - shipManager.state.chainGun.minShellRange;
-            shipManager.state.chainGun.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
+            const hitLocation = predictHitLocation(ship, ship.chainGun, target, targetAccel);
+            const rangeDiff = calcRangediff(ship, target, hitLocation);
+            const range = ship.chainGun.maxShellRange - ship.chainGun.minShellRange;
+            ship.chainGun.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
             const rotation = rotateToTarget(
                 deltaSeconds,
                 ship,
-                XY.add(hitLocation, getShellAimVelocityCompensation(ship)),
+                XY.add(hitLocation, getShellAimVelocityCompensation(ship, ship.chainGun)),
                 0
             );
-            shipManager.state.smartPilot.rotation = rotation;
+            ship.smartPilot.rotation = rotation;
             const shipToTarget = XY.difference(hitLocation, ship.position);
             const distanceToTarget = XY.lengthOf(shipToTarget);
-            const killRadius = getKillZoneRadiusRange(ship);
+            const killRadius = getKillZoneRadiusRange(ship.chainGun);
             if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
                 // if close enough to target, tail it
                 const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
 
-                shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
-                shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
+                ship.smartPilot.maneuvering.x = maneuvering.boost;
+                ship.smartPilot.maneuvering.y = maneuvering.strafe;
             } else {
                 const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
                 // close distance to target
                 if (distanceToTarget > killRadius[1]) {
-                    shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
-                    shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
+                    ship.smartPilot.maneuvering.x = maneuvering.boost;
+                    ship.smartPilot.maneuvering.y = maneuvering.strafe;
                 } else {
                     // distanceToTarget < killRadius[0]
-
-                    shipManager.state.smartPilot.maneuvering.x = -maneuvering.boost;
-                    shipManager.state.smartPilot.maneuvering.y = -maneuvering.strafe;
+                    ship.smartPilot.maneuvering.x = -maneuvering.boost;
+                    ship.smartPilot.maneuvering.y = -maneuvering.strafe;
                 }
             }
             lastTargetVelocity = XY.clone(target.velocity);
-            shipManager.chainGun(isTargetInKillZone(shipManager.state, target));
+            shipManager.chainGun(isTargetInKillZone(ship, ship.chainGun, target));
         } else {
             cleanupBot(shipManager);
         }

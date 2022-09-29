@@ -1,8 +1,6 @@
 import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
 import {
-    CannonShell,
     ChainGun,
-    Explosion,
     ManeuveringCommand,
     ShipArea,
     ShipState,
@@ -12,9 +10,7 @@ import {
     Spaceship,
     StatesToggle,
     TargetedStatus,
-    Vec2,
     XY,
-    calcShellSecondsToLive,
     capToRange,
     gaussianRandom,
     lerp,
@@ -25,9 +21,10 @@ import {
     shipAreasInRange,
     toPositiveDegreesDelta,
 } from '..';
+import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { Damage, SpaceManager } from '../logic/space-manager';
-import { EPSILON, RTuple2, limitPercisionHard, sinWave } from '../logic';
 import { FRONT_ARC, REAR_ARC } from '.';
+import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
@@ -35,7 +32,6 @@ import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { Thruster } from './thruster';
-import { uniqueId } from '../id';
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.plateMaxHealth;
@@ -48,17 +44,14 @@ type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.maxEnergy;
     fixArmor(state.armor);
-    resetChainGun(state.chainGun);
+    if (state.chainGun) {
+        resetChainGun(state.chainGun);
+    }
     for (const thruster of state.thrusters) {
         resetThruster(thruster);
     }
     state.smartPilot.offsetFactor = 0;
     state.chainGunAmmo = state.maxChainGunAmmo;
-}
-
-function resetChainGun(chainGun: ChainGun) {
-    chainGun.angleOffset = 0;
-    chainGun.cooldownFactor = 1;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -73,22 +66,22 @@ export type Die = {
 };
 export class ShipManager {
     public bot: Bot | null = null;
-    private target: SpaceObject | null = null;
+    target: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
-    private systemsByAreas = new Map<number, ShipSystem[]>([
+    private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
         [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot]],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor]],
     ]);
     private totalSeconds = 0;
+    private chainGunManagers = new Array<ChainGunManager>();
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
         private spaceManager: SpaceManager,
         private die: Die,
-        private ships?: Map<string, ShipManager>,
-        private onDestroy?: () => void
+        private ships?: Map<string, ShipManager>
     ) {
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotManeuveringMode(s),
@@ -101,6 +94,11 @@ export class ShipManager {
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET
         );
+        if (this.state.chainGun) {
+            this.chainGunManagers.push(
+                new ChainGunManager(this.state.chainGun, this.spaceObject, this.state, this.spaceManager, this)
+            );
+        }
     }
 
     // used by smartPilot
@@ -119,9 +117,7 @@ export class ShipManager {
     }
 
     public chainGun(isFiring: boolean) {
-        if (!isFiring || (!this.state.chainGun.broken && this.state.chainGunAmmo > 0)) {
-            this.state.chainGun.isFiring = isFiring;
-        }
+        this.chainGunManagers[0]?.setIsFiring(isFiring);
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
@@ -141,10 +137,7 @@ export class ShipManager {
     }
 
     public setShellRangeMode(value: SmartPilotMode) {
-        if (value !== this.state.chainGun.shellRangeMode) {
-            this.state.chainGun.shellRangeMode = value;
-            this.state.chainGun.shellRange = 0;
-        }
+        this.chainGunManagers[0]?.setShellRangeMode(value);
     }
 
     public setTarget(id: string | null) {
@@ -195,38 +188,31 @@ export class ShipManager {
         this.totalSeconds += deltaSeconds;
         this.healPlates(deltaSeconds);
         this.handleDamage();
-        if (this.state.chainGun.broken && this.state.thrusters.every((t) => t.broken)) {
-            this.onDestroy && this.onDestroy();
-        } else {
-            this.applyBotOrders();
-            if (this.bot) {
-                this.bot(deltaSeconds, this.spaceManager.state, this);
-            }
-            this.handleAfterburnerCommand();
-            this.handleNextTargetCommand();
-            this.handleToggleSmartPilotRotationMode();
-            this.handleToggleSmartPilotManeuveringMode();
-            this.validateTargetId();
-            this.calcTargetedStatus();
-            // sync relevant ship props
-            this.syncShipProperties();
-            this.updateEnergy(deltaSeconds);
-            this.updateRotation(deltaSeconds);
-
-            this.calcShellRange();
-
-            this.calcSmartPilotModes();
-            this.calcSmartPilotManeuvering(deltaSeconds);
-            this.calcSmartPilotRotation(deltaSeconds);
-            const maneuveringAction = this.calcManeuveringAction();
-            this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
-            this.updateVelocityFromThrusters(deltaSeconds);
-
-            this.updateChainGun(deltaSeconds);
-            this.chargeAfterBurner(deltaSeconds);
-            this.fireChainGun();
-            this.updateRadarRange();
+        this.applyBotOrders();
+        if (this.bot) {
+            this.bot(deltaSeconds, this.spaceManager.state, this);
         }
+        this.validateTargetId();
+        this.chainGunManagers[0]?.update(deltaSeconds);
+        this.handleAfterburnerCommand();
+        this.handleNextTargetCommand();
+        this.handleToggleSmartPilotRotationMode();
+        this.handleToggleSmartPilotManeuveringMode();
+        this.calcTargetedStatus();
+        // sync relevant ship props
+        this.syncShipProperties();
+        this.updateEnergy(deltaSeconds);
+        this.updateRotation(deltaSeconds);
+
+        this.calcSmartPilotModes();
+        this.calcSmartPilotManeuvering(deltaSeconds);
+        this.calcSmartPilotRotation(deltaSeconds);
+        const maneuveringAction = this.calcManeuveringAction();
+        this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
+        this.updateVelocityFromThrusters(deltaSeconds);
+
+        this.chargeAfterBurner(deltaSeconds);
+        this.updateRadarRange();
     }
 
     private calcSmartPilotModes() {
@@ -380,7 +366,7 @@ export class ShipManager {
                 if (areaUnarmoredHits) {
                     const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
                     for (const system of this.systemsByAreas.get(hitArea) || []) {
-                        this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
+                        if (system) this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
                     }
                 }
                 this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
@@ -428,32 +414,6 @@ export class ShipManager {
         }
         this.setBoost(maneuveringCommand.boost + error.y);
         this.setStrafe(maneuveringCommand.strafe + error.x);
-    }
-
-    private calcShellRange() {
-        const aimRange = (this.state.chainGun.maxShellRange - this.state.chainGun.minShellRange) / 2;
-        let baseRange: number | undefined = undefined;
-        switch (this.state.chainGun.shellRangeMode) {
-            case SmartPilotMode.DIRECT:
-                baseRange = this.state.chainGun.minShellRange + aimRange;
-                break;
-            case SmartPilotMode.TARGET:
-                baseRange = capToRange(
-                    this.state.chainGun.minShellRange,
-                    this.state.chainGun.maxShellRange,
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    XY.lengthOf(XY.difference(this.target!.position, this.state.position))
-                );
-                break;
-            default:
-                throw new Error(`unknown state ${SmartPilotMode[this.state.chainGun.shellRangeMode]}`);
-        }
-        const range = capToRange(
-            this.state.chainGun.minShellRange,
-            this.state.chainGun.maxShellRange,
-            baseRange + lerp([-1, 1], [-aimRange, aimRange], this.state.chainGun.shellRange)
-        );
-        this.state.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, range);
     }
 
     private calcSmartPilotRotation(deltaSeconds: number) {
@@ -575,7 +535,7 @@ export class ShipManager {
         if (this.ships) {
             for (const shipManager of this.ships.values()) {
                 if (shipManager.state.targetId === this.state.id) {
-                    if (shipManager.state.chainGun.isFiring) {
+                    if (shipManager.state.chainGun?.isFiring) {
                         status = TargetedStatus.FIRED_UPON;
                         break; // no need to look further
                     }
@@ -646,54 +606,6 @@ export class ShipManager {
             this.state.reactor.maxEnergy,
             this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds
         );
-    }
-
-    private updateChainGun(deltaSeconds: number) {
-        const chaingun = this.state.chainGun;
-        if (chaingun.cooldown > 0) {
-            // charge weapon
-            chaingun.cooldown -= deltaSeconds * chaingun.bulletsPerSecond;
-            if (!chaingun.isFiring && chaingun.cooldown < 0) {
-                chaingun.cooldown = 0;
-            }
-        }
-    }
-
-    private getChainGunExplosion() {
-        const result = new Explosion();
-        result.secondsToLive = this.state.chainGun.explosionSecondsToLive;
-        result.expansionSpeed = this.state.chainGun.explosionExpansionSpeed;
-        result.damageFactor = this.state.chainGun.explosionDamageFactor;
-        result.blastFactor = this.state.chainGun.explosionBlastFactor;
-        return result;
-    }
-
-    private fireChainGun() {
-        const chaingun = this.state.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0 && !chaingun.broken && this.state.chainGunAmmo > 0) {
-            chaingun.cooldown += chaingun.cooldownFactor;
-            this.state.chainGunAmmo -= 1;
-            const shell = new CannonShell(this.getChainGunExplosion());
-
-            shell.angle = gaussianRandom(
-                this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
-                chaingun.bulletDegreesDeviation
-            );
-            shell.velocity = Vec2.sum(
-                this.spaceObject.velocity,
-                XY.rotate({ x: chaingun.bulletSpeed, y: 0 }, shell.angle)
-            );
-            const shellPosition = Vec2.make(
-                XY.sum(
-                    this.spaceObject.position, // position of ship
-                    XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, shell.angle), // muzzle related to ship
-                    XY.byLengthAndDirection(shell.radius * 2, shell.angle) // some initial distance
-                )
-            );
-            shell.init(uniqueId('shell'), shellPosition);
-            shell.secondsToLive = chaingun.shellSecondsToLive;
-            this.spaceManager.insert(shell);
-        }
     }
 
     public addChainGunAmmo(addedAmmo: number) {
