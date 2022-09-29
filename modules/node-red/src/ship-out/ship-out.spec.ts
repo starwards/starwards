@@ -51,7 +51,7 @@ describe('ship-out', () => {
             // gameDriver.pauseGameCommand();
         });
 
-        it('detects game status ', async () => {
+        it('detects game status', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
                 { id: 'n1', type: 'ship-out', shipId: test_map_1.testShipId, configNode: 'n0' },

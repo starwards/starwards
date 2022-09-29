@@ -1,4 +1,4 @@
-import { ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/core';
+import { ChainGun, ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { Container } from 'pixi.js';
@@ -7,7 +7,7 @@ import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
 import { selectionColor } from '../colors';
 
-export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
+export function crosshairs(root: CameraView, shipState: ShipState, chainGun: ChainGun, shipTarget: SelectionContainer) {
     const stage = new Container();
     const shellCrosshairLayer = new SpriteLayer(
         root,
@@ -16,7 +16,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
             tint: 0xffaaaa,
             sizePx: 64,
         },
-        () => getShellExplosionLocation(shipState),
+        () => getShellExplosionLocation(shipState, chainGun),
         () => 0
     );
     const deflectionCrosshairLayer = new SpriteLayer(
@@ -28,7 +28,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, shipTarget: S
         },
         () => {
             const target = shipTarget.getSingle();
-            return target && getTargetLocationAtShellExplosion(shipState, target);
+            return target && getTargetLocationAtShellExplosion(chainGun, target);
         },
         () => 0
     );

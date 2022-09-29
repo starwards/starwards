@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
     Armor,
     Asteroid,
@@ -120,12 +121,16 @@ describe('SpaceManager', () => {
             ship.id = 'ship';
             const shipMgr = sim.withShip(ship, new ShipDie(0));
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
-            shipMgr.state.chainGun.modelParams.set('maxShellRange', 10_000);
-            shipMgr.state.chainGun.shellRange = 1;
+            shipMgr.state.chainGun!.modelParams.set('maxShellRange', 10_000);
+            shipMgr.state.chainGun!.shellRange = 1;
             shipMgr.chainGun(true);
 
             // stop simulation when first bullet reaches its range
-            const shellSecondsToLive = calcShellSecondsToLive(shipMgr.state, shipMgr.state.chainGun.maxShellRange);
+            const shellSecondsToLive = calcShellSecondsToLive(
+                shipMgr.state,
+                shipMgr.state.chainGun!,
+                shipMgr.state.chainGun!.maxShellRange
+            );
             return { sim, shellSecondsToLive, ship, shipMgr };
         }
 

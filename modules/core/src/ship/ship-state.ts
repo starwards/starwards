@@ -27,7 +27,7 @@ export class ShipState extends Spaceship {
     thrusters!: ArraySchema<Thruster>;
 
     @type(ChainGun)
-    chainGun!: ChainGun;
+    chainGun: ChainGun | null = null;
 
     @type(Radar)
     radar!: Radar;
