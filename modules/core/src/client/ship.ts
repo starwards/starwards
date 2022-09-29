@@ -1,4 +1,5 @@
-import { Faction, GameRoom, RoomName } from '..';
+import { Faction, GameRoom, RoomName, isJsonPointer } from '..';
+import { Primitive, isPrimitive } from 'colyseus-events';
 import { RoomEventEmitter, makeEventsEmitter } from './events';
 import { SmartPilotMode, TargetedStatus } from '../ship';
 import {
@@ -114,6 +115,15 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         id: shipRoom.state.id,
         get state() {
             return shipRoom.state;
+        },
+        setPrimitiveState: (pointerStr: string, value: Primitive) => {
+            if (!isJsonPointer(pointerStr)) {
+                throw new Error(`not a legal Json pointer: ${JSON.stringify(pointerStr)}`);
+            }
+            if (!isPrimitive(value)) {
+                throw new Error(`not a legal value: ${JSON.stringify(value)}`);
+            }
+            shipRoom.send(pointerStr, { value });
         },
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
