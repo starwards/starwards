@@ -14,8 +14,9 @@ describe('ship-in', () => {
     });
 
     afterEach(async () => {
-        await new Promise<void>((done) => helper.stopServer(done));
+        // order matters
         await helper.unload();
+        await new Promise<void>((done) => helper.stopServer(done));
     });
 
     it('loads', async () => {
