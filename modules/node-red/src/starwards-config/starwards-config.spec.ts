@@ -14,6 +14,7 @@ describe('starwards-config', () => {
     });
 
     afterEach(async () => {
+        // order matters
         await helper.unload();
         await new Promise<void>((done) => helper.stopServer(done));
     });
