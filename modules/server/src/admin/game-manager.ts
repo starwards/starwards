@@ -128,7 +128,12 @@ export class GameManager {
         const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships); // create a manager to manage the ship
         this.ships.set(spaceObject.id, shipManager);
         this.dice.push(die);
-        void matchMaker.createRoom('ship', { manager: shipManager }).then(() => {
+        void matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
+            let roomRes = await matchMaker.query({ roomId: spaceObject.id, name: 'ship' });
+            while (!roomRes.length) {
+                await new Promise((res) => setTimeout(res, 100));
+                roomRes = await matchMaker.query({ roomId: spaceObject.id, name: 'ship' });
+            }
             this.state.shipIds.push(spaceObject.id);
         });
         return shipManager;
