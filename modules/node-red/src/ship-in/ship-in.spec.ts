@@ -7,6 +7,7 @@ import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
+const FAKE_URL = 'http://127.1.2.3/';
 
 describe('ship-in', () => {
     beforeEach((done) => {
@@ -30,7 +31,7 @@ describe('ship-in', () => {
     describe('integration with starwards-config', () => {
         it('reports connection issue', async () => {
             const flows: Flows = [
-                { id: 'n0', type: 'starwards-config', url: 'http://localhost/' },
+                { id: 'n0', type: 'starwards-config', url: FAKE_URL },
                 { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);

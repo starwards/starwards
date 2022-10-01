@@ -7,6 +7,7 @@ import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
+const FAKE_URL = 'http://127.1.2.3/';
 
 describe('starwards-config', () => {
     beforeEach((done) => {
@@ -21,7 +22,7 @@ describe('starwards-config', () => {
     });
 
     it('loads', async () => {
-        const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: 'http://localhost/' }];
+        const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: FAKE_URL }];
         await helper.load(initNodes, flows);
         const { node } = getNode<StarwardsConfigNode>('n1');
         expect(node.driver).toBeInstanceOf(Driver);
