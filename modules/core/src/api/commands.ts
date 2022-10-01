@@ -1,4 +1,4 @@
-import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, tryGetRange } from '..';
+import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, printError, tryGetRange } from '..';
 
 import { Schema } from '@colyseus/schema';
 
@@ -91,7 +91,7 @@ export function handleJsonPointerCommand(message: unknown, type: string | number
                 return true;
             } catch (e) {
                 // eslint-disable-next-line no-console
-                console.error(`Error setting value ${String(value)} in ${type} : ${String((e as Error).stack)}`);
+                console.error(`Error setting value ${String(value)} in ${type} : ${printError(e)}`);
             }
         } else {
             // eslint-disable-next-line no-console

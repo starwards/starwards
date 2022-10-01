@@ -4,6 +4,7 @@ import { createMachine, interpret } from 'xstate';
 import { ErrorCode } from 'colyseus.js';
 import EventEmitter from 'eventemitter3';
 import { isCoded } from './errors';
+import { printError } from '../utils';
 import { raceEvents } from '../async-utils';
 
 type StatusContext = { lastGameError: unknown };
@@ -101,8 +102,8 @@ export class ConnectionManager {
         }
     };
     onConnectionError = (err: unknown) => {
-        if (String(err) !== String(this.statusService.state.context.lastGameError)) {
-            console.log(`connection error: ${String(err)}`);
+        if (printError(err) !== printError(this.statusService.state.context.lastGameError)) {
+            console.log(`connection error: ${printError(err)}`);
         }
         if (!this.isDestroyed) {
             this.statusService.state.context.lastGameError = err;
