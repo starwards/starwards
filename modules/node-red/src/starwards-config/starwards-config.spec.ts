@@ -43,7 +43,7 @@ describe('starwards-config', () => {
             await gameDriver.gameManager.startGame(test_map_1);
             await waitFor(async () => {
                 expect(await node.driver.isActiveGame()).toEqual(true);
-            }, 100);
+            }, 3_000);
         });
     });
 });
