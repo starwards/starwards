@@ -10,9 +10,9 @@ import {
     shipConfigurations,
 } from '@starwards/core';
 import { GameApi, GameMap, ShipApi } from './scripts-api';
+import { IRoomListingData, matchMaker } from 'colyseus';
 
 import { SavedGame } from '../serialization/game-state-protocol';
-import { matchMaker } from 'colyseus';
 
 type Die = {
     update: (deltaSeconds: number) => void;
@@ -76,8 +76,10 @@ export class GameManager {
             this.ships = new Map<string, ShipManager>();
             this.spaceManager = new SpaceManager();
             map.init(this.scriptApi);
+            await this.waitForAllShipRoomInit();
             this.spaceManager.forceFlushEntities();
             await matchMaker.createRoom('space', { manager: this.spaceManager });
+            await this.waitForRoom({ name: 'space' });
         }
     }
 
@@ -104,12 +106,14 @@ export class GameManager {
         this.spaceManager = new SpaceManager();
         this.spaceManager.insertBulk(source.fragment.space);
         await matchMaker.createRoom('space', { manager: this.spaceManager });
+        await this.waitForRoom({ name: 'space' });
         for (const [id, shipState] of source.fragment.ship) {
             const so = source.fragment.space.getShip(id);
             if (so) {
                 this.initShipRoom(so, shipState);
             }
         }
+        await this.waitForAllShipRoomInit();
     }
 
     private addShip(spaceObject: Spaceship) {
@@ -123,19 +127,29 @@ export class GameManager {
         return shipManager;
     }
 
+    private async waitForAllShipRoomInit() {
+        while (this.ships.size > this.state.shipIds.length) {
+            await new Promise((res) => setTimeout(res, 100));
+        }
+    }
+
     private initShipRoom(spaceObject: Spaceship, shipState: ShipState) {
         const die = new ShipDie(3);
         const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships); // create a manager to manage the ship
         this.ships.set(spaceObject.id, shipManager);
         this.dice.push(die);
         void matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-            let roomRes = await matchMaker.query({ roomId: spaceObject.id, name: 'ship' });
-            while (!roomRes.length) {
-                await new Promise((res) => setTimeout(res, 100));
-                roomRes = await matchMaker.query({ roomId: spaceObject.id, name: 'ship' });
-            }
+            await this.waitForRoom({ roomId: spaceObject.id, name: 'ship' });
             this.state.shipIds.push(spaceObject.id);
         });
         return shipManager;
+    }
+
+    private async waitForRoom(conditions: Partial<IRoomListingData>) {
+        let roomRes = await matchMaker.query(conditions);
+        while (!roomRes.length) {
+            await new Promise((res) => setTimeout(res, 50));
+            roomRes = await matchMaker.query(conditions);
+        }
     }
 }
