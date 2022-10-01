@@ -199,11 +199,13 @@ export class Driver {
 
     private async makeShipDriver(shipId: string) {
         try {
+            await this.waitForShip(shipId);
             const room = await this.rooms.joinById(shipId, {}, schemaClasses.ship).then(this.hookRoomLifecycle);
             return await ShipDriver(room);
         } catch (e) {
-            this.connectionManager.onConnectionError(e);
-            throw e;
+            const error = new Error('failed making ship driver', { cause: e });
+            this.connectionManager.onConnectionError(error);
+            throw error;
         }
     }
 
@@ -219,8 +221,9 @@ export class Driver {
                 .then(SpaceDriver);
             return await this.spaceDriver;
         } catch (e) {
-            this.connectionManager.onConnectionError(e);
-            throw e;
+            const error = new Error('failed making space driver', { cause: e });
+            this.connectionManager.onConnectionError(error);
+            throw error;
         }
     }
 

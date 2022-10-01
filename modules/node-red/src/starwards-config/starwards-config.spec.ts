@@ -31,6 +31,10 @@ describe('starwards-config', () => {
     describe('integration with server', () => {
         const gameDriver = makeDriver();
 
+        afterEach(async () => {
+            await helper.unload();
+        });
+
         it('detects game status', async () => {
             const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: gameDriver.url() }];
             await helper.load(initNodes, flows);
