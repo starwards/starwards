@@ -18,6 +18,7 @@ describe('ship-out', () => {
         // order matters
         await helper.unload();
         await new Promise<void>((done) => helper.stopServer(done));
+        await helper.unload();
     });
 
     it('loads', async () => {
