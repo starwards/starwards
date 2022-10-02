@@ -30,7 +30,10 @@ export function makeDriver() {
     };
 
     const isListening = async () => {
-        await new Client(getColyseusEndpoint(new URL(url()))).getAvailableRooms();
+        const client = new Client(getColyseusEndpoint(new URL(url())));
+        await client.getAvailableRooms();
+        const adminRoom = await client.joinById('admin');
+        await adminRoom.leave(true);
     };
 
     beforeEach(async () => {
