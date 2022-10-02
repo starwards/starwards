@@ -19,7 +19,9 @@ function nodeLogic(node: ShipOutNode, { shipId }: ShipOutOptions) {
     const onStatus = ({ status, text }: StatusInfo) => {
         if (status === Status.SHIP_FOUND) {
             node.status({ fill: 'green', shape: 'dot', text: 'connected' });
-            node.shipDriver = node.configNode.driver.getShipDriver(shipId);
+            if (!node.shipDriver) {
+                node.shipDriver = node.configNode.driver.getShipDriver(shipId);
+            }
         } else {
             node.shipDriver = null;
             node.status({ fill: 'red', shape: 'dot', text });
