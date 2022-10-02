@@ -1,5 +1,6 @@
 import { AddressInfo, Socket } from 'net';
 
+import { EventEmitter } from 'eventemitter3';
 import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { Server } from 'http';
@@ -12,20 +13,26 @@ export function makeDriver() {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     let sockets: ReturnType<typeof makeSocketsControls> | null = null;
+
+    const url = () => {
+        if (!serverInfo) throw new Error('missing serverInfo');
+        return `http://localhost:${serverInfo.addressInfo.port}/`;
+    };
+
     beforeEach(async () => {
         gameManager = new GameManager();
         serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
         sockets = makeSocketsControls(serverInfo.httpServer);
     });
+
     afterEach(async () => {
         await gameManager?.stopGame();
         await serverInfo?.close();
+        await sockets?.waitForNoSockets();
     });
+
     return {
-        url: () => {
-            if (!serverInfo) throw new Error('missing serverInfo');
-            return `http://localhost:${serverInfo.addressInfo.port}/`;
-        },
+        url,
         get httpServer() {
             if (!serverInfo) throw new Error('missing serverInfo');
             return serverInfo.httpServer;
@@ -80,10 +87,14 @@ export function makeDriver() {
  */
 export function makeSocketsControls(netServer: Server) {
     const sockets: Socket[] = [];
-
+    const onSocketsChange = new EventEmitter();
     const onConnection = (socket: Socket): void => {
         sockets.push(socket);
-        socket.once('close', () => sockets.splice(sockets.indexOf(socket), 1));
+        socket.once('close', () => {
+            sockets.splice(sockets.indexOf(socket), 1);
+            onSocketsChange.emit('touch');
+        });
+        onSocketsChange.emit('touch');
     };
     netServer.on('connection', onConnection);
     netServer.on('secureConnection', onConnection);
@@ -106,6 +117,18 @@ export function makeSocketsControls(netServer: Server) {
             const result = new Promise<void>((res) => netServer.listen(lastPort, res));
             lastPort = -1;
             return result;
+        },
+        waitForNoSockets() {
+            return new Promise<void>((res) => {
+                if (!sockets.length) {
+                    res();
+                }
+                onSocketsChange.on('touch', () => {
+                    if (!sockets.length) {
+                        res();
+                    }
+                });
+            });
         },
     };
 }

@@ -8,6 +8,7 @@ import { maps } from '@starwards/server';
 import { waitFor } from '@starwards/core';
 
 const { test_map_1 } = maps;
+const FAKE_URL = 'http://127.1.2.3/';
 
 describe('ship-out', () => {
     beforeEach((done) => {
@@ -18,6 +19,7 @@ describe('ship-out', () => {
         // order matters
         await helper.unload();
         await new Promise<void>((done) => helper.stopServer(done));
+        await helper.unload();
     });
 
     it('loads', async () => {
@@ -30,7 +32,7 @@ describe('ship-out', () => {
     describe('integration with starwards-config', () => {
         it('reports connection issue', async () => {
             const flows: Flows = [
-                { id: 'n0', type: 'starwards-config', url: 'http://localhost/' },
+                { id: 'n0', type: 'starwards-config', url: FAKE_URL },
                 { id: 'n1', type: 'ship-out', shipId: 'GVTS', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
@@ -50,6 +52,10 @@ describe('ship-out', () => {
         beforeEach(async () => {
             await gameDriver.gameManager.startGame(test_map_1);
             // gameDriver.pauseGameCommand();
+        });
+
+        afterEach(async () => {
+            await helper.unload();
         });
 
         it('detects game status', async () => {

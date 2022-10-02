@@ -3,6 +3,7 @@ import { Client, Room } from 'colyseus.js';
 import { ConnectionManager, ConnectionStateEvent } from './connection-manager';
 
 import { AdminDriver } from './admin';
+import { SchemaConstructor } from 'colyseus.js/lib/serializer/SchemaSerializer';
 import { ShipDriver } from './ship';
 import { SpaceDriver } from './space';
 import { waitForEvents } from '../async-utils';
@@ -11,10 +12,14 @@ export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
 export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
 
+const joinRetries = 3;
+
+export function getColyseusEndpoint(location: { protocol: string; host: string }) {
+    return (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
+}
 export class Driver {
     private connectionManager = new ConnectionManager(() => {
-        this.adminDriver = this.rooms
-            .join('admin', {}, schemaClasses.admin)
+        this.adminDriver = this.joinRoom('admin', schemaClasses.admin)
             .then(this.hookAdminRoomLifecycle)
             .then(AdminDriver(this.httpEndpoint));
         return this.adminDriver;
@@ -59,7 +64,7 @@ export class Driver {
      * @param location window.location compatible object
      */
     constructor(location: { protocol: string; host: string }) {
-        const colyseusEndpoint = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
+        const colyseusEndpoint = getColyseusEndpoint(location);
         this.httpEndpoint = location.protocol + '//' + location.host;
         this.rooms = new Client(colyseusEndpoint);
         this.connectionManager.events.on('exit:connected', this.clearCache);
@@ -69,6 +74,16 @@ export class Driver {
                 this.shipDrivers.clear();
             }
         });
+    }
+
+    private async joinRoom<T>(roomId: string, rootSchema: SchemaConstructor<T>): Promise<Room<T>> {
+        for (let i = 1; i < joinRetries; i++) {
+            try {
+                return await this.rooms.joinById(roomId, {}, rootSchema);
+                // eslint-disable-next-line no-empty
+            } catch (e) {}
+        }
+        return await this.rooms.joinById(roomId, {}, rootSchema);
     }
 
     clearCache = () => {
@@ -199,11 +214,13 @@ export class Driver {
 
     private async makeShipDriver(shipId: string) {
         try {
-            const room = await this.rooms.joinById(shipId, {}, schemaClasses.ship).then(this.hookRoomLifecycle);
+            await this.waitForShip(shipId);
+            const room = await this.joinRoom(shipId, schemaClasses.ship).then(this.hookRoomLifecycle);
             return await ShipDriver(room);
         } catch (e) {
-            this.connectionManager.onConnectionError(e);
-            throw e;
+            const error = new Error('failed making ship driver', { cause: e });
+            this.connectionManager.onConnectionError(error);
+            throw error;
         }
     }
 
@@ -213,14 +230,14 @@ export class Driver {
             return await this.spaceDriver;
         }
         try {
-            this.spaceDriver = this.rooms
-                .join('space', {}, schemaClasses.space)
+            this.spaceDriver = this.joinRoom('space', schemaClasses.space)
                 .then(this.hookRoomLifecycle)
                 .then(SpaceDriver);
             return await this.spaceDriver;
         } catch (e) {
-            this.connectionManager.onConnectionError(e);
-            throw e;
+            const error = new Error('failed making space driver', { cause: e });
+            this.connectionManager.onConnectionError(error);
+            throw error;
         }
     }
 

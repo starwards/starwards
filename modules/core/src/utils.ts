@@ -65,3 +65,14 @@ export async function waitFor<T>(body: () => T | Promise<T>, timeout: number, in
     }
     throw error;
 }
+
+export function printError(err: unknown): string {
+    if (err instanceof Error && err.stack) {
+        if (err.cause) {
+            return `${err.stack}\n  [cause]: ${printError(err.cause)})`;
+        }
+        return err.stack;
+    } else {
+        return String(err);
+    }
+}
