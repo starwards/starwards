@@ -16,17 +16,22 @@ export declare type Primitive = number | string | boolean | null | undefined;
 
 function nodeLogic(node: ShipOutNode, { shipId }: ShipOutOptions) {
     const statusTracker = new ClientStatus(node.configNode.driver, shipId);
+    let statusCounter = Number.MIN_SAFE_INTEGER;
     const onStatus = ({ status, text }: StatusInfo) => {
+        const currCOunter = ++statusCounter;
         if (status === Status.SHIP_FOUND) {
             if (!node.shipDriver) {
                 node.shipDriver = node.configNode.driver.getShipDriver(shipId);
                 node.shipDriver.then(
                     () => {
-                        node.status({ fill: 'green', shape: 'dot', text: 'connected' });
+                        if (currCOunter === statusCounter)
+                            node.status({ fill: 'green', shape: 'dot', text: 'connected' });
                     },
                     (e) => {
-                        node.shipDriver = null;
-                        node.status({ fill: 'red', shape: 'dot', text: String(e) });
+                        if (currCOunter === statusCounter) {
+                            node.status({ fill: 'red', shape: 'dot', text: String(e) });
+                            node.shipDriver = null;
+                        }
                     }
                 );
             }
