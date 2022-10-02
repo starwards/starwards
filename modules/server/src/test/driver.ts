@@ -1,11 +1,10 @@
 import { AddressInfo, Socket } from 'net';
-import { adminProperties, getColyseusEndpoint, waitFor } from '@starwards/core';
 
-import { Client } from 'colyseus.js';
 import { EventEmitter } from 'eventemitter3';
 import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { Server } from 'http';
+import { adminProperties } from '@starwards/core';
 import path from 'path';
 import { server } from '../server';
 import { stringToSchema } from '../serialization/game-state-serialization';
