@@ -14,34 +14,23 @@ export function makeDriver() {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     let sockets: ReturnType<typeof makeSocketsControls> | null = null;
-    const init = async () => {
-        gameManager = new GameManager();
-        serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
-        sockets = makeSocketsControls(serverInfo.httpServer);
-    };
-    const cleanup = async () => {
-        await gameManager?.stopGame();
-        await serverInfo?.close();
-        await sockets?.waitForNoSockets();
-    };
+
     const url = () => {
         if (!serverInfo) throw new Error('missing serverInfo');
         return `http://localhost:${serverInfo.addressInfo.port}/`;
     };
 
-    const isListening = async () => {
-        const client = new Client(getColyseusEndpoint(new URL(url())));
-        await client.getAvailableRooms();
-        const adminRoom = await client.joinById('admin');
-        await adminRoom.leave(true);
-    };
-
     beforeEach(async () => {
-        await init();
-        await waitFor(isListening, 3_000);
+        gameManager = new GameManager();
+        serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
+        sockets = makeSocketsControls(serverInfo.httpServer);
     });
 
-    afterEach(cleanup);
+    afterEach(async () => {
+        await gameManager?.stopGame();
+        await serverInfo?.close();
+        await sockets?.waitForNoSockets();
+    });
 
     return {
         url,
