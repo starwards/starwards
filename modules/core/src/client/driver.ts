@@ -14,6 +14,9 @@ export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
 
 const joinRetries = 3;
 
+export function getColyseusEndpoint(location: { protocol: string; host: string }) {
+    return (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
+}
 export class Driver {
     private connectionManager = new ConnectionManager(() => {
         this.adminDriver = this.joinRoom('admin', schemaClasses.admin)
@@ -61,7 +64,7 @@ export class Driver {
      * @param location window.location compatible object
      */
     constructor(location: { protocol: string; host: string }) {
-        const colyseusEndpoint = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
+        const colyseusEndpoint = getColyseusEndpoint(location);
         this.httpEndpoint = location.protocol + '//' + location.host;
         this.rooms = new Client(colyseusEndpoint);
         this.connectionManager.events.on('exit:connected', this.clearCache);
