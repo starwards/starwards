@@ -18,9 +18,17 @@ function nodeLogic(node: ShipOutNode, { shipId }: ShipOutOptions) {
     const statusTracker = new ClientStatus(node.configNode.driver, shipId);
     const onStatus = ({ status, text }: StatusInfo) => {
         if (status === Status.SHIP_FOUND) {
-            node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             if (!node.shipDriver) {
                 node.shipDriver = node.configNode.driver.getShipDriver(shipId);
+                node.shipDriver.then(
+                    () => {
+                        node.status({ fill: 'green', shape: 'dot', text: 'connected' });
+                    },
+                    (e) => {
+                        node.shipDriver = null;
+                        node.status({ fill: 'red', shape: 'dot', text: String(e) });
+                    }
+                );
             }
         } else {
             node.shipDriver = null;
