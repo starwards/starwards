@@ -59,7 +59,7 @@ describe('client status', () => {
             await waitFor(() => expect(clientDriver.driver.isConnected).toBeTruthy(), 3_000);
             const statuses: StatusInfo[] = [];
             new ClientStatus(clientDriver.driver).onStatusChange((s) => statuses.push(s));
-            await waitFor(() => expect(statuses).toEqual([connectedNoActiveGame]), 100);
+            await waitFor(() => expect(statuses).toEqual([connectedNoActiveGame]), 3_000);
         });
         it('onStatusChange() tracks changes', async () => {
             const statuses: StatusInfo[] = [];
