@@ -1,7 +1,14 @@
 {
     "name": "@starwards/node-red",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "Starwards nodes for Node-RED",
+    "keywords": [
+        "node-red",
+        "game",
+        "spacechip",
+        "larp",
+        "SBS"
+    ],
     "scripts": {
         "clean": "rimraf ./dist",
         "build:copy": "copyfiles -u 1 \"src/*/icons/*.{png,svg}\" \"./dist/\"",
@@ -33,6 +40,6 @@
         }
     },
     "dependencies": {
-        "@starwards/core": "0.2.1"
+        "@starwards/core": "0.2.2"
     }
 }
