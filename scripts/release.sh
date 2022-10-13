@@ -37,7 +37,7 @@ fi
 if [ $PUSH = "y" ]
 then 
     echo "Pushing to git"
-    # git push && git push --tags
+    git push && git push --tags
 else
     echo "Not pushing to git"
 fi
