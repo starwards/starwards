@@ -12,7 +12,7 @@ export interface StarwardsConfigNode extends Node {
 const nodeInit: NodeInitializer = (RED): void => {
     function StarwardsConfigNodeConstructor(this: StarwardsConfigNode, config: NodeDef & StarwardsConfigOptions): void {
         RED.nodes.createNode(this, config);
-        this.driver = new Driver(new URL(config.url)).connect();
+        this.driver = new Driver(new URL(config.url)).connect(1_000);
         this.on('close', () => this.driver.destroy());
     }
 
