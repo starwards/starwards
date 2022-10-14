@@ -67,6 +67,7 @@ function isErrorLike(e: unknown): e is { message: string; stack?: string } {
 }
 export class ConnectionManager {
     readonly events = new EventEmitter<ConnectionStateEvent>();
+    public reconnectIntervalMS = 10;
     private statusService = interpret(statusMachine)
         .start()
         .onTransition((state) => {
@@ -82,7 +83,7 @@ export class ConnectionManager {
         });
 
     constructor(private connectJob: () => Promise<unknown>) {
-        this.events.on('error', this.connect);
+        this.events.on('error', () => void setTimeout(this.connect, this.reconnectIntervalMS));
     }
 
     connect = () => {

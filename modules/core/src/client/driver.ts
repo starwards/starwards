@@ -84,7 +84,8 @@ export class Driver {
         this.shipDrivers.clear();
     };
 
-    connect() {
+    connect(reconnectIntervalMS = 10) {
+        this.connectionManager.reconnectIntervalMS = reconnectIntervalMS;
         this.connectionManager.connect();
         return this;
     }
