@@ -12,8 +12,6 @@ export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
 export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
 
-const joinRetries = 3;
-
 export function getColyseusEndpoint(location: { protocol: string; host: string }) {
     return (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
 }
@@ -77,13 +75,7 @@ export class Driver {
     }
 
     private async joinRoom<T>(roomId: string, rootSchema: SchemaConstructor<T>): Promise<Room<T>> {
-        for (let i = 1; i < joinRetries; i++) {
-            try {
-                return await this.rooms.joinById(roomId, {}, rootSchema);
-                // eslint-disable-next-line no-empty
-            } catch (e) {}
-        }
-        return await this.rooms.joinById(roomId, {}, rootSchema);
+        return this.rooms.joinById(roomId, {}, rootSchema);
     }
 
     clearCache = () => {
@@ -92,7 +84,8 @@ export class Driver {
         this.shipDrivers.clear();
     };
 
-    connect() {
+    connect(reconnectIntervalMS = 10) {
+        this.connectionManager.reconnectIntervalMS = reconnectIntervalMS;
         this.connectionManager.connect();
         return this;
     }
