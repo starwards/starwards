@@ -55,6 +55,7 @@ export class Driver {
                 this.connectionManager.onConnectionError(new Error(`disconnected from server`));
             }
         });
+        this.connectionManager.events.once('error', () => void room.leave(true));
         return this.hookRoomLifecycle(room);
     };
 
