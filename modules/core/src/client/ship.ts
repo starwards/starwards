@@ -11,7 +11,6 @@ import {
 } from '../api/properties';
 
 import { JsonStringPointer } from 'json-ptr';
-import { TargetedStatus } from '../ship';
 import { waitForEvents } from '../async-utils';
 
 export type ThrusterDriver = ReturnType<ThrustersDriver['makeDriver']>;
@@ -149,7 +148,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         afterBurner: readWriteNumberProp(shipRoom, events, `/afterBurnerCommand`),
         antiDrift: readWriteNumberProp(shipRoom, events, `/antiDrift`),
         breaks: readWriteNumberProp(shipRoom, events, `/breaks`),
-        targeted: readProp<TargetedStatus>(shipRoom, events, '/targeted'),
     };
 }
 

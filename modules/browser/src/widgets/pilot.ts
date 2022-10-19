@@ -32,7 +32,7 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
             panel.addProperty('angle', shipDriver.angle);
             panel.addProperty('speedDirection', shipDriver.speedDirection);
             panel.addProperty('speed', shipDriver.speed);
-            panel.addText('targeted', { getValue: () => String(shipDriver.targeted.getValue()) });
+            panel.addText('targeted', { getValue: () => String(shipDriver.state.targeted) });
         }
     }
     return {
