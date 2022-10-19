@@ -146,7 +146,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         speed: readNumberProp(shipRoom, events, `/speed`),
         chainGunCooldown: readNumberProp(shipRoom, events, `/chainGun/cooldown`),
         rotationTargetOffset: readWriteNumberProp(shipRoom, events, `/smartPilot/rotationTargetOffset`),
-        afterBurner: readWriteNumberProp(shipRoom, events, `/afterBurnerCommand`),
     };
 }
 

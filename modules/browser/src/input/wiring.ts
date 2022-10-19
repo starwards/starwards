@@ -15,10 +15,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     );
     input.addButtonAction(shipDriver.writeProp('/rotationModeCommand'), shipInputConfig.rotationMode);
     input.addButtonAction(shipDriver.writeProp('/maneuveringModeCommand'), shipInputConfig.maneuveringMode);
-    input.addButtonAction(
-        { setValue: (v: boolean) => shipDriver.afterBurner.setValue(Number(v)) },
-        shipInputConfig.afterBurner
-    );
+    input.addButtonAction(numberAction(shipDriver.writeProp('/afterBurnerCommand')), shipInputConfig.afterBurner);
     input.addButtonAction(numberAction(shipDriver.writeProp('/antiDrift')), shipInputConfig.antiDrift);
     input.addButtonAction(numberAction(shipDriver.writeProp('/breaks')), shipInputConfig.breaks);
     input.addButtonAction(shipDriver.writeProp('/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
