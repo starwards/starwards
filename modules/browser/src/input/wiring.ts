@@ -12,7 +12,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
         { setValue: (v: boolean) => shipDriver.rotationTargetOffset.setValue(Number(v)) },
         shipInputConfig.resetRotatioTargetOffset
     );
-    input.addButtonAction(shipDriver.rotationModeCommand, shipInputConfig.rotationMode);
+    input.addButtonAction(shipDriver.writeProp('/rotationModeCommand'), shipInputConfig.rotationMode);
     input.addButtonAction(shipDriver.writeProp('/maneuveringModeCommand'), shipInputConfig.maneuveringMode);
     input.addButtonAction(
         { setValue: (v: boolean) => shipDriver.afterBurner.setValue(Number(v)) },

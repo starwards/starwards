@@ -155,7 +155,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         nextTargetCommand: writeProp<boolean>(shipRoom, '/nextTargetCommand'),
         clearTargetCommand: writeProp<boolean>(shipRoom, '/clearTargetCommand'),
         rotationMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/rotationMode'),
-        rotationModeCommand: writeProp<boolean>(shipRoom, '/rotationModeCommand'),
     };
 }
 
