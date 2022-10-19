@@ -141,7 +141,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         boost: readNumberProp(shipRoom, events, `/boost`),
         energy: readNumberProp(shipRoom, events, `/reactor/energy`),
         afterBurnerFuel: readNumberProp(shipRoom, events, `/reactor/afterBurnerFuel`),
-        turnSpeed: readNumberProp(shipRoom, events, `/turnSpeed`),
     };
 }
 
