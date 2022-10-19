@@ -20,8 +20,8 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
             });
             panel.addProperty('strafeCommand', shipDriver.strafeCommand);
             panel.addProperty('boostCommand', shipDriver.boostCommand);
-            panel.addProperty('strafe', shipDriver.strafe);
-            panel.addProperty('boost', shipDriver.boost);
+            panel.addProperty('strafe', shipDriver.readNumberProp(`/strafe`));
+            panel.addProperty('boost', shipDriver.readNumberProp(`/boost`));
 
             panel.addProperty('energy', shipDriver.readNumberProp(`/reactor/energy`));
             panel.addProperty('afterBurnerFuel', shipDriver.readNumberProp(`/reactor/afterBurnerFuel`));
