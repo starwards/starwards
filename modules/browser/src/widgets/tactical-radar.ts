@@ -41,7 +41,7 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 root.setSquare();
                 const rangeFilter = new RadarRangeFilter(
                     spaceDriver,
-                    (o: SpaceObject) => o.faction === shipDriver.faction.getValue()
+                    (o: SpaceObject) => o.faction === shipDriver.state.faction
                 );
                 const fovGraphics = new Graphics();
                 root.stage.addChild(fovGraphics);

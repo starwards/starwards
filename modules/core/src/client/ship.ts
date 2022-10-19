@@ -1,4 +1,4 @@
-import { Faction, GameRoom, RoomName, isJsonPointer } from '..';
+import { GameRoom, RoomName, isJsonPointer } from '..';
 import { Primitive, isPrimitive } from 'colyseus-events';
 import { RoomEventEmitter, makeEventsEmitter } from './events';
 import { SmartPilotMode, TargetedStatus } from '../ship';
@@ -157,7 +157,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         rotationModeCommand: writeProp<boolean>(shipRoom, '/rotationModeCommand'),
         maneuveringMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/maneuveringMode'),
         maneuveringModeCommand: writeProp<boolean>(shipRoom, '/maneuveringModeCommand'),
-        faction: readWriteProp<Faction>(shipRoom, events, '/faction'),
     };
 }
 
