@@ -125,6 +125,7 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
             shipRoom.send(pointerStr, { value });
         },
         writeProp: <T>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
+        readWriteNumberProp: readWriteNumberProp.bind(null, shipRoom, events),
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
@@ -147,7 +148,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         rotationTargetOffset: readWriteNumberProp(shipRoom, events, `/smartPilot/rotationTargetOffset`),
         afterBurner: readWriteNumberProp(shipRoom, events, `/afterBurnerCommand`),
         antiDrift: readWriteNumberProp(shipRoom, events, `/antiDrift`),
-        breaks: readWriteNumberProp(shipRoom, events, `/breaks`),
     };
 }
 
