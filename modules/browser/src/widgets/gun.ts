@@ -13,7 +13,7 @@ export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
             const chainGunPanel = panel.addFolder('chainGun');
 
             chainGunPanel.addProperty('chainGunCooldown', shipDriver.chainGunCooldown);
-            chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.chainGunIsFiring.getValue()) });
+            chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.state.chainGun?.isFiring) });
             panel.addText('target', { getValue: () => String(shipDriver.state.targetId) });
 
             panel.addProperty('shellSecondsToLive', shipDriver.shellSecondsToLive);

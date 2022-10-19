@@ -23,7 +23,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
         shipInputConfig.antiDrift
     );
     input.addButtonAction({ setValue: (v: boolean) => shipDriver.breaks.setValue(Number(v)) }, shipInputConfig.breaks);
-    input.addButtonAction(shipDriver.chainGunIsFiring, shipInputConfig.chainGunIsFiring);
+    input.addButtonAction(shipDriver.writeProp('/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
     input.addButtonAction(shipDriver.writeProp('/nextTargetCommand'), shipInputConfig.target);
     input.addButtonAction(shipDriver.writeProp('/clearTargetCommand'), shipInputConfig.clearTarget);
     input.init();
