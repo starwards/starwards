@@ -1,0 +1,15 @@
+name: Blocking Issues
+
+on:
+    issues:
+        types: [opened, edited, deleted, transferred, closed, reopened, labeled, unlabeled]
+    pull_request_target:
+        types: [opened, edited, closed, reopened]
+
+jobs:
+    blocking_issues:
+        runs-on: ubuntu-latest
+        name: Checks for blocking issues
+
+        steps:
+            - uses: Levi-Lesches/blocking-issues@v2
