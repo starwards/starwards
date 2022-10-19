@@ -7,8 +7,8 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     const input = new InputManager();
     input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
     input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
-    input.addRangeAction(shipDriver.strafeCommand, shipInputConfig.strafeCommand);
-    input.addRangeAction(shipDriver.boostCommand, shipInputConfig.boostCommand);
+    input.addRangeAction(shipDriver.readWriteNumberProp('/smartPilot/maneuvering/y'), shipInputConfig.strafeCommand);
+    input.addRangeAction(shipDriver.readWriteNumberProp('/smartPilot/maneuvering/x'), shipInputConfig.boostCommand);
     input.addButtonAction(
         numberAction(shipDriver.writeProp('/smartPilot/rotationTargetOffset')),
         shipInputConfig.resetRotatioTargetOffset
