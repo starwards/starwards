@@ -1,20 +1,22 @@
-import { NumberMapDriver, RoomName, ShipDriver } from '@starwards/core';
 import { Panel, PropertyPanel } from '../panel';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { ShipDriver } from '@starwards/core';
 
-function addMapToPanel(panel: Panel, p: NumberMapDriver<RoomName, string>) {
-    const fields = new Set(p.fields);
-    for (const constName of p.fields) {
-        panel.addConfig(constName, p.getApi(constName));
+function addMapToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
+    const p = shipDriver.readProp<Map<string, number>>(pointerStr);
+    const fields = new Set(p.getValue().keys());
+
+    for (const constName of fields) {
+        panel.addConfig(constName, shipDriver.readWriteProp(pointerStr + '/' + constName));
     }
     p.onChange(() => {
-        for (const constName of p.fields) {
+        for (const constName of p.getValue().keys()) {
             if (!fields.has(constName)) {
                 fields.add(constName);
-                panel.addConfig(constName, p.getApi(constName));
+                panel.addConfig(constName, shipDriver.readWriteProp(pointerStr + '/' + constName));
             }
         }
     });
@@ -23,10 +25,11 @@ function addMapToPanel(panel: Panel, p: NumberMapDriver<RoomName, string>) {
 export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
     function makeShipComponent(container: Container) {
         const rootPanel = new PropertyPanel(container);
-        shipDriver.constants;
         // TODO add cleanups for folders
-        addMapToPanel(rootPanel.addFolder('main'), shipDriver.constants);
-        addMapToPanel(rootPanel.addFolder('chainGun'), shipDriver.chainGunConstants);
+        addMapToPanel(rootPanel.addFolder('main'), shipDriver, `/modelParams/params`);
+        if (shipDriver.state.chainGun) {
+            addMapToPanel(rootPanel.addFolder('chainGun'), shipDriver, `/chainGun/modelParams/params`);
+        }
         rootPanel.addImportExport();
         const cleanup = () => {
             container.off('destroy', cleanup);

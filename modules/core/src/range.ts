@@ -75,6 +75,7 @@ function getRangeFromAncestor<T extends Schema>(
     }
     return undefined;
 }
+
 export function getRange(root: Schema, pointer: JsonPointer): readonly [number, number] {
     const r = tryGetRange(root, pointer);
     if (!r) {
@@ -82,15 +83,19 @@ export function getRange(root: Schema, pointer: JsonPointer): readonly [number, 
     }
     return r;
 }
+
 export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | readonly [number, number] {
     const target = pointer.path.length === 1 ? root : pointer.parent(root); // pending bug fix https://github.com/flitbit/json-ptr/pull/56
     const propertyName = pointer.path.at(-1);
-    if (!(target instanceof Schema) || typeof propertyName !== 'string') {
+    if (!(target instanceof Object) || typeof propertyName !== 'string') {
         throw new Error(
             `pointer ${pointer.pointer} does not point at a legal location: target=${JSON.stringify(
                 target
             )}, propertyName=${JSON.stringify(propertyName)}`
         );
+    }
+    if (!(target instanceof Schema)) {
+        return undefined;
     }
     let r = getRangeFromProperty(target, propertyName);
     // while no range was found, look for range in ancestors
@@ -103,14 +108,16 @@ export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | rea
             throw new Error(`Unexpected! ${ancestorPath} is an illegal json pointer`);
         }
         const ancestor = ancestorPointer.get(root);
-        if (!(ancestor instanceof Schema) || typeof ancestorPropertyName !== 'string') {
+        if (!(ancestor instanceof Object) || typeof ancestorPropertyName !== 'string') {
             throw new Error(
                 `pointer ${pointer.pointer} does not point at a legal location: ancestor=${JSON.stringify(
                     ancestor
                 )}, ancestorPropertyName=${JSON.stringify(ancestorPropertyName)}`
             );
         }
-        r = getRangeFromAncestor(ancestor, ancestorPropertyName, descendantPath);
+        if (ancestor instanceof Schema) {
+            r = getRangeFromAncestor(ancestor, ancestorPropertyName, descendantPath);
+        }
     }
     return r;
 }
