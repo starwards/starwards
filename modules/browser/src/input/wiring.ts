@@ -5,7 +5,7 @@ import { shipInputConfig } from '../input/input-config';
 
 export function wireSinglePilotInput(shipDriver: ShipDriver) {
     const input = new InputManager();
-    input.addRangeAction(shipDriver.shellRange, shipInputConfig.shellRange);
+    input.addRangeAction(shipDriver.readWriteNumberProp('/chainGun/shellRange'), shipInputConfig.shellRange);
     input.addRangeAction(shipDriver.rotationCommand, shipInputConfig.rotationCommand);
     input.addRangeAction(shipDriver.readWriteNumberProp('/smartPilot/maneuvering/y'), shipInputConfig.strafeCommand);
     input.addRangeAction(shipDriver.readWriteNumberProp('/smartPilot/maneuvering/x'), shipInputConfig.boostCommand);
