@@ -126,6 +126,7 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         },
         writeProp: <T>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
         readWriteNumberProp: readWriteNumberProp.bind(null, shipRoom, events),
+        readNumberProp: readNumberProp.bind(null, shipRoom, events),
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
@@ -144,7 +145,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         angle: readNumberProp(shipRoom, events, `/angle`),
         speedDirection: readNumberProp(shipRoom, events, `/velocityAngle`),
         speed: readNumberProp(shipRoom, events, `/speed`),
-        chainGunCooldown: readNumberProp(shipRoom, events, `/chainGun/cooldown`),
     };
 }
 
