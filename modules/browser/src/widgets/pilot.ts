@@ -26,7 +26,7 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
             panel.addProperty('energy', shipDriver.energy);
             panel.addProperty('afterBurnerFuel', shipDriver.afterBurnerFuel);
             panel.addProperty('afterBurner', shipDriver.afterBurner);
-            panel.addProperty('antiDrift', shipDriver.antiDrift);
+            panel.addProperty('antiDrift', shipDriver.readWriteNumberProp(`/antiDrift`));
             panel.addProperty('breaks', shipDriver.readWriteNumberProp(`/breaks`));
             panel.addProperty('turnSpeed', shipDriver.turnSpeed);
             panel.addProperty('angle', shipDriver.angle);

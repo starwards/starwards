@@ -28,6 +28,9 @@ interface RangeAction {
 interface TriggerAction {
     setValue: (v: boolean) => unknown;
 }
+export function numberAction(action: { setValue: (v: number) => unknown }): TriggerAction {
+    return { setValue: (v: boolean) => action.setValue(Number(v)) };
+}
 interface StepAction {
     setValue: (v: number) => unknown;
 }

@@ -1,4 +1,5 @@
-import { InputManager } from '../input/input-manager';
+import { InputManager, numberAction } from '../input/input-manager';
+
 import { ShipDriver } from '@starwards/core';
 import { shipInputConfig } from '../input/input-config';
 
@@ -18,14 +19,8 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
         { setValue: (v: boolean) => shipDriver.afterBurner.setValue(Number(v)) },
         shipInputConfig.afterBurner
     );
-    input.addButtonAction(
-        { setValue: (v: boolean) => shipDriver.antiDrift.setValue(Number(v)) },
-        shipInputConfig.antiDrift
-    );
-    input.addButtonAction(
-        { setValue: (v: boolean) => shipDriver.writeProp('/breaks').setValue(Number(v)) },
-        shipInputConfig.breaks
-    );
+    input.addButtonAction(numberAction(shipDriver.writeProp('/antiDrift')), shipInputConfig.antiDrift);
+    input.addButtonAction(numberAction(shipDriver.writeProp('/breaks')), shipInputConfig.breaks);
     input.addButtonAction(shipDriver.writeProp('/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
     input.addButtonAction(shipDriver.writeProp('/nextTargetCommand'), shipInputConfig.target);
     input.addButtonAction(shipDriver.writeProp('/clearTargetCommand'), shipInputConfig.clearTarget);
