@@ -139,7 +139,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         boostCommand: readWriteNumberProp(shipRoom, events, `/smartPilot/maneuvering/x`),
         strafe: readNumberProp(shipRoom, events, `/strafe`),
         boost: readNumberProp(shipRoom, events, `/boost`),
-        energy: readNumberProp(shipRoom, events, `/reactor/energy`),
     };
 }
 
