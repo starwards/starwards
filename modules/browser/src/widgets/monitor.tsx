@@ -2,7 +2,7 @@
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
 import React, { Component } from 'react';
 import { ReadProperty, useProperty } from '../react/hooks';
-import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/core';
+import { ShipDirection, ShipDriver, Thruster } from '@starwards/core';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
@@ -43,15 +43,15 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
     );
 }
 
-function ThrusterMonitor({ driver }: { driver: ThrusterDriver }) {
-    const angle = useProperty<ShipDirection>(driver.angle);
-    const broken = useProperty<boolean>(driver.broken);
+function ThrusterMonitor({ driver, thruster }: { driver: ShipDriver; thruster: Thruster }) {
+    const angle = useProperty<ShipDirection>(driver.readNumberProp(`/thrusters/${thruster.index}/angle`));
+    const broken = useProperty<boolean>(driver.readProp(`/thrusters/${thruster.index}/broken`));
     const palette: Palette = broken ? 'error' : 'success';
     const status = broken ? 'ERROR' : 'OK';
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>
             <Text>
-                Thruster {driver.index} ({ShipDirection[angle]}) : {status}
+                Thruster {thruster.index} ({ShipDirection[angle]}) : {status}
             </Text>
         </Blockquote>
     );
@@ -81,8 +81,8 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                                 error={500}
                                 warn={2000}
                             />
-                            {[...shipDriver.thrusters].map((t) => (
-                                <ThrusterMonitor key={t.index} driver={t} />
+                            {shipDriver.state.thrusters.map((t) => (
+                                <ThrusterMonitor key={t.index} thruster={t} driver={shipDriver} />
                             ))}
                         </div>
                     </BleepsProvider>

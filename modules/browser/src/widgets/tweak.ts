@@ -56,9 +56,9 @@ const singleSelectionDetails = async (
             },
             cleanup
         );
-        for (const thruster of shipDriver.thrusters) {
+        for (const thruster of shipDriver.state.thrusters) {
             const thrusterFolder = guiFolder.addFolder({
-                title: `Thruster ${thruster.index} (${ShipDirection[thruster.angle.getValue()]})`,
+                title: `Thruster ${thruster.index} (${ShipDirection[thruster.angle]})`,
                 expanded: false,
             });
             cleanup(() => {
@@ -66,7 +66,7 @@ const singleSelectionDetails = async (
             });
             addSliderBlade(
                 thrusterFolder,
-                thruster.angleError,
+                shipDriver.readWriteNumberProp(`/thrusters/${thruster.index}/angleError`),
                 {
                     label: 'Angle Error',
                 },
@@ -74,7 +74,7 @@ const singleSelectionDetails = async (
             );
             addSliderBlade(
                 thrusterFolder,
-                thruster.availableCapacity,
+                shipDriver.readWriteNumberProp(`/thrusters/${thruster.index}/availableCapacity`),
                 {
                     label: 'Available Capacity',
                 },

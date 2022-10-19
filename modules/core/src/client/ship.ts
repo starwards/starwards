@@ -13,39 +13,6 @@ import {
 import { JsonStringPointer } from 'json-ptr';
 import { waitForEvents } from '../async-utils';
 
-export type ThrusterDriver = ReturnType<ThrustersDriver['makeDriver']>;
-export class ThrustersDriver {
-    private cache = new Map<number, ThrusterDriver>();
-    constructor(private shipRoom: GameRoom<'ship'>, private events: RoomEventEmitter) {}
-
-    getApi(index: number): ThrusterDriver {
-        const result = this.cache.get(index);
-        if (result) {
-            return result;
-        } else {
-            const newValue = this.makeDriver(index);
-            this.cache.set(index, newValue);
-            return newValue;
-        }
-    }
-
-    private makeDriver(index: number) {
-        return {
-            index,
-            broken: { getValue: () => this.shipRoom.state.thrusters[index].broken },
-            angle: readWriteProp<number>(this.shipRoom, this.events, `/thrusters/${index}/angle`),
-            angleError: readWriteNumberProp(this.shipRoom, this.events, `/thrusters/${index}/angleError`),
-            availableCapacity: readWriteNumberProp(this.shipRoom, this.events, `/thrusters/${index}/availableCapacity`),
-        };
-    }
-
-    public *[Symbol.iterator](): IterableIterator<ThrusterDriver> {
-        for (let i = 0; i < this.shipRoom.state.thrusters.length; i++) {
-            yield this.getApi(i);
-        }
-    }
-}
-
 export type PlateDriver = ReturnType<ArmorDriver['makePlateDriver']>;
 export class ArmorDriver {
     public numPlates = readProp<number>(this.shipRoom, this.events, '/armor/numberOfPlates');
@@ -125,10 +92,10 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
             shipRoom.send(pointerStr, { value });
         },
         writeProp: <T>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
+        readProp: <T>(pointerStr: string) => readProp<T>(shipRoom, events, pointerStr),
         readWriteNumberProp: readWriteNumberProp.bind(null, shipRoom, events),
         readNumberProp: readNumberProp.bind(null, shipRoom, events),
         armor: new ArmorDriver(shipRoom, events),
-        thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
         chainGunConstants: new NumberMapDriver(shipRoom, events, '/chainGun/modelParams/params'),
     };

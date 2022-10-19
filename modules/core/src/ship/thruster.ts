@@ -14,6 +14,11 @@ export class Thruster extends Schema {
 
     public readonly type = 'Thruster';
     /**
+     * the index of thruster in the parent ship
+     */
+    @type('int8')
+    index = 0;
+    /**
      * the measure of current engine activity
      */
     @type('float32')

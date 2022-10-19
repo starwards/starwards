@@ -19,8 +19,9 @@ import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 import { getDirectionFromConfig } from '.';
 
-function makeThruster(model: ThrusterModel, angle: ShipDirectionConfig): Thruster {
+function makeThruster(model: ThrusterModel, angle: ShipDirectionConfig, index: number): Thruster {
     const thruster = new Thruster();
+    thruster.index = index;
     thruster.angle = getDirectionFromConfig(angle);
     thruster.modelParams = new ModelParams(model);
     return thruster;
@@ -74,8 +75,8 @@ function makeSmartPilot(model: SmartPilotModel) {
 export function makeShipState(id: string, model: ShipModel) {
     const state = makeShip(id, model.properties);
     state.thrusters = new ArraySchema();
-    for (const [angleConfig, thrusterConfig] of model.thrusters) {
-        state.thrusters.push(makeThruster(thrusterConfig, angleConfig));
+    for (const [index, [angleConfig, thrusterConfig]] of model.thrusters.entries()) {
+        state.thrusters.setAt(index, makeThruster(thrusterConfig, angleConfig, index));
     }
     if (model.chainGun) {
         state.chainGun = makeChainGun(model.chainGun);
