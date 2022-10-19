@@ -134,7 +134,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         rotationCommand: readWriteNumberProp(shipRoom, events, `/smartPilot/rotation`),
         shellSecondsToLive: readNumberProp(shipRoom, events, '/chainGun/shellSecondsToLive'),
         shellRange: readWriteNumberProp(shipRoom, events, `/chainGun/shellRange`),
-        rotation: readNumberProp(shipRoom, events, `/rotation`),
     };
 }
 
