@@ -125,6 +125,7 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
             }
             shipRoom.send(pointerStr, { value });
         },
+        writeProp: <T>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
         armor: new ArmorDriver(shipRoom, events),
         thrusters: new ThrustersDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
@@ -156,7 +157,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         rotationMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/rotationMode'),
         rotationModeCommand: writeProp<boolean>(shipRoom, '/rotationModeCommand'),
         maneuveringMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/maneuveringMode'),
-        maneuveringModeCommand: writeProp<boolean>(shipRoom, '/maneuveringModeCommand'),
     };
 }
 
