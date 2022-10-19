@@ -151,7 +151,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         breaks: readWriteNumberProp(shipRoom, events, `/breaks`),
         targeted: readProp<TargetedStatus>(shipRoom, events, '/targeted'),
         chainGunIsFiring: readWriteProp<boolean>(shipRoom, events, '/chainGun/isFiring'),
-        target: readProp<string | null>(shipRoom, events, '/targetId'),
     };
 }
 
