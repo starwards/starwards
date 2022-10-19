@@ -1,56 +1,10 @@
 import { GameRoom, RoomName, isJsonPointer } from '..';
 import { Primitive, isPrimitive } from 'colyseus-events';
 import { RoomEventEmitter, makeEventsEmitter } from './events';
-import {
-    makeOnChange,
-    readNumberProp,
-    readProp,
-    readWriteNumberProp,
-    readWriteProp,
-    writeProp,
-} from '../api/properties';
+import { readNumberProp, readProp, readWriteNumberProp, readWriteProp, writeProp } from '../api/properties';
 
 import { JsonStringPointer } from 'json-ptr';
 import { waitForEvents } from '../async-utils';
-
-export type PlateDriver = ReturnType<ArmorDriver['makePlateDriver']>;
-export class ArmorDriver {
-    public numPlates = readProp<number>(this.shipRoom, this.events, '/armor/numberOfPlates');
-    private countHealthyPlayes = () => {
-        let count = 0;
-        for (const plate of this.shipRoom.state.armor.armorPlates) if (plate.health > 0) count++;
-        return count;
-    };
-    public numHealthyPlates = {
-        getValue: this.countHealthyPlayes,
-        onChange: makeOnChange(this.countHealthyPlayes, this.events, '/armor/armorPlates/*/health'),
-    };
-    private cache = new Map<number, PlateDriver>();
-    constructor(private shipRoom: GameRoom<'ship'>, private events: RoomEventEmitter) {}
-
-    private makePlateDriver(index: number) {
-        return {
-            index,
-            health: readWriteNumberProp(this.shipRoom, this.events, `/armor/armorPlates/${index}/health`),
-            maxHealth: readWriteNumberProp(this.shipRoom, this.events, `/armor/armorPlates/${index}/maxHealth`),
-        };
-    }
-    getApi(index: number): PlateDriver {
-        const result = this.cache.get(index);
-        if (result) {
-            return result;
-        } else {
-            const newValue: PlateDriver = this.makePlateDriver(index);
-            this.cache.set(index, newValue);
-            return newValue;
-        }
-    }
-    public *[Symbol.iterator](): IterableIterator<PlateDriver> {
-        for (let i = 0; i < this.numPlates.getValue(); i++) {
-            yield this.getApi(i);
-        }
-    }
-}
 
 export class NumberMapDriver<R extends RoomName, K extends string> {
     public mapApi = readWriteProp<Map<K, number>>(this.shipRoom, this.events, this.pointerStr);
@@ -95,7 +49,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         readProp: <T>(pointerStr: string) => readProp<T>(shipRoom, events, pointerStr),
         readWriteNumberProp: readWriteNumberProp.bind(null, shipRoom, events),
         readNumberProp: readNumberProp.bind(null, shipRoom, events),
-        armor: new ArmorDriver(shipRoom, events),
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
         chainGunConstants: new NumberMapDriver(shipRoom, events, '/chainGun/modelParams/params'),
     };
@@ -103,6 +56,10 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
 
 export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
     const events = makeEventsEmitter(shipRoom.state);
+    // wire commulative events
+    events.on('/armor/armorPlates/*/health', (e) => {
+        events.emit(`/armor/numberOfHealthyPlates`, e);
+    });
     const pendingEvents = [];
     if (!shipRoom.state.chainGun) {
         pendingEvents.push('/chainGun');

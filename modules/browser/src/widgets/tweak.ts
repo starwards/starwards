@@ -40,7 +40,7 @@ const singleSelectionDetails = async (
         });
         addTextBlade<ShipDirection>(
             armorFolder,
-            shipDriver.armor.numPlates,
+            shipDriver.readProp(`/armor/numberOfPlates`),
             {
                 label: 'Plates',
                 disabled: true,
@@ -49,7 +49,7 @@ const singleSelectionDetails = async (
         );
         addTextBlade<ShipDirection>(
             armorFolder,
-            shipDriver.armor.numHealthyPlates,
+            shipDriver.readProp(`/armor/numberOfHealthyPlates`),
             {
                 label: 'Healthy Plates',
                 disabled: true,

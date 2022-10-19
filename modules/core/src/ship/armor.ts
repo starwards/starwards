@@ -27,6 +27,10 @@ export class Armor extends Schema {
         return this.armorPlates.length;
     }
 
+    get numberOfHealthyPlates(): number {
+        return this.armorPlates.reduce((r, plate) => r + Number(plate.health > 0), 0);
+    }
+
     get plateMaxHealth(): number {
         return this.modelParams.get('plateMaxHealth');
     }
