@@ -71,7 +71,7 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                         <div style={{ padding: 20, textAlign: 'center' }}>
                             <Metric property={shipDriver.energy} metricName="Energy" error={100} warn={300} />
                             <Metric
-                                property={shipDriver.afterBurnerFuel}
+                                property={shipDriver.readNumberProp(`/reactor/afterBurnerFuel`)}
                                 metricName="Afterburner"
                                 error={500}
                                 warn={2000}

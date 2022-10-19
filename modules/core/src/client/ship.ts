@@ -140,7 +140,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         strafe: readNumberProp(shipRoom, events, `/strafe`),
         boost: readNumberProp(shipRoom, events, `/boost`),
         energy: readNumberProp(shipRoom, events, `/reactor/energy`),
-        afterBurnerFuel: readNumberProp(shipRoom, events, `/reactor/afterBurnerFuel`),
     };
 }
 
