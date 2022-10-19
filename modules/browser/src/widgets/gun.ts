@@ -16,7 +16,7 @@ export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
             chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.state.chainGun?.isFiring) });
             panel.addText('target', { getValue: () => String(shipDriver.state.targetId) });
 
-            panel.addProperty('shellSecondsToLive', shipDriver.shellSecondsToLive);
+            panel.addProperty('shellSecondsToLive', shipDriver.readNumberProp(`/chainGun/shellSecondsToLive`));
         }
     }
     return {

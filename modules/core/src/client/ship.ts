@@ -132,7 +132,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         constants: new NumberMapDriver(shipRoom, events, '/modelParams/params'),
         chainGunConstants: new NumberMapDriver(shipRoom, events, '/chainGun/modelParams/params'),
         rotationCommand: readWriteNumberProp(shipRoom, events, `/smartPilot/rotation`),
-        shellSecondsToLive: readNumberProp(shipRoom, events, '/chainGun/shellSecondsToLive'),
     };
 }
 
