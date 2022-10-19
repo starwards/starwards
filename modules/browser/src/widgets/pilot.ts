@@ -12,7 +12,7 @@ export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
                 panel.destroy();
             });
 
-            panel.addText('rotationMode', { getValue: () => SmartPilotMode[shipDriver.rotationMode.getValue()] });
+            panel.addText('rotationMode', { getValue: () => SmartPilotMode[shipDriver.state.smartPilot.rotationMode] });
             panel.addProperty('rotationCommand', shipDriver.rotationCommand);
             panel.addProperty('rotation', shipDriver.rotation);
             panel.addText('maneuveringMode', {

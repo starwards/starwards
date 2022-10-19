@@ -1,7 +1,6 @@
 import { GameRoom, RoomName, isJsonPointer } from '..';
 import { Primitive, isPrimitive } from 'colyseus-events';
 import { RoomEventEmitter, makeEventsEmitter } from './events';
-import { SmartPilotMode, TargetedStatus } from '../ship';
 import {
     makeOnChange,
     readNumberProp,
@@ -12,6 +11,7 @@ import {
 } from '../api/properties';
 
 import { JsonStringPointer } from 'json-ptr';
+import { TargetedStatus } from '../ship';
 import { waitForEvents } from '../async-utils';
 
 export type ThrusterDriver = ReturnType<ThrustersDriver['makeDriver']>;
@@ -154,7 +154,6 @@ function newShipDriverObj(shipRoom: GameRoom<'ship'>, events: RoomEventEmitter) 
         target: readProp<string | null>(shipRoom, events, '/targetId'),
         nextTargetCommand: writeProp<boolean>(shipRoom, '/nextTargetCommand'),
         clearTargetCommand: writeProp<boolean>(shipRoom, '/clearTargetCommand'),
-        rotationMode: readProp<SmartPilotMode>(shipRoom, events, '/smartPilot/rotationMode'),
     };
 }
 
