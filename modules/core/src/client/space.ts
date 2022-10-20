@@ -41,7 +41,6 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         command: <T>(cmd: StateCommand<T, SpaceState, void>, value: T) => {
             spaceRoom.send(cmd.cmdName, { value, path: undefined });
         },
-        commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.bulkFreezeToggle, undefined),
         commandBotOrder: cmdSender(spaceRoom, spaceProperties.bulkBotOrder, undefined),
         selectionActions(ids: () => string[]) {
             return {
@@ -55,7 +54,7 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                 toggleFreeze: {
                     setValue: (v: boolean) =>
                         v &&
-                        spaceDriver.commandToggleFreeze({
+                        spaceDriver.command(spaceProperties.bulkFreezeToggle, {
                             ids: ids(),
                         }),
                 },
