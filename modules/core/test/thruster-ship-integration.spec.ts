@@ -84,8 +84,7 @@ describe('thrusters-ship integration', function () {
                     limitPercisionHard(toPositiveDegreesDelta(offset)),
                     EPSILON * 5
                 );
-            }),
-            { seed: -2016101442, path: '95:21:0:3:0:0', endOnFailure: true }
+            })
         );
     });
 });
