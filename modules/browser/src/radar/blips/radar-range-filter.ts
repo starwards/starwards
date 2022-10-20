@@ -4,7 +4,6 @@ import {
     SpaceDriver,
     SpaceObject,
     SpatialIndex,
-    TrackObjects,
     XY,
     calcArcAngle,
     degToRad,
@@ -16,6 +15,7 @@ import {
 import { CameraView } from '../camera-view';
 import { Circle } from 'detect-collisions';
 import { Graphics } from 'pixi.js';
+import { TrackObjects } from '../track-objects';
 import { noop } from 'ts-essentials';
 
 const MIN_RADIUS_RADAR_BLOCK = 1;

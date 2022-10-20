@@ -1,8 +1,9 @@
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
 import { ObjectGraphics, ObjectRendererCtor } from './object-graphics';
-import { SpaceDriver, SpaceObject, SpaceObjects, TrackObjects } from '@starwards/core';
+import { SpaceDriver, SpaceObject, SpaceObjects } from '@starwards/core';
 
 import { CameraView } from '../camera-view';
+import { TrackObjects } from '../track-objects';
 
 type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
 type Selection = { has(o: SpaceObject): boolean };
