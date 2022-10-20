@@ -18,7 +18,7 @@ describe('thrusters-ship integration', function () {
                         const harness = new ShipTestHarness();
                         harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                         for (const thruster of harness.shipState.angleThrusters(direction)) {
-                            thruster.modelParams.set('capacity', customCapacity);
+                            thruster.design.capacity = customCapacity;
                         }
                         const startVelocity = harness.shipState.maxSpeed;
                         harness.shipObj.velocity = Vec2.make(XY.rotate({ x: -startVelocity, y: 0 }, direction));

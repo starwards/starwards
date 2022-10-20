@@ -487,7 +487,7 @@ export class ShipManager {
             const globalAngle = thruster.angle + this.state.angle;
             const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
             const axisCapacity = thruster.capacity * deltaSeconds;
-            if (this.trySpendEnergy(desiredAction * axisCapacity * thruster.energyCost)) {
+            if (this.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost)) {
                 thruster.active = desiredAction;
             }
             if (this.state.afterBurner) {
@@ -507,7 +507,7 @@ export class ShipManager {
                     thruster.active *
                     thruster.capacity *
                     thruster.availableCapacity *
-                    thruster.speedFactor *
+                    thruster.design.speedFactor *
                     deltaSeconds;
                 const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(

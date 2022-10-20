@@ -8,7 +8,6 @@ import { SmartPilot, SmartPilotDesign } from './smart-pilot';
 import { Thruster, ThrusterDesign } from './thruster';
 
 import { ArraySchema } from '@colyseus/schema';
-import { ModelParams } from '../model-params';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
@@ -24,7 +23,7 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
     const thruster = new Thruster();
     thruster.index = index;
     thruster.angle = getDirectionFromConfig(angle);
-    thruster.modelParams = new ModelParams(design);
+    thruster.design.assign(design);
     return thruster;
 }
 
