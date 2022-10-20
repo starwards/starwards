@@ -25,9 +25,8 @@ const singleSelectionDetails = async (
     guiFolder: FolderApi,
     cleanup: (d: Destructor) => void
 ) => {
-    const api = spaceDriver.getObjectApi(subject);
     guiFolder.addInput(subject, 'id', { disabled: true });
-    addInputBlade(guiFolder, api.freeze, { label: 'Freeze' }, cleanup);
+    addInputBlade(guiFolder, spaceDriver.readWriteProp(subject, `/freeze`), { label: 'Freeze' }, cleanup);
 
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);

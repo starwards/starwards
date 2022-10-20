@@ -1,15 +1,14 @@
+import { Event, Primitive } from 'colyseus-events';
 import { GameRoom, readWriteProp } from '..';
-import { SpaceEventEmitter, makeSpaceEventsEmitter } from './events';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
 
-import { Event } from 'colyseus-events';
 import { cmdSender } from '../api';
+import { makeSpaceEventsEmitter } from './events';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
     const events = makeSpaceEventsEmitter(spaceRoom.state);
-    const objectsApi = new ObjectsApi(spaceRoom, events);
     const spaceDriver = {
         events,
         [Symbol.iterator]() {
@@ -37,7 +36,8 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
                 });
             }
         },
-        getObjectApi: objectsApi.getObjectApi,
+        readWriteProp: <T extends Primitive>(subject: SpaceObject, pointerStr: string) =>
+            readWriteProp<T>(spaceRoom, events, `/${subject.type}/${subject.id}${pointerStr}`),
         commandMoveObjects: cmdSender(spaceRoom, spaceProperties.bulkMove, undefined),
         commandRotateObjects: cmdSender(spaceRoom, spaceProperties.bulkRotate, undefined),
         commandToggleFreeze: cmdSender(spaceRoom, spaceProperties.bulkFreezeToggle, undefined),
@@ -62,26 +62,4 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         },
     };
     return spaceDriver;
-}
-
-type ObjectApi = ReturnType<ObjectsApi['makeObjectApi']>;
-class ObjectsApi {
-    private cache = new WeakMap<SpaceObject, ObjectApi>();
-    constructor(private spaceRoom: GameRoom<'space'>, private events: SpaceEventEmitter) {}
-    getObjectApi = (subject: SpaceObject) => {
-        const result = this.cache.get(subject);
-        if (result) {
-            return result;
-        } else {
-            const newApi = this.makeObjectApi(subject);
-            this.cache.set(subject, newApi);
-            return newApi;
-        }
-    };
-    private makeObjectApi(subject: SpaceObject) {
-        return {
-            id: subject.id,
-            freeze: readWriteProp(this.spaceRoom, this.events, `/${subject.type}/${subject.id}/freeze`),
-        };
-    }
 }
