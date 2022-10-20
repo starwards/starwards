@@ -8,7 +8,7 @@ import { ModelParams } from '../model-params';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
-import { ShipPropertiesModel } from './ship-configuration';
+import { ShipPropertiesDesign } from './ship-configuration';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
 import { Thruster } from './thruster';
@@ -21,7 +21,7 @@ export enum TargetedStatus {
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {
     @type(ModelParams)
-    modelParams!: ModelParams<keyof ShipPropertiesModel>;
+    modelParams!: ModelParams<keyof ShipPropertiesDesign>;
 
     @type([Thruster])
     thrusters!: ArraySchema<Thruster>;

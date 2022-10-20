@@ -1,7 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
-import { RadarModel } from './ship-configuration';
+import { RadarDesign } from './ship-configuration';
 
 export class Radar extends Schema {
     public static isInstance = (o: unknown): o is Radar => {
@@ -11,7 +11,7 @@ export class Radar extends Schema {
     public readonly type = 'Radar';
 
     @type(ModelParams)
-    modelParams!: ModelParams<keyof RadarModel>;
+    modelParams!: ModelParams<keyof RadarDesign>;
 
     /**
      * percent of the time in which the range is malfunctionRange

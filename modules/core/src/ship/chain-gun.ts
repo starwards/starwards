@@ -1,6 +1,6 @@
 import { Schema, type } from '@colyseus/schema';
 
-import { ChaingunModel } from './ship-configuration';
+import { ChaingunDesign } from './ship-configuration';
 import { ModelParams } from '../model-params';
 import { SmartPilotMode } from '.';
 import { range } from '../range';
@@ -42,7 +42,7 @@ export class ChainGun extends Schema {
     cooldownFactor = 1;
 
     @type(ModelParams)
-    modelParams!: ModelParams<keyof ChaingunModel>;
+    modelParams!: ModelParams<keyof ChaingunDesign>;
 
     get bulletSpeed(): number {
         return this.modelParams.get('bulletSpeed');

@@ -1,7 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
-import { SmartPilotModel } from './ship-configuration';
+import { SmartPilotDesign } from './ship-configuration';
 import { Vec2 } from '../space';
 import { range } from '../range';
 
@@ -19,7 +19,7 @@ export class SmartPilot extends Schema {
     public readonly type = 'SmartPilot';
 
     @type(ModelParams)
-    modelParams!: ModelParams<keyof SmartPilotModel>;
+    modelParams!: ModelParams<keyof SmartPilotDesign>;
 
     @type('int8')
     rotationMode!: SmartPilotMode;

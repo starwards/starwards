@@ -1,12 +1,12 @@
 export type ShipDirectionConfig = 'FWD' | 'STBD' | 'AFT' | 'PORT';
 
-export type RadarModel = {
+export type RadarDesign = {
     damage50: number;
     basicRange: number;
     rangeEaseFactor: number;
     malfunctionRange: number;
 };
-export type ThrusterModel = {
+export type ThrusterDesign = {
     maxAngleError: number;
     capacity: number;
     energyCost: number;
@@ -16,7 +16,7 @@ export type ThrusterModel = {
     damage50: number;
     completeDestructionProbability: number;
 };
-export type ChaingunModel = {
+export type ChaingunDesign = {
     bulletsPerSecond: number;
     bulletSpeed: number;
     bulletDegreesDeviation: number;
@@ -30,7 +30,7 @@ export type ChaingunModel = {
     damage50: number;
     completeDestructionProbability: number;
 };
-export type ReactorModel = {
+export type ReactorDesign = {
     energyPerSecond: number;
     maxEnergy: number;
     maxAfterBurnerFuel: number;
@@ -39,29 +39,29 @@ export type ReactorModel = {
     damage50: number;
 };
 
-export type ShipPropertiesModel = {
+export type ShipPropertiesDesign = {
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxChainGunAmmo: number;
 };
 
-export type ShipModel = {
-    properties: ShipPropertiesModel;
-    chainGun: ChaingunModel | null;
-    thrusters: [ShipDirectionConfig, ThrusterModel][];
-    armor: ArmorModel;
-    radar: RadarModel;
-    smartPilot: SmartPilotModel;
-    reactor: ReactorModel;
+export type ShipDesign = {
+    properties: ShipPropertiesDesign;
+    chainGun: ChaingunDesign | null;
+    thrusters: [ShipDirectionConfig, ThrusterDesign][];
+    armor: ArmorDesign;
+    radar: RadarDesign;
+    smartPilot: SmartPilotDesign;
+    reactor: ReactorDesign;
 };
 
-export type ArmorModel = {
+export type ArmorDesign = {
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
 };
 
-export type SmartPilotModel = {
+export type SmartPilotDesign = {
     maxTargetAimOffset: number;
     aimOffsetSpeed: number;
     maxTurnSpeed: number;

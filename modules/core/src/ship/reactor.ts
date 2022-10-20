@@ -1,7 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
-import { ReactorModel } from './ship-configuration';
+import { ReactorDesign } from './ship-configuration';
 import { range } from '../range';
 
 export class Reactor extends Schema {
@@ -12,7 +12,7 @@ export class Reactor extends Schema {
     public readonly type = 'Reactor';
 
     @type(ModelParams)
-    modelParams!: ModelParams<keyof ReactorModel>;
+    modelParams!: ModelParams<keyof ReactorDesign>;
 
     @type('number')
     @range((t: Reactor) => [0, t.maxEnergy])

@@ -1,14 +1,14 @@
 import { Armor, ArmorPlate } from './armor';
 import {
-    ArmorModel,
-    ChaingunModel,
-    RadarModel,
-    ReactorModel,
+    ArmorDesign,
+    ChaingunDesign,
+    RadarDesign,
+    ReactorDesign,
+    ShipDesign,
     ShipDirectionConfig,
-    ShipModel,
-    ShipPropertiesModel,
-    SmartPilotModel,
-    ThrusterModel,
+    ShipPropertiesDesign,
+    SmartPilotDesign,
+    ThrusterDesign,
 } from './ship-configuration';
 import { ChainGun, ShipState, SmartPilot } from '..';
 
@@ -19,72 +19,72 @@ import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 import { getDirectionFromConfig } from '.';
 
-function makeThruster(model: ThrusterModel, angle: ShipDirectionConfig, index: number): Thruster {
+function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
     const thruster = new Thruster();
     thruster.index = index;
     thruster.angle = getDirectionFromConfig(angle);
-    thruster.modelParams = new ModelParams(model);
+    thruster.modelParams = new ModelParams(design);
     return thruster;
 }
 
-function makeArmor(model: ArmorModel): Armor {
+function makeArmor(design: ArmorDesign): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.modelParams = new ModelParams(model);
-    for (let i = 0; i < model.numberOfPlates; i++) {
+    armor.modelParams = new ModelParams(design);
+    for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = plate.maxHealth = model.plateMaxHealth;
+        plate.health = plate.maxHealth = design.plateMaxHealth;
         armor.armorPlates.push(plate);
     }
     return armor;
 }
 
-function makeShip(id: string, model: ShipPropertiesModel) {
+function makeShip(id: string, design: ShipPropertiesDesign) {
     const state = new ShipState();
     state.id = id;
-    state.modelParams = new ModelParams(model);
+    state.modelParams = new ModelParams(design);
     state.chainGunAmmo = state.maxChainGunAmmo;
     return state;
 }
 
-function makeChainGun(model: ChaingunModel) {
+function makeChainGun(design: ChaingunDesign) {
     const chainGun = new ChainGun();
-    chainGun.modelParams = new ModelParams(model);
+    chainGun.modelParams = new ModelParams(design);
     chainGun.shellSecondsToLive = 0;
     return chainGun;
 }
 
-function makeRadar(model: RadarModel) {
+function makeRadar(model: RadarDesign) {
     const radar = new Radar();
     radar.modelParams = new ModelParams(model);
     return radar;
 }
 
-function makeReactor(model: ReactorModel) {
+function makeReactor(design: ReactorDesign) {
     const reactor = new Reactor();
-    reactor.modelParams = new ModelParams(model);
+    reactor.modelParams = new ModelParams(design);
     return reactor;
 }
 
-function makeSmartPilot(model: SmartPilotModel) {
+function makeSmartPilot(design: SmartPilotDesign) {
     const smartPilot = new SmartPilot();
-    smartPilot.modelParams = new ModelParams(model);
+    smartPilot.modelParams = new ModelParams(design);
     return smartPilot;
 }
 
-export function makeShipState(id: string, model: ShipModel) {
-    const state = makeShip(id, model.properties);
+export function makeShipState(id: string, design: ShipDesign) {
+    const state = makeShip(id, design.properties);
     state.thrusters = new ArraySchema();
-    for (const [index, [angleConfig, thrusterConfig]] of model.thrusters.entries()) {
+    for (const [index, [angleConfig, thrusterConfig]] of design.thrusters.entries()) {
         state.thrusters.setAt(index, makeThruster(thrusterConfig, angleConfig, index));
     }
-    if (model.chainGun) {
-        state.chainGun = makeChainGun(model.chainGun);
+    if (design.chainGun) {
+        state.chainGun = makeChainGun(design.chainGun);
     }
-    state.smartPilot = makeSmartPilot(model.smartPilot);
+    state.smartPilot = makeSmartPilot(design.smartPilot);
 
-    state.armor = makeArmor(model.armor);
-    state.radar = makeRadar(model.radar);
-    state.reactor = makeReactor(model.reactor);
+    state.armor = makeArmor(design.armor);
+    state.radar = makeRadar(design.radar);
+    state.reactor = makeReactor(design.reactor);
     return state;
 }

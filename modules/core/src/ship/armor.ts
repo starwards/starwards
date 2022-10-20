@@ -1,7 +1,7 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
 import { RTuple2, toPositiveDegreesDelta } from '..';
 
-import { ArmorModel } from './ship-configuration';
+import { ArmorDesign } from './ship-configuration';
 import { MAX_SAFE_FLOAT } from '../logic';
 import { ModelParams } from '../model-params';
 import { range } from '../range';
@@ -21,7 +21,7 @@ export class Armor extends Schema {
     armorPlates!: ArraySchema<ArmorPlate>;
 
     @type(ModelParams)
-    modelParams!: ModelParams<keyof ArmorModel>;
+    modelParams!: ModelParams<keyof ArmorDesign>;
 
     get numberOfPlates(): number {
         return this.armorPlates.length;

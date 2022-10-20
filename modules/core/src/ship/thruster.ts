@@ -4,7 +4,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
 import { ShipState } from '.';
-import { ThrusterModel } from './ship-configuration';
+import { ThrusterDesign } from './ship-configuration';
 import { range } from '../range';
 
 export class Thruster extends Schema {
@@ -44,7 +44,7 @@ export class Thruster extends Schema {
     availableCapacity = 1.0;
 
     @type(ModelParams)
-    modelParams!: ModelParams<keyof ThrusterModel>;
+    modelParams!: ModelParams<keyof ThrusterDesign>;
 
     get broken(): boolean {
         return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.maxAngleError;
