@@ -10,8 +10,13 @@ interface Driver {
     sendJsonCmd(pointerStr: string, value: Primitive): void;
 }
 
-function makeOnChange(getValue: () => unknown, events: RoomEventEmitter, eventName: string) {
-    return (cb: () => unknown): Destructor => {
+export function readProp<T>(driver: Driver, pointerStr: JsonStringPointer) {
+    const pointer = getJsonPointer(pointerStr);
+    if (!pointer) {
+        throw new Error(`Illegal json path:${pointerStr}`);
+    }
+    const getValue = () => pointer.get(driver.state) as T;
+    const onChange = (cb: () => unknown): Destructor => {
         let lastValue = getValue();
         const listener = () => {
             const newValue = getValue();
@@ -20,18 +25,10 @@ function makeOnChange(getValue: () => unknown, events: RoomEventEmitter, eventNa
                 cb();
             }
         };
-        events.on(eventName, listener);
-        return () => events.off(eventName, listener);
+        driver.events.on(pointerStr, listener);
+        return () => driver.events.off(pointerStr, listener);
     };
-}
-
-export function readProp<T>(driver: Driver, pointerStr: JsonStringPointer) {
-    const pointer = getJsonPointer(pointerStr);
-    if (!pointer) {
-        throw new Error(`Illegal json path:${pointerStr}`);
-    }
-    const getValue = () => pointer.get(driver.state) as T;
-    return { pointer, getValue, onChange: makeOnChange(getValue, driver.events, pointerStr) };
+    return { pointer, getValue, onChange };
 }
 
 export function readWriteProp<T extends Primitive>(driver: Driver, pointerStr: JsonStringPointer) {
