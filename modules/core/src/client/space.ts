@@ -1,8 +1,8 @@
 import { Event, Primitive } from 'colyseus-events';
 import { GameRoom, readWriteProp } from '..';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
-import { StateCommand, cmdSender } from '../api';
 
+import { StateCommand } from '../api';
 import { makeSpaceEventsEmitter } from './events';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
@@ -41,7 +41,6 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         command: <T>(cmd: StateCommand<T, SpaceState, void>, value: T) => {
             spaceRoom.send(cmd.cmdName, { value, path: undefined });
         },
-        commandBotOrder: cmdSender(spaceRoom, spaceProperties.bulkBotOrder, undefined),
         selectionActions(ids: () => string[]) {
             return {
                 rotate: {

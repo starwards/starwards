@@ -150,7 +150,7 @@ export class InteractiveLayer {
                 const position = this.parent.screenToWorld(this.dragFrom);
                 const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
                 if (spaceObject) {
-                    this.spaceDriver.commandBotOrder({
+                    this.spaceDriver.command(spaceProperties.bulkBotOrder, {
                         ids: this.selectionContainer.selectedItemsIds,
                         order: {
                             type: 'attack',
@@ -158,7 +158,7 @@ export class InteractiveLayer {
                         },
                     });
                 } else {
-                    this.spaceDriver.commandBotOrder({
+                    this.spaceDriver.command(spaceProperties.bulkBotOrder, {
                         ids: this.selectionContainer.selectedItemsIds,
                         order: {
                             type: 'move',
