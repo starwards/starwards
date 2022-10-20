@@ -2,6 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { SmartPilotMode } from './smart-pilot';
+import { number2Digits } from '../number-field';
 import { range } from '../range';
 
 export type ChaingunDesign = {
@@ -20,18 +21,18 @@ export type ChaingunDesign = {
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
-    @type('float32') bulletsPerSecond = 0;
-    @type('float32') bulletSpeed = 0;
-    @type('float32') bulletDegreesDeviation = 0;
-    @type('float32') maxShellRange = 0;
-    @type('float32') minShellRange = 0;
-    @type('float32') shellRangeAim = 0;
-    @type('float32') explosionRadius = 0;
-    @type('float32') explosionExpansionSpeed = 0;
-    @type('float32') explosionDamageFactor = 0;
-    @type('float32') explosionBlastFactor = 0;
-    @type('float32') damage50 = 0;
-    @type('float32') completeDestructionProbability = 0;
+    @number2Digits bulletsPerSecond = 0;
+    @number2Digits bulletSpeed = 0;
+    @number2Digits bulletDegreesDeviation = 0;
+    @number2Digits maxShellRange = 0;
+    @number2Digits minShellRange = 0;
+    @number2Digits shellRangeAim = 0;
+    @number2Digits explosionRadius = 0;
+    @number2Digits explosionExpansionSpeed = 0;
+    @number2Digits explosionDamageFactor = 0;
+    @number2Digits explosionBlastFactor = 0;
+    @number2Digits damage50 = 0;
+    @number2Digits completeDestructionProbability = 0;
 
     get explosionSecondsToLive(): number {
         return this.explosionRadius / this.explosionExpansionSpeed;
@@ -52,28 +53,28 @@ export class ChainGun extends Schema {
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
-    @type('float32')
+    @number2Digits
     angle = 0;
 
     @type('boolean')
     isFiring = false;
 
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     cooldown = 0;
 
-    @type('float32')
+    @number2Digits
     @range((t: ChainGun) => [t.design.minShellSecondsToLive, t.design.maxShellSecondsToLive])
     shellSecondsToLive = 0;
 
-    @type('float32')
+    @number2Digits
     @range([-1, 1])
     shellRange = 0; // just used for command, not for firing
 
     @type('int8')
     shellRangeMode!: SmartPilotMode;
 
-    @type('float32')
+    @number2Digits
     angleOffset = 0;
 
     @type('uint8')

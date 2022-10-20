@@ -2,6 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
 import { Vec2 } from '../space';
+import { number2Digits } from '../number-field';
 import { range } from '../range';
 
 export type SmartPilotDesign = {
@@ -36,11 +37,11 @@ export class SmartPilot extends Schema {
     @type('int8')
     maneuveringMode!: SmartPilotMode;
 
-    @type('float32')
+    @number2Digits
     @range([-1, 1])
     rotation = 0;
 
-    @type('float32')
+    @number2Digits
     @range([-1, 1])
     rotationTargetOffset = 0;
 
@@ -51,7 +52,7 @@ export class SmartPilot extends Schema {
     /**
      * factor of error vector when active
      */
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     offsetFactor = 0;
 

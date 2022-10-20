@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
+import { number2Digits } from '../number-field';
 import { range } from '../range';
 
 export type ReactorDesign = {
@@ -30,7 +31,7 @@ export class Reactor extends Schema {
     @range((t: Reactor) => [0, t.maxAfterBurnerFuel])
     afterBurnerFuel = 0;
 
-    @type('float32')
+    @number2Digits
     effeciencyFactor = 1;
 
     get maxEnergy(): number {

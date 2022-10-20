@@ -4,6 +4,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
 import { ShipState } from '.';
+import { number2Digits } from '../number-field';
 import { range } from '../range';
 
 export type ThrusterDesign = {
@@ -31,25 +32,25 @@ export class Thruster extends Schema {
     /**
      * the measure of current engine activity
      */
-    @type('float32')
+    @number2Digits
     active = 0;
     /**
      * the measure of current afterburner activity
      */
-    @type('float32')
+    @number2Digits
     afterBurnerActive = 0;
 
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
-    @type('float32')
+    @number2Digits
     angle = 0.0;
 
-    @type('float32')
+    @number2Digits
     @range((t: Thruster) => [-t.maxAngleError, t.maxAngleError])
     angleError = 0.0;
 
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     availableCapacity = 1.0;
 

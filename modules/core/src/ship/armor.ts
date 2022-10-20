@@ -3,6 +3,7 @@ import { RTuple2, toPositiveDegreesDelta } from '..';
 
 import { MAX_SAFE_FLOAT } from '../logic';
 import { ModelParams } from '../model-params';
+import { number2Digits } from '../number-field';
 import { range } from '../range';
 
 export type ArmorDesign = {
@@ -12,11 +13,11 @@ export type ArmorDesign = {
 };
 
 export class ArmorPlate extends Schema {
-    @type('float32')
+    @number2Digits
     @range((t: ArmorPlate) => [0, t.maxHealth])
     health!: number;
 
-    @type('float32')
+    @number2Digits
     @range([0, MAX_SAFE_FLOAT])
     maxHealth!: number;
 }

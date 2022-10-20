@@ -11,6 +11,7 @@ import { ShipDirection } from './ship-direction';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
 import { Thruster } from './thruster';
+import { number2Digits } from '../number-field';
 
 export enum TargetedStatus {
     NONE,
@@ -44,27 +45,27 @@ export class ShipState extends Spaceship {
     @type(SmartPilot)
     smartPilot!: SmartPilot;
 
-    @type('float32')
+    @number2Digits
     @range([-1, 1])
     rotation = 0;
 
-    @type('float32')
+    @number2Digits
     @range([-1, 1])
     boost = 0;
 
-    @type('float32')
+    @number2Digits
     @range([-1, 1])
     strafe = 0;
 
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     antiDrift = 0;
 
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     breaks = 0;
 
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     afterBurner = 0;
 

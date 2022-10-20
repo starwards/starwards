@@ -2,6 +2,7 @@ import { Faction } from './faction';
 import { ShipModel } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
+import { number2Digits } from '../number-field';
 import { type } from '@colyseus/schema';
 
 export class Spaceship extends SpaceObjectBase {
@@ -17,7 +18,7 @@ export class Spaceship extends SpaceObjectBase {
     @type('int8')
     public faction: Faction = Faction.none;
 
-    @type('float32')
+    @number2Digits
     public radarRange = 0;
 
     @type('string')

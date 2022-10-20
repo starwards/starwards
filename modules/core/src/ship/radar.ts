@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
+import { number2Digits } from '../number-field';
 
 export type RadarDesign = {
     damage50: number;
@@ -22,7 +23,7 @@ export class Radar extends Schema {
     /**
      * percent of the time in which the range is malfunctionRange
      */
-    @type('float32')
+    @number2Digits
     malfunctionRangeFactor = 0;
 
     get basicRange(): number {
