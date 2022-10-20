@@ -1,6 +1,6 @@
 import { Event, Primitive } from 'colyseus-events';
 import { GameRoom, readWriteProp } from '..';
-import { SpaceObject, SpaceState, spaceProperties } from '../space';
+import { SpaceObject, SpaceState } from '../space';
 
 import { StateCommand } from '../api';
 import { makeSpaceEventsEmitter } from './events';
@@ -40,24 +40,6 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
             readWriteProp<T>(spaceRoom, events, `/${subject.type}/${subject.id}${pointerStr}`),
         command: <T>(cmd: StateCommand<T, SpaceState, void>, value: T) => {
             spaceRoom.send(cmd.cmdName, { value, path: undefined });
-        },
-        selectionActions(ids: () => string[]) {
-            return {
-                rotate: {
-                    setValue: (delta: number) =>
-                        spaceDriver.command(spaceProperties.bulkRotate, {
-                            ids: ids(),
-                            delta,
-                        }),
-                },
-                toggleFreeze: {
-                    setValue: (v: boolean) =>
-                        v &&
-                        spaceDriver.command(spaceProperties.bulkFreezeToggle, {
-                            ids: ids(),
-                        }),
-                },
-            };
         },
     };
     return spaceDriver;
