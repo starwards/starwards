@@ -1,28 +1,28 @@
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
-import { type } from '@colyseus/schema';
+import { number2Digits } from '../number-field';
 
 export class Explosion extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is Explosion => {
         return !!o && (o as SpaceObjectBase).type === 'Explosion';
     };
 
-    @type('float32')
+    @number2Digits
     public secondsToLive = 0.5;
 
     /**
      * radius growth speed in meters / seconds
      */
-    @type('float32')
+    @number2Digits
     public expansionSpeed = 10;
 
     /**
      * damage per (second * overlap in meters)
      */
-    @type('float32')
+    @number2Digits
     public damageFactor = 20;
 
-    @type('float32')
+    @number2Digits
     public blastFactor = 1;
 
     public readonly type = 'Explosion';

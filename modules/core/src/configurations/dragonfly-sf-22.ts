@@ -1,4 +1,4 @@
-import { ShipModel } from '../ship/ship-configuration';
+import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
     numberOfPlates: 12,
@@ -57,7 +57,7 @@ export const dragonflySmartPilot = {
     maxSpeed: 300,
     maxSpeedFromAfterBurner: 300,
 };
-export const dragonflySF22: ShipModel = {
+export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
     thrusters: [

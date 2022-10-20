@@ -25,10 +25,11 @@
 
 // This module is an altered version of the original matthiasferch/tsm code.
 
-import { Schema, type } from '@colyseus/schema';
 import { degToRad, limitPercision } from '../logic/formulas';
 
+import { Schema } from '@colyseus/schema';
 import { XY } from '../logic/xy';
+import { number2Digits } from '../number-field';
 
 export class Vec2 extends Schema implements XY {
     public static add(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
@@ -202,10 +203,10 @@ export class Vec2 extends Schema implements XY {
         return new Vec2(vector.x, vector.y);
     }
 
-    @type('float32')
+    @number2Digits
     public x = 0;
 
-    @type('float32')
+    @number2Digits
     public y = 0;
 
     constructor(x = 0, y = 0) {

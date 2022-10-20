@@ -30,7 +30,7 @@ describe('server-API', () => {
         // because zipped result is environment-dependent and sometimes depends on timestamps
         // see https://stackoverflow.com/a/26521451/11813
 
-        it('regression test: compatibility with saved games from older version', async () => {
+        it.skip('regression test: compatibility with saved games from older version', async () => {
             const response = await supertest(gameDriver.httpServer).post('/save-game').expect(200);
             expect(await getUnzipped(response.text)).toMatchSnapshot('test_map_1-save-game');
         });

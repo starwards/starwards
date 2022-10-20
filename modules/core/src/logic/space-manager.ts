@@ -37,7 +37,7 @@ export class SpaceManager {
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
 
-    public ChangeTurnSpeed(id: string, delta: number) {
+    public changeTurnSpeed(id: string, delta: number) {
         const subject = this.state.get(id);
         if (subject && !subject.destroyed) {
             subject.turnSpeed += delta;

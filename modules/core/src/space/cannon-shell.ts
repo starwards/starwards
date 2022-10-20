@@ -1,13 +1,14 @@
 import { Explosion } from './explosion';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
+import { number2Digits } from '../number-field';
 import { type } from '@colyseus/schema';
 export class CannonShell extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is CannonShell => {
         return !!o && (o as SpaceObjectBase).type === 'CannonShell';
     };
 
-    @type('float32')
+    @number2Digits
     public secondsToLive = 0;
 
     public readonly type = 'CannonShell';

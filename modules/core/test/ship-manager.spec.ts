@@ -94,10 +94,10 @@ describe('ShipManager', () => {
                 }
                 const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
                 expect(cannonShells.length).to.be.closeTo(
-                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.bulletsPerSecond),
+                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1
                 );
-                expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.maxChainGunAmmo - cannonShells.length);
+                expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.design.maxChainGunAmmo - cannonShells.length);
             })
         );
     });
@@ -158,7 +158,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.angleOffset = angleOffset;
-                    shipMgr.state.chainGun!.modelParams.set('bulletDegreesDeviation', 0);
+                    shipMgr.state.chainGun!.design.bulletDegreesDeviation = 0;
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -195,7 +195,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.cooldownFactor = 2;
-                    shipMgr.state.chainGun!.modelParams.set('bulletsPerSecond', bulletsPerSecond);
+                    shipMgr.state.chainGun!.design.bulletsPerSecond = bulletsPerSecond;
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -204,7 +204,9 @@ describe('ShipManager', () => {
                         timePassed += iterationTimeInSeconds;
                     }
                     expect([...spaceMgr.state.getAll('CannonShell')].length).to.be.closeTo(
-                        Math.floor(shipMgr.state.chainGun!.bulletsPerSecond / shipMgr.state.chainGun!.cooldownFactor),
+                        Math.floor(
+                            shipMgr.state.chainGun!.design.bulletsPerSecond / shipMgr.state.chainGun!.cooldownFactor
+                        ),
                         1
                     );
                 }

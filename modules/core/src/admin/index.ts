@@ -1,5 +1,7 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
 
+import { number2Digits } from '../number-field';
+
 export class AdminState extends Schema {
     @type('boolean')
     isGameRunning = false;
@@ -7,6 +9,6 @@ export class AdminState extends Schema {
     @type(['string'])
     shipIds = new ArraySchema<string>();
 
-    @type('float32')
+    @number2Digits
     speed = 1;
 }

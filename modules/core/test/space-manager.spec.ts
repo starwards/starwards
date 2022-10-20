@@ -33,7 +33,7 @@ function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number)
 function* getHitPlatesArch(armor: Armor, range: Tuple2) {
     const degreesPerPlate = armor.degreesPerPlate;
     for (const [i, plate] of armor.platesInRange(range)) {
-        if (plate.health < armor.plateMaxHealth) {
+        if (plate.health < armor.design.plateMaxHealth) {
             const start = i * degreesPerPlate;
             yield [start, start + degreesPerPlate] as const;
         }
@@ -121,7 +121,7 @@ describe('SpaceManager', () => {
             ship.id = 'ship';
             const shipMgr = sim.withShip(ship, new ShipDie(0));
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
-            shipMgr.state.chainGun!.modelParams.set('maxShellRange', 10_000);
+            shipMgr.state.chainGun!.design.maxShellRange = 10_000;
             shipMgr.state.chainGun!.shellRange = 1;
             shipMgr.chainGun(true);
 
@@ -129,7 +129,7 @@ describe('SpaceManager', () => {
             const shellSecondsToLive = calcShellSecondsToLive(
                 shipMgr.state,
                 shipMgr.state.chainGun!,
-                shipMgr.state.chainGun!.maxShellRange
+                shipMgr.state.chainGun!.design.maxShellRange
             );
             return { sim, shellSecondsToLive, ship, shipMgr };
         }
@@ -141,10 +141,10 @@ describe('SpaceManager', () => {
             shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
             shipMgr.state.afterBurnerCommand = 1; // afterburner
 
-            shipMgr.state.armor.modelParams.set('healRate', 0);
+            shipMgr.state.armor.design.healRate = 0;
 
             sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {
-                shipMgr.state.reactor.afterBurnerFuel = shipMgr.state.reactor.maxAfterBurnerFuel;
+                shipMgr.state.reactor.afterBurnerFuel = shipMgr.state.reactor.design.maxAfterBurnerFuel;
             });
             const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, REAR_ARC))];
             expect(hitArchs).to.not.be.empty;

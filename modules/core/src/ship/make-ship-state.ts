@@ -1,90 +1,89 @@
-import { Armor, ArmorPlate } from './armor';
-import {
-    ArmorModel,
-    ChaingunModel,
-    RadarModel,
-    ReactorModel,
-    ShipDirectionConfig,
-    ShipModel,
-    ShipPropertiesModel,
-    SmartPilotModel,
-    ThrusterModel,
-} from './ship-configuration';
-import { ChainGun, ShipState, SmartPilot } from '..';
+import { Armor, ArmorDesign, ArmorPlate } from './armor';
+import { ChainGun, ChaingunDesign } from './chain-gun';
+import { Radar, RadarDesign } from './radar';
+import { Reactor, ReactorDesign } from './reactor';
+import { ShipDirectionConfig, getDirectionFromConfig } from './ship-direction';
+import { ShipPropertiesDesign, ShipState } from './ship-state';
+import { SmartPilot, SmartPilotDesign } from './smart-pilot';
+import { Thruster, ThrusterDesign } from './thruster';
 
 import { ArraySchema } from '@colyseus/schema';
-import { ModelParams } from '../model-params';
-import { Radar } from './radar';
-import { Reactor } from './reactor';
-import { Thruster } from './thruster';
-import { getDirectionFromConfig } from '.';
 
-function makeThruster(model: ThrusterModel, angle: ShipDirectionConfig, index: number): Thruster {
+export type ShipDesign = {
+    properties: ShipPropertiesDesign;
+    chainGun: ChaingunDesign | null;
+    thrusters: [ShipDirectionConfig, ThrusterDesign][];
+    armor: ArmorDesign;
+    radar: RadarDesign;
+    smartPilot: SmartPilotDesign;
+    reactor: ReactorDesign;
+};
+
+function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
     const thruster = new Thruster();
     thruster.index = index;
     thruster.angle = getDirectionFromConfig(angle);
-    thruster.modelParams = new ModelParams(model);
+    thruster.design.assign(design);
     return thruster;
 }
 
-function makeArmor(model: ArmorModel): Armor {
+function makeArmor(design: ArmorDesign): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.modelParams = new ModelParams(model);
-    for (let i = 0; i < model.numberOfPlates; i++) {
+    armor.design.assign(design);
+    for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = plate.maxHealth = model.plateMaxHealth;
+        plate.health = plate.maxHealth = design.plateMaxHealth;
         armor.armorPlates.push(plate);
     }
     return armor;
 }
 
-function makeShip(id: string, model: ShipPropertiesModel) {
+function makeShip(id: string, design: ShipPropertiesDesign) {
     const state = new ShipState();
     state.id = id;
-    state.modelParams = new ModelParams(model);
-    state.chainGunAmmo = state.maxChainGunAmmo;
+    state.design.assign(design);
+    state.chainGunAmmo = state.design.maxChainGunAmmo;
     return state;
 }
 
-function makeChainGun(model: ChaingunModel) {
+function makeChainGun(design: ChaingunDesign) {
     const chainGun = new ChainGun();
-    chainGun.modelParams = new ModelParams(model);
-    chainGun.shellSecondsToLive = 0;
+    chainGun.design.assign(design);
     return chainGun;
 }
 
-function makeRadar(model: RadarModel) {
+function makeRadar(design: RadarDesign) {
     const radar = new Radar();
-    radar.modelParams = new ModelParams(model);
+    radar.design.assign(design);
     return radar;
 }
 
-function makeReactor(model: ReactorModel) {
+function makeReactor(design: ReactorDesign) {
     const reactor = new Reactor();
-    reactor.modelParams = new ModelParams(model);
+    reactor.design.assign(design);
     return reactor;
 }
 
-function makeSmartPilot(model: SmartPilotModel) {
+function makeSmartPilot(design: SmartPilotDesign) {
     const smartPilot = new SmartPilot();
-    smartPilot.modelParams = new ModelParams(model);
+    smartPilot.design.assign(design);
     return smartPilot;
 }
 
-export function makeShipState(id: string, model: ShipModel) {
-    const state = makeShip(id, model.properties);
+export function makeShipState(id: string, design: ShipDesign) {
+    const state = makeShip(id, design.properties);
     state.thrusters = new ArraySchema();
-    for (const [index, [angleConfig, thrusterConfig]] of model.thrusters.entries()) {
+    for (const [index, [angleConfig, thrusterConfig]] of design.thrusters.entries()) {
         state.thrusters.setAt(index, makeThruster(thrusterConfig, angleConfig, index));
     }
-    if (model.chainGun) {
-        state.chainGun = makeChainGun(model.chainGun);
+    if (design.chainGun) {
+        state.chainGun = makeChainGun(design.chainGun);
     }
-    state.smartPilot = makeSmartPilot(model.smartPilot);
+    state.smartPilot = makeSmartPilot(design.smartPilot);
 
-    state.armor = makeArmor(model.armor);
-    state.radar = makeRadar(model.radar);
-    state.reactor = makeReactor(model.reactor);
+    state.armor = makeArmor(design.armor);
+    state.radar = makeRadar(design.radar);
+    state.reactor = makeReactor(design.reactor);
     return state;
 }

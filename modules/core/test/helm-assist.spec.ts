@@ -24,7 +24,7 @@ describe('helm assist', function () {
         it('rotationCapacity is max speed per second in turnSpeed', () => {
             const harness = new ShipTestHarness();
             const time = 5;
-            harness.shipObj.turnSpeed = -1 * time * harness.shipState.rotationCapacity;
+            harness.shipObj.turnSpeed = -1 * time * harness.shipState.design.rotationCapacity;
             harness.shipMgr.state.smartPilot.rotation = 1;
             const metrics = new TimedTestMetrics(iterationsPerSecond, time, Math.abs(harness.shipObj.turnSpeed));
             harness.simulate(metrics.timeToReach, metrics.iterations);
@@ -41,7 +41,7 @@ describe('helm assist', function () {
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(originalAngle),
-                        harness.shipState.rotationCapacity
+                        harness.shipState.design.rotationCapacity
                     );
                     harness.initGraph({
                         angle: () => toDegreesDelta(harness.shipState.angle),
@@ -72,7 +72,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(turnSpeed),
-                        harness.shipState.rotationCapacity
+                        harness.shipState.design.rotationCapacity
                     );
                     harness.shipObj.turnSpeed = turnSpeed;
                     harness.initGraph({

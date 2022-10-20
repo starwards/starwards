@@ -23,8 +23,8 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
     if (!shipRoom.state.chainGun) {
         pendingEvents.push('/chainGun');
     }
-    if (!shipRoom.state.modelParams) {
-        pendingEvents.push('/modelParams');
+    if (!shipRoom.state.design) {
+        pendingEvents.push('/design');
     }
     if (!shipRoom.state.thrusters) {
         pendingEvents.push('/thrusters');

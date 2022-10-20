@@ -2,17 +2,42 @@ import 'reflect-metadata';
 
 import { Schema, type } from '@colyseus/schema';
 
-import { ModelParams } from '../model-params';
+import { DesignState } from './system';
 import { ShipState } from '.';
-import { ThrusterModel } from './ship-configuration';
+import { number2Digits } from '../number-field';
 import { range } from '../range';
 
+export type ThrusterDesign = {
+    maxAngleError: number;
+    capacity: number;
+    energyCost: number;
+    speedFactor: number;
+    afterBurnerCapacity: number;
+    afterBurnerEffectFactor: number;
+    damage50: number;
+    completeDestructionProbability: number;
+};
+
+export class ThrusterDesignState extends DesignState implements ThrusterDesign {
+    @number2Digits maxAngleError = 0;
+    @number2Digits capacity = 0;
+    @number2Digits energyCost = 0;
+    @number2Digits speedFactor = 0;
+    @number2Digits afterBurnerCapacity = 0;
+    @number2Digits afterBurnerEffectFactor = 0;
+    @number2Digits damage50 = 0;
+    @number2Digits completeDestructionProbability = 0;
+}
 export class Thruster extends Schema {
     public static isInstance = (o: unknown): o is Thruster => {
         return (o as Thruster)?.type === 'Thruster';
     };
 
     public readonly type = 'Thruster';
+
+    @type(ThrusterDesignState)
+    design = new ThrusterDesignState();
+
     /**
      * the index of thruster in the parent ship
      */
@@ -21,66 +46,46 @@ export class Thruster extends Schema {
     /**
      * the measure of current engine activity
      */
-    @type('float32')
+    @number2Digits
     active = 0;
     /**
      * the measure of current afterburner activity
      */
-    @type('float32')
+    @number2Digits
     afterBurnerActive = 0;
 
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
-    @type('float32')
+    @number2Digits
     angle = 0.0;
 
-    @type('float32')
-    @range((t: Thruster) => [-t.maxAngleError, t.maxAngleError])
+    @number2Digits
+    @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
     angleError = 0.0;
 
-    @type('float32')
+    @number2Digits
     @range([0, 1])
     availableCapacity = 1.0;
 
-    @type(ModelParams)
-    modelParams!: ModelParams<keyof ThrusterModel>;
-
     get broken(): boolean {
-        return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.maxAngleError;
-    }
-    // dps at which there's 50% chance of system damage
-    get damage50(): number {
-        return this.modelParams.get('damage50');
+        return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.design.maxAngleError;
     }
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
     }
     getVelocityCapacity(parent: ShipState): number {
         return (
-            this.capacity * this.speedFactor +
-            parent.afterBurner * this.afterBurnerCapacity * this.afterBurnerEffectFactor
+            this.capacity * this.design.speedFactor +
+            parent.afterBurner * this.afterBurnerCapacity * this.design.afterBurnerEffectFactor
         );
     }
 
-    get maxAngleError(): number {
-        return this.modelParams.get('maxAngleError');
-    }
     get capacity(): number {
-        return this.broken ? 0 : this.modelParams.get('capacity');
+        return this.broken ? 0 : this.design.capacity;
     }
 
-    get energyCost(): number {
-        return this.modelParams.get('energyCost');
-    }
-
-    get speedFactor(): number {
-        return this.modelParams.get('speedFactor');
-    }
     get afterBurnerCapacity(): number {
-        return this.broken ? 0 : this.modelParams.get('afterBurnerCapacity');
-    }
-    get afterBurnerEffectFactor(): number {
-        return this.modelParams.get('afterBurnerEffectFactor');
+        return this.broken ? 0 : this.design.afterBurnerCapacity;
     }
 }
