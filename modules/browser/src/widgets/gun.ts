@@ -2,6 +2,7 @@ import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../panel';
 import { ShipDriver } from '@starwards/core';
+import { readNumberProp } from '../property-wrappers';
 
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
     class GunComponent {
@@ -12,11 +13,11 @@ export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
             });
             const chainGunPanel = panel.addFolder('chainGun');
 
-            chainGunPanel.addProperty('chainGunCooldown', shipDriver.readNumberProp(`/chainGun/cooldown`));
+            chainGunPanel.addProperty('chainGunCooldown', readNumberProp(shipDriver, `/chainGun/cooldown`));
             chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.state.chainGun?.isFiring) });
             panel.addText('target', { getValue: () => String(shipDriver.state.targetId) });
 
-            panel.addProperty('shellSecondsToLive', shipDriver.readNumberProp(`/chainGun/shellSecondsToLive`));
+            panel.addProperty('shellSecondsToLive', readNumberProp(shipDriver, `/chainGun/shellSecondsToLive`));
         }
     }
     return {

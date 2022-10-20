@@ -46,7 +46,7 @@ function nodeLogic(node: ShipOutNode, { shipId }: ShipOutOptions) {
                 done?.(new Error(`not relaying messages in state: ${(await statusTracker.getStatus()).text}`));
             } else {
                 try {
-                    (await node.shipDriver).setPrimitiveState(msg.topic as string, msg.payload as Primitive);
+                    (await node.shipDriver).sendJsonCmd(msg.topic as string, msg.payload as Primitive);
                     done?.();
                 } catch (e) {
                     done?.(e as Error);

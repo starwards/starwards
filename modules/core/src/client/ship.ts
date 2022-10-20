@@ -1,5 +1,4 @@
 import { GameRoom, sendJsonCmd } from '..';
-import { readNumberProp, readProp, readWriteNumberProp, readWriteProp, writeProp } from '../api/properties';
 
 import { Primitive } from 'colyseus-events';
 import { makeEventsEmitter } from './events';
@@ -33,11 +32,6 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
         get state() {
             return shipRoom.state;
         },
-        setPrimitiveState: sendJsonCmd.bind(null, shipRoom),
-        writeProp: <T extends Primitive>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
-        readProp: <T>(pointerStr: string) => readProp<T>(shipRoom, events, pointerStr),
-        readWriteProp: <T extends Primitive>(pointerStr: string) => readWriteProp<T>(shipRoom, events, pointerStr),
-        readWriteNumberProp: readWriteNumberProp.bind(null, shipRoom, events),
-        readNumberProp: readNumberProp.bind(null, shipRoom, events),
+        sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(shipRoom, pointerStr, value),
     };
 }

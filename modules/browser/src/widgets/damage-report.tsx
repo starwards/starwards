@@ -2,6 +2,7 @@
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
 import React, { Component, useEffect, useRef } from 'react';
 import { ShipDirection, ShipDriver, Thruster } from '@starwards/core';
+import { readNumberProp, readProp } from '../property-wrappers';
 import { useConstant, useLoop, useProperty, useSorted } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
@@ -46,8 +47,8 @@ const disappearMachine = createMachine({
 });
 
 function ThrusterDamageReport({ driver, thruster }: { driver: ShipDriver; thruster: Thruster }) {
-    const angle = useProperty<ShipDirection>(driver.readNumberProp(`/thrusters/${thruster.index}/angle`));
-    const broken = useProperty<boolean>(driver.readProp(`/thrusters/${thruster.index}/broken`));
+    const angle = useProperty<ShipDirection>(readNumberProp(driver, `/thrusters/${thruster.index}/angle`));
+    const broken = useProperty<boolean>(readProp(driver, `/thrusters/${thruster.index}/broken`));
     const [current, send] = useMachine(disappearMachine);
 
     useEffect(() => {

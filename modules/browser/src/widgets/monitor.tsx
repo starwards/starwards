@@ -3,6 +3,7 @@ import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/cor
 import React, { Component } from 'react';
 import { ReadProperty, useProperty } from '../react/hooks';
 import { ShipDirection, ShipDriver, Thruster } from '@starwards/core';
+import { readNumberProp, readProp } from '../property-wrappers';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
@@ -44,8 +45,8 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
 }
 
 function ThrusterMonitor({ driver, thruster }: { driver: ShipDriver; thruster: Thruster }) {
-    const angle = useProperty<ShipDirection>(driver.readNumberProp(`/thrusters/${thruster.index}/angle`));
-    const broken = useProperty<boolean>(driver.readProp(`/thrusters/${thruster.index}/broken`));
+    const angle = useProperty<ShipDirection>(readNumberProp(driver, `/thrusters/${thruster.index}/angle`));
+    const broken = useProperty<boolean>(readProp(driver, `/thrusters/${thruster.index}/broken`));
     const palette: Palette = broken ? 'error' : 'success';
     const status = broken ? 'ERROR' : 'OK';
     return (
@@ -70,13 +71,13 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                     >
                         <div style={{ padding: 20, textAlign: 'center' }}>
                             <Metric
-                                property={shipDriver.readNumberProp(`/reactor/energy`)}
+                                property={readNumberProp(shipDriver, `/reactor/energy`)}
                                 metricName="Energy"
                                 error={100}
                                 warn={300}
                             />
                             <Metric
-                                property={shipDriver.readNumberProp(`/reactor/afterBurnerFuel`)}
+                                property={readNumberProp(shipDriver, `/reactor/afterBurnerFuel`)}
                                 metricName="Afterburner"
                                 error={500}
                                 warn={2000}

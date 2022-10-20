@@ -1,4 +1,5 @@
 import { Panel, PropertyPanel } from '../panel';
+import { readProp, readWriteProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import { Container } from 'golden-layout';
@@ -6,17 +7,17 @@ import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
 
 function addMapToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
-    const p = shipDriver.readProp<Map<string, number>>(pointerStr);
+    const p = readProp<Map<string, number>>(shipDriver, pointerStr);
     const fields = new Set(p.getValue().keys());
 
     for (const constName of fields) {
-        panel.addConfig(constName, shipDriver.readWriteProp(pointerStr + '/' + constName));
+        panel.addConfig(constName, readWriteProp(shipDriver, pointerStr + '/' + constName));
     }
     p.onChange(() => {
         for (const constName of p.getValue().keys()) {
             if (!fields.has(constName)) {
                 fields.add(constName);
-                panel.addConfig(constName, shipDriver.readWriteProp(pointerStr + '/' + constName));
+                panel.addConfig(constName, readWriteProp(shipDriver, pointerStr + '/' + constName));
             }
         }
     });
