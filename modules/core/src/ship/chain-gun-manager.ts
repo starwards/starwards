@@ -49,16 +49,16 @@ export class ChainGunManager {
     }
 
     private calcShellRange() {
-        const aimRange = (this.chainGun.maxShellRange - this.chainGun.minShellRange) / 2;
+        const aimRange = (this.chainGun.design.maxShellRange - this.chainGun.design.minShellRange) / 2;
         let baseRange: number | undefined = undefined;
         switch (this.chainGun.shellRangeMode) {
             case SmartPilotMode.DIRECT:
-                baseRange = this.chainGun.minShellRange + aimRange;
+                baseRange = this.chainGun.design.minShellRange + aimRange;
                 break;
             case SmartPilotMode.TARGET:
                 baseRange = capToRange(
-                    this.chainGun.minShellRange,
-                    this.chainGun.maxShellRange,
+                    this.chainGun.design.minShellRange,
+                    this.chainGun.design.maxShellRange,
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     XY.lengthOf(XY.difference(this.shipManager.target!.position, this.shipManager.state.position))
                 );
@@ -69,8 +69,8 @@ export class ChainGunManager {
                 );
         }
         const range = capToRange(
-            this.chainGun.minShellRange,
-            this.chainGun.maxShellRange,
+            this.chainGun.design.minShellRange,
+            this.chainGun.design.maxShellRange,
             baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange)
         );
         this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.shipManager.state, this.chainGun, range);
@@ -80,7 +80,7 @@ export class ChainGunManager {
         const chaingun = this.chainGun;
         if (chaingun.cooldown > 0) {
             // charge weapon
-            chaingun.cooldown -= deltaSeconds * chaingun.bulletsPerSecond;
+            chaingun.cooldown -= deltaSeconds * chaingun.design.bulletsPerSecond;
             if (!chaingun.isFiring && chaingun.cooldown < 0) {
                 chaingun.cooldown = 0;
             }
@@ -89,10 +89,10 @@ export class ChainGunManager {
 
     private getChainGunExplosion() {
         const result = new Explosion();
-        result.secondsToLive = this.chainGun.explosionSecondsToLive;
-        result.expansionSpeed = this.chainGun.explosionExpansionSpeed;
-        result.damageFactor = this.chainGun.explosionDamageFactor;
-        result.blastFactor = this.chainGun.explosionBlastFactor;
+        result.secondsToLive = this.chainGun.design.explosionSecondsToLive;
+        result.expansionSpeed = this.chainGun.design.explosionExpansionSpeed;
+        result.damageFactor = this.chainGun.design.explosionDamageFactor;
+        result.blastFactor = this.chainGun.design.explosionBlastFactor;
         return result;
     }
 
@@ -110,11 +110,11 @@ export class ChainGunManager {
 
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
-                chaingun.bulletDegreesDeviation
+                chaingun.design.bulletDegreesDeviation
             );
             shell.velocity = Vec2.sum(
                 this.spaceObject.velocity,
-                XY.rotate({ x: chaingun.bulletSpeed, y: 0 }, shell.angle)
+                XY.rotate({ x: chaingun.design.bulletSpeed, y: 0 }, shell.angle)
             );
             const shellPosition = Vec2.make(
                 XY.sum(

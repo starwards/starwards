@@ -50,8 +50,8 @@ function makeShip(id: string, design: ShipPropertiesDesign) {
 
 function makeChainGun(design: ChaingunDesign) {
     const chainGun = new ChainGun();
-    chainGun.modelParams = new ModelParams(design);
-    chainGun.shellSecondsToLive = 0;
+    chainGun.design.assign(design);
+    // Object.assign(chainGun.design, design);
     return chainGun;
 }
 

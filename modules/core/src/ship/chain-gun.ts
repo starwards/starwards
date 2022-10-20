@@ -1,7 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
-import { ModelParams } from '../model-params';
-import { SmartPilotMode } from '.';
+import { DesignState } from './system';
+import { SmartPilotMode } from './smart-pilot';
 import { range } from '../range';
 
 export type ChaingunDesign = {
@@ -19,6 +19,30 @@ export type ChaingunDesign = {
     completeDestructionProbability: number;
 };
 
+export class ChaingunDesignState extends DesignState implements ChaingunDesign {
+    @type('float32') bulletsPerSecond = 0;
+    @type('float32') bulletSpeed = 0;
+    @type('float32') bulletDegreesDeviation = 0;
+    @type('float32') maxShellRange = 0;
+    @type('float32') minShellRange = 0;
+    @type('float32') shellRangeAim = 0;
+    @type('float32') explosionRadius = 0;
+    @type('float32') explosionExpansionSpeed = 0;
+    @type('float32') explosionDamageFactor = 0;
+    @type('float32') explosionBlastFactor = 0;
+    @type('float32') damage50 = 0;
+    @type('float32') completeDestructionProbability = 0;
+
+    get explosionSecondsToLive(): number {
+        return this.explosionRadius / this.explosionExpansionSpeed;
+    }
+    get minShellSecondsToLive(): number {
+        return this.minShellRange / this.bulletSpeed;
+    }
+    get maxShellSecondsToLive(): number {
+        return this.maxShellRange / this.bulletSpeed;
+    }
+}
 export class ChainGun extends Schema {
     public static isInstance = (o: unknown): o is ChainGun => {
         return (o as ChainGun)?.type === 'ChainGun';
@@ -39,8 +63,8 @@ export class ChainGun extends Schema {
     cooldown = 0;
 
     @type('float32')
-    @range((t: ChainGun) => [t.minShellSecondsToLive, t.maxShellSecondsToLive])
-    shellSecondsToLive = 10;
+    @range((t: ChainGun) => [t.design.minShellSecondsToLive, t.design.maxShellSecondsToLive])
+    shellSecondsToLive = 0;
 
     @type('float32')
     @range([-1, 1])
@@ -55,51 +79,11 @@ export class ChainGun extends Schema {
     @type('uint8')
     cooldownFactor = 1;
 
-    @type(ModelParams)
-    modelParams!: ModelParams<keyof ChaingunDesign>;
+    @type(ChaingunDesignState)
+    design = new ChaingunDesignState();
 
-    get bulletSpeed(): number {
-        return this.modelParams.get('bulletSpeed');
-    }
-    get bulletsPerSecond(): number {
-        return this.modelParams.get('bulletsPerSecond');
-    }
-    get minShellRange(): number {
-        return this.modelParams.get('minShellRange');
-    }
-    get maxShellRange(): number {
-        return this.modelParams.get('maxShellRange');
-    }
-    get shellRangeAim(): number {
-        return this.modelParams.get('shellRangeAim');
-    }
-    get explosionRadius(): number {
-        return this.modelParams.get('explosionRadius');
-    }
-    get explosionExpansionSpeed(): number {
-        return this.modelParams.get('explosionExpansionSpeed');
-    }
-    get explosionDamageFactor(): number {
-        return this.modelParams.get('explosionDamageFactor');
-    }
-    get explosionBlastFactor(): number {
-        return this.modelParams.get('explosionBlastFactor');
-    }
-    get bulletDegreesDeviation(): number {
-        return this.modelParams.get('bulletDegreesDeviation');
-    }
-    get explosionSecondsToLive(): number {
-        return this.explosionRadius / this.explosionExpansionSpeed;
-    }
-    get minShellSecondsToLive(): number {
-        return this.minShellRange / this.bulletSpeed;
-    }
-    get maxShellSecondsToLive(): number {
-        return this.maxShellRange / this.bulletSpeed;
-    }
-    // damage ammount at which there's 50% chance of system damage
     get damage50(): number {
-        return this.modelParams.get('damage50');
+        return this.design.damage50;
     }
     get broken(): boolean {
         return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;

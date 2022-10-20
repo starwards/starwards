@@ -62,7 +62,7 @@ export function jouster(targetId: string): Bot {
             const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
             const hitLocation = predictHitLocation(ship, ship.chainGun, target, targetAccel);
             const rangeDiff = calcRangediff(ship, target, hitLocation);
-            const range = ship.chainGun.maxShellRange - ship.chainGun.minShellRange;
+            const range = ship.chainGun.design.maxShellRange - ship.chainGun.design.minShellRange;
             ship.chainGun.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
             const rotation = rotateToTarget(
                 deltaSeconds,
