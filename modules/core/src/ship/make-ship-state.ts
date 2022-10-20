@@ -68,7 +68,7 @@ function makeReactor(design: ReactorDesign) {
 
 function makeSmartPilot(design: SmartPilotDesign) {
     const smartPilot = new SmartPilot();
-    smartPilot.modelParams = new ModelParams(design);
+    smartPilot.design.assign(design);
     return smartPilot;
 }
 

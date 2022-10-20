@@ -112,7 +112,7 @@ export class ShipState extends Spaceship {
     }
 
     getMaxSpeedForAfterburner(afterBurner: number) {
-        return this.smartPilot.maxSpeed + afterBurner * this.smartPilot.maxSpeedFromAfterBurner;
+        return this.smartPilot.design.maxSpeed + afterBurner * this.smartPilot.design.maxSpeedFromAfterBurner;
     }
 
     get maxSpeed() {

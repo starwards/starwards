@@ -432,15 +432,15 @@ export class ShipManager {
                     -1,
                     1,
                     this.state.smartPilot.rotationTargetOffset +
-                        (this.state.smartPilot.rotation * deltaSeconds * this.state.smartPilot.aimOffsetSpeed) /
-                            this.state.smartPilot.maxTargetAimOffset
+                        (this.state.smartPilot.rotation * deltaSeconds * this.state.smartPilot.design.aimOffsetSpeed) /
+                            this.state.smartPilot.design.maxTargetAimOffset
                 );
                 rotationCommand = rotateToTarget(
                     deltaSeconds,
                     this.state,
                     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                     this.target!.position,
-                    this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.maxTargetAimOffset
+                    this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
                 );
                 break;
             }
@@ -448,7 +448,7 @@ export class ShipManager {
                 rotationCommand = rotationFromTargetTurnSpeed(
                     deltaSeconds,
                     this.state,
-                    this.state.smartPilot.rotation * this.state.smartPilot.maxTurnSpeed
+                    this.state.smartPilot.rotation * this.state.smartPilot.design.maxTurnSpeed
                 );
                 break;
             }
