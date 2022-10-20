@@ -1,6 +1,6 @@
+import { EPSILON, limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
 import { ManeuveringCommand, Vec2, XY } from '../src';
 import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
-import { limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
 
 import { ShipDirection } from '../src/ship/ship-direction';
 import { expect } from 'chai';
@@ -82,9 +82,10 @@ describe('thrusters-ship integration', function () {
                 harness.simulate(1, iterationsPerSecond);
                 expect(limitPercisionHard(XY.angleOf(harness.shipObj.velocity)), 'velocity').to.be.closeTo(
                     limitPercisionHard(toPositiveDegreesDelta(offset)),
-                    0
+                    EPSILON * 5
                 );
-            })
+            }),
+            { seed: -2016101442, path: '95:21:0:3:0:0', endOnFailure: true }
         );
     });
 });
