@@ -49,7 +49,7 @@ export class SpatialIndex {
     constructor(private spaceDriver: SpaceDriver) {
         spaceDriver.events.on('$remove', (event: Remove) => this.onRemove(event.path.split('/')[2]));
         spaceDriver.events.on('$add', (event: Add) => this.onAdd(event.value as SpaceObject));
-        for (const object of this.spaceDriver) {
+        for (const object of this.spaceDriver.state) {
             this.onAdd(object);
         }
     }

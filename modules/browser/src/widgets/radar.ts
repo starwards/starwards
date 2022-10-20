@@ -13,6 +13,7 @@ import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
+import { waitForShip } from '../ship-logic';
 
 WebFont.load({
     custom: {
@@ -49,9 +50,9 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 e.preventDefault();
                 camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
             });
-            void spaceDriver
-                .waitForObject(shipDriver.id)
-                .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.events));
+            void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
+                camera.followSpaceObject(tracked, spaceDriver.events)
+            );
             Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
                 const radarRangeLayer = new ObjectsLayer(

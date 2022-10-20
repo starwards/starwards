@@ -2,6 +2,7 @@ import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, degToRad } from '@starwards/core';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
+import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -14,7 +15,6 @@ import { RangeIndicators } from '../radar/range-indicators';
 import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
-import { trackTargetObject } from '../ship-logic';
 
 WebFont.load({
     custom: {
@@ -102,9 +102,9 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
                 );
                 root.addLayer(blipLayer.renderRoot);
 
-                void spaceDriver
-                    .waitForObject(shipDriver.id)
-                    .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.events, true));
+                void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
+                    camera.followSpaceObject(tracked, spaceDriver.events, true)
+                );
             });
         }
     }

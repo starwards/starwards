@@ -24,7 +24,7 @@ export class TrackObjects<C> {
     };
 
     public update = () => {
-        for (const object of this.objects) {
+        for (const object of this.objects.state) {
             if (this.shouldTrack(object)) {
                 const context = this.contexts.get(object.id);
                 if (context) {

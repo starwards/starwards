@@ -1,4 +1,4 @@
-import { ShipDriverRead, SpaceDriver } from '@starwards/core';
+import { ShipDriverRead, SpaceDriver, Spaceship } from '@starwards/core';
 
 import { SelectionContainer } from './radar/selection-container';
 
@@ -13,4 +13,21 @@ export function trackTargetObject(spaceDriver: SpaceDriver, ship: ShipDriverRead
     spaceDriver.events.on('$add', () => setTimeout(updateSelectedTarget, 0));
     updateSelectedTarget();
     return result;
+}
+
+export function waitForShip(spaceDriver: SpaceDriver, id: string): Promise<Spaceship> {
+    return new Promise((res) => {
+        let ship = spaceDriver.state.getShip(id);
+        if (ship) {
+            return res(ship);
+        }
+        const tracker = () => {
+            ship = spaceDriver.state.getShip(id);
+            if (ship) {
+                spaceDriver.events.off('/Spaceship', tracker);
+                res(ship);
+            }
+        };
+        spaceDriver.events.on(`/Spaceship`, tracker);
+    });
 }
