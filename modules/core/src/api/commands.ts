@@ -3,7 +3,7 @@ import { Primitive, isPrimitive } from 'colyseus-events';
 
 import { Schema } from '@colyseus/schema';
 
-interface StateCommand<T, S extends Schema, P> {
+export interface StateCommand<T, S extends Schema, P> {
     cmdName: string;
     setValue(state: S, value: T, path: P): unknown;
 }

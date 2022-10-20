@@ -1,5 +1,5 @@
 import { Container, DisplayObject, Graphics, InteractionEvent, Rectangle } from 'pixi.js';
-import { SpaceObject, XY } from '@starwards/core';
+import { SpaceObject, XY, spaceProperties } from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
@@ -127,7 +127,7 @@ export class InteractiveLayer {
                 const dragTo = event.data.getLocalPosition(this.stage);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.spaceDriver.commandMoveObjects({
+                this.spaceDriver.command(spaceProperties.bulkMove, {
                     ids: this.selectionContainer.selectedItemsIds,
                     delta: worldMove,
                 });
