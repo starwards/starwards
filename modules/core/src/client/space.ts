@@ -1,10 +1,8 @@
-import { Add, Event, Remove } from 'colyseus-events';
-import { Body, System } from 'detect-collisions';
 import { GameRoom, getJsonPointer, makeOnChange } from '..';
 import { SpaceEventEmitter, makeSpaceEventsEmitter } from './events';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
 
-import { XY } from '../logic';
+import { Event } from 'colyseus-events';
 import { cmdSender } from '../api';
 import { pointerStrToObjectCommand } from '../space/space-properties';
 
@@ -14,53 +12,6 @@ export type TrackableObjects = {
     events: SpaceEventEmitter;
     get(id: string): SpaceObject | undefined;
 } & Iterable<SpaceObject>;
-export class SpatialIndex {
-    private collisions = new System(1);
-    private collisionToId = new WeakMap<Body, string>();
-    private stateToCollisions = new Map<string, Body>();
-    private cleanups = new Map<string, () => void>();
-
-    private createBody = (o: SpaceObject) => {
-        const { id, type } = o;
-        const body = this.collisions.createCircle(XY.clone(o.position), o.radius);
-        this.collisionToId.set(body, id);
-        this.stateToCollisions.set(id, body);
-        const update = () => {
-            body.r = o.radius; // order matters!
-            body.setPosition(o.position.x, o.position.y); // this call implicitly updates the collision body
-        };
-        this.cleanups.set(id, () => {
-            this.spaceDriver.events.off(`/${type}/${id}/position/x`, update);
-            this.spaceDriver.events.off(`/${type}/${id}/position/y`, update);
-            this.spaceDriver.events.off(`/${type}/${id}/radius`, update);
-            this.stateToCollisions.delete(id);
-            this.collisionToId.delete(body);
-            this.collisions.remove(body);
-            this.cleanups.delete(id);
-        });
-        this.spaceDriver.events.on(`/${type}/${id}/position/x`, update);
-        this.spaceDriver.events.on(`/${type}/${id}/position/y`, update);
-        this.spaceDriver.events.on(`/${type}/${id}/radius`, update);
-        return body;
-    };
-
-    private destroyBody = (id: string) => this.cleanups.get(id)?.();
-
-    constructor(private spaceDriver: TrackableObjects) {
-        spaceDriver.events.on('$remove', (event: Remove) => this.destroyBody(event.path.split('/')[2]));
-        spaceDriver.events.on('$add', (event: Add) => this.createBody(event.value as SpaceObject));
-    }
-
-    *selectPotentials(area: Body): Generator<SpaceObject> {
-        for (const potential of this.collisions.getPotentials(area)) {
-            const id = this.collisionToId.get(potential);
-            const object = id && this.spaceDriver.get(id);
-            if (object && !object.destroyed) {
-                yield object;
-            }
-        }
-    }
-}
 
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
     const events = makeSpaceEventsEmitter(spaceRoom.state);
@@ -76,7 +27,6 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
     };
     const spaceDriver = {
         ...coreDriver,
-        spatial: new SpatialIndex(coreDriver),
         get state(): SpaceState {
             return spaceRoom.state;
         },

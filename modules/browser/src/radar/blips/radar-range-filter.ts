@@ -3,7 +3,6 @@ import {
     MAX_SAFE_FLOAT,
     SpaceDriver,
     SpaceObject,
-    SpatialIndex,
     XY,
     calcArcAngle,
     degToRad,
@@ -11,6 +10,7 @@ import {
     toPositiveDegreesDelta,
     toStrictPositiveDegreesDelta,
 } from '@starwards/core';
+import { SpatialIndex, getSpatialIndex } from '../spatial-index';
 
 import { CameraView } from '../camera-view';
 import { Circle } from 'detect-collisions';
@@ -128,8 +128,8 @@ class FieldOfView {
 }
 export class RadarRangeFilter {
     public visibleObjects = new Set<SpaceObject>();
-
-    private createFieldOfView = (o: SpaceObject) => new FieldOfView(this.spaceDriver.spatial, o);
+    private spatial = getSpatialIndex(this.spaceDriver);
+    private createFieldOfView = (o: SpaceObject) => new FieldOfView(this.spatial, o);
     private updateFieldOfView = (_: SpaceObject, r: FieldOfView) => r.update();
     private fovs = new TrackObjects<FieldOfView>(
         this.spaceDriver,
