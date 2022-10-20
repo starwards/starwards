@@ -31,7 +31,7 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
 function makeArmor(design: ArmorDesign): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.modelParams = new ModelParams(design);
+    armor.design.assign(design);
     for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
         plate.health = plate.maxHealth = design.plateMaxHealth;

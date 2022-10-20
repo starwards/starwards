@@ -34,7 +34,7 @@ import { Reactor } from './reactor';
 import { Thruster } from './thruster';
 
 function fixArmor(armor: Armor) {
-    const plateMaxHealth = armor.plateMaxHealth;
+    const plateMaxHealth = armor.design.plateMaxHealth;
     for (const plate of armor.armorPlates) {
         plate.health = plateMaxHealth;
     }
@@ -256,10 +256,10 @@ export class ShipManager {
 
     private healPlates(deltaSeconds: number) {
         for (const plate of this.state.armor.armorPlates) {
-            if (plate.health > 0 && plate.health < this.state.armor.plateMaxHealth) {
+            if (plate.health > 0 && plate.health < this.state.armor.design.plateMaxHealth) {
                 plate.health = Math.min(
-                    plate.health + this.state.armor.healRate * deltaSeconds,
-                    this.state.armor.plateMaxHealth
+                    plate.health + this.state.armor.design.healRate * deltaSeconds,
+                    this.state.armor.design.plateMaxHealth
                 );
             }
         }
