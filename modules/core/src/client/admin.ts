@@ -1,5 +1,13 @@
 import { GameRoom, makeEventsEmitter } from '..';
 
+const requestInfo = {
+    method: 'POST',
+    cache: 'no-cache',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+} as const;
+
 export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
     const events = makeEventsEmitter(adminRoom.state);
     return {
@@ -7,46 +15,17 @@ export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) 
         get state() {
             return adminRoom.state;
         },
-        stopGame: () => {
-            void fetch(endpoint + '/stop-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: '{}',
-            });
-        },
-        startGame: (mapName: string) => {
-            void fetch(endpoint + '/start-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ mapName }),
-            });
-        },
+        stopGame: () => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
+        startGame: (mapName: string) =>
+            void fetch(endpoint + '/start-game', { ...requestInfo, body: JSON.stringify({ mapName }) }),
+        loadGame: (data: string) =>
+            void fetch(endpoint + '/load-game', { ...requestInfo, body: JSON.stringify({ data }) }),
         saveGame: async () => {
             const response = await fetch(endpoint + '/save-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                ...requestInfo,
                 body: '{}',
             });
             return response.text();
-        },
-        loadGame: (data: string) => {
-            void fetch(endpoint + '/load-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data }),
-            });
         },
     };
 };
