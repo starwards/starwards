@@ -1,6 +1,7 @@
 import { Destructor, Destructors, Driver, ShipDirection, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
+import { readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
@@ -25,9 +26,13 @@ const singleSelectionDetails = async (
     guiFolder: FolderApi,
     cleanup: (d: Destructor) => void
 ) => {
-    const api = spaceDriver.getObjectApi(subject);
     guiFolder.addInput(subject, 'id', { disabled: true });
-    addInputBlade(guiFolder, api.freeze, { label: 'Freeze' }, cleanup);
+    addInputBlade(
+        guiFolder,
+        readWriteProp(spaceDriver, `/${subject.type}/${subject.id}/freeze`),
+        { label: 'Freeze' },
+        cleanup
+    );
 
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
@@ -40,7 +45,7 @@ const singleSelectionDetails = async (
         });
         addTextBlade<ShipDirection>(
             armorFolder,
-            shipDriver.armor.numPlates,
+            readProp(shipDriver, `/armor/numberOfPlates`),
             {
                 label: 'Plates',
                 disabled: true,
@@ -49,16 +54,16 @@ const singleSelectionDetails = async (
         );
         addTextBlade<ShipDirection>(
             armorFolder,
-            shipDriver.armor.numHealthyPlates,
+            readProp(shipDriver, `/armor/numberOfHealthyPlates`),
             {
                 label: 'Healthy Plates',
                 disabled: true,
             },
             cleanup
         );
-        for (const thruster of shipDriver.thrusters) {
+        for (const thruster of shipDriver.state.thrusters) {
             const thrusterFolder = guiFolder.addFolder({
-                title: `Thruster ${thruster.index} (${ShipDirection[thruster.angle.getValue()]})`,
+                title: `Thruster ${thruster.index} (${ShipDirection[thruster.angle]})`,
                 expanded: false,
             });
             cleanup(() => {
@@ -66,7 +71,7 @@ const singleSelectionDetails = async (
             });
             addSliderBlade(
                 thrusterFolder,
-                thruster.angleError,
+                readWriteNumberProp(shipDriver, `/thrusters/${thruster.index}/angleError`),
                 {
                     label: 'Angle Error',
                 },
@@ -74,7 +79,7 @@ const singleSelectionDetails = async (
             );
             addSliderBlade(
                 thrusterFolder,
-                thruster.availableCapacity,
+                readWriteNumberProp(shipDriver, `/thrusters/${thruster.index}/availableCapacity`),
                 {
                     label: 'Available Capacity',
                 },

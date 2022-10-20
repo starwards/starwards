@@ -1,58 +1,39 @@
-import { GameRoom, makeEventsEmitter } from '..';
+import { GameRoom, RoomEventEmitter } from '..';
 
-import { adminProperties } from '../admin';
-import { cmdSender } from '../api';
+import EventEmitter2 from 'eventemitter2';
+import { wireEvents } from 'colyseus-events';
 
+const requestInfo = {
+    method: 'POST',
+    cache: 'no-cache',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+} as const;
+const emitter2Options = {
+    wildcard: true,
+    delimiter: '/',
+    maxListeners: 0,
+};
 export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
-    const speedCommand = cmdSender(adminRoom, adminProperties.speedCommand, undefined);
-    const events = makeEventsEmitter(adminRoom.state);
+    const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
+    wireEvents(adminRoom.state, events);
     return {
         events,
         get state() {
             return adminRoom.state;
         },
-        pauseGame: () => speedCommand(0),
-        resumeGame: () => speedCommand(1),
-        stopGame: () => {
-            void fetch(endpoint + '/stop-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: '{}',
-            });
-        },
-        startGame: (mapName: string) => {
-            void fetch(endpoint + '/start-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ mapName }),
-            });
-        },
+        stopGame: () => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
+        startGame: (mapName: string) =>
+            void fetch(endpoint + '/start-game', { ...requestInfo, body: JSON.stringify({ mapName }) }),
+        loadGame: (data: string) =>
+            void fetch(endpoint + '/load-game', { ...requestInfo, body: JSON.stringify({ data }) }),
         saveGame: async () => {
             const response = await fetch(endpoint + '/save-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                ...requestInfo,
                 body: '{}',
             });
             return response.text();
-        },
-        loadGame: (data: string) => {
-            void fetch(endpoint + '/load-game', {
-                method: 'POST',
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ data }),
-            });
         },
     };
 };

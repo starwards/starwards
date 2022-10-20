@@ -4,7 +4,6 @@ import { EventEmitter } from 'eventemitter3';
 import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { Server } from 'http';
-import { adminProperties } from '@starwards/core';
 import path from 'path';
 import { server } from '../server';
 import { stringToSchema } from '../serialization/game-state-serialization';
@@ -42,7 +41,7 @@ export function makeDriver() {
             return sockets;
         },
         pauseGameCommand() {
-            adminProperties.speedCommand.setValue(this.gameManager.state, 0);
+            this.gameManager.state.speed = 0;
         },
         get gameManager() {
             if (!gameManager) throw new Error('missing gameManager');

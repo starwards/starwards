@@ -3,8 +3,8 @@ import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { type } from '@colyseus/schema';
 export class CannonShell extends SpaceObjectBase {
-    public static isInstance = (o: SpaceObjectBase): o is CannonShell => {
-        return o.type === 'CannonShell';
+    public static isInstance = (o: unknown): o is CannonShell => {
+        return !!o && (o as SpaceObjectBase).type === 'CannonShell';
     };
 
     @type('float32')

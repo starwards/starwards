@@ -1,6 +1,6 @@
 // import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status } from '@starwards/core';
+import { ClientStatus, Driver, Status, spaceProperties } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 
 import $ from 'jquery';
@@ -53,11 +53,27 @@ void driver.waitForGame().then(
         dashboard.setup();
         // constantly scan for new ships and add widgets for them
         const spaceDriver = await driver.getSpaceDriver();
-        const spaceActions = spaceDriver.selectionActions(() => gmWidgets.selectionContainer.selectedItemsIds);
-
         const input = new InputManager();
-        input.addStepsAction(spaceActions.rotate, gmInputConfig.rotate);
-        input.addKeyAction(spaceActions.toggleFreeze, gmInputConfig.toggleFreeze);
+        input.addStepsAction(
+            {
+                setValue: (delta: number) =>
+                    spaceDriver.command(spaceProperties.bulkRotate, {
+                        ids: gmWidgets.selectionContainer.selectedItemsIds,
+                        delta,
+                    }),
+            },
+            gmInputConfig.rotate
+        );
+        input.addKeyAction(
+            {
+                setValue: (v: boolean) =>
+                    v &&
+                    spaceDriver.command(spaceProperties.bulkFreezeToggle, {
+                        ids: gmWidgets.selectionContainer.selectedItemsIds,
+                    }),
+            },
+            gmInputConfig.toggleFreeze
+        );
 
         input.init();
 

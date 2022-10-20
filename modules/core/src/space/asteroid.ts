@@ -4,8 +4,8 @@ import { type } from '@colyseus/schema';
 
 export class Asteroid extends SpaceObjectBase {
     public static maxSize = 350;
-    public static isInstance = (o: SpaceObjectBase): o is Asteroid => {
-        return o.type === 'Asteroid';
+    public static isInstance = (o: unknown): o is Asteroid => {
+        return !!o && (o as SpaceObjectBase).type === 'Asteroid';
     };
 
     public readonly type = 'Asteroid';

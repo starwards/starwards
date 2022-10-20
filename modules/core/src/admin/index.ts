@@ -1,5 +1,3 @@
-import * as _adminProperties from './admin-properties';
-
 import { ArraySchema, Schema, type } from '@colyseus/schema';
 
 export class AdminState extends Schema {
@@ -12,5 +10,3 @@ export class AdminState extends Schema {
     @type('float32')
     speed = 1;
 }
-
-export const adminProperties = _adminProperties;

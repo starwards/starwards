@@ -2,7 +2,8 @@
 import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
 import React, { Component } from 'react';
 import { ReadProperty, useProperty } from '../react/hooks';
-import { ShipDirection, ShipDriver, ThrusterDriver } from '@starwards/core';
+import { ShipDirection, ShipDriver, Thruster } from '@starwards/core';
+import { readNumberProp, readProp } from '../property-wrappers';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
@@ -43,15 +44,15 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
     );
 }
 
-function ThrusterMonitor({ driver }: { driver: ThrusterDriver }) {
-    const angle = useProperty<ShipDirection>(driver.angle);
-    const broken = useProperty<boolean>(driver.broken);
+function ThrusterMonitor({ driver, thruster }: { driver: ShipDriver; thruster: Thruster }) {
+    const angle = useProperty<ShipDirection>(readNumberProp(driver, `/thrusters/${thruster.index}/angle`));
+    const broken = useProperty<boolean>(readProp(driver, `/thrusters/${thruster.index}/broken`));
     const palette: Palette = broken ? 'error' : 'success';
     const status = broken ? 'ERROR' : 'OK';
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>
             <Text>
-                Thruster {driver.index} ({ShipDirection[angle]}) : {status}
+                Thruster {thruster.index} ({ShipDirection[angle]}) : {status}
             </Text>
         </Blockquote>
     );
@@ -69,15 +70,20 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                         bleepsSettings={bleepsSettings}
                     >
                         <div style={{ padding: 20, textAlign: 'center' }}>
-                            <Metric property={shipDriver.energy} metricName="Energy" error={100} warn={300} />
                             <Metric
-                                property={shipDriver.afterBurnerFuel}
+                                property={readNumberProp(shipDriver, `/reactor/energy`)}
+                                metricName="Energy"
+                                error={100}
+                                warn={300}
+                            />
+                            <Metric
+                                property={readNumberProp(shipDriver, `/reactor/afterBurnerFuel`)}
                                 metricName="Afterburner"
                                 error={500}
                                 warn={2000}
                             />
-                            {[...shipDriver.thrusters].map((t) => (
-                                <ThrusterMonitor key={t.index} driver={t} />
+                            {shipDriver.state.thrusters.map((t) => (
+                                <ThrusterMonitor key={t.index} thruster={t} driver={shipDriver} />
                             ))}
                         </div>
                     </BleepsProvider>

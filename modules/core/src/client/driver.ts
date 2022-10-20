@@ -94,6 +94,12 @@ export class Driver {
         this.connectionManager.destroy();
     }
 
+    private getAdminDriverWhenConnected(): Promise<AdminDriver> {
+        if (!this.adminDriver) {
+            throw new Error('connected, but missing adminDriver');
+        }
+        return this.adminDriver;
+    }
     onGameStateChange(cb: () => unknown): () => void {
         const wrappedListener: () => unknown = async () => {
             try {
@@ -114,10 +120,7 @@ export class Driver {
                 } catch (e) {
                     continue;
                 }
-                if (!this.adminDriver) {
-                    throw new Error('connected, but missing adminDriver');
-                }
-                const driver = await this.adminDriver;
+                const driver = await this.getAdminDriverWhenConnected();
                 await wrappedListener();
                 driver.events.on('**', wrappedListener);
                 unRegister = () => driver.events.off('**', wrappedListener);
@@ -132,30 +135,18 @@ export class Driver {
         };
     }
     async isActiveGame() {
-        await this.connectionManager.waitForConnected();
-        if (!this.adminDriver) {
-            throw new Error('connected, but missing adminDriver');
-        }
-        return (await this.adminDriver).state.isGameRunning;
+        return (await this.getAdminDriver()).state.isGameRunning;
     }
 
     /**
      * Returns a finite iterator for the IDs of the ships currently active
      */
     async getCurrentShipIds(): Promise<Iterable<string>> {
-        await this.connectionManager.waitForConnected();
-        if (!this.adminDriver) {
-            throw new Error('connected, but missing adminDriver');
-        }
-        return (await this.adminDriver).state.shipIds;
+        return (await this.getAdminDriver()).state.shipIds;
     }
 
     async doesShipExist(shipId: string): Promise<boolean> {
-        await this.connectionManager.waitForConnected();
-        if (!this.adminDriver) {
-            throw new Error('connected, but missing adminDriver');
-        }
-        return (await this.adminDriver).state.shipIds.includes(shipId);
+        return (await this.getAdminDriver()).state.shipIds.includes(shipId);
     }
 
     /**
@@ -237,9 +228,6 @@ export class Driver {
 
     async getAdminDriver(): Promise<AdminDriver> {
         await this.connectionManager.waitForConnected();
-        if (!this.adminDriver) {
-            throw new Error('connected, but missing adminDriver');
-        }
-        return this.adminDriver;
+        return await this.getAdminDriverWhenConnected();
     }
 }

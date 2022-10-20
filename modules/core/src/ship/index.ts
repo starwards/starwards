@@ -9,3 +9,4 @@ export * from './ship-areas';
 export * from './ship-die';
 export * from './reactor';
 export * from './make-ship-state';
+export * from './thruster';

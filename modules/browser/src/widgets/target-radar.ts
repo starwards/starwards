@@ -49,7 +49,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 root.setSquare();
                 const rangeFilter = new RadarRangeFilter(
                     spaceDriver,
-                    (o: SpaceObject) => o.faction === shipDriver.faction.getValue()
+                    (o: SpaceObject) => o.faction === shipDriver.state.faction
                 );
                 root.ticker.add(
                     () => {

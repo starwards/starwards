@@ -13,6 +13,7 @@ import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
+import { waitForShip } from '../ship-logic';
 
 WebFont.load({
     custom: {
@@ -49,9 +50,9 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 e.preventDefault();
                 camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
             });
-            void spaceDriver
-                .waitForObject(shipDriver.id)
-                .then((tracked) => camera.followSpaceObject(tracked, spaceDriver.events));
+            void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
+                camera.followSpaceObject(tracked, spaceDriver.events)
+            );
             Loader.shared.load(() => {
                 const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
                 const radarRangeLayer = new ObjectsLayer(
@@ -61,14 +62,14 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                     () => radarVisibleBg,
                     rangeRangeDrawFunctions,
                     undefined,
-                    (s: SpaceObject) => s.faction === shipDriver.faction.getValue()
+                    (s: SpaceObject) => s.faction === shipDriver.state.faction
                 );
                 root.addLayer(radarRangeLayer.renderRoot);
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
                 const rangeFilter = new RadarRangeFilter(
                     spaceDriver,
-                    (o: SpaceObject) => o.faction === shipDriver.faction.getValue()
+                    (o: SpaceObject) => o.faction === shipDriver.state.faction
                 );
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
                 const blipLayer = new ObjectsLayer(
@@ -77,7 +78,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                     64,
                     (s: SpaceObject) => {
                         if (s.faction === Faction.none) return yellow;
-                        if (s.faction === shipDriver.faction.getValue()) return blue;
+                        if (s.faction === shipDriver.state.faction) return blue;
                         return red;
                     },
                     dradisDrawFunctions,

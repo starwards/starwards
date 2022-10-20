@@ -53,14 +53,3 @@ export const bulkBotOrder = {
         state.botOrderCommands.push(value);
     },
 };
-
-const JSON_CMD_NS = '$SpaceObject';
-export function objectCommandToPointerStr(type: unknown) {
-    if (typeof type === 'string' && type.startsWith(JSON_CMD_NS)) {
-        return type.substring(JSON_CMD_NS.length);
-    }
-    return null;
-}
-export function pointerStrToObjectCommand(pointerStr: string) {
-    return JSON_CMD_NS + pointerStr;
-}

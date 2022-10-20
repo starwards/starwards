@@ -1,8 +1,9 @@
-import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, printError, tryGetRange } from '..';
+import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, isJsonPointer, printError, tryGetRange } from '.';
+import { Primitive, isPrimitive } from 'colyseus-events';
 
 import { Schema } from '@colyseus/schema';
 
-interface StateCommand<T, S extends Schema, P> {
+export interface StateCommand<T, S extends Schema, P> {
     cmdName: string;
     setValue(state: S, value: T, path: P): unknown;
 }
@@ -14,6 +15,17 @@ function isStateCommand(v: unknown): v is StateCommand<unknown, Schema, unknown>
         typeof (v as StateCommand<unknown, Schema, unknown>).setValue === 'function'
     );
 }
+
+export function sendJsonCmd(room: GameRoom<RoomName>, pointerStr: string, value: Primitive) {
+    if (!isJsonPointer(pointerStr)) {
+        throw new Error(`not a legal Json pointer: ${JSON.stringify(pointerStr)}`);
+    }
+    if (!isPrimitive(value)) {
+        throw new Error(`not a legal value: ${JSON.stringify(value)}`);
+    }
+    room.send(pointerStr, { value });
+}
+
 export function cmdSender<T, R extends RoomName, P = void>(room: GameRoom<R>, p: { cmdName: string }, path: P) {
     return (value: T) => room.send(p.cmdName, { value, path });
 }
