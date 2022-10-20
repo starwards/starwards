@@ -1,3 +1,5 @@
+import { Event } from 'colyseus-events';
+
 export type EventMap = Record<string, unknown>;
 
 export type EventKey<T extends EventMap> = string & keyof T;
@@ -9,3 +11,5 @@ export interface EventEmitter<T extends EventMap> {
     off<K extends EventKey<T>>(eventName: K, fn: EventReceiver<T[K]>): unknown;
     emit<K extends EventKey<T>>(eventName: K, params: T[K]): unknown;
 }
+
+export type RoomEventEmitter = EventEmitter<{ [k in string]: Event }>;

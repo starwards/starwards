@@ -1,4 +1,7 @@
-import { GameRoom, makeEventsEmitter } from '..';
+import { GameRoom, RoomEventEmitter } from '..';
+
+import EventEmitter2 from 'eventemitter2';
+import { wireEvents } from 'colyseus-events';
 
 const requestInfo = {
     method: 'POST',
@@ -7,9 +10,14 @@ const requestInfo = {
         'Content-Type': 'application/json',
     },
 } as const;
-
+const emitter2Options = {
+    wildcard: true,
+    delimiter: '/',
+    maxListeners: 0,
+};
 export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
-    const events = makeEventsEmitter(adminRoom.state);
+    const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
+    wireEvents(adminRoom.state, events);
     return {
         events,
         get state() {

@@ -1,14 +1,35 @@
+import { Add, Event, Primitive, Remove, Replace, wireEvents } from 'colyseus-events';
+import { EventEmitter, GameRoom, RoomEventEmitter } from '..';
 import { StateCommand, sendJsonCmd } from '../commands';
 
-import { GameRoom } from '..';
-import { Primitive } from 'colyseus-events';
+import EventEmitter2 from 'eventemitter2';
 import { SpaceState } from '../space';
-import { makeSpaceEventsEmitter } from './events';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
+export type SpaceEventEmitter = RoomEventEmitter &
+    EventEmitter<{
+        $add: Add;
+        $replace: Replace;
+        $remove: Remove;
+    }>;
 
+const emitter2Options = {
+    wildcard: true,
+    delimiter: '/',
+    maxListeners: 0,
+};
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
-    const events = makeSpaceEventsEmitter(spaceRoom.state);
+    const events = new EventEmitter2(emitter2Options) as SpaceEventEmitter;
+    // wire objects lifecycle events
+    events.on('/*', (e: Event) => {
+        events.emit(`$${e.op}`, e);
+    });
+    events.on('/*/*/destroyed', (e: Event) => {
+        if (e.op === 'replace' && e.value) {
+            events.emit(`$remove`, Remove(e.path.slice(0, e.path.lastIndexOf('/'))));
+        }
+    });
+    wireEvents(spaceRoom.state, events);
     const spaceDriver = {
         events,
         get state(): SpaceState {

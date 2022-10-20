@@ -1,17 +1,24 @@
-import { GameRoom, sendJsonCmd } from '..';
+import { GameRoom, RoomEventEmitter, sendJsonCmd } from '..';
+import { Primitive, wireEvents } from 'colyseus-events';
 
-import { Primitive } from 'colyseus-events';
-import { makeEventsEmitter } from './events';
+import EventEmitter2 from 'eventemitter2';
 import { waitForEvents } from '../async-utils';
 
 export type ShipDriver = Awaited<ReturnType<typeof ShipDriver>>;
 
+const emitter2Options = {
+    wildcard: true,
+    delimiter: '/',
+    maxListeners: 0,
+};
+
 export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
-    const events = makeEventsEmitter(shipRoom.state);
+    const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
     // wire commulative events
     events.on('/armor/armorPlates/*/health', (e) => {
         events.emit(`/armor/numberOfHealthyPlates`, e);
     });
+    wireEvents(shipRoom.state, events);
     const pendingEvents = [];
     if (!shipRoom.state.chainGun) {
         pendingEvents.push('/chainGun');
