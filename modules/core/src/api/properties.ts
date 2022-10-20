@@ -2,8 +2,9 @@ import { GameRoom, RoomName, getJsonPointer, getRange } from '..';
 import { JsonPointer, JsonStringPointer } from 'json-ptr';
 
 import { Destructor } from '../utils';
+import { Primitive } from 'colyseus-events';
 import { RoomEventEmitter } from '../client/events';
-import { cmdSender } from '.';
+import { sendJsonCmd } from '.';
 
 export type ReadProp<T> = {
     pointer: JsonPointer;
@@ -45,7 +46,7 @@ export function readProp<T>(
     return { pointer, getValue, onChange: makeOnChange(getValue, events, pointerStr) };
 }
 
-export function readWriteProp<T>(
+export function readWriteProp<T extends Primitive>(
     room: GameRoom<RoomName>,
     events: RoomEventEmitter,
     pointerStr: JsonStringPointer
@@ -56,8 +57,8 @@ export function readWriteProp<T>(
     };
 }
 
-export function writeProp<T>(room: GameRoom<RoomName>, pointerStr: string): WriteProp<T> {
-    return { setValue: cmdSender<T, RoomName>(room, { cmdName: pointerStr }, undefined) };
+export function writeProp<T extends Primitive>(room: GameRoom<RoomName>, pointerStr: string): WriteProp<T> {
+    return { setValue: (value: T) => sendJsonCmd(room, pointerStr, value) };
 }
 
 export function readWriteNumberProp(

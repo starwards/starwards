@@ -1,7 +1,7 @@
-import { GameRoom, isJsonPointer } from '..';
-import { Primitive, isPrimitive } from 'colyseus-events';
+import { GameRoom, sendJsonCmd } from '..';
 import { readNumberProp, readProp, readWriteNumberProp, readWriteProp, writeProp } from '../api/properties';
 
+import { Primitive } from 'colyseus-events';
 import { makeEventsEmitter } from './events';
 import { waitForEvents } from '../async-utils';
 
@@ -33,18 +33,10 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
         get state() {
             return shipRoom.state;
         },
-        setPrimitiveState: (pointerStr: string, value: Primitive) => {
-            if (!isJsonPointer(pointerStr)) {
-                throw new Error(`not a legal Json pointer: ${JSON.stringify(pointerStr)}`);
-            }
-            if (!isPrimitive(value)) {
-                throw new Error(`not a legal value: ${JSON.stringify(value)}`);
-            }
-            shipRoom.send(pointerStr, { value });
-        },
-        writeProp: <T>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
+        setPrimitiveState: sendJsonCmd.bind(null, shipRoom),
+        writeProp: <T extends Primitive>(pointerStr: string) => writeProp<T>(shipRoom, pointerStr),
         readProp: <T>(pointerStr: string) => readProp<T>(shipRoom, events, pointerStr),
-        readWriteProp: <T>(pointerStr: string) => readWriteProp<T>(shipRoom, events, pointerStr),
+        readWriteProp: <T extends Primitive>(pointerStr: string) => readWriteProp<T>(shipRoom, events, pointerStr),
         readWriteNumberProp: readWriteNumberProp.bind(null, shipRoom, events),
         readNumberProp: readNumberProp.bind(null, shipRoom, events),
     };
