@@ -19,35 +19,39 @@ export class SpatialIndex {
     private stateToCollisions = new Map<string, Body>();
     private cleanups = new Map<string, () => void>();
 
-    private createBody = (o: SpaceObject) => {
+    private onAdd = (o: SpaceObject) => {
         const { id, type } = o;
-        const body = this.collisions.createCircle(XY.clone(o.position), o.radius);
-        this.collisionToId.set(body, id);
-        this.stateToCollisions.set(id, body);
-        const update = () => {
-            body.r = o.radius; // order matters!
-            body.setPosition(o.position.x, o.position.y); // this call implicitly updates the collision body
-        };
-        this.cleanups.set(id, () => {
-            this.spaceDriver.events.off(`/${type}/${id}/position/x`, update);
-            this.spaceDriver.events.off(`/${type}/${id}/position/y`, update);
-            this.spaceDriver.events.off(`/${type}/${id}/radius`, update);
-            this.stateToCollisions.delete(id);
-            this.collisionToId.delete(body);
-            this.collisions.remove(body);
-            this.cleanups.delete(id);
-        });
-        this.spaceDriver.events.on(`/${type}/${id}/position/x`, update);
-        this.spaceDriver.events.on(`/${type}/${id}/position/y`, update);
-        this.spaceDriver.events.on(`/${type}/${id}/radius`, update);
-        return body;
+        if (!this.stateToCollisions.has(id)) {
+            const body = this.collisions.createCircle(XY.clone(o.position), o.radius);
+            this.collisionToId.set(body, id);
+            this.stateToCollisions.set(id, body);
+            const update = () => {
+                body.r = o.radius; // order matters!
+                body.setPosition(o.position.x, o.position.y); // this call implicitly updates the collision body
+            };
+            this.cleanups.set(id, () => {
+                this.spaceDriver.events.off(`/${type}/${id}/position/x`, update);
+                this.spaceDriver.events.off(`/${type}/${id}/position/y`, update);
+                this.spaceDriver.events.off(`/${type}/${id}/radius`, update);
+                this.stateToCollisions.delete(id);
+                this.collisionToId.delete(body);
+                this.collisions.remove(body);
+                this.cleanups.delete(id);
+            });
+            this.spaceDriver.events.on(`/${type}/${id}/position/x`, update);
+            this.spaceDriver.events.on(`/${type}/${id}/position/y`, update);
+            this.spaceDriver.events.on(`/${type}/${id}/radius`, update);
+        }
     };
 
-    private destroyBody = (id: string) => this.cleanups.get(id)?.();
+    private onRemove = (id: string) => this.cleanups.get(id)?.();
 
     constructor(private spaceDriver: SpaceDriver) {
-        spaceDriver.events.on('$remove', (event: Remove) => this.destroyBody(event.path.split('/')[2]));
-        spaceDriver.events.on('$add', (event: Add) => this.createBody(event.value as SpaceObject));
+        spaceDriver.events.on('$remove', (event: Remove) => this.onRemove(event.path.split('/')[2]));
+        spaceDriver.events.on('$add', (event: Add) => this.onAdd(event.value as SpaceObject));
+        for (const object of this.spaceDriver) {
+            this.onAdd(object);
+        }
     }
 
     *selectPotentials(area: Body): Generator<SpaceObject> {
