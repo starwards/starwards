@@ -57,7 +57,7 @@ export class SpatialIndex {
     *selectPotentials(area: Body): Generator<SpaceObject> {
         for (const potential of this.collisions.getPotentials(area)) {
             const id = this.collisionToId.get(potential);
-            const object = id && this.spaceDriver.get(id);
+            const object = id && this.spaceDriver.state.get(id);
             if (object && !object.destroyed) {
                 yield object;
             }

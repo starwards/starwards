@@ -14,9 +14,6 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         [Symbol.iterator]() {
             return spaceRoom.state[Symbol.iterator]();
         },
-        get(id: string) {
-            return spaceRoom.state.get(id);
-        },
         get state(): SpaceState {
             return spaceRoom.state;
         },
