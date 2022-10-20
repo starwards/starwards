@@ -1,5 +1,7 @@
-import { ShipDirectionConfig } from './ship-configuration';
 import { XY } from '..';
+
+export type ShipDirectionConfig = 'FWD' | 'STBD' | 'AFT' | 'PORT';
+
 export enum ShipDirection {
     FWD = 0,
     STBD = -90,

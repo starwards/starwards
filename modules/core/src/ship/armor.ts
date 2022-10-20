@@ -1,10 +1,15 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
 import { RTuple2, toPositiveDegreesDelta } from '..';
 
-import { ArmorDesign } from './ship-configuration';
 import { MAX_SAFE_FLOAT } from '../logic';
 import { ModelParams } from '../model-params';
 import { range } from '../range';
+
+export type ArmorDesign = {
+    numberOfPlates: number;
+    healRate: number;
+    plateMaxHealth: number;
+};
 
 export class ArmorPlate extends Schema {
     @type('float32')

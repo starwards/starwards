@@ -1,8 +1,16 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
-import { ReactorDesign } from './ship-configuration';
 import { range } from '../range';
+
+export type ReactorDesign = {
+    energyPerSecond: number;
+    maxEnergy: number;
+    maxAfterBurnerFuel: number;
+    afterBurnerCharge: number;
+    afterBurnerEnergyCost: number;
+    damage50: number;
+};
 
 export class Reactor extends Schema {
     public static isInstance = (o: unknown): o is Reactor => {

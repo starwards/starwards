@@ -1,23 +1,24 @@
-import { Armor, ArmorPlate } from './armor';
-import {
-    ArmorDesign,
-    ChaingunDesign,
-    RadarDesign,
-    ReactorDesign,
-    ShipDesign,
-    ShipDirectionConfig,
-    ShipPropertiesDesign,
-    SmartPilotDesign,
-    ThrusterDesign,
-} from './ship-configuration';
-import { ChainGun, ShipState, SmartPilot } from '..';
+import { Armor, ArmorDesign, ArmorPlate } from './armor';
+import { ChainGun, ChaingunDesign } from './chain-gun';
+import { Radar, RadarDesign } from './radar';
+import { Reactor, ReactorDesign } from './reactor';
+import { ShipDirectionConfig, getDirectionFromConfig } from './ship-direction';
+import { ShipPropertiesDesign, ShipState } from './ship-state';
+import { SmartPilot, SmartPilotDesign } from './smart-pilot';
+import { Thruster, ThrusterDesign } from './thruster';
 
 import { ArraySchema } from '@colyseus/schema';
 import { ModelParams } from '../model-params';
-import { Radar } from './radar';
-import { Reactor } from './reactor';
-import { Thruster } from './thruster';
-import { getDirectionFromConfig } from '.';
+
+export type ShipDesign = {
+    properties: ShipPropertiesDesign;
+    chainGun: ChaingunDesign | null;
+    thrusters: [ShipDirectionConfig, ThrusterDesign][];
+    armor: ArmorDesign;
+    radar: RadarDesign;
+    smartPilot: SmartPilotDesign;
+    reactor: ReactorDesign;
+};
 
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
     const thruster = new Thruster();

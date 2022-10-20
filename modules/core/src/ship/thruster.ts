@@ -4,8 +4,18 @@ import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
 import { ShipState } from '.';
-import { ThrusterDesign } from './ship-configuration';
 import { range } from '../range';
+
+export type ThrusterDesign = {
+    maxAngleError: number;
+    capacity: number;
+    energyCost: number;
+    speedFactor: number;
+    afterBurnerCapacity: number;
+    afterBurnerEffectFactor: number;
+    damage50: number;
+    completeDestructionProbability: number;
+};
 
 export class Thruster extends Schema {
     public static isInstance = (o: unknown): o is Thruster => {

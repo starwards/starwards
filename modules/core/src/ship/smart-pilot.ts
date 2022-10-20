@@ -1,9 +1,18 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { ModelParams } from '../model-params';
-import { SmartPilotDesign } from './ship-configuration';
 import { Vec2 } from '../space';
 import { range } from '../range';
+
+export type SmartPilotDesign = {
+    maxTargetAimOffset: number;
+    aimOffsetSpeed: number;
+    maxTurnSpeed: number;
+    offsetBrokenThreshold: number;
+    damage50: number;
+    maxSpeed: number;
+    maxSpeedFromAfterBurner: number;
+};
 
 export enum SmartPilotMode {
     DIRECT,

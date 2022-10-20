@@ -1,4 +1,4 @@
-import { ShipDesign } from '../ship/ship-configuration';
+import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
     numberOfPlates: 12,

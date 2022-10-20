@@ -1,9 +1,23 @@
 import { Schema, type } from '@colyseus/schema';
 
-import { ChaingunDesign } from './ship-configuration';
 import { ModelParams } from '../model-params';
 import { SmartPilotMode } from '.';
 import { range } from '../range';
+
+export type ChaingunDesign = {
+    bulletsPerSecond: number;
+    bulletSpeed: number;
+    bulletDegreesDeviation: number;
+    maxShellRange: number;
+    minShellRange: number;
+    shellRangeAim: number;
+    explosionRadius: number;
+    explosionExpansionSpeed: number;
+    explosionDamageFactor: number;
+    explosionBlastFactor: number;
+    damage50: number;
+    completeDestructionProbability: number;
+};
 
 export class ChainGun extends Schema {
     public static isInstance = (o: unknown): o is ChainGun => {
