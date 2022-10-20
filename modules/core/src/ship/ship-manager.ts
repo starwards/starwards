@@ -224,6 +224,7 @@ export class ShipManager {
 
     private updateRadarRange() {
         this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange());
+        this.state.radarRange = this.spaceObject.radarRange;
     }
 
     private calcRadarRange() {
@@ -513,6 +514,8 @@ export class ShipManager {
         );
         if (!XY.isZero(speedToChange)) {
             this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
+            this.state.velocity.x = this.spaceObject.velocity.x;
+            this.state.velocity.y = this.spaceObject.velocity.y;
         }
     }
 
@@ -620,7 +623,8 @@ export class ShipManager {
             if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
                 speedToChange += enginePower;
             }
-            this.spaceManager.ChangeTurnSpeed(this.spaceObject.id, speedToChange);
+            this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
+            this.state.turnSpeed = this.spaceObject.turnSpeed;
         }
     }
 }
