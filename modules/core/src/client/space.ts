@@ -1,10 +1,9 @@
-import { GameRoom, getJsonPointer, makeOnChange } from '..';
+import { GameRoom, readWriteProp } from '..';
 import { SpaceEventEmitter, makeSpaceEventsEmitter } from './events';
 import { SpaceObject, SpaceState, spaceProperties } from '../space';
 
 import { Event } from 'colyseus-events';
 import { cmdSender } from '../api';
-import { pointerStrToObjectCommand } from '../space/space-properties';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
@@ -82,21 +81,7 @@ class ObjectsApi {
     private makeObjectApi(subject: SpaceObject) {
         return {
             id: subject.id,
-            freeze: this.makeObjectProperty<boolean>(subject, '/freeze'),
-        };
-    }
-
-    private makeObjectProperty<T>(subject: SpaceObject, pointerStr: string) {
-        const pointer = getJsonPointer(pointerStr);
-        if (!pointer) {
-            throw new Error(`Illegal json path:${pointerStr}`);
-        }
-        const getValue = () => pointer.get(subject) as T;
-        const cmdName = pointerStrToObjectCommand(pointerStr);
-        return {
-            getValue,
-            onChange: makeOnChange(getValue, this.events, `/${subject.type}/${subject.id}${pointerStr}`),
-            setValue: cmdSender<T, 'space', string>(this.spaceRoom, { cmdName }, subject.id),
+            freeze: readWriteProp(this.spaceRoom, this.events, `/${subject.type}/${subject.id}/freeze`),
         };
     }
 }

@@ -3,6 +3,7 @@ import {
     SpaceState,
     cmdReceivers,
     handleJsonPointerCommand,
+    isJsonPointer,
     isSetValueCommand,
     spaceProperties,
 } from '@starwards/core';
@@ -25,25 +26,16 @@ export class SpaceRoom extends Room<SpaceState> {
         }
         // handle all other messages
         this.onMessage('*', (_, type, message: unknown) => {
-            if (isSetValueCommand(message) && typeof message.path === 'string') {
-                const pointerStr = spaceProperties.objectCommandToPointerStr(type);
-                if (!pointerStr) {
+            if (isSetValueCommand(message)) {
+                if (!isJsonPointer(type)) {
                     // eslint-disable-next-line no-console
                     console.error(`message type="${type}" not registered. message="${JSON.stringify(message)}"`);
                     return;
                 }
-                const obj = manager.state.get(message.path);
-                if (!obj) {
+                if (!handleJsonPointerCommand(message, type, manager.state)) {
                     // eslint-disable-next-line no-console
                     console.error(
-                        `no object found for object command. message="${JSON.stringify(message)}" type="${type}"`
-                    );
-                    return;
-                }
-                if (!handleJsonPointerCommand(message, pointerStr, obj)) {
-                    // eslint-disable-next-line no-console
-                    console.error(
-                        `object command can't be handled. message="${JSON.stringify(message)}" type="${type}"`
+                        `JSON pointer command can't be handled. message="${JSON.stringify(message)}" type="${type}"`
                     );
                 }
             }
