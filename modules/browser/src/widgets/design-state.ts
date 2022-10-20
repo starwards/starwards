@@ -1,4 +1,4 @@
-import { DesignState, ShipDriver } from '@starwards/core';
+import { DesignState, ShipDirection, ShipDriver } from '@starwards/core';
 import { Panel, PropertyPanel } from '../panel';
 import { readProp, readWriteProp } from '../property-wrappers';
 
@@ -6,7 +6,7 @@ import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 
-function addMapToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
+function addDesignStateToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
     const p = readProp<DesignState>(shipDriver, pointerStr);
     const fields = new Set(p.getValue().keys());
     for (const constName of fields) {
@@ -22,14 +22,25 @@ function addMapToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string)
     });
 }
 
-export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
+export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
     function makeShipComponent(container: Container) {
         const rootPanel = new PropertyPanel(container);
         // TODO add cleanups for folders
-        addMapToPanel(rootPanel.addFolder('main'), shipDriver, `/design`);
         if (shipDriver.state.chainGun) {
-            addMapToPanel(rootPanel.addFolder('chainGun'), shipDriver, `/chainGun/design`);
+            addDesignStateToPanel(rootPanel.addFolder('chainGun'), shipDriver, `/chainGun/design`);
         }
+        for (const thruster of shipDriver.state.thrusters) {
+            addDesignStateToPanel(
+                rootPanel.addFolder(`Thruster ${thruster.index} (${ShipDirection[thruster.angle]})`, false),
+                shipDriver,
+                `/thrusters/${thruster.index}/design`
+            );
+        }
+        addDesignStateToPanel(rootPanel.addFolder('armor'), shipDriver, `/armor/design`);
+        addDesignStateToPanel(rootPanel.addFolder('radar'), shipDriver, `/radar/design`);
+        addDesignStateToPanel(rootPanel.addFolder('smartPilot'), shipDriver, `/smartPilot/design`);
+        addDesignStateToPanel(rootPanel.addFolder('reactor'), shipDriver, `/reactor/design`);
+        addDesignStateToPanel(rootPanel.addFolder('main'), shipDriver, `/design`);
         rootPanel.addImportExport();
         const cleanup = () => {
             container.off('destroy', cleanup);
@@ -37,7 +48,7 @@ export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
         };
         container.on('destroy', cleanup);
     }
-    function makeConstantsHeaders(container: Container): Array<JQuery<HTMLElement>> {
+    function makeHeaders(container: Container): Array<JQuery<HTMLElement>> {
         const refresh = $('<i class="lm_controls tiny material-icons">refresh</i>');
         refresh.mousedown(() => {
             container.emit('destroy');
@@ -45,17 +56,17 @@ export function shipConstantsWidget(shipDriver: ShipDriver): DashboardWidget {
         });
         return [refresh];
     }
-    class ShipConstantsComponent {
+    class DesignStateComponent {
         constructor(container: Container, _: unknown) {
             void makeShipComponent(container);
         }
     }
 
     return {
-        name: 'ship constants',
+        name: shipDriver.id + ' design state',
         type: 'component',
-        component: ShipConstantsComponent,
-        makeHeaders: makeConstantsHeaders,
+        component: DesignStateComponent,
+        makeHeaders: makeHeaders,
         defaultProps: {},
     };
 }

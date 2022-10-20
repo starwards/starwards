@@ -107,8 +107,8 @@ export class PropertyPanel implements Panel {
         return this;
     }
 
-    addFolder(folderName: string): Panel {
-        const guiFolder = this.pane.addFolder({ title: folderName, expanded: true });
+    addFolder(folderName: string, expanded = true): Panel {
+        const guiFolder = this.pane.addFolder({ title: folderName, expanded });
         const folderViewModel: ViewModel = {};
         const folder: Panel = {
             addConfig: (name: string, property: Model<number>) => {

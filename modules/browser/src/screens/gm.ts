@@ -8,12 +8,12 @@ import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
+import { designStateWidget } from '../widgets/design-state';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
-import { shipConstantsWidget } from '../widgets/ship-constants';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 
@@ -83,7 +83,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
             dashboard.registerWidget(pilotWidget(shipDriver), {}, shipId + ' helm');
             dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
-            dashboard.registerWidget(shipConstantsWidget(shipDriver), { shipDriver }, shipId + ' constants');
+            dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, shipId + ' design state');
             dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, shipId + ' target radar');
             dashboard.registerWidget(monitorWidget(shipDriver), {}, shipId + ' monitor');
             dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
