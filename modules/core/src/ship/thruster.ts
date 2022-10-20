@@ -71,10 +71,6 @@ export class Thruster extends Schema {
     get broken(): boolean {
         return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.design.maxAngleError;
     }
-    // dps at which there's 50% chance of system damage
-    get damage50(): number {
-        return this.design.damage50;
-    }
     getGlobalAngle(parent: ShipState): number {
         return this.angle + parent.angle;
     }

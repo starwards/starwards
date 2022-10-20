@@ -292,7 +292,7 @@ export class ShipManager {
         if (system.broken) {
             return;
         }
-        const dist = new NormalDistribution(system.damage50, system.damage50 / 2);
+        const dist = new NormalDistribution(system.design.damage50, system.design.damage50 / 2);
         const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
         if (this.die.getRoll(damageObject.id + 'damageSystem') < normalizedDamageProbability) {
             if (Thruster.isInstance(system)) {

@@ -66,12 +66,6 @@ export class SmartPilot extends Schema {
     @range([0, 1])
     offsetFactor = 0;
 
-    /**
-     * damage ammount / DPS at which there's 50% chance of system damage
-     **/
-    get damage50(): number {
-        return this.design.damage50;
-    }
     get broken(): boolean {
         return this.offsetFactor >= this.design.offsetBrokenThreshold;
     }

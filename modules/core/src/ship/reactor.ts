@@ -46,12 +46,6 @@ export class Reactor extends Schema {
     get energyPerSecond(): number {
         return this.effeciencyFactor * this.design.energyPerSecond;
     }
-    /**
-     * damage ammount / DPS at which there's 50% chance of system damage
-     **/
-    get damage50(): number {
-        return this.design.damage50;
-    }
 
     get broken() {
         return this.energy > 200;

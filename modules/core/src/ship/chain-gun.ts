@@ -83,9 +83,6 @@ export class ChainGun extends Schema {
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();
 
-    get damage50(): number {
-        return this.design.damage50;
-    }
     get broken(): boolean {
         return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;
     }

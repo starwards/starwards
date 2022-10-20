@@ -35,13 +35,6 @@ export class Radar extends Schema {
     @number2Digits
     malfunctionRangeFactor = 0;
 
-    /**
-     * damage ammount / DPS at which there's 50% chance of system damage
-     **/
-    get damage50(): number {
-        return this.design.damage50;
-    }
-
     get broken() {
         return this.malfunctionRangeFactor >= 1 - this.design.rangeEaseFactor * 2;
     }
