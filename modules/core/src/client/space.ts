@@ -8,15 +8,10 @@ import { pointerStrToObjectCommand } from '../space/space-properties';
 
 export type SpaceDriver = ReturnType<typeof SpaceDriver>;
 
-export type TrackableObjects = {
-    events: SpaceEventEmitter;
-    get(id: string): SpaceObject | undefined;
-} & Iterable<SpaceObject>;
-
 export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
     const events = makeSpaceEventsEmitter(spaceRoom.state);
     const objectsApi = new ObjectsApi(spaceRoom, events);
-    const coreDriver: TrackableObjects = {
+    const spaceDriver = {
         events,
         [Symbol.iterator]() {
             return spaceRoom.state[Symbol.iterator]();
@@ -24,9 +19,6 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
         get(id: string) {
             return spaceRoom.state.get(id);
         },
-    };
-    const spaceDriver = {
-        ...coreDriver,
         get state(): SpaceState {
             return spaceRoom.state;
         },

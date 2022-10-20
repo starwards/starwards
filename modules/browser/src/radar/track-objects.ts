@@ -1,4 +1,4 @@
-import { SpaceObject, TrackableObjects } from '@starwards/core';
+import { SpaceDriver, SpaceObject } from '@starwards/core';
 
 import { Remove } from 'colyseus-events';
 import { noop } from 'ts-essentials';
@@ -6,7 +6,7 @@ import { noop } from 'ts-essentials';
 export class TrackObjects<C> {
     public contexts = new Map<string, C>();
     constructor(
-        private objects: TrackableObjects,
+        private objects: SpaceDriver,
         private createCtx: (object: SpaceObject) => C,
         private updateCtx: (object: SpaceObject, ctx: C) => void,
         private destroyCtx: (ctx: C) => void = noop,

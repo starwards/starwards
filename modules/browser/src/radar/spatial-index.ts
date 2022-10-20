@@ -1,15 +1,15 @@
 import { Add, Remove } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
-import { SpaceObject, TrackableObjects, XY } from '@starwards/core';
+import { SpaceDriver, SpaceObject, XY } from '@starwards/core';
 
-const indexes = new WeakMap<TrackableObjects, SpatialIndex>();
-export function getSpatialIndex(context: TrackableObjects): SpatialIndex {
-    let index = indexes.get(context);
+const indexes = new WeakMap<SpaceDriver, SpatialIndex>();
+export function getSpatialIndex(driver: SpaceDriver): SpatialIndex {
+    let index = indexes.get(driver);
     if (index) {
         return index;
     }
-    index = new SpatialIndex(context);
-    indexes.set(context, index);
+    index = new SpatialIndex(driver);
+    indexes.set(driver, index);
     return index;
 }
 
@@ -45,7 +45,7 @@ export class SpatialIndex {
 
     private destroyBody = (id: string) => this.cleanups.get(id)?.();
 
-    constructor(private spaceDriver: TrackableObjects) {
+    constructor(private spaceDriver: SpaceDriver) {
         spaceDriver.events.on('$remove', (event: Remove) => this.destroyBody(event.path.split('/')[2]));
         spaceDriver.events.on('$add', (event: Add) => this.createBody(event.value as SpaceObject));
     }
