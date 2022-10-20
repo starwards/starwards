@@ -43,8 +43,8 @@ function makeArmor(design: ArmorDesign): Armor {
 function makeShip(id: string, design: ShipPropertiesDesign) {
     const state = new ShipState();
     state.id = id;
-    state.modelParams = new ModelParams(design);
-    state.chainGunAmmo = state.maxChainGunAmmo;
+    state.design.assign(design);
+    state.chainGunAmmo = state.design.maxChainGunAmmo;
     return state;
 }
 

@@ -51,7 +51,7 @@ export function resetShipState(state: ShipState) {
         resetThruster(thruster);
     }
     state.smartPilot.offsetFactor = 0;
-    state.chainGunAmmo = state.maxChainGunAmmo;
+    state.chainGunAmmo = state.design.maxChainGunAmmo;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -612,15 +612,15 @@ export class ShipManager {
     }
 
     public addChainGunAmmo(addedAmmo: number) {
-        this.state.chainGunAmmo = Math.min(this.state.chainGunAmmo + addedAmmo, this.state.maxChainGunAmmo);
+        this.state.chainGunAmmo = Math.min(this.state.chainGunAmmo + addedAmmo, this.state.design.maxChainGunAmmo);
     }
 
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
             let speedToChange = 0;
             const rotateFactor = this.state.rotation * deltaSeconds;
-            const enginePower = rotateFactor * this.state.rotationCapacity;
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.rotationEnergyCost)) {
+            const enginePower = rotateFactor * this.state.design.rotationCapacity;
+            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.design.rotationEnergyCost)) {
                 speedToChange += enginePower;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);

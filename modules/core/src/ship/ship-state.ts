@@ -4,7 +4,7 @@ import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
-import { ModelParams } from '../model-params';
+import { DesignState } from './system';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
@@ -25,10 +25,15 @@ export type ShipPropertiesDesign = {
     maxChainGunAmmo: number;
 };
 
+export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
+    @number2Digits rotationCapacity = 0;
+    @number2Digits rotationEnergyCost = 0;
+    @number2Digits maxChainGunAmmo = 0;
+}
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {
-    @type(ModelParams)
-    modelParams!: ModelParams<keyof ShipPropertiesDesign>;
+    @type(ShipPropertiesDesignState)
+    design = new ShipPropertiesDesignState();
 
     @type([Thruster])
     thrusters!: ArraySchema<Thruster>;
@@ -94,17 +99,6 @@ export class ShipState extends Spaceship {
     get speed() {
         return XY.lengthOf(this.velocity);
     }
-    // TODO: move to logic (not part of state)
-    get rotationCapacity(): number {
-        return this.modelParams.get('rotationCapacity');
-    }
-    get rotationEnergyCost(): number {
-        return this.modelParams.get('rotationEnergyCost');
-    }
-    get maxChainGunAmmo(): number {
-        return this.modelParams.get('maxChainGunAmmo');
-    }
-
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {
             if (toDegreesDelta(direction) === toDegreesDelta(thruster.angle)) {

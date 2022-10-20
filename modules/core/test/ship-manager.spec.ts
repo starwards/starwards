@@ -97,7 +97,7 @@ describe('ShipManager', () => {
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1
                 );
-                expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.maxChainGunAmmo - cannonShells.length);
+                expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.design.maxChainGunAmmo - cannonShells.length);
             })
         );
     });
