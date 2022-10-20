@@ -51,13 +51,12 @@ function makeShip(id: string, design: ShipPropertiesDesign) {
 function makeChainGun(design: ChaingunDesign) {
     const chainGun = new ChainGun();
     chainGun.design.assign(design);
-    // Object.assign(chainGun.design, design);
     return chainGun;
 }
 
-function makeRadar(model: RadarDesign) {
+function makeRadar(design: RadarDesign) {
     const radar = new Radar();
-    radar.modelParams = new ModelParams(model);
+    radar.design.assign(design);
     return radar;
 }
 

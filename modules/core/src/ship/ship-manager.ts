@@ -233,12 +233,16 @@ export class ShipManager {
             const wave = sinWave(this.totalSeconds, frequency, 0.5, 0, 0.5);
             const factorEaseRange = [
                 this.state.radar.malfunctionRangeFactor,
-                this.state.radar.malfunctionRangeFactor + this.state.radar.rangeEaseFactor,
+                this.state.radar.malfunctionRangeFactor + this.state.radar.design.rangeEaseFactor,
             ] as const;
             const cappedWave = capToRange(...factorEaseRange, wave);
-            return lerp(factorEaseRange, [this.state.radar.malfunctionRange, this.state.radar.basicRange], cappedWave);
+            return lerp(
+                factorEaseRange,
+                [this.state.radar.design.malfunctionRange, this.state.radar.design.basicRange],
+                cappedWave
+            );
         } else {
-            return this.state.radar.basicRange;
+            return this.state.radar.design.basicRange;
         }
     }
 
