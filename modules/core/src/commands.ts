@@ -1,4 +1,4 @@
-import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, isJsonPointer, printError, tryGetRange } from '..';
+import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, isJsonPointer, printError, tryGetRange } from '.';
 import { Primitive, isPrimitive } from 'colyseus-events';
 
 import { Schema } from '@colyseus/schema';

@@ -1,4 +1,4 @@
-import { StateCommand, sendJsonCmd } from '../api';
+import { StateCommand, sendJsonCmd } from '../commands';
 
 import { GameRoom } from '..';
 import { Primitive } from 'colyseus-events';
