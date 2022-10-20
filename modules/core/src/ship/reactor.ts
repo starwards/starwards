@@ -1,6 +1,6 @@
 import { Schema, type } from '@colyseus/schema';
 
-import { ModelParams } from '../model-params';
+import { DesignState } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -13,6 +13,15 @@ export type ReactorDesign = {
     damage50: number;
 };
 
+export class ReactorDesignState extends DesignState implements ReactorDesign {
+    @number2Digits energyPerSecond = 0;
+    @number2Digits maxEnergy = 0;
+    @number2Digits maxAfterBurnerFuel = 0;
+    @number2Digits afterBurnerCharge = 0;
+    @number2Digits afterBurnerEnergyCost = 0;
+    @number2Digits damage50 = 0;
+}
+
 export class Reactor extends Schema {
     public static isInstance = (o: unknown): o is Reactor => {
         return (o as Reactor)?.type === 'Reactor';
@@ -20,40 +29,28 @@ export class Reactor extends Schema {
 
     public readonly type = 'Reactor';
 
-    @type(ModelParams)
-    modelParams!: ModelParams<keyof ReactorDesign>;
+    @type(ReactorDesignState)
+    design = new ReactorDesignState();
 
     @type('number')
-    @range((t: Reactor) => [0, t.maxEnergy])
+    @range((t: Reactor) => [0, t.design.maxEnergy])
     energy = 1000;
 
     @type('number')
-    @range((t: Reactor) => [0, t.maxAfterBurnerFuel])
+    @range((t: Reactor) => [0, t.design.maxAfterBurnerFuel])
     afterBurnerFuel = 0;
 
     @number2Digits
     effeciencyFactor = 1;
 
-    get maxEnergy(): number {
-        return this.modelParams.get('maxEnergy');
-    }
-    get maxAfterBurnerFuel(): number {
-        return this.modelParams.get('maxAfterBurnerFuel');
-    }
-    get afterBurnerCharge(): number {
-        return this.modelParams.get('afterBurnerCharge');
-    }
-    get afterBurnerEnergyCost(): number {
-        return this.modelParams.get('afterBurnerEnergyCost');
-    }
     get energyPerSecond(): number {
-        return this.effeciencyFactor * this.modelParams.get('energyPerSecond');
+        return this.effeciencyFactor * this.design.energyPerSecond;
     }
     /**
      * damage ammount / DPS at which there's 50% chance of system damage
      **/
     get damage50(): number {
-        return this.modelParams.get('damage50');
+        return this.design.damage50;
     }
 
     get broken() {

@@ -62,7 +62,7 @@ function makeRadar(design: RadarDesign) {
 
 function makeReactor(design: ReactorDesign) {
     const reactor = new Reactor();
-    reactor.modelParams = new ModelParams(design);
+    reactor.design.assign(design);
     return reactor;
 }
 

@@ -42,7 +42,7 @@ function fixArmor(armor: Armor) {
 type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
 
 export function resetShipState(state: ShipState) {
-    state.reactor.energy = state.reactor.maxEnergy;
+    state.reactor.energy = state.reactor.design.maxEnergy;
     fixArmor(state.armor);
     if (state.chainGun) {
         resetChainGun(state.chainGun);
@@ -524,12 +524,12 @@ export class ShipManager {
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.reactor.afterBurnerFuel < this.state.reactor.maxAfterBurnerFuel) {
+        if (this.state.reactor.afterBurnerFuel < this.state.reactor.design.maxAfterBurnerFuel) {
             const afterBurnerFuelDelta = Math.min(
-                this.state.reactor.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
-                this.state.reactor.afterBurnerCharge * deltaSeconds
+                this.state.reactor.design.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
+                this.state.reactor.design.afterBurnerCharge * deltaSeconds
             );
-            if (this.trySpendEnergy(afterBurnerFuelDelta * this.state.reactor.afterBurnerEnergyCost)) {
+            if (this.trySpendEnergy(afterBurnerFuelDelta * this.state.reactor.design.afterBurnerEnergyCost)) {
                 this.state.reactor.afterBurnerFuel = limitPercisionHard(
                     this.state.reactor.afterBurnerFuel + afterBurnerFuelDelta
                 );
@@ -610,7 +610,7 @@ export class ShipManager {
     private updateEnergy(deltaSeconds: number) {
         this.state.reactor.energy = capToRange(
             0,
-            this.state.reactor.maxEnergy,
+            this.state.reactor.design.maxEnergy,
             this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds
         );
     }
