@@ -46,7 +46,10 @@ export const dragonflyReactor = {
 export const dragonflyProperties = {
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
-    maxChainGunAmmo: 3600,
+};
+export const dragonflyMagazine = {
+    maxCannonShells: 3600,
+    damage50: 120,
 };
 export const dragonflySmartPilot = {
     maxTargetAimOffset: 30,
@@ -72,4 +75,5 @@ export const dragonflySF22: ShipDesign = {
     radar: dragonflyRadar,
     smartPilot: dragonflySmartPilot,
     reactor: dragonflyReactor,
+    magazine: dragonflyMagazine,
 };

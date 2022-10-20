@@ -5,6 +5,7 @@ import { range, rangeSchema } from '../range';
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
+import { Magazine } from './magazine';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
@@ -22,13 +23,11 @@ export enum TargetedStatus {
 export type ShipPropertiesDesign = {
     rotationCapacity: number;
     rotationEnergyCost: number;
-    maxChainGunAmmo: number;
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
     @number2Digits rotationCapacity = 0;
     @number2Digits rotationEnergyCost = 0;
-    @number2Digits maxChainGunAmmo = 0;
 }
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {
@@ -49,6 +48,12 @@ export class ShipState extends Spaceship {
 
     @type(SmartPilot)
     smartPilot!: SmartPilot;
+
+    @type(Armor)
+    armor!: Armor;
+
+    @type(Magazine)
+    magazine!: Magazine;
 
     @number2Digits
     @range([-1, 1])
@@ -76,12 +81,6 @@ export class ShipState extends Spaceship {
 
     @type('int8')
     targeted = TargetedStatus.NONE;
-
-    @type(Armor)
-    armor!: Armor;
-
-    @type('int32')
-    chainGunAmmo = 0;
 
     // server only, used for commands
     @range([0, 1])

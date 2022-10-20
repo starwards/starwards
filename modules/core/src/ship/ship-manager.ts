@@ -28,6 +28,7 @@ import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
+import { Magazine } from './magazine';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
@@ -39,7 +40,7 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -51,7 +52,7 @@ export function resetShipState(state: ShipState) {
         resetThruster(thruster);
     }
     state.smartPilot.offsetFactor = 0;
-    state.chainGunAmmo = state.design.maxChainGunAmmo;
+    state.magazine.cannonShells = state.magazine.design.maxCannonShells;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -616,7 +617,10 @@ export class ShipManager {
     }
 
     public addChainGunAmmo(addedAmmo: number) {
-        this.state.chainGunAmmo = Math.min(this.state.chainGunAmmo + addedAmmo, this.state.design.maxChainGunAmmo);
+        this.state.magazine.cannonShells = Math.min(
+            this.state.magazine.cannonShells + addedAmmo,
+            this.state.magazine.design.maxCannonShells
+        );
     }
 
     private updateRotation(deltaSeconds: number) {

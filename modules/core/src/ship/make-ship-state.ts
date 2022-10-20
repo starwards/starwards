@@ -1,5 +1,6 @@
 import { Armor, ArmorDesign, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
+import { Magazine, MagazineDesign } from './magazine';
 import { Radar, RadarDesign } from './radar';
 import { Reactor, ReactorDesign } from './reactor';
 import { ShipDirectionConfig, getDirectionFromConfig } from './ship-direction';
@@ -17,6 +18,7 @@ export type ShipDesign = {
     radar: RadarDesign;
     smartPilot: SmartPilotDesign;
     reactor: ReactorDesign;
+    magazine: MagazineDesign;
 };
 
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
@@ -43,7 +45,6 @@ function makeShip(id: string, design: ShipPropertiesDesign) {
     const state = new ShipState();
     state.id = id;
     state.design.assign(design);
-    state.chainGunAmmo = state.design.maxChainGunAmmo;
     return state;
 }
 
@@ -57,6 +58,13 @@ function makeRadar(design: RadarDesign) {
     const radar = new Radar();
     radar.design.assign(design);
     return radar;
+}
+
+function makeMagazine(design: MagazineDesign) {
+    const magazine = new Magazine();
+    magazine.design.assign(design);
+    magazine.cannonShells = magazine.design.maxCannonShells;
+    return magazine;
 }
 
 function makeReactor(design: ReactorDesign) {
@@ -85,5 +93,6 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.armor = makeArmor(design.armor);
     state.radar = makeRadar(design.radar);
     state.reactor = makeReactor(design.reactor);
+    state.magazine = makeMagazine(design.magazine);
     return state;
 }

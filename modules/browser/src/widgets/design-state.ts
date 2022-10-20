@@ -40,6 +40,7 @@ export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
         addDesignStateToPanel(rootPanel.addFolder('radar'), shipDriver, `/radar/design`);
         addDesignStateToPanel(rootPanel.addFolder('smartPilot'), shipDriver, `/smartPilot/design`);
         addDesignStateToPanel(rootPanel.addFolder('reactor'), shipDriver, `/reactor/design`);
+        addDesignStateToPanel(rootPanel.addFolder('magazine'), shipDriver, `/magazine/design`);
         addDesignStateToPanel(rootPanel.addFolder('main'), shipDriver, `/design`);
         rootPanel.addImportExport();
         const cleanup = () => {

@@ -97,7 +97,9 @@ describe('ShipManager', () => {
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1
                 );
-                expect(shipMgr.state.chainGunAmmo).to.equal(shipMgr.state.design.maxChainGunAmmo - cannonShells.length);
+                expect(shipMgr.state.magazine.cannonShells).to.equal(
+                    shipMgr.state.magazine.design.maxCannonShells - cannonShells.length
+                );
             })
         );
     });
@@ -122,7 +124,7 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.cooldownFactor = 1;
-                    shipMgr.state.chainGunAmmo = availableAmmo;
+                    shipMgr.state.magazine.cannonShells = availableAmmo;
                     shipMgr.chainGun(true);
                     let timePassed = 0;
                     while (timePassed <= 1) {
@@ -132,7 +134,7 @@ describe('ShipManager', () => {
                     }
                     const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
                     expect(cannonShells.length).to.equal(availableAmmo);
-                    expect(shipMgr.state.chainGunAmmo).to.equal(0);
+                    expect(shipMgr.state.magazine.cannonShells).to.equal(0);
                 }
             )
         );
