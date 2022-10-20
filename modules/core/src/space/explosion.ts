@@ -3,8 +3,8 @@ import { Vec2 } from './vec2';
 import { type } from '@colyseus/schema';
 
 export class Explosion extends SpaceObjectBase {
-    public static isInstance = (o: SpaceObjectBase): o is Explosion => {
-        return o.type === 'Explosion';
+    public static isInstance = (o: unknown): o is Explosion => {
+        return !!o && (o as SpaceObjectBase).type === 'Explosion';
     };
 
     @type('float32')
