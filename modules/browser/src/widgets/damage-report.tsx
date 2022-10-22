@@ -47,7 +47,7 @@ const disappearMachine = createMachine({
 });
 
 function ThrusterDamageReport({ driver, thruster }: { driver: ShipDriver; thruster: Thruster }) {
-    const angle = useProperty<ShipDirection>(readNumberProp(driver, `/thrusters/${thruster.index}/angle`));
+    const angle = useProperty<ShipDirection>(readProp(driver, `/thrusters/${thruster.index}/angle`));
     const broken = useProperty<boolean>(readProp(driver, `/thrusters/${thruster.index}/broken`));
     const [current, send] = useMachine(disappearMachine);
 
