@@ -52,7 +52,7 @@ export function resetShipState(state: ShipState) {
         resetThruster(thruster);
     }
     state.smartPilot.offsetFactor = 0;
-    state.magazine.cannonShells = state.magazine.design.maxCannonShells;
+    state.magazine.cannonShells = state.magazine.maxCannonShells;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -71,7 +71,7 @@ export class ShipManager {
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
-        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot]],
+        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine]],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor]],
     ]);
     private totalSeconds = 0;
@@ -306,6 +306,19 @@ export class ShipManager {
                 this.damageSmartPilot(system);
             } else if (Reactor.isInstance(system)) {
                 this.damageReactor(system, damageObject.id);
+            } else if (Magazine.isInstance(system)) {
+                this.damageMagazine(system, damageObject.id);
+            }
+        }
+    }
+
+    private damageMagazine(magazine: Magazine, damageId: string) {
+        if (!magazine.broken) {
+            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+                magazine.cannonShells = Math.round(magazine.cannonShells * (1 - magazine.design.capacityDamageFactor));
+            } else {
+                magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
+                this.addChainGunAmmo(0);
             }
         }
     }
@@ -619,7 +632,7 @@ export class ShipManager {
     public addChainGunAmmo(addedAmmo: number) {
         this.state.magazine.cannonShells = Math.min(
             this.state.magazine.cannonShells + addedAmmo,
-            this.state.magazine.design.maxCannonShells
+            this.state.magazine.maxCannonShells
         );
     }
 

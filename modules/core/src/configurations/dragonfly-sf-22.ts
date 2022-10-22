@@ -49,7 +49,9 @@ export const dragonflyProperties = {
 };
 export const dragonflyMagazine = {
     maxCannonShells: 3600,
-    damage50: 120,
+    damage50: 20,
+    capacityBrokenThreshold: 0.15,
+    capacityDamageFactor: 0.1,
 };
 export const dragonflySmartPilot = {
     maxTargetAimOffset: 30,
