@@ -17,6 +17,18 @@ describe('range', () => {
         expect(r).to.eql(RANGE);
     });
 
+    it('defining range to getter', () => {
+        class Target extends Schema {
+            @range(RANGE)
+            get property() {
+                return 0;
+            }
+        }
+
+        const r = getRange(new Target(), JsonPointer.create('/property'));
+        expect(r).to.eql(RANGE);
+    });
+
     it('@range((this) => [number, number]) for defining dynamic range to property', () => {
         class Target extends Schema {
             @type('float32')
