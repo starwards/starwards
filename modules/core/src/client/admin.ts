@@ -23,10 +23,10 @@ export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) 
         get state() {
             return adminRoom.state;
         },
-        stopGame: () => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
-        startGame: (mapName: string) =>
+        stopGame: (): undefined => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
+        startGame: (mapName: string): undefined =>
             void fetch(endpoint + '/start-game', { ...requestInfo, body: JSON.stringify({ mapName }) }),
-        loadGame: (data: string) =>
+        loadGame: (data: string): undefined =>
             void fetch(endpoint + '/load-game', { ...requestInfo, body: JSON.stringify({ data }) }),
         saveGame: async () => {
             const response = await fetch(endpoint + '/save-game', {
@@ -37,3 +37,5 @@ export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) 
         },
     };
 };
+
+export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;

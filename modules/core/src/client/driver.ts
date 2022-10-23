@@ -10,8 +10,6 @@ import { waitForEvents } from '../async-utils';
 
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
-export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
-
 export function getColyseusEndpoint(location: { protocol: string; host: string }) {
     return (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
 }

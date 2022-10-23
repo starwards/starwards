@@ -2,13 +2,13 @@
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
 import React, { Component, useEffect, useRef } from 'react';
 import { ShipDirection, ShipDriver, Thruster } from '@starwards/core';
-import { readNumberProp, readProp } from '../property-wrappers';
 import { useConstant, useLoop, useProperty, useSorted } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
 import WebFont from 'webfontloader';
 import { createMachine } from 'xstate';
+import { readProp } from '../property-wrappers';
 import { useMachine } from '@xstate/react';
 
 WebFont.load({
