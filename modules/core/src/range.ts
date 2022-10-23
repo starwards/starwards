@@ -7,6 +7,8 @@ import { getJsonPointer } from './json-ptr';
 const propertyMetadataKey = Symbol('range:propertyMetadata');
 const descendantMetadataKey = Symbol('range:descendantMetadata');
 
+// notice: `Schema` can be replaced with `Object` if we want to have ranges in non-schema classes. Currently not a use-case.
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
 export type Constructor = { readonly prototype: Schema } & Function; // https://stackoverflow.com/a/38642922
 

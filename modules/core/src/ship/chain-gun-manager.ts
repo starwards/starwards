@@ -30,7 +30,7 @@ export class ChainGunManager {
     ) {}
 
     public setIsFiring(isFiring: boolean) {
-        if (!isFiring || (!this.chainGun.broken && this.shipManager.state.chainGunAmmo > 0)) {
+        if (!isFiring || (!this.chainGun.broken && this.shipManager.state.magazine.cannonShells > 0)) {
             this.chainGun.isFiring = isFiring;
         }
     }
@@ -102,10 +102,10 @@ export class ChainGunManager {
             chaingun.isFiring &&
             chaingun.cooldown <= 0 &&
             !chaingun.broken &&
-            this.shipManager.state.chainGunAmmo > 0
+            this.shipManager.state.magazine.cannonShells > 0
         ) {
             chaingun.cooldown += chaingun.cooldownFactor;
-            this.shipManager.state.chainGunAmmo -= 1;
+            this.shipManager.state.magazine.cannonShells -= 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 
             shell.angle = gaussianRandom(

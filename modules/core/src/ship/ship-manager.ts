@@ -28,6 +28,7 @@ import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
+import { Magazine } from './magazine';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
@@ -39,7 +40,7 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -51,7 +52,7 @@ export function resetShipState(state: ShipState) {
         resetThruster(thruster);
     }
     state.smartPilot.offsetFactor = 0;
-    state.chainGunAmmo = state.design.maxChainGunAmmo;
+    state.magazine.cannonShells = state.magazine.maxCannonShells;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -70,7 +71,7 @@ export class ShipManager {
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
-        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot]],
+        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine]],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor]],
     ]);
     private totalSeconds = 0;
@@ -305,6 +306,19 @@ export class ShipManager {
                 this.damageSmartPilot(system);
             } else if (Reactor.isInstance(system)) {
                 this.damageReactor(system, damageObject.id);
+            } else if (Magazine.isInstance(system)) {
+                this.damageMagazine(system, damageObject.id);
+            }
+        }
+    }
+
+    private damageMagazine(magazine: Magazine, damageId: string) {
+        if (!magazine.broken) {
+            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+                magazine.cannonShells = Math.round(magazine.cannonShells * (1 - magazine.design.capacityDamageFactor));
+            } else {
+                magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
+                this.addChainGunAmmo(0);
             }
         }
     }
@@ -616,7 +630,10 @@ export class ShipManager {
     }
 
     public addChainGunAmmo(addedAmmo: number) {
-        this.state.chainGunAmmo = Math.min(this.state.chainGunAmmo + addedAmmo, this.state.design.maxChainGunAmmo);
+        this.state.magazine.cannonShells = Math.min(
+            this.state.magazine.cannonShells + addedAmmo,
+            this.state.magazine.maxCannonShells
+        );
     }
 
     private updateRotation(deltaSeconds: number) {

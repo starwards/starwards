@@ -77,9 +77,9 @@ describe('ship-out', () => {
             const { node, waitForStatus } = getNode<ShipOutNode>('n1');
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
             const eventPromise = waitFor(() => {
-                expect(gameDriver.getShip('GVTS').state.chainGunAmmo).toEqual(1234);
+                expect(gameDriver.getShip('GVTS').state.magazine.cannonShells).toEqual(1234);
             }, 3_000);
-            node.receive({ topic: '/chainGunAmmo', payload: 1234 });
+            node.receive({ topic: '/magazine/cannonShells', payload: 1234 });
             await eventPromise;
         });
     });
