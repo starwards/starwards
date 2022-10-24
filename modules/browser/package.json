@@ -20,7 +20,7 @@
         "@babylonjs/loaders": "5.25.0",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
-        "@pixi/graphics-extras": "^6.5.4",
+        "@pixi/graphics-extras": "^6.5.8",
         "@tweakpane/core": "^1.1.0",
         "@tweakpane/plugin-camerakit": "^0.2.2",
         "@xstate/react": "^3.0.1",
