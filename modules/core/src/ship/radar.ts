@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
+import { defectible } from '../defectible';
 import { number2Digits } from '../number-field';
 
 export type RadarDesign = {
@@ -33,6 +34,7 @@ export class Radar extends Schema {
      * percent of the time in which the range is malfunctionRange
      */
     @number2Digits
+    @defectible({ normal: 0, name: 'range fluctuates' })
     malfunctionRangeFactor = 0;
 
     get broken() {

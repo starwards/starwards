@@ -2,6 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { SmartPilotMode } from './smart-pilot';
+import { defectible } from '../defectible';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -75,6 +76,7 @@ export class ChainGun extends Schema {
     shellRangeMode!: SmartPilotMode;
 
     @number2Digits
+    @defectible({ normal: 0, name: 'angle deviates' })
     angleOffset = 0;
 
     @type('uint8')

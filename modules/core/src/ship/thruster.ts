@@ -4,6 +4,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { ShipState } from '.';
+import { defectible } from '../defectible';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -62,10 +63,12 @@ export class Thruster extends Schema {
 
     @number2Digits
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
+    @defectible({ normal: 0, name: 'angle deviates' })
     angleError = 0.0;
 
     @number2Digits
     @range([0, 1])
+    @defectible({ normal: 1, name: 'capacity suboptimal' })
     availableCapacity = 1.0;
 
     get broken(): boolean {

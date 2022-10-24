@@ -2,6 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { Vec2 } from '../space';
+import { defectible } from '../defectible';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -64,6 +65,7 @@ export class SmartPilot extends Schema {
      */
     @number2Digits
     @range([0, 1])
+    @defectible({ normal: 0, name: 'aim innacurate' })
     offsetFactor = 0;
 
     get broken(): boolean {

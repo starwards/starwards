@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
+import { defectible } from '../defectible';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -33,6 +34,7 @@ export class Magazine extends Schema {
     cannonShells = 0;
 
     @number2Digits
+    @defectible({ normal: 1, name: 'capacity suboptimal' })
     capacity = 1;
 
     get broken() {
