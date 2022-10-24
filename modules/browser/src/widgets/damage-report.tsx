@@ -1,8 +1,7 @@
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
-import React, { Component, useEffect, useRef } from 'react';
-import { ShipDirection, ShipDriver, Thruster } from '@starwards/core';
-import { useConstant, useLoop, useProperty, useSorted } from '../react/hooks';
+import React, { Component, useEffect, useMemo, useRef } from 'react';
+import { ShipDriver, getDefectibles } from '@starwards/core';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
@@ -10,6 +9,7 @@ import WebFont from 'webfontloader';
 import { createMachine } from 'xstate';
 import { readProp } from '../property-wrappers';
 import { useMachine } from '@xstate/react';
+import { useProperties } from '../react/hooks';
 
 WebFont.load({
     custom: {
@@ -46,9 +46,8 @@ const disappearMachine = createMachine({
     },
 });
 
-function ThrusterDamageReport({ driver, thruster }: { driver: ShipDriver; thruster: Thruster }) {
-    const angle = useProperty<ShipDirection>(readProp(driver, `/thrusters/${thruster.index}/angle`));
-    const broken = useProperty<boolean>(readProp(driver, `/thrusters/${thruster.index}/broken`));
+function SystemDamageReport({ name, status, isOk }: { name: string; status: string; isOk: boolean }) {
+    const broken = !isOk;
     const [current, send] = useMachine(disappearMachine);
 
     useEffect(() => {
@@ -61,49 +60,59 @@ function ThrusterDamageReport({ driver, thruster }: { driver: ShipDriver; thrust
     return (
         <>
             <Text animator={{ duration, activate: broken }}>
+                <h3>{name}</h3>
+                {status}
+                <br />
                 --------------------------
-                <h1>Damage Report</h1>
-                Thruster {thruster.index} ({ShipDirection[angle]}) is not working
             </Text>
             <br />
         </>
     );
 }
-
-type BrokenThrusters = { [k: number]: boolean };
-
 function AllReports({ driver }: { driver: ShipDriver }) {
     const divRef = useRef<null | HTMLDivElement>(null);
-    const brokenThrusters = useConstant<BrokenThrusters>(() =>
-        [...driver.state.thrusters].reduce<BrokenThrusters>(
-            (r, thruster) => ({ ...r, [thruster.index]: thruster.broken }),
-            {}
-        )
+    const defectiblesProperties = useMemo(
+        () =>
+            getDefectibles(driver.state).map((d) => {
+                const numberProp = readProp<number>(driver, d.pointer);
+                // abstract the number property as a property that only changes when the state of defect (`isOk`) changes
+                let lastOk = numberProp.getValue() === d.normal;
+                let alertTime = 0;
+                return {
+                    pointer: numberProp.pointer,
+                    onChange(cb: () => unknown) {
+                        return numberProp.onChange(() => {
+                            const isOk = numberProp.getValue() === d.normal;
+                            if (isOk !== lastOk) {
+                                if (lastOk) {
+                                    alertTime = Date.now();
+                                }
+                                lastOk = isOk;
+                                cb();
+                            }
+                        });
+                    },
+                    getValue: () => {
+                        const isOk = numberProp.getValue() === d.normal;
+                        return { name: d.name, pointer: d.pointer, alertTime, isOk };
+                    },
+                };
+            }),
+        [driver]
     );
-    const [thrusters, pushToEnd] = useSorted([...driver.state.thrusters]);
+    const defectsState = useProperties(defectiblesProperties).sort((a, b) => a.alertTime - b.alertTime);
 
-    useLoop(
-        () => {
-            // scroll to the bottom
-            divRef.current?.scrollIntoView({ behavior: 'smooth' });
-            for (const thruster of driver.state.thrusters) {
-                const broken = thruster.broken;
-                // detect newly broken thruster
-                if (brokenThrusters[thruster.index] !== broken) {
-                    brokenThrusters[thruster.index] = broken;
-                    if (broken) {
-                        pushToEnd(thruster);
-                    }
-                }
-            }
-        },
-        100,
-        [driver.state.thrusters.map((t) => t.broken).join()]
-    );
     return (
         <>
-            {thrusters.map((t) => (
-                <ThrusterDamageReport key={t.index} thruster={t} driver={driver} />
+            <>
+                <Text animator={{ duration, activate: true }}>
+                    <h1>Damage Report</h1>
+                    <h1>--------------------------</h1>
+                </Text>
+                <br />
+            </>
+            {defectsState.map((d) => (
+                <SystemDamageReport key={d.pointer} name={d.pointer} status={d.name} isOk={d.isOk} />
             ))}
             <div ref={divRef} />
         </>

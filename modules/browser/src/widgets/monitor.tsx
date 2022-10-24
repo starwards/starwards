@@ -33,7 +33,7 @@ type MetricProps = {
 };
 
 function Metric({ property, metricName, warn, error }: MetricProps) {
-    const propertyValue = useProperty(property, 100);
+    const propertyValue = useProperty(property);
     const palette: Palette = propertyValue > warn ? 'success' : propertyValue > error ? 'secondary' : 'error';
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>

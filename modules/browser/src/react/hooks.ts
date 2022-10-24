@@ -1,4 +1,4 @@
-import { AdminDriver, Driver, TaskLoop } from '@starwards/core';
+import { AdminDriver, Destructors, Driver, TaskLoop } from '@starwards/core';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 
 export function useConstant<T>(init: () => T): T {
@@ -48,10 +48,25 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
     }, [intervalMs, ...deps]);
 }
 
-const REFRESH_MILLI = 100;
-export type ReadProperty<T> = { getValue: () => T };
-export function useProperty<T>(property: ReadProperty<T>, intervalMs: number = REFRESH_MILLI) {
+export type ReadProperty<T> = {
+    pointer: { pointer: string };
+    getValue: () => T;
+    onChange: (cb: () => void) => () => void;
+};
+export function useProperty<T>(property: ReadProperty<T>): T {
     const [value, setValue] = useState(property.getValue());
-    useLoop(() => setValue(property.getValue()), intervalMs, [property]);
+    useEffect(() => property.onChange(() => setValue(property.getValue())), [property]);
+    return value;
+}
+
+export function useProperties<T>(properties: ReadProperty<T>[]): T[] {
+    const [value, setValue] = useState(properties.map((p) => p.getValue()));
+    useEffect(() => {
+        const d = new Destructors();
+        for (const property of properties) {
+            d.add(property.onChange(() => setValue(properties.map((p) => p.getValue()))));
+        }
+        return d.destroy;
+    }, [properties]);
     return value;
 }
