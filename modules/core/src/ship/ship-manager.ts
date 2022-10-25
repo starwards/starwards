@@ -315,6 +315,7 @@ export class ShipManager {
     private damageMagazine(magazine: Magazine, damageId: string) {
         if (!magazine.broken) {
             if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+                // todo convert to a defectible property that accumulates damage
                 magazine.cannonShells = Math.round(magazine.cannonShells * (1 - magazine.design.capacityDamageFactor));
             } else {
                 magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
@@ -326,6 +327,7 @@ export class ShipManager {
     private damageReactor(reactor: Reactor, damageId: string) {
         if (!reactor.broken) {
             if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+                // todo convert to a defectible property that accumulates damage
                 reactor.energy *= 0.9;
             } else {
                 reactor.effeciencyFactor -= 0.05;
@@ -368,6 +370,7 @@ export class ShipManager {
                     limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
                     (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
             } else {
+                // todo convert to a defectible property that accumulates damage
                 chainGun.cooldownFactor += 1;
             }
         }

@@ -1,9 +1,10 @@
 import 'reflect-metadata';
 
 import { Schema, type } from '@colyseus/schema';
+import { ShipDirection, ShipState } from '.';
 
 import { DesignState } from './system';
-import { ShipState } from '.';
+import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -35,6 +36,10 @@ export class Thruster extends Schema {
 
     public readonly type = 'Thruster';
 
+    get name() {
+        return `Thruster ${this.index} (${ShipDirection[this.angle]})`;
+    }
+
     @type(ThrusterDesignState)
     design = new ThrusterDesignState();
 
@@ -62,10 +67,12 @@ export class Thruster extends Schema {
 
     @number2Digits
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
+    @defectible({ normal: 0, name: 'direction offset' })
     angleError = 0.0;
 
     @number2Digits
     @range([0, 1])
+    @defectible({ normal: 1, name: 'capacity' })
     availableCapacity = 1.0;
 
     get broken(): boolean {

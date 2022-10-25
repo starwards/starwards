@@ -1,5 +1,6 @@
-import { AdminDriver, Driver, TaskLoop } from '@starwards/core';
+import { AdminDriver, DefectibleValue, Destructors, Driver, ShipDriver, TaskLoop } from '@starwards/core';
 import { DependencyList, useEffect, useRef, useState } from 'react';
+import { abstractOnChange, readProp } from '../property-wrappers';
 
 export function useConstant<T>(init: () => T): T {
     const ref = useRef<{ v: T } | null>(null);
@@ -48,10 +49,51 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
     }, [intervalMs, ...deps]);
 }
 
-const REFRESH_MILLI = 100;
-export type ReadProperty<T> = { getValue: () => T };
-export function useProperty<T>(property: ReadProperty<T>, intervalMs: number = REFRESH_MILLI) {
+export function defectReadProp(driver: ShipDriver) {
+    return (d: DefectibleValue) => {
+        const pointer = `${d.systemPointer}/${d.field}`;
+        const name = readProp<string>(driver, `${d.systemPointer}/name`).getValue();
+        const numberProp = readProp<number>(driver, pointer);
+        let alertTime = 0;
+        const getIsOk = () => numberProp.getValue() === d.normal;
+        let isOk = getIsOk();
+        return {
+            pointer: numberProp.pointer,
+            onChange(cb: () => unknown) {
+                return abstractOnChange([numberProp], getIsOk, () => {
+                    isOk = getIsOk();
+                    if (!getIsOk()) {
+                        alertTime = Date.now();
+                    }
+                    cb();
+                });
+            },
+            getValue: () => {
+                return { name, status: d.name, pointer, alertTime, isOk };
+            },
+        };
+    };
+}
+
+export type ReadProperty<T> = {
+    pointer: { pointer: string };
+    getValue: () => T;
+    onChange: (cb: () => void) => () => void;
+};
+export function useProperty<T>(property: ReadProperty<T>): T {
     const [value, setValue] = useState(property.getValue());
-    useLoop(() => setValue(property.getValue()), intervalMs, [property]);
+    useEffect(() => property.onChange(() => setValue(property.getValue())), [property]);
+    return value;
+}
+
+export function useProperties<T>(properties: ReadProperty<T>[]): T[] {
+    const [value, setValue] = useState(properties.map((p) => p.getValue()));
+    useEffect(() => {
+        const d = new Destructors();
+        for (const property of properties) {
+            d.add(property.onChange(() => setValue(properties.map((p) => p.getValue()))));
+        }
+        return d.destroy;
+    }, [properties]);
     return value;
 }

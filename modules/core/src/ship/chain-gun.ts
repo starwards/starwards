@@ -2,6 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { SmartPilotMode } from './smart-pilot';
+import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -50,6 +51,7 @@ export class ChainGun extends Schema {
     };
 
     public readonly type = 'ChainGun';
+    public readonly name = 'Chain gun';
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
@@ -75,6 +77,8 @@ export class ChainGun extends Schema {
     shellRangeMode!: SmartPilotMode;
 
     @number2Digits
+    @defectible({ normal: 0, name: 'direction offset' })
+    @range([-90, 90])
     angleOffset = 0;
 
     @type('uint8')

@@ -36,7 +36,7 @@ export abstract class SpaceObjectBase extends Schema {
     /**
      * how much collision overlap turns into damage to self (0-1)
      */
-    public readonly collisionDamage: number = 0.05;
+    public readonly collisionDamage: number = 0.5;
 
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)

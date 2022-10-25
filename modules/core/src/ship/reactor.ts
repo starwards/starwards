@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
+import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -28,6 +29,7 @@ export class Reactor extends Schema {
     };
 
     public readonly type = 'Reactor';
+    public readonly name = 'Reactor';
 
     @type(ReactorDesignState)
     design = new ReactorDesignState();
@@ -41,6 +43,8 @@ export class Reactor extends Schema {
     afterBurnerFuel = 0;
 
     @number2Digits
+    @range([0, 1])
+    @defectible({ normal: 1, name: 'effeciency' })
     effeciencyFactor = 1;
 
     get energyPerSecond(): number {
@@ -48,6 +52,6 @@ export class Reactor extends Schema {
     }
 
     get broken() {
-        return this.energy > 200;
+        return this.effeciencyFactor === 0;
     }
 }
