@@ -1,5 +1,5 @@
 import { AdminDriver, DefectibleValue, Destructors, Driver, ShipDriver, TaskLoop } from '@starwards/core';
-import { DependencyList, useEffect, useMemo, useRef, useState } from 'react';
+import { DependencyList, useEffect, useRef, useState } from 'react';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
 export function useConstant<T>(init: () => T): T {

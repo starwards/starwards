@@ -1,4 +1,4 @@
-import { Destructor, Destructors, Driver, ShipDirection, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
+import { Destructor, Destructors, Driver, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 import { readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
@@ -43,7 +43,7 @@ const singleSelectionDetails = async (
         cleanup(() => {
             armorFolder.dispose();
         });
-        addTextBlade<ShipDirection>(
+        addTextBlade(
             armorFolder,
             readProp(shipDriver, `/armor/numberOfPlates`),
             {
@@ -52,7 +52,7 @@ const singleSelectionDetails = async (
             },
             cleanup
         );
-        addTextBlade<ShipDirection>(
+        addTextBlade(
             armorFolder,
             readProp(shipDriver, `/armor/numberOfHealthyPlates`),
             {
@@ -61,30 +61,24 @@ const singleSelectionDetails = async (
             },
             cleanup
         );
-        for (const thruster of shipDriver.state.thrusters) {
+        for (const system of shipDriver.systems) {
             const thrusterFolder = guiFolder.addFolder({
-                title: thruster.name,
+                title: system.state.name,
                 expanded: false,
             });
             cleanup(() => {
                 thrusterFolder.dispose();
             });
-            addSliderBlade(
-                thrusterFolder,
-                readWriteNumberProp(shipDriver, `/thrusters/${thruster.index}/angleError`),
-                {
-                    label: 'Angle Error',
-                },
-                cleanup
-            );
-            addSliderBlade(
-                thrusterFolder,
-                readWriteNumberProp(shipDriver, `/thrusters/${thruster.index}/availableCapacity`),
-                {
-                    label: 'Available Capacity',
-                },
-                cleanup
-            );
+            for (const defectible of system.defectibles) {
+                addSliderBlade(
+                    thrusterFolder,
+                    readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`),
+                    {
+                        label: defectible.name,
+                    },
+                    cleanup
+                );
+            }
         }
     }
 };

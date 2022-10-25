@@ -67,12 +67,12 @@ export class Thruster extends Schema {
 
     @number2Digits
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
-    @defectible({ normal: 0, name: 'angle deviates' })
+    @defectible({ normal: 0, name: 'direction offset' })
     angleError = 0.0;
 
     @number2Digits
     @range([0, 1])
-    @defectible({ normal: 1, name: 'capacity suboptimal' })
+    @defectible({ normal: 1, name: 'capacity' })
     availableCapacity = 1.0;
 
     get broken(): boolean {

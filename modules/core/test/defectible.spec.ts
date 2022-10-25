@@ -3,7 +3,7 @@ import { defectible, getSystems } from '../src/defectible';
 
 import { expect } from 'chai';
 
-const DEFECTIBLE = { normal: 0, name: 'general malfunction' };
+const DEFECTIBLE = { normal: 0, name: 'something' };
 class DeeplyNested extends Schema {
     name = '';
     broken = false;

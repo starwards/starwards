@@ -44,7 +44,7 @@ export class Reactor extends Schema {
 
     @number2Digits
     @range([0, 1])
-    @defectible({ normal: 1, name: 'capacity suboptimal' })
+    @defectible({ normal: 1, name: 'effeciency' })
     effeciencyFactor = 1;
 
     get energyPerSecond(): number {
