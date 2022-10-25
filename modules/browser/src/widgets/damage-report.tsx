@@ -1,15 +1,13 @@
-// import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
-import React, { Component, useEffect, useMemo, useRef } from 'react';
-import { ShipDriver, getDefectibles } from '@starwards/core';
+import React, { Component, useEffect, useRef } from 'react';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
+import { ShipDriver } from '@starwards/core';
 import WebFont from 'webfontloader';
 import { createMachine } from 'xstate';
-import { readProp } from '../property-wrappers';
+import { useDefectibles } from '../react/hooks';
 import { useMachine } from '@xstate/react';
-import { useProperties } from '../react/hooks';
 
 WebFont.load({
     custom: {
@@ -46,7 +44,7 @@ const disappearMachine = createMachine({
     },
 });
 
-function SystemDamageReport({ name, status, isOk }: { name: string; status: string; isOk: boolean }) {
+function SystemStatusReport({ name, status, isOk }: { name: string; status: string; isOk: boolean }) {
     const broken = !isOk;
     const [current, send] = useMachine(disappearMachine);
 
@@ -70,39 +68,7 @@ function SystemDamageReport({ name, status, isOk }: { name: string; status: stri
 }
 function AllReports({ driver }: { driver: ShipDriver }) {
     const divRef = useRef<null | HTMLDivElement>(null);
-    const defectiblesProperties = useMemo(
-        () =>
-            getDefectibles(driver.state).map((d) => {
-                const pointer = `${d.systemPointer}/${d.field}`;
-                const nameProp = readProp<string>(driver, `${d.systemPointer}/name`);
-                const numberProp = readProp<number>(driver, pointer);
-                // abstract the number property as a property that only changes when the state of defect (`isOk`) changes
-                let lastOk = numberProp.getValue() === d.normal;
-                let alertTime = 0;
-                return {
-                    pointer: numberProp.pointer,
-                    onChange(cb: () => unknown) {
-                        return numberProp.onChange(() => {
-                            const isOk = numberProp.getValue() === d.normal;
-                            if (isOk !== lastOk) {
-                                if (lastOk) {
-                                    alertTime = Date.now();
-                                }
-                                lastOk = isOk;
-                                cb();
-                            }
-                        });
-                    },
-                    getValue: () => {
-                        const isOk = numberProp.getValue() === d.normal;
-                        return { name: nameProp.getValue(), status: d.name, pointer, alertTime, isOk };
-                    },
-                };
-            }),
-        [driver]
-    );
-    const defectsState = useProperties(defectiblesProperties).sort((a, b) => a.alertTime - b.alertTime);
-
+    const defectsState = useDefectibles(driver).sort((a, b) => a.alertTime - b.alertTime);
     return (
         <>
             <>
@@ -113,7 +79,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
                 <br />
             </>
             {defectsState.map((d) => (
-                <SystemDamageReport key={d.pointer} {...d} />
+                <SystemStatusReport key={d.pointer} name={d.name} status={d.status} isOk={d.isOk} />
             ))}
             <div ref={divRef} />
         </>

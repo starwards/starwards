@@ -1,5 +1,15 @@
-import { AdminDriver, Destructors, Driver, TaskLoop } from '@starwards/core';
-import { DependencyList, useEffect, useRef, useState } from 'react';
+import {
+    AdminDriver,
+    DefectibleValue,
+    Destructors,
+    Driver,
+    ShipDriver,
+    TaskLoop,
+    getDefectibles,
+} from '@starwards/core';
+import { DependencyList, useEffect, useMemo, useRef, useState } from 'react';
+
+import { readProp } from '../property-wrappers';
 
 export function useConstant<T>(init: () => T): T {
     const ref = useRef<{ v: T } | null>(null);
@@ -46,6 +56,41 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
         return loop.stop;
         // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-unsafe-assignment
     }, [intervalMs, ...deps]);
+}
+
+function defectReadProp(driver: ShipDriver) {
+    return (d: DefectibleValue) => {
+        const pointer = `${d.systemPointer}/${d.field}`;
+        const nameProp = readProp<string>(driver, `${d.systemPointer}/name`);
+        const numberProp = readProp<number>(driver, pointer);
+        // abstract the number property as a property that only changes when the state of defect (`isOk`) changes
+        let lastOk = numberProp.getValue() === d.normal;
+        let alertTime = 0;
+        return {
+            pointer: numberProp.pointer,
+            onChange(cb: () => unknown) {
+                return numberProp.onChange(() => {
+                    const isOk = numberProp.getValue() === d.normal;
+                    if (isOk !== lastOk) {
+                        if (lastOk) {
+                            alertTime = Date.now();
+                        }
+                        lastOk = isOk;
+                        cb();
+                    }
+                });
+            },
+            getValue: () => {
+                const isOk = numberProp.getValue() === d.normal;
+                return { name: nameProp.getValue(), status: d.name, pointer, alertTime, isOk };
+            },
+        };
+    };
+}
+
+export function useDefectibles(driver: ShipDriver) {
+    const defectiblesProperties = useMemo(() => getDefectibles(driver.state).map(defectReadProp(driver)), [driver]);
+    return useProperties(defectiblesProperties);
 }
 
 export type ReadProperty<T> = {
