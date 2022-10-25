@@ -5,10 +5,13 @@ import { expect } from 'chai';
 
 const DEFECTIBLE = { normal: 0, name: 'general malfunction' };
 class DeeplyNested extends Schema {
+    name = '';
+
     @defectible(DEFECTIBLE)
     property = 0;
 }
 class Target extends Schema {
+    name = '';
     array = new ArraySchema<DeeplyNested>(new DeeplyNested());
 
     @defectible(DEFECTIBLE)
@@ -31,8 +34,8 @@ describe('defectible', () => {
         const m = getDefectibles(target);
         expect(m).to.have.length(2);
         expect(m).to.include.deep.members([
-            { ...DEFECTIBLE, pointer: '/property', value: 1 },
-            { ...DEFECTIBLE, pointer: '/array/0/property', value: 2 },
+            { ...DEFECTIBLE, systemPointer: '', field: 'property', value: 1 },
+            { ...DEFECTIBLE, systemPointer: '/array/0', field: 'property', value: 2 },
         ]);
     });
 });

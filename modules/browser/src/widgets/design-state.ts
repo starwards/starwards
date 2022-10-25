@@ -1,4 +1,4 @@
-import { DesignState, ShipDirection, ShipDriver } from '@starwards/core';
+import { DesignState, ShipDriver } from '@starwards/core';
 import { Panel, PropertyPanel } from '../panel';
 import { readProp, readWriteProp } from '../property-wrappers';
 
@@ -31,7 +31,7 @@ export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
         }
         for (const thruster of shipDriver.state.thrusters) {
             addDesignStateToPanel(
-                rootPanel.addFolder(`Thruster ${thruster.index} (${ShipDirection[thruster.angle]})`, false),
+                rootPanel.addFolder(thruster.name, false),
                 shipDriver,
                 `/thrusters/${thruster.index}/design`
             );

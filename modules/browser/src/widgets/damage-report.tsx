@@ -60,8 +60,7 @@ function SystemDamageReport({ name, status, isOk }: { name: string; status: stri
     return (
         <>
             <Text animator={{ duration, activate: broken }}>
-                <h3>{name}</h3>
-                {status}
+                <b>{name} :</b> {status}
                 <br />
                 --------------------------
             </Text>
@@ -74,7 +73,9 @@ function AllReports({ driver }: { driver: ShipDriver }) {
     const defectiblesProperties = useMemo(
         () =>
             getDefectibles(driver.state).map((d) => {
-                const numberProp = readProp<number>(driver, d.pointer);
+                const pointer = `${d.systemPointer}/${d.field}`;
+                const nameProp = readProp<string>(driver, `${d.systemPointer}/name`);
+                const numberProp = readProp<number>(driver, pointer);
                 // abstract the number property as a property that only changes when the state of defect (`isOk`) changes
                 let lastOk = numberProp.getValue() === d.normal;
                 let alertTime = 0;
@@ -94,7 +95,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
                     },
                     getValue: () => {
                         const isOk = numberProp.getValue() === d.normal;
-                        return { name: d.name, pointer: d.pointer, alertTime, isOk };
+                        return { name: nameProp.getValue(), status: d.name, pointer, alertTime, isOk };
                     },
                 };
             }),
@@ -112,7 +113,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
                 <br />
             </>
             {defectsState.map((d) => (
-                <SystemDamageReport key={d.pointer} name={d.pointer} status={d.name} isOk={d.isOk} />
+                <SystemDamageReport key={d.pointer} {...d} />
             ))}
             <div ref={divRef} />
         </>

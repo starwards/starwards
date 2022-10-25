@@ -51,6 +51,7 @@ export class ChainGun extends Schema {
     };
 
     public readonly type = 'ChainGun';
+    public readonly name = 'Chain gun';
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */

@@ -25,6 +25,7 @@ export class Magazine extends Schema {
     };
 
     public readonly type = 'Magazine';
+    public readonly name = 'Magazine';
 
     @type(MagazineDesignState)
     design = new MagazineDesignState();

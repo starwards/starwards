@@ -63,7 +63,7 @@ const singleSelectionDetails = async (
         );
         for (const thruster of shipDriver.state.thrusters) {
             const thrusterFolder = guiFolder.addFolder({
-                title: `Thruster ${thruster.index} (${ShipDirection[thruster.angle]})`,
+                title: thruster.name,
                 expanded: false,
             });
             cleanup(() => {

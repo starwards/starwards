@@ -7,21 +7,28 @@ import { Colyseus, Container } from 'colyseus-events';
 const propertyMetadataKey = Symbol('defectible:propertyMetadata');
 
 export type DefectibleConfig = { normal: number; name: string };
-export type DefectibleValue = DefectibleConfig & { pointer: string; value: number };
+export type DefectibleValue = DefectibleConfig & { value: number; field: string; systemPointer: string };
+
+/**
+ * An object that can be decorated with @defectible
+ */
+export interface DefectibleSystem extends Schema {
+    readonly name: string;
+}
 
 export function defectible(m: DefectibleConfig) {
-    return (target: Object, propertyKey: string | symbol) => {
+    return (target: DefectibleSystem, propertyKey: string | symbol) => {
         Reflect.defineMetadata(propertyMetadataKey, m, target, propertyKey);
     };
 }
 
 export function getDefectibles(root: Schema): DefectibleValue[] {
     const result = new Array<DefectibleValue>();
-    for (const [state, field, value, pointer] of allProperties(root)) {
+    for (const [state, field, value, systemPointer] of allProperties(root)) {
         if (typeof value === 'number') {
             const config = Reflect.getMetadata(propertyMetadataKey, state, field) as DefectibleConfig | undefined;
             if (config) {
-                result.push({ ...config, pointer, value });
+                result.push({ ...config, field, value, systemPointer });
             }
         }
     }
@@ -45,7 +52,7 @@ function* allProperties(state: Colyseus, namespace = ''): IterableIterator<[Cont
             for (const [field, value] of Object.entries(state)) {
                 if (!schemaKeys.includes(field)) {
                     const fieldNamespace = `${namespace}/${field}`;
-                    yield [state, field, value as Colyseus, fieldNamespace];
+                    yield [state, field, value as Colyseus, namespace];
                     yield* allProperties(value as Colyseus, fieldNamespace);
                 }
             }

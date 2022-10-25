@@ -29,6 +29,7 @@ export class Reactor extends Schema {
     };
 
     public readonly type = 'Reactor';
+    public readonly name = 'Reactor';
 
     @type(ReactorDesignState)
     design = new ReactorDesignState();

@@ -38,6 +38,7 @@ export class SmartPilot extends Schema {
     };
 
     public readonly type = 'SmartPilot';
+    public readonly name = 'Smart pilot';
 
     @type(SmartPilotDesignState)
     design = new SmartPilotDesignState();
