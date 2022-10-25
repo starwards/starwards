@@ -49,7 +49,7 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
     }, [intervalMs, ...deps]);
 }
 
-function defectReadProp(driver: ShipDriver) {
+export function defectReadProp(driver: ShipDriver) {
     return (d: DefectibleValue) => {
         const pointer = `${d.systemPointer}/${d.field}`;
         const name = readProp<string>(driver, `${d.systemPointer}/name`).getValue();
@@ -73,11 +73,6 @@ function defectReadProp(driver: ShipDriver) {
             },
         };
     };
-}
-
-export function useDefectibles(driver: ShipDriver) {
-    const defectiblesProperties = useMemo(() => driver.defectibles.map(defectReadProp(driver)), [driver]);
-    return useProperties(defectiblesProperties);
 }
 
 export type ReadProperty<T> = {

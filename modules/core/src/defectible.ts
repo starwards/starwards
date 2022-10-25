@@ -14,6 +14,11 @@ export type DefectibleValue = DefectibleConfig & { value: number; field: string;
  */
 export interface DefectibleSystem extends Schema {
     readonly name: string;
+    /**
+     * is the system offline.
+     * should only be updated as result of changes to defectible properties
+     */
+    readonly broken: boolean;
 }
 
 export function defectible(m: DefectibleConfig) {
@@ -22,17 +27,30 @@ export function defectible(m: DefectibleConfig) {
     };
 }
 
-export function getDefectibles(root: Schema): DefectibleValue[] {
-    const result = new Array<DefectibleValue>();
+export type System = {
+    pointer: string;
+    state: DefectibleSystem;
+    defectibles: DefectibleValue[];
+};
+
+export function getSystems(root: Schema): System[] {
+    const systems: Record<string, System> = {};
     for (const [state, field, value, systemPointer] of allProperties(root)) {
         if (typeof value === 'number') {
             const config = Reflect.getMetadata(propertyMetadataKey, state, field) as DefectibleConfig | undefined;
             if (config) {
-                result.push({ ...config, field, value, systemPointer });
+                if (!systems[systemPointer]) {
+                    systems[systemPointer] = {
+                        pointer: systemPointer,
+                        state: state as DefectibleSystem,
+                        defectibles: [],
+                    };
+                }
+                systems[systemPointer].defectibles.push({ ...config, field, value, systemPointer });
             }
         }
     }
-    return result;
+    return Object.values(systems);
 }
 
 export const schemaKeys = Object.freeze(Object.keys(new (class extends Schema {})()).concat(['onChange', 'onRemove']));

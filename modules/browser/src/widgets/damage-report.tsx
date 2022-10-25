@@ -1,12 +1,12 @@
 import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
 import React, { Component, useEffect, useRef } from 'react';
+import { defectReadProp, useProperties } from '../react/hooks';
 
 import { BleepsProvider } from '@arwes/sounds';
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
 import WebFont from 'webfontloader';
 import { createMachine } from 'xstate';
-import { useDefectibles } from '../react/hooks';
 import { useMachine } from '@xstate/react';
 
 WebFont.load({
@@ -68,7 +68,9 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
 }
 function AllReports({ driver }: { driver: ShipDriver }) {
     const divRef = useRef<null | HTMLDivElement>(null);
-    const defectsState = useDefectibles(driver).sort((a, b) => a.alertTime - b.alertTime);
+    const defectsState = useProperties(driver.systems.flatMap((s) => s.defectibles).map(defectReadProp(driver))).sort(
+        (a, b) => a.alertTime - b.alertTime
+    );
     return (
         <>
             <>

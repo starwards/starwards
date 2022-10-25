@@ -1,4 +1,4 @@
-import { GameRoom, RoomEventEmitter, getDefectibles, sendJsonCmd } from '..';
+import { GameRoom, RoomEventEmitter, getSystems, sendJsonCmd } from '..';
 import { Primitive, wireEvents } from 'colyseus-events';
 
 import EventEmitter2 from 'eventemitter2';
@@ -33,14 +33,21 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
         pendingEvents.push('/armor');
     }
     await waitForEvents(events, pendingEvents);
-    const defectibles = getDefectibles(shipRoom.state);
+    const systems = getSystems(shipRoom.state);
+    for (const system of systems) {
+        for (const defectible of system.defectibles) {
+            events.on(`${system.pointer}/${defectible.field}`, (e) => {
+                events.emit(`${system.pointer}/broken`, e);
+            });
+        }
+    }
     return {
         events,
         id: shipRoom.state.id,
         get state() {
             return shipRoom.state;
         },
-        defectibles,
+        systems,
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(shipRoom, pointerStr, value),
     };
 }

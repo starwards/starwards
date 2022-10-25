@@ -43,6 +43,7 @@ export class Reactor extends Schema {
     afterBurnerFuel = 0;
 
     @number2Digits
+    @range([0, 1])
     @defectible({ normal: 1, name: 'capacity suboptimal' })
     effeciencyFactor = 1;
 
@@ -51,6 +52,6 @@ export class Reactor extends Schema {
     }
 
     get broken() {
-        return this.energy > 200;
+        return this.effeciencyFactor === 0;
     }
 }
