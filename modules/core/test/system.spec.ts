@@ -1,11 +1,13 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
-import { defectible, getSystems } from '../src/defectible';
+import { DesignState, defectible, getSystems } from '../src/ship/system';
 
 import { expect } from 'chai';
 
 const DEFECTIBLE = { normal: 0, name: 'something' };
+const design = new (class extends DesignState {})();
 class DeeplyNested extends Schema {
     name = '';
+    design = design;
     broken = false;
 
     @defectible(DEFECTIBLE)
@@ -13,6 +15,7 @@ class DeeplyNested extends Schema {
 }
 class Target extends Schema {
     name = '';
+    design = design;
     broken = false;
     array = new ArraySchema<DeeplyNested>(new DeeplyNested());
 

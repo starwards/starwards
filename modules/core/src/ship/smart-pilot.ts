@@ -2,7 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { Vec2 } from '../space';
-import { defectible } from '../defectible';
+import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 

@@ -21,7 +21,6 @@ export interface GameRoom<R extends RoomName> extends Stateful<State<R>> {
 export * from './admin';
 export * from './commands';
 export * from './client';
-export * from './defectible';
 export * from './id';
 export * from './logic';
 export * from './ship';

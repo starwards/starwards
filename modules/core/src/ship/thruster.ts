@@ -4,7 +4,7 @@ import { Schema, type } from '@colyseus/schema';
 import { ShipDirection, ShipState } from '.';
 
 import { DesignState } from './system';
-import { defectible } from '../defectible';
+import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 

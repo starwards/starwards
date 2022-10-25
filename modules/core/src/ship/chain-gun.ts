@@ -2,7 +2,7 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { SmartPilotMode } from './smart-pilot';
-import { defectible } from '../defectible';
+import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
