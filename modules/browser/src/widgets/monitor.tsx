@@ -44,12 +44,20 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
     );
 }
 
-function SystemMonitor({ driver, system }: { driver: ShipDriver; system: System }) {
-    const broken = useProperty<boolean>(readProp(driver, `${system.pointer}/broken`));
-    const damaged = useProperties(system.defectibles.map(defectReadProp(driver))).some((d) => !d.isOk);
+const statusPallete = {
+    OFFLINE: 'error',
+    DAMAGED: 'secondary',
+    OK: 'success',
+} as const;
 
-    const palette: Palette = broken ? 'error' : damaged ? 'secondary' : 'success';
-    const status = broken ? 'OFFLINE' : damaged ? 'DAMAGED' : 'OK';
+function SystemMonitor({ driver, system }: { driver: ShipDriver; system: System }) {
+    // wire hooks for all properties that might change system status
+    useProperty<boolean>(readProp(driver, `${system.pointer}/broken`));
+    useProperties(system.defectibles.map(defectReadProp(driver)));
+
+    // use API to calculate status instead of logic replication
+    const status = system.getStatus();
+    const palette: Palette = statusPallete[status];
     return (
         <Blockquote palette={palette} animator={{ animate: false }}>
             <Text>
@@ -58,6 +66,7 @@ function SystemMonitor({ driver, system }: { driver: ShipDriver; system: System 
         </Blockquote>
     );
 }
+
 export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
     class Monitor extends Component {
         render() {

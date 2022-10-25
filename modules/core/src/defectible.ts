@@ -2,7 +2,8 @@
 import 'reflect-metadata';
 
 import { ArraySchema, CollectionSchema, MapSchema, Schema, SetSchema } from '@colyseus/schema';
-import { Colyseus, Container } from 'colyseus-events';
+
+import { Colyseus } from 'colyseus-events';
 
 const propertyMetadataKey = Symbol('defectible:propertyMetadata');
 
@@ -20,7 +21,6 @@ export interface DefectibleSystem extends Schema {
      */
     readonly broken: boolean;
 }
-
 export function defectible(m: DefectibleConfig) {
     return (target: DefectibleSystem, propertyKey: string | symbol) => {
         Reflect.defineMetadata(propertyMetadataKey, m, target, propertyKey);
@@ -30,6 +30,7 @@ export function defectible(m: DefectibleConfig) {
 export type System = {
     pointer: string;
     state: DefectibleSystem;
+    getStatus: () => 'OFFLINE' | 'DAMAGED' | 'OK';
     defectibles: DefectibleValue[];
 };
 
@@ -40,10 +41,25 @@ export function getSystems(root: Schema): System[] {
             const config = Reflect.getMetadata(propertyMetadataKey, state, field) as DefectibleConfig | undefined;
             if (config) {
                 if (!systems[systemPointer]) {
+                    const defectibles: DefectibleValue[] = [];
                     systems[systemPointer] = {
                         pointer: systemPointer,
                         state: state as DefectibleSystem,
-                        defectibles: [],
+                        defectibles,
+                        getStatus: () => {
+                            if ((state as DefectibleSystem).broken) {
+                                return 'OFFLINE';
+                            }
+                            if (
+                                defectibles.some((d) => {
+                                    const currentValue = state[d.field as keyof typeof state] as unknown as number;
+                                    return currentValue !== d.normal;
+                                })
+                            ) {
+                                return 'DAMAGED';
+                            }
+                            return 'OK';
+                        },
                     };
                 }
                 systems[systemPointer].defectibles.push({ ...config, field, value, systemPointer });
@@ -54,7 +70,7 @@ export function getSystems(root: Schema): System[] {
 }
 
 export const schemaKeys = Object.freeze(Object.keys(new (class extends Schema {})()).concat(['onChange', 'onRemove']));
-function* allProperties(state: Colyseus, namespace = ''): IterableIterator<[Container, string, Colyseus, string]> {
+function* allProperties(state: Colyseus, namespace = ''): IterableIterator<[Schema, string, Colyseus, string]> {
     if (state && typeof state == 'object') {
         if (
             state instanceof ArraySchema ||

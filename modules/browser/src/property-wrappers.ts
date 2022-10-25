@@ -1,4 +1,4 @@
-import { Destructor, Destructors, RoomEventEmitter, getJsonPointer, getRange } from '@starwards/core';
+import { Destructors, RoomEventEmitter, getJsonPointer, getRange } from '@starwards/core';
 
 import { JsonStringPointer } from 'json-ptr';
 import { Primitive } from 'colyseus-events';
@@ -10,8 +10,10 @@ interface Driver {
     sendJsonCmd(pointerStr: string, value: Primitive): void;
 }
 
+export type OnChange = (cb: () => void) => () => void;
+
 export function abstractOnChange(
-    underlyingProps: { onChange: (cb: () => void) => () => void }[],
+    underlyingProps: { onChange: OnChange }[],
     getValue: () => unknown,
     cb: () => unknown
 ) {
@@ -37,7 +39,7 @@ export function readProp<T>(driver: Driver, pointerStr: JsonStringPointer) {
         throw new Error(`Illegal json path:${pointerStr}`);
     }
     const getValue = () => pointer.get(driver.state) as T;
-    const onChange = (cb: () => unknown): Destructor => {
+    const onChange: OnChange = (cb: () => unknown) => {
         let lastValue = getValue();
         const listener = () => {
             const newValue = getValue();

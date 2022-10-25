@@ -1,7 +1,7 @@
 import { Destructor, Destructors, Driver, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
+import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
-import { readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
@@ -62,23 +62,25 @@ const singleSelectionDetails = async (
             cleanup
         );
         for (const system of shipDriver.systems) {
-            const thrusterFolder = guiFolder.addFolder({
+            const systemFolder = guiFolder.addFolder({
                 title: system.state.name,
                 expanded: false,
             });
+            // This allows overriding tweakpane theme for this folder
+            systemFolder.element.classList.add('tp-rotv');
             cleanup(() => {
-                thrusterFolder.dispose();
+                systemFolder.dispose();
             });
+            const defectibleProps: { onChange: OnChange }[] = [readProp(shipDriver, `${system.pointer}/broken`)];
             for (const defectible of system.defectibles) {
-                addSliderBlade(
-                    thrusterFolder,
-                    readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`),
-                    {
-                        label: defectible.name,
-                    },
-                    cleanup
-                );
+                const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
+                defectibleProps.push(prop);
+                addSliderBlade(systemFolder, prop, { label: defectible.name }, cleanup);
             }
+            // this will change tweakpane theme for this folder, see tweakpane.css
+            const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus());
+            cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
+            applyThemeByStatus();
         }
     }
 };

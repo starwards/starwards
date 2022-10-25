@@ -1,0 +1,40 @@
+/* use https://cocopon.github.io/tweakpane/theming/ */
+
+:root {
+    --tp-base-background-color: hsla(230, 7%, 17%, 1);
+    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.2);
+    --tp-button-background-color: hsla(230, 7%, 70%, 1);
+    --tp-button-background-color-active: hsla(230, 7%, 85%, 1);
+    --tp-button-background-color-focus: hsla(230, 7%, 80%, 1);
+    --tp-button-background-color-hover: hsla(230, 7%, 75%, 1);
+    --tp-button-foreground-color: hsla(230, 7%, 17%, 1);
+    --tp-container-background-color: hsla(230, 7%, 75%, 0.1);
+    --tp-container-background-color-active: hsla(230, 7%, 75%, 0.25);
+    --tp-container-background-color-focus: hsla(230, 7%, 75%, 0.2);
+    --tp-container-background-color-hover: hsla(230, 7%, 75%, 0.15);
+    --tp-container-foreground-color: hsla(230, 7%, 75%, 1);
+    --tp-groove-foreground-color: hsla(230, 7%, 75%, 0.1);
+    --tp-input-background-color: hsla(230, 7%, 75%, 0.1);
+    --tp-input-background-color-active: hsla(230, 7%, 75%, 0.25);
+    --tp-input-background-color-focus: hsla(230, 7%, 75%, 0.2);
+    --tp-input-background-color-hover: hsla(230, 7%, 75%, 0.15);
+    --tp-input-foreground-color: hsla(230, 7%, 75%, 1);
+    --tp-label-foreground-color: hsla(230, 7%, 75%, 0.7);
+    --tp-monitor-background-color: hsla(230, 7%, 0%, 0.2);
+    --tp-monitor-foreground-color: hsla(230, 7%, 75%, 0.7);
+
+    /* the following variables are not officially sup[ported by tweakpane themes: */
+    --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
+    --tp-base-border-radius: 6px;
+    --tp-container-horizontal-padding: 4px;
+    --tp-element-border-radius: 2px;
+    --tp-blade-spacing: 4px;
+    --tp-blade-unit-size: 20px;
+}
+
+:root *[data-status='OFFLINE'] {
+    --tp-base-background-color: hsl(0, 69%, 17%, 1);
+}
+:root *[data-status='DAMAGED'] {
+    --tp-base-background-color: hsl(52, 61%, 18%, 1);
+}
