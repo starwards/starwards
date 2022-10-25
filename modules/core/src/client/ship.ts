@@ -1,4 +1,4 @@
-import { GameRoom, RoomEventEmitter, sendJsonCmd } from '..';
+import { GameRoom, RoomEventEmitter, getDefectibles, sendJsonCmd } from '..';
 import { Primitive, wireEvents } from 'colyseus-events';
 
 import EventEmitter2 from 'eventemitter2';
@@ -33,12 +33,14 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
         pendingEvents.push('/armor');
     }
     await waitForEvents(events, pendingEvents);
+    const defectibles = getDefectibles(shipRoom.state);
     return {
         events,
         id: shipRoom.state.id,
         get state() {
             return shipRoom.state;
         },
+        defectibles,
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(shipRoom, pointerStr, value),
     };
 }

@@ -1,15 +1,6 @@
-import {
-    AdminDriver,
-    DefectibleValue,
-    Destructors,
-    Driver,
-    ShipDriver,
-    TaskLoop,
-    getDefectibles,
-} from '@starwards/core';
+import { AdminDriver, DefectibleValue, Destructors, Driver, ShipDriver, TaskLoop } from '@starwards/core';
 import { DependencyList, useEffect, useMemo, useRef, useState } from 'react';
-
-import { readProp } from '../property-wrappers';
+import { abstractOnChange, readProp } from '../property-wrappers';
 
 export function useConstant<T>(init: () => T): T {
     const ref = useRef<{ v: T } | null>(null);
@@ -61,35 +52,31 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
 function defectReadProp(driver: ShipDriver) {
     return (d: DefectibleValue) => {
         const pointer = `${d.systemPointer}/${d.field}`;
-        const nameProp = readProp<string>(driver, `${d.systemPointer}/name`);
+        const name = readProp<string>(driver, `${d.systemPointer}/name`).getValue();
         const numberProp = readProp<number>(driver, pointer);
-        // abstract the number property as a property that only changes when the state of defect (`isOk`) changes
-        let lastOk = numberProp.getValue() === d.normal;
         let alertTime = 0;
+        const getIsOk = () => numberProp.getValue() === d.normal;
+        let isOk = getIsOk();
         return {
             pointer: numberProp.pointer,
             onChange(cb: () => unknown) {
-                return numberProp.onChange(() => {
-                    const isOk = numberProp.getValue() === d.normal;
-                    if (isOk !== lastOk) {
-                        if (lastOk) {
-                            alertTime = Date.now();
-                        }
-                        lastOk = isOk;
-                        cb();
+                return abstractOnChange([numberProp], getIsOk, () => {
+                    isOk = getIsOk();
+                    if (!getIsOk()) {
+                        alertTime = Date.now();
                     }
+                    cb();
                 });
             },
             getValue: () => {
-                const isOk = numberProp.getValue() === d.normal;
-                return { name: nameProp.getValue(), status: d.name, pointer, alertTime, isOk };
+                return { name, status: d.name, pointer, alertTime, isOk };
             },
         };
     };
 }
 
 export function useDefectibles(driver: ShipDriver) {
-    const defectiblesProperties = useMemo(() => getDefectibles(driver.state).map(defectReadProp(driver)), [driver]);
+    const defectiblesProperties = useMemo(() => driver.defectibles.map(defectReadProp(driver)), [driver]);
     return useProperties(defectiblesProperties);
 }
 

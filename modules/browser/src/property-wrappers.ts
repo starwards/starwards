@@ -1,4 +1,4 @@
-import { Destructor, RoomEventEmitter, getJsonPointer, getRange } from '@starwards/core';
+import { Destructor, Destructors, RoomEventEmitter, getJsonPointer, getRange } from '@starwards/core';
 
 import { JsonStringPointer } from 'json-ptr';
 import { Primitive } from 'colyseus-events';
@@ -8,6 +8,27 @@ interface Driver {
     readonly state: Schema;
     events: RoomEventEmitter;
     sendJsonCmd(pointerStr: string, value: Primitive): void;
+}
+
+export function abstractOnChange(
+    underlyingProps: { onChange: (cb: () => void) => () => void }[],
+    getValue: () => unknown,
+    cb: () => unknown
+) {
+    const d = new Destructors();
+    let lastValue = getValue();
+    for (const property of underlyingProps) {
+        d.add(
+            property.onChange(() => {
+                const newValue = getValue();
+                if (newValue !== lastValue) {
+                    lastValue = newValue;
+                    cb();
+                }
+            })
+        );
+    }
+    return d.destroy;
 }
 
 export function readProp<T>(driver: Driver, pointerStr: JsonStringPointer) {

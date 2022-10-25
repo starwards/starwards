@@ -58,9 +58,9 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
     return (
         <>
             <Text animator={{ duration, activate: broken }}>
-                <b>{name} :</b> {status}
-                <br />
                 --------------------------
+                <br />
+                <b>{name} :</b> {status}
             </Text>
             <br />
         </>
@@ -74,7 +74,6 @@ function AllReports({ driver }: { driver: ShipDriver }) {
             <>
                 <Text animator={{ duration, activate: true }}>
                     <h1>Damage Report</h1>
-                    <h1>--------------------------</h1>
                 </Text>
                 <br />
             </>
