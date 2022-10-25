@@ -60,7 +60,7 @@
         "@types/supertest": "^2.0.12",
         "@types/webfontloader": "^1.6.35",
         "@typescript-eslint/eslint-plugin": "^5.38.1",
-        "@typescript-eslint/parser": "^5.38.1",
+        "@typescript-eslint/parser": "^5.41.0",
         "@xstate/cli": "^0.3.3",
         "chai": "^4.3.6",
         "concurrently": "^7.4.0",
