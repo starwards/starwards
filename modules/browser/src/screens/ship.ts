@@ -5,6 +5,7 @@ import { ClientStatus, Driver, Status } from '@starwards/core';
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
+import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
@@ -57,6 +58,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(monitorWidget(shipDriver), {}, 'monitor');
     dashboard.registerWidget(damageReportWidget(shipDriver), {}, 'damage report');
     dashboard.registerWidget(armorWidget(shipDriver), {}, 'armor');
+    dashboard.registerWidget(ammoWidget(shipDriver), {}, 'ammo');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

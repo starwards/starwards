@@ -6,6 +6,7 @@ import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import $ from 'jquery';
 import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
+import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
@@ -88,6 +89,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(monitorWidget(shipDriver), {}, shipId + ' monitor');
             dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
             dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
+            dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
             dashboard.setup();
         }
     },

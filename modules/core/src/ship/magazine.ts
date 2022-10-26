@@ -32,7 +32,7 @@ export class Magazine extends Schema {
     design = new MagazineDesignState();
 
     @type('uint16')
-    @range((t: Magazine) => [0, t.maxCannonShells * t.capacity])
+    @range((t: Magazine) => [0, t.maxCannonShells])
     @tweakable('number')
     cannonShells = 0;
 
