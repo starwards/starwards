@@ -4,6 +4,7 @@ import { DesignState } from './system';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export type MagazineDesign = {
     damage50: number;
@@ -32,6 +33,7 @@ export class Magazine extends Schema {
 
     @type('uint16')
     @range((t: Magazine) => [0, t.maxCannonShells * t.capacity])
+    @tweakable('number')
     cannonShells = 0;
 
     @number2Digits

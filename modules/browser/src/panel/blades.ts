@@ -92,7 +92,6 @@ export function addEnumListBlade<T>(
     const { getValue, onChange, setValue } = model;
     let lastValue = getValue();
     const guiController = guiFolder.addBlade({
-        parse: (v: T) => String(v),
         options: [],
         ...params,
         view: 'list',

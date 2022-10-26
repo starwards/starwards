@@ -1,10 +1,11 @@
 import 'reflect-metadata';
 
 import { ArraySchema, CollectionSchema, MapSchema, Schema, SetSchema } from '@colyseus/schema';
+import { TweakableValue, getTweakables } from '../tweakable';
 
 import { Colyseus } from 'colyseus-events';
 
-const propertyMetadataKey = Symbol('defectible:propertyMetadata');
+const defectiblePropertyMetadataKey = Symbol('defectible:propertyMetadata');
 
 export abstract class DesignState extends Schema {
     keys() {
@@ -27,9 +28,9 @@ export interface SystemState extends Schema {
      */
     readonly broken: boolean;
 }
-export function defectible(m: DefectibleConfig) {
+export function defectible(config: DefectibleConfig) {
     return (target: SystemState, propertyKey: string | symbol) => {
-        Reflect.defineMetadata(propertyMetadataKey, m, target, propertyKey);
+        Reflect.defineMetadata(defectiblePropertyMetadataKey, config, target, propertyKey);
     };
 }
 
@@ -38,6 +39,7 @@ export type System = {
     state: SystemState;
     getStatus: () => 'OFFLINE' | 'DAMAGED' | 'OK';
     defectibles: DefectibleValue[];
+    tweakables: TweakableValue[];
 };
 
 function System(systemPointer: string, state: Schema): System {
@@ -46,6 +48,7 @@ function System(systemPointer: string, state: Schema): System {
         pointer: systemPointer,
         state: state as SystemState,
         defectibles,
+        tweakables: getTweakables(state),
         getStatus: () => {
             if ((state as SystemState).broken) {
                 return 'OFFLINE';
@@ -64,19 +67,21 @@ function System(systemPointer: string, state: Schema): System {
 }
 
 export function getSystems(root: Schema): System[] {
-    const systems: Record<string, System> = {};
+    const systemsMap: Record<string, System> = {};
     for (const [state, field, value, systemPointer] of allProperties(root)) {
         if (typeof value === 'number') {
-            const config = Reflect.getMetadata(propertyMetadataKey, state, field) as DefectibleConfig | undefined;
+            const config = Reflect.getMetadata(defectiblePropertyMetadataKey, state, field) as
+                | DefectibleConfig
+                | undefined;
             if (config) {
-                if (!systems[systemPointer]) {
-                    systems[systemPointer] = System(systemPointer, state);
+                if (!systemsMap[systemPointer]) {
+                    systemsMap[systemPointer] = System(systemPointer, state);
                 }
-                systems[systemPointer].defectibles.push({ ...config, field, value, systemPointer });
+                systemsMap[systemPointer].defectibles.push({ ...config, field, value, systemPointer });
             }
         }
     }
-    return Object.values(systems);
+    return Object.values(systemsMap);
 }
 
 export const schemaKeys = Object.freeze(Object.keys(new (class extends Schema {})()).concat(['onChange', 'onRemove']));

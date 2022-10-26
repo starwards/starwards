@@ -214,6 +214,7 @@ export class ShipManager {
 
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
+        this.addChainGunAmmo(0);
     }
 
     private calcSmartPilotModes() {
@@ -319,7 +320,6 @@ export class ShipManager {
                 magazine.cannonShells = Math.round(magazine.cannonShells * (1 - magazine.design.capacityDamageFactor));
             } else {
                 magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
-                this.addChainGunAmmo(0);
             }
         }
     }

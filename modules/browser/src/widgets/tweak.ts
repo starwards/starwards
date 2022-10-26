@@ -1,7 +1,7 @@
 import { Destructor, Destructors, Driver, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
-import { addInputBlade, addSliderBlade, addTextBlade } from '../panel';
+import { addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
@@ -75,12 +75,25 @@ const singleSelectionDetails = async (
             for (const defectible of system.defectibles) {
                 const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
                 defectibleProps.push(prop);
-                addSliderBlade(systemFolder, prop, { label: defectible.name }, cleanup);
+                addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
             }
             // this will change tweakpane theme for this folder, see tweakpane.css
             const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus());
             cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
             applyThemeByStatus();
+            for (const tweakable of system.tweakables) {
+                if (tweakable.config === 'number') {
+                    const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${tweakable.field}`);
+                    addSliderBlade(systemFolder, prop, { label: tweakable.field }, cleanup);
+                } else {
+                    const prop = readWriteProp(shipDriver, `${system.pointer}/${tweakable.field}`);
+                    const enumObj = tweakable.config.enum;
+                    const options = Object.values(enumObj)
+                        .filter<number>((k): k is number => typeof k === 'number')
+                        .map((value) => ({ value, text: String(enumObj[value]) }));
+                    addEnumListBlade(systemFolder, prop, { label: tweakable.field, options }, cleanup);
+                }
+            }
         }
     }
 };
