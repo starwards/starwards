@@ -4,6 +4,7 @@ import { DesignState } from './system';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export type ReactorDesign = {
     energyPerSecond: number;
@@ -36,10 +37,12 @@ export class Reactor extends Schema {
 
     @type('number')
     @range((t: Reactor) => [0, t.design.maxEnergy])
+    @tweakable('number')
     energy = 1000;
 
     @type('number')
     @range((t: Reactor) => [0, t.design.maxAfterBurnerFuel])
+    @tweakable('number')
     afterBurnerFuel = 0;
 
     @number2Digits

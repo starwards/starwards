@@ -122,18 +122,28 @@ export class ShipManager {
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
-        if (value !== this.state.smartPilot.maneuveringMode) {
-            this.state.smartPilot.maneuveringMode = value;
-            this.state.smartPilot.maneuvering.x = 0;
-            this.state.smartPilot.maneuvering.y = 0;
+        if (value === SmartPilotMode.TARGET && !this.target) {
+            // eslint-disable-next-line no-console
+            console.error(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
+        } else {
+            if (value !== this.state.smartPilot.maneuveringMode) {
+                this.state.smartPilot.maneuveringMode = value;
+                this.state.smartPilot.maneuvering.x = 0;
+                this.state.smartPilot.maneuvering.y = 0;
+            }
         }
     }
 
     public setSmartPilotRotationMode(value: SmartPilotMode) {
-        if (value !== this.state.smartPilot.rotationMode) {
-            this.state.smartPilot.rotationMode = value;
-            this.state.smartPilot.rotation = 0;
-            this.state.smartPilot.rotationTargetOffset = 0;
+        if (value === SmartPilotMode.TARGET && !this.target) {
+            // eslint-disable-next-line no-console
+            console.error(new Error(`attempt to set smartPilot.rotationMode to TARGET with no target`));
+        } else {
+            if (value !== this.state.smartPilot.rotationMode) {
+                this.state.smartPilot.rotationMode = value;
+                this.state.smartPilot.rotation = 0;
+                this.state.smartPilot.rotationTargetOffset = 0;
+            }
         }
     }
 
@@ -214,6 +224,7 @@ export class ShipManager {
 
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
+        this.addChainGunAmmo(0);
     }
 
     private calcSmartPilotModes() {
@@ -319,7 +330,6 @@ export class ShipManager {
                 magazine.cannonShells = Math.round(magazine.cannonShells * (1 - magazine.design.capacityDamageFactor));
             } else {
                 magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
-                this.addChainGunAmmo(0);
             }
         }
     }
@@ -420,12 +430,18 @@ export class ShipManager {
                 break;
             }
             case SmartPilotMode.TARGET: {
-                const velocity = XY.add(
-                    XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    this.state.globalToLocal(this.target!.velocity)
-                );
-                maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
+                if (this.target) {
+                    const velocity = XY.add(
+                        XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        this.state.globalToLocal(this.target.velocity)
+                    );
+                    maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error(`corrupted state: smartPilot.maneuveringMode is TARGET with no target`);
+                    maneuveringCommand = { strafe: 0, boost: 0 };
+                }
                 break;
             }
             case SmartPilotMode.VELOCITY: {
@@ -445,20 +461,26 @@ export class ShipManager {
                 rotationCommand = this.state.smartPilot.rotation;
                 break;
             case SmartPilotMode.TARGET: {
-                this.state.smartPilot.rotationTargetOffset = capToRange(
-                    -1,
-                    1,
-                    this.state.smartPilot.rotationTargetOffset +
-                        (this.state.smartPilot.rotation * deltaSeconds * this.state.smartPilot.design.aimOffsetSpeed) /
-                            this.state.smartPilot.design.maxTargetAimOffset
-                );
-                rotationCommand = rotateToTarget(
-                    deltaSeconds,
-                    this.state,
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    this.target!.position,
-                    this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
-                );
+                if (this.target) {
+                    this.state.smartPilot.rotationTargetOffset = capToRange(
+                        -1,
+                        1,
+                        this.state.smartPilot.rotationTargetOffset +
+                            (this.state.smartPilot.rotation *
+                                deltaSeconds *
+                                this.state.smartPilot.design.aimOffsetSpeed) /
+                                this.state.smartPilot.design.maxTargetAimOffset
+                    );
+                    rotationCommand = rotateToTarget(
+                        deltaSeconds,
+                        this.state,
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        this.target.position,
+                        this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
+                    );
+                } else {
+                    rotationCommand = 0;
+                }
                 break;
             }
             case SmartPilotMode.VELOCITY: {

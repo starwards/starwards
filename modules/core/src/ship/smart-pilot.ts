@@ -5,6 +5,7 @@ import { Vec2 } from '../space';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export type SmartPilotDesign = {
     maxTargetAimOffset: number;
@@ -44,9 +45,11 @@ export class SmartPilot extends Schema {
     design = new SmartPilotDesignState();
 
     @type('int8')
+    @tweakable({ type: 'enum', enum: SmartPilotMode })
     rotationMode!: SmartPilotMode;
 
     @type('int8')
+    @tweakable({ type: 'enum', enum: SmartPilotMode })
     maneuveringMode!: SmartPilotMode;
 
     @number2Digits
