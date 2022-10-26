@@ -45,11 +45,11 @@ export class SmartPilot extends Schema {
     design = new SmartPilotDesignState();
 
     @type('int8')
-    @tweakable({ enum: SmartPilotMode })
+    @tweakable({ type: 'enum', enum: SmartPilotMode })
     rotationMode!: SmartPilotMode;
 
     @type('int8')
-    @tweakable({ enum: SmartPilotMode })
+    @tweakable({ type: 'enum', enum: SmartPilotMode })
     maneuveringMode!: SmartPilotMode;
 
     @number2Digits

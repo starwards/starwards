@@ -36,9 +36,14 @@ export class ChainGunManager {
     }
 
     public setShellRangeMode(value: SmartPilotMode) {
-        if (value !== this.chainGun.shellRangeMode) {
-            this.chainGun.shellRangeMode = value;
-            this.chainGun.shellRange = 0;
+        if (value === SmartPilotMode.TARGET && !this.shipManager.target) {
+            // eslint-disable-next-line no-console
+            console.error(new Error(`attempt to set chainGun.shellRangeMode to TARGET with no target`));
+        } else {
+            if (value !== this.chainGun.shellRangeMode) {
+                this.chainGun.shellRangeMode = value;
+                this.chainGun.shellRange = 0;
+            }
         }
     }
 

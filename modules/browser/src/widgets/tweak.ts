@@ -13,10 +13,11 @@ import {
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
-import { addDesignPropBlade, addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
+import { addCameraRingBlade, addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
 import pluralize from 'pluralize';
 
@@ -39,13 +40,7 @@ const singleSelectionDetails = async (
     cleanup: (d: Destructor) => void
 ) => {
     guiFolder.addInput(subject, 'id', { disabled: true });
-    addInputBlade(
-        guiFolder,
-        readWriteProp(spaceDriver, `/${subject.type}/${subject.id}/freeze`),
-        { label: 'Freeze' },
-        cleanup
-    );
-
+    addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
         const armorFolder = guiFolder.addFolder({
@@ -79,8 +74,6 @@ const singleSelectionDetails = async (
                 title: system.state.name,
                 expanded: false,
             });
-            // This allows overriding tweakpane theme for this folder
-            systemFolder.element.classList.add('tp-rotv');
             cleanup(() => systemFolder.dispose());
             const defectibleProps: { onChange: OnChange }[] = [readProp(shipDriver, `${system.pointer}/broken`)];
             for (const defectible of system.defectibles) {
@@ -88,36 +81,58 @@ const singleSelectionDetails = async (
                 defectibleProps.push(prop);
                 addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
             }
+            // This allows overriding tweakpane theme for this folder
+            systemFolder.element.classList.add('tp-rotv');
             // this will change tweakpane theme for this folder, see tweakpane.css
             const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus());
             cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
             applyThemeByStatus();
-            for (const tweakable of getTweakables(system.state)) {
-                if (tweakable.config === 'number') {
-                    const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${tweakable.field}`);
-                    addSliderBlade(systemFolder, prop, { label: tweakable.field }, cleanup);
-                } else {
-                    const prop = readWriteProp(shipDriver, `${system.pointer}/${tweakable.field}`);
-                    const enumObj = tweakable.config.enum;
-                    const options = Object.values(enumObj)
-                        .filter<number>((k): k is number => typeof k === 'number')
-                        .map((value) => ({ value, text: String(enumObj[value]) }));
-                    addEnumListBlade(systemFolder, prop, { label: tweakable.field, options }, cleanup);
-                }
-            }
+            addTweakables(shipDriver, systemFolder, system.pointer, cleanup);
             addDesignFolder(shipDriver, systemFolder, system.pointer, cleanup);
         }
         addDesignFolder(shipDriver, guiFolder, ``, cleanup);
     }
 };
 
-function addDesignFolder(
-    shipDriver: ShipDriver,
-    systemFolder: FolderApi,
+function addTweakables(
+    driver: SpaceDriver | ShipDriver,
+    guiFolder: FolderApi,
     pointer: string,
     cleanup: (d: Destructor) => void
 ) {
-    const designFolder = systemFolder.addFolder({
+    const state = readProp<Schema>(driver, pointer).getValue();
+    for (const tweakable of getTweakables(state)) {
+        if (tweakable.config === 'number') {
+            const prop = readWriteNumberProp(driver, `${pointer}/${tweakable.field}`);
+            addSliderBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config === 'boolean') {
+            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            addInputBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config === 'string') {
+            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            addTextBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config.type === 'number') {
+            const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
+            const config = tweakable.config.number || {};
+            addCameraRingBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
+        } else {
+            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            const enumObj = tweakable.config.enum;
+            const options = Object.values(enumObj)
+                .filter<number>((k): k is number => typeof k === 'number')
+                .map((value) => ({ value, text: String(enumObj[value]) }));
+            addEnumListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
+        }
+    }
+}
+
+function addDesignFolder(
+    shipDriver: ShipDriver,
+    guiFolder: FolderApi,
+    pointer: string,
+    cleanup: (d: Destructor) => void
+) {
+    const designFolder = guiFolder.addFolder({
         title: 'design',
         expanded: false,
     });
@@ -125,7 +140,7 @@ function addDesignFolder(
     const state = readProp<DesignState>(shipDriver, `${pointer}/design`).getValue();
     for (const designParam of state.keys()) {
         const prop = readWriteProp<number>(shipDriver, `${pointer}/design/${designParam}`);
-        addDesignPropBlade(designFolder, prop, { label: designParam }, cleanup);
+        addCameraRingBlade(designFolder, prop, { label: designParam }, cleanup);
     }
 }
 

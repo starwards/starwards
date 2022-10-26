@@ -63,7 +63,7 @@ export function addSliderBlade(
 /**
  * add a blade for numeric field with no range
  */
-export function addDesignPropBlade(
+export function addCameraRingBlade(
     guiFolder: FolderApi,
     model: Model<number>,
     params: { label: string } & Partial<RingInputParams>,

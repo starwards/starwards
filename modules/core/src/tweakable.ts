@@ -5,10 +5,20 @@ import { Schema } from '@colyseus/schema';
 const tweakablePropertyMetadataKey = Symbol('tweakable:propertyMetadata');
 
 export type TweakableConfig =
+    | 'boolean'
     | 'number'
+    | 'string'
     | {
+          type: 'enum';
           enum: {
               [name: string | number]: string | number;
+          };
+      }
+    | {
+          type: 'number';
+          number?: {
+              min?: number;
+              max?: number;
           };
       };
 export type TweakableValue = { config: TweakableConfig; field: string };

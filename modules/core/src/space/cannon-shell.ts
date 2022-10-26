@@ -2,6 +2,7 @@ import { Explosion } from './explosion';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { number2Digits } from '../number-field';
+import { tweakable } from '../tweakable';
 import { type } from '@colyseus/schema';
 export class CannonShell extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is CannonShell => {
@@ -9,6 +10,7 @@ export class CannonShell extends SpaceObjectBase {
     };
 
     @number2Digits
+    @tweakable({ type: 'number', number: { min: 0.01 } })
     public secondsToLive = 0;
 
     public readonly type = 'CannonShell';

@@ -5,6 +5,8 @@ import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
 import { number2Digits } from '../number-field';
+import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export function compareSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
     return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
@@ -13,7 +15,10 @@ export abstract class SpaceObjectBase extends Schema {
     @type('string')
     public abstract readonly type: keyof SpaceObjects;
     @type('boolean')
+    // @tweakable('boolean')
     public destroyed = false;
+
+    @tweakable('boolean')
     @type('boolean')
     public freeze = false;
 
@@ -21,6 +26,8 @@ export abstract class SpaceObjectBase extends Schema {
     public id = '';
     @type(Vec2)
     public position: Vec2 = new Vec2(0, 0);
+
+    @tweakable({ type: 'number', number: { min: 0.05 } })
     @number2Digits
     public radius = 0;
     @type(Vec2)
@@ -41,12 +48,15 @@ export abstract class SpaceObjectBase extends Schema {
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)
      */
+    @tweakable('number')
+    @range([0, 360])
     @number2Digits
     public angle = 0;
 
     /*!
      * [config] Speed of rotation, change of angle in deg/second
      */
+    @tweakable({ type: 'number' })
     @number2Digits
     public turnSpeed = 0;
 

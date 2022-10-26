@@ -3,6 +3,7 @@ import { ShipModel } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { number2Digits } from '../number-field';
+import { tweakable } from '../tweakable';
 import { type } from '@colyseus/schema';
 
 export class Spaceship extends SpaceObjectBase {
@@ -16,12 +17,14 @@ export class Spaceship extends SpaceObjectBase {
     public targetId: string | null = null;
 
     @type('int8')
+    @tweakable({ type: 'enum', enum: Faction })
     public faction: Faction = Faction.none;
 
     @number2Digits
     public radarRange = 0;
 
     @type('string')
+    @tweakable('string')
     public model: ShipModel | null = null;
 
     constructor() {
