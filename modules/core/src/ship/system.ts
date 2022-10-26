@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 
 import { ArraySchema, CollectionSchema, MapSchema, Schema, SetSchema } from '@colyseus/schema';
-import { TweakableValue, getTweakables } from '../tweakable';
 
 import { Colyseus } from 'colyseus-events';
 
@@ -39,7 +38,6 @@ export type System = {
     state: SystemState;
     getStatus: () => 'OFFLINE' | 'DAMAGED' | 'OK';
     defectibles: DefectibleValue[];
-    tweakables: TweakableValue[];
 };
 
 function System(systemPointer: string, state: Schema): System {
@@ -48,7 +46,6 @@ function System(systemPointer: string, state: Schema): System {
         pointer: systemPointer,
         state: state as SystemState,
         defectibles,
-        tweakables: getTweakables(state),
         getStatus: () => {
             if ((state as SystemState).broken) {
                 return 'OFFLINE';

@@ -32,3 +32,4 @@ export * from './json-ptr';
 export * from './task-loop';
 export * from './events';
 export * from './async-utils';
+export * from './tweakable';

@@ -1,4 +1,4 @@
-import { Destructor, Destructors, Driver, SpaceDriver, SpaceObject, Spaceship } from '@starwards/core';
+import { Destructor, Destructors, Driver, SpaceDriver, SpaceObject, Spaceship, getTweakables } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 import { addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
@@ -81,7 +81,7 @@ const singleSelectionDetails = async (
             const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus());
             cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
             applyThemeByStatus();
-            for (const tweakable of system.tweakables) {
+            for (const tweakable of getTweakables(system.state)) {
                 if (tweakable.config === 'number') {
                     const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${tweakable.field}`);
                     addSliderBlade(systemFolder, prop, { label: tweakable.field }, cleanup);
