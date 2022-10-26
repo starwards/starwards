@@ -1,7 +1,19 @@
-import { Destructor, Destructors, Driver, SpaceDriver, SpaceObject, Spaceship, getTweakables } from '@starwards/core';
+import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
+
+import {
+    DesignState,
+    Destructor,
+    Destructors,
+    Driver,
+    ShipDriver,
+    SpaceDriver,
+    SpaceObject,
+    Spaceship,
+    getTweakables,
+} from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
-import { addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
+import { addDesignPropBlade, addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
@@ -61,6 +73,7 @@ const singleSelectionDetails = async (
             },
             cleanup
         );
+        addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
         for (const system of shipDriver.systems) {
             const systemFolder = guiFolder.addFolder({
                 title: system.state.name,
@@ -68,9 +81,7 @@ const singleSelectionDetails = async (
             });
             // This allows overriding tweakpane theme for this folder
             systemFolder.element.classList.add('tp-rotv');
-            cleanup(() => {
-                systemFolder.dispose();
-            });
+            cleanup(() => systemFolder.dispose());
             const defectibleProps: { onChange: OnChange }[] = [readProp(shipDriver, `${system.pointer}/broken`)];
             for (const defectible of system.defectibles) {
                 const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
@@ -94,9 +105,29 @@ const singleSelectionDetails = async (
                     addEnumListBlade(systemFolder, prop, { label: tweakable.field, options }, cleanup);
                 }
             }
+            addDesignFolder(shipDriver, systemFolder, system.pointer, cleanup);
         }
+        addDesignFolder(shipDriver, guiFolder, ``, cleanup);
     }
 };
+
+function addDesignFolder(
+    shipDriver: ShipDriver,
+    systemFolder: FolderApi,
+    pointer: string,
+    cleanup: (d: Destructor) => void
+) {
+    const designFolder = systemFolder.addFolder({
+        title: 'design',
+        expanded: false,
+    });
+    cleanup(() => designFolder.dispose());
+    const state = readProp<DesignState>(shipDriver, `${pointer}/design`).getValue();
+    for (const designParam of state.keys()) {
+        const prop = readWriteProp<number>(shipDriver, `${pointer}/design/${designParam}`);
+        addDesignPropBlade(designFolder, prop, { label: designParam }, cleanup);
+    }
+}
 
 export function tweakWidget(driver: Driver, selectionContainer: SelectionContainer): DashboardWidget {
     class TweakRoot {
@@ -107,6 +138,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
 
         constructor(container: Container, _: unknown) {
             this.pane = new Pane({ container: container.getElement().get(0) });
+            this.pane.registerPlugin(CamerakitPlugin);
             this.panelCleanup.add(() => {
                 this.pane.dispose();
             });

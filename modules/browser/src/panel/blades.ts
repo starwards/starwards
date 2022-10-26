@@ -10,6 +10,7 @@ import {
 } from 'tweakpane';
 
 import { Destructor } from '@starwards/core';
+import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
 
 export type NumericModel = {
     getValue: () => number;
@@ -27,6 +28,9 @@ export type Model<T> = {
     This module was written after ./property-panel
     This is the module to use to creatte new panels
 */
+/**
+ * add a blade for slider panel
+ */
 export function addSliderBlade(
     guiFolder: FolderApi,
     model: NumericModel,
@@ -54,6 +58,18 @@ export function addSliderBlade(
         guiController.dispose();
         removeStateListener();
     });
+}
+
+/**
+ * add a blade for numeric field with no range
+ */
+export function addDesignPropBlade(
+    guiFolder: FolderApi,
+    model: Model<number>,
+    params: { label: string } & Partial<RingInputParams>,
+    cleanup: (d: Destructor) => void
+) {
+    addInputBlade(guiFolder, model, { series: 0, ...params, view: 'cameraring' }, cleanup);
 }
 
 export function addTextBlade<T>(
