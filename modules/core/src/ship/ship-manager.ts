@@ -478,6 +478,8 @@ export class ShipManager {
                         this.target.position,
                         this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
                     );
+                } else {
+                    rotationCommand = 0;
                 }
                 break;
             }
