@@ -61,7 +61,7 @@ export function addSliderBlade(
 }
 
 /**
- * add a blade for numeric field with no range
+ * add a blade for cameraring
  */
 export function addCameraRingBlade(
     guiFolder: FolderApi,
