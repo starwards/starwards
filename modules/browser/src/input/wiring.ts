@@ -22,5 +22,6 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     input.addClickAction(writeProp(shipDriver, '/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
     input.addClickAction(writeProp(shipDriver, '/nextTargetCommand'), shipInputConfig.target);
     input.addClickAction(writeProp(shipDriver, '/clearTargetCommand'), shipInputConfig.clearTarget);
+    input.addClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), shipInputConfig.tubeIsFiring);
     input.init();
 }

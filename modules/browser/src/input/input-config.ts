@@ -40,17 +40,18 @@ export interface RangeConfig {
     keys?: KeysRangeConfig;
 }
 interface ShipInputConfig {
-    chainGunIsFiring?: GamepadButtonConfig;
-    target?: GamepadButtonConfig;
-    clearTarget?: GamepadButtonConfig;
-    afterBurner?: GamepadButtonConfig;
-    antiDrift?: GamepadButtonConfig;
-    breaks?: GamepadButtonConfig;
-    rotationMode?: GamepadButtonConfig;
-    maneuveringMode?: GamepadButtonConfig;
+    tubeIsFiring?: string | GamepadButtonConfig;
+    chainGunIsFiring?: string | GamepadButtonConfig;
+    target?: string | GamepadButtonConfig;
+    clearTarget?: string | GamepadButtonConfig;
+    afterBurner?: string | GamepadButtonConfig;
+    antiDrift?: string | GamepadButtonConfig;
+    breaks?: string | GamepadButtonConfig;
+    rotationMode?: string | GamepadButtonConfig;
+    maneuveringMode?: string | GamepadButtonConfig;
     // ranges
     rotationCommand?: RangeConfig;
-    resetRotatioTargetOffset?: GamepadButtonConfig;
+    resetRotatioTargetOffset?: string | GamepadButtonConfig;
     strafeCommand?: RangeConfig;
     boostCommand?: RangeConfig;
     shellRange?: RangeConfig;
@@ -58,6 +59,7 @@ interface ShipInputConfig {
 
 export const shipInputConfig: ShipInputConfig = {
     // buttons
+    tubeIsFiring: 'x',
     chainGunIsFiring: new GamepadButtonConfig(0, 4),
     target: new GamepadButtonConfig(0, 2),
     clearTarget: new GamepadButtonConfig(0, 0),
