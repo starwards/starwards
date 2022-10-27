@@ -75,7 +75,7 @@ export class ShipManager {
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor]],
     ]);
     private totalSeconds = 0;
-    private chainGunManagers = new Array<ChainGunManager>();
+    private tubeManagers = new Array<ChainGunManager>();
     private chainGunManager: ChainGunManager | null = null;
 
     constructor(
@@ -104,12 +104,9 @@ export class ShipManager {
                 this.spaceManager,
                 this
             );
-            this.chainGunManagers.push(this.chainGunManager);
         }
         for (const tube of this.state.tubes) {
-            this.chainGunManagers.push(
-                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this)
-            );
+            this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
         }
     }
 
@@ -196,8 +193,9 @@ export class ShipManager {
             this.bot(deltaSeconds, this.spaceManager.state, this);
         }
         this.validateTargetId();
-        for (const chainGunManager of this.chainGunManagers) {
-            chainGunManager.update(deltaSeconds);
+        this.chainGunManager?.update(deltaSeconds);
+        for (const tubeManager of this.tubeManagers) {
+            tubeManager.update(deltaSeconds);
         }
         this.handleAfterburnerCommand();
         this.handleNextTargetCommand();

@@ -4,6 +4,7 @@ import { Schema, type } from '@colyseus/schema';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export type ChaingunDesign = {
     bulletsPerSecond: number;
@@ -47,14 +48,18 @@ export class ChainGun extends Schema {
         return (o as ChainGun)?.type === 'ChainGun';
     };
 
-    public readonly type = 'ChainGun';
-    public readonly name = 'Chain gun';
+    public readonly type: string = 'ChainGun';
+    get name() {
+        return 'Chain gun';
+    }
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
     @number2Digits
+    @range([-180, 180])
     angle = 0;
 
+    @tweakable('boolean')
     @type('boolean')
     isFiring = false;
 

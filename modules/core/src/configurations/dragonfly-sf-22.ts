@@ -62,12 +62,12 @@ export const dragonflySmartPilot = {
 };
 export const dragonflyTube = {
     damage50: 20,
-    bulletsPerSecond: 1 / 5,
-    bulletSpeed: 300,
+    bulletsPerSecond: 1,
+    bulletSpeed: 1000,
     // chaingun only properties
     bulletDegreesDeviation: 0,
-    maxShellRange: Number.MAX_VALUE,
-    minShellRange: Number.MAX_VALUE,
+    maxShellRange: 1_000_000,
+    minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
     // ammo properties
     explosionRadius: 100,
