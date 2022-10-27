@@ -78,13 +78,15 @@ export class ChainGun extends Schema {
     @range([-90, 90])
     angleOffset = 0;
 
-    @type('uint8')
-    cooldownFactor = 1;
+    @number2Digits
+    @range([0, 1])
+    @defectible({ normal: 1, name: 'rate of fire' })
+    rateOfFireFactor = 1;
 
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();
 
     get broken(): boolean {
-        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;
+        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.rateOfFireFactor <= 0;
     }
 }

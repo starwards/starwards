@@ -11,7 +11,7 @@ import { uniqueId } from '../id';
 
 export function resetChainGun(chainGun: ChainGun) {
     chainGun.angleOffset = 0;
-    chainGun.cooldownFactor = 1;
+    chainGun.rateOfFireFactor = 1;
     chainGun.shellRangeMode = SmartPilotMode.DIRECT;
 }
 
@@ -88,7 +88,7 @@ export class ChainGunManager {
         }
         if (chaingun.cooldown > 0) {
             // charge weapon
-            chaingun.cooldown -= deltaSeconds * chaingun.design.bulletsPerSecond;
+            chaingun.cooldown -= deltaSeconds * chaingun.design.bulletsPerSecond * chaingun.rateOfFireFactor;
             if (!chaingun.isFiring && chaingun.cooldown < 0) {
                 chaingun.cooldown = 0;
             }
@@ -107,7 +107,7 @@ export class ChainGunManager {
     private fireChainGun() {
         const chaingun = this.chainGun;
         if (chaingun.isFiring && chaingun.cooldown <= 0) {
-            chaingun.cooldown += chaingun.cooldownFactor;
+            chaingun.cooldown += 1;
             this.shipManager.state.magazine.cannonShells -= 1;
             const shell = new CannonShell(this.getChainGunExplosion());
 

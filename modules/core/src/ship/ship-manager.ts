@@ -374,8 +374,7 @@ export class ShipManager {
                     limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
                     (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
             } else {
-                // todo convert to a defectible property that accumulates damage
-                chainGun.cooldownFactor += 1;
+                chainGun.rateOfFireFactor *= 0.9;
             }
         }
     }
