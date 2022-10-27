@@ -72,7 +72,7 @@ export class ShipManager {
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
         [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine]],
-        [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor]],
+        [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
     ]);
     private totalSeconds = 0;
     private tubeManagers = new Array<ChainGunManager>();
