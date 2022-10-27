@@ -123,7 +123,7 @@ describe('SpaceManager', () => {
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
             shipMgr.state.chainGun!.design.maxShellRange = 10_000;
             shipMgr.state.chainGun!.shellRange = 1;
-            shipMgr.chainGun(true);
+            shipMgr.state.chainGun!.isFiring = true;
 
             // stop simulation when first bullet reaches its range
             const shellSecondsToLive = calcShellSecondsToLive(

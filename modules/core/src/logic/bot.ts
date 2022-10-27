@@ -24,7 +24,9 @@ export function cleanupBot(shipManager: ShipManager) {
     shipManager.state.smartPilot.rotation = 0;
     shipManager.state.smartPilot.maneuvering.x = 0;
     shipManager.state.smartPilot.maneuvering.y = 0;
-    shipManager.chainGun(false);
+    if (shipManager.state.chainGun) {
+        shipManager.state.chainGun.isFiring = false;
+    }
     shipManager.setTarget(null);
     shipManager.bot = null;
 }
@@ -93,7 +95,7 @@ export function jouster(targetId: string): Bot {
                 }
             }
             lastTargetVelocity = XY.clone(target.velocity);
-            shipManager.chainGun(isTargetInKillZone(ship, ship.chainGun, target));
+            ship.chainGun.isFiring = isTargetInKillZone(ship, ship.chainGun, target);
         } else {
             cleanupBot(shipManager);
         }

@@ -29,12 +29,6 @@ export class ChainGunManager {
         private shipManager: ShipManager
     ) {}
 
-    public setIsFiring(isFiring: boolean) {
-        if (!isFiring || (!this.chainGun.broken && this.shipManager.state.magazine.cannonShells > 0)) {
-            this.chainGun.isFiring = isFiring;
-        }
-    }
-
     public setShellRangeMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.shipManager.target) {
             // eslint-disable-next-line no-console
@@ -89,6 +83,9 @@ export class ChainGunManager {
 
     private updateChainGun(deltaSeconds: number) {
         const chaingun = this.chainGun;
+        if (this.chainGun.isFiring && (this.chainGun.broken || this.shipManager.state.magazine.cannonShells <= 0)) {
+            this.chainGun.isFiring = false;
+        }
         if (chaingun.cooldown > 0) {
             // charge weapon
             chaingun.cooldown -= deltaSeconds * chaingun.design.bulletsPerSecond;
@@ -109,12 +106,7 @@ export class ChainGunManager {
 
     private fireChainGun() {
         const chaingun = this.chainGun;
-        if (
-            chaingun.isFiring &&
-            chaingun.cooldown <= 0 &&
-            !chaingun.broken &&
-            this.shipManager.state.magazine.cannonShells > 0
-        ) {
+        if (chaingun.isFiring && chaingun.cooldown <= 0) {
             chaingun.cooldown += chaingun.cooldownFactor;
             this.shipManager.state.magazine.cannonShells -= 1;
             const shell = new CannonShell(this.getChainGunExplosion());

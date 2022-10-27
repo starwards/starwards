@@ -76,6 +76,7 @@ export class ShipManager {
     ]);
     private totalSeconds = 0;
     private chainGunManagers = new Array<ChainGunManager>();
+    private chainGunManager: ChainGunManager | null = null;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -96,34 +97,20 @@ export class ShipManager {
             SmartPilotMode.TARGET
         );
         if (this.state.chainGun) {
-            this.chainGunManagers.push(
-                new ChainGunManager(this.state.chainGun, this.spaceObject, this.state, this.spaceManager, this)
+            this.chainGunManager = new ChainGunManager(
+                this.state.chainGun,
+                this.spaceObject,
+                this.state,
+                this.spaceManager,
+                this
             );
+            this.chainGunManagers.push(this.chainGunManager);
         }
         for (const tube of this.state.tubes) {
             this.chainGunManagers.push(
                 new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this)
             );
         }
-    }
-
-    // used by smartPilot
-    private setStrafe(value: number) {
-        this.state.strafe = capToRange(-1, 1, value);
-    }
-
-    // used by smartPilot
-    private setBoost(value: number) {
-        this.state.boost = capToRange(-1, 1, value);
-    }
-
-    // used by smartPilot
-    private setRotation(value: number) {
-        this.state.rotation = capToRange(-1, 1, value);
-    }
-
-    public chainGun(isFiring: boolean) {
-        this.chainGunManagers[0]?.setIsFiring(isFiring);
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
@@ -153,7 +140,7 @@ export class ShipManager {
     }
 
     public setShellRangeMode(value: SmartPilotMode) {
-        this.chainGunManagers[0]?.setShellRangeMode(value);
+        this.chainGunManager?.setShellRangeMode(value);
     }
 
     public setTarget(id: string | null) {
@@ -209,7 +196,9 @@ export class ShipManager {
             this.bot(deltaSeconds, this.spaceManager.state, this);
         }
         this.validateTargetId();
-        this.chainGunManagers[0]?.update(deltaSeconds);
+        for (const chainGunManager of this.chainGunManagers) {
+            chainGunManager.update(deltaSeconds);
+        }
         this.handleAfterburnerCommand();
         this.handleNextTargetCommand();
         this.handleToggleSmartPilotRotationMode();
@@ -455,8 +444,8 @@ export class ShipManager {
                 break;
             }
         }
-        this.setBoost(maneuveringCommand.boost + error.y);
-        this.setStrafe(maneuveringCommand.strafe + error.x);
+        this.state.boost = capToRange(-1, 1, maneuveringCommand.boost + error.y);
+        this.state.strafe = capToRange(-1, 1, maneuveringCommand.strafe + error.x);
     }
 
     private calcSmartPilotRotation(deltaSeconds: number) {
@@ -497,7 +486,7 @@ export class ShipManager {
                 break;
             }
         }
-        this.setRotation(rotationCommand);
+        this.state.rotation = capToRange(-1, 1, rotationCommand);
     }
 
     shouldEnforceMaxSpeed() {
