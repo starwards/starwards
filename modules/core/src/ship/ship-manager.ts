@@ -100,6 +100,11 @@ export class ShipManager {
                 new ChainGunManager(this.state.chainGun, this.spaceObject, this.state, this.spaceManager, this)
             );
         }
+        for (const tube of this.state.tubes) {
+            this.chainGunManagers.push(
+                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this)
+            );
+        }
     }
 
     // used by smartPilot

@@ -48,37 +48,43 @@ export class ChainGunManager {
     }
 
     update(deltaSeconds: number) {
-        this.calcShellRange();
+        this.calcShellSecondsToLive();
         this.updateChainGun(deltaSeconds);
         this.fireChainGun();
     }
 
-    private calcShellRange() {
-        const aimRange = (this.chainGun.design.maxShellRange - this.chainGun.design.minShellRange) / 2;
-        let baseRange: number | undefined = undefined;
-        switch (this.chainGun.shellRangeMode) {
-            case SmartPilotMode.DIRECT:
-                baseRange = this.chainGun.design.minShellRange + aimRange;
-                break;
-            case SmartPilotMode.TARGET:
-                baseRange = capToRange(
-                    this.chainGun.design.minShellRange,
-                    this.chainGun.design.maxShellRange,
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    XY.lengthOf(XY.difference(this.shipManager.target!.position, this.shipManager.state.position))
-                );
-                break;
-            default:
-                throw new Error(
-                    `unknown state ${SmartPilotMode[this.chainGun.shellRangeMode]} (${this.chainGun.shellRangeMode})`
-                );
+    private calcShellSecondsToLive() {
+        if (this.chainGun.design.overrideSecondsToLive > 0) {
+            this.chainGun.shellSecondsToLive = this.chainGun.design.overrideSecondsToLive;
+        } else {
+            const aimRange = (this.chainGun.design.maxShellRange - this.chainGun.design.minShellRange) / 2;
+            let baseRange: number | undefined = undefined;
+            switch (this.chainGun.shellRangeMode) {
+                case SmartPilotMode.DIRECT:
+                    baseRange = this.chainGun.design.minShellRange + aimRange;
+                    break;
+                case SmartPilotMode.TARGET:
+                    baseRange = capToRange(
+                        this.chainGun.design.minShellRange,
+                        this.chainGun.design.maxShellRange,
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        XY.lengthOf(XY.difference(this.shipManager.target!.position, this.shipManager.state.position))
+                    );
+                    break;
+                default:
+                    throw new Error(
+                        `unknown state ${SmartPilotMode[this.chainGun.shellRangeMode]} (${
+                            this.chainGun.shellRangeMode
+                        })`
+                    );
+            }
+            const range = capToRange(
+                this.chainGun.design.minShellRange,
+                this.chainGun.design.maxShellRange,
+                baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange)
+            );
+            this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.shipManager.state, this.chainGun, range);
         }
-        const range = capToRange(
-            this.chainGun.design.minShellRange,
-            this.chainGun.design.maxShellRange,
-            baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange)
-        );
-        this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.shipManager.state, this.chainGun, range);
     }
 
     private updateChainGun(deltaSeconds: number) {

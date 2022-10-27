@@ -11,7 +11,7 @@ export type ChaingunDesign = {
     bulletDegreesDeviation: number;
     maxShellRange: number;
     minShellRange: number;
-    shellRangeAim: number;
+    overrideSecondsToLive: number;
     explosionRadius: number;
     explosionExpansionSpeed: number;
     explosionDamageFactor: number;
@@ -25,7 +25,7 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits bulletDegreesDeviation = 0;
     @number2Digits maxShellRange = 0;
     @number2Digits minShellRange = 0;
-    @number2Digits shellRangeAim = 0;
+    @number2Digits overrideSecondsToLive = -1;
     @number2Digits explosionRadius = 0;
     @number2Digits explosionExpansionSpeed = 0;
     @number2Digits explosionDamageFactor = 0;
