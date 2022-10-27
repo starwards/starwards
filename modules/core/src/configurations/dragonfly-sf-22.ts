@@ -13,7 +13,6 @@ export const dragonflyThruster = {
     afterBurnerCapacity: 300,
     afterBurnerEffectFactor: 1,
     damage50: 15,
-    completeDestructionProbability: 0.1,
 };
 export const dragonflyRadar = {
     damage50: 20,
@@ -33,7 +32,6 @@ export const dragonflyChaingun = {
     explosionDamageFactor: 20,
     explosionBlastFactor: 1,
     damage50: 20,
-    completeDestructionProbability: 0.1,
 };
 export const dragonflyReactor = {
     energyPerSecond: 5,
@@ -62,6 +60,21 @@ export const dragonflySmartPilot = {
     maxSpeed: 300,
     maxSpeedFromAfterBurner: 300,
 };
+export const dragonflyTube = {
+    damage50: 20,
+    bulletsPerSecond: 1 / 5,
+    bulletSpeed: 300,
+    // chaingun only properties
+    bulletDegreesDeviation: 0,
+    maxShellRange: 5000,
+    minShellRange: 1000,
+    shellRangeAim: 1000,
+    // ammo properties
+    explosionRadius: 10,
+    explosionExpansionSpeed: 40,
+    explosionDamageFactor: 20,
+    explosionBlastFactor: 1,
+};
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
@@ -73,6 +86,7 @@ export const dragonflySF22: ShipDesign = {
         ['AFT', dragonflyThruster],
         ['AFT', dragonflyThruster],
     ],
+    tubes: [],
     armor: dragonflyArmor,
     radar: dragonflyRadar,
     smartPilot: dragonflySmartPilot,

@@ -16,7 +16,6 @@ export type ThrusterDesign = {
     afterBurnerCapacity: number;
     afterBurnerEffectFactor: number;
     damage50: number;
-    completeDestructionProbability: number;
 };
 
 export class ThrusterDesignState extends DesignState implements ThrusterDesign {
@@ -27,7 +26,6 @@ export class ThrusterDesignState extends DesignState implements ThrusterDesign {
     @number2Digits afterBurnerCapacity = 0;
     @number2Digits afterBurnerEffectFactor = 0;
     @number2Digits damage50 = 0;
-    @number2Digits completeDestructionProbability = 0;
 }
 export class Thruster extends Schema {
     public static isInstance = (o: unknown): o is Thruster => {

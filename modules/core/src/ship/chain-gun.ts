@@ -17,7 +17,6 @@ export type ChaingunDesign = {
     explosionDamageFactor: number;
     explosionBlastFactor: number;
     damage50: number;
-    completeDestructionProbability: number;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -32,7 +31,6 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits explosionDamageFactor = 0;
     @number2Digits explosionBlastFactor = 0;
     @number2Digits damage50 = 0;
-    @number2Digits completeDestructionProbability = 0;
 
     get explosionSecondsToLive(): number {
         return this.explosionRadius / this.explosionExpansionSpeed;
