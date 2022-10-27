@@ -9,11 +9,12 @@ import { SmartPilot, SmartPilotDesign } from './smart-pilot';
 import { Thruster, ThrusterDesign } from './thruster';
 
 import { ArraySchema } from '@colyseus/schema';
+import { Tube } from './tube';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
     chainGun: ChaingunDesign | null;
-    tubes: ChaingunDesign[];
+    tubes: [ShipDirectionConfig, ChaingunDesign][];
     thrusters: [ShipDirectionConfig, ThrusterDesign][];
     armor: ArmorDesign;
     radar: RadarDesign;
@@ -55,10 +56,12 @@ function makeChainGun(design: ChaingunDesign) {
     return chainGun;
 }
 
-function makeTube(design: ChaingunDesign) {
-    const chainGun = new ChainGun();
-    chainGun.design.assign(design);
-    return chainGun;
+function makeTube(design: ChaingunDesign, angle: ShipDirectionConfig, index: number) {
+    const tube = new Tube();
+    tube.index = index;
+    tube.angle = getDirectionFromConfig(angle);
+    tube.design.assign(design);
+    return tube;
 }
 
 function makeRadar(design: RadarDesign) {
@@ -95,8 +98,8 @@ export function makeShipState(id: string, design: ShipDesign) {
     if (design.chainGun) {
         state.chainGun = makeChainGun(design.chainGun);
     }
-    for (const [index, config] of design.tubes.entries()) {
-        state.tubes.setAt(index, makeTube(config));
+    for (const [index, [angleConfig, tubeConfig]] of design.tubes.entries()) {
+        state.tubes.setAt(index, makeTube(tubeConfig, angleConfig, index));
     }
     state.smartPilot = makeSmartPilot(design.smartPilot);
 

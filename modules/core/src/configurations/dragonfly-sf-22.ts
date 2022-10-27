@@ -86,7 +86,7 @@ export const dragonflySF22: ShipDesign = {
         ['AFT', dragonflyThruster],
         ['AFT', dragonflyThruster],
     ],
-    tubes: [dragonflyTube],
+    tubes: [['AFT', dragonflyTube]],
     armor: dragonflyArmor,
     radar: dragonflyRadar,
     smartPilot: dragonflySmartPilot,
