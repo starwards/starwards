@@ -10,17 +10,17 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/rotation'), shipInputConfig.rotationCommand);
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/y'), shipInputConfig.strafeCommand);
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/x'), shipInputConfig.boostCommand);
-    input.addButtonAction(
+    input.addClickAction(
         numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
         shipInputConfig.resetRotatioTargetOffset
     );
-    input.addButtonAction(writeProp(shipDriver, '/rotationModeCommand'), shipInputConfig.rotationMode);
-    input.addButtonAction(writeProp(shipDriver, '/maneuveringModeCommand'), shipInputConfig.maneuveringMode);
-    input.addButtonAction(numberAction(writeProp(shipDriver, '/afterBurnerCommand')), shipInputConfig.afterBurner);
-    input.addButtonAction(numberAction(writeProp(shipDriver, '/antiDrift')), shipInputConfig.antiDrift);
-    input.addButtonAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaks);
-    input.addButtonAction(writeProp(shipDriver, '/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
-    input.addButtonAction(writeProp(shipDriver, '/nextTargetCommand'), shipInputConfig.target);
-    input.addButtonAction(writeProp(shipDriver, '/clearTargetCommand'), shipInputConfig.clearTarget);
+    input.addClickAction(writeProp(shipDriver, '/rotationModeCommand'), shipInputConfig.rotationMode);
+    input.addClickAction(writeProp(shipDriver, '/maneuveringModeCommand'), shipInputConfig.maneuveringMode);
+    input.addClickAction(numberAction(writeProp(shipDriver, '/afterBurnerCommand')), shipInputConfig.afterBurner);
+    input.addClickAction(numberAction(writeProp(shipDriver, '/antiDrift')), shipInputConfig.antiDrift);
+    input.addClickAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaks);
+    input.addClickAction(writeProp(shipDriver, '/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
+    input.addClickAction(writeProp(shipDriver, '/nextTargetCommand'), shipInputConfig.target);
+    input.addClickAction(writeProp(shipDriver, '/clearTargetCommand'), shipInputConfig.clearTarget);
     input.init();
 }
