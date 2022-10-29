@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
 import { Schema, type } from '@colyseus/schema';
-import { ShipDirection, ShipState } from '.';
+import { ShipDirection, ShipState, shipDirectionRange } from '.';
 
 import { DesignState } from './system';
 import { defectible } from './system';
@@ -50,17 +50,20 @@ export class Thruster extends Schema {
      * the measure of current engine activity
      */
     @number2Digits
+    @range([0, 1])
     active = 0;
     /**
      * the measure of current afterburner activity
      */
     @number2Digits
+    @range([0, 1])
     afterBurnerActive = 0;
 
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
     @number2Digits
+    @range(shipDirectionRange)
     angle = 0.0;
 
     @number2Digits

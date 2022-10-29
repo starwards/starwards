@@ -4,6 +4,7 @@ import { Schema, type } from '@colyseus/schema';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
 export type ChaingunDesign = {
@@ -56,7 +57,7 @@ export class ChainGun extends Schema {
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
     @number2Digits
-    @range([-180, 180])
+    @range(shipDirectionRange)
     angle = 0;
 
     @tweakable('boolean')
