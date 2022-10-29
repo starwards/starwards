@@ -12,6 +12,7 @@ import { ShipDirection } from './ship-direction';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
 import { Thruster } from './thruster';
+import { Tube } from './tube';
 import { number2Digits } from '../number-field';
 
 export enum TargetedStatus {
@@ -36,6 +37,9 @@ export class ShipState extends Spaceship {
 
     @type([Thruster])
     thrusters!: ArraySchema<Thruster>;
+
+    @type([Tube])
+    tubes = new ArraySchema<Tube>();
 
     @type(ChainGun)
     chainGun: ChainGun | null = null;

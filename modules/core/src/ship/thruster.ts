@@ -1,10 +1,10 @@
 import 'reflect-metadata';
 
+import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
-import { ShipDirection, ShipState } from '.';
+import { ShipDirection, shipDirectionRange } from './ship-direction';
 
-import { DesignState } from './system';
-import { defectible } from './system';
+import { ShipState } from './ship-state';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 
@@ -16,7 +16,6 @@ export type ThrusterDesign = {
     afterBurnerCapacity: number;
     afterBurnerEffectFactor: number;
     damage50: number;
-    completeDestructionProbability: number;
 };
 
 export class ThrusterDesignState extends DesignState implements ThrusterDesign {
@@ -27,7 +26,6 @@ export class ThrusterDesignState extends DesignState implements ThrusterDesign {
     @number2Digits afterBurnerCapacity = 0;
     @number2Digits afterBurnerEffectFactor = 0;
     @number2Digits damage50 = 0;
-    @number2Digits completeDestructionProbability = 0;
 }
 export class Thruster extends Schema {
     public static isInstance = (o: unknown): o is Thruster => {
@@ -52,17 +50,20 @@ export class Thruster extends Schema {
      * the measure of current engine activity
      */
     @number2Digits
+    @range([0, 1])
     active = 0;
     /**
      * the measure of current afterburner activity
      */
     @number2Digits
+    @range([0, 1])
     afterBurnerActive = 0;
 
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
     @number2Digits
+    @range(shipDirectionRange)
     angle = 0.0;
 
     @number2Digits

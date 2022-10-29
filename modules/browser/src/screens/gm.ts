@@ -65,7 +65,7 @@ void driver.waitForGame().then(
             },
             gmInputConfig.rotate
         );
-        input.addKeyAction(
+        input.addClickAction(
             {
                 setValue: (v: boolean) =>
                     v &&

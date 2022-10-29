@@ -128,15 +128,11 @@ export class InputManager {
         }
     }
 
-    addButtonAction(property: TriggerAction, button: GamepadButtonConfig | undefined) {
-        if (button) {
-            this.buttons.push({ button, ...property });
-        }
-    }
-
-    addKeyAction(property: TriggerAction, key: string | undefined) {
-        if (key) {
-            this.keys.push({ key, setValue: property.setValue });
+    addClickAction(property: TriggerAction, config: GamepadButtonConfig | string | undefined) {
+        if (typeof config === 'object') {
+            this.buttons.push({ button: config, ...property });
+        } else if (typeof config === 'string') {
+            this.keys.push({ key: config, setValue: property.setValue });
         }
     }
 

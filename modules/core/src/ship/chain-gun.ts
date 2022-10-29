@@ -4,6 +4,8 @@ import { Schema, type } from '@colyseus/schema';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { shipDirectionRange } from './ship-direction';
+import { tweakable } from '../tweakable';
 
 export type ChaingunDesign = {
     bulletsPerSecond: number;
@@ -11,13 +13,12 @@ export type ChaingunDesign = {
     bulletDegreesDeviation: number;
     maxShellRange: number;
     minShellRange: number;
-    shellRangeAim: number;
+    overrideSecondsToLive: number;
     explosionRadius: number;
     explosionExpansionSpeed: number;
     explosionDamageFactor: number;
     explosionBlastFactor: number;
     damage50: number;
-    completeDestructionProbability: number;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -26,13 +27,12 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits bulletDegreesDeviation = 0;
     @number2Digits maxShellRange = 0;
     @number2Digits minShellRange = 0;
-    @number2Digits shellRangeAim = 0;
+    @number2Digits overrideSecondsToLive = -1;
     @number2Digits explosionRadius = 0;
     @number2Digits explosionExpansionSpeed = 0;
     @number2Digits explosionDamageFactor = 0;
     @number2Digits explosionBlastFactor = 0;
     @number2Digits damage50 = 0;
-    @number2Digits completeDestructionProbability = 0;
 
     get explosionSecondsToLive(): number {
         return this.explosionRadius / this.explosionExpansionSpeed;
@@ -49,14 +49,18 @@ export class ChainGun extends Schema {
         return (o as ChainGun)?.type === 'ChainGun';
     };
 
-    public readonly type = 'ChainGun';
-    public readonly name = 'Chain gun';
+    public readonly type: string = 'ChainGun';
+    get name() {
+        return 'Chain gun';
+    }
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
     @number2Digits
+    @range(shipDirectionRange)
     angle = 0;
 
+    @tweakable('boolean')
     @type('boolean')
     isFiring = false;
 
@@ -80,13 +84,15 @@ export class ChainGun extends Schema {
     @range([-90, 90])
     angleOffset = 0;
 
-    @type('uint8')
-    cooldownFactor = 1;
+    @number2Digits
+    @range([0, 1])
+    @defectible({ normal: 1, name: 'rate of fire' })
+    rateOfFireFactor = 1;
 
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();
 
     get broken(): boolean {
-        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.cooldownFactor >= 10;
+        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.rateOfFireFactor <= 0;
     }
 }
