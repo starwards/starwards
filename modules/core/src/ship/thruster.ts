@@ -1,10 +1,10 @@
 import 'reflect-metadata';
 
+import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
-import { ShipDirection, ShipState, shipDirectionRange } from '.';
+import { ShipDirection, shipDirectionRange } from './ship-direction';
 
-import { DesignState } from './system';
-import { defectible } from './system';
+import { ShipState } from './ship-state';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 

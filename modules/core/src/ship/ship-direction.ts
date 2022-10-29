@@ -1,4 +1,4 @@
-import { XY } from '..';
+import { XY } from '../logic/xy';
 
 export type ShipDirectionConfig = 'FWD' | 'STBD' | 'AFT' | 'PORT';
 
