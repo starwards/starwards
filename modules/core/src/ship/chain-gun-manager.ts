@@ -1,4 +1,4 @@
-import { CannonShell, Explosion, Vec2, gaussianRandom } from '..';
+import { CannonShell, ProjectileModel, Vec2, gaussianRandom, projectileDesigns } from '..';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
@@ -95,21 +95,12 @@ export class ChainGunManager {
         }
     }
 
-    private getChainGunExplosion() {
-        const result = new Explosion();
-        result.secondsToLive = this.chainGun.design.explosionSecondsToLive;
-        result.expansionSpeed = this.chainGun.design.explosionExpansionSpeed;
-        result.damageFactor = this.chainGun.design.explosionDamageFactor;
-        result.blastFactor = this.chainGun.design.explosionBlastFactor;
-        return result;
-    }
-
     private fireChainGun() {
         const chaingun = this.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0) {
+        if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== ProjectileModel.None) {
             chaingun.cooldown += 1;
             this.shipManager.state.magazine.cannonShells -= 1;
-            const shell = new CannonShell(this.getChainGunExplosion());
+            const shell = new CannonShell(projectileDesigns[chaingun.projectile]);
 
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,

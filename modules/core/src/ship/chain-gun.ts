@@ -1,6 +1,7 @@
 import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
 
+import { ProjectileModel } from '../configurations/projectiles';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
@@ -14,11 +15,8 @@ export type ChaingunDesign = {
     maxShellRange: number;
     minShellRange: number;
     overrideSecondsToLive: number;
-    explosionRadius: number;
-    explosionExpansionSpeed: number;
-    explosionDamageFactor: number;
-    explosionBlastFactor: number;
     damage50: number;
+    useCannonShell?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -28,15 +26,12 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits maxShellRange = 0;
     @number2Digits minShellRange = 0;
     @number2Digits overrideSecondsToLive = -1;
-    @number2Digits explosionRadius = 0;
-    @number2Digits explosionExpansionSpeed = 0;
-    @number2Digits explosionDamageFactor = 0;
-    @number2Digits explosionBlastFactor = 0;
     @number2Digits damage50 = 0;
+    @type('boolean') useCannonShell = false;
 
-    get explosionSecondsToLive(): number {
-        return this.explosionRadius / this.explosionExpansionSpeed;
-    }
+    // get explosionSecondsToLive(): number {
+    //     return this.explosionRadius / this.explosionExpansionSpeed;
+    // }
     get minShellSecondsToLive(): number {
         return this.minShellRange / this.bulletSpeed;
     }
@@ -88,6 +83,10 @@ export class ChainGun extends Schema {
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
     rateOfFireFactor = 1;
+
+    @type('int8')
+    @tweakable({ type: 'enum', enum: ProjectileModel })
+    projectile: ProjectileModel = ProjectileModel.None;
 
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();

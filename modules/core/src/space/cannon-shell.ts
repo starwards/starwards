@@ -1,4 +1,5 @@
 import { Explosion } from './explosion';
+import { ProjectileDesign } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { number2Digits } from '../number-field';
@@ -15,12 +16,16 @@ export class CannonShell extends SpaceObjectBase {
 
     public readonly type = 'CannonShell';
     @type('uint16')
-    public health = 0;
+    public health = 10;
+    public _explosion?: Explosion;
 
-    constructor(public _explosion?: Explosion) {
+    constructor(design?: ProjectileDesign) {
         super();
-        this.health = 10;
-        this.radius = 1;
+        if (design) {
+            this._explosion = new Explosion();
+            this._explosion.assign(design?.explosion);
+            this.radius = design?.radius || 1;
+        }
     }
 
     init(id: string, position: Vec2): this {
