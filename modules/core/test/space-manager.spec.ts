@@ -15,11 +15,11 @@ import {
     concatinateArchs,
 } from '../src';
 
-import { ProjectileModel } from '../src/configurations/projectiles';
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
+import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number) {
     const hitAngle = 0;
@@ -126,7 +126,7 @@ describe('SpaceManager', () => {
             shipMgr.state.chainGun!.design.maxShellRange = 10_000;
             shipMgr.state.chainGun!.shellRange = 1;
             shipMgr.state.chainGun!.isFiring = true;
-            shipMgr.state.chainGun!.projectile = ProjectileModel.CannonShell;
+            switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
             // stop simulation when first bullet reaches its range
             const shellSecondsToLive = calcShellSecondsToLive(

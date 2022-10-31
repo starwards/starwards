@@ -1,5 +1,4 @@
-import { Projectile, SpaceObject, Spaceship } from '../space';
-import { ProjectileModel, projectileDesigns } from '../configurations/projectiles';
+import { Projectile, ProjectileModel, SpaceObject, Spaceship } from '../space';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
 
@@ -111,7 +110,7 @@ export class ChainGunManager {
         if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== ProjectileModel.None) {
             chaingun.cooldown += 1;
             this.shipManager.state.magazine.cannonShells -= 1;
-            const shell = new Projectile(projectileDesigns[chaingun.projectile as 0]);
+            const shell = new Projectile(chaingun.projectile);
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
                 chaingun.design.bulletDegreesDeviation

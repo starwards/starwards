@@ -1,7 +1,6 @@
 import { ChainGun, ShipState } from '../ship';
-import { ProjectileModel, projectileDesigns } from '../configurations/projectiles';
+import { ProjectileModel, SpaceObject, projectileDesigns } from '../space';
 
-import { SpaceObject } from '../space';
 import { XY } from './xy';
 import { addScale } from './formulas';
 

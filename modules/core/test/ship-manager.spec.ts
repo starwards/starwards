@@ -15,10 +15,10 @@ import {
 } from '../src';
 
 import { MockDie } from './ship-test-harness';
-import { ProjectileModel } from '../src/configurations/projectiles';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
+import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
@@ -86,7 +86,8 @@ describe('ShipManager', () => {
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                 shipMgr.state.chainGun!.isFiring = true;
-                shipMgr.state.chainGun!.projectile = ProjectileModel.CannonShell;
+                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+
                 let timePassed = 0;
                 while (timePassed <= 1) {
                     shipMgr.update(iterationTimeInSeconds);
@@ -127,7 +128,8 @@ describe('ShipManager', () => {
                     shipMgr.state.chainGun!.rateOfFireFactor = 1;
                     shipMgr.state.magazine.cannonShells = availableAmmo;
                     shipMgr.state.chainGun!.isFiring = true;
-                    shipMgr.state.chainGun!.projectile = ProjectileModel.CannonShell;
+                    switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+
                     let timePassed = 0;
                     while (timePassed <= 1) {
                         shipMgr.update(iterationTimeInSeconds);
@@ -201,7 +203,8 @@ describe('ShipManager', () => {
                     shipMgr.state.chainGun!.rateOfFireFactor = 0.5;
                     shipMgr.state.chainGun!.design.bulletsPerSecond = bulletsPerSecond;
                     shipMgr.state.chainGun!.isFiring = true;
-                    shipMgr.state.chainGun!.projectile = ProjectileModel.CannonShell;
+                    switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+
                     let timePassed = 0;
                     while (timePassed <= 1) {
                         shipMgr.update(iterationTimeInSeconds);

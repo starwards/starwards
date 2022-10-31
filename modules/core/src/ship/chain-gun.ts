@@ -1,7 +1,7 @@
 import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
 
-import { ProjectileModel } from '../configurations/projectiles';
+import { ProjectileModel } from '../space/projectile';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
