@@ -37,7 +37,7 @@
     },
     "dependencies": {
         "@colyseus/schema": "^1.0.42",
-        "colyseus-events": "^2.1.0",
+        "colyseus-events": "^2.1.1",
         "colyseus.js": "^0.14.13",
         "detect-collisions": "^6.4.0",
         "eventemitter2": "^6.4.9",
