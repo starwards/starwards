@@ -15,6 +15,7 @@ import {
     concatinateArchs,
 } from '../src';
 
+import { ProjectileModel } from '../src/configurations/projectiles';
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
@@ -125,6 +126,7 @@ describe('SpaceManager', () => {
             shipMgr.state.chainGun!.design.maxShellRange = 10_000;
             shipMgr.state.chainGun!.shellRange = 1;
             shipMgr.state.chainGun!.isFiring = true;
+            shipMgr.state.chainGun!.projectile = ProjectileModel.CannonShell;
 
             // stop simulation when first bullet reaches its range
             const shellSecondsToLive = calcShellSecondsToLive(

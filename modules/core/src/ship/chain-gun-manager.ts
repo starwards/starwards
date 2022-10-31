@@ -1,10 +1,12 @@
-import { CannonShell, ProjectileModel, Vec2, gaussianRandom, projectileDesigns } from '..';
+import { CannonShell, Vec2, gaussianRandom } from '..';
+import { ProjectileModel, projectileDesigns } from '../configurations/projectiles';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
+import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
 import { uniqueId } from '../id';
@@ -20,6 +22,13 @@ type ShipManager = {
     state: ShipState;
 };
 
+export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
+    if (chainGun.projectile === ProjectileModel.None) {
+        if (chainGun.design.useCannonShell && magazine.cannonShells > 0) {
+            chainGun.projectile = ProjectileModel.CannonShell;
+        }
+    }
+}
 export class ChainGunManager {
     constructor(
         public chainGun: ChainGun,
@@ -27,7 +36,9 @@ export class ChainGunManager {
         public ship: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager
-    ) {}
+    ) {
+        switchToAvailableAmmo(chainGun, ship.magazine);
+    }
 
     public setShellRangeMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.shipManager.target) {
@@ -83,8 +94,8 @@ export class ChainGunManager {
 
     private updateChainGun(deltaSeconds: number) {
         const chaingun = this.chainGun;
-        if (this.chainGun.isFiring && (this.chainGun.broken || this.shipManager.state.magazine.cannonShells <= 0)) {
-            this.chainGun.isFiring = false;
+        if (chaingun.isFiring && (chaingun.broken || this.shipManager.state.magazine.cannonShells <= 0)) {
+            chaingun.isFiring = false;
         }
         if (chaingun.cooldown > 0) {
             // charge weapon
@@ -100,8 +111,7 @@ export class ChainGunManager {
         if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== ProjectileModel.None) {
             chaingun.cooldown += 1;
             this.shipManager.state.magazine.cannonShells -= 1;
-            const shell = new CannonShell(projectileDesigns[chaingun.projectile]);
-
+            const shell = new CannonShell(projectileDesigns[chaingun.projectile as 0]);
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
                 chaingun.design.bulletDegreesDeviation
