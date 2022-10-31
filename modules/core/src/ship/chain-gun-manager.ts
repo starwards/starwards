@@ -1,7 +1,7 @@
-import { CannonShell, Vec2, gaussianRandom } from '..';
+import { Projectile, SpaceObject, Spaceship } from '../space';
 import { ProjectileModel, projectileDesigns } from '../configurations/projectiles';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
-import { SpaceObject, Spaceship } from '../space';
+import { Vec2, gaussianRandom } from '..';
 
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
@@ -111,7 +111,7 @@ export class ChainGunManager {
         if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== ProjectileModel.None) {
             chaingun.cooldown += 1;
             this.shipManager.state.magazine.cannonShells -= 1;
-            const shell = new CannonShell(projectileDesigns[chaingun.projectile as 0]);
+            const shell = new Projectile(projectileDesigns[chaingun.projectile as 0]);
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
                 chaingun.design.bulletDegreesDeviation

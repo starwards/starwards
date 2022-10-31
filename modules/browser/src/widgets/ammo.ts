@@ -1,4 +1,4 @@
-import { Destructors, ShipDriver } from '@starwards/core';
+import { Destructors, ShipDriver, cannonShell } from '@starwards/core';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
 import { Container } from 'golden-layout';
@@ -17,7 +17,7 @@ export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
             });
             container.on('destroy', this.panelCleanup.destroy);
 
-            // cannon shells
+            // cannonShell
             const cannonShellsProp = readProp<number>(shipDriver, `/magazine/cannonShells`);
             const maxCannonShellsProp = readProp<number>(shipDriver, `/magazine/design/maxCannonShells`);
             const capacityProp = readProp<number>(shipDriver, `/magazine/capacity`);
@@ -28,7 +28,7 @@ export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
                     abstractOnChange([cannonShellsProp, maxCannonShellsProp, capacityProp], getText, cb),
                 getValue: getText,
             };
-            addTextBlade(this.pane, prop, { label: 'Cannon Shells' }, this.panelCleanup.add);
+            addTextBlade(this.pane, prop, { label: cannonShell.name }, this.panelCleanup.add);
         }
     }
     return {

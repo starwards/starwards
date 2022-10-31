@@ -5,16 +5,16 @@ import { Vec2 } from './vec2';
 import { number2Digits } from '../number-field';
 import { tweakable } from '../tweakable';
 import { type } from '@colyseus/schema';
-export class CannonShell extends SpaceObjectBase {
-    public static isInstance = (o: unknown): o is CannonShell => {
-        return !!o && (o as SpaceObjectBase).type === 'CannonShell';
+export class Projectile extends SpaceObjectBase {
+    public static isInstance = (o: unknown): o is Projectile => {
+        return !!o && (o as SpaceObjectBase).type === 'Projectile';
     };
 
     @number2Digits
     @tweakable({ type: 'number', number: { min: 0.01 } })
     public secondsToLive = 0;
 
-    public readonly type = 'CannonShell';
+    public readonly type = 'Projectile';
     @type('uint16')
     public health = 10;
     public _explosion?: Explosion;

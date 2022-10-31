@@ -93,7 +93,7 @@ describe('ShipManager', () => {
                     spaceMgr.update(iterationTimeInSeconds);
                     timePassed += iterationTimeInSeconds;
                 }
-                const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
+                const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                 expect(cannonShells.length).to.be.closeTo(
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1
@@ -134,7 +134,7 @@ describe('ShipManager', () => {
                         spaceMgr.update(iterationTimeInSeconds);
                         timePassed += iterationTimeInSeconds;
                     }
-                    const cannonShells = [...spaceMgr.state.getAll('CannonShell')];
+                    const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                     expect(cannonShells.length).to.equal(availableAmmo);
                     expect(shipMgr.state.magazine.cannonShells).to.equal(0);
                 }
@@ -171,7 +171,7 @@ describe('ShipManager', () => {
                         timePassed += iterationTimeInSeconds;
                     }
 
-                    for (const cannonShell of spaceMgr.state.getAll('CannonShell')) {
+                    for (const cannonShell of spaceMgr.state.getAll('Projectile')) {
                         expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(angleOffset);
                     }
                 }
@@ -208,7 +208,7 @@ describe('ShipManager', () => {
                         spaceMgr.update(iterationTimeInSeconds);
                         timePassed += iterationTimeInSeconds;
                     }
-                    expect([...spaceMgr.state.getAll('CannonShell')].length).to.be.closeTo(
+                    expect([...spaceMgr.state.getAll('Projectile')].length).to.be.closeTo(
                         Math.floor(
                             shipMgr.state.chainGun!.design.bulletsPerSecond * shipMgr.state.chainGun!.rateOfFireFactor
                         ),

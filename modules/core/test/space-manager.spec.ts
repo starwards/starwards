@@ -2,8 +2,8 @@
 import {
     Armor,
     Asteroid,
-    CannonShell,
     Explosion,
+    Projectile,
     REAR_ARC,
     ShipDie,
     SpaceObject,
@@ -53,7 +53,7 @@ describe('SpaceManager', () => {
                     target.radius = Spaceship.radius;
                     const explosion = new Explosion();
                     const explosionInit = jest.spyOn(explosion, 'init');
-                    const shell = new CannonShell();
+                    const shell = new Projectile();
                     shell._explosion = explosion;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     shell.velocity = Vec2.make(velocity);

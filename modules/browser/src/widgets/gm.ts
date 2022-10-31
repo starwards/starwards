@@ -1,4 +1,4 @@
-import { CannonShell, Driver, Faction, SpaceObject } from '@starwards/core';
+import { Driver, Faction, Projectile, SpaceObject } from '@starwards/core';
 import { Graphics, Loader, UPDATE_PRIORITY, filters } from 'pixi.js';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 
@@ -61,7 +61,7 @@ export class GmWidgets {
                             return blue;
                     }
                 };
-                const getColor = (s: SpaceObject) => (CannonShell.isInstance(s) ? white : getFactionColor(s.faction));
+                const getColor = (s: SpaceObject) => (Projectile.isInstance(s) ? white : getFactionColor(s.faction));
                 const blipLayer = new ObjectsLayer(
                     root,
                     spaceDriver,
