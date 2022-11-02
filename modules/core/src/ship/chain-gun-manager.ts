@@ -23,7 +23,7 @@ type ShipManager = {
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
     if (chainGun.projectile === ProjectileModel.None) {
-        if (chainGun.design.useCannonShell && magazine.cannonShells > 0) {
+        if (chainGun.design.useCannonShell && magazine.count_CannonShell > 0) {
             chainGun.projectile = ProjectileModel.CannonShell;
         }
     }
@@ -93,7 +93,7 @@ export class ChainGunManager {
 
     private updateChainGun(deltaSeconds: number) {
         const chaingun = this.chainGun;
-        if (chaingun.isFiring && (chaingun.broken || this.shipManager.state.magazine.cannonShells <= 0)) {
+        if (chaingun.isFiring && (chaingun.broken || this.shipManager.state.magazine.count_CannonShell <= 0)) {
             chaingun.isFiring = false;
         }
         if (chaingun.cooldown > 0) {
@@ -109,7 +109,7 @@ export class ChainGunManager {
         const chaingun = this.chainGun;
         if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== ProjectileModel.None) {
             chaingun.cooldown += 1;
-            this.shipManager.state.magazine.cannonShells -= 1;
+            this.shipManager.state.magazine.count_CannonShell -= 1;
             const shell = new Projectile(chaingun.projectile);
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,

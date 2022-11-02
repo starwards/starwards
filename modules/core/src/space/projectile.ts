@@ -9,6 +9,7 @@ export enum ProjectileModel {
     None = -1,
     CannonShell,
 }
+export const ProjectileModels: ProjectileModel[] = Object.keys(ProjectileModel).filter(Number.isInteger).map(Number);
 export type ProjectileDesign = typeof cannonShell;
 export const cannonShell = {
     name: 'cannon shell',

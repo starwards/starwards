@@ -18,11 +18,12 @@ export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
             container.on('destroy', this.panelCleanup.destroy);
 
             // cannonShell
-            const cannonShellsProp = readProp<number>(shipDriver, `/magazine/cannonShells`);
-            const maxCannonShellsProp = readProp<number>(shipDriver, `/magazine/design/maxCannonShells`);
+
+            const cannonShellsProp = readProp<number>(shipDriver, `/magazine/count_CannonShell`);
+            const maxCannonShellsProp = readProp<number>(shipDriver, `/magazine/design/max_CannonShell`);
             const capacityProp = readProp<number>(shipDriver, `/magazine/capacity`);
             const getText = () =>
-                `${shipDriver.state.magazine.cannonShells} / ${shipDriver.state.magazine.maxCannonShells}`;
+                `${shipDriver.state.magazine.count_CannonShell} / ${shipDriver.state.magazine.max_CannonShell}`;
             const prop = {
                 onChange: (cb: () => unknown) =>
                     abstractOnChange([cannonShellsProp, maxCannonShellsProp, capacityProp], getText, cb),

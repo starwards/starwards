@@ -43,7 +43,7 @@ export const dragonflyProperties = {
     rotationEnergyCost: 0.07,
 };
 export const dragonflyMagazine = {
-    maxCannonShells: 3600,
+    max_CannonShell: 3600,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,

@@ -52,7 +52,7 @@ export function resetShipState(state: ShipState) {
         resetThruster(thruster);
     }
     state.smartPilot.offsetFactor = 0;
-    state.magazine.cannonShells = state.magazine.maxCannonShells;
+    state.magazine.count_CannonShell = state.magazine.max_CannonShell;
 }
 
 function resetThruster(thruster: Thruster) {
@@ -319,7 +319,9 @@ export class ShipManager {
         if (!magazine.broken) {
             if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
                 // todo convert to a defectible property that accumulates damage
-                magazine.cannonShells = Math.round(magazine.cannonShells * (1 - magazine.design.capacityDamageFactor));
+                magazine.count_CannonShell = Math.round(
+                    magazine.count_CannonShell * (1 - magazine.design.capacityDamageFactor)
+                );
             } else {
                 magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
             }
@@ -646,9 +648,9 @@ export class ShipManager {
     }
 
     public addChainGunAmmo(addedAmmo: number) {
-        this.state.magazine.cannonShells = Math.min(
-            this.state.magazine.cannonShells + addedAmmo,
-            this.state.magazine.maxCannonShells
+        this.state.magazine.count_CannonShell = Math.min(
+            this.state.magazine.count_CannonShell + addedAmmo,
+            this.state.magazine.max_CannonShell
         );
     }
 

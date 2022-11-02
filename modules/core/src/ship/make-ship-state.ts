@@ -73,7 +73,7 @@ function makeRadar(design: RadarDesign) {
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
-    magazine.cannonShells = magazine.design.maxCannonShells;
+    magazine.count_CannonShell = magazine.design.max_CannonShell;
     return magazine;
 }
 
