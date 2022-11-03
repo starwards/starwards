@@ -21,6 +21,7 @@ export type ChaingunDesign = {
     damage50: number;
     use_CannonShell?: boolean;
     use_BlastCannonShell?: boolean;
+    use_Missile?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -33,6 +34,7 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits damage50 = 0;
     @type('boolean') use_CannonShell = false;
     @type('boolean') use_BlastCannonShell = false;
+    @type('boolean') use_Missile = false;
 
     // get explosionSecondsToLive(): number {
     //     return this.explosionRadius / this.explosionExpansionSpeed;

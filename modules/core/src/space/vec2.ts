@@ -220,6 +220,27 @@ export class Vec2 extends Schema implements XY {
         this.y = xy.y;
     }
 
+    public add(vector: XY): this {
+        this.x += vector.x;
+        this.y += vector.y;
+        return this;
+    }
+
+    public normalize(scale = 1.0): this {
+        const length = XY.lengthOf(this);
+        if (length === scale) {
+            return this;
+        }
+        if (length === 0) {
+            this.x = 0;
+            this.y = 0;
+            return this;
+        }
+        const factor = scale / length;
+        this.x *= factor;
+        this.y *= factor;
+        return this;
+    }
     /*
     if one of these methods are needed, move it to static
     public at(index: number): number {
@@ -277,29 +298,7 @@ export class Vec2 extends Schema implements XY {
         return this;
     }
 
-    public normalize(dest?: Vec2): Vec2 {
-        if (!dest) { dest = this; }
 
-        let length = this.length();
-
-        if (length === 1) {
-            return this;
-        }
-
-        if (length === 0) {
-            dest.x = 0;
-            dest.y = 0;
-
-            return dest;
-        }
-
-        length = 1.0 / length;
-
-        dest.x *= length;
-        dest.y *= length;
-
-        return dest;
-    }
 
     public multiplyMat2(matrix: mat2, dest?: Vec2): Vec2 {
         if (!dest) { dest = this; }

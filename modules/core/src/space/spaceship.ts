@@ -14,6 +14,7 @@ export class Spaceship extends SpaceObjectBase {
     public readonly type = 'Spaceship';
 
     @type('string')
+    @tweakable('string')
     public targetId: string | null = null;
 
     @type('int8')

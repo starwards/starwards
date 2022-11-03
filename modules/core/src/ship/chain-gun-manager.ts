@@ -122,25 +122,30 @@ export class ChainGunManager {
         if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== 'None') {
             chaingun.cooldown += 1;
             this.shipManager.state.magazine.count_CannonShell -= 1;
-            const shell = new Projectile(chaingun.projectile);
-            shell.angle = gaussianRandom(
+            const projectile = new Projectile(chaingun.projectile);
+            projectile.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
                 chaingun.design.bulletDegreesDeviation
             );
-            shell.velocity = Vec2.sum(
+            projectile.velocity = Vec2.sum(
                 this.spaceObject.velocity,
-                XY.rotate({ x: chaingun.design.bulletSpeed, y: 0 }, shell.angle)
+                XY.rotate({ x: chaingun.design.bulletSpeed, y: 0 }, projectile.angle)
             );
             const shellPosition = Vec2.make(
                 XY.sum(
                     this.spaceObject.position, // position of ship
-                    XY.byLengthAndDirection(this.spaceObject.radius + shell.radius + EPSILON, shell.angle), // muzzle related to ship
-                    XY.byLengthAndDirection(shell.radius * 2, shell.angle) // some initial distance
+                    XY.byLengthAndDirection(this.spaceObject.radius + projectile.radius + EPSILON, projectile.angle), // muzzle related to ship
+                    XY.byLengthAndDirection(projectile.radius * 2, projectile.angle) // some initial distance
                 )
             );
-            shell.init(uniqueId('shell'), shellPosition);
-            shell.secondsToLive = chaingun.shellSecondsToLive;
-            this.spaceManager.insert(shell);
+            projectile.init(uniqueId('shell'), shellPosition);
+            if (projectile.design.homing) {
+                projectile.targetId = this.ship.targetId;
+                projectile.secondsToLive = projectile.design.homing.secondsToLive;
+            } else {
+                projectile.secondsToLive = chaingun.shellSecondsToLive;
+            }
+            this.spaceManager.insert(projectile);
         }
     }
 }
