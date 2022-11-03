@@ -1,6 +1,6 @@
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { circlesIntersection, limitPercision, moveToTarget, rotateToTarget, sign, toDegreesDelta } from '.';
+import { circlesIntersection, limitPercision, moveToTarget, rotateToTarget, toDegreesDelta } from '.';
 
 import { SWResponse } from './collisions-utils';
 import { Spaceship } from '../space';
