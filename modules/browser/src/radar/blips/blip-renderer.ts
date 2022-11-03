@@ -175,7 +175,7 @@ export const dradisDrawFunctions = {
 export const tacticalDrawFunctions = {
     Spaceship: TacticalSpaceshipRenderer,
     Asteroid: CircleRenderer,
-    CannonShell: CircleRenderer,
+    Projectile: CircleRenderer,
     Explosion: CircleRenderer,
 };
 

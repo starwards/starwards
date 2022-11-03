@@ -1,5 +1,5 @@
 import { Body, Circle, System } from 'detect-collisions';
-import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { circlesIntersection, limitPercision } from '.';
 
 import { SWResponse } from './collisions-utils';
@@ -120,7 +120,7 @@ export class SpaceManager {
                 }
             }
         }
-        for (const shell of this.state.getAll('CannonShell')) {
+        for (const shell of this.state.getAll('Projectile')) {
             if (!shell.freeze) {
                 shell.secondsToLive -= deltaSeconds;
                 if (shell.secondsToLive <= 0) {
@@ -201,7 +201,7 @@ export class SpaceManager {
         }
     }
 
-    private explodeCannonShell(shell: CannonShell) {
+    private explodeCannonShell(shell: Projectile) {
         shell.destroyed = true;
         const explosion = shell._explosion || new Explosion();
         explosion.init(uniqueId('explosion'), shell.position.clone());
@@ -231,7 +231,7 @@ export class SpaceManager {
     }
 
     private isProjectile = (o: SpaceObject) =>
-        CannonShell.isInstance(o) || (Explosion.isInstance(o) && XY.isZero(o.velocity, o.radius));
+        Projectile.isInstance(o) || (Explosion.isInstance(o) && XY.isZero(o.velocity, o.radius));
 
     private handleCollisions(deltaSeconds: number) {
         const positionChanges: Array<{ s: SpaceObject; p: XY }> = [];
@@ -244,11 +244,11 @@ export class SpaceManager {
                 !subject.destroyed &&
                 !subject.freeze &&
                 object &&
-                !CannonShell.isInstance(object) &&
+                !Projectile.isInstance(object) &&
                 !object.destroyed
             ) {
                 let positionChange: XY | null = null;
-                if (CannonShell.isInstance(subject)) {
+                if (Projectile.isInstance(subject)) {
                     this.explodeCannonShell(subject);
                 } else if (Explosion.isInstance(subject)) {
                     positionChange = this.handleExplosionCollision(subject, response);
@@ -285,7 +285,7 @@ export class SpaceManager {
 
     private calcSolidCollision(
         deltaSeconds: number,
-        subject: Exclude<SpaceObject, CannonShell | Explosion>,
+        subject: Exclude<SpaceObject, Projectile | Explosion>,
         object: SpaceObject,
         response: SWResponse
     ) {

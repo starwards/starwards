@@ -1,10 +1,11 @@
-import { CannonShell, Explosion, Vec2, gaussianRandom } from '..';
+import { Projectile, SpaceObject, Spaceship, projectileModels } from '../space';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
-import { SpaceObject, Spaceship } from '../space';
+import { Vec2, gaussianRandom } from '..';
 
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
+import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
 import { uniqueId } from '../id';
@@ -20,6 +21,15 @@ type ShipManager = {
     state: ShipState;
 };
 
+export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
+    if (chainGun.projectile === 'None') {
+        for (const projectileModel of projectileModels) {
+            if (chainGun.design[`use_${projectileModel}`] && magazine[`count_${projectileModel}`] > 0) {
+                chainGun.projectile = projectileModel;
+            }
+        }
+    }
+}
 export class ChainGunManager {
     constructor(
         public chainGun: ChainGun,
@@ -27,7 +37,9 @@ export class ChainGunManager {
         public ship: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager
-    ) {}
+    ) {
+        switchToAvailableAmmo(chainGun, ship.magazine);
+    }
 
     public setShellRangeMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.shipManager.target) {
@@ -82,35 +94,35 @@ export class ChainGunManager {
     }
 
     private updateChainGun(deltaSeconds: number) {
-        const chaingun = this.chainGun;
-        if (this.chainGun.isFiring && (this.chainGun.broken || this.shipManager.state.magazine.cannonShells <= 0)) {
-            this.chainGun.isFiring = false;
+        const chainGun = this.chainGun;
+        if (chainGun.projectile !== 'None' && !chainGun.design[`use_${chainGun.projectile}`]) {
+            chainGun.projectile = 'None';
         }
-        if (chaingun.cooldown > 0) {
+        if (chainGun.isFiring && chainGun.broken) {
+            chainGun.isFiring = false;
+        }
+        if (
+            chainGun.isFiring &&
+            chainGun.projectile !== 'None' &&
+            this.shipManager.state.magazine[`count_${chainGun.projectile}`] <= 0
+        ) {
+            chainGun.isFiring = false;
+        }
+        if (chainGun.cooldown > 0) {
             // charge weapon
-            chaingun.cooldown -= deltaSeconds * chaingun.design.bulletsPerSecond * chaingun.rateOfFireFactor;
-            if (!chaingun.isFiring && chaingun.cooldown < 0) {
-                chaingun.cooldown = 0;
+            chainGun.cooldown -= deltaSeconds * chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor;
+            if (!chainGun.isFiring && chainGun.cooldown < 0) {
+                chainGun.cooldown = 0;
             }
         }
     }
 
-    private getChainGunExplosion() {
-        const result = new Explosion();
-        result.secondsToLive = this.chainGun.design.explosionSecondsToLive;
-        result.expansionSpeed = this.chainGun.design.explosionExpansionSpeed;
-        result.damageFactor = this.chainGun.design.explosionDamageFactor;
-        result.blastFactor = this.chainGun.design.explosionBlastFactor;
-        return result;
-    }
-
     private fireChainGun() {
         const chaingun = this.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0) {
+        if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== 'None') {
             chaingun.cooldown += 1;
-            this.shipManager.state.magazine.cannonShells -= 1;
-            const shell = new CannonShell(this.getChainGunExplosion());
-
+            this.shipManager.state.magazine.count_CannonShell -= 1;
+            const shell = new Projectile(chaingun.projectile);
             shell.angle = gaussianRandom(
                 this.spaceObject.angle + chaingun.angle + chaingun.angleOffset,
                 chaingun.design.bulletDegreesDeviation

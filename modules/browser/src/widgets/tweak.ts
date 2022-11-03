@@ -115,13 +115,19 @@ function addTweakables(
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
             const config = tweakable.config.number || {};
             addCameraRingBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
-        } else {
+        } else if (tweakable.config.type === 'enum') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
             const enumObj = tweakable.config.enum;
             const options = Object.values(enumObj)
                 .filter<number>((k): k is number => typeof k === 'number')
                 .map((value) => ({ value, text: String(enumObj[value]) }));
             addEnumListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
+        } else if (tweakable.config.type === 'string enum') {
+            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            const options = tweakable.config.enum.map((value) => ({ value, text: value }));
+            addEnumListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
+        } else {
+            throw new Error(`unknown tweakable type :"${JSON.stringify(tweakable.config)}"`);
         }
     }
 }

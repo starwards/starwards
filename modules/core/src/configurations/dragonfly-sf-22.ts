@@ -27,10 +27,7 @@ export const dragonflyChaingun = {
     maxShellRange: 5000,
     minShellRange: 1000,
     overrideSecondsToLive: 0,
-    explosionRadius: 10,
-    explosionExpansionSpeed: 40,
-    explosionDamageFactor: 20,
-    explosionBlastFactor: 1,
+    use_CannonShell: true,
     damage50: 20,
 };
 export const dragonflyReactor = {
@@ -46,7 +43,8 @@ export const dragonflyProperties = {
     rotationEnergyCost: 0.07,
 };
 export const dragonflyMagazine = {
-    maxCannonShells: 3600,
+    max_CannonShell: 3600,
+    max_BlastCannonShell: 2000,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,
@@ -69,11 +67,8 @@ export const dragonflyTube = {
     maxShellRange: 1_000_000,
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
-    // ammo properties
-    explosionRadius: 100,
-    explosionExpansionSpeed: 100,
-    explosionDamageFactor: 20,
-    explosionBlastFactor: 1,
+    use_CannonShell: true,
+    use_BlastCannonShell: true,
 };
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
