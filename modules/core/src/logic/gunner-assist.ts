@@ -1,5 +1,5 @@
 import { ChainGun, ShipState } from '../ship';
-import { ProjectileModel, SpaceObject, projectileDesigns } from '../space';
+import { SpaceObject, projectileDesigns } from '../space';
 
 import { XY } from './xy';
 import { addScale } from './formulas';
@@ -44,7 +44,7 @@ export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPos
 
 export function getKillZoneRadiusRange(chainGun: ChainGun): [number, number] {
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
-    if (chainGun.projectile === ProjectileModel.None) {
+    if (chainGun.projectile === 'None') {
         return [0, 1_000_000];
     }
     const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
@@ -79,7 +79,7 @@ export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): 
 }
 
 function getShellDangerZoneRadius(chainGun: ChainGun): number {
-    if (chainGun.projectile === ProjectileModel.None) {
+    if (chainGun.projectile === 'None') {
         return 0;
     }
     const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;

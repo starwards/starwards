@@ -1,12 +1,15 @@
 import { DesignState, defectible } from './system';
+import { ProjectileModel, projectileModels } from '../space/projectile';
 import { Schema, type } from '@colyseus/schema';
 
-import { ProjectileModel } from '../space/projectile';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
+
+export type SelectedProjectileModel = 'None' | ProjectileModel;
+export const selectedProjectileModels = ['None', ...projectileModels] as const;
 
 export type ChaingunDesign = {
     bulletsPerSecond: number;
@@ -84,9 +87,9 @@ export class ChainGun extends Schema {
     @defectible({ normal: 1, name: 'rate of fire' })
     rateOfFireFactor = 1;
 
-    @type('int8')
-    @tweakable({ type: 'enum', enum: ProjectileModel })
-    projectile: ProjectileModel = ProjectileModel.None;
+    @type('string')
+    @tweakable({ type: 'string enum', enum: selectedProjectileModels })
+    projectile: SelectedProjectileModel = 'None';
 
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();

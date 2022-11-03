@@ -1,4 +1,4 @@
-import { Projectile, ProjectileModel, SpaceObject, Spaceship } from '../space';
+import { Projectile, SpaceObject, Spaceship } from '../space';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
 
@@ -22,9 +22,9 @@ type ShipManager = {
 };
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
-    if (chainGun.projectile === ProjectileModel.None) {
+    if (chainGun.projectile === 'None') {
         if (chainGun.design.useCannonShell && magazine.count_CannonShell > 0) {
-            chainGun.projectile = ProjectileModel.CannonShell;
+            chainGun.projectile = 'CannonShell';
         }
     }
 }
@@ -107,7 +107,7 @@ export class ChainGunManager {
 
     private fireChainGun() {
         const chaingun = this.chainGun;
-        if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== ProjectileModel.None) {
+        if (chaingun.isFiring && chaingun.cooldown <= 0 && chaingun.projectile !== 'None') {
             chaingun.cooldown += 1;
             this.shipManager.state.magazine.count_CannonShell -= 1;
             const shell = new Projectile(chaingun.projectile);

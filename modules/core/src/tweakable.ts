@@ -15,6 +15,10 @@ export type TweakableConfig =
           };
       }
     | {
+          type: 'string enum';
+          enum: readonly string[];
+      }
+    | {
           type: 'number';
           number?: {
               min?: number;
