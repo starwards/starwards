@@ -7,22 +7,22 @@ import {
     RangeConfig,
     isGamepadButtonsRangeConfig,
 } from './input-config';
-import { capToRange, isInRange } from '@starwards/core';
+import { RTuple2, capToRange, isInRange } from '@starwards/core';
 
 import { EmitterLoop } from '../loop';
 import hotkeys from 'hotkeys-js';
 
-type AxisListener = { axis: GamepadAxisConfig; range: readonly [number, number]; setValue: (v: number) => unknown };
+type AxisListener = { axis: GamepadAxisConfig; range: RTuple2; setValue: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 type KeyListener = { key: string; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 
 // equiv. to lerp([-1, 1], range, axisValue)
-function lerpAxisToRange(range: readonly [number, number], axisValue: number) {
+function lerpAxisToRange(range: RTuple2, axisValue: number) {
     const t = (axisValue + 1) / 2;
     return (1 - t) * range[0] + t * range[1];
 }
 interface RangeAction {
-    range: readonly [number, number];
+    range: RTuple2;
     setValue: (v: number) => unknown;
 }
 interface TriggerAction {
@@ -144,7 +144,7 @@ export class InputManager {
     }
 }
 
-function getStepOfRange(step: number, range: readonly [number, number]) {
+function getStepOfRange(step: number, range: RTuple2) {
     return (step * (range[1] - range[0])) / 2;
 }
 class CombinedRangeCallbacks {

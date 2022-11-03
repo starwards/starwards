@@ -7,6 +7,8 @@ import { tweakable } from '../tweakable';
 import { type } from '@colyseus/schema';
 
 // currently projectiles config is hard-coded. should move to a more dynamic solution in the future.
+// when adding new Projectile types, also add relevent fields to the Magazine and chaingun systems
+
 export const projectileDesigns = {
     CannonShell: {
         name: 'cannon shell',
@@ -16,6 +18,16 @@ export const projectileDesigns = {
             expansionSpeed: 100,
             damageFactor: 20,
             blastFactor: 1,
+        },
+    },
+    BlastCannonShell: {
+        name: 'blast cannon shell',
+        radius: 1,
+        explosion: {
+            secondsToLive: 1,
+            expansionSpeed: 200,
+            damageFactor: 5,
+            blastFactor: 5,
         },
     },
 } as const;

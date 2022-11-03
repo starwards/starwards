@@ -10,6 +10,7 @@ import { Thruster, ThrusterDesign } from './thruster';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
+import { projectileModels } from '../space/projectile';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
@@ -73,7 +74,9 @@ function makeRadar(design: RadarDesign) {
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
-    magazine.count_CannonShell = magazine.design.max_CannonShell;
+    for (const projectileModel of projectileModels) {
+        magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
+    }
     return magazine;
 }
 

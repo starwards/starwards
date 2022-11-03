@@ -9,8 +9,8 @@ import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
 export type SelectedProjectileModel = 'None' | ProjectileModel;
-export const selectedProjectileModels = ['None', ...projectileModels] as const;
 
+// Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 export type ChaingunDesign = {
     bulletsPerSecond: number;
     bulletSpeed: number;
@@ -19,7 +19,8 @@ export type ChaingunDesign = {
     minShellRange: number;
     overrideSecondsToLive: number;
     damage50: number;
-    useCannonShell?: boolean;
+    use_CannonShell?: boolean;
+    use_BlastCannonShell?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -30,7 +31,8 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits minShellRange = 0;
     @number2Digits overrideSecondsToLive = -1;
     @number2Digits damage50 = 0;
-    @type('boolean') useCannonShell = false;
+    @type('boolean') use_CannonShell = false;
+    @type('boolean') use_BlastCannonShell = false;
 
     // get explosionSecondsToLive(): number {
     //     return this.explosionRadius / this.explosionExpansionSpeed;
@@ -88,7 +90,10 @@ export class ChainGun extends Schema {
     rateOfFireFactor = 1;
 
     @type('string')
-    @tweakable({ type: 'string enum', enum: selectedProjectileModels })
+    @tweakable((t: ChainGun) => ({
+        type: 'string enum',
+        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+    }))
     projectile: SelectedProjectileModel = 'None';
 
     @type(ChaingunDesignState)

@@ -1,4 +1,4 @@
-import { Projectile, SpaceObject, Spaceship } from '../space';
+import { Projectile, SpaceObject, Spaceship, projectileModels } from '../space';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
 
@@ -23,8 +23,10 @@ type ShipManager = {
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
     if (chainGun.projectile === 'None') {
-        if (chainGun.design.useCannonShell && magazine.count_CannonShell > 0) {
-            chainGun.projectile = 'CannonShell';
+        for (const projectileModel of projectileModels) {
+            if (chainGun.design[`use_${projectileModel}`] && magazine[`count_${projectileModel}`] > 0) {
+                chainGun.projectile = projectileModel;
+            }
         }
     }
 }
@@ -92,15 +94,25 @@ export class ChainGunManager {
     }
 
     private updateChainGun(deltaSeconds: number) {
-        const chaingun = this.chainGun;
-        if (chaingun.isFiring && (chaingun.broken || this.shipManager.state.magazine.count_CannonShell <= 0)) {
-            chaingun.isFiring = false;
+        const chainGun = this.chainGun;
+        if (chainGun.projectile !== 'None' && !chainGun.design[`use_${chainGun.projectile}`]) {
+            chainGun.projectile = 'None';
         }
-        if (chaingun.cooldown > 0) {
+        if (chainGun.isFiring && chainGun.broken) {
+            chainGun.isFiring = false;
+        }
+        if (
+            chainGun.isFiring &&
+            chainGun.projectile !== 'None' &&
+            this.shipManager.state.magazine[`count_${chainGun.projectile}`] <= 0
+        ) {
+            chainGun.isFiring = false;
+        }
+        if (chainGun.cooldown > 0) {
             // charge weapon
-            chaingun.cooldown -= deltaSeconds * chaingun.design.bulletsPerSecond * chaingun.rateOfFireFactor;
-            if (!chaingun.isFiring && chaingun.cooldown < 0) {
-                chaingun.cooldown = 0;
+            chainGun.cooldown -= deltaSeconds * chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor;
+            if (!chainGun.isFiring && chainGun.cooldown < 0) {
+                chainGun.cooldown = 0;
             }
         }
     }
