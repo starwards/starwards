@@ -126,7 +126,11 @@ describe('ShipManager', () => {
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.rateOfFireFactor = 1;
+                    shipMgr.state.chainGun!.design.use_BlastCannonShell = false;
+                    shipMgr.state.chainGun!.design.use_Missile = false;
+                    shipMgr.state.chainGun!.design.use_CannonShell = true;
                     shipMgr.state.magazine.count_CannonShell = availableAmmo;
+                    shipMgr.state.chainGun!.projectile = 'CannonShell';
                     shipMgr.state.chainGun!.isFiring = true;
                     switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
