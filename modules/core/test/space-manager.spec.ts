@@ -2,8 +2,8 @@
 import {
     Armor,
     Asteroid,
-    CannonShell,
     Explosion,
+    Projectile,
     REAR_ARC,
     ShipDie,
     SpaceObject,
@@ -19,6 +19,7 @@ import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
+import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number) {
     const hitAngle = 0;
@@ -52,7 +53,8 @@ describe('SpaceManager', () => {
                     target.radius = Spaceship.radius;
                     const explosion = new Explosion();
                     const explosionInit = jest.spyOn(explosion, 'init');
-                    const shell = new CannonShell(explosion);
+                    const shell = new Projectile();
+                    shell._explosion = explosion;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     shell.velocity = Vec2.make(velocity);
                     shell.secondsToLive = timeInSeconds * 3; // enough time to collide
@@ -124,6 +126,7 @@ describe('SpaceManager', () => {
             shipMgr.state.chainGun!.design.maxShellRange = 10_000;
             shipMgr.state.chainGun!.shellRange = 1;
             shipMgr.state.chainGun!.isFiring = true;
+            switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
             // stop simulation when first bullet reaches its range
             const shellSecondsToLive = calcShellSecondsToLive(

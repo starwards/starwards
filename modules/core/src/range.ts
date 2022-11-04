@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 import { JsonPointer } from 'json-ptr';
+import { RTuple2 } from './logic/formulas';
 import { Schema } from '@colyseus/schema';
 import { getJsonPointer } from './json-ptr';
 
@@ -15,7 +16,7 @@ export type Constructor = { readonly prototype: Schema } & Function; // https://
 type SchemaRanges = {
     [pointer: string]: Range<Schema>;
 };
-type Range<T extends Schema> = readonly [number, number] | ((target: T) => readonly [number, number]);
+type Range<T extends Schema> = RTuple2 | ((target: T) => RTuple2);
 
 function isRange<T extends Schema>(r: Range<T> | SchemaRanges): r is Range<T> {
     return typeof r === 'function' || Array.isArray(r);
@@ -52,7 +53,7 @@ function appendDecendantRange(target: Schema, propertyKey: string | symbol, r: S
     Reflect.defineMetadata(descendantMetadataKey, { ...ranges, ...r }, target, propertyKey);
 }
 
-function getRangeFromProperty<T extends Schema>(target: T, propertyKey: string): readonly [number, number] | undefined {
+function getRangeFromProperty<T extends Schema>(target: T, propertyKey: string): RTuple2 | undefined {
     const r = Reflect.getMetadata(propertyMetadataKey, target, propertyKey) as Range<T> | undefined;
     if (typeof r === 'function') {
         return r(target);
@@ -64,7 +65,7 @@ function getRangeFromAncestor<T extends Schema>(
     ancestor: T,
     propertyKey: string,
     descendantPath: string
-): readonly [number, number] | undefined {
+): RTuple2 | undefined {
     const ranges = Reflect.getMetadata(descendantMetadataKey, ancestor, propertyKey) as SchemaRanges | undefined;
     if (ranges) {
         const r = ranges[descendantPath];
@@ -78,7 +79,7 @@ function getRangeFromAncestor<T extends Schema>(
     return undefined;
 }
 
-export function getRange(root: Schema, pointer: JsonPointer): readonly [number, number] {
+export function getRange(root: Schema, pointer: JsonPointer): RTuple2 {
     const r = tryGetRange(root, pointer);
     if (!r) {
         throw new Error(`pointer ${pointer.pointer} has no range set!`);
@@ -86,7 +87,7 @@ export function getRange(root: Schema, pointer: JsonPointer): readonly [number, 
     return r;
 }
 
-export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | readonly [number, number] {
+export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | RTuple2 {
     const target = pointer.path.length === 1 ? root : pointer.parent(root); // pending bug fix https://github.com/flitbit/json-ptr/pull/56
     const propertyName = pointer.path.at(-1);
     if (!(target instanceof Object) || typeof propertyName !== 'string') {

@@ -1,4 +1,8 @@
 import { EventEmitter, EventKey, EventMap, EventReceiver } from './events';
+
+// https://stackoverflow.com/a/59459000/11813
+export const getKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
+
 export type Destructor = () => unknown;
 export class Destructors {
     private _destroyed = false;

@@ -6,16 +6,22 @@ import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
+// Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
+
 export type MagazineDesign = {
     damage50: number;
-    maxCannonShells: number;
+    max_CannonShell: number;
+    max_BlastCannonShell: number;
+    max_Missile: number;
     capacityBrokenThreshold: number;
     capacityDamageFactor: number;
 };
 
 export class MagazineDesignState extends DesignState implements MagazineDesign {
     @number2Digits damage50 = 0;
-    @type('uint16') maxCannonShells = 0;
+    @type('uint16') max_CannonShell = 0;
+    @type('uint16') max_BlastCannonShell = 0;
+    @type('uint16') max_Missile = 0;
     @number2Digits capacityBrokenThreshold = 0;
     @number2Digits capacityDamageFactor = 0;
 }
@@ -32,9 +38,19 @@ export class Magazine extends Schema {
     design = new MagazineDesignState();
 
     @type('uint16')
-    @range((t: Magazine) => [0, t.maxCannonShells])
+    @range((t: Magazine) => [0, t.max_CannonShell])
     @tweakable('number')
-    cannonShells = 0;
+    count_CannonShell = 0;
+
+    @type('uint16')
+    @range((t: Magazine) => [0, t.max_BlastCannonShell])
+    @tweakable('number')
+    count_BlastCannonShell = 0;
+
+    @type('uint16')
+    @range((t: Magazine) => [0, t.max_Missile])
+    @tweakable('number')
+    count_Missile = 0;
 
     @number2Digits
     @defectible({ normal: 1, name: 'capacity' })
@@ -45,8 +61,18 @@ export class Magazine extends Schema {
         return this.capacity < this.design.capacityBrokenThreshold;
     }
 
-    @range((t: Magazine) => [0, t.design.maxCannonShells])
-    get maxCannonShells() {
-        return this.design.maxCannonShells * this.capacity;
+    @range((t: Magazine) => [0, t.design.max_CannonShell])
+    get max_CannonShell() {
+        return this.design.max_CannonShell * this.capacity;
+    }
+
+    @range((t: Magazine) => [0, t.design.max_BlastCannonShell])
+    get max_BlastCannonShell() {
+        return this.design.max_BlastCannonShell * this.capacity;
+    }
+
+    @range((t: Magazine) => [0, t.design.max_Missile])
+    get max_Missile() {
+        return this.design.max_Missile * this.capacity;
     }
 }

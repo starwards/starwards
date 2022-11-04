@@ -1,6 +1,6 @@
 import { ChainGun, ShipState } from '../ship';
+import { SpaceObject, projectileDesigns } from '../space';
 
-import { SpaceObject } from '../space';
 import { XY } from './xy';
 import { addScale } from './formulas';
 
@@ -44,7 +44,11 @@ export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPos
 
 export function getKillZoneRadiusRange(chainGun: ChainGun): [number, number] {
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
-    const explosionRadius = chainGun.design.explosionSecondsToLive * chainGun.design.explosionExpansionSpeed;
+    if (chainGun.projectile === 'None') {
+        return [0, 1_000_000];
+    }
+    const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
+    const explosionRadius = secondsToLive * expansionSpeed;
     return [shellExplosionDistance - 3.0 * explosionRadius, shellExplosionDistance + 3.0 * explosionRadius];
 }
 
@@ -75,7 +79,11 @@ export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): 
 }
 
 function getShellDangerZoneRadius(chainGun: ChainGun): number {
-    const explosionRadius = chainGun.design.explosionSecondsToLive * chainGun.design.explosionExpansionSpeed;
+    if (chainGun.projectile === 'None') {
+        return 0;
+    }
+    const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
+    const explosionRadius = secondsToLive * expansionSpeed;
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     const spreadDegrees = 3.0 * chainGun.design.bulletDegreesDeviation;
     const spread = Math.sin(spreadDegrees) * shellExplosionDistance;

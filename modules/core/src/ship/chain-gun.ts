@@ -1,4 +1,5 @@
 import { DesignState, defectible } from './system';
+import { ProjectileModel, projectileModels } from '../space/projectile';
 import { Schema, type } from '@colyseus/schema';
 
 import { SmartPilotMode } from './smart-pilot';
@@ -7,6 +8,9 @@ import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
+export type SelectedProjectileModel = 'None' | ProjectileModel;
+
+// Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 export type ChaingunDesign = {
     bulletsPerSecond: number;
     bulletSpeed: number;
@@ -14,11 +18,10 @@ export type ChaingunDesign = {
     maxShellRange: number;
     minShellRange: number;
     overrideSecondsToLive: number;
-    explosionRadius: number;
-    explosionExpansionSpeed: number;
-    explosionDamageFactor: number;
-    explosionBlastFactor: number;
     damage50: number;
+    use_CannonShell?: boolean;
+    use_BlastCannonShell?: boolean;
+    use_Missile?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -28,15 +31,14 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits maxShellRange = 0;
     @number2Digits minShellRange = 0;
     @number2Digits overrideSecondsToLive = -1;
-    @number2Digits explosionRadius = 0;
-    @number2Digits explosionExpansionSpeed = 0;
-    @number2Digits explosionDamageFactor = 0;
-    @number2Digits explosionBlastFactor = 0;
     @number2Digits damage50 = 0;
+    @type('boolean') use_CannonShell = false;
+    @type('boolean') use_BlastCannonShell = false;
+    @type('boolean') use_Missile = false;
 
-    get explosionSecondsToLive(): number {
-        return this.explosionRadius / this.explosionExpansionSpeed;
-    }
+    // get explosionSecondsToLive(): number {
+    //     return this.explosionRadius / this.explosionExpansionSpeed;
+    // }
     get minShellSecondsToLive(): number {
         return this.minShellRange / this.bulletSpeed;
     }
@@ -88,6 +90,13 @@ export class ChainGun extends Schema {
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
     rateOfFireFactor = 1;
+
+    @type('string')
+    @tweakable((t: ChainGun) => ({
+        type: 'string enum',
+        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+    }))
+    projectile: SelectedProjectileModel = 'None';
 
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();

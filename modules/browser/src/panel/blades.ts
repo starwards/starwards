@@ -1,3 +1,4 @@
+import { Destructor, RTuple2 } from '@starwards/core';
 import {
     FolderApi,
     InputParams,
@@ -9,14 +10,13 @@ import {
     TextBladeParams,
 } from 'tweakpane';
 
-import { Destructor } from '@starwards/core';
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
 
 export type NumericModel = {
     getValue: () => number;
     setValue?: (v: number) => unknown;
     onChange: (cb: () => unknown) => Destructor;
-    range: readonly [number, number];
+    range: RTuple2;
 };
 
 export type Model<T> = {

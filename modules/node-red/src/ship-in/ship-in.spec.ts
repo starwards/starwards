@@ -75,8 +75,8 @@ describe('ship-in', () => {
             await helper.load(initNodes, flows);
             const { waitForOutput, waitForStatus } = getNode<ShipInNode>('n1');
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
-            const eventPromise = waitForOutput({ topic: '/magazine/cannonShells', payload: 1234 });
-            gameDriver.getShip('GVTS').state.magazine.cannonShells = 1234;
+            const eventPromise = waitForOutput({ topic: '/magazine/count_CannonShell', payload: 1234 });
+            gameDriver.getShip('GVTS').state.magazine.count_CannonShell = 1234;
             await eventPromise;
         });
     });

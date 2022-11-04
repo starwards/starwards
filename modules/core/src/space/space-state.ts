@@ -3,8 +3,8 @@ import { MapSchema, Schema, type } from '@colyseus/schema';
 import { SpaceObject, SpaceObjects } from '.';
 
 import { Asteroid } from './asteroid';
-import { CannonShell } from './cannon-shell';
 import { Explosion } from './explosion';
+import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
 
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
@@ -13,8 +13,8 @@ function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
 export class SpaceState extends Schema {
     // the names of each map is the type of the objects it contains
     // this is part of the events API
-    @type({ map: CannonShell })
-    private readonly CannonShell = new MapSchema<CannonShell>();
+    @type({ map: Projectile })
+    private readonly Projectile = new MapSchema<Projectile>();
 
     @type({ map: Explosion })
     private readonly Explosion = new MapSchema<Explosion>();
@@ -30,7 +30,7 @@ export class SpaceState extends Schema {
     public botOrderCommands = Array.of<BulkBotOrderArg>();
 
     public get(id: string): SpaceObject | undefined {
-        return this.CannonShell.get(id) ?? this.Asteroid.get(id) ?? this.Spaceship.get(id) ?? this.Explosion.get(id);
+        return this.Projectile.get(id) ?? this.Asteroid.get(id) ?? this.Spaceship.get(id) ?? this.Explosion.get(id);
     }
 
     public getShip(id: string): Spaceship | undefined {
@@ -54,7 +54,7 @@ export class SpaceState extends Schema {
     }
 
     public *maps(): IterableIterator<MapSchema> {
-        yield this.CannonShell;
+        yield this.Projectile;
         yield this.Explosion;
         yield this.Asteroid;
         yield this.Spaceship;

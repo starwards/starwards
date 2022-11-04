@@ -1,6 +1,6 @@
 import { Body, Circle, System } from 'detect-collisions';
-import { CannonShell, Explosion, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { circlesIntersection, limitPercision } from '.';
+import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { circlesIntersection, limitPercision, moveToTarget, rotateToTarget, toDegreesDelta } from '.';
 
 import { SWResponse } from './collisions-utils';
 import { Spaceship } from '../space';
@@ -91,6 +91,7 @@ export class SpaceManager {
 
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
+        this.calcHomingProjectiles(deltaSeconds);
         this.untrackDestroyedObjects();
         this.applyFreeze();
         this.applyPhysics(deltaSeconds);
@@ -120,11 +121,61 @@ export class SpaceManager {
                 }
             }
         }
-        for (const shell of this.state.getAll('CannonShell')) {
+        for (const shell of this.state.getAll('Projectile')) {
             if (!shell.freeze) {
                 shell.secondsToLive -= deltaSeconds;
                 if (shell.secondsToLive <= 0) {
-                    this.explodeCannonShell(shell);
+                    this.explodeProjectile(shell);
+                }
+            }
+        }
+    }
+
+    private calcHomingProjectiles(deltaSeconds: number) {
+        for (const projectile of this.state.getAll('Projectile')) {
+            if (!projectile.freeze && projectile.design.homing && projectile.targetId) {
+                const target = this.state.get(projectile.targetId);
+                if (target && !target.destroyed) {
+                    const destination = target.position;
+                    const relativeDestination = XY.difference(destination, projectile.position);
+                    if (
+                        XY.lengthOf(relativeDestination) - target.radius <
+                        projectile.design.homing.proximityDetonation
+                    ) {
+                        this.explodeProjectile(projectile);
+                    } else {
+                        const velocityDestinationDiff = toDegreesDelta(
+                            XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity)
+                        );
+
+                        let rotation = 0;
+                        let boost = 0;
+                        if (Math.abs(velocityDestinationDiff) > 45 && Math.abs(velocityDestinationDiff) < 135) {
+                            // velocity is sideways from angle, make a sharp turn againt it
+                            rotation = rotateToTarget(
+                                deltaSeconds,
+                                projectile,
+                                XY.add(projectile.position, XY.scale(projectile.velocity, -10)),
+                                0
+                            );
+                            boost = 1;
+                        } else {
+                            rotation = rotateToTarget(deltaSeconds, projectile, destination, 0);
+                            boost = moveToTarget(deltaSeconds, projectile, destination).boost;
+                        }
+
+                        projectile.turnSpeed += rotation * deltaSeconds * projectile.rotationCapacity;
+                        if (boost > 0) {
+                            const desiredSpeed = XY.scale(
+                                XY.rotate(XY.one, projectile.angle),
+                                boost * deltaSeconds * projectile.design.homing.velocityCapacity
+                            );
+                            projectile.velocity.add(desiredSpeed);
+                        }
+                        if (XY.lengthOf(projectile.velocity) > projectile.design.homing.maxSpeed) {
+                            projectile.velocity.normalize(projectile.design.homing.maxSpeed);
+                        }
+                    }
                 }
             }
         }
@@ -201,11 +252,11 @@ export class SpaceManager {
         }
     }
 
-    private explodeCannonShell(shell: CannonShell) {
-        shell.destroyed = true;
-        const explosion = shell._explosion || new Explosion();
-        explosion.init(uniqueId('explosion'), shell.position.clone());
-        explosion.velocity = shell.velocity.clone();
+    private explodeProjectile(projectile: Projectile) {
+        projectile.destroyed = true;
+        const explosion = projectile._explosion || new Explosion();
+        explosion.init(uniqueId('explosion'), projectile.position.clone());
+        explosion.velocity = projectile.velocity.clone();
         this.insert(explosion);
     }
 
@@ -231,7 +282,7 @@ export class SpaceManager {
     }
 
     private isProjectile = (o: SpaceObject) =>
-        CannonShell.isInstance(o) || (Explosion.isInstance(o) && XY.isZero(o.velocity, o.radius));
+        Projectile.isInstance(o) || (Explosion.isInstance(o) && XY.isZero(o.velocity, o.radius));
 
     private handleCollisions(deltaSeconds: number) {
         const positionChanges: Array<{ s: SpaceObject; p: XY }> = [];
@@ -244,12 +295,12 @@ export class SpaceManager {
                 !subject.destroyed &&
                 !subject.freeze &&
                 object &&
-                !CannonShell.isInstance(object) &&
+                !Projectile.isInstance(object) &&
                 !object.destroyed
             ) {
                 let positionChange: XY | null = null;
-                if (CannonShell.isInstance(subject)) {
-                    this.explodeCannonShell(subject);
+                if (Projectile.isInstance(subject)) {
+                    this.explodeProjectile(subject);
                 } else if (Explosion.isInstance(subject)) {
                     positionChange = this.handleExplosionCollision(subject, response);
                 } else {
@@ -285,7 +336,7 @@ export class SpaceManager {
 
     private calcSolidCollision(
         deltaSeconds: number,
-        subject: Exclude<SpaceObject, CannonShell | Explosion>,
+        subject: Exclude<SpaceObject, Projectile | Explosion>,
         object: SpaceObject,
         response: SWResponse
     ) {

@@ -87,7 +87,7 @@ export class Meshes {
         return rootMesh;
     }
     cannonShell(id: string, radius: number) {
-        const entries = this.cannonShellCont.instantiateModelsToScene((name) => `CannonShell ${id} ${name}`);
+        const entries = this.cannonShellCont.instantiateModelsToScene((name) => `Projectile ${id} ${name}`);
         const rootMesh = getMesh(entries);
         initMesh(rootMesh, id, radius * 5);
         // TODO: disable lighing (like with skybox)

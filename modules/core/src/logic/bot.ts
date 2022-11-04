@@ -15,6 +15,8 @@ import {
     rotateToTarget,
 } from '../';
 
+import { switchToAvailableAmmo } from '../ship/chain-gun-manager';
+
 // TODO: use ShipApi
 export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;
 
@@ -61,6 +63,7 @@ export function jouster(targetId: string): Bot {
         const ship = shipManager.state;
         if (target && !target.destroyed && ship.chainGun) {
             shipManager.setTarget(targetId);
+            switchToAvailableAmmo(ship.chainGun, ship.magazine);
             const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
             const hitLocation = predictHitLocation(ship, ship.chainGun, target, targetAccel);
             const rangeDiff = calcRangediff(ship, target, hitLocation);

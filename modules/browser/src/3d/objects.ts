@@ -44,7 +44,7 @@ export class Objects3D {
                         case 'Asteroid':
                             mesh = this.meshes.asteroid(spaceObject.id, spaceObject.radius);
                             break;
-                        case 'CannonShell':
+                        case 'Projectile':
                             mesh = this.meshes.cannonShell(spaceObject.id, spaceObject.radius);
                             break;
                     }

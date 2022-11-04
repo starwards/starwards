@@ -124,4 +124,8 @@ export class ShipState extends Spaceship {
     get maxMaxSpeed() {
         return this.getMaxSpeedForAfterburner(1);
     }
+
+    get rotationCapacity() {
+        return this.design.rotationCapacity;
+    }
 }

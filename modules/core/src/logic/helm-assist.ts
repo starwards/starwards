@@ -1,9 +1,18 @@
+import { ShipDirection, vector2ShipDirections } from '../ship/ship-direction';
 import { capToRange, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
 
 import { ShipState } from '../ship';
 import { XY } from './xy';
-import { vector2ShipDirections } from '../ship/ship-direction';
 
+export type Craft = {
+    rotationCapacity: number;
+    turnSpeed: number;
+    angle: number;
+    velocity: XY;
+    position: XY;
+    globalToLocal(global: XY): XY;
+    velocityCapacity(direction: ShipDirection): number;
+};
 export type ManeuveringCommand = { strafe: number; boost: number };
 
 export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipState, targetTurnSpeed: number) {
@@ -23,7 +32,7 @@ export function matchLocalSpeed(deltaSeconds: number, ship: ShipState, localVelo
     };
 }
 
-export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY): ManeuveringCommand {
+export function moveToTarget(deltaSeconds: number, ship: Craft, targetPos: XY): ManeuveringCommand {
     const posDiff = calcTargetPositionDiff(deltaSeconds, ship, targetPos); // TODO cap to range maxMovementInTime
     const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
     const velocityDirection = vector2ShipDirections(velocity);
@@ -33,17 +42,17 @@ export function moveToTarget(deltaSeconds: number, ship: ShipState, targetPos: X
     };
 }
 
-export function rotateToTarget(deltaSeconds: number, ship: ShipState, targetPos: XY, offset: number): number {
+export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY, offset: number): number {
     const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
-    return accelerateToPosition(deltaSeconds, ship.design.rotationCapacity, ship.turnSpeed, angleDiff + offset);
+    return accelerateToPosition(deltaSeconds, ship.rotationCapacity, ship.turnSpeed, angleDiff + offset);
 }
 
-function calcTargetPositionDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
+function calcTargetPositionDiff(deltaSeconds: number, ship: Craft, targetPos: XY) {
     const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
     return XY.rotate(XY.difference(targetPos, estimatedLocation), -ship.angle); // TODO cap to range maxMovementInTime
 }
 
-function calcTargetAngleDiff(deltaSeconds: number, ship: ShipState, targetPos: XY) {
+function calcTargetAngleDiff(deltaSeconds: number, ship: Craft, targetPos: XY) {
     const estimatedLocation = XY.add(XY.scale(ship.velocity, deltaSeconds), ship.position);
     const estimatedAngle = ship.turnSpeed * deltaSeconds + ship.angle;
     const targetAngle = XY.angleOf(XY.difference(targetPos, estimatedLocation));
