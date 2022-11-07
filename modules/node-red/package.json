@@ -1,6 +1,6 @@
 {
     "name": "@starwards/node-red",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Starwards nodes for Node-RED",
     "keywords": [
         "node-red",
@@ -40,6 +40,6 @@
         }
     },
     "dependencies": {
-        "@starwards/core": "0.3.0"
+        "@starwards/core": "0.4.0"
     }
 }
