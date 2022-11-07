@@ -15,6 +15,7 @@ import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { tubesStatusWidget } from '../widgets/tubes-status';
 import { wireSinglePilotInput } from '../input/wiring';
 
 // enable pixi dev-tools
@@ -59,6 +60,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(damageReportWidget(shipDriver), {}, 'damage report');
     dashboard.registerWidget(armorWidget(shipDriver), {}, 'armor');
     dashboard.registerWidget(ammoWidget(shipDriver), {}, 'ammo');
+    dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, 'tubes');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

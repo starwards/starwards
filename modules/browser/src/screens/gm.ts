@@ -17,6 +17,7 @@ import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { tubesStatusWidget } from '../widgets/tubes-status';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -90,6 +91,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
             dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
             dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
+            dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
             dashboard.setup();
         }
     },

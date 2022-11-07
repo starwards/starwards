@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
-import { ShipDirection, shipDirectionRange } from './ship-direction';
+import { getDirectionConfigFromAngle, shipDirectionRange } from './ship-direction';
 
 import { ShipState } from './ship-state';
 import { number2Digits } from '../number-field';
@@ -35,7 +35,7 @@ export class Thruster extends Schema {
     public readonly type = 'Thruster';
 
     get name() {
-        return `Thruster ${this.index} (${ShipDirection[this.angle]})`;
+        return `Thruster ${this.index} (${getDirectionConfigFromAngle(this.angle)})`;
     }
 
     @type(ThrusterDesignState)
