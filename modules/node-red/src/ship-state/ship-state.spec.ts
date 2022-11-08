@@ -68,7 +68,7 @@ describe('ship-state', () => {
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
         });
 
-        describe('when receiving state commands', () => {
+        describe('when receiving a message', () => {
             it('relay commands to server', async () => {
                 const flows: Flows = [
                     { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
@@ -81,6 +81,19 @@ describe('ship-state', () => {
                     expect(gameDriver.getShip('GVTS').state.magazine.count_CannonShell).toEqual(1234);
                 }, 3_000);
                 node.receive({ topic: '/magazine/count_CannonShell', payload: 1234 });
+                await eventPromise;
+            });
+            it('queries state', async () => {
+                gameDriver.getShip('GVTS').state.magazine.count_CannonShell = 1234;
+                const flows: Flows = [
+                    { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
+                    { id: 'n1', type: 'ship-state', shipId: test_map_1.testShipId, configNode: 'n0' },
+                ];
+                await helper.load(initNodes, flows);
+                const { node, waitForOutput, waitForStatus } = getNode<ShipStateNode>('n1');
+                await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
+                const eventPromise = waitForOutput({ topic: '/magazine/count_CannonShell', payload: 1234 });
+                node.receive({ topic: '/magazine/count_CannonShell', payload: { read: true } });
                 await eventPromise;
             });
         });

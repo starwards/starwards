@@ -16,8 +16,8 @@ RED.nodes.registerType<ShipStateEditorNodeProperties>('ship-state', {
     },
     inputs: 1,
     outputs: 1,
-    inputLabels: ['commands'],
-    outputLabels: ['events'],
+    inputLabels: 'command or query',
+    outputLabels: ['event'],
     icon: 'starwards-icon.png',
     paletteLabel: 'Ship State',
     label: function () {

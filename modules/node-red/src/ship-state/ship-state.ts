@@ -1,7 +1,7 @@
-import { ClientStatus, Destructors, ShipDriver, Status, StatusInfo } from '@starwards/core';
+import { ClientStatus, Destructors, ShipDriver, Status, StatusInfo, getJsonPointer } from '@starwards/core';
+import { Event, isPrimitive } from 'colyseus-events';
 import { Node, NodeDef, NodeInitializer, NodeMessage } from 'node-red';
 
-import { Event } from 'colyseus-events';
 import { StarwardsConfigNode } from '../starwards-config/starwards-config';
 
 export interface ShipStateOptions {
@@ -15,9 +15,14 @@ export interface ShipStateNode extends Node {
     shipDriver: Promise<ShipDriver> | null;
     listeningOnEvents: boolean;
 }
-export declare type Primitive = number | string | boolean | null | undefined;
 
-function nodeLogic(node: ShipStateNode, { listenPattern, shipId }: ShipStateOptions) {
+export interface InputMessage {
+    read: boolean;
+}
+export function isInputMessage(msg: unknown): msg is InputMessage {
+    return !!(msg && typeof msg === 'object') && typeof (msg as InputMessage).read === 'boolean';
+}
+export function nodeLogic(node: ShipStateNode, { listenPattern, shipId }: ShipStateOptions) {
     const handleStateEvent = (e: Event) => {
         node.send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value } as NodeMessage);
     };
@@ -40,6 +45,7 @@ function nodeLogic(node: ShipStateNode, { listenPattern, shipId }: ShipStateOpti
                         if (currCOunter === statusCounter) {
                             // latest call to getShipDriver() failed
                             node.status({ fill: 'red', shape: 'dot', text: String(e) });
+                            shipListenerCleanup.cleanup();
                             node.shipDriver = null;
                         }
                     }
@@ -62,13 +68,25 @@ function nodeLogic(node: ShipStateNode, { listenPattern, shipId }: ShipStateOpti
     };
     node.cleanups.add(statusTracker.onStatusChange(onStatus));
 
-    node.on('input', (msg, _, done) => {
+    node.on('input', (msg, send, done) => {
         void (async () => {
             if (!node.shipDriver) {
                 done?.(new Error(`can't handle commands while in status: ${(await statusTracker.getStatus()).text}`));
             } else {
                 try {
-                    (await node.shipDriver).sendJsonCmd(msg.topic as string, msg.payload as Primitive);
+                    if (typeof msg.topic === 'string' && msg.topic) {
+                        if (isPrimitive(msg.payload)) {
+                            (await node.shipDriver).sendJsonCmd(msg.topic, msg.payload);
+                        } else if (isInputMessage(msg.payload) && msg.payload.read) {
+                            const pointer = getJsonPointer(msg.topic);
+                            if (pointer) {
+                                const payload = pointer.get((await node.shipDriver).state);
+                                send({ topic: msg.topic, payload });
+                            } else {
+                                node.warn(`${msg.topic} is not a legal json pointer`);
+                            }
+                        }
+                    }
                     done?.();
                 } catch (e) {
                     done?.(e as Error);
