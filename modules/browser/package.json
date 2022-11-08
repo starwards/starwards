@@ -35,7 +35,7 @@
         "pluralize": "^8.0.0",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",
-        "react-dropzone": "^14.2.2",
+        "react-dropzone": "^14.2.3",
         "tweakpane": "^3.1.0",
         "webfontloader": "^1.6.28"
     },
