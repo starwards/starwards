@@ -7,7 +7,7 @@ import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
-const FAKE_URL = 'http://127.1.2.3/';
+const FAKE_URL = 'http://127.1.2.3:8123/';
 
 describe('ship-in', () => {
     beforeEach((done) => {

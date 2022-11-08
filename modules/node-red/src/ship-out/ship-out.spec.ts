@@ -8,7 +8,7 @@ import { maps } from '@starwards/server';
 import { waitFor } from '@starwards/core';
 
 const { test_map_1 } = maps;
-const FAKE_URL = 'http://127.1.2.3/';
+const FAKE_URL = 'http://127.1.2.3:8123/';
 
 describe('ship-out', () => {
     beforeEach((done) => {

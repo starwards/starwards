@@ -5,9 +5,10 @@ import { ShipStateNode } from './ship-state';
 import helper from 'node-red-node-test-helper';
 import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
+import { waitFor } from '@starwards/core';
 
 const { test_map_1 } = maps;
-const FAKE_URL = 'http://127.1.2.3/';
+const FAKE_URL = 'http://127.1.2.3:8123/';
 
 describe('ship-state', () => {
     beforeEach((done) => {
@@ -45,7 +46,7 @@ describe('ship-state', () => {
         });
     });
 
-    describe('integration with server', () => {
+    describe('with server', () => {
         const gameDriver = makeDriver();
 
         beforeEach(async () => {
@@ -65,6 +66,23 @@ describe('ship-state', () => {
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode<ShipStateNode>('n1');
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
+        });
+
+        describe('when receiving state commands', () => {
+            it('relay commands to server', async () => {
+                const flows: Flows = [
+                    { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
+                    { id: 'n1', type: 'ship-state', shipId: test_map_1.testShipId, configNode: 'n0' },
+                ];
+                await helper.load(initNodes, flows);
+                const { node, waitForStatus } = getNode<ShipStateNode>('n1');
+                await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
+                const eventPromise = waitFor(() => {
+                    expect(gameDriver.getShip('GVTS').state.magazine.count_CannonShell).toEqual(1234);
+                }, 3_000);
+                node.receive({ topic: '/magazine/count_CannonShell', payload: 1234 });
+                await eventPromise;
+            });
         });
 
         it('listenPattern reacts to ship state changes', async () => {
