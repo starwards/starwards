@@ -1,11 +1,8 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
-import { DesignState, defectible, getSystems } from '../src/ship/system';
 
 import { expect } from 'chai';
 import { getColyseusPrimitivesJsonPointers } from '../src/traverse';
 
-const DEFECTIBLE = { normal: 0, name: 'something' };
-const design = new (class extends DesignState {})();
 class DeeplyNested extends Schema {
     transient = '';
 
