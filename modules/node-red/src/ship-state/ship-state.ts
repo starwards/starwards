@@ -7,7 +7,7 @@ import { StarwardsConfigNode } from '../starwards-config/starwards-config';
 export interface ShipStateOptions {
     configNode: string;
     shipId: string;
-    pattern: string;
+    listenPattern?: string;
 }
 export interface ShipStateNode extends Node {
     configNode: StarwardsConfigNode;
@@ -15,7 +15,7 @@ export interface ShipStateNode extends Node {
     listeningOnEvents: boolean;
 }
 
-function nodeLogic(node: ShipStateNode, { pattern, shipId }: ShipStateOptions) {
+function nodeLogic(node: ShipStateNode, { listenPattern, shipId }: ShipStateOptions) {
     const handleStateEvent = (e: Event) => {
         node.send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value } as NodeMessage);
     };
@@ -23,13 +23,13 @@ function nodeLogic(node: ShipStateNode, { pattern, shipId }: ShipStateOptions) {
     const statusTracker = new ClientStatus(node.configNode.driver, shipId);
     const onStatus = async ({ status, text }: StatusInfo): Promise<void> => {
         if (status === Status.SHIP_FOUND) {
-            if (!node.listeningOnEvents) {
+            if (listenPattern && !node.listeningOnEvents) {
                 const shipDriver = await node.configNode.driver.getShipDriver(shipId);
                 shipListenerCleanup.add(() => {
                     node.listeningOnEvents = false;
-                    shipDriver.events.off(pattern, handleStateEvent);
+                    shipDriver.events.off(listenPattern, handleStateEvent);
                 });
-                shipDriver.events.on(pattern, handleStateEvent);
+                shipDriver.events.on(listenPattern, handleStateEvent);
                 node.listeningOnEvents = true;
             }
             node.status({ fill: 'green', shape: 'dot', text: 'connected' });

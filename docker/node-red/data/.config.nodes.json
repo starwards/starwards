@@ -418,7 +418,7 @@
     },
     "@starwards/node-red": {
         "name": "@starwards/node-red",
-        "version": "0.3.0",
+        "version": "0.4.2",
         "local": true,
         "user": false,
         "nodes": {
@@ -443,6 +443,17 @@
                 "user": false,
                 "module": "@starwards/node-red",
                 "file": "/data/node_modules/@starwards/node-red/dist/ship-out/ship-out.js"
+            },
+            "ship-state": {
+                "name": "ship-state",
+                "types": [
+                    "ship-state"
+                ],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "@starwards/node-red",
+                "file": "/data/node_modules/@starwards/node-red/dist/ship-state/ship-state.js"
             },
             "starwards-config": {
                 "name": "starwards-config",

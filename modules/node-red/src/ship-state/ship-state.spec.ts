@@ -22,7 +22,7 @@ describe('ship-state', () => {
     });
 
     it('loads', async () => {
-        const flows: Flows = [{ id: 'n1', type: 'ship-state', shipId: 'GVTS', pattern: '**', configNode: 'n0' }];
+        const flows: Flows = [{ id: 'n1', type: 'ship-state', shipId: 'GVTS', listenPattern: '**', configNode: 'n0' }];
         await helper.load(initNodes, flows);
         const { waitForStatus } = getNode('n1');
         await waitForStatus({ fill: 'red', shape: 'ring', text: 'Server config missing or inactive' });
@@ -32,7 +32,7 @@ describe('ship-state', () => {
         it('reports connection issue', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: FAKE_URL },
-                { id: 'n1', type: 'ship-state', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-state', shipId: 'GVTS', listenPattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode('n1');
@@ -60,17 +60,17 @@ describe('ship-state', () => {
         it('detects game status ', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
-                { id: 'n1', type: 'ship-state', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-state', shipId: test_map_1.testShipId, listenPattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode<ShipStateNode>('n1');
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
         });
 
-        it('sends ship state changes', async () => {
+        it('listenPattern reacts to ship state changes', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
-                { id: 'n1', type: 'ship-state', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-state', shipId: test_map_1.testShipId, listenPattern: '**', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForOutput, waitForStatus } = getNode<ShipStateNode>('n1');

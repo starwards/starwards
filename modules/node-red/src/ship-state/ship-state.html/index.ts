@@ -13,14 +13,13 @@ RED.nodes.registerType<ShipStateEditorNodeProperties>('ship-state', {
         name: { value: '' },
         configNode: { value: '', type: 'starwards-config' },
         shipId: { value: '', required: true },
-        pattern: { value: '**', required: true },
     },
     inputs: 0,
     outputs: 1,
     outputLabels: ['events'],
     icon: 'starwards-icon.png',
-    paletteLabel: 'Ship in',
+    paletteLabel: 'Ship State',
     label: function () {
-        return (this.shipId || 'unnamed ship') + '|' + this.pattern;
+        return (this.shipId || 'unnamed ship') + (this.listenPattern ? '|' + this.listenPattern : '');
     },
 });
