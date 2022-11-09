@@ -1,10 +1,12 @@
 import { Node, NodeDef, NodeInitializer, NodeMessage, NodeStatus } from 'node-red';
 import helper, { TestFlowsItem } from 'node-red-node-test-helper';
-import shipInConfigNode, { ShipInOptions } from './ship-in/ship-in';
-import shipOutConfigNode, { ShipOutOptions } from './ship-out/ship-out';
+import shipReadConfigNode, { ShipReadOptions } from './ship-read/ship-read';
+import shipWriteConfigNode, { ShipWriteOptions } from './ship-write/ship-write';
 import starwardsConfigNode, { StarwardsConfigOptions } from './starwards-config/starwards-config';
 
+import { ShipOptions } from './shared/ship-node';
 import { SinonSpy } from 'sinon';
+import shipNodeDummy from './shared/ship-node-dummy';
 import { waitFor } from '@starwards/core';
 
 type SpiedNode = {
@@ -15,13 +17,18 @@ type SpiedNode = {
     status: SinonSpy;
 };
 type StarwardsConfigFlowItem = { type: 'starwards-config' } & TestFlowsItem<NodeDef & StarwardsConfigOptions>;
-type ShipInFlowItem = { type: 'ship-in' } & TestFlowsItem<NodeDef & ShipInOptions>;
-type ShipOutFlowItem = { type: 'ship-out' } & TestFlowsItem<NodeDef & ShipOutOptions>;
-export type Flows = Array<ShipInFlowItem | ShipOutFlowItem | StarwardsConfigFlowItem | TestFlowsItem>;
+type ShipNodeDummyFlowItem = { type: 'ship-node-dummy' } & TestFlowsItem<NodeDef & ShipOptions>;
+type ShipReadFlowItem = { type: 'ship-read' } & TestFlowsItem<NodeDef & ShipReadOptions>;
+type ShipWriteFlowItem = { type: 'ship-write' } & TestFlowsItem<NodeDef & ShipWriteOptions>;
+
+export type Flows = Array<
+    ShipReadFlowItem | ShipWriteFlowItem | StarwardsConfigFlowItem | TestFlowsItem | ShipNodeDummyFlowItem
+>;
 export const initNodes: NodeInitializer = async (NODE) => {
     await starwardsConfigNode(NODE);
-    await shipInConfigNode(NODE);
-    await shipOutConfigNode(NODE);
+    await shipNodeDummy(NODE);
+    await shipReadConfigNode(NODE);
+    await shipWriteConfigNode(NODE);
 };
 
 helper.init(require.resolve('node-red'));
