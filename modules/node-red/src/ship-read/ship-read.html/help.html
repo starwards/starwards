@@ -1,0 +1,25 @@
+<!-- prettier-ignore -->
+<script type="text/markdown" data-help-name="ship-read">
+Query and/or listen to changes of a ship's state
+
+### Inputs
+
+: topic (string) : JSON-pointer of the property to query
+
+### Outputs
+
+: topic (string) : JSON-pointer of the property
+: payload (number | string | boolean) : the value of the property
+
+### Details
+
+Send a message to this node to query a property of the ship. This will trigger an output message with the value of the property.    
+Set a Listen pattern in the node editor to listen to changes in properties of the ship. This will trigger an output message with the value of the property whenever a property whose JSON-pointer matches the pattern changes.    
+
+#### Wildcards
+
+_currently ony the Listen pattern supports Wildcards_    
+A `*` wildcard matches any single string token in the JSON-pointer. For example: `/foo/*` matches `/foo/bar`, `/foo/baz` etc. but does not match `/foo/bar/baz` or `/baz/foo/bar`.   
+A Listen pattern can contain one or more `*` wildcards. For example, `/foo/*/bar/*` matches events `/foo/x/bar/y`.    
+A `**` wildcard matches any number of levels (zero or more) of events. For example, '/foo/**' matches `/foo`, `/foo/bar`, `/foo/bar/baz` and so on. The '**' pattern matches all properties.    
+</script>

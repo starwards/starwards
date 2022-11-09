@@ -1,34 +1,25 @@
-import { Event, isPrimitive } from 'colyseus-events';
 import { NodeDef, NodeInitializer, NodeMessage, NodeMessageInFlow } from 'node-red';
 import { Send, ShipNode, ShipOptions, createShipNode } from '../shared/ship-node';
 import { ShipDriver, getJsonPointer } from '@starwards/core';
 
-export interface ShipStateOptions extends ShipOptions {
+import { Event } from 'colyseus-events';
+
+export interface ShipReadOptions extends ShipOptions {
     listenPattern?: string;
 }
-export type ShipStateNode = ShipNode;
+export type ShipReadNode = ShipNode;
 
-export interface InputMessage {
-    read: boolean;
-}
-export function isInputMessage(msg: unknown): msg is InputMessage {
-    return !!(msg && typeof msg === 'object') && typeof (msg as InputMessage).read === 'boolean';
-}
 const nodeInit: NodeInitializer = (RED): void => {
-    function ShipStateNodeConstructor(this: ShipStateNode, options: NodeDef & ShipStateOptions): void {
+    function ShipReadNodeConstructor(this: ShipReadNode, options: NodeDef & ShipReadOptions): void {
         RED.nodes.createNode(this, options);
         const handleInput = (shipDriver: ShipDriver, msg: NodeMessageInFlow, send: Send) => {
             if (typeof msg.topic === 'string' && msg.topic) {
-                if (isPrimitive(msg.payload)) {
-                    shipDriver.sendJsonCmd(msg.topic, msg.payload);
-                } else if (isInputMessage(msg.payload) && msg.payload.read) {
-                    const pointer = getJsonPointer(msg.topic);
-                    if (pointer) {
-                        const payload = pointer.get(shipDriver.state);
-                        send({ topic: msg.topic, payload });
-                    } else {
-                        this.warn(`${msg.topic} is not a legal json pointer`);
-                    }
+                const pointer = getJsonPointer(msg.topic);
+                if (pointer) {
+                    const payload = pointer.get(shipDriver.state);
+                    send({ topic: msg.topic, payload });
+                } else {
+                    this.warn(`${msg.topic} is not a legal json pointer`);
                 }
             }
         };
@@ -46,7 +37,7 @@ const nodeInit: NodeInitializer = (RED): void => {
         createShipNode(RED, this, options, handleShipFound, handleInput);
     }
 
-    RED.nodes.registerType('ship-state', ShipStateNodeConstructor);
+    RED.nodes.registerType('ship-read', ShipReadNodeConstructor);
 };
 
 export default nodeInit;

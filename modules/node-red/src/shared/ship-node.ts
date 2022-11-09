@@ -21,7 +21,7 @@ export function createShipNode(
     RED: NodeAPI,
     node: ShipNode,
     options: NodeDef & ShipOptions,
-    handleShipFound: (shipDriver: ShipDriver) => () => unknown,
+    handleShipFound: null | ((shipDriver: ShipDriver) => () => unknown),
     handleInput: (shipDriver: ShipDriver, msg: NodeMessageInFlow, send: Send) => void
 ) {
     node.cleanups = new Destructors();
@@ -57,7 +57,7 @@ export function createShipNode(
                             }
                         );
                     }
-                    if (!shipFoundHandled) {
+                    if (handleShipFound && !shipFoundHandled) {
                         shipFoundHandled = true;
                         shipHandlerCleanup.add(() => {
                             shipFoundHandled = false;
