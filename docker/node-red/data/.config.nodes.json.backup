@@ -433,17 +433,6 @@
                 "module": "@starwards/node-red",
                 "file": "/data/node_modules/@starwards/node-red/dist/ship-read/ship-read.js"
             },
-            "ship-out": {
-                "name": "ship-out",
-                "types": [
-                    "ship-out"
-                ],
-                "enabled": true,
-                "local": true,
-                "user": false,
-                "module": "@starwards/node-red",
-                "file": "/data/node_modules/@starwards/node-red/dist/ship-out/ship-out.js"
-            },
             "ship-write": {
                 "name": "ship-write",
                 "types": [

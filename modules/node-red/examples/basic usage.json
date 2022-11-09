@@ -1,6 +1,5 @@
 [
-    { "id": "936f535a.09e8d", "type": "tab", "label": "Playground", "disabled": false, "info": "" },
-    { "id": "19a577b3b70f113d", "type": "tab", "label": "Flow 1", "disabled": false, "info": "", "env": [] },
+    { "id": "936f535a.09e8d", "type": "tab", "label": "Starwards example", "disabled": false, "info": "" },
     {
         "id": "d3e25aa2641240fe",
         "type": "starwards-config",

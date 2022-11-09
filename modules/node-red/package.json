@@ -30,7 +30,8 @@
     },
     "license": "SEE LICENSE IN LICENSE.md",
     "files": [
-        "dist"
+        "dist",
+        "examples"
     ],
     "node-red": {
         "nodes": {
