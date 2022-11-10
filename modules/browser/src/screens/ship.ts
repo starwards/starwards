@@ -13,6 +13,7 @@ import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 import { tubesStatusWidget } from '../widgets/tubes-status';
@@ -61,6 +62,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(armorWidget(shipDriver), {}, 'armor');
     dashboard.registerWidget(ammoWidget(shipDriver), {}, 'ammo');
     dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, 'tubes');
+    dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, 'systems');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

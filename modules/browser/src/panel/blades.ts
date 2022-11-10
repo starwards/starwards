@@ -58,6 +58,7 @@ export function addSliderBlade(
         guiController.dispose();
         removeStateListener();
     });
+    return guiController;
 }
 
 /**
@@ -97,6 +98,7 @@ export function addTextBlade<T>(
         guiController.dispose();
         removeStateListener();
     });
+    return guiController;
 }
 
 export function addEnumListBlade<T>(
@@ -133,6 +135,7 @@ export function addEnumListBlade<T>(
         guiController.dispose();
         removeStateListener();
     });
+    return guiController;
 }
 
 export type InputBladeParams = { label: string } & Partial<InputParams>;
@@ -164,4 +167,5 @@ export function addInputBlade<T>(
         guiController.dispose();
         removeStateListener();
     });
+    return guiController;
 }

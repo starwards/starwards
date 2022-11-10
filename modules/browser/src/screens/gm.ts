@@ -15,6 +15,7 @@ import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 import { tubesStatusWidget } from '../widgets/tubes-status';
@@ -92,6 +93,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
             dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
             dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
+            dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
             dashboard.setup();
         }
     },
