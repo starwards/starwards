@@ -4,6 +4,7 @@ import { ClientStatus, Driver, Status } from '@starwards/core';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
+import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTubesStatus } from '../widgets/tubes-status';
 import { wireSinglePilotInput } from '../input/wiring';
@@ -45,5 +46,14 @@ async function initScreen(driver: Driver, shipId: string) {
     wireSinglePilotInput(shipDriver);
     const topRight = $('<div style="position: absolute; top:0; right:0;" />');
     container.getElement().append(topRight);
-    drawTubesStatus(wrapWidgetContainer(topRight), shipDriver);
+    drawSystemsStatus(
+        wrapWidgetContainer(topRight),
+        shipDriver,
+        shipDriver.systems.filter(
+            (s) => s.pointer.startsWith('/tubes/') || s.pointer === '/chainGun' || s.pointer === '/magazine'
+        )
+    );
+    const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
+    container.getElement().append(topLeft);
+    drawTubesStatus(wrapWidgetContainer(topLeft), shipDriver);
 }
