@@ -1,111 +1,115 @@
 @font-face {
-  font-family: "Bebas";
-  src: url(../fonts/BebasNeue-Regular.ttf);
+    font-family: 'Bebas';
+    src: url(../fonts/BebasNeue-Regular.ttf);
 }
 
 @font-face {
-  font-family: "Electrolize";
-  src: url(../fonts/Electrolize-Regular.ttf);
+    font-family: 'Electrolize';
+    src: url(../fonts/Electrolize-Regular.ttf);
 }
 
 @font-face {
-  font-family: "Titillium Web";
-  src: url(../fonts/TitilliumWeb-Regular.ttf);
+    font-family: 'Titillium Web';
+    src: url(../fonts/TitilliumWeb-Regular.ttf);
 }
 
 @font-face {
-  font-family: 'Material Icons';
-  font-style: normal;
-  font-weight: 400;
-  src: url(../fonts/MaterialIcons-Regular.woff2) format('woff2');
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    src: url(../fonts/MaterialIcons-Regular.woff2) format('woff2');
 }
 
 .material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 18px;  /* Preferred icon size */
-  display: inline-block;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  word-wrap: normal;
-  white-space: nowrap;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  /* Support for all WebKit browsers. */
-  -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
-  text-rendering: optimizeLegibility;
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 18px; /* Preferred icon size */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    /* Support for all WebKit browsers. */
+    -webkit-font-smoothing: antialiased;
+    /* Support for Safari and Chrome. */
+    text-rendering: optimizeLegibility;
 
-  /* Support for Firefox. */
-  -moz-osx-font-smoothing: grayscale;
+    /* Support for Firefox. */
+    -moz-osx-font-smoothing: grayscale;
 
-  /* Support for IE. */
-  font-feature-settings: 'liga';
+    /* Support for IE. */
+    font-feature-settings: 'liga';
 }
-.material-icons { color: rgba(255, 255, 255, 1); }
-.material-icons.md-inactive { color: rgba(255, 255, 255, 0.3); }
+.material-icons {
+    color: rgba(255, 255, 255, 1);
+}
+.material-icons.md-inactive {
+    color: rgba(255, 255, 255, 0.3);
+}
 
 h2 {
-  /* font: 14px Arial, sans-serif; */
-  color: #fff;
-  padding: 10px;
-  text-align: center;
+    /* font: 14px Arial, sans-serif; */
+    color: #fff;
+    padding: 10px;
+    text-align: center;
 }
 
 html,
 body {
-  height: 100%;
+    height: 100%;
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  list-style-type: none;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
 }
 
 #wrapper {
-  height: 100%;
-  position: relative;
-  width: 100%;
-  overflow: auto;
+    height: 100%;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
 }
 
 #menuContainer {
-  width: 20%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: #222;
+    width: 20%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: #222;
 }
 
 #menuContainer li {
-  cursor: move;
-  border-bottom: 1px solid #000;
-  border-top: 1px solid #333;
-  cursor: pointer;
-  padding: 10px 5px;
-  color: #bbb;
-  background: #1a1a1a;
-  /* font: 12px Arial, sans-serif; */
+    cursor: move;
+    border-bottom: 1px solid #000;
+    border-top: 1px solid #333;
+    cursor: pointer;
+    padding: 10px 5px;
+    color: #bbb;
+    background: #1a1a1a;
+    /* font: 12px Arial, sans-serif; */
 }
 
 #menuContainer li:hover {
-  background: #111;
-  color: #ccc;
+    background: #111;
+    color: #ccc;
 }
 
 #layoutContainer {
-  width: 80%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 20%;
-  box-shadow: -3px 0px 9px 0px rgba(0, 0, 0, 0.4);
+    width: 80%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 20%;
+    box-shadow: -3px 0px 9px 0px rgba(0, 0, 0, 0.4);
 }
 
 .lm_content {
-  overflow-y: auto;
+    overflow-y: auto;
 }

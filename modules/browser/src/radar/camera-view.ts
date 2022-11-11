@@ -1,9 +1,11 @@
 import { Application, DisplayObject, IApplicationOptions } from 'pixi.js';
 
+import $ from 'jquery';
 import { Camera } from './camera';
 import EventEmitter from 'eventemitter3';
 import { WidgetContainer } from '../container';
 import { XY } from '@starwards/core';
+import { toCss } from '../colors';
 
 export class CameraView extends Application {
     public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
@@ -22,7 +24,11 @@ export class CameraView extends Application {
             this.resizeView(container.width, container.height);
         });
         this.resizeView(container.width, container.height);
+        if (pixiOptions.backgroundColor) {
+            container.getElement().css('background-color', toCss(pixiOptions.backgroundColor));
+        }
         container.getElement().append(this.view);
+        $(this.view).css({ margin: 'auto', display: 'block' });
         this.view.addEventListener('contextmenu', function (e) {
             e.preventDefault();
             return false;

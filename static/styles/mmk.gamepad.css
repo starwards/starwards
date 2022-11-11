@@ -1,22 +1,23 @@
 body {
-	font: 10pt monospace;
-	text-align: left;
+    font: 10pt monospace;
+    text-align: left;
 }
 
 table {
-	border-collapse: collapse;
+    border-collapse: collapse;
 }
 
 th {
-	border:     none;
-	background: #000;
-	color:      #FFF;
+    border: none;
+    background: #000;
+    color: #fff;
 }
 
 td {
-	border: 1px solid #ccc;
+    border: 1px solid #ccc;
 }
 
-th,td {
-	padding: 0.25em 0.5em;
+th,
+td {
+    padding: 0.25em 0.5em;
 }
