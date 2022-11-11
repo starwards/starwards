@@ -4,6 +4,7 @@ import { ClientStatus, Driver, Status } from '@starwards/core';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
+import { drawAmmoStatus } from '../widgets/ammo';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTubesStatus } from '../widgets/tubes-status';
@@ -56,4 +57,8 @@ async function initScreen(driver: Driver, shipId: string) {
     const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
     container.getElement().append(topLeft);
     drawTubesStatus(wrapWidgetContainer(topLeft), shipDriver);
+
+    const middleRight = $('<div style="position: absolute; top:50%; right:0;" />');
+    container.getElement().append(middleRight);
+    drawAmmoStatus(wrapWidgetContainer(middleRight), shipDriver);
 }
