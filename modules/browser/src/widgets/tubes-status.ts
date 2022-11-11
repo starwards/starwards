@@ -2,15 +2,15 @@ import { Destructors, ShipDriver, getDirectionConfigFromAngle } from '@starwards
 import { addSliderBlade, addTextBlade } from '../panel/blades';
 import { readNumberProp, readProp } from '../property-wrappers';
 
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
+import { WidgetContainer } from '../container';
 
 export function tubesStatusWidget(shipDriver: ShipDriver): DashboardWidget {
     class TubesStatusWidget {
         private pane: Pane;
         private panelCleanup = new Destructors();
-        constructor(container: Container, _: unknown) {
+        constructor(container: WidgetContainer, _: unknown) {
             this.pane = new Pane({ container: container.getElement().get(0) });
             this.panelCleanup.add(() => {
                 this.pane.dispose();

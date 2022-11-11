@@ -1,16 +1,16 @@
 import { Destructors, ShipDriver, projectileDesigns, projectileModels } from '@starwards/core';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
+import { WidgetContainer } from '../container';
 import { addTextBlade } from '../panel';
 
 export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
     class AmmoComponent {
         private pane: Pane;
         private panelCleanup = new Destructors();
-        constructor(container: Container, _: unknown) {
+        constructor(container: WidgetContainer, _: unknown) {
             this.pane = new Pane({ container: container.getElement().get(0) });
             this.panelCleanup.add(() => {
                 this.pane.dispose();

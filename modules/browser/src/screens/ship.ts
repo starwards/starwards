@@ -5,6 +5,7 @@ import { ClientStatus, Driver, Status } from '@starwards/core';
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
+import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
@@ -19,6 +20,7 @@ import { targetRadarWidget } from '../widgets/target-radar';
 import { tubesStatusWidget } from '../widgets/tubes-status';
 import { wireSinglePilotInput } from '../input/wiring';
 
+ElementQueries.listen();
 // enable pixi dev-tools
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 //@ts-ignore

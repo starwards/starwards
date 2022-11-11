@@ -1,9 +1,9 @@
 import { Application, Graphics, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, degToRad } from '@starwards/core';
 
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import WebFont from 'webfontloader';
+import { WidgetContainer } from '../container';
 import { radarVisibleBg } from '../colors';
 import { rgb2hex } from '@pixi/utils';
 
@@ -19,7 +19,7 @@ Loader.shared.add(preloadList);
 const plateMarginRadians = 3 * degToRad;
 export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
     class ArmorComponent {
-        constructor(container: Container) {
+        constructor(container: WidgetContainer) {
             const size = () => Math.min(container.width, container.height);
 
             Loader.shared.load(() => {

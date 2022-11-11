@@ -1,8 +1,8 @@
 import { Application, DisplayObject, IApplicationOptions } from 'pixi.js';
 
 import { Camera } from './camera';
-import { Container } from 'golden-layout';
 import EventEmitter from 'eventemitter3';
+import { WidgetContainer } from '../container';
 import { XY } from '@starwards/core';
 
 export class CameraView extends Application {
@@ -13,7 +13,7 @@ export class CameraView extends Application {
      * @param pixiOptions options for the pixi application
      * @param camera a point in the world that the radar is watching, and a zoom level
      */
-    constructor(pixiOptions: IApplicationOptions, public camera: Camera, container: Container) {
+    constructor(pixiOptions: IApplicationOptions, public camera: Camera, container: WidgetContainer) {
         super(pixiOptions);
         this.ticker.maxFPS = 30; // if no limit, then GPU and CPU start heating up and FPS reach ~250
         camera.events.on('view', () => this.events.emit('screenChanged'));

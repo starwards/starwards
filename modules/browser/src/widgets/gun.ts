@@ -1,12 +1,12 @@
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../panel';
 import { ShipDriver } from '@starwards/core';
+import { WidgetContainer } from '../container';
 import { readNumberProp } from '../property-wrappers';
 
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
     class GunComponent {
-        constructor(container: Container, _: unknown) {
+        constructor(container: WidgetContainer, _: unknown) {
             const panel = new PropertyPanel(container);
             container.on('destroy', () => {
                 panel.destroy();

@@ -2,7 +2,13 @@ import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, Status } from '@starwards/core';
 
+import $ from 'jquery';
+import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
+import { wireSinglePilotInput } from '../input/wiring';
+import { wrapWidgetContainer } from '../container';
+
+ElementQueries.listen();
 
 // enable pixi dev-tools
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -31,8 +37,9 @@ if (shipUrlParam) {
 }
 
 async function initScreen(driver: Driver, shipId: string) {
-    const container = $('#container');
+    const container = wrapWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
+    wireSinglePilotInput(shipDriver);
 }
