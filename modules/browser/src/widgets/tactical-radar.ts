@@ -1,4 +1,4 @@
-import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
+import { AbstractRenderer, Graphics, Loader, Renderer, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, degToRad } from '@starwards/core';
 import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
@@ -55,11 +55,24 @@ export function drawTacticalRadar(
         const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
         root.view.setAttribute('data-id', 'Tactical Radar');
         root.setSquare();
+        const circleMask = new Graphics();
+        root.stage.addChild(circleMask);
+
+        function drawMask() {
+            circleMask.clear();
+            circleMask.lineStyle(2, 0xff0000, 1);
+            circleMask.beginFill(0xff0000, 1);
+            circleMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor);
+            circleMask.endFill();
+        }
+        drawMask();
+        container.on('resize', drawMask);
         const rangeFilter = new RadarRangeFilter(
             spaceDriver,
             (o: SpaceObject) => o.faction === shipDriver.state.faction
         );
         const fovGraphics = new Graphics();
+        fovGraphics.mask = circleMask;
         root.stage.addChild(fovGraphics);
 
         root.ticker.add(
@@ -116,6 +129,8 @@ export function drawTacticalRadar(
             shipTarget,
             rangeFilter.isInRange
         );
+
+        blipLayer.renderRoot.mask = circleMask;
         root.addLayer(blipLayer.renderRoot);
 
         void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
