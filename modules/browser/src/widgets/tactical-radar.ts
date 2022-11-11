@@ -31,16 +31,14 @@ const sizeFactorGrace = 0.005;
 
 type Props = { range: number };
 export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
-    class TacticalRadarComponent {
-        constructor(container: WidgetContainer, p: Props) {
-            drawTacticalRadar(spaceDriver, shipDriver, container, p);
-        }
-    }
-
     return {
         name: 'tactical radar',
         type: 'component',
-        component: TacticalRadarComponent,
+        component: class {
+            constructor(container: WidgetContainer, p: Props) {
+                drawTacticalRadar(spaceDriver, shipDriver, container, p);
+            }
+        },
         defaultProps: { range: 5000 },
     };
 }
