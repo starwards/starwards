@@ -1,9 +1,9 @@
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { circlesIntersection, limitPercision, moveToTarget, rotateToTarget, toDegreesDelta } from '.';
+import { Faction, Spaceship } from '../space';
+import { FieldOfView, circlesIntersection, limitPercision, moveToTarget, rotateToTarget, toDegreesDelta } from '.';
 
 import { SWResponse } from './collisions-utils';
-import { Spaceship } from '../space';
 import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
@@ -24,18 +24,33 @@ type AttackOrder = {
     type: 'attack';
     targetId: string;
 };
+type ExtraData = {
+    body: Circle;
+    fov: FieldOfView;
+};
 export type BotOrder = MoveOrder | AttackOrder;
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
-    private collisionToState = new WeakMap<Circle, SpaceObject>();
-    public stateToCollision = new WeakMap<SpaceObject, Circle>();
+    private collisionToState = new WeakMap<Body, SpaceObject>();
+    private stateToExtraData = new WeakMap<SpaceObject, ExtraData>();
     private objectDamage = new Map<string, Damage[]>();
     private objectOrder = new Map<string, BotOrder>();
     private toInsert: SpaceObject[] = [];
 
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
+
+    private spatialIndex = ((mgr: SpaceManager) => ({
+        *selectPotentials(area: Body): Iterable<SpaceObject> {
+            for (const potential of mgr.collisions.getPotentials(area)) {
+                const object = mgr.collisionToState.get(potential);
+                if (object && !object.destroyed) {
+                    yield object;
+                }
+            }
+        },
+    }))(this);
 
     public changeTurnSpeed(id: string, delta: number) {
         const subject = this.state.get(id);
@@ -95,12 +110,32 @@ export class SpaceManager {
         this.untrackDestroyedObjects();
         this.applyFreeze();
         this.applyPhysics(deltaSeconds);
+        this.updateFieldsOFView();
         this.updateCollisionBodies();
         this.handleCollisions(deltaSeconds);
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
             this.gc();
         }
+    }
+
+    public getFactionVisibleObjects(faction: Faction) {
+        const visibleObjects = new Set<SpaceObject>();
+        for (const object of this.state) {
+            if (object.faction === faction) {
+                visibleObjects.add(object);
+                const data = this.stateToExtraData.get(object);
+                if (data) {
+                    for (const visibleArc of data.fov.view) {
+                        visibleArc.object && visibleObjects.add(visibleArc.object);
+                    }
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error(`object leak! ${object.id} has no extra data`);
+                }
+            }
+        }
+        return visibleObjects;
     }
 
     private growExplosions(deltaSeconds: number) {
@@ -183,11 +218,11 @@ export class SpaceManager {
 
     private untrackDestroyedObjects() {
         for (const destroyed of this.state[Symbol.iterator](true)) {
-            const body = this.stateToCollision.get(destroyed);
-            if (body) {
-                this.stateToCollision.delete(destroyed);
-                this.collisionToState.delete(body);
-                this.collisions.remove(body);
+            const data = this.stateToExtraData.get(destroyed);
+            if (data) {
+                this.stateToExtraData.delete(destroyed);
+                this.collisionToState.delete(data.body);
+                this.collisions.remove(data.body);
             }
         }
     }
@@ -211,7 +246,8 @@ export class SpaceManager {
                 this.state.set(object);
                 const body = this.collisions.createCircle(XY.clone(object.position), object.radius);
                 this.collisionToState.set(body, object);
-                this.stateToCollision.set(object, body);
+                const fov = new FieldOfView(this.spatialIndex, object);
+                this.stateToExtraData.set(object, { body, fov });
             }
             this.toInsert = [];
         }
@@ -394,16 +430,28 @@ export class SpaceManager {
         }
     }
 
+    private updateFieldsOFView() {
+        for (const object of this.state) {
+            const data = this.stateToExtraData.get(object);
+            if (data) {
+                data.fov.setDirty();
+            } else {
+                // eslint-disable-next-line no-console
+                console.error(`object leak! ${object.id} has no extra data`);
+            }
+        }
+    }
+
     private updateCollisionBodies() {
         for (const object of this.toUpdateCollisions) {
             if (!object.destroyed) {
-                const body = this.stateToCollision.get(object);
-                if (body) {
-                    body.r = object.radius;
-                    body.setPosition(object.position.x, object.position.y); // order matters! setPosition() internally calls updateAABB()
+                const data = this.stateToExtraData.get(object);
+                if (data) {
+                    data.body.r = object.radius;
+                    data.body.setPosition(object.position.x, object.position.y); // order matters! setPosition() internally calls updateAABB()
                 } else {
                     // eslint-disable-next-line no-console
-                    console.error(`object leak! ${object.id} has no collision body`);
+                    console.error(`object leak! ${object.id} has no extra data`);
                 }
             }
         }
@@ -412,6 +460,7 @@ export class SpaceManager {
         this.toUpdateCollisions.clear();
     }
 }
+
 function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: SWResponse) {
     return `Subject ${subject.type} data: centre: ${JSON.stringify(subject.position)}(${JSON.stringify(
         response.a.pos

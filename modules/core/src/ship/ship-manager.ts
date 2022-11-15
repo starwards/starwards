@@ -13,7 +13,6 @@ import {
     TargetedStatus,
     XY,
     capToRange,
-    distanceSpaceObjects,
     gaussianRandom,
     lerp,
     limitPercision,
@@ -163,7 +162,7 @@ export class ShipManager {
         }
     }
 
-    private getViableTargetIds() {
+    private getViableTargetIds(): Iterator<string | null> {
         const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
@@ -171,9 +170,8 @@ export class ShipManager {
         if (this.state.weaponsTarget.enemyOnly) {
             result = result.filter((v) => v.faction !== Faction.none && v.faction !== this.state.faction);
         }
-        return result
-            .filter((v) => distanceSpaceObjects(v, this.state) < this.state.weaponsTarget.range)
-            .map<string | null>((s) => s.id);
+        const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.faction);
+        return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
     }
 
     public handleToggleSmartPilotManeuveringMode() {
