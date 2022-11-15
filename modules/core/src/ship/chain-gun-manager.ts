@@ -5,6 +5,7 @@ import { Vec2, gaussianRandom } from '..';
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
+import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
@@ -17,17 +18,15 @@ export function resetChainGun(chainGun: ChainGun) {
 }
 
 type ShipManager = {
-    target: SpaceObject | null;
-    state: ShipState;
+    readonly target: SpaceObject | null;
+    readonly state: ShipState;
 };
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
     if (chainGun.projectile === 'None') {
-        for (const projectileModel of projectileModels) {
-            if (chainGun.design[`use_${projectileModel}`] && magazine[`count_${projectileModel}`] > 0) {
-                chainGun.projectile = projectileModel;
-            }
-        }
+        chainGun.projectile = new Iterator(projectileModels)
+            .filter((p) => chainGun.design[`use_${p}`] && magazine[`count_${p}`] > 0)
+            .firstOr('None');
     }
 }
 export class ChainGunManager {
@@ -95,6 +94,13 @@ export class ChainGunManager {
 
     private updateChainGun(deltaSeconds: number) {
         const chainGun = this.chainGun;
+        if (chainGun.changeProjectileCommand) {
+            chainGun.changeProjectileCommand = false;
+            chainGun.projectile = new Iterator(projectileModels)
+                .filter((p) => chainGun.design[`use_${p}`])
+                .add('None' as const)
+                .elementAfter(chainGun.projectile);
+        }
         if (chainGun.projectile !== 'None' && !chainGun.design[`use_${chainGun.projectile}`]) {
             chainGun.projectile = 'None';
         }
@@ -140,7 +146,7 @@ export class ChainGunManager {
             );
             projectile.init(uniqueId('shell'), shellPosition);
             if (projectile.design.homing) {
-                projectile.targetId = this.ship.targetId;
+                projectile.targetId = this.ship.weaponsTarget.targetId;
                 projectile.secondsToLive = projectile.design.homing.secondsToLive;
             } else {
                 projectile.secondsToLive = chaingun.shellSecondsToLive;

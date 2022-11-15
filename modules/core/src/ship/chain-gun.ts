@@ -101,6 +101,9 @@ export class ChainGun extends Schema {
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();
 
+    // server only, used for commands
+    public changeProjectileCommand = false;
+
     get broken(): boolean {
         return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.rateOfFireFactor <= 0;
     }

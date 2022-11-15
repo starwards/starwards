@@ -11,6 +11,10 @@ import { tweakable } from '../tweakable';
 export function compareSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
     return a.id === b.id ? 0 : a.id < b.id ? 1 : -1;
 }
+
+export function distanceSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
+    return XY.lengthOf(XY.difference(a.position, b.position)) - a.radius - b.radius;
+}
 export abstract class SpaceObjectBase extends Schema {
     @type('string')
     public abstract readonly type: keyof SpaceObjects;

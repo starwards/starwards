@@ -1,14 +1,16 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status } from '@starwards/core';
+import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
+import { readWriteProp, writeProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
+import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
+import { drawTargetingStatus } from '../widgets/targeting';
 import { drawTubesStatus } from '../widgets/tubes-status';
-import { wireSinglePilotInput } from '../input/wiring';
 import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
@@ -44,7 +46,7 @@ async function initScreen(driver: Driver, shipId: string) {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
-    wireSinglePilotInput(shipDriver);
+    wireInput(shipDriver);
     const topRight = $('<div style="position: absolute; top:0; right:0;" />');
     container.getElement().append(topRight);
     drawSystemsStatus(
@@ -58,7 +60,29 @@ async function initScreen(driver: Driver, shipId: string) {
     container.getElement().append(topLeft);
     drawTubesStatus(wrapWidgetContainer(topLeft), shipDriver);
 
+    const middleLeft = $('<div style="position: absolute; top:50%; left:0;" />');
+    container.getElement().append(middleLeft);
+    drawAmmoStatus(wrapWidgetContainer(middleLeft), shipDriver);
+
     const middleRight = $('<div style="position: absolute; top:50%; right:0;" />');
     container.getElement().append(middleRight);
-    drawAmmoStatus(wrapWidgetContainer(middleRight), shipDriver);
+    drawTargetingStatus(wrapWidgetContainer(middleRight), shipDriver);
+}
+
+function wireInput(shipDriver: ShipDriver) {
+    // wireSinglePilotInput(shipDriver);
+    const input = new InputManager();
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), ']');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/prevTargetCommand'), '[');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/clearTargetCommand'), "'");
+    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shipOnly'), 'p');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/enemyOnly'), 'o');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i');
+    //     const projectile = writeProp(shipDriver, `/tubes/${tube.index}/projectile`);
+    //     const isFiring = writeProp(shipDriver, `/tubes/${tube.index}/isFiring`);
+    // for (const tube of shipDriver.state.tubes) {
+    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'c');
+    // }
+    input.init();
 }

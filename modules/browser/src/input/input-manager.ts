@@ -28,6 +28,10 @@ interface RangeAction {
 interface TriggerAction {
     setValue: (v: boolean) => unknown;
 }
+interface ToggleAction {
+    getValue: () => boolean;
+    setValue: (v: boolean) => unknown;
+}
 export function numberAction(action: { setValue: (v: number) => unknown }): TriggerAction {
     return { setValue: (v: boolean) => action.setValue(Number(v)) };
 }
@@ -128,11 +132,21 @@ export class InputManager {
         }
     }
 
-    addClickAction(property: TriggerAction, config: GamepadButtonConfig | string | undefined) {
+    addMomentaryClickAction(property: TriggerAction, config: GamepadButtonConfig | string | undefined) {
+        const { setValue } = property;
         if (typeof config === 'object') {
-            this.buttons.push({ button: config, ...property });
+            this.buttons.push({ button: config, setValue });
         } else if (typeof config === 'string') {
-            this.keys.push({ key: config, setValue: property.setValue });
+            this.keys.push({ key: config, setValue });
+        }
+    }
+
+    addToggleClickAction(property: ToggleAction, config: GamepadButtonConfig | string | undefined) {
+        const onClick = () => property.setValue(!property.getValue());
+        if (typeof config === 'object') {
+            this.buttons.push({ button: config, onClick });
+        } else if (typeof config === 'string') {
+            this.keys.push({ key: config, onClick });
         }
     }
 

@@ -6,10 +6,10 @@ import { SelectionContainer } from './radar/selection-container';
 export function trackTargetObject(spaceDriver: SpaceDriver, ship: ShipDriverRead): SelectionContainer {
     const result = new SelectionContainer().init(spaceDriver);
     const updateSelectedTarget = () => {
-        const targetObj = ship.state.targetId && spaceDriver.state.get(ship.state.targetId);
+        const targetObj = ship.state.weaponsTarget.targetId && spaceDriver.state.get(ship.state.weaponsTarget.targetId);
         result.set(targetObj ? [targetObj] : []);
     };
-    ship.events.on('/targetId', updateSelectedTarget);
+    ship.events.on('/weaponsTarget/targetId', updateSelectedTarget);
     spaceDriver.events.on('$add', () => setTimeout(updateSelectedTarget, 0));
     updateSelectedTarget();
     return result;
