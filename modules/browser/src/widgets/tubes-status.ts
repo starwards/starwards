@@ -1,5 +1,5 @@
-import { Destructors, ShipDriver, getDirectionConfigFromAngle } from '@starwards/core';
-import { addSliderBlade, addTextBlade } from '../panel/blades';
+import { Destructors, ShipDriver } from '@starwards/core';
+import { addInputBlade, addSliderBlade, addTextBlade } from '../panel/blades';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -21,7 +21,7 @@ export function tubesStatusWidget(shipDriver: ShipDriver): DashboardWidget {
 
 export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Tubes', container: container.getElement().get(0) });
+    const pane = new Pane({ container: container.getElement().get(0) });
     panelCleanup.add(() => {
         pane.dispose();
     });
@@ -33,11 +33,19 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
         });
         panelCleanup.add(() => tubeFolder.dispose());
         const projectile = readProp(shipDriver, `/tubes/${tube.index}/projectile`);
-        addTextBlade(tubeFolder, projectile, { label: 'ammo type', disabled: true }, panelCleanup.add);
-        const cooldown = readNumberProp(shipDriver, `/tubes/${tube.index}/cooldown`);
-        addSliderBlade(tubeFolder, cooldown, { label: 'cooldown', disabled: true }, panelCleanup.add);
-        const { getValue, onChange } = readProp<number>(shipDriver, `/tubes/${tube.index}/angle`);
-        const angle = { onChange, getValue: () => getDirectionConfigFromAngle(getValue()) };
-        addTextBlade(tubeFolder, angle, { label: 'angle', disabled: true }, panelCleanup.add);
+        addTextBlade(tubeFolder, projectile, { label: 'ammo to use', disabled: true }, panelCleanup.add);
+        const loadedProjectile = readProp(shipDriver, `/tubes/${tube.index}/loadedProjectile`);
+        addTextBlade(tubeFolder, loadedProjectile, { label: 'ammo loaded', disabled: true }, panelCleanup.add);
+        const loading = readNumberProp(shipDriver, `/tubes/${tube.index}/loading`);
+        addSliderBlade(tubeFolder, loading, { label: 'loading', disabled: true }, panelCleanup.add);
+        addInputBlade(
+            tubeFolder,
+            readProp(shipDriver, `/tubes/${tube.index}/loadAmmo`),
+            { label: 'auto load' },
+            panelCleanup.add
+        );
+        if (tube.index < shipDriver.state.tubes.length - 1) {
+            pane.addSeparator();
+        }
     }
 }

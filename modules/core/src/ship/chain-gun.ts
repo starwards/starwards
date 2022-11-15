@@ -66,9 +66,13 @@ export class ChainGun extends Schema {
     @type('boolean')
     isFiring = false;
 
+    @tweakable('boolean')
+    @type('boolean')
+    loadAmmo = true;
+
     @number2Digits
     @range([0, 1])
-    cooldown = 0;
+    loading = 0;
 
     @number2Digits
     @range((t: ChainGun) => [t.design.minShellSecondsToLive, t.design.maxShellSecondsToLive])
@@ -97,6 +101,13 @@ export class ChainGun extends Schema {
         enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
     }))
     projectile: SelectedProjectileModel = 'None';
+
+    @type('string')
+    @tweakable((t: ChainGun) => ({
+        type: 'string enum',
+        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+    }))
+    loadedProjectile: SelectedProjectileModel = 'None';
 
     @type(ChaingunDesignState)
     design = new ChaingunDesignState();

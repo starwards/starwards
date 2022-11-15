@@ -29,7 +29,9 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
         const maxProp = readProp<number>(shipDriver, `/magazine/design/max_${projectileKey}`);
         const capacityProp = readProp<number>(shipDriver, `/magazine/capacity`);
         const getText = () =>
-            `${shipDriver.state.magazine.count_CannonShell} / ${shipDriver.state.magazine[`max_${projectileKey}`]}`;
+            `${shipDriver.state.magazine[`count_${projectileKey}`]} / ${
+                shipDriver.state.magazine[`max_${projectileKey}`]
+            }`;
         const prop = {
             onChange: (cb: () => unknown) => abstractOnChange([countProp, maxProp, capacityProp], getText, cb),
             getValue: getText,

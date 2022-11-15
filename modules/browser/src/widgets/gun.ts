@@ -15,8 +15,9 @@ export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
 
             chainGunPanel.addProperty('max Ammo', readNumberProp(shipDriver, `/magazine/count_CannonShell`));
             chainGunPanel.addProperty('ammo', readNumberProp(shipDriver, `/magazine/count_CannonShell`));
-            chainGunPanel.addProperty('chainGunCooldown', readNumberProp(shipDriver, `/chainGun/cooldown`));
+            chainGunPanel.addProperty('loading', readNumberProp(shipDriver, `/chainGun/loading`));
             chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.state.chainGun?.isFiring) });
+            chainGunPanel.addText('loadAmmo', { getValue: () => String(shipDriver.state.chainGun?.loadAmmo) });
             panel.addText('target', { getValue: () => String(shipDriver.state.weaponsTarget.targetId) });
 
             panel.addProperty('shellSecondsToLive', readNumberProp(shipDriver, `/chainGun/shellSecondsToLive`));

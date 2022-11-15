@@ -82,7 +82,8 @@ function wireInput(shipDriver: ShipDriver) {
     //     const isFiring = writeProp(shipDriver, `/tubes/${tube.index}/isFiring`);
     // for (const tube of shipDriver.state.tubes) {
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'c');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v');
     // }
     input.init();
 }

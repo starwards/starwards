@@ -17,6 +17,7 @@ import {
     lerp,
     limitPercision,
     matchLocalSpeed,
+    projectileModels,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
     shipAreasInRange,
@@ -220,7 +221,7 @@ export class ShipManager {
 
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
-        this.addChainGunAmmo(0);
+        this.updateChainGunAmmo();
     }
 
     private calcSmartPilotModes() {
@@ -321,10 +322,12 @@ export class ShipManager {
 
     private damageMagazine(magazine: Magazine, damageId: string) {
         if (!magazine.broken) {
-            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+            if (this.die.getSuccess('damageMagazine' + damageId, 0.5)) {
                 // todo convert to a defectible property that accumulates damage
-                magazine.count_CannonShell = Math.round(
-                    magazine.count_CannonShell * (1 - magazine.design.capacityDamageFactor)
+                const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
+                const projectileKey = projectileModels[idx];
+                magazine[`count_${projectileKey}`] = Math.round(
+                    magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor)
                 );
             } else {
                 magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
@@ -652,11 +655,13 @@ export class ShipManager {
         );
     }
 
-    public addChainGunAmmo(addedAmmo: number) {
-        this.state.magazine.count_CannonShell = Math.min(
-            this.state.magazine.count_CannonShell + addedAmmo,
-            this.state.magazine.max_CannonShell
-        );
+    private updateChainGunAmmo() {
+        for (const projectileKey of projectileModels) {
+            this.state.magazine[`count_${projectileKey}`] = Math.min(
+                this.state.magazine[`count_${projectileKey}`],
+                this.state.magazine[`max_${projectileKey}`]
+            );
+        }
     }
 
     private updateRotation(deltaSeconds: number) {

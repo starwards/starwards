@@ -63,16 +63,16 @@ export class Magazine extends Schema {
 
     @range((t: Magazine) => [0, t.design.max_CannonShell])
     get max_CannonShell() {
-        return this.design.max_CannonShell * this.capacity;
+        return Math.round(this.design.max_CannonShell * this.capacity);
     }
 
     @range((t: Magazine) => [0, t.design.max_BlastCannonShell])
     get max_BlastCannonShell() {
-        return this.design.max_BlastCannonShell * this.capacity;
+        return Math.round(this.design.max_BlastCannonShell * this.capacity);
     }
 
     @range((t: Magazine) => [0, t.design.max_Missile])
     get max_Missile() {
-        return this.design.max_Missile * this.capacity;
+        return Math.round(this.design.max_Missile * this.capacity);
     }
 }
