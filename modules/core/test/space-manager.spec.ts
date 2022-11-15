@@ -125,6 +125,8 @@ describe('SpaceManager', () => {
             shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
             shipMgr.state.chainGun!.design.maxShellRange = 10_000;
             shipMgr.state.chainGun!.shellRange = 1;
+            shipMgr.state.chainGun!.loading = 1;
+            shipMgr.state.chainGun!.loadedProjectile = 'CannonShell';
             shipMgr.state.chainGun!.isFiring = true;
             switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 

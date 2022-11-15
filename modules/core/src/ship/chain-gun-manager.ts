@@ -30,6 +30,11 @@ export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
     }
 }
 export class ChainGunManager {
+    /**
+     * used to accuretly simulate very high rate of fire
+     */
+    private loadingRemainder = 0;
+
     constructor(
         public chainGun: ChainGun,
         public spaceObject: DeepReadonly<Spaceship>,
@@ -106,7 +111,7 @@ export class ChainGunManager {
                 chainGun.projectile = ammoTypes.elementAfter(chainGun.projectile);
             }
         }
-        if (chainGun.broken || chainGun.loadedProjectile === 'None') {
+        if (chainGun.broken) {
             chainGun.isFiring = false;
         }
         const dontLoad =
@@ -132,9 +137,12 @@ export class ChainGunManager {
                 if (chainGun.loading === 0) {
                     this.shipManager.state.magazine[`count_${chainGun.projectile}`] -= 1;
                     chainGun.loadedProjectile = chainGun.projectile;
+                    chainGun.loading += this.loadingRemainder;
+                    this.loadingRemainder = 0;
                 }
                 chainGun.loading += deltaSeconds * rof;
                 if (chainGun.loading >= 1) {
+                    this.loadingRemainder = chainGun.loading - 1;
                     chainGun.loading = 1;
                 }
             }

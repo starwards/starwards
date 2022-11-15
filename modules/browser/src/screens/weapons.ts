@@ -70,7 +70,6 @@ async function initScreen(driver: Driver, shipId: string) {
 }
 
 function wireInput(shipDriver: ShipDriver) {
-    // wireSinglePilotInput(shipDriver);
     const input = new InputManager();
     input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), ']');
     input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/prevTargetCommand'), '[');
@@ -78,12 +77,9 @@ function wireInput(shipDriver: ShipDriver) {
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shipOnly'), 'p');
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/enemyOnly'), 'o');
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i');
-    //     const projectile = writeProp(shipDriver, `/tubes/${tube.index}/projectile`);
-    //     const isFiring = writeProp(shipDriver, `/tubes/${tube.index}/isFiring`);
-    // for (const tube of shipDriver.state.tubes) {
+
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x');
     input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c');
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v');
-    // }
     input.init();
 }
