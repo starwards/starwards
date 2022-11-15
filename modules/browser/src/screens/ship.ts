@@ -66,7 +66,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(ammoWidget(shipDriver), {}, 'ammo');
     dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, 'tubes');
     dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, 'systems');
-    dashboard.registerWidget(targetingWidget(shipDriver), {}, 'systems');
+    dashboard.registerWidget(targetingWidget(shipDriver), {}, 'targeting');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

@@ -95,7 +95,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
             dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
             dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
-            dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' systems');
+            dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
             dashboard.setup();
         }
     },
