@@ -71,6 +71,10 @@ export const dragonflyTube = {
     overrideSecondsToLive: 10,
     use_Missile: true,
 };
+export const dragonflyTargeting = {
+    maxRange: 5_000,
+    shortRange: 3_000,
+};
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
@@ -88,4 +92,5 @@ export const dragonflySF22: ShipDesign = {
     smartPilot: dragonflySmartPilot,
     reactor: dragonflyReactor,
     magazine: dragonflyMagazine,
+    weaponsTarget: dragonflyTargeting,
 };

@@ -13,10 +13,6 @@ export class Spaceship extends SpaceObjectBase {
     public static radius = 50;
     public readonly type = 'Spaceship';
 
-    @type('string')
-    @tweakable('string')
-    public targetId: string | null = null;
-
     @type('int8')
     @tweakable({ type: 'enum', enum: Faction })
     public faction: Faction = Faction.none;

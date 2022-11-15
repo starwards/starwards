@@ -18,6 +18,7 @@ import { radarWidget } from '../widgets/radar';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
 
 // enable pixi dev-tools
@@ -67,7 +68,7 @@ void driver.waitForGame().then(
             },
             gmInputConfig.rotate
         );
-        input.addClickAction(
+        input.addMomentaryClickAction(
             {
                 setValue: (v: boolean) =>
                     v &&
@@ -94,6 +95,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
             dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
             dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
+            dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
             dashboard.setup();
         }
     },

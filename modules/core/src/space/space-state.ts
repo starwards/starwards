@@ -49,7 +49,7 @@ export class SpaceState extends Schema {
         this.getMap(obj.type).delete(obj.id);
     }
 
-    public getAll<T extends keyof SpaceObjects>(typeField: T): IterableIterator<SpaceObjects[T]> {
+    public getAll<T extends keyof SpaceObjects>(typeField: T): Iterable<SpaceObjects[T]> {
         return mapSchemaValues(this.getMap(typeField));
     }
 
@@ -71,10 +71,14 @@ export class SpaceState extends Schema {
     }
 }
 
-function* mapSchemaValues<T extends SpaceObject>(map: MapSchema<T>, destroyed = false): IterableIterator<T> {
-    for (const result of map.values()) {
-        if (result && result.destroyed === destroyed) {
-            yield result;
-        }
-    }
+function mapSchemaValues<T extends SpaceObject>(map: MapSchema<T>, destroyed = false): Iterable<T> {
+    return {
+        *[Symbol.iterator]() {
+            for (const result of map.values()) {
+                if (result && result.destroyed === destroyed) {
+                    yield result;
+                }
+            }
+        },
+    };
 }

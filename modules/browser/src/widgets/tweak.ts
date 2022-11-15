@@ -15,10 +15,10 @@ import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 import { addCameraRingBlade, addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
 
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
+import { WidgetContainer } from '../container';
 import pluralize from 'pluralize';
 
 const selectionTitle = (selected: Iterable<SpaceObject>) => {
@@ -157,7 +157,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
         private spaceDriver: SpaceDriver | null = null;
         private panelCleanup = new Destructors();
 
-        constructor(container: Container, _: unknown) {
+        constructor(container: WidgetContainer, _: unknown) {
             this.pane = new Pane({ container: container.getElement().get(0) });
             this.pane.registerPlugin(CamerakitPlugin);
             this.panelCleanup.add(() => {

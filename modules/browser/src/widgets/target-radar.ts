@@ -4,13 +4,13 @@ import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
+import { WidgetContainer } from '../container';
 import { crosshairs } from '../radar/tactical-radar-layers';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { trackTargetObject } from '../ship-logic';
@@ -40,7 +40,7 @@ function trackObject(camera: Camera, changeEvents: SpaceEventEmitter, target: Se
 type Props = { range: number };
 export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget<Props> {
     class TargetRadarComponent {
-        constructor(container: Container, p: Props) {
+        constructor(container: WidgetContainer, p: Props) {
             const camera = new Camera();
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
 

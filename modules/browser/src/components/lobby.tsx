@@ -95,6 +95,13 @@ function ShipOptions({ shipId }: { shipId: string }) {
                         Empty Screen
                     </Button>
                     <Button
+                        key={`weapons-${shipId}`}
+                        palette="primary"
+                        onClick={() => window.location.assign(`weapons.html?ship=${shipId}`)}
+                    >
+                        Weapons
+                    </Button>
+                    <Button
                         key="3D debug"
                         palette="secondary"
                         onClick={() => window.location.assign(`main-screen.html?ship=${shipId}&debug`)}

@@ -5,6 +5,7 @@ import { ClientStatus, Driver, Status } from '@starwards/core';
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
+import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
@@ -16,9 +17,11 @@ import { radarWidget } from '../widgets/radar';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
 import { wireSinglePilotInput } from '../input/wiring';
 
+ElementQueries.listen();
 // enable pixi dev-tools
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 //@ts-ignore
@@ -63,6 +66,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(ammoWidget(shipDriver), {}, 'ammo');
     dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, 'tubes');
     dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, 'systems');
+    dashboard.registerWidget(targetingWidget(shipDriver), {}, 'targeting');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }
