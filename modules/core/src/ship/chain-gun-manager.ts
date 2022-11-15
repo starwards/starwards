@@ -114,6 +114,9 @@ export class ChainGunManager {
         if (chainGun.broken) {
             chainGun.isFiring = false;
         }
+        if (!chainGun.isFiring) {
+            this.loadingRemainder = 0;
+        }
         const dontLoad =
             chainGun.projectile !== 'None' &&
             chainGun.loading === 0 &&
