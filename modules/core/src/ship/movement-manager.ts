@@ -60,7 +60,17 @@ export class MovementManager {
         }
     }
 
-    private handleWarpMovement(deltaSeconds: number) {}
+    private handleWarpMovement() {
+        if (this.state.warp.currentLevel) {
+            const newSpeed = XY.byLengthAndDirection(
+                this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
+                this.state.angle
+            );
+            this.spaceManager.setVelocity(this.spaceObject.id, newSpeed);
+            this.state.velocity.x = this.spaceObject.velocity.x;
+            this.state.velocity.y = this.spaceObject.velocity.y;
+        }
+    }
 
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {

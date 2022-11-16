@@ -65,6 +65,12 @@ export class SpaceManager {
             subject.velocity.y += delta.y;
         }
     }
+    public setVelocity(id: string, velocity: XY) {
+        const subject = this.state.get(id);
+        if (subject && !subject.destroyed) {
+            subject.velocity.setValue(velocity);
+        }
+    }
 
     private moveObjects(ids: string[], delta: XY) {
         for (const id of ids) {

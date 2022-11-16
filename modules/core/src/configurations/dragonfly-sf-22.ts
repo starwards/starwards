@@ -80,7 +80,7 @@ export const dragonflyWarp = {
     maxProximity: 10_000,
     chargeTime: 10,
     dechargeTime: 5,
-    speedPerLevel: 5,
+    speedPerLevel: 1000,
     damagePerSpeed: 100,
 };
 
