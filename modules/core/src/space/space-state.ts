@@ -6,6 +6,7 @@ import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
+import { Waypoint } from './waypoint';
 
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
     return !!k;
@@ -24,6 +25,9 @@ export class SpaceState extends Schema {
 
     @type({ map: Spaceship })
     private readonly Spaceship = new MapSchema<Spaceship>();
+
+    @type({ map: Waypoint })
+    private readonly waypoints = new MapSchema<Waypoint>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();

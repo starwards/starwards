@@ -1,4 +1,4 @@
-import { ArraySchema, type } from '@colyseus/schema';
+import { ArraySchema, MapSchema, type } from '@colyseus/schema';
 import { XY, toDegreesDelta } from '..';
 import { range, rangeSchema } from '../range';
 
@@ -15,6 +15,7 @@ import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
+import { WaypointsSet } from '../space/waypoint';
 import { number2Digits } from '../number-field';
 
 export enum TargetedStatus {
@@ -36,6 +37,15 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
 export class ShipState extends Spaceship {
     @type(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
+
+    @type(WaypointsSet)
+    routeWaypoints = new WaypointsSet();
+
+    @type(WaypointsSet)
+    inboxWaypoints = new WaypointsSet();
+
+    @type({ map: WaypointsSet })
+    alternativeRoutes = new MapSchema<WaypointsSet>();
 
     @type([Thruster])
     thrusters!: ArraySchema<Thruster>;
