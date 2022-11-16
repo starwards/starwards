@@ -14,6 +14,7 @@ import { Spaceship } from '../space';
 import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
+import { Warp } from './warp';
 import { number2Digits } from '../number-field';
 
 export enum TargetedStatus {
@@ -62,6 +63,9 @@ export class ShipState extends Spaceship {
 
     @type(Targeting)
     weaponsTarget!: Targeting;
+
+    @type(Warp)
+    warp!: Warp;
 
     @number2Digits
     @range([-1, 1])
