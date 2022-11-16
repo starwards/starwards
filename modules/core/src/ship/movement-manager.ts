@@ -1,12 +1,4 @@
-import {
-    EPSILON,
-    ManeuveringCommand,
-    SpaceManager,
-    XY,
-    capToRange,
-    limitPercisionHard,
-    matchLocalSpeed,
-} from '../logic';
+import { ManeuveringCommand, SpaceManager, XY, capToRange, limitPercisionHard, matchLocalSpeed } from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
@@ -37,7 +29,7 @@ export class MovementManager {
         this.handleWarpCommands();
         this.handleWarpProximityJam();
         this.handleWarpLevel(deltaSeconds);
-        this.handleWarpMovement();
+        this.handleWarpMovement(deltaSeconds);
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
@@ -58,6 +50,18 @@ export class MovementManager {
         }
     }
 
+    private handleWarpProximityJam() {
+        if (this.state.warp.desiredLevel > 0) {
+            const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
+            const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
+                .filter((v) => v.id !== this.spaceObject.id)
+                .firstOr(null);
+            if (objectInRange) {
+                this.state.warp.desiredLevel = 0;
+            }
+        }
+    }
+
     private handleWarpLevel(deltaSeconds: number) {
         if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
             if (this.state.warp.currentLevel == 0) {
@@ -66,7 +70,7 @@ export class MovementManager {
                     // penalty damage for existing velocity
                     this.shipManager.damageAllSystems({
                         id: 'warp_start',
-                        amount: this.state.warp.design.damagePerSpeed * currentSpeed,
+                        amount: this.state.warp.design.damagePerPhysicalSpeed * currentSpeed,
                     });
                 }
             }
@@ -86,25 +90,19 @@ export class MovementManager {
         }
     }
 
-    private handleWarpProximityJam() {
-        if (this.state.warp.desiredLevel > 0) {
-            const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
-            const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
-                .filter((v) => v.id !== this.spaceObject.id)
-                .firstOr(null);
-            if (objectInRange) {
-                this.state.warp.desiredLevel = 0;
-            }
-        }
-    }
-
-    private handleWarpMovement() {
+    private handleWarpMovement(deltaSeconds: number) {
         if (this.isWarpActive()) {
-            const newSpeed = XY.byLengthAndDirection(
+            const newSpeed = this.state.warp.currentLevel * this.state.warp.design.speedPerLevel;
+            const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
                 this.state.angle
             );
-            this.setVelocity(newSpeed);
+            // penalty damage for existing velocity
+            this.shipManager.damageAllSystems({
+                id: 'warp_speed',
+                amount: this.state.warp.damagePerWarpSpeedPerSecond * newSpeed * deltaSeconds,
+            });
+            this.setVelocity(newVelocity);
         }
     }
 

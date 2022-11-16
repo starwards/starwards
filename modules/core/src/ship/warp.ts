@@ -11,17 +11,19 @@ export type WarpDesign = {
     chargeTime: number;
     dechargeTime: number;
     speedPerLevel: number;
-    damagePerSpeed: number;
+    damagePerPhysicalSpeed: number;
+    baseDamagePerWarpSpeedPerSecond: number;
 };
 
 export const MAX_WARP_LVL = 4;
 export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits damage50 = 0;
     @number2Digits maxProximity = 0;
-    @number2Digits damagePerSpeed = 0;
     @number2Digits chargeTime = 0;
     @number2Digits dechargeTime = 0;
     @number2Digits speedPerLevel = 0;
+    @number2Digits damagePerPhysicalSpeed = 0;
+    @number2Digits baseDamagePerWarpSpeedPerSecond = 0;
 }
 export class Warp extends Schema {
     public static isInstance = (o: unknown): o is Warp => {
@@ -57,6 +59,10 @@ export class Warp extends Schema {
     // server only, used for commands
     public levelUpCommand = false;
     public levelDownCommand = false;
+
+    get damagePerWarpSpeedPerSecond() {
+        return this.damageFactor * this.design.baseDamagePerWarpSpeedPerSecond;
+    }
 
     get broken() {
         return this.damageFactor >= 1 || this.velocityFactor <= 0;

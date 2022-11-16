@@ -21,7 +21,6 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
-import { Damage, SpaceManager } from '../logic/space-manager';
 import { FRONT_ARC, REAR_ARC } from '.';
 import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
@@ -33,7 +32,9 @@ import { MovementManager } from './movement-manager';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
+import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
+import { Warp } from './warp';
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.design.plateMaxHealth;
@@ -41,7 +42,7 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -72,7 +73,10 @@ export class ShipManager {
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
-        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine]],
+        [
+            ShipArea.front,
+            [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine, this.state.warp],
+        ],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
     ]);
     private totalSeconds = 0;
@@ -307,6 +311,18 @@ export class ShipManager {
                 this.damageReactor(system, damageObject.id);
             } else if (Magazine.isInstance(system)) {
                 this.damageMagazine(system, damageObject.id);
+            } else if (Warp.isInstance(system)) {
+                this.damageWarp(system, damageObject.id);
+            }
+        }
+    }
+
+    private damageWarp(warp: Warp, damageId: string) {
+        if (!warp.broken) {
+            if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
+                warp.damageFactor *= 0.9;
+            } else {
+                warp.velocityFactor *= 0.9;
             }
         }
     }

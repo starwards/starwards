@@ -81,7 +81,8 @@ export const dragonflyWarp = {
     chargeTime: 10,
     dechargeTime: 5,
     speedPerLevel: 1000,
-    damagePerSpeed: 20,
+    damagePerPhysicalSpeed: 20,
+    baseDamagePerWarpSpeedPerSecond: 0.5,
 };
 
 export const dragonflySF22: ShipDesign = {
