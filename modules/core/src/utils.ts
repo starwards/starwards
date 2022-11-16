@@ -1,7 +1,9 @@
-import { EventEmitter, EventKey, EventMap, EventReceiver } from './events';
-
 // https://stackoverflow.com/a/59459000/11813
 export const getKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
+interface EventEmitter<T extends string> {
+    on(eventName: T, fn: () => unknown): unknown;
+    off(eventName: T, fn: () => unknown): unknown;
+}
 
 export type Destructor = () => unknown;
 export class Destructors {
@@ -25,11 +27,8 @@ export class Destructors {
         this.add(child.destroy);
         return child;
     };
-    onEvent = <T extends EventMap, K extends EventKey<T>>(
-        eventEmitter: EventEmitter<T>,
-        eventName: K,
-        fn: EventReceiver<T[K]>
-    ) => {
+
+    onEvent = <T extends string>(eventEmitter: EventEmitter<T>, eventName: T, fn: () => unknown) => {
         eventEmitter.on(eventName, fn);
         this.add(() => eventEmitter.off(eventName, fn));
     };
