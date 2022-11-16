@@ -24,6 +24,8 @@ export class MovementManager {
 
     update(deltaSeconds: number) {
         this.handleWarpCommands();
+        this.handleWarpLevel(deltaSeconds);
+        this.handleWarpMovement(deltaSeconds);
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
         this.calcSmartPilotManeuvering(deltaSeconds);
@@ -43,6 +45,22 @@ export class MovementManager {
             this.state.warp.desiredLevel = Math.max(this.state.warp.desiredLevel - 1, 0);
         }
     }
+
+    private handleWarpLevel(deltaSeconds: number) {
+        if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
+            this.state.warp.currentLevel = Math.min(
+                this.state.warp.desiredLevel,
+                this.state.warp.currentLevel + deltaSeconds / this.state.warp.design.chargeTime
+            );
+        } else if (this.state.warp.desiredLevel < this.state.warp.currentLevel) {
+            this.state.warp.currentLevel = Math.max(
+                0,
+                this.state.warp.currentLevel - deltaSeconds / this.state.warp.design.dechargeTime
+            );
+        }
+    }
+
+    private handleWarpMovement(deltaSeconds: number) {}
 
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {

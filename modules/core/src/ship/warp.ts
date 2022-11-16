@@ -44,7 +44,7 @@ export class Warp extends Schema {
     @defectible({ normal: 0, name: 'damage' })
     damageFactor = 0;
 
-    @type('uint8')
+    @type('float32')
     @range([0, MAX_WARP_LVL])
     @tweakable('number')
     currentLevel = 0;
