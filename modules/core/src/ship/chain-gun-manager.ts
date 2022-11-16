@@ -19,7 +19,6 @@ export function resetChainGun(chainGun: ChainGun) {
 
 type ShipManager = {
     readonly target: SpaceObject | null;
-    readonly state: ShipState;
 };
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
@@ -38,11 +37,11 @@ export class ChainGunManager {
     constructor(
         public chainGun: ChainGun,
         public spaceObject: DeepReadonly<Spaceship>,
-        public ship: ShipState,
+        public state: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager
     ) {
-        switchToAvailableAmmo(chainGun, ship.magazine);
+        switchToAvailableAmmo(chainGun, state.magazine);
     }
 
     public setShellRangeMode(value: SmartPilotMode) {
@@ -78,7 +77,7 @@ export class ChainGunManager {
                         this.chainGun.design.minShellRange,
                         this.chainGun.design.maxShellRange,
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        XY.lengthOf(XY.difference(this.shipManager.target!.position, this.shipManager.state.position))
+                        XY.lengthOf(XY.difference(this.shipManager.target!.position, this.state.position))
                     );
                     break;
                 default:
@@ -93,7 +92,7 @@ export class ChainGunManager {
                 this.chainGun.design.maxShellRange,
                 baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange)
             );
-            this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.shipManager.state, this.chainGun, range);
+            this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, this.chainGun, range);
         }
     }
 
@@ -120,7 +119,7 @@ export class ChainGunManager {
         const dontLoad =
             chainGun.projectile !== 'None' &&
             chainGun.loading === 0 &&
-            this.shipManager.state.magazine[`count_${chainGun.projectile}`] < 1;
+            this.state.magazine[`count_${chainGun.projectile}`] < 1;
         const rof = chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor;
         if (!chainGun.broken && rof > 0) {
             // const loadAction = this.calcLoadAction();
@@ -132,13 +131,13 @@ export class ChainGunManager {
                 chainGun.loading -= deltaSeconds * rof;
                 if (chainGun.loading <= 0) {
                     chainGun.loading = 0;
-                    this.shipManager.state.magazine[`count_${chainGun.loadedProjectile}`] += 1;
+                    this.state.magazine[`count_${chainGun.loadedProjectile}`] += 1;
                     chainGun.loadedProjectile = 'None';
                 }
             } else if (chainGun.projectile !== 'None' && chainGun.loadAmmo && chainGun.loading < 1 && !dontLoad) {
                 // load
                 if (chainGun.loading === 0) {
-                    this.shipManager.state.magazine[`count_${chainGun.projectile}`] -= 1;
+                    this.state.magazine[`count_${chainGun.projectile}`] -= 1;
                     chainGun.loadedProjectile = chainGun.projectile;
                     chainGun.loading += this.loadingRemainder;
                     this.loadingRemainder = 0;
@@ -175,7 +174,7 @@ export class ChainGunManager {
             );
             projectile.init(uniqueId('shell'), shellPosition);
             if (projectile.design.homing) {
-                projectile.targetId = this.ship.weaponsTarget.targetId;
+                projectile.targetId = this.state.weaponsTarget.targetId;
                 projectile.secondsToLive = projectile.design.homing.secondsToLive;
             } else {
                 projectile.secondsToLive = chainGun.shellSecondsToLive;
