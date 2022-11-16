@@ -1,6 +1,6 @@
+import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
 
-import { DesignState } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
@@ -14,6 +14,7 @@ export type WarpDesign = {
     damagePerSpeed: number;
 };
 
+export const MAX_WARP_LVL = 4;
 export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits damage50 = 0;
     @number2Digits maxProximity = 0;
@@ -33,13 +34,31 @@ export class Warp extends Schema {
     @type(WarpDesignState)
     design = new WarpDesignState();
 
+    @number2Digits
+    @range([0, 1])
+    @defectible({ normal: 1, name: 'velocity' })
+    velocityFactor = 1;
+
+    @number2Digits
+    @range([0, 1])
+    @defectible({ normal: 0, name: 'damage' })
+    damageFactor = 0;
+
     @type('uint8')
-    @range([0, 4])
+    @range([0, MAX_WARP_LVL])
     @tweakable('number')
     currentLevel = 0;
 
     @type('uint8')
-    @range([0, 4])
+    @range([0, MAX_WARP_LVL])
     @tweakable('number')
     desiredLevel = 0;
+
+    // server only, used for commands
+    public levelUpCommand = false;
+    public levelDownCommand = false;
+
+    get broken() {
+        return this.damageFactor >= 1 || this.velocityFactor <= 0;
+    }
 }

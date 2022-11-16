@@ -3,6 +3,7 @@ import { SpaceObject, Spaceship } from '../space';
 
 import { DeepReadonly } from 'ts-essentials';
 import { Die } from './ship-manager';
+import { MAX_WARP_LVL } from './warp';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
 
@@ -22,6 +23,7 @@ export class MovementManager {
     ) {}
 
     update(deltaSeconds: number) {
+        this.handleWarpCommands();
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
         this.calcSmartPilotManeuvering(deltaSeconds);
@@ -29,6 +31,17 @@ export class MovementManager {
         const maneuveringAction = this.calcManeuveringAction();
         this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
         this.updateVelocityFromThrusters(deltaSeconds);
+    }
+
+    private handleWarpCommands() {
+        if (this.state.warp.levelUpCommand) {
+            this.state.warp.levelUpCommand = false;
+            this.state.warp.desiredLevel = Math.min(this.state.warp.desiredLevel + 1, MAX_WARP_LVL);
+        }
+        if (this.state.warp.levelDownCommand) {
+            this.state.warp.levelDownCommand = false;
+            this.state.warp.desiredLevel = Math.max(this.state.warp.desiredLevel - 1, 0);
+        }
     }
 
     private updateRotation(deltaSeconds: number) {

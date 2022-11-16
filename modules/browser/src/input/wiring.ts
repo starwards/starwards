@@ -29,5 +29,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
         shipInputConfig.clearTarget
     );
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), shipInputConfig.tubeIsFiring);
+    input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), shipInputConfig.warpUp);
+    input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), shipInputConfig.warpDown);
     input.init();
 }
