@@ -284,7 +284,11 @@ export class ShipManager {
         }
     }
 
-    private damageSystem(system: ShipSystem, damageObject: Damage, percentageOfBrokenPlates: number) {
+    private damageSystem(
+        system: ShipSystem,
+        damageObject: { id: string; amount: number },
+        percentageOfBrokenPlates: number
+    ) {
         if (system.broken) {
             return;
         }
@@ -390,6 +394,12 @@ export class ShipManager {
                 }
                 this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
             }
+        }
+    }
+
+    damageAllSystems(damageObject: { id: string; amount: number }) {
+        for (const system of [...this.systemsByAreas.values()].flat()) {
+            if (system) this.damageSystem(system, damageObject, 1);
         }
     }
 

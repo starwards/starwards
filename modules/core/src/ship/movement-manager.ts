@@ -1,8 +1,18 @@
-import { ManeuveringCommand, SpaceManager, XY, capToRange, limitPercisionHard, matchLocalSpeed } from '../logic';
+import {
+    EPSILON,
+    ManeuveringCommand,
+    SpaceManager,
+    XY,
+    capToRange,
+    limitPercisionHard,
+    matchLocalSpeed,
+} from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
+import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
 import { Die } from './ship-manager';
+import { Iterator } from '../logic/iteration';
 import { MAX_WARP_LVL } from './warp';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
@@ -12,6 +22,7 @@ type ShipManager = {
     trySpendEnergy(value: number): boolean;
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
+    damageAllSystems(damageObject: { id: string; amount: number }): void;
 };
 export class MovementManager {
     constructor(
@@ -24,11 +35,12 @@ export class MovementManager {
 
     update(deltaSeconds: number) {
         this.handleWarpCommands();
+        this.handleWarpProximityJam();
         this.handleWarpLevel(deltaSeconds);
-        this.handleWarpMovement(deltaSeconds);
+        this.handleWarpMovement();
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
-        this.calcSmartPilotManeuvering(deltaSeconds);
+        this.calcStrafeAndBoost(deltaSeconds);
         this.updateRotation(deltaSeconds);
         const maneuveringAction = this.calcManeuveringAction();
         this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
@@ -48,6 +60,16 @@ export class MovementManager {
 
     private handleWarpLevel(deltaSeconds: number) {
         if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
+            if (this.state.warp.currentLevel == 0) {
+                const currentSpeed = XY.lengthOf(this.state.velocity);
+                if (currentSpeed) {
+                    // penalty damage for existing velocity
+                    this.shipManager.damageAllSystems({
+                        id: 'warp_start',
+                        amount: this.state.warp.design.damagePerSpeed * currentSpeed,
+                    });
+                }
+            }
             this.state.warp.currentLevel = Math.min(
                 this.state.warp.desiredLevel,
                 this.state.warp.currentLevel + deltaSeconds / this.state.warp.design.chargeTime
@@ -57,19 +79,49 @@ export class MovementManager {
                 0,
                 this.state.warp.currentLevel - deltaSeconds / this.state.warp.design.dechargeTime
             );
+            if (this.state.warp.currentLevel == 0) {
+                // edge case where handleWarpMovement() will not know to set speed to 0
+                this.setVelocity(XY.zero);
+            }
+        }
+    }
+
+    private handleWarpProximityJam() {
+        if (this.state.warp.desiredLevel > 0) {
+            const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
+            const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
+                .filter((v) => v.id !== this.spaceObject.id)
+                .firstOr(null);
+            if (objectInRange) {
+                this.state.warp.desiredLevel = 0;
+            }
         }
     }
 
     private handleWarpMovement() {
-        if (this.state.warp.currentLevel) {
+        if (this.isWarpActive()) {
             const newSpeed = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
                 this.state.angle
             );
-            this.spaceManager.setVelocity(this.spaceObject.id, newSpeed);
-            this.state.velocity.x = this.spaceObject.velocity.x;
-            this.state.velocity.y = this.spaceObject.velocity.y;
+            this.setVelocity(newSpeed);
         }
+    }
+
+    private changeVelocity(speedToChange: XY) {
+        this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
+        this.state.velocity.x = this.spaceObject.velocity.x;
+        this.state.velocity.y = this.spaceObject.velocity.y;
+    }
+
+    private setVelocity(newSpeed: XY) {
+        this.spaceManager.setVelocity(this.spaceObject.id, newSpeed);
+        this.state.velocity.x = this.spaceObject.velocity.x;
+        this.state.velocity.y = this.spaceObject.velocity.y;
+    }
+
+    private isWarpActive() {
+        return !this.state.warp.broken && this.state.warp.currentLevel;
     }
 
     private updateRotation(deltaSeconds: number) {
@@ -92,43 +144,50 @@ export class MovementManager {
         }
     }
 
-    private calcSmartPilotManeuvering(deltaSeconds: number) {
-        const offsetFactor =
-            this.state.smartPilot.maneuveringMode === SmartPilotMode.DIRECT ? 0 : this.state.smartPilot.offsetFactor;
-        const error = XY.byLengthAndDirection(offsetFactor, this.die.getRollInRange('smartPilotOffset', -180, 180));
+    private calcStrafeAndBoost(deltaSeconds: number) {
+        if (this.isWarpActive()) {
+            this.state.boost = 0;
+            this.state.strafe = 0;
+        } else {
+            const offsetFactor =
+                this.state.smartPilot.maneuveringMode === SmartPilotMode.DIRECT
+                    ? 0
+                    : this.state.smartPilot.offsetFactor;
+            const error = XY.byLengthAndDirection(offsetFactor, this.die.getRollInRange('smartPilotOffset', -180, 180));
 
-        let maneuveringCommand: ManeuveringCommand | undefined = undefined;
-        switch (this.state.smartPilot.maneuveringMode) {
-            case SmartPilotMode.DIRECT: {
-                maneuveringCommand = {
-                    strafe: this.state.smartPilot.maneuvering.y,
-                    boost: this.state.smartPilot.maneuvering.x,
-                };
-                break;
-            }
-            case SmartPilotMode.TARGET: {
-                if (this.shipManager.target) {
-                    const velocity = XY.add(
-                        XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        this.state.globalToLocal(this.shipManager.target.velocity)
-                    );
-                    maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`corrupted state: smartPilot.maneuveringMode is TARGET with no target`);
-                    maneuveringCommand = { strafe: 0, boost: 0 };
+            let maneuveringCommand: ManeuveringCommand | undefined = undefined;
+            switch (this.state.smartPilot.maneuveringMode) {
+                case SmartPilotMode.DIRECT: {
+                    maneuveringCommand = {
+                        strafe: this.state.smartPilot.maneuvering.y,
+                        boost: this.state.smartPilot.maneuvering.x,
+                    };
+                    break;
                 }
-                break;
+                case SmartPilotMode.TARGET: {
+                    if (this.shipManager.target) {
+                        const velocity = XY.add(
+                            XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            this.state.globalToLocal(this.shipManager.target.velocity)
+                        );
+                        maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.error(`corrupted state: smartPilot.maneuveringMode is TARGET with no target`);
+                        maneuveringCommand = { strafe: 0, boost: 0 };
+                    }
+                    break;
+                }
+                case SmartPilotMode.VELOCITY: {
+                    const velocity = XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed);
+                    maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
+                    break;
+                }
             }
-            case SmartPilotMode.VELOCITY: {
-                const velocity = XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed);
-                maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
-                break;
-            }
+            this.state.boost = capToRange(-1, 1, maneuveringCommand.boost + error.y);
+            this.state.strafe = capToRange(-1, 1, maneuveringCommand.strafe + error.x);
         }
-        this.state.boost = capToRange(-1, 1, maneuveringCommand.boost + error.y);
-        this.state.strafe = capToRange(-1, 1, maneuveringCommand.strafe + error.x);
     }
     private updateVelocityFromThrusters(deltaSeconds: number) {
         const speedToChange = XY.sum(
@@ -147,9 +206,7 @@ export class MovementManager {
             })
         );
         if (!XY.isZero(speedToChange)) {
-            this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
-            this.state.velocity.x = this.spaceObject.velocity.x;
-            this.state.velocity.y = this.spaceObject.velocity.y;
+            this.changeVelocity(speedToChange);
         }
     }
 
@@ -204,7 +261,9 @@ export class MovementManager {
     }
 
     private calcManeuveringAction() {
-        if (this.shouldEnforceMaxSpeed()) {
+        if (this.isWarpActive()) {
+            return XY.zero;
+        } else if (this.shouldEnforceMaxSpeed()) {
             return XY.normalize(XY.negate(this.spaceObject.velocity));
         } else {
             const boostFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle), this.state.boost);
