@@ -27,7 +27,7 @@ export class SpaceState extends Schema {
     private readonly Spaceship = new MapSchema<Spaceship>();
 
     @type({ map: Waypoint })
-    private readonly waypoints = new MapSchema<Waypoint>();
+    readonly waypoints = new MapSchema<Waypoint>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
