@@ -20,6 +20,7 @@ import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
+import { warpWidget } from '../widgets/warp';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -96,6 +97,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
             dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
             dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
+            dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
             dashboard.setup();
         }
     },

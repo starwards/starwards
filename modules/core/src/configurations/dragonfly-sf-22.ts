@@ -75,6 +75,16 @@ export const dragonflyTargeting = {
     maxRange: 5_000,
     shortRange: 3_000,
 };
+export const dragonflyWarp = {
+    damage50: 20,
+    maxProximity: 10_000,
+    chargeTime: 10,
+    dechargeTime: 5,
+    speedPerLevel: 1000,
+    damagePerPhysicalSpeed: 20,
+    baseDamagePerWarpSpeedPerSecond: 0.5,
+};
+
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
@@ -93,4 +103,5 @@ export const dragonflySF22: ShipDesign = {
     reactor: dragonflyReactor,
     magazine: dragonflyMagazine,
     weaponsTarget: dragonflyTargeting,
+    warp: dragonflyWarp,
 };

@@ -41,11 +41,19 @@ export class SpaceManager {
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
 
-    private spatialIndex = ((mgr: SpaceManager) => ({
+    public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
             for (const potential of mgr.collisions.getPotentials(area)) {
                 const object = mgr.collisionToState.get(potential);
                 if (object && !object.destroyed) {
+                    yield object;
+                }
+            }
+        },
+        *queryArea(area: Body): Iterable<SpaceObject> {
+            for (const potential of mgr.collisions.getPotentials(area)) {
+                const object = mgr.collisionToState.get(potential);
+                if (object && !object.destroyed && mgr.collisions.checkCollision(area, potential)) {
                     yield object;
                 }
             }
@@ -63,6 +71,12 @@ export class SpaceManager {
         if (subject && !subject.destroyed) {
             subject.velocity.x += delta.x;
             subject.velocity.y += delta.y;
+        }
+    }
+    public setVelocity(id: string, velocity: XY) {
+        const subject = this.state.get(id);
+        if (subject && !subject.destroyed) {
+            subject.velocity.setValue(velocity);
         }
     }
 
