@@ -148,9 +148,9 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
                     degToRad * (-90 - arcAngle / 2),
                     degToRad * (-90 + arcAngle / 2)
                 );
+                camera.setRange(((sizeFactor - sizeFactorGrace) * container.height) / 2, p.range);
                 allElements.x = -root.renderer.width / 2;
                 allElements.scale = { x: 2, y: 2 };
-                camera.setRange(((sizeFactor - sizeFactorGrace) * container.height) / 2, p.range);
                 contentMask.drawCircle(...XY.tuple(coneCorner), radius * sizeFactor);
             } else {
                 overallMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius);

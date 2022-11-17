@@ -13,6 +13,7 @@ import { designStateWidget } from '../widgets/design-state';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
+import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { systemsStatusWidget } from '../widgets/system-status';
@@ -21,7 +22,6 @@ import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
 import { warpWidget } from '../widgets/warp';
-import { pilotRadarWidget } from '../widgets/pilot-radar';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
