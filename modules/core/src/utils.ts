@@ -44,7 +44,7 @@ export class Destructors {
     };
 
     /**
-     * cleans up and keep state valid
+     * cleans up and keep state valid. cleans up and invalidates children.
      */
     cleanup = () => {
         for (const destructor of this.destructors) {

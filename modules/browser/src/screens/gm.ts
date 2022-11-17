@@ -21,6 +21,7 @@ import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
 import { warpWidget } from '../widgets/warp';
+import { pilotRadarWidget } from '../widgets/pilot-radar';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -86,6 +87,7 @@ void driver.waitForGame().then(
             const shipDriver = await driver.getShipDriver(shipId);
             dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, shipId + ' radar');
             dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
+            dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, shipId + ' pilot radar');
             dashboard.registerWidget(pilotWidget(shipDriver), {}, shipId + ' helm');
             dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
             dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, shipId + ' design state');

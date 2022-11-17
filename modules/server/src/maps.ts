@@ -16,6 +16,14 @@ export const two_vs_one: GameMap = {
     },
 };
 
+export const alone: GameMap = {
+    name: 'alone',
+    init: (game: GameApi) => {
+        const ship = game.addSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
+        ship.spaceObject.position.x = ship.spaceObject.position.y = 0;
+    },
+};
+
 const testShipId = 'GVTS';
 export const test_map_1 = {
     name: 'test_map_1',

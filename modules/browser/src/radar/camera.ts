@@ -119,10 +119,12 @@ export class Camera {
     }
 
     bindRange(container: WidgetContainer, sizeFactor: number, state: { range: number }) {
-        this.setRange((sizeFactor * Math.min(container.width, container.height)) / 2, state.range);
-        container.on('resize', () => {
+        const callback = () => {
             this.setRange((sizeFactor * Math.min(container.width, container.height)) / 2, state.range);
-        });
+        };
+        callback();
+        container.on('resize', callback);
+        return () => container.off('resize', callback);
     }
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: SpaceEventEmitter, angle = false) {
