@@ -1,18 +1,28 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { Faction } from './faction';
+import { SpaceObjectBase } from './space-object-base';
+import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
-import { Vec2 } from './vec2';
+export class Waypoint extends SpaceObjectBase {
+    public static isInstance = (o: unknown): o is Waypoint => {
+        return !!o && (o as SpaceObjectBase).type === 'Waypoint';
+    };
 
-export class Waypoint extends Schema {
+    public readonly type = 'Waypoint';
+    public freeze = true;
+
+    @type('int8')
+    @tweakable({ type: 'enum', enum: Faction })
+    public faction: Faction = Faction.none;
+
     @type('string')
-    public key = '';
-    @type(Vec2)
-    public position: Vec2 = new Vec2(0, 0);
-}
+    @tweakable('string')
+    public owner: string | null = null;
 
-export class WaypointsSet extends Schema {
+    @type('string')
+    @tweakable('string')
+    public collection = '';
+
     @type('uint32')
     public color = 0xffffff;
-
-    @type({ map: Waypoint })
-    waypoints = new MapSchema<Waypoint>();
 }

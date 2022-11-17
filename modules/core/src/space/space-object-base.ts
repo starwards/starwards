@@ -33,7 +33,7 @@ export abstract class SpaceObjectBase extends Schema {
 
     @tweakable({ type: 'number', number: { min: 0.05 } })
     @number2Digits
-    public radius = 0;
+    public radius = 0.05;
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 

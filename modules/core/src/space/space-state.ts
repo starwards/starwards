@@ -1,12 +1,11 @@
 import { BulkBotOrderArg, BulkMoveArg } from './space-properties';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { SpaceObject, SpaceObjects } from '.';
+import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
 import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
-import { Waypoint } from './waypoint';
 
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
     return !!k;
@@ -27,7 +26,7 @@ export class SpaceState extends Schema {
     private readonly Spaceship = new MapSchema<Spaceship>();
 
     @type({ map: Waypoint })
-    readonly waypoints = new MapSchema<Waypoint>();
+    readonly Waypoint = new MapSchema<Waypoint>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
