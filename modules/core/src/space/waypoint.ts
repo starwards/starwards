@@ -1,5 +1,6 @@
 import { Faction } from './faction';
 import { SpaceObjectBase } from './space-object-base';
+import { range } from '../range';
 import { tweakable } from '../tweakable';
 import { type } from '@colyseus/schema';
 
@@ -9,6 +10,7 @@ export class Waypoint extends SpaceObjectBase {
     };
 
     public readonly type = 'Waypoint';
+    public readonly isCorporal = false;
     public freeze = true;
 
     @type('int8')
@@ -23,6 +25,12 @@ export class Waypoint extends SpaceObjectBase {
     @tweakable('string')
     public collection = '';
 
+    @type('string')
+    @tweakable('string')
+    public title = '';
+
     @type('uint32')
+    @tweakable('number')
+    @range([0x000000, 0xffffff])
     public color = 0xffffff;
 }

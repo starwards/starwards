@@ -1,4 +1,4 @@
-import { Asteroid, SpaceObject, Spaceship } from '@starwards/core';
+import { Asteroid, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
 import { Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
 import { ObjectGraphics, SpaceObjectRenderer } from './object-graphics';
 import { selectionColor, white } from '../../colors';
@@ -26,10 +26,11 @@ const textures = {
     dradis_direction: 'images/dradis/direction.png',
     dradis_select: 'images/dradis/select.png',
     tactical_fighter: 'images/tactical_radar/dragonfly.png',
+    tactical_waypoint: 'images/tactical_radar/waypoint_triangle.svg',
     tactical_select: 'images/tactical_radar/selection.png',
 };
 
-Loader.shared.add(Object.values(textures));
+Loader.shared.add([...new Set(Object.values(textures))]);
 
 function blipSprite(t: keyof typeof textures, size: number, color: number) {
     const texturePath = textures[t];
@@ -149,7 +150,30 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
         this.selectionSprite.width = blipSize;
     }
 }
+class TacticalWaypointRenderer implements SpaceObjectRenderer {
+    private selectionSprite = blipSprite('tactical_select', this.data.blipSize, selectionColor);
+    private iconSprite = blipSprite('tactical_waypoint', this.data.blipSize, white);
+    private text = renderText(this.data.blipSize / 2, [], white);
 
+    constructor(private data: ObjectGraphics<Waypoint>) {
+        const { stage } = this.data;
+        stage.addChild(this.iconSprite);
+        stage.addChild(this.text);
+        stage.addChild(this.selectionSprite);
+    }
+
+    redraw(): void {
+        const { spaceObject, isSelected, blipSize, color } = this.data;
+        this.iconSprite.tint = color;
+        this.iconSprite.height = blipSize;
+        this.iconSprite.width = blipSize;
+        this.text.text = `${spaceObject.id}`;
+        this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
+        this.selectionSprite.visible = isSelected;
+        this.selectionSprite.height = blipSize;
+        this.selectionSprite.width = blipSize;
+    }
+}
 class RadarRangeRenderer implements SpaceObjectRenderer {
     private range = new Graphics();
     constructor(private data: ObjectGraphics<SpaceObject>) {
@@ -170,6 +194,10 @@ class RadarRangeRenderer implements SpaceObjectRenderer {
 export const dradisDrawFunctions = {
     Spaceship: DradisSpaceshipRenderer,
     Asteroid: DradisAsteroidRenderer,
+};
+
+export const tacticalDrawWaypoints = {
+    Waypoint: TacticalWaypointRenderer,
 };
 
 export const tacticalDrawFunctions = {

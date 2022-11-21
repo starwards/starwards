@@ -3,14 +3,14 @@ import { SpaceDriver, SpaceObject } from '@starwards/core';
 import { Remove } from 'colyseus-events';
 import { noop } from 'ts-essentials';
 
-export class TrackObjects<C> {
+export class TrackObjects<C, T extends SpaceObject = SpaceObject> {
     public contexts = new Map<string, C>();
     constructor(
         private objects: SpaceDriver,
-        private createCtx: (object: SpaceObject) => C,
-        private updateCtx: (object: SpaceObject, ctx: C) => void,
+        private createCtx: (object: T) => C,
+        private updateCtx: (object: T, ctx: C) => void,
         private destroyCtx: (ctx: C) => void = noop,
-        private shouldTrack = (_object: SpaceObject) => true
+        private shouldTrack = (_o: SpaceObject): _o is T => true
     ) {
         objects.events.on('$remove', (event: Remove) => this.stopTracking(event.path.split('/')[2]));
     }

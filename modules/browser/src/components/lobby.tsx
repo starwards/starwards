@@ -149,7 +149,7 @@ export const Lobby = (p: Props) => {
                                 <Button palette="success" onClick={() => adminDriver.startGame('two_vs_one')}>
                                     <div data-id="new game">2v1 Game</div>
                                 </Button>
-                                <Button palette="success" onClick={() => adminDriver.startGame('alone')}>
+                                <Button palette="success" onClick={() => adminDriver.startGame('solo')}>
                                     <div>Solo Game</div>
                                 </Button>
                             </pre>

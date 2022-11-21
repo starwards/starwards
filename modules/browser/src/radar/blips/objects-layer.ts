@@ -5,15 +5,17 @@ import { SpaceDriver, SpaceObject, SpaceObjects } from '@starwards/core';
 import { CameraView } from '../camera-view';
 import { TrackObjects } from '../track-objects';
 
-type DrawFunctions = { [T in keyof SpaceObjects]?: ObjectRendererCtor<SpaceObjects[T]> };
+type DrawFunctions<K extends keyof SpaceObjects> = {
+    [T in K]: ObjectRendererCtor<SpaceObjects[T]>;
+};
 type Selection = { has(o: SpaceObject): boolean };
-type Filter = (o: SpaceObject) => boolean;
-export class ObjectsLayer {
+type Filter<K extends keyof SpaceObjects> = (o: SpaceObjects[K]) => boolean;
+export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
     private stage = new Container();
 
-    private createGraphics = <T extends SpaceObject>(spaceObject: T) => {
-        const rendererCtor = this.drawFunctions[spaceObject.type] as ObjectRendererCtor<T>;
-        const objGraphics = new ObjectGraphics<typeof spaceObject>(
+    private createGraphics = <T extends SpaceObjects[K]>(spaceObject: T) => {
+        const rendererCtor = this.drawFunctions[spaceObject.type as K] as ObjectRendererCtor<T>;
+        const objGraphics = new ObjectGraphics<T>(
             spaceObject,
             rendererCtor,
             this.parent,
@@ -29,10 +31,10 @@ export class ObjectsLayer {
         g.destroy();
         this.stage.removeChild(g.stage);
     };
-    private shouldTrack = (o: SpaceObject) =>
-        !o.destroyed && !!this.drawFunctions[o.type] && (!this.filter || this.filter(o));
+    private shouldTrack = (o: SpaceObject): o is SpaceObjects[K] =>
+        !o.destroyed && !!this.drawFunctions[o.type as K] && (!this.filter || this.filter(o as SpaceObjects[K]));
 
-    public graphics = new TrackObjects<ObjectGraphics>(
+    public graphics = new TrackObjects<ObjectGraphics<SpaceObjects[K]>, SpaceObjects[K]>(
         this.spaceDriver,
         this.createGraphics,
         this.updateGraphics,
@@ -44,10 +46,10 @@ export class ObjectsLayer {
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
         private blipSize: number,
-        private getColor: (s: SpaceObject) => number,
-        private drawFunctions: DrawFunctions,
+        private getColor: (s: SpaceObjects[K]) => number,
+        private drawFunctions: DrawFunctions<K>,
         private readonly selectedItems?: Selection,
-        private readonly filter?: Filter
+        private readonly filter?: Filter<K>
     ) {
         parent.ticker.add(this.render, null, UPDATE_PRIORITY.LOW);
     }

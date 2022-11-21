@@ -61,6 +61,7 @@ export class SpaceState extends Schema {
         yield this.Explosion;
         yield this.Asteroid;
         yield this.Spaceship;
+        yield this.Waypoint;
     }
 
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {

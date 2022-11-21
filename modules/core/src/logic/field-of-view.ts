@@ -85,7 +85,7 @@ export class FieldOfView {
         if (this.object.radarRange > EPSILON) {
             const queryArea = new Circle(XY.clone(this.object.position), this.object.radarRange + EPSILON);
             for (const object of this.objects.selectPotentials(queryArea)) {
-                if (this.object !== object && object.radius > MIN_RADIUS_RADAR_BLOCK) {
+                if (this.object !== object && object.isCorporal && object.radius > MIN_RADIUS_RADAR_BLOCK) {
                     const posDiff = XY.difference(object.position, this.object.position);
                     const distance = XY.lengthOf(posDiff);
                     if (distance <= this.object.radarRange + object.radius) {

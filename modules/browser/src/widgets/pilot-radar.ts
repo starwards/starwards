@@ -2,6 +2,7 @@ import { Container, Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad } from '@starwards/core';
 import { abstractOnChange, readProp } from '../property-wrappers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
+import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import { Camera } from '../radar/camera';
@@ -15,7 +16,6 @@ import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 import { speedLines } from '../radar/tactical-radar-layers';
-import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 
 WebFont.load({
     custom: {
@@ -129,6 +129,8 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             rangeFilter.isInRange
         );
         contentElements.addChild(blipLayer.renderRoot);
+        const waypointsLayer = new ObjectsLayer(root, spaceDriver, 32, (w) => w.color, tacticalDrawWaypoints);
+        contentElements.addChild(waypointsLayer.renderRoot);
 
         function updateShape() {
             overallMask.clear();
