@@ -129,10 +129,29 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             rangeFilter.isInRange
         );
         contentElements.addChild(blipLayer.renderRoot);
-        const waypointsLayer = new ObjectsLayer(root, spaceDriver, 32, (w) => w.color, tacticalDrawWaypoints);
-        contentElements.addChild(waypointsLayer.renderRoot);
+        const waypointsInRange = new ObjectsLayer(
+            root,
+            spaceDriver,
+            32,
+            (w) => w.color,
+            tacticalDrawWaypoints,
+            undefined,
+            (w) => XY.lengthOf(XY.difference(w.position, camera)) <= p.range
+        );
+        contentElements.addChild(waypointsInRange.renderRoot);
 
-        function updateShape() {
+        const waypointsOutOfRange = new ObjectsLayer(
+            root,
+            spaceDriver,
+            64,
+            (w) => w.color,
+            tacticalDrawWaypoints,
+            undefined,
+            (w) => XY.lengthOf(XY.difference(w.position, camera)) > p.range
+        );
+        contentElements.addChild(waypointsOutOfRange.renderRoot);
+
+        function onRadarShapeChange() {
             overallMask.clear();
             overallMask.lineStyle(2, 0xff0000, 1);
             overallMask.beginFill(0xff0000, 1);
@@ -140,6 +159,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             contentMask.lineStyle(2, 0xff0000, 1);
             contentMask.beginFill(0xff0000, 1);
             if (isWarpProp.getValue()) {
+                // cone shape
                 const radius = root.renderer.height;
                 const arcAngle = calcArcAngle(root.renderer.width, radius);
                 const coneCorner = { x: root.renderer.width / 2, y: radius };
@@ -155,6 +175,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
                 allElements.scale = { x: 2, y: 2 };
                 contentMask.drawCircle(...XY.tuple(coneCorner), radius * sizeFactor);
             } else {
+                // circle shape
                 overallMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius);
                 contentMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor);
                 allElements.x = 0;
@@ -167,16 +188,16 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             overallMask.endFill();
             contentMask.endFill();
         }
-        function updateRange() {
+        function onRangeChange() {
             p.range = isWarpProp.getValue() ? 100_000 : 5_000;
             background.setSpacing(p.range / 5);
             background.setRange(p.range);
             range.setStepSize(p.range / 5);
-            updateShape();
+            onRadarShapeChange();
         }
-        container.on('resize', updateShape);
-        isWarpProp.onChange(updateRange);
-        updateRange();
+        container.on('resize', onRadarShapeChange);
+        isWarpProp.onChange(onRangeChange);
+        onRangeChange();
         void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
             camera.followSpaceObject(tracked, spaceDriver.events, true)
         );
