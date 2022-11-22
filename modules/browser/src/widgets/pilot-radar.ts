@@ -143,13 +143,18 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
         const waypointsOutOfRange = new ObjectsLayer(
             root,
             spaceDriver,
-            64,
+            16,
             (w) => w.color,
             tacticalDrawWaypoints,
             undefined,
-            (w) => XY.lengthOf(XY.difference(w.position, camera)) > p.range
+            (w) => XY.lengthOf(XY.difference(w.position, camera)) > p.range,
+            (w) =>
+                root.worldToScreen(
+                    XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera))))
+                ),
+            () => 0.5
         );
-        contentElements.addChild(waypointsOutOfRange.renderRoot);
+        allElements.addChild(waypointsOutOfRange.renderRoot);
 
         function onRadarShapeChange() {
             overallMask.clear();

@@ -1,7 +1,21 @@
 import { Asteroid, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
-import { Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
-import { ObjectGraphics, SpaceObjectRenderer } from './object-graphics';
+import { Container, Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
 import { selectionColor, white } from '../../colors';
+
+import { CameraView } from '../camera-view';
+
+export interface BlipData {
+    isSelected: boolean;
+    color: number;
+    alpha: number;
+    stage: Container;
+    parent: CameraView;
+    blipSize: number;
+}
+
+export interface BlipRenderer<T extends SpaceObject> {
+    redraw(spaceObject: T, data: BlipData): void;
+}
 
 function renderText(y: number, value: string[], color: number) {
     const result = new Text(
@@ -43,17 +57,16 @@ function blipSprite(t: keyof typeof textures, size: number, color: number) {
     return radarBlipSprite;
 }
 
-class DradisSpaceshipRenderer implements SpaceObjectRenderer {
-    private selectionSprite = blipSprite('dradis_select', this.data.blipSize, selectionColor);
-    private directionSprite = blipSprite('dradis_direction', this.data.blipSize, white);
-    private circleBaseSprite = blipSprite('dradis_circleBase', this.data.blipSize, white);
-    private circleBevelSprite = blipSprite('dradis_circleBevel', this.data.blipSize, white);
-    private fighterSprite = blipSprite('dradis_fighter', this.data.blipSize, white);
-    private text = renderText(this.data.blipSize / 2, [], white);
+class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
+    private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
+    private directionSprite = blipSprite('dradis_direction', this.blipSize, white);
+    private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
+    private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
+    private fighterSprite = blipSprite('dradis_fighter', this.blipSize, white);
+    private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
 
-    constructor(private data: ObjectGraphics<Spaceship>) {
-        const { stage } = this.data;
+    constructor(stage: Container, private blipSize: number) {
         stage.addChild(this.directionSprite);
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
@@ -63,8 +76,7 @@ class DradisSpaceshipRenderer implements SpaceObjectRenderer {
         stage.addChild(this.selectionSprite);
     }
 
-    redraw(): void {
-        const { parent, spaceObject, isSelected, color } = this.data;
+    redraw(spaceObject: Spaceship, { parent, isSelected, color, alpha }: BlipData): void {
         this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
         this.text.text = `ID: ${spaceObject.id}`;
         this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
@@ -73,71 +85,70 @@ class DradisSpaceshipRenderer implements SpaceObjectRenderer {
         this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
+        this.circleBevelSprite.alpha = alpha;
         this.fighterSprite.tint = color;
+        this.fighterSprite.alpha = alpha;
     }
 }
-class DradisAsteroidRenderer implements SpaceObjectRenderer {
-    private selectionSprite = blipSprite('dradis_select', this.data.blipSize, selectionColor);
-    private circleBaseSprite = blipSprite('dradis_circleBase', this.data.blipSize, white);
-    private circleBevelSprite = blipSprite('dradis_circleBevel', this.data.blipSize, white);
-    private asteroidSprite = blipSprite('dradis_asteroid', this.data.blipSize, white);
+class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
+    private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
+    private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
+    private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
+    private asteroidSprite = blipSprite('dradis_asteroid', this.blipSize, white);
     private collisionOutline = new Graphics();
-    constructor(private data: ObjectGraphics<Asteroid>) {
-        const { stage } = this.data;
+    constructor(stage: Container, private blipSize: number) {
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
         stage.addChild(this.asteroidSprite);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
     }
-    redraw(): void {
-        const { parent, spaceObject, isSelected, color } = this.data;
+    redraw(spaceObject: Asteroid, { parent, isSelected, color, alpha }: BlipData): void {
         this.collisionOutline.clear();
         this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
         this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
+        this.circleBevelSprite.alpha = alpha;
         this.asteroidSprite.tint = color;
+        this.asteroidSprite.alpha = alpha;
     }
 }
 
-class CircleRenderer implements SpaceObjectRenderer {
+class CircleRenderer implements BlipRenderer<SpaceObject> {
     private shellCircle = new Graphics();
-    private selectionSprite = blipSprite('tactical_select', this.data.blipSize, selectionColor);
-    constructor(private data: ObjectGraphics<SpaceObject>) {
-        const { stage } = this.data;
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    constructor(stage: Container, private blipSize: number) {
         stage.addChild(this.shellCircle);
         stage.addChild(this.selectionSprite);
     }
-    redraw(): void {
-        const { parent, spaceObject, isSelected, blipSize, color } = this.data;
+    redraw(spaceObject: SpaceObject, { parent, isSelected, blipSize, color, alpha }: BlipData): void {
         const radius = Math.max(parent.metersToPixles(spaceObject.radius), 1);
         this.shellCircle.clear();
-        this.shellCircle.beginFill(color);
+        this.shellCircle.beginFill(color, alpha);
         this.shellCircle.drawCircle(0, 0, radius);
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;
     }
 }
-class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
-    private selectionSprite = blipSprite('tactical_select', this.data.blipSize, selectionColor);
-    private fighterSprite = blipSprite('tactical_fighter', this.data.blipSize, white);
-    private text = renderText(this.data.blipSize / 2, [], white);
+class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private fighterSprite = blipSprite('tactical_fighter', this.blipSize, white);
+    private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
 
-    constructor(private data: ObjectGraphics<Spaceship>) {
-        const { stage } = this.data;
+    constructor(stage: Container, private blipSize: number) {
         stage.addChild(this.fighterSprite);
         stage.addChild(this.text);
         stage.addChild(this.collisionOutline);
         stage.addChild(this.selectionSprite);
     }
 
-    redraw(): void {
-        const { parent, spaceObject, isSelected, blipSize, color } = this.data;
+    redraw(spaceObject: Spaceship, { parent, isSelected, blipSize, color, alpha }: BlipData): void {
         this.fighterSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
         this.fighterSprite.tint = color;
+        this.fighterSprite.alpha = alpha;
         this.fighterSprite.height = blipSize;
         this.fighterSprite.width = blipSize;
         this.text.text = `ID: ${spaceObject.id}`;
@@ -150,23 +161,23 @@ class TacticalSpaceshipRenderer implements SpaceObjectRenderer {
         this.selectionSprite.width = blipSize;
     }
 }
-class TacticalWaypointRenderer implements SpaceObjectRenderer {
-    private selectionSprite = blipSprite('tactical_select', this.data.blipSize, selectionColor);
-    private iconSprite = blipSprite('tactical_waypoint', this.data.blipSize, white);
-    private text = renderText(this.data.blipSize / 2, [], white);
+class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private iconSprite = blipSprite('tactical_waypoint', this.blipSize, white);
+    private text = renderText(this.blipSize / 2, [], white);
 
-    constructor(private data: ObjectGraphics<Waypoint>) {
-        const { stage } = this.data;
+    constructor(stage: Container, private blipSize: number) {
         stage.addChild(this.iconSprite);
         stage.addChild(this.text);
         stage.addChild(this.selectionSprite);
     }
 
-    redraw(): void {
-        const { spaceObject, isSelected, blipSize, color } = this.data;
+    redraw(spaceObject: Waypoint, { isSelected, blipSize, color, alpha }: BlipData): void {
         this.iconSprite.tint = color;
+        this.iconSprite.alpha = alpha;
         this.iconSprite.height = blipSize;
         this.iconSprite.width = blipSize;
+        this.text.alpha = alpha;
         this.text.text = `${spaceObject.id}`;
         this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
         this.selectionSprite.visible = isSelected;
@@ -174,18 +185,16 @@ class TacticalWaypointRenderer implements SpaceObjectRenderer {
         this.selectionSprite.width = blipSize;
     }
 }
-class RadarRangeRenderer implements SpaceObjectRenderer {
+class RadarRangeRenderer implements BlipRenderer<SpaceObject> {
     private range = new Graphics();
-    constructor(private data: ObjectGraphics<SpaceObject>) {
-        const { stage } = this.data;
+    constructor(stage: Container) {
         stage.addChild(this.range);
     }
-    redraw(): void {
-        const { parent, spaceObject, color } = this.data;
+    redraw(spaceObject: SpaceObject, { parent, color, alpha }: BlipData): void {
         this.range.clear();
         if (spaceObject.radarRange) {
             const radius = parent.metersToPixles(spaceObject.radarRange);
-            this.range.beginFill(color, 1);
+            this.range.beginFill(color, alpha);
             this.range.drawCircle(0, 0, radius);
         }
     }
