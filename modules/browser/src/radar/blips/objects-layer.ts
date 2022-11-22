@@ -22,10 +22,17 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
     private createBlip = (spaceObject: SpaceObjects[K]): Blip<K> => {
         const stage = new Container();
         const renderer = new this.drawFunctions[spaceObject.type as K](stage, this.blipSize);
-        const objGraphics = { isSelected: false, color: white, stage, parent: this.parent, blipSize: this.blipSize };
-        this.updateBlip(spaceObject, [renderer, objGraphics]);
-        this.stage.addChild(objGraphics.stage);
-        return [renderer, objGraphics];
+        const data = {
+            isSelected: false,
+            color: white,
+            stage,
+            parent: this.parent,
+            blipSize: this.blipSize,
+            alpha: 1,
+        };
+        this.updateBlip(spaceObject, [renderer, data]);
+        this.stage.addChild(data.stage);
+        return [renderer, data];
     };
 
     private updateBlip = (o: SpaceObjects[K], [r, g]: Blip<K>) => {
