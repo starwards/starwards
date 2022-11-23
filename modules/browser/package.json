@@ -17,7 +17,7 @@
         "@arwes/design": "^1.0.0-alpha.19",
         "@arwes/sounds": "^1.0.0-alpha.19",
         "@babylonjs/core": "5.33.2",
-        "@babylonjs/loaders": "5.31.0",
+        "@babylonjs/loaders": "5.33.2",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
         "@pixi/graphics-extras": "^6.5.4",
@@ -41,7 +41,7 @@
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.31.0",
+        "@babylonjs/gui": "5.33.2",
         "@babylonjs/inspector": "5.33.2"
     }
 }
