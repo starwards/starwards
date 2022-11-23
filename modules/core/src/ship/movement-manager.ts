@@ -4,6 +4,7 @@ import { SpaceObject, Spaceship } from '../space';
 import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
 import { Die } from './ship-manager';
+import { DockingMode } from './docking';
 import { Iterator } from '../logic/iteration';
 import { MAX_WARP_LVL } from './warp';
 import { ShipState } from './ship-state';
@@ -91,7 +92,7 @@ export class MovementManager {
     }
 
     private handleWarpMovement(deltaSeconds: number) {
-        if (this.isWarpActive()) {
+        if (this.isWarpActive() && !this.isDockingActive()) {
             const newSpeed = this.state.warp.currentLevel * this.state.warp.design.speedPerLevel;
             const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
@@ -122,6 +123,10 @@ export class MovementManager {
         return !this.state.warp.broken && this.state.warp.currentLevel;
     }
 
+    private isDockingActive() {
+        return this.state.docking.mode !== DockingMode.UNDOCKED;
+    }
+
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
             let speedToChange = 0;
@@ -143,7 +148,7 @@ export class MovementManager {
     }
 
     private calcStrafeAndBoost(deltaSeconds: number) {
-        if (this.isWarpActive()) {
+        if (this.isWarpActive() || this.isDockingActive()) {
             this.state.boost = 0;
             this.state.strafe = 0;
         } else {
@@ -259,7 +264,7 @@ export class MovementManager {
     }
 
     private calcManeuveringAction() {
-        if (this.isWarpActive()) {
+        if (this.isWarpActive() || this.isDockingActive()) {
             return XY.zero;
         } else if (this.shouldEnforceMaxSpeed()) {
             return XY.normalize(XY.negate(this.spaceObject.velocity));

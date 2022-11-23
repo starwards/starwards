@@ -2,6 +2,14 @@ import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
 import { number2Digits } from '../number-field';
+import { tweakable } from '../tweakable';
+
+export enum DockingMode {
+    DOCKED,
+    UNDOCKED,
+    DOCKING,
+    UNDOCKING,
+}
 
 export type DockingDesign = {
     damage50: number;
@@ -20,6 +28,10 @@ export class Docking extends Schema {
 
     @type(DockingDesignState)
     design = new DockingDesignState();
+
+    @type('int8')
+    @tweakable({ type: 'enum', enum: DockingMode })
+    mode: DockingMode = DockingMode.UNDOCKED;
 
     get broken() {
         return false;
