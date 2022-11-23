@@ -46,8 +46,8 @@
                 ],
                 "background": {
                     "activeOnStart": true,
-                    "beginsPattern": "compiled successfully in",
-                    "endsPattern": "Compiled successfully"
+                    "beginsPattern": "webpack serve",
+                    "endsPattern": "compiled successfully in"
                 }
             }
         }
