@@ -149,7 +149,7 @@ export class ShipManager {
 
     public setTarget(id: string | null) {
         this.state.weaponsTarget.targetId = id;
-        this.validateTargetId();
+        this.validateTargetIds();
     }
 
     public handleTargetCommands() {
@@ -201,7 +201,7 @@ export class ShipManager {
         if (this.bot) {
             this.bot(deltaSeconds, this.spaceManager.state, this);
         }
-        this.validateTargetId();
+        this.validateTargetIds();
         this.chainGunManager?.update(deltaSeconds);
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(deltaSeconds);
@@ -492,8 +492,8 @@ export class ShipManager {
         this.state.targeted = status;
     }
 
-    private validateTargetId() {
-        if (this.state.weaponsTarget.targetId) {
+    private validateTargetIds() {
+        if (typeof this.state.weaponsTarget.targetId === 'string') {
             this.target = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
             if (!this.target) {
                 this.state.weaponsTarget.targetId = null;
@@ -504,6 +504,12 @@ export class ShipManager {
         this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
         this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
         this.setShellRangeMode(this.target ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
+        if (typeof this.state.docking.targetId === 'string') {
+            this.target = this.spaceManager.state.get(this.state.docking.targetId) || null;
+            if (!this.target) {
+                this.state.docking.targetId = null;
+            }
+        }
     }
 
     private syncShipProperties() {

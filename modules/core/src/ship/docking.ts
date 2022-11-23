@@ -33,6 +33,10 @@ export class Docking extends Schema {
     @tweakable({ type: 'enum', enum: DockingMode })
     mode: DockingMode = DockingMode.UNDOCKED;
 
+    @type('string')
+    @tweakable('string')
+    public targetId: string | null = null;
+
     get broken() {
         return false;
     }
