@@ -147,7 +147,10 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             (w) => w.color,
             tacticalDrawWaypoints,
             undefined,
-            (w) => XY.lengthOf(XY.difference(w.position, camera)) > p.range,
+            (w) =>
+                w.owner === shipDriver.id &&
+                w.collection === 'route' &&
+                XY.lengthOf(XY.difference(w.position, camera)) > p.range,
             (w) =>
                 root.worldToScreen(
                     XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera))))
