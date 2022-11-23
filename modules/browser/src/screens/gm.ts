@@ -13,6 +13,7 @@ import { designStateWidget } from '../widgets/design-state';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
+import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { systemsStatusWidget } from '../widgets/system-status';
@@ -86,6 +87,7 @@ void driver.waitForGame().then(
             const shipDriver = await driver.getShipDriver(shipId);
             dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, shipId + ' radar');
             dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
+            dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, shipId + ' pilot radar');
             dashboard.registerWidget(pilotWidget(shipDriver), {}, shipId + ' helm');
             dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
             dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, shipId + ' design state');

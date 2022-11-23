@@ -19,6 +19,7 @@ export class RangeIndicators {
         parent.ticker.add(
             (_delta) => {
                 if (this.shouldRender) {
+                    this.shouldRender = false;
                     this.drawRangeIndicators();
                 }
             },
@@ -26,6 +27,11 @@ export class RangeIndicators {
             UPDATE_PRIORITY.LOW
         );
         this.stage.addChild(this.rangeIndicators);
+    }
+
+    setStepSize(stepSize: number) {
+        this.stepSize = stepSize;
+        this.shouldRender = true;
     }
 
     setSizeFactor(value: number) {
@@ -41,7 +47,6 @@ export class RangeIndicators {
     }
 
     private drawRangeIndicators() {
-        this.shouldRender = false;
         this.rangeIndicators.clear();
         this.rangeIndicators.lineStyle(2, white, 0.1);
         const textsIterator = this.rangeNames[Symbol.iterator]();

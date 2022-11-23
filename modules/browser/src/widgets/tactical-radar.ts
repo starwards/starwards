@@ -109,10 +109,10 @@ export function drawTacticalRadar(
             {
                 fileName: 'images/asimuth-circle.svg',
                 tint: 0xaaffaa,
-                radiusMeters: 6000,
             },
             () => shipDriver.state.position,
-            () => degToRad * -shipDriver.state.angle
+            () => degToRad * -shipDriver.state.angle,
+            () => root.metersToPixles(6000)
         );
         root.addLayer(asimuthCircle.renderRoot);
         const shipTarget = trackTargetObject(spaceDriver, shipDriver);

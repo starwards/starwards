@@ -30,6 +30,16 @@ export class MovementAnchorLayer {
         parent.ticker.add((_delta) => this.draw(), null, UPDATE_PRIORITY.LOW);
     }
 
+    setRange(range: number) {
+        this.range = range;
+        this.shouldRender = true;
+    }
+
+    setSpacing(spacing: number) {
+        this.spacing = spacing;
+        this.shouldRender = true;
+    }
+
     get renderRoot(): DisplayObject {
         return this.stage;
     }

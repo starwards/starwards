@@ -142,12 +142,15 @@ export const Lobby = (p: Props) => {
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
 
                         {false === isGameRunning && adminDriver && (
-                            <pre key="new game">
+                            <pre key="2V1 game">
                                 <LoadGame adminDriver={adminDriver} />
                                 <br />
 
                                 <Button palette="success" onClick={() => adminDriver.startGame('two_vs_one')}>
-                                    <div data-id="new game">New Game</div>
+                                    <div data-id="new game">2v1 Game</div>
+                                </Button>
+                                <Button palette="success" onClick={() => adminDriver.startGame('solo')}>
+                                    <div>Solo Game</div>
                                 </Button>
                             </pre>
                         )}
