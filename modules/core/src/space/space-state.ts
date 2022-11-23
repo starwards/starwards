@@ -1,6 +1,6 @@
 import { BulkBotOrderArg, BulkMoveArg } from './space-properties';
 import { MapSchema, Schema, type } from '@colyseus/schema';
-import { SpaceObject, SpaceObjects } from '.';
+import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
 import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
@@ -24,6 +24,9 @@ export class SpaceState extends Schema {
 
     @type({ map: Spaceship })
     private readonly Spaceship = new MapSchema<Spaceship>();
+
+    @type({ map: Waypoint })
+    readonly Waypoint = new MapSchema<Waypoint>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
@@ -58,6 +61,7 @@ export class SpaceState extends Schema {
         yield this.Explosion;
         yield this.Asteroid;
         yield this.Spaceship;
+        yield this.Waypoint;
     }
 
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {

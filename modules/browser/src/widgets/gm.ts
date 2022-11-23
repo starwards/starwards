@@ -1,6 +1,7 @@
 import { Driver, Faction, Projectile, SpaceObject } from '@starwards/core';
 import { Graphics, Loader, UPDATE_PRIORITY, filters } from 'pixi.js';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
+import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -12,7 +13,6 @@ import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import { makeRadarHeaders } from './radar';
-import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
 import { tweakWidget } from './tweak';
 
 interface RadarState {
@@ -94,6 +94,16 @@ export class GmWidgets {
                     );
                 }
                 root.addLayer(blipLayer.renderRoot);
+
+                const waypointsLayer = new ObjectsLayer(
+                    root,
+                    spaceDriver,
+                    32,
+                    (w) => w.color,
+                    tacticalDrawWaypoints,
+                    selectionContainer
+                );
+                root.addLayer(waypointsLayer.renderRoot);
                 root.addLayer(selection.renderRoot);
             }
         }

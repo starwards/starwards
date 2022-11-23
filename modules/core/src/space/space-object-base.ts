@@ -33,7 +33,7 @@ export abstract class SpaceObjectBase extends Schema {
 
     @tweakable({ type: 'number', number: { min: 0.05 } })
     @number2Digits
-    public radius = 0;
+    public radius = 0.05;
     @type(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 
@@ -49,6 +49,7 @@ export abstract class SpaceObjectBase extends Schema {
      */
     public readonly collisionDamage: number = 0.5;
 
+    public readonly isCorporal: boolean = true;
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)
      */
