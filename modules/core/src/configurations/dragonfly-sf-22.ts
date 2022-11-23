@@ -84,6 +84,9 @@ export const dragonflyWarp = {
     damagePerPhysicalSpeed: 20,
     baseDamagePerWarpSpeedPerSecond: 0.5,
 };
+export const dragonflyDocking = {
+    damage50: 20,
+};
 
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
@@ -104,4 +107,5 @@ export const dragonflySF22: ShipDesign = {
     magazine: dragonflyMagazine,
     weaponsTarget: dragonflyTargeting,
     warp: dragonflyWarp,
+    docking: dragonflyDocking,
 };
