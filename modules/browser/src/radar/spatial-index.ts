@@ -55,6 +55,7 @@ export class SpatialIndex {
     }
 
     *selectPotentials(area: Body): Generator<SpaceObject> {
+        this.collisions.insert(area);
         for (const potential of this.collisions.getPotentials(area)) {
             const id = this.collisionToId.get(potential);
             const object = id && this.spaceDriver.state.get(id);
@@ -62,5 +63,6 @@ export class SpatialIndex {
                 yield object;
             }
         }
+        this.collisions.remove(area);
     }
 }
