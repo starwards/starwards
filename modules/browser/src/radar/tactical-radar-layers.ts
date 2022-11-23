@@ -14,23 +14,23 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
         {
             fileName: 'images/radar/target.png',
             tint: 0xffaaaa,
-            sizePx: 64,
         },
         () => getShellExplosionLocation(shipState, chainGun),
-        () => 0
+        () => 0,
+        () => 32
     );
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
         {
             fileName: 'images/radar/deflection.png',
             tint: 0xaaaaff,
-            sizePx: 64,
         },
         () => {
             const target = shipTarget.getSingle();
             return target && getTargetLocationAtShellExplosion(chainGun, target);
         },
-        () => 0
+        () => 0,
+        () => 32
     );
     stage.addChild(deflectionCrosshairLayer.renderRoot);
     stage.addChild(shellCrosshairLayer.renderRoot);

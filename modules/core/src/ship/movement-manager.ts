@@ -54,7 +54,7 @@ export class MovementManager {
         if (this.state.warp.desiredLevel > 0) {
             const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
             const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
-                .filter((v) => v.id !== this.spaceObject.id)
+                .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
                 .firstOr(null);
             if (objectInRange) {
                 this.state.warp.desiredLevel = 0;

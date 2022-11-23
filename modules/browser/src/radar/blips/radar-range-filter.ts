@@ -40,7 +40,7 @@ export class RadarRangeFilter {
         this.createFieldOfView,
         this.updateFieldOfView,
         noop,
-        this.shouldTrackFov
+        this.shouldTrackFov as (o: SpaceObject) => o is SpaceObject
     );
     constructor(private spaceDriver: SpaceDriver, private shouldTrackFov?: (o: SpaceObject) => boolean) {}
 

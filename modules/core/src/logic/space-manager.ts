@@ -1,6 +1,6 @@
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { Faction, Spaceship } from '../space';
+import { Faction, Spaceship, Waypoint } from '../space';
 import { FieldOfView, circlesIntersection, limitPercision, moveToTarget, rotateToTarget, toDegreesDelta } from '.';
 
 import { SWResponse } from './collisions-utils';
@@ -346,6 +346,8 @@ export class SpaceManager {
                 !subject.freeze &&
                 object &&
                 !Projectile.isInstance(object) &&
+                !Waypoint.isInstance(subject) &&
+                !Waypoint.isInstance(object) &&
                 !object.destroyed
             ) {
                 let positionChange: XY | null = null;
