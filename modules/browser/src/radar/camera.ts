@@ -3,6 +3,7 @@ import { SpaceObject, XY } from '@starwards/core';
 import { Container } from 'golden-layout';
 import EventEmitter from 'eventemitter3';
 import { SpaceEventEmitter } from '@starwards/core';
+import { WidgetContainer } from '../container';
 
 interface Screen {
     width: number;
@@ -117,11 +118,13 @@ export class Camera {
         });
     }
 
-    bindRange(container: Container, sizeFactor: number, state: { range: number }) {
-        this.setRange((sizeFactor * Math.min(container.width, container.height)) / 2, state.range);
-        container.on('resize', () => {
+    bindRange(container: WidgetContainer, sizeFactor: number, state: { range: number }) {
+        const callback = () => {
             this.setRange((sizeFactor * Math.min(container.width, container.height)) / 2, state.range);
-        });
+        };
+        callback();
+        container.on('resize', callback);
+        return () => container.off('resize', callback);
     }
 
     followSpaceObject(spaceObject: SpaceObject, changeEvents: SpaceEventEmitter, angle = false) {

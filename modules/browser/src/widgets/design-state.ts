@@ -5,6 +5,7 @@ import { readProp, readWriteProp } from '../property-wrappers';
 import $ from 'jquery';
 import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 
 function addDesignStateToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
     const p = readProp<DesignState>(shipDriver, pointerStr);
@@ -23,7 +24,7 @@ function addDesignStateToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr:
 }
 
 export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
-    function makeShipComponent(container: Container) {
+    function makeShipComponent(container: WidgetContainer) {
         const rootPanel = new PropertyPanel(container);
         // TODO add cleanups for folders
         if (shipDriver.state.chainGun) {

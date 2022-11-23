@@ -1,7 +1,7 @@
 import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
 import {
     ChainGun,
-    ManeuveringCommand,
+    Faction,
     ShipArea,
     ShipState,
     SmartPilot,
@@ -10,29 +10,31 @@ import {
     Spaceship,
     StatesToggle,
     TargetedStatus,
-    XY,
     capToRange,
     gaussianRandom,
     lerp,
     limitPercision,
-    matchLocalSpeed,
+    projectileModels,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
     shipAreasInRange,
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
-import { Damage, SpaceManager } from '../logic/space-manager';
 import { FRONT_ARC, REAR_ARC } from '.';
 import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
+import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
+import { MovementManager } from './movement-manager';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
+import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
+import { Warp } from './warp';
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.design.plateMaxHealth;
@@ -40,7 +42,7 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -67,22 +69,26 @@ export type Die = {
 };
 export class ShipManager {
     public bot: Bot | null = null;
-    target: SpaceObject | null = null;
+    public target: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
-        [ShipArea.front, [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine]],
+        [
+            ShipArea.front,
+            [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine, this.state.warp],
+        ],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
     ]);
     private totalSeconds = 0;
     private tubeManagers = new Array<ChainGunManager>();
     private chainGunManager: ChainGunManager | null = null;
+    private movementManager: MovementManager;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
         private spaceManager: SpaceManager,
-        private die: Die,
+        public die: Die,
         private ships?: Map<string, ShipManager>
     ) {
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
@@ -105,6 +111,7 @@ export class ShipManager {
                 this
             );
         }
+        this.movementManager = new MovementManager(this.spaceObject, this.state, this.spaceManager, this, this.die);
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
         }
@@ -141,33 +148,35 @@ export class ShipManager {
     }
 
     public setTarget(id: string | null) {
-        this.state.targetId = id;
+        this.state.weaponsTarget.targetId = id;
         this.validateTargetId();
     }
 
-    public handleNextTargetCommand() {
-        if (this.state.clearTargetCommand) {
-            this.state.clearTargetCommand = false;
+    public handleTargetCommands() {
+        if (this.state.weaponsTarget.clearTargetCommand) {
+            this.state.weaponsTarget.clearTargetCommand = false;
             this.setTarget(null);
-        } else if (this.state.nextTargetCommand) {
-            this.state.nextTargetCommand = false;
-            // currently only iterate
-            let currentFound = false;
-            for (const obj of this.spaceManager.state.getAll('Spaceship')) {
-                if (obj.id === this.state.targetId) {
-                    currentFound = true;
-                } else if (currentFound && obj.id !== this.state.id) {
-                    this.setTarget(obj.id);
-                    return;
-                }
-            }
-            for (const obj of this.spaceManager.state.getAll('Spaceship')) {
-                if (obj.id !== this.state.id) {
-                    this.setTarget(obj.id);
-                    return;
-                }
-            }
         }
+        if (this.state.weaponsTarget.nextTargetCommand) {
+            this.state.weaponsTarget.nextTargetCommand = false;
+            this.setTarget(this.getViableTargetIds().elementAfter(this.state.weaponsTarget.targetId));
+        }
+        if (this.state.weaponsTarget.prevTargetCommand) {
+            this.state.weaponsTarget.prevTargetCommand = false;
+            this.setTarget(this.getViableTargetIds().elementBefore(this.state.weaponsTarget.targetId));
+        }
+    }
+
+    private getViableTargetIds(): Iterator<string | null> {
+        const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
+            ? this.spaceManager.state.getAll('Spaceship')
+            : this.spaceManager.state;
+        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id);
+        if (this.state.weaponsTarget.enemyOnly) {
+            result = result.filter((v) => v.faction !== Faction.none && v.faction !== this.state.faction);
+        }
+        const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.faction);
+        return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
     }
 
     public handleToggleSmartPilotManeuveringMode() {
@@ -197,33 +206,20 @@ export class ShipManager {
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(deltaSeconds);
         }
-        this.handleAfterburnerCommand();
-        this.handleNextTargetCommand();
+        this.movementManager.update(deltaSeconds);
+        this.handleTargetCommands();
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
         this.calcTargetedStatus();
         // sync relevant ship props
         this.syncShipProperties();
         this.updateEnergy(deltaSeconds);
-        this.updateRotation(deltaSeconds);
 
-        this.calcSmartPilotModes();
-        this.calcSmartPilotManeuvering(deltaSeconds);
         this.calcSmartPilotRotation(deltaSeconds);
-        const maneuveringAction = this.calcManeuveringAction();
-        this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
-        this.updateVelocityFromThrusters(deltaSeconds);
 
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
-        this.addChainGunAmmo(0);
-    }
-
-    private calcSmartPilotModes() {
-        if (this.state.smartPilot.broken) {
-            this.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-            this.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        }
+        this.updateChainGunAmmo();
     }
 
     private updateRadarRange() {
@@ -292,7 +288,11 @@ export class ShipManager {
         }
     }
 
-    private damageSystem(system: ShipSystem, damageObject: Damage, percentageOfBrokenPlates: number) {
+    private damageSystem(
+        system: ShipSystem,
+        damageObject: { id: string; amount: number },
+        percentageOfBrokenPlates: number
+    ) {
         if (system.broken) {
             return;
         }
@@ -311,16 +311,30 @@ export class ShipManager {
                 this.damageReactor(system, damageObject.id);
             } else if (Magazine.isInstance(system)) {
                 this.damageMagazine(system, damageObject.id);
+            } else if (Warp.isInstance(system)) {
+                this.damageWarp(system, damageObject.id);
+            }
+        }
+    }
+
+    private damageWarp(warp: Warp, damageId: string) {
+        if (!warp.broken) {
+            if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
+                warp.damageFactor *= 0.9;
+            } else {
+                warp.velocityFactor *= 0.9;
             }
         }
     }
 
     private damageMagazine(magazine: Magazine, damageId: string) {
         if (!magazine.broken) {
-            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+            if (this.die.getSuccess('damageMagazine' + damageId, 0.5)) {
                 // todo convert to a defectible property that accumulates damage
-                magazine.count_CannonShell = Math.round(
-                    magazine.count_CannonShell * (1 - magazine.design.capacityDamageFactor)
+                const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
+                const projectileKey = projectileModels[idx];
+                magazine[`count_${projectileKey}`] = Math.round(
+                    magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor)
                 );
             } else {
                 magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
@@ -399,52 +413,10 @@ export class ShipManager {
         }
     }
 
-    private handleAfterburnerCommand() {
-        if (
-            this.state.afterBurner !== this.state.afterBurnerCommand &&
-            (!this.shouldEnforceMaxSpeed() || this.state.afterBurner < this.state.afterBurnerCommand)
-        ) {
-            this.state.afterBurner = this.state.afterBurnerCommand;
+    damageAllSystems(damageObject: { id: string; amount: number }) {
+        for (const system of [...this.systemsByAreas.values()].flat()) {
+            if (system) this.damageSystem(system, damageObject, 1);
         }
-    }
-
-    private calcSmartPilotManeuvering(deltaSeconds: number) {
-        const offsetFactor =
-            this.state.smartPilot.maneuveringMode === SmartPilotMode.DIRECT ? 0 : this.state.smartPilot.offsetFactor;
-        const error = XY.byLengthAndDirection(offsetFactor, this.die.getRollInRange('smartPilotOffset', -180, 180));
-
-        let maneuveringCommand: ManeuveringCommand | undefined = undefined;
-        switch (this.state.smartPilot.maneuveringMode) {
-            case SmartPilotMode.DIRECT: {
-                maneuveringCommand = {
-                    strafe: this.state.smartPilot.maneuvering.y,
-                    boost: this.state.smartPilot.maneuvering.x,
-                };
-                break;
-            }
-            case SmartPilotMode.TARGET: {
-                if (this.target) {
-                    const velocity = XY.add(
-                        XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        this.state.globalToLocal(this.target.velocity)
-                    );
-                    maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
-                } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`corrupted state: smartPilot.maneuveringMode is TARGET with no target`);
-                    maneuveringCommand = { strafe: 0, boost: 0 };
-                }
-                break;
-            }
-            case SmartPilotMode.VELOCITY: {
-                const velocity = XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed);
-                maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
-                break;
-            }
-        }
-        this.state.boost = capToRange(-1, 1, maneuveringCommand.boost + error.y);
-        this.state.strafe = capToRange(-1, 1, maneuveringCommand.strafe + error.x);
     }
 
     private calcSmartPilotRotation(deltaSeconds: number) {
@@ -488,73 +460,6 @@ export class ShipManager {
         this.state.rotation = capToRange(-1, 1, rotationCommand);
     }
 
-    shouldEnforceMaxSpeed() {
-        const maxSpeed = this.state.getMaxSpeedForAfterburner(this.state.afterBurnerCommand);
-        return (
-            this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT &&
-            XY.lengthOf(this.spaceObject.velocity) > maxSpeed
-        );
-    }
-
-    private calcManeuveringAction() {
-        if (this.shouldEnforceMaxSpeed()) {
-            return XY.normalize(XY.negate(this.spaceObject.velocity));
-        } else {
-            const boostFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle), this.state.boost);
-            const strafeFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle + 90), this.state.strafe);
-            const antiDriftFactor = XY.scale(
-                XY.normalize(XY.negate(XY.projection(this.spaceObject.velocity, this.spaceObject.directionAxis))),
-                this.state.antiDrift
-            );
-            const breaksFactor = XY.scale(XY.normalize(XY.negate(this.spaceObject.velocity)), this.state.breaks);
-            const desiredSpeed = XY.sum(boostFactor, strafeFactor, antiDriftFactor, breaksFactor);
-            return desiredSpeed;
-        }
-    }
-
-    private updateThrustersFromManeuvering(maneuveringAction: XY, deltaSeconds: number) {
-        for (const thruster of this.state.thrusters) {
-            thruster.afterBurnerActive = 0;
-            thruster.active = 0;
-            const globalAngle = thruster.angle + this.state.angle;
-            const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
-            const axisCapacity = thruster.capacity * deltaSeconds;
-            if (this.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost)) {
-                thruster.active = desiredAction;
-            }
-            if (this.state.afterBurner) {
-                const axisAfterBurnerCapacity = thruster.afterBurnerCapacity * deltaSeconds;
-                const desireAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
-                if (this.trySpendAfterBurner(desireAfterBurnedAction * axisAfterBurnerCapacity)) {
-                    thruster.afterBurnerActive = desireAfterBurnedAction;
-                }
-            }
-        }
-    }
-
-    private updateVelocityFromThrusters(deltaSeconds: number) {
-        const speedToChange = XY.sum(
-            ...this.state.thrusters.map((thruster) => {
-                const mvEffect =
-                    thruster.active *
-                    thruster.capacity *
-                    thruster.availableCapacity *
-                    thruster.design.speedFactor *
-                    deltaSeconds;
-                const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;
-                return XY.byLengthAndDirection(
-                    mvEffect + abEffect,
-                    thruster.angle + thruster.angleError + this.state.angle
-                );
-            })
-        );
-        if (!XY.isZero(speedToChange)) {
-            this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
-            this.state.velocity.x = this.spaceObject.velocity.x;
-            this.state.velocity.y = this.spaceObject.velocity.y;
-        }
-    }
-
     private chargeAfterBurner(deltaSeconds: number) {
         if (this.state.reactor.afterBurnerFuel < this.state.reactor.design.maxAfterBurnerFuel) {
             const afterBurnerFuelDelta = Math.min(
@@ -573,7 +478,7 @@ export class ShipManager {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
             for (const shipManager of this.ships.values()) {
-                if (shipManager.state.targetId === this.state.id) {
+                if (shipManager.state.weaponsTarget.targetId === this.state.id) {
                     if (shipManager.state.chainGun?.isFiring) {
                         status = TargetedStatus.FIRED_UPON;
                         break; // no need to look further
@@ -588,10 +493,10 @@ export class ShipManager {
     }
 
     private validateTargetId() {
-        if (this.state.targetId) {
-            this.target = this.spaceManager.state.get(this.state.targetId) || null;
+        if (this.state.weaponsTarget.targetId) {
+            this.target = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
             if (!this.target) {
-                this.state.targetId = null;
+                this.state.weaponsTarget.targetId = null;
             }
         } else {
             this.target = null;
@@ -610,6 +515,7 @@ export class ShipManager {
         this.state.turnSpeed = this.spaceObject.turnSpeed;
         this.state.angle = this.spaceObject.angle;
         this.state.faction = this.spaceObject.faction;
+        this.state.radius = this.spaceObject.radius;
         this.state.radarRange = this.spaceObject.radarRange;
     }
 
@@ -626,19 +532,6 @@ export class ShipManager {
         return false;
     }
 
-    trySpendAfterBurner(value: number): boolean {
-        if (value < 0) {
-            // eslint-disable-next-line no-console
-            console.log('probably an error: spending negative afterBurnerFuel');
-        }
-        if (this.state.reactor.afterBurnerFuel > value) {
-            this.state.reactor.afterBurnerFuel = limitPercisionHard(this.state.reactor.afterBurnerFuel - value);
-            return true;
-        }
-        this.state.reactor.afterBurnerFuel = 0;
-        return false;
-    }
-
     private updateEnergy(deltaSeconds: number) {
         this.state.reactor.energy = capToRange(
             0,
@@ -647,23 +540,12 @@ export class ShipManager {
         );
     }
 
-    public addChainGunAmmo(addedAmmo: number) {
-        this.state.magazine.count_CannonShell = Math.min(
-            this.state.magazine.count_CannonShell + addedAmmo,
-            this.state.magazine.max_CannonShell
-        );
-    }
-
-    private updateRotation(deltaSeconds: number) {
-        if (this.state.rotation) {
-            let speedToChange = 0;
-            const rotateFactor = this.state.rotation * deltaSeconds;
-            const enginePower = rotateFactor * this.state.design.rotationCapacity;
-            if (this.trySpendEnergy(Math.abs(enginePower) * this.state.design.rotationEnergyCost)) {
-                speedToChange += enginePower;
-            }
-            this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
-            this.state.turnSpeed = this.spaceObject.turnSpeed;
+    private updateChainGunAmmo() {
+        for (const projectileKey of projectileModels) {
+            this.state.magazine[`count_${projectileKey}`] = Math.min(
+                this.state.magazine[`count_${projectileKey}`],
+                this.state.magazine[`max_${projectileKey}`]
+            );
         }
     }
 }

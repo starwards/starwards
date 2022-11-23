@@ -1,13 +1,13 @@
 import { ShipDriver, SmartPilotMode } from '@starwards/core';
 import { readNumberProp, readWriteNumberProp } from '../property-wrappers';
 
-import { Container } from 'golden-layout';
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../panel';
+import { WidgetContainer } from '../container';
 
 export function pilotWidget(shipDriver: ShipDriver): DashboardWidget {
     class PilotComponent {
-        constructor(container: Container, _: unknown) {
+        constructor(container: WidgetContainer, _: unknown) {
             const panel = new PropertyPanel(container);
             container.on('destroy', () => {
                 panel.destroy();

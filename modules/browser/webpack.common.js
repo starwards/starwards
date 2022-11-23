@@ -7,6 +7,7 @@ module.exports = {
         mainScreen: [path.resolve(__dirname, 'src', 'screens', 'main-screen.ts')],
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
         ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
+        weapons: [path.resolve(__dirname, 'src', 'screens', 'weapons.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
         input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
     },
@@ -43,6 +44,11 @@ module.exports = {
             filename: 'ship.html',
             template: path.resolve(__dirname, 'templates', 'sidebar.html'),
             chunks: ['ship'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'weapons.html',
+            template: path.resolve(__dirname, 'templates', 'station.html'),
+            chunks: ['weapons'],
         }),
         new HtmlWebpackPlugin({
             filename: 'gm.html',

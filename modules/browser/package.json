@@ -16,8 +16,8 @@
         "@arwes/core": "^1.0.0-alpha.19",
         "@arwes/design": "^1.0.0-alpha.19",
         "@arwes/sounds": "^1.0.0-alpha.19",
-        "@babylonjs/core": "5.25.0",
-        "@babylonjs/loaders": "5.25.0",
+        "@babylonjs/core": "5.33.2",
+        "@babylonjs/loaders": "5.33.2",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
         "@pixi/graphics-extras": "^7.0.2",
@@ -25,6 +25,7 @@
         "@tweakpane/plugin-camerakit": "^0.2.2",
         "@xstate/react": "^3.0.1",
         "colyseus.js": "^0.14.13",
+        "css-element-queries": "^1.2.3",
         "d3": "^7.6.1",
         "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
@@ -35,12 +36,12 @@
         "pluralize": "^8.0.0",
         "react": "^17.0.2",
         "react-dom": "^17.0.2",
-        "react-dropzone": "^14.2.2",
+        "react-dropzone": "^14.2.3",
         "tweakpane": "^3.1.0",
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.25.0",
-        "@babylonjs/inspector": "5.25.0"
+        "@babylonjs/gui": "5.33.2",
+        "@babylonjs/inspector": "5.33.2"
     }
 }

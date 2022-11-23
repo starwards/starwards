@@ -1,6 +1,6 @@
 {
     "extends": "../../tsconfig.json",
-    "include": ["./src/**/*.ts"],
+    "include": ["./src/**/*.ts", "./src/**/*.tsx"],
     "compilerOptions": {
         "module": "es6",
         "target": "es2020",

@@ -1,15 +1,15 @@
 import { Flows, getNode, initNodes } from '../test-driver';
 
 import { NodeStatus } from 'node-red';
-import { ShipInNode } from './ship-in';
+import { ShipNode } from './ship-node';
 import helper from 'node-red-node-test-helper';
 import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
-const FAKE_URL = 'http://127.1.2.3/';
+const FAKE_URL = 'http://127.1.2.3:8123/';
 
-describe('ship-in', () => {
+describe('ship-node', () => {
     beforeEach((done) => {
         helper.startServer(done);
     });
@@ -22,7 +22,7 @@ describe('ship-in', () => {
     });
 
     it('loads', async () => {
-        const flows: Flows = [{ id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' }];
+        const flows: Flows = [{ id: 'n1', type: 'ship-node-dummy', shipId: 'GVTS', configNode: 'n0' }];
         await helper.load(initNodes, flows);
         const { waitForStatus } = getNode('n1');
         await waitForStatus({ fill: 'red', shape: 'ring', text: 'Server config missing or inactive' });
@@ -32,7 +32,7 @@ describe('ship-in', () => {
         it('reports connection issue', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: FAKE_URL },
-                { id: 'n1', type: 'ship-in', shipId: 'GVTS', pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-node-dummy', shipId: 'GVTS', configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
             const { waitForStatus } = getNode('n1');
@@ -45,12 +45,11 @@ describe('ship-in', () => {
         });
     });
 
-    describe('integration with server', () => {
+    describe('with server', () => {
         const gameDriver = makeDriver();
 
         beforeEach(async () => {
             await gameDriver.gameManager.startGame(test_map_1);
-            // gameDriver.pauseGameCommand();
         });
 
         afterEach(async () => {
@@ -60,24 +59,39 @@ describe('ship-in', () => {
         it('detects game status ', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
-                { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
+                {
+                    id: 'n1',
+                    type: 'ship-node-dummy',
+                    shipId: test_map_1.testShipId,
+                    configNode: 'n0',
+                },
             ];
             await helper.load(initNodes, flows);
-            const { waitForStatus } = getNode<ShipInNode>('n1');
+            const { waitForStatus } = getNode<ShipNode>('n1');
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
         });
 
-        it('sends ship state changes', async () => {
+        it('handles input', async () => {
             const flows: Flows = [
                 { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
-                { id: 'n1', type: 'ship-in', shipId: test_map_1.testShipId, pattern: '**', configNode: 'n0' },
+                { id: 'n1', type: 'ship-node-dummy', shipId: test_map_1.testShipId, configNode: 'n0' },
             ];
             await helper.load(initNodes, flows);
-            const { waitForOutput, waitForStatus } = getNode<ShipInNode>('n1');
+            const { node, waitForStatus, waitForOutput } = getNode<ShipNode>('n1');
             await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
-            const eventPromise = waitForOutput({ topic: '/magazine/count_CannonShell', payload: 1234 });
-            gameDriver.getShip('GVTS').state.magazine.count_CannonShell = 1234;
+            const eventPromise = waitForOutput({ topic: 'input' });
+            node.receive({ topic: 'foo' });
             await eventPromise;
+        });
+
+        it('handles ship found', async () => {
+            const flows: Flows = [
+                { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
+                { id: 'n1', type: 'ship-node-dummy', shipId: test_map_1.testShipId, configNode: 'n0' },
+            ];
+            await helper.load(initNodes, flows);
+            const { waitForOutput } = getNode<ShipNode>('n1');
+            await waitForOutput({ topic: 'found' });
         });
     });
 });

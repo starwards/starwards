@@ -6,3 +6,4 @@ export * from './space-manager';
 export * from './states-toggle';
 export * from './xy';
 export * from './xyz';
+export * from './field-of-view';

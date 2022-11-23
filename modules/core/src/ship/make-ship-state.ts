@@ -6,7 +6,9 @@ import { Reactor, ReactorDesign } from './reactor';
 import { ShipDirectionConfig, getDirectionFromConfig } from './ship-direction';
 import { ShipPropertiesDesign, ShipState } from './ship-state';
 import { SmartPilot, SmartPilotDesign } from './smart-pilot';
+import { Targeting, TargetingDesign } from './targeting';
 import { Thruster, ThrusterDesign } from './thruster';
+import { Warp, WarpDesign } from './warp';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
@@ -22,6 +24,8 @@ export type ShipDesign = {
     smartPilot: SmartPilotDesign;
     reactor: ReactorDesign;
     magazine: MagazineDesign;
+    weaponsTarget: TargetingDesign;
+    warp: WarpDesign;
 };
 
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
@@ -71,6 +75,12 @@ function makeRadar(design: RadarDesign) {
     return radar;
 }
 
+function makeWarp(design: WarpDesign) {
+    const warp = new Warp();
+    warp.design.assign(design);
+    return warp;
+}
+
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
@@ -78,6 +88,12 @@ function makeMagazine(design: MagazineDesign) {
         magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
     }
     return magazine;
+}
+
+function makeTargeting(design: TargetingDesign) {
+    const targeting = new Targeting();
+    targeting.design.assign(design);
+    return targeting;
 }
 
 function makeReactor(design: ReactorDesign) {
@@ -110,5 +126,7 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.radar = makeRadar(design.radar);
     state.reactor = makeReactor(design.reactor);
     state.magazine = makeMagazine(design.magazine);
+    state.weaponsTarget = makeTargeting(design.weaponsTarget);
+    state.warp = makeWarp(design.warp);
     return state;
 }

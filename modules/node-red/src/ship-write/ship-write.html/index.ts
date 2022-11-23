@@ -1,12 +1,12 @@
 import { EditorNodeProperties, EditorRED } from 'node-red';
 
-import { ShipOutOptions } from '../ship-out';
+import { ShipWriteOptions } from '../ship-write';
 
 declare const RED: EditorRED;
 
-export interface ShipOutEditorNodeProperties extends EditorNodeProperties, ShipOutOptions {}
+export interface ShipStateEditorNodeProperties extends EditorNodeProperties, ShipWriteOptions {}
 
-RED.nodes.registerType<ShipOutEditorNodeProperties>('ship-out', {
+RED.nodes.registerType<ShipStateEditorNodeProperties>('ship-write', {
     category: 'Starwards',
     color: '#d53434',
     defaults: {
@@ -16,9 +16,9 @@ RED.nodes.registerType<ShipOutEditorNodeProperties>('ship-out', {
     },
     inputs: 1,
     outputs: 0,
-    outputLabels: ['commands'],
+    inputLabels: 'command',
     icon: 'starwards-icon.png',
-    paletteLabel: 'Ship out',
+    paletteLabel: 'Ship Write',
     label: function () {
         return this.shipId || 'unnamed ship';
     },

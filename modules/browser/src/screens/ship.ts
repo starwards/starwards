@@ -5,18 +5,25 @@ import { ClientStatus, Driver, Status } from '@starwards/core';
 import $ from 'jquery';
 import { Config } from 'golden-layout';
 import { Dashboard } from '../widgets/dashboard';
+import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
+import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { targetingWidget } from '../widgets/targeting';
+import { tubesStatusWidget } from '../widgets/tubes-status';
+import { warpWidget } from '../widgets/warp';
 import { wireSinglePilotInput } from '../input/wiring';
 
+ElementQueries.listen();
 // enable pixi dev-tools
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 //@ts-ignore
@@ -51,6 +58,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
 
     dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, 'radar');
     dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, 'tactical radar');
+    dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, 'pilot radar');
     dashboard.registerWidget(pilotWidget(shipDriver), {}, 'helm');
     dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');
     dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, 'design state');
@@ -59,6 +67,10 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(damageReportWidget(shipDriver), {}, 'damage report');
     dashboard.registerWidget(armorWidget(shipDriver), {}, 'armor');
     dashboard.registerWidget(ammoWidget(shipDriver), {}, 'ammo');
+    dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, 'tubes');
+    dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, 'systems');
+    dashboard.registerWidget(targetingWidget(shipDriver), {}, 'targeting');
+    dashboard.registerWidget(warpWidget(shipDriver), {}, 'warp');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

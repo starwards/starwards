@@ -1,4 +1,4 @@
-import { Asteroid, Faction, Spaceship, Vec2 } from '@starwards/core';
+import { Asteroid, Faction, Spaceship, Vec2, Waypoint, makeId, sectorSize } from '@starwards/core';
 import { GameApi, GameMap } from './admin/scripts-api';
 import { newAsteroid, newShip } from './admin/map-helper';
 
@@ -13,6 +13,25 @@ export const two_vs_one: GameMap = {
         const ship2 = game.addSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
         ship2.setTarget('GVTS');
         // bManager.bot = jouster();
+    },
+};
+
+export const solo: GameMap = {
+    name: 'solo',
+    init: (game: GameApi) => {
+        const ship = game.addSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
+        ship.spaceObject.position.x = ship.spaceObject.position.y = 0;
+        for (let i = 0; i < 20; i++) {
+            const wp = new Waypoint();
+            wp.id = makeId();
+            wp.owner = ship.spaceObject.id;
+            wp.collection = i % 2 ? 'route' : 'collection 1';
+            wp.color = i % 2 ? 0xffffff : 0x0000ff;
+            wp.faction = ship.spaceObject.faction;
+            wp.title = `${i}`;
+            wp.position = Vec2.Rotate({ x: Math.random() * sectorSize, y: 0 }, Math.random() * 360);
+            game.addObject(wp);
+        }
     },
 };
 

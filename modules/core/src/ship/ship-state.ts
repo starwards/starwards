@@ -11,8 +11,10 @@ import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
 import { SmartPilot } from './smart-pilot';
 import { Spaceship } from '../space';
+import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
+import { Warp } from './warp';
 import { number2Digits } from '../number-field';
 
 export enum TargetedStatus {
@@ -59,6 +61,12 @@ export class ShipState extends Spaceship {
     @type(Magazine)
     magazine!: Magazine;
 
+    @type(Targeting)
+    weaponsTarget!: Targeting;
+
+    @type(Warp)
+    warp!: Warp;
+
     @number2Digits
     @range([-1, 1])
     rotation = 0;
@@ -89,8 +97,6 @@ export class ShipState extends Spaceship {
     // server only, used for commands
     @range([0, 1])
     public afterBurnerCommand = 0;
-    public nextTargetCommand = false;
-    public clearTargetCommand = false;
     public rotationModeCommand = false;
     public maneuveringModeCommand = false;
 

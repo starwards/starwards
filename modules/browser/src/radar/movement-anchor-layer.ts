@@ -23,8 +23,21 @@ export class MovementAnchorLayer {
         this.parent.events.on('screenChanged', () => {
             this.shouldRender = true;
         });
+        this.parent.events.on('angleChanged', () => {
+            this.shouldRender = true;
+        });
         this.stage.addChild(this.anchors);
         parent.ticker.add((_delta) => this.draw(), null, UPDATE_PRIORITY.LOW);
+    }
+
+    setRange(range: number) {
+        this.range = range;
+        this.shouldRender = true;
+    }
+
+    setSpacing(spacing: number) {
+        this.spacing = spacing;
+        this.shouldRender = true;
     }
 
     get renderRoot(): DisplayObject {

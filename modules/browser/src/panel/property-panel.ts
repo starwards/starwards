@@ -4,9 +4,9 @@ import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
 import { Model, NumericModel } from './blades';
 
-import { Container } from 'golden-layout';
 import { EmitterLoop } from '../loop';
 import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
+import { WidgetContainer } from '../container';
 
 /*
     This module was written originally for the Dat.gui API.
@@ -29,7 +29,7 @@ export class PropertyPanel implements Panel {
     private rootViewModel: ViewModel = {};
     private pane: Pane;
     private viewLoop = new EmitterLoop();
-    constructor(container: Container) {
+    constructor(container: WidgetContainer) {
         this.pane = new Pane({ container: container.getElement().get(0) });
         this.pane.registerPlugin(CamerakitPlugin);
         this.pane.registerPlugin(TextareaPlugin);

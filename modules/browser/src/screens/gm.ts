@@ -13,10 +13,15 @@ import { designStateWidget } from '../widgets/design-state';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
+import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
+import { targetingWidget } from '../widgets/targeting';
+import { tubesStatusWidget } from '../widgets/tubes-status';
+import { warpWidget } from '../widgets/warp';
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -65,7 +70,7 @@ void driver.waitForGame().then(
             },
             gmInputConfig.rotate
         );
-        input.addClickAction(
+        input.addMomentaryClickAction(
             {
                 setValue: (v: boolean) =>
                     v &&
@@ -82,6 +87,7 @@ void driver.waitForGame().then(
             const shipDriver = await driver.getShipDriver(shipId);
             dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, shipId + ' radar');
             dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
+            dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, shipId + ' pilot radar');
             dashboard.registerWidget(pilotWidget(shipDriver), {}, shipId + ' helm');
             dashboard.registerWidget(gunWidget(shipDriver), {}, shipId + ' gun');
             dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, shipId + ' design state');
@@ -90,6 +96,10 @@ void driver.waitForGame().then(
             dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
             dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
             dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
+            dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
+            dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
+            dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
+            dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
             dashboard.setup();
         }
     },

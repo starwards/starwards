@@ -1,7 +1,8 @@
 import { ChainGun } from './chain-gun';
-import { ShipDirection } from './ship-direction';
+import { getDirectionConfigFromAngle } from './ship-direction';
 import { tweakable } from '../tweakable';
 import { type } from '@colyseus/schema';
+
 // export type TubeDesign = ChaingunDesign & {};
 // export class TubeDesignState extends ChaingunDesignState implements TubeDesign {}
 export class Tube extends ChainGun {
@@ -11,7 +12,7 @@ export class Tube extends ChainGun {
 
     public readonly type = 'Tube';
     get name() {
-        return `Tube ${this.index} (${ShipDirection[this.angle]})`;
+        return `Tube ${this.index} (${getDirectionConfigFromAngle(this.angle)})`;
     }
 
     /**

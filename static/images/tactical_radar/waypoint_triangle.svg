@@ -1,0 +1,13 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+	<title>waypoint triangle</title>
+	<style>
+        .s0 { 
+            fill: none;
+            stroke: #FFFFFF;
+            stroke-width: 6 
+        }
+    </style>
+	<g id="g2382">
+        <path id="path2386" class="s0" d="m41.9 41.1l-35.8-0.1 18-34.1z"/>
+    </g>
+</svg>
