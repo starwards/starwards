@@ -26,6 +26,7 @@ import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
+import { DockingMode } from './docking';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
@@ -69,7 +70,7 @@ export type Die = {
 };
 export class ShipManager {
     public bot: Bot | null = null;
-    public target: SpaceObject | null = null;
+    public weaponsTarget: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
@@ -118,7 +119,7 @@ export class ShipManager {
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
-        if (value === SmartPilotMode.TARGET && !this.target) {
+        if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
             // eslint-disable-next-line no-console
             console.error(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
         } else {
@@ -131,7 +132,7 @@ export class ShipManager {
     }
 
     public setSmartPilotRotationMode(value: SmartPilotMode) {
-        if (value === SmartPilotMode.TARGET && !this.target) {
+        if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
             // eslint-disable-next-line no-console
             console.error(new Error(`attempt to set smartPilot.rotationMode to TARGET with no target`));
         } else {
@@ -149,7 +150,7 @@ export class ShipManager {
 
     public setTarget(id: string | null) {
         this.state.weaponsTarget.targetId = id;
-        this.validateTargetIds();
+        this.validateWeaponsTargetId();
     }
 
     public handleTargetCommands() {
@@ -201,7 +202,8 @@ export class ShipManager {
         if (this.bot) {
             this.bot(deltaSeconds, this.spaceManager.state, this);
         }
-        this.validateTargetIds();
+        this.validateWeaponsTargetId();
+        this.calcDocking();
         this.chainGunManager?.update(deltaSeconds);
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(deltaSeconds);
@@ -426,7 +428,7 @@ export class ShipManager {
                 rotationCommand = this.state.smartPilot.rotation;
                 break;
             case SmartPilotMode.TARGET: {
-                if (this.target) {
+                if (this.weaponsTarget) {
                     this.state.smartPilot.rotationTargetOffset = capToRange(
                         -1,
                         1,
@@ -440,7 +442,7 @@ export class ShipManager {
                         deltaSeconds,
                         this.state,
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        this.target.position,
+                        this.weaponsTarget.position,
                         this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
                     );
                 } else {
@@ -492,22 +494,35 @@ export class ShipManager {
         this.state.targeted = status;
     }
 
-    private validateTargetIds() {
+    private validateWeaponsTargetId() {
         if (typeof this.state.weaponsTarget.targetId === 'string') {
-            this.target = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
-            if (!this.target) {
+            this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
+            if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
             }
         } else {
-            this.target = null;
+            this.weaponsTarget = null;
         }
-        this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
-        this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
-        this.setShellRangeMode(this.target ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
+        this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
+        this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
+        this.setShellRangeMode(this.weaponsTarget ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
+    }
+
+    private calcDocking() {
         if (typeof this.state.docking.targetId === 'string') {
-            this.target = this.spaceManager.state.get(this.state.docking.targetId) || null;
-            if (!this.target) {
+            const dockingTarget = this.spaceManager.state.get(this.state.docking.targetId) || null;
+            if (!dockingTarget) {
                 this.state.docking.targetId = null;
+            }
+        }
+        if (this.state.docking.targetId === null) {
+            this.state.docking.mode = DockingMode.UNDOCKED;
+            this.spaceManager.detach(this.state.id);
+        } else {
+            if (this.state.docking.mode === DockingMode.DOCKED) {
+                this.spaceManager.attach(this.state.id, this.state.docking.targetId);
+            } else {
+                this.spaceManager.detach(this.state.id);
             }
         }
     }
