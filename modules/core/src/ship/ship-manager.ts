@@ -1,4 +1,4 @@
-import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
+import { Bot, cleanupBot, docker, jouster, p2pGoto } from '../logic/bot';
 import {
     ChainGun,
     Faction,
@@ -22,7 +22,7 @@ import {
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { FRONT_ARC, REAR_ARC } from '.';
-import { RTuple2, limitPercisionHard, sinWave } from '../logic';
+import { RTuple2, XY, isInRange, limitPercisionHard, sinWave, toDegreesDelta } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
@@ -200,7 +200,7 @@ export class ShipManager {
         this.handleDamage();
         this.applyBotOrders();
         if (this.bot) {
-            this.bot(deltaSeconds, this.spaceManager.state, this);
+            this.bot.update(deltaSeconds, this.spaceManager.state, this);
         }
         this.validateWeaponsTargetId();
         this.calcDocking();
@@ -508,22 +508,60 @@ export class ShipManager {
         this.setShellRangeMode(this.weaponsTarget ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
     }
 
-    private calcDocking() {
-        if (typeof this.state.docking.targetId === 'string') {
-            const dockingTarget = this.spaceManager.state.get(this.state.docking.targetId) || null;
-            if (!dockingTarget) {
-                this.state.docking.targetId = null;
-            }
+    private clearDocking() {
+        if (this.bot?.type === 'docker') {
+            cleanupBot(this);
         }
-        if (this.state.docking.targetId === null) {
-            this.state.docking.mode = DockingMode.UNDOCKED;
-            this.spaceManager.detach(this.state.id);
-        } else {
-            if (this.state.docking.mode === DockingMode.DOCKED) {
-                this.spaceManager.attach(this.state.id, this.state.docking.targetId);
-            } else {
-                this.spaceManager.detach(this.state.id);
+        this.state.docking.targetId = null;
+        this.state.docking.mode = DockingMode.UNDOCKED;
+        this.spaceManager.detach(this.state.id);
+    }
+
+    private calcDocking() {
+        if (this.state.docking.targetId) {
+            const [dockingTarget] = this.spaceManager.getObjectPtr(this.state.docking.targetId);
+            if (!dockingTarget) {
+                this.clearDocking();
+            } else if (this.state.docking.mode !== DockingMode.UNDOCKED) {
+                const diff = XY.difference(dockingTarget.position, this.state.position);
+                const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
+                if (distance > this.state.docking.design.maxDockingDistance) {
+                    this.clearDocking();
+                } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
+                    this.spaceManager.detach(this.state.id);
+                    if (this.bot?.type !== 'docker') {
+                        this.bot = docker(dockingTarget);
+                    }
+                    if (distance > this.state.docking.design.undockingTargetDistance) {
+                        this.clearDocking();
+                    }
+                } else {
+                    // DOCKED or DOCKING
+                    const angleRange = this.state.docking.design.width / 2;
+                    const isDockedPosition =
+                        distance <= this.state.docking.design.maxDockedDistance &&
+                        isInRange(-angleRange, angleRange, toDegreesDelta(XY.angleOf(diff) - this.state.angle));
+                    if (this.state.docking.mode === DockingMode.DOCKED) {
+                        this.spaceManager.attach(this.state.id, this.state.docking.targetId);
+                        if (!isDockedPosition) {
+                            this.state.docking.mode = DockingMode.DOCKING;
+                        }
+                    } else if (this.state.docking.mode === DockingMode.DOCKING) {
+                        this.spaceManager.detach(this.state.id);
+                        if (this.bot?.type !== 'docker') {
+                            this.bot = docker(dockingTarget);
+                        }
+                        if (isDockedPosition) {
+                            this.state.docking.mode = DockingMode.DOCKED;
+                        }
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.warn(`unexpected docking.mode value ${DockingMode[this.state.docking.mode]}`);
+                    }
+                }
             }
+        } else {
+            this.clearDocking();
         }
     }
 

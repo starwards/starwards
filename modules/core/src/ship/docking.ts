@@ -13,10 +13,20 @@ export enum DockingMode {
 
 export type DockingDesign = {
     damage50: number;
+    maxDockingDistance: number;
+    maxDockedDistance: number;
+    undockingTargetDistance: number;
+    angle: number;
+    width: number;
 };
 
 export class DockingDesignState extends DesignState implements DockingDesign {
     @number2Digits damage50 = 0;
+    @number2Digits maxDockingDistance = 0;
+    @number2Digits maxDockedDistance = 0;
+    @number2Digits undockingTargetDistance = 0;
+    @number2Digits angle = 0;
+    @number2Digits width = 0;
 }
 export class Docking extends Schema {
     public static isInstance = (o: unknown): o is Docking => {

@@ -37,6 +37,7 @@ type ExtraData = {
     fov: FieldOfView;
 };
 export type BotOrder = MoveOrder | AttackOrder;
+const nullPtr = [] as readonly [];
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
@@ -101,9 +102,9 @@ export class SpaceManager {
         }
     }
 
-    private getObjectPtr(id: string): [SpaceObject] | [] {
+    getObjectPtr(id: string): readonly [SpaceObject] | readonly [] {
         const o = this.state.get(id);
-        return o && !o.destroyed ? [o] : [];
+        return o && !o.destroyed ? [o] : nullPtr;
     }
 
     private calcAttachmentCliques() {
@@ -164,7 +165,7 @@ export class SpaceManager {
         this.destroyTimedOut(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
         this.untrackDestroyedObjects();
-        this.applyFreeze();
+        this.frozendAndAttachedDontMove();
         this.applyPhysics(deltaSeconds);
         this.updateFieldsOFView();
         this.updateCollisionBodies();
@@ -332,10 +333,9 @@ export class SpaceManager {
         }
     }
 
-    private applyFreeze() {
-        // loop over objects and apply velocity
+    private frozendAndAttachedDontMove() {
         for (const object of this.state) {
-            if (object.freeze) {
+            if (object.freeze || this.attachments.get(object.id)) {
                 object.velocity.x = object.velocity.y = object.turnSpeed = 0;
             }
         }

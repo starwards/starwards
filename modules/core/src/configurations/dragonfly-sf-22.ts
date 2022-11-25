@@ -86,6 +86,11 @@ export const dragonflyWarp = {
 };
 export const dragonflyDocking = {
     damage50: 20,
+    maxDockingDistance: 1_000,
+    maxDockedDistance: 20,
+    undockingTargetDistance: 100,
+    angle: -90,
+    width: 45,
 };
 
 export const dragonflySF22: ShipDesign = {
