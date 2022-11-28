@@ -1,5 +1,4 @@
 import {
-    EPSILON,
     ShipManager,
     SmartPilotMode,
     SpaceObject,
@@ -51,15 +50,23 @@ export function docker(dockingTarget: SpaceObject): Bot {
             shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
             const diff = XY.difference(dockingTarget.position, ship.position);
             const distance = XY.lengthOf(diff) - dockingTarget.radius - shipManager.state.radius;
-            const angle = toDegreesDelta(XY.angleOf(diff) - shipManager.state.angle);
-            if (distance > EPSILON) {
-                const targetPos = XY.add(ship.position, XY.byLengthAndDirection(distance, XY.angleOf(diff)));
+            if (!isInRange(0.75, 0.25, distance / ship.docking.maxDockedDistance)) {
+                const targetPos = XY.add(
+                    ship.position,
+                    XY.byLengthAndDirection(distance - ship.docking.maxDockedDistance / 2, XY.angleOf(diff))
+                );
                 const maneuvering = moveToTarget(deltaSeconds, ship, targetPos);
                 shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
                 shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
+            } else {
+                const maneuvering = matchGlobalSpeed(deltaSeconds, ship, XY.zero);
+                ship.smartPilot.maneuvering.x = maneuvering.boost;
+                ship.smartPilot.maneuvering.y = maneuvering.strafe;
             }
-            if (!isInRange(EPSILON, -EPSILON, angle)) {
-                const offset = -shipManager.state.docking.design.angle;
+            const angleRange = ship.docking.design.width / 2;
+            const angleDiff = XY.angleOf(diff) - shipManager.state.angle - ship.docking.design.angle;
+            if (!isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff))) {
+                const offset = -ship.docking.design.angle;
                 const rotation = rotateToTarget(deltaSeconds, ship, dockingTarget.position, offset);
                 shipManager.state.smartPilot.rotation = rotation;
             }

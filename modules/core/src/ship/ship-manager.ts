@@ -21,12 +21,12 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
+import { Docking, DockingMode } from './docking';
 import { FRONT_ARC, REAR_ARC } from '.';
 import { RTuple2, XY, isInRange, limitPercisionHard, sinWave, toDegreesDelta } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
-import { DockingMode } from './docking';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
@@ -43,7 +43,7 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -76,7 +76,14 @@ export class ShipManager {
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
         [
             ShipArea.front,
-            [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine, this.state.warp],
+            [
+                this.state.chainGun,
+                this.state.radar,
+                this.state.smartPilot,
+                this.state.magazine,
+                this.state.warp,
+                this.state.docking,
+            ],
         ],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
     ]);
@@ -315,14 +322,22 @@ export class ShipManager {
                 this.damageMagazine(system, damageObject.id);
             } else if (Warp.isInstance(system)) {
                 this.damageWarp(system, damageObject.id);
+            } else if (Docking.isInstance(system)) {
+                this.damageDocking(system);
             }
+        }
+    }
+
+    private damageDocking(docking: Docking) {
+        if (!docking.broken) {
+            docking.rangesFactor -= 0.05;
         }
     }
 
     private damageWarp(warp: Warp, damageId: string) {
         if (!warp.broken) {
             if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
-                warp.damageFactor *= 0.9;
+                warp.damageFactor += 0.05;
             } else {
                 warp.velocityFactor *= 0.9;
             }
@@ -525,7 +540,7 @@ export class ShipManager {
             } else if (this.state.docking.mode !== DockingMode.UNDOCKED) {
                 const diff = XY.difference(dockingTarget.position, this.state.position);
                 const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
-                if (distance > this.state.docking.design.maxDockingDistance) {
+                if (distance > this.state.docking.maxDockingDistance) {
                     this.clearDocking();
                 } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
                     this.spaceManager.detach(this.state.id);
@@ -538,9 +553,10 @@ export class ShipManager {
                 } else {
                     // DOCKED or DOCKING
                     const angleRange = this.state.docking.design.width / 2;
+                    const angleDiff = XY.angleOf(diff) - this.state.angle - this.state.docking.design.angle;
                     const isDockedPosition =
-                        distance <= this.state.docking.design.maxDockedDistance &&
-                        isInRange(-angleRange, angleRange, toDegreesDelta(XY.angleOf(diff) - this.state.angle));
+                        distance <= this.state.docking.maxDockedDistance &&
+                        isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff));
                     if (this.state.docking.mode === DockingMode.DOCKED) {
                         this.spaceManager.attach(this.state.id, this.state.docking.targetId);
                         if (!isDockedPosition) {

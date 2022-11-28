@@ -1,7 +1,9 @@
+import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
 
-import { DesignState } from './system';
+import { EPSILON } from '../logic';
 import { number2Digits } from '../number-field';
+import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export enum DockingMode {
@@ -47,7 +49,20 @@ export class Docking extends Schema {
     @tweakable('string')
     public targetId: string | null = null;
 
-    get broken() {
-        return false;
+    @number2Digits
+    @range([0, 1])
+    @defectible({ normal: 1, name: 'range' })
+    rangesFactor = 1;
+
+    get maxDockingDistance() {
+        return this.design.maxDockingDistance * this.rangesFactor;
+    }
+
+    get maxDockedDistance() {
+        return this.design.maxDockedDistance * this.rangesFactor;
+    }
+
+    get broken(): boolean {
+        return this.rangesFactor <= EPSILON;
     }
 }
