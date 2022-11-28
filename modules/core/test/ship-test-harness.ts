@@ -48,10 +48,18 @@ abstract class AbsTestMetrics {
         return this.iterations * Math.abs(limitPercision(this.iterationDistance) - this.iterationDistance);
     }
     get errorMargin() {
-        return Math.max(1, limitPercision(2 * this.iterationDistance + this.percisionErrorsBoundery));
+        return Math.max(
+            1,
+            this.distance * 0.05,
+            limitPercision(2 * this.iterationDistance + this.percisionErrorsBoundery)
+        );
     }
     get sqrtErrorMargin() {
-        return Math.max(1, limitPercision(Math.sqrt(this.iterationDistance) + this.percisionErrorsBoundery));
+        return Math.max(
+            1,
+            limitPercision(Math.sqrt(this.iterationDistance) + this.percisionErrorsBoundery),
+            limitPercision(Math.sqrt(this.distance * 0.05))
+        );
     }
 }
 
