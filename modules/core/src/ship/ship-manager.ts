@@ -537,7 +537,13 @@ export class ShipManager {
             const [dockingTarget] = this.spaceManager.getObjectPtr(this.state.docking.targetId);
             if (!dockingTarget || dockingTarget === this.spaceObject) {
                 this.clearDocking();
-            } else if (this.state.docking.mode !== DockingMode.UNDOCKED) {
+            } else if (this.state.docking.mode === DockingMode.UNDOCKED) {
+                // don't reset this.state.docking.targetId
+                this.spaceManager.detach(this.state.id);
+                if (this.bot?.type === 'docker') {
+                    cleanupBot(this);
+                }
+            } else {
                 const diff = XY.difference(dockingTarget.position, this.state.position);
                 const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
                 if (distance > this.state.docking.maxDockingDistance) {
