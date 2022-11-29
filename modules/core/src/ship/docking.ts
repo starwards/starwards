@@ -47,7 +47,7 @@ export class Docking extends Schema {
 
     @type('string')
     @tweakable('string')
-    public targetId: string | null = null;
+    public targetId = '';
 
     @number2Digits
     @range([0, 1])

@@ -203,6 +203,8 @@ export class ShipManager {
 
     update(deltaSeconds: number) {
         this.totalSeconds += deltaSeconds;
+        // sync relevant ship props, before any other calculation
+        this.syncShipProperties();
         this.healPlates(deltaSeconds);
         this.handleDamage();
         this.applyBotOrders();
@@ -210,7 +212,6 @@ export class ShipManager {
             this.bot.update(deltaSeconds, this.spaceManager.state, this);
         }
         this.validateWeaponsTargetId();
-        this.calcDocking();
         this.chainGunManager?.update(deltaSeconds);
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(deltaSeconds);
@@ -220,8 +221,6 @@ export class ShipManager {
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
         this.calcTargetedStatus();
-        // sync relevant ship props
-        this.syncShipProperties();
         this.updateEnergy(deltaSeconds);
 
         this.calcSmartPilotRotation(deltaSeconds);
@@ -229,6 +228,7 @@ export class ShipManager {
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
         this.updateChainGunAmmo();
+        this.calcDocking();
     }
 
     private updateRadarRange() {
@@ -527,7 +527,7 @@ export class ShipManager {
         if (this.bot?.type === 'docker') {
             cleanupBot(this);
         }
-        this.state.docking.targetId = null;
+        this.state.docking.targetId = '';
         this.state.docking.mode = DockingMode.UNDOCKED;
         this.spaceManager.detach(this.state.id);
     }
@@ -535,7 +535,7 @@ export class ShipManager {
     private calcDocking() {
         if (this.state.docking.targetId) {
             const [dockingTarget] = this.spaceManager.getObjectPtr(this.state.docking.targetId);
-            if (!dockingTarget) {
+            if (!dockingTarget || dockingTarget === this.spaceObject) {
                 this.clearDocking();
             } else if (this.state.docking.mode !== DockingMode.UNDOCKED) {
                 const diff = XY.difference(dockingTarget.position, this.state.position);
@@ -560,6 +560,7 @@ export class ShipManager {
                     if (this.state.docking.mode === DockingMode.DOCKED) {
                         this.spaceManager.attach(this.state.id, this.state.docking.targetId);
                         if (!isDockedPosition) {
+                            this.damageDocking(this.state.docking);
                             this.state.docking.mode = DockingMode.DOCKING;
                         }
                     } else if (this.state.docking.mode === DockingMode.DOCKING) {

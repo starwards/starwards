@@ -351,29 +351,30 @@ export class SpaceManager {
         // loop over objects and apply velocity
         for (const subject of this.state) {
             if (!XY.isZero(subject.velocity, ZERO_VELOCITY_THRESHOLD)) {
-                for (const objToMove of this.attachmentCliques.get(subject.id) || [subject]) {
-                    let destination = XY.add(objToMove.position, XY.scale(objToMove.velocity, deltaSeconds));
-                    if (this.isProjectile(subject)) {
-                        const res = this.collisions.raycast(subject.position, destination, this.allowRaycastCollision);
+                const positionDelta = XY.scale(subject.velocity, deltaSeconds);
+                for (const obj of this.attachmentCliques.get(subject.id) || [subject]) {
+                    let destination = XY.add(obj.position, positionDelta);
+                    if (this.isProjectile(obj)) {
+                        const res = this.collisions.raycast(obj.position, destination, this.allowRaycastCollision);
                         if (res) {
                             destination = res.point;
                         }
                     }
-                    objToMove.position.setValue(destination);
-                    this.toUpdateCollisions.add(objToMove);
+                    obj.position.setValue(destination);
+                    this.toUpdateCollisions.add(obj);
                 }
             }
             if (subject.turnSpeed) {
                 const angleDelta = subject.turnSpeed * deltaSeconds;
-                for (const objToRotate of this.attachmentCliques.get(subject.id) || [subject]) {
-                    objToRotate.angle = toPositiveDegreesDelta(objToRotate.angle + angleDelta);
-                    if (subject !== objToRotate) {
+                for (const obj of this.attachmentCliques.get(subject.id) || [subject]) {
+                    obj.angle = toPositiveDegreesDelta(obj.angle + angleDelta);
+                    if (subject !== obj) {
                         const destination = XY.add(
-                            XY.rotate(XY.difference(objToRotate.position, subject.position), angleDelta),
+                            XY.rotate(XY.difference(obj.position, subject.position), angleDelta),
                             subject.position
                         );
-                        objToRotate.position.setValue(destination);
-                        this.toUpdateCollisions.add(objToRotate);
+                        obj.position.setValue(destination);
+                        this.toUpdateCollisions.add(obj);
                     }
                 }
             }
