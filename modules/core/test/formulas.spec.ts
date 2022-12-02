@@ -1,6 +1,16 @@
-import { archIntersection, equasionOfMotion, lerp, limitPercision, toDegreesDelta, whenWillItStop } from '../src';
+import {
+    EPSILON,
+    archIntersection,
+    equasionOfMotion,
+    lerp,
+    limitPercision,
+    timeToReachDistanceByAcceleration,
+    toDegreesDelta,
+    whenWillItStop,
+} from '../src';
 import {
     differentSignTuple2,
+    float,
     floatIn,
     orderedDegreesTuple4,
     orderedTuple2,
@@ -115,6 +125,27 @@ describe('formulas', () => {
                         v += a * timeSlice;
                     }
                     expect(equasionOfMotion(x0, v0, a, t)).to.be.closeTo(x, Math.abs(x / Math.sqrt(SLICES)));
+                }
+            )
+        );
+    });
+    it('timeToReachDistanceByAcceleration', () => {
+        fc.assert(
+            fc.property(
+                float(EPSILON, Math.pow(2, 30)),
+                float(EPSILON, Math.pow(2, 30)),
+                (distance: number, acceleration: number) => {
+                    const totalTime = timeToReachDistanceByAcceleration(distance, acceleration);
+                    const halfTime = totalTime / 2;
+                    const distanceSpeedingUp = equasionOfMotion(0, 0, acceleration, halfTime);
+                    expect(distanceSpeedingUp).to.be.closeTo(distance / 2, EPSILON);
+                    const distanceSpeedingDown = equasionOfMotion(
+                        0,
+                        (acceleration * totalTime) / 2,
+                        -acceleration,
+                        halfTime
+                    );
+                    expect(distanceSpeedingDown).to.be.closeTo(distance / 2, EPSILON);
                 }
             )
         );

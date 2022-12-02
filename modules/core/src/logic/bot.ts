@@ -1,6 +1,7 @@
 import {
     ShipManager,
     SmartPilotMode,
+    SpaceObject,
     SpaceState,
     XY,
     calcRangediff,
@@ -13,12 +14,17 @@ import {
     moveToTarget,
     predictHitLocation,
     rotateToTarget,
+    toDegreesDelta,
 } from '../';
 
+import { DockingMode } from '../ship/docking';
 import { switchToAvailableAmmo } from '../ship/chain-gun-manager';
 
 // TODO: use ShipApi
-export type Bot = (deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => void;
+export type Bot = {
+    type: string;
+    update(deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager): void;
+};
 
 export function cleanupBot(shipManager: ShipManager) {
     shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
@@ -33,9 +39,59 @@ export function cleanupBot(shipManager: ShipManager) {
     shipManager.bot = null;
 }
 
+export function docker(dockingTarget: SpaceObject): Bot {
+    const UndockingOvershootFactor = 1.2;
+    let deltaSeconds = 1 / 20;
+    const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
+        deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
+        const ship = shipManager.state;
+        if (shipManager.state.docking.mode === DockingMode.DOCKING) {
+            shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+            const diff = XY.difference(dockingTarget.position, ship.position);
+            const distance = XY.lengthOf(diff) - dockingTarget.radius - shipManager.state.radius;
+            if (!isInRange(0.75, 0.25, distance / ship.docking.maxDockedDistance)) {
+                const targetPos = XY.add(
+                    ship.position,
+                    XY.byLengthAndDirection(distance - ship.docking.maxDockedDistance / 2, XY.angleOf(diff))
+                );
+                const maneuvering = moveToTarget(deltaSeconds, ship, targetPos);
+                shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
+                shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
+            } else {
+                const maneuvering = matchGlobalSpeed(deltaSeconds, ship, XY.zero);
+                ship.smartPilot.maneuvering.x = maneuvering.boost;
+                ship.smartPilot.maneuvering.y = maneuvering.strafe;
+            }
+            const angleRange = ship.docking.design.width / 2;
+            const angleDiff = XY.angleOf(diff) - shipManager.state.angle - ship.docking.design.angle;
+            if (!isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff))) {
+                const offset = -ship.docking.design.angle;
+                const rotation = rotateToTarget(deltaSeconds, ship, dockingTarget.position, offset);
+                shipManager.state.smartPilot.rotation = rotation;
+            }
+        } else if (shipManager.state.docking.mode === DockingMode.UNDOCKING) {
+            const diff = XY.difference(dockingTarget.position, ship.position);
+            const destination = XY.add(
+                ship.position,
+                XY.byLengthAndDirection(
+                    ship.docking.design.undockingTargetDistance * UndockingOvershootFactor,
+                    180 + XY.angleOf(diff)
+                )
+            );
+            const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
+            const maneuvering = moveToTarget(deltaSeconds, ship, destination);
+            shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
+            shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
+            shipManager.state.smartPilot.rotation = rotation;
+        }
+    };
+    return { type: 'docker', update };
+}
+
 export function p2pGoto(destination: XY): Bot {
     let deltaSeconds = 1 / 20;
-    return (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
+    const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         if (XY.equals(ship.position, destination, 1) && XY.isZero(ship.velocity, 1)) {
@@ -50,12 +106,13 @@ export function p2pGoto(destination: XY): Bot {
             shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
         }
     };
+    return { type: 'p2pGoto', update };
 }
 
 export function jouster(targetId: string): Bot {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;
-    return (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
+    const update = (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
@@ -103,4 +160,5 @@ export function jouster(targetId: string): Bot {
             cleanupBot(shipManager);
         }
     };
+    return { type: 'jouster', update };
 }

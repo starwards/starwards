@@ -33,7 +33,7 @@ describe('helm assist', function () {
     });
     describe('rotateToTarget', () => {
         const target = XY.byLengthAndDirection(100, 0); // always aim at (100, 0), meaning target angle is 0
-        it.skip('acheives target direction in a reasonable time', () => {
+        it('acheives target direction in a reasonable time', () => {
             fc.assert(
                 fc.property(floatIn(179, 30), (originalAngle: number) => {
                     const harness = new ShipTestHarness();
@@ -41,7 +41,8 @@ describe('helm assist', function () {
                     const metrics = new MovementTestMetrics(
                         iterationsPerSecond,
                         Math.abs(originalAngle),
-                        harness.shipState.design.rotationCapacity
+                        harness.shipState.design.rotationCapacity,
+                        harness.shipState.smartPilot.design.maxTurnSpeed
                     );
                     harness.initGraph({
                         angle: () => toDegreesDelta(harness.shipState.angle),
@@ -65,7 +66,7 @@ describe('helm assist', function () {
         });
     });
     describe('rotationFromTargetTurnSpeed', () => {
-        it.skip('acheives target turnSpeed in a reasonable time', () => {
+        it('acheives target turnSpeed in a reasonable time', () => {
             fc.assert(
                 fc.property(floatIn(100), (turnSpeed: number) => {
                     const harness = new ShipTestHarness();

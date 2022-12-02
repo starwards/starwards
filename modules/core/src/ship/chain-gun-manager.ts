@@ -18,7 +18,7 @@ export function resetChainGun(chainGun: ChainGun) {
 }
 
 type ShipManager = {
-    readonly target: SpaceObject | null;
+    readonly weaponsTarget: SpaceObject | null;
 };
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
@@ -45,7 +45,7 @@ export class ChainGunManager {
     }
 
     public setShellRangeMode(value: SmartPilotMode) {
-        if (value === SmartPilotMode.TARGET && !this.shipManager.target) {
+        if (value === SmartPilotMode.TARGET && !this.shipManager.weaponsTarget) {
             // eslint-disable-next-line no-console
             console.error(new Error(`attempt to set chainGun.shellRangeMode to TARGET with no target`));
         } else {
@@ -77,7 +77,7 @@ export class ChainGunManager {
                         this.chainGun.design.minShellRange,
                         this.chainGun.design.maxShellRange,
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        XY.lengthOf(XY.difference(this.shipManager.target!.position, this.state.position))
+                        XY.lengthOf(XY.difference(this.shipManager.weaponsTarget!.position, this.state.position))
                     );
                     break;
                 default:

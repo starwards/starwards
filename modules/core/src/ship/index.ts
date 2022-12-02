@@ -10,4 +10,5 @@ export * from './ship-die';
 export * from './reactor';
 export * from './make-ship-state';
 export * from './thruster';
+export * from './docking';
 export * from './system';

@@ -19,9 +19,12 @@ export class Asteroid extends SpaceObjectBase {
         this.radius = Math.random() * Asteroid.maxSize;
     }
 
-    init(id: string, position: Vec2): this {
+    init(id: string, position: Vec2, radius?: number): this {
         this.id = id;
         this.position = position;
+        if (typeof radius === 'number') {
+            this.radius = radius;
+        }
         return this;
     }
 }

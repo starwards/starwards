@@ -26,14 +26,20 @@ export class SpaceState extends Schema {
     private readonly Spaceship = new MapSchema<Spaceship>();
 
     @type({ map: Waypoint })
-    readonly Waypoint = new MapSchema<Waypoint>();
+    private readonly Waypoint = new MapSchema<Waypoint>();
 
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
     public botOrderCommands = Array.of<BulkBotOrderArg>();
 
     public get(id: string): SpaceObject | undefined {
-        return this.Projectile.get(id) ?? this.Asteroid.get(id) ?? this.Spaceship.get(id) ?? this.Explosion.get(id);
+        return (
+            this.Projectile.get(id) ??
+            this.Asteroid.get(id) ??
+            this.Spaceship.get(id) ??
+            this.Explosion.get(id) ??
+            this.Waypoint.get(id)
+        );
     }
 
     public getShip(id: string): Spaceship | undefined {

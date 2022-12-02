@@ -10,7 +10,7 @@ import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
 
 type ShipManager = {
-    readonly target: SpaceObject | null;
+    readonly weaponsTarget: SpaceObject | null;
     trySpendEnergy(value: number): boolean;
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
@@ -163,11 +163,11 @@ export class MovementManager {
                     break;
                 }
                 case SmartPilotMode.TARGET: {
-                    if (this.shipManager.target) {
+                    if (this.shipManager.weaponsTarget) {
                         const velocity = XY.add(
                             XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
                             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            this.state.globalToLocal(this.shipManager.target.velocity)
+                            this.state.globalToLocal(this.shipManager.weaponsTarget.velocity)
                         );
                         maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
                     } else {

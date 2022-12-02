@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
+    Asteroid,
     EPSILON,
     Explosion,
     ShipManager,
@@ -13,11 +14,12 @@ import {
     padArch,
     shipConfigurations,
 } from '../src';
+import { degree, float } from './properties';
 
+import { DockingMode } from '../src/ship/docking';
 import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
-import { float } from './properties';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
@@ -223,6 +225,47 @@ describe('ShipManager', () => {
                     );
                 }
             )
+        );
+    });
+
+    it('ship can dock', () => {
+        fc.assert(
+            fc.property(float(0, 2_000), degree(), degree(), (distance: number, angle: number, rotation: number) => {
+                const iterationTimeInSeconds = 1 / 20;
+                const distanceGrace = 1_000;
+                const targetRadius = 100;
+                const spaceMgr = new SpaceManager();
+                const shipObj = new Spaceship();
+                shipObj.id = 'ship';
+                shipObj.angle = rotation;
+                const shipMgr = new ShipManager(
+                    shipObj,
+                    makeShipState(shipObj.id, dragonflyConfig),
+                    spaceMgr,
+                    new MockDie()
+                );
+                shipObj.position = Vec2.make(
+                    XY.byLengthAndDirection(
+                        distance + targetRadius + shipObj.radius + shipMgr.state.docking.maxDockedDistance,
+                        angle
+                    )
+                );
+                spaceMgr.insert(shipObj);
+                const asteroid = new Asteroid().init('asteroid', new Vec2(0, 0), targetRadius);
+                spaceMgr.insert(asteroid);
+                shipMgr.state.docking.design.maxDockingDistance =
+                    distance + shipMgr.state.docking.maxDockedDistance + distanceGrace;
+                shipMgr.state.docking.targetId = asteroid.id;
+                shipMgr.state.docking.mode = DockingMode.DOCKING as DockingMode;
+                const maxTime = (60 * 60) / iterationTimeInSeconds;
+                let counter = 0;
+                while (counter < maxTime && shipMgr.state.docking.mode === DockingMode.DOCKING) {
+                    spaceMgr.update(iterationTimeInSeconds);
+                    shipMgr.update(iterationTimeInSeconds);
+                    counter++;
+                }
+                expect(shipMgr.state.docking.mode).to.eql(DockingMode.DOCKED);
+            })
         );
     });
 });

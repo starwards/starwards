@@ -143,6 +143,10 @@ export class InputManager {
 
     addToggleClickAction(property: ToggleAction, config: GamepadButtonConfig | string | undefined) {
         const onClick = () => property.setValue(!property.getValue());
+        this.addClickAction(onClick, config);
+    }
+
+    addClickAction(onClick: () => unknown, config: GamepadButtonConfig | string | undefined) {
         if (typeof config === 'object') {
             this.buttons.push({ button: config, onClick });
         } else if (typeof config === 'string') {

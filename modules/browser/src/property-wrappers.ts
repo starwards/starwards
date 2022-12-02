@@ -10,7 +10,8 @@ interface Driver {
     sendJsonCmd(pointerStr: string, value: Primitive): void;
 }
 
-export type OnChange = (cb: () => void) => () => void;
+export type Callback = () => void;
+export type OnChange = (cb: Callback) => () => void;
 
 export function abstractOnChange(
     underlyingProps: { onChange: OnChange }[],
@@ -31,6 +32,27 @@ export function abstractOnChange(
         );
     }
     return d.destroy;
+}
+
+export function propertyStub<T>(initialValue: T) {
+    let value = initialValue;
+    const callbacks: Callback[] = [];
+    const getValue = () => value;
+    const setValue = (newValue: T) => {
+        if (value !== newValue) {
+            value = newValue;
+            for (const cb of callbacks) {
+                cb();
+            }
+        }
+    };
+    const onChange: OnChange = (cb: Callback) => {
+        callbacks.push(cb);
+        return () => {
+            callbacks.splice(callbacks.indexOf(cb), 1);
+        };
+    };
+    return { getValue, setValue, onChange };
 }
 
 export function readProp<T>(driver: Driver, pointerStr: JsonStringPointer) {
