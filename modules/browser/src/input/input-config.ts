@@ -51,6 +51,7 @@ interface ShipInputConfig {
     maneuveringMode?: string | GamepadButtonConfig;
     warpUp?: string | GamepadButtonConfig;
     warpDown?: string | GamepadButtonConfig;
+    dock?: string | GamepadButtonConfig;
     // ranges
     rotationCommand?: RangeConfig;
     resetRotatioTargetOffset?: string | GamepadButtonConfig;
@@ -64,6 +65,7 @@ export const shipInputConfig: ShipInputConfig = {
     tubeIsFiring: 'x',
     warpUp: 'r',
     warpDown: 'f',
+    dock: 'z',
     chainGunIsFiring: new GamepadButtonConfig(0, 4),
     target: new GamepadButtonConfig(0, 2),
     clearTarget: new GamepadButtonConfig(0, 0),

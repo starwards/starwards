@@ -10,6 +10,7 @@ import { ammoWidget } from '../widgets/ammo';
 import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
+import { dockingWidget } from '../widgets/docking';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { monitorWidget } from '../widgets/monitor';
@@ -100,6 +101,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
             dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
             dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
+            dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, shipId + ' docking');
             dashboard.setup();
         }
     },

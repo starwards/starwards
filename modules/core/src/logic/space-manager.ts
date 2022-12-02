@@ -38,6 +38,10 @@ type ExtraData = {
 };
 export type BotOrder = MoveOrder | AttackOrder;
 const nullPtr = [] as readonly [];
+export type SpatialIndex = {
+    selectPotentials(area: Body): Iterable<SpaceObject>;
+};
+
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();

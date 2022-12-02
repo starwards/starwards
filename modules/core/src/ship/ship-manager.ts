@@ -1,4 +1,4 @@
-import { Bot, cleanupBot, docker, jouster, p2pGoto } from '../logic/bot';
+import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
 import {
     ChainGun,
     Faction,
@@ -21,12 +21,13 @@ import {
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
-import { Docking, DockingMode } from './docking';
 import { FRONT_ARC, REAR_ARC } from '.';
-import { RTuple2, XY, isInRange, limitPercisionHard, sinWave, toDegreesDelta } from '../logic';
+import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
+import { Docking } from './docking';
+import { DockingManager } from './docking-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
@@ -91,6 +92,7 @@ export class ShipManager {
     private tubeManagers = new Array<ChainGunManager>();
     private chainGunManager: ChainGunManager | null = null;
     private movementManager: MovementManager;
+    private dockingManager: DockingManager;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -120,6 +122,7 @@ export class ShipManager {
             );
         }
         this.movementManager = new MovementManager(this.spaceObject, this.state, this.spaceManager, this, this.die);
+        this.dockingManager = new DockingManager(this.spaceObject, this.state, this.spaceManager, this);
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
         }
@@ -228,7 +231,7 @@ export class ShipManager {
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
         this.updateChainGunAmmo();
-        this.calcDocking();
+        this.dockingManager.update();
     }
 
     private updateRadarRange() {
@@ -323,14 +326,8 @@ export class ShipManager {
             } else if (Warp.isInstance(system)) {
                 this.damageWarp(system, damageObject.id);
             } else if (Docking.isInstance(system)) {
-                this.damageDocking(system);
+                DockingManager.damageDocking(system);
             }
-        }
-    }
-
-    private damageDocking(docking: Docking) {
-        if (!docking.broken) {
-            docking.rangesFactor -= 0.05;
         }
     }
 
@@ -521,71 +518,6 @@ export class ShipManager {
         this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
         this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
         this.setShellRangeMode(this.weaponsTarget ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
-    }
-
-    private clearDocking() {
-        if (this.bot?.type === 'docker') {
-            cleanupBot(this);
-        }
-        this.state.docking.targetId = '';
-        this.state.docking.mode = DockingMode.UNDOCKED;
-        this.spaceManager.detach(this.state.id);
-    }
-
-    private calcDocking() {
-        if (this.state.docking.targetId) {
-            const [dockingTarget] = this.spaceManager.getObjectPtr(this.state.docking.targetId);
-            if (!dockingTarget || dockingTarget === this.spaceObject) {
-                this.clearDocking();
-            } else if (this.state.docking.mode === DockingMode.UNDOCKED) {
-                // don't reset this.state.docking.targetId
-                this.spaceManager.detach(this.state.id);
-                if (this.bot?.type === 'docker') {
-                    cleanupBot(this);
-                }
-            } else {
-                const diff = XY.difference(dockingTarget.position, this.state.position);
-                const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
-                if (distance > this.state.docking.maxDockingDistance) {
-                    this.clearDocking();
-                } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
-                    this.spaceManager.detach(this.state.id);
-                    if (this.bot?.type !== 'docker') {
-                        this.bot = docker(dockingTarget);
-                    }
-                    if (distance > this.state.docking.design.undockingTargetDistance) {
-                        this.clearDocking();
-                    }
-                } else {
-                    // DOCKED or DOCKING
-                    const angleRange = this.state.docking.design.width / 2;
-                    const angleDiff = XY.angleOf(diff) - this.state.angle - this.state.docking.design.angle;
-                    const isDockedPosition =
-                        distance <= this.state.docking.maxDockedDistance &&
-                        isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff));
-                    if (this.state.docking.mode === DockingMode.DOCKED) {
-                        this.spaceManager.attach(this.state.id, this.state.docking.targetId);
-                        if (!isDockedPosition) {
-                            this.damageDocking(this.state.docking);
-                            this.state.docking.mode = DockingMode.DOCKING;
-                        }
-                    } else if (this.state.docking.mode === DockingMode.DOCKING) {
-                        this.spaceManager.detach(this.state.id);
-                        if (this.bot?.type !== 'docker') {
-                            this.bot = docker(dockingTarget);
-                        }
-                        if (isDockedPosition) {
-                            this.state.docking.mode = DockingMode.DOCKED;
-                        }
-                    } else {
-                        // eslint-disable-next-line no-console
-                        console.warn(`unexpected docking.mode value ${DockingMode[this.state.docking.mode]}`);
-                    }
-                }
-            }
-        } else {
-            this.clearDocking();
-        }
     }
 
     private syncShipProperties() {

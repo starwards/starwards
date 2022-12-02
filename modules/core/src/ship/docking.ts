@@ -54,6 +54,9 @@ export class Docking extends Schema {
     @defectible({ normal: 1, name: 'range' })
     rangesFactor = 1;
 
+    // server only, used for commands
+    public toggleCommand = false;
+
     get maxDockingDistance() {
         return this.design.maxDockingDistance * this.rangesFactor;
     }
