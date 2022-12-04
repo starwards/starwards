@@ -23,9 +23,9 @@ WebFont.load({
     },
 });
 
-// const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
+const preloadList = ['images/asimuth-circle.svg'];
 
-// Loader.shared.add(preloadList);
+Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
