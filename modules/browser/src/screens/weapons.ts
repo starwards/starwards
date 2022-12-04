@@ -53,7 +53,11 @@ async function initScreen(driver: Driver, shipId: string) {
         wrapWidgetContainer(topRight),
         shipDriver,
         shipDriver.systems.filter(
-            (s) => s.pointer.startsWith('/tubes/') || s.pointer === '/chainGun' || s.pointer === '/magazine'
+            (s) =>
+                s.pointer.startsWith('/tubes/') ||
+                s.pointer === '/chainGun' ||
+                s.pointer === '/magazine' ||
+                s.pointer === '/radar'
         )
     );
     const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
