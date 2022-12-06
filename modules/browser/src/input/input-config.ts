@@ -39,7 +39,7 @@ export interface RangeConfig {
     buttons?: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig;
     keys?: KeysRangeConfig;
 }
-interface ShipInputConfig {
+export interface ShipInputConfig {
     tubeIsFiring?: string | GamepadButtonConfig;
     chainGunIsFiring?: string | GamepadButtonConfig;
     target?: string | GamepadButtonConfig;

@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
 import { InputManager, numberAction } from '../input/input-manager';
-import { readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
+import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
