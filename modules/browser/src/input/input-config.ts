@@ -31,7 +31,7 @@ export function isGamepadButtonsRangeConfig(
 ): v is GamepadButtonsRangeConfig {
     return !!(v as GamepadButtonsRangeConfig).step;
 }
-class KeysRangeConfig {
+export class KeysRangeConfig {
     constructor(public up: string, public down: string, public center: string, public step: number) {}
 }
 export interface RangeConfig {
@@ -60,7 +60,7 @@ interface ShipInputConfig {
     shellRange?: RangeConfig;
 }
 
-export const shipInputConfig: ShipInputConfig = {
+export const shipInputConfig = {
     // buttons
     tubeIsFiring: 'x',
     warpUp: 'r',
