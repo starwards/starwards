@@ -9,6 +9,9 @@ export const radarVisibleBg = 0x0f0f0f;
 export const radarFogOfWar = 0x303030;
 export const gridColors = [0xcccccc, 0xcccccc, 0x6666ff, 0xf4fa77, 0x55ff55, 0xff3333];
 
-export function toCss(color: number) {
+export function toCss(color: number | string) {
+    if (typeof color === 'string') {
+        return color;
+    }
     return '#' + color.toString(16).padStart(6, '0');
 }

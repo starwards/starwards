@@ -34,7 +34,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
 
     void Assets.load('images/dragonfly-armor.svg').then((texture: Texture) => {
         // initialization. extracted from CameraView
-        const root = new Application({ backgroundColor: radarVisibleBg });
+        const root = new Application<HTMLCanvasElement>({ backgroundColor: radarVisibleBg });
         root.view.setAttribute('data-id', 'Armor');
         container.on('resize', () => {
             root.renderer.resize(size(), size());

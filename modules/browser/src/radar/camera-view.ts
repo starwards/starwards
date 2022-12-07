@@ -7,7 +7,7 @@ import { WidgetContainer } from '../container';
 import { XY } from '@starwards/core';
 import { toCss } from '../colors';
 
-export class CameraView extends Application {
+export class CameraView extends Application<HTMLCanvasElement> {
     public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
     private square = false;
 
