@@ -11,7 +11,7 @@ import { getSpatialIndex } from '../radar/spatial-index';
 export function dockingWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget {
     class DockingComponent {
         constructor(container: WidgetContainer, _: unknown) {
-            drawDockingStatus(spaceDriver, shipDriver, container);
+            drawDockingStatus(container, spaceDriver, shipDriver);
         }
     }
     return {
@@ -21,7 +21,7 @@ export function dockingWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver):
         defaultProps: {},
     };
 }
-export function drawDockingStatus(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
+export function drawDockingStatus(container: WidgetContainer, spaceDriver: SpaceDriver, shipDriver: ShipDriver) {
     const cleanup = new Destructors();
     const pane = new Pane({ title: 'Docking', container: container.getElement().get(0) });
     cleanup.add(() => pane.dispose());
