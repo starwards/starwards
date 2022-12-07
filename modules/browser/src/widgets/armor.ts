@@ -1,6 +1,7 @@
-import { Application, Graphics, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js';
+import { Application, Graphics, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, degToRad } from '@starwards/core';
 
+import { Assets } from '@pixi/assets';
 import { DashboardWidget } from './dashboard';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
@@ -12,9 +13,6 @@ WebFont.load({
         families: ['Bebas'],
     },
 });
-const preloadList = ['images/dragonfly-armor.svg'];
-
-Loader.shared.add(preloadList);
 
 const plateMarginRadians = 3 * degToRad;
 export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
@@ -22,7 +20,7 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
         constructor(container: WidgetContainer) {
             const size = () => Math.min(container.width, container.height);
 
-            Loader.shared.load(() => {
+            void Assets.load('images/dragonfly-armor.svg').then((texture: Texture) => {
                 // initialization. extracted from CameraView
                 const root = new Application({ backgroundColor: radarVisibleBg });
                 root.view.setAttribute('data-id', 'Armor');
@@ -36,7 +34,6 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
                     return false;
                 });
                 // ---
-                const texture = Loader.shared.resources['images/dragonfly-armor.svg'].texture; // assumed to be pre-loaded
                 const plateSize = degToRad * shipDriver.state.armor.degreesPerPlate;
                 for (let plateIdx = 0; plateIdx < shipDriver.state.armor.numberOfPlates; plateIdx++) {
                     const sprite = new Sprite(texture);

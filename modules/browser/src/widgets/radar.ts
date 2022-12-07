@@ -1,5 +1,4 @@
 import { Faction, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { blue, radarFogOfWar, radarVisibleBg, red, yellow } from '../colors';
 import { dradisDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
 
@@ -12,6 +11,7 @@ import { GridLayer } from '../radar/grid-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
+import { UPDATE_PRIORITY } from 'pixi.js';
 import WebFont from 'webfontloader';
 import { waitForShip } from '../ship-logic';
 
@@ -53,40 +53,38 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
             void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
                 camera.followSpaceObject(tracked, spaceDriver.events)
             );
-            Loader.shared.load(() => {
-                const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
-                const radarRangeLayer = new ObjectsLayer(
-                    root,
-                    spaceDriver,
-                    64,
-                    () => radarVisibleBg,
-                    rangeRangeDrawFunctions,
-                    undefined,
-                    (s: SpaceObject) => s.faction === shipDriver.state.faction
-                );
-                root.addLayer(radarRangeLayer.renderRoot);
-                const grid = new GridLayer(root);
-                root.addLayer(grid.renderRoot);
-                const rangeFilter = new RadarRangeFilter(
-                    spaceDriver,
-                    (o: SpaceObject) => o.faction === shipDriver.state.faction
-                );
-                root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
-                const blipLayer = new ObjectsLayer(
-                    root,
-                    spaceDriver,
-                    64,
-                    (s: SpaceObject) => {
-                        if (s.faction === Faction.none) return yellow;
-                        if (s.faction === shipDriver.state.faction) return blue;
-                        return red;
-                    },
-                    dradisDrawFunctions,
-                    new SelectionContainer().init(spaceDriver),
-                    rangeFilter.isInRange
-                );
-                root.addLayer(blipLayer.renderRoot);
-            });
+            const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
+            const radarRangeLayer = new ObjectsLayer(
+                root,
+                spaceDriver,
+                64,
+                () => radarVisibleBg,
+                rangeRangeDrawFunctions,
+                undefined,
+                (s: SpaceObject) => s.faction === shipDriver.state.faction
+            );
+            root.addLayer(radarRangeLayer.renderRoot);
+            const grid = new GridLayer(root);
+            root.addLayer(grid.renderRoot);
+            const rangeFilter = new RadarRangeFilter(
+                spaceDriver,
+                (o: SpaceObject) => o.faction === shipDriver.state.faction
+            );
+            root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
+            const blipLayer = new ObjectsLayer(
+                root,
+                spaceDriver,
+                64,
+                (s: SpaceObject) => {
+                    if (s.faction === Faction.none) return yellow;
+                    if (s.faction === shipDriver.state.faction) return blue;
+                    return red;
+                },
+                dradisDrawFunctions,
+                new SelectionContainer().init(spaceDriver),
+                rangeFilter.isInRange
+            );
+            root.addLayer(blipLayer.renderRoot);
         }
     }
 

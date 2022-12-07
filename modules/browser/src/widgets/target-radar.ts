@@ -1,4 +1,4 @@
-import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
+import { Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceEventEmitter, SpaceObject } from '@starwards/core';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 
@@ -43,49 +43,46 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
         constructor(container: WidgetContainer, p: Props) {
             const camera = new Camera();
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
-
-            Loader.shared.load(() => {
-                const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
-                root.setSquare();
-                const rangeFilter = new RadarRangeFilter(
-                    spaceDriver,
-                    (o: SpaceObject) => o.faction === shipDriver.state.faction
-                );
-                root.ticker.add(
-                    () => {
-                        rangeFilter.update();
-                        fovGraphics.clear();
-                        fovGraphics.lineStyle(0);
-                        for (const fov of rangeFilter.fieldsOfView()) {
-                            fovGraphics.beginFill(radarVisibleBg, 1);
-                            fov.draw(root, fovGraphics);
-                            fovGraphics.endFill();
-                        }
-                    },
-                    null,
-                    UPDATE_PRIORITY.LOW
-                );
-                const fovGraphics = new Graphics();
-                root.stage.addChild(fovGraphics);
-                const range = new RangeIndicators(root, p.range / 5);
-                range.setSizeFactor(sizeFactor);
-                root.addLayer(range.renderRoot);
-                const shipTarget = trackTargetObject(spaceDriver, shipDriver);
-                if (shipDriver.state.chainGun) {
-                    root.addLayer(crosshairs(root, shipDriver.state, shipDriver.state.chainGun, shipTarget));
-                }
-                const blipLayer = new ObjectsLayer(
-                    root,
-                    spaceDriver,
-                    64,
-                    () => green,
-                    tacticalDrawFunctions,
-                    shipTarget,
-                    rangeFilter.isInRange
-                );
-                root.addLayer(blipLayer.renderRoot);
-                trackObject(camera, spaceDriver.events, shipTarget);
-            });
+            const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
+            root.setSquare();
+            const rangeFilter = new RadarRangeFilter(
+                spaceDriver,
+                (o: SpaceObject) => o.faction === shipDriver.state.faction
+            );
+            root.ticker.add(
+                () => {
+                    rangeFilter.update();
+                    fovGraphics.clear();
+                    fovGraphics.lineStyle(0);
+                    for (const fov of rangeFilter.fieldsOfView()) {
+                        fovGraphics.beginFill(radarVisibleBg, 1);
+                        fov.draw(root, fovGraphics);
+                        fovGraphics.endFill();
+                    }
+                },
+                null,
+                UPDATE_PRIORITY.LOW
+            );
+            const fovGraphics = new Graphics();
+            root.stage.addChild(fovGraphics);
+            const range = new RangeIndicators(root, p.range / 5);
+            range.setSizeFactor(sizeFactor);
+            root.addLayer(range.renderRoot);
+            const shipTarget = trackTargetObject(spaceDriver, shipDriver);
+            if (shipDriver.state.chainGun) {
+                root.addLayer(crosshairs(root, shipDriver.state, shipDriver.state.chainGun, shipTarget));
+            }
+            const blipLayer = new ObjectsLayer(
+                root,
+                spaceDriver,
+                64,
+                () => green,
+                tacticalDrawFunctions,
+                shipTarget,
+                rangeFilter.isInRange
+            );
+            root.addLayer(blipLayer.renderRoot);
+            trackObject(camera, spaceDriver.events, shipTarget);
         }
     }
     return {

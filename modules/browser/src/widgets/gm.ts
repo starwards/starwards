@@ -1,5 +1,5 @@
 import { Driver, Faction, Projectile, SpaceObject } from '@starwards/core';
-import { Graphics, Loader, UPDATE_PRIORITY, filters } from 'pixi.js';
+import { Graphics, UPDATE_PRIORITY, filters } from 'pixi.js';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
@@ -46,8 +46,7 @@ export class GmWidgets {
 
             // the async part of initializing
             private async init(root: CameraView) {
-                const pixiLoaded = new Promise((res) => Loader.shared.load(res));
-                const [spaceDriver] = await Promise.all([driver.getSpaceDriver(), pixiLoaded]);
+                const [spaceDriver] = await Promise.all([driver.getSpaceDriver()]);
                 // const fps = new FpsCounter(root);
                 const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
                 const getFactionColor = (faction: Faction) => {

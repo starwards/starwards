@@ -1,7 +1,8 @@
 import { Asteroid, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
-import { Container, Graphics, Loader, Rectangle, Sprite, Text, TextStyle } from 'pixi.js';
+import { Container, Graphics, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { selectionColor, white } from '../../colors';
 
+import { Assets } from '@pixi/assets';
 import { CameraView } from '../camera-view';
 
 export interface BlipData {
@@ -44,12 +45,15 @@ const textures = {
     tactical_select: 'images/tactical_radar/selection.png',
 };
 
-Loader.shared.add([...new Set(Object.values(textures))]);
-
 function blipSprite(t: keyof typeof textures, size: number, color: number) {
     const texturePath = textures[t];
-    const radarBlipTexture = Loader.shared.resources[texturePath].texture;
+    const radarBlipTexture = Assets.get(texturePath) as Texture;
     const radarBlipSprite = new Sprite(radarBlipTexture);
+    if (!radarBlipTexture) {
+        void Assets.load(texturePath).then((texture: Texture) => {
+            radarBlipSprite.texture = texture;
+        });
+    }
     radarBlipSprite.tint = color;
     radarBlipSprite.height = size;
     radarBlipSprite.width = size;
