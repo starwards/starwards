@@ -1,10 +1,10 @@
-import { DisplayObject, Loader, Sprite, UPDATE_PRIORITY } from 'pixi.js';
+import { DisplayObject, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/core';
 
 type SpriteStyle = {
-    fileName: string;
+    texture: Texture | undefined;
     tint: number;
 };
 export class SpriteLayer {
@@ -17,8 +17,7 @@ export class SpriteLayer {
         getRotation: () => number,
         getRadius: () => number
     ) {
-        const texture = Loader.shared.resources[style.fileName].texture; // assumed to be pre-loaded
-        this.sprite = new Sprite(texture);
+        this.sprite = new Sprite(style.texture);
         this.sprite.anchor.set(0.5);
         this.sprite.tint = style.tint;
 

@@ -1,6 +1,7 @@
 import { Container, Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad } from '@starwards/core';
 import { abstractOnChange, readProp } from '../property-wrappers';
+import { azimuthCircle, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 import { trackTargetObject, waitForShip } from '../ship-logic';
@@ -12,20 +13,14 @@ import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
-import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
-import { speedLines } from '../radar/tactical-radar-layers';
 
 WebFont.load({
     custom: {
         families: ['Bebas'],
     },
 });
-
-// const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
-
-// Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
@@ -105,17 +100,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
         const range = new RangeIndicators(root, p.range / 5);
         range.setSizeFactor(sizeFactor);
         allElements.addChild(range.renderRoot);
-        const asimuthCircle = new SpriteLayer(
-            root,
-            {
-                fileName: 'images/asimuth-circle.svg',
-                tint: 0xaaffaa,
-            },
-            () => shipDriver.state.position,
-            () => degToRad * -shipDriver.state.angle,
-            () => root.metersToPixles(p.range * 1.2)
-        );
-        allElements.addChild(asimuthCircle.renderRoot);
+        allElements.addChild(azimuthCircle(root, shipDriver.state, () => p.range * 1.2));
         const shipTarget = trackTargetObject(spaceDriver, shipDriver);
 
         contentElements.addChild(speedLines(root, shipDriver.state, shipTarget));

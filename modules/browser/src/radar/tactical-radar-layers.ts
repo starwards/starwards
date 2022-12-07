@@ -1,39 +1,71 @@
-import { ChainGun, ShipState, XY, getShellExplosionLocation, getTargetLocationAtShellExplosion } from '@starwards/core';
+import {
+    ChainGun,
+    ShipState,
+    XY,
+    degToRad,
+    getShellExplosionLocation,
+    getTargetLocationAtShellExplosion,
+} from '@starwards/core';
+import { Container, Loader } from 'pixi.js';
 
 import { CameraView } from './camera-view';
-import { Container } from 'pixi.js';
 import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
 import { selectionColor } from '../colors';
 
+const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
+
+Loader.shared.add(preloadList);
+
+export function azimuthCircle(root: CameraView, shipState: ShipState, rangeInMeters: () => number) {
+    const stage = new Container();
+
+    Loader.shared.load(() => {
+        const layer = new SpriteLayer(
+            root,
+            {
+                texture: Loader.shared.resources['images/asimuth-circle.svg'].texture,
+                tint: 0xaaffaa,
+            },
+            () => shipState.position,
+            () => degToRad * -shipState.angle,
+            () => root.metersToPixles(rangeInMeters())
+        );
+        stage.addChild(layer.renderRoot);
+    });
+    return stage;
+}
+
 export function crosshairs(root: CameraView, shipState: ShipState, chainGun: ChainGun, shipTarget: SelectionContainer) {
     const stage = new Container();
-    const shellCrosshairLayer = new SpriteLayer(
-        root,
-        {
-            fileName: 'images/radar/target.png',
-            tint: 0xffaaaa,
-        },
-        () => getShellExplosionLocation(shipState, chainGun),
-        () => 0,
-        () => 32
-    );
-    const deflectionCrosshairLayer = new SpriteLayer(
-        root,
-        {
-            fileName: 'images/radar/deflection.png',
-            tint: 0xaaaaff,
-        },
-        () => {
-            const target = shipTarget.getSingle();
-            return target && getTargetLocationAtShellExplosion(chainGun, target);
-        },
-        () => 0,
-        () => 32
-    );
-    stage.addChild(deflectionCrosshairLayer.renderRoot);
-    stage.addChild(shellCrosshairLayer.renderRoot);
+    Loader.shared.load(() => {
+        const shellCrosshairLayer = new SpriteLayer(
+            root,
+            {
+                texture: Loader.shared.resources['images/radar/target.png'].texture,
+                tint: 0xffaaaa,
+            },
+            () => getShellExplosionLocation(shipState, chainGun),
+            () => 0,
+            () => 32
+        );
+        const deflectionCrosshairLayer = new SpriteLayer(
+            root,
+            {
+                texture: Loader.shared.resources['images/radar/deflection.png'].texture,
+                tint: 0xaaaaff,
+            },
+            () => {
+                const target = shipTarget.getSingle();
+                return target && getTargetLocationAtShellExplosion(chainGun, target);
+            },
+            () => 0,
+            () => 32
+        );
+        stage.addChild(deflectionCrosshairLayer.renderRoot);
+        stage.addChild(shellCrosshairLayer.renderRoot);
+    });
     return stage;
 }
 export function speedLines(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {

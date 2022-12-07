@@ -1,6 +1,6 @@
 import { Graphics, Loader, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject, degToRad } from '@starwards/core';
-import { crosshairs, speedLines } from '../radar/tactical-radar-layers';
+import { ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
+import { azimuthCircle, crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
@@ -11,7 +11,6 @@ import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
-import { SpriteLayer } from '../radar/sprite-layer';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 import { tacticalDrawFunctions } from '../radar/blips/blip-renderer';
@@ -21,10 +20,6 @@ WebFont.load({
         families: ['Bebas'],
     },
 });
-
-const preloadList = ['images/radar/target.png', 'images/radar/deflection.png', 'images/asimuth-circle.svg'];
-
-Loader.shared.add(preloadList);
 
 const sizeFactor = 0.85; // 15% left for azimut circle
 const sizeFactorGrace = 0.005;
@@ -104,17 +99,8 @@ export function drawTacticalRadar(
         const range = new RangeIndicators(root, p.range / 5);
         range.setSizeFactor(sizeFactor);
         root.addLayer(range.renderRoot);
-        const asimuthCircle = new SpriteLayer(
-            root,
-            {
-                fileName: 'images/asimuth-circle.svg',
-                tint: 0xaaffaa,
-            },
-            () => shipDriver.state.position,
-            () => degToRad * -shipDriver.state.angle,
-            () => root.metersToPixles(6000)
-        );
-        root.addLayer(asimuthCircle.renderRoot);
+        const asimuthCircle = azimuthCircle(root, shipDriver.state, () => 6000);
+        root.addLayer(asimuthCircle);
         const shipTarget = trackTargetObject(spaceDriver, shipDriver);
         if (shipDriver.state.chainGun) {
             root.addLayer(crosshairs(root, shipDriver.state, shipDriver.state.chainGun, shipTarget));
