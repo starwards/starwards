@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Graphics, InteractionEvent, Rectangle } from 'pixi.js';
+import { Container, DisplayObject, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
 import { SpaceObject, XY, spaceProperties } from '@starwards/core';
 
 import { CameraView } from './camera-view';
@@ -41,11 +41,9 @@ export class InteractiveLayer {
             this.stage.hitArea = new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
             this.drawSelection();
         });
-        // there are issues with click events from multiple mouse buttons: https://github.com/pixijs/pixi.js/issues/5384
-        this.parent.renderer.plugins.interaction.on('mousedown', this.onPointerDown); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        this.parent.renderer.plugins.interaction.on('pointerdown', this.onPointerDown); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        this.parent.renderer.plugins.interaction.on('pointermove', this.onPointermove); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        this.parent.renderer.plugins.interaction.on('pointerup', this.onPointerup); // eslint-disable-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        this.stage.on('pointerdown', this.onPointerDown);
+        this.stage.on('pointermove', this.onPointermove);
+        this.stage.on('pointerup', this.onPointerup);
     }
 
     get renderRoot(): DisplayObject {
@@ -86,10 +84,10 @@ export class InteractiveLayer {
         return null;
     }
 
-    onPointerDown = (event: InteractionEvent) => {
+    onPointerDown = (event: FederatedPointerEvent) => {
         if (this.actionType === ActionType.none) {
-            if (event.data.button === MouseButton.main) {
-                this.dragFrom = event.data.getLocalPosition(this.stage);
+            if (event.button === MouseButton.main) {
+                this.dragFrom = XY.clone(event.global);
                 if (
                     this.selectionContainer.size > 0 &&
                     this.getObjectAtPoint(
@@ -102,29 +100,29 @@ export class InteractiveLayer {
                     this.actionType = ActionType.select;
                     this.drawSelection();
                 }
-            } else if (event.data.button === MouseButton.right) {
+            } else if (event.button === MouseButton.right) {
                 this.actionType = ActionType.panCameraOrOrder;
-                this.dragFrom = event.data.getLocalPosition(this.stage);
+                this.dragFrom = XY.clone(event.global);
             }
         }
     };
 
-    onPointermove = (event: InteractionEvent) => {
+    onPointermove = (event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
-                this.dragTo = event.data.getLocalPosition(this.stage);
+                this.dragTo = XY.clone(event.global);
                 this.drawSelection();
             } else if (this.actionType === ActionType.panCamera || this.actionType === ActionType.panCameraOrOrder) {
                 this.actionType = ActionType.panCamera;
                 this.stage.cursor = 'grab';
-                const dragTo = event.data.getLocalPosition(this.stage);
-                const screenMove = XY.add(XY.negate(dragTo), this.dragFrom); // camera moves opposite to the drag direction
+                const dragTo = XY.clone(event.global);
+                const screenMove = XY.difference(this.dragFrom, dragTo); // camera moves opposite to the drag direction
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
                 this.parent.camera.set(XY.add(this.parent.camera, worldMove));
                 // set next drag origin to current mouse position
                 this.dragFrom = dragTo;
             } else if (this.actionType === ActionType.dragObjects) {
-                const dragTo = event.data.getLocalPosition(this.stage);
+                const dragTo = XY.clone(event.global);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
                 this.spaceDriver.command(spaceProperties.bulkMove, {
@@ -137,7 +135,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointerup = (_event: InteractionEvent) => {
+    onPointerup = (_event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 if (this.dragTo == null) {
@@ -146,7 +144,7 @@ export class InteractiveLayer {
                     const to = this.parent.screenToWorld(this.dragTo);
                     this.onSelectArea(this.parent.screenToWorld(this.dragFrom), to);
                 }
-            } else if (this.actionType === ActionType.panCameraOrOrder) {
+            } else if (this.actionType === ActionType.panCameraOrOrder || this.actionType === ActionType.panCamera) {
                 const position = this.parent.screenToWorld(this.dragFrom);
                 const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
                 if (spaceObject) {

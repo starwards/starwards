@@ -30,11 +30,12 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 
 export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriver, minWidth = 0) {
+    // dd
     const size = () => Math.max(Math.min(container.width, container.height), minWidth);
-
-    void Assets.load('images/dragonfly-armor.svg').then((texture: Texture) => {
+    void Assets.load('images/dragonfly-armor.svg').then((_texture: Texture) => {
+        const texture = Texture.from('images/dragonfly-armor.svg'); // SVG bug https://github.com/pixijs/pixijs/issues/8694#issuecomment-1320702841
         // initialization. extracted from CameraView
-        const root = new Application({ backgroundColor: radarVisibleBg });
+        const root = new Application<HTMLCanvasElement>({ backgroundColor: radarVisibleBg });
         root.view.setAttribute('data-id', 'Armor');
         container.on('resize', () => {
             root.renderer.resize(size(), size());
@@ -47,6 +48,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
         });
         // ---
         const plateSize = degToRad * shipDriver.state.armor.degreesPerPlate;
+
         for (let plateIdx = 0; plateIdx < shipDriver.state.armor.numberOfPlates; plateIdx++) {
             const sprite = new Sprite(texture);
 

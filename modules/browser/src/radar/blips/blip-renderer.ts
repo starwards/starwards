@@ -45,15 +45,15 @@ const textures = {
     tactical_select: 'images/tactical_radar/selection.png',
 };
 
+Assets.addBundle('blips', textures);
+const blipAssets = Assets.loadBundle('blips') as Promise<Record<keyof typeof textures, Texture>>;
+
 function blipSprite(t: keyof typeof textures, size: number, color: number) {
-    const texturePath = textures[t];
-    const radarBlipTexture = Assets.get(texturePath) as Texture;
-    const radarBlipSprite = new Sprite(radarBlipTexture);
-    if (!radarBlipTexture) {
-        void Assets.load(texturePath).then((texture: Texture) => {
-            radarBlipSprite.texture = texture;
-        });
-    }
+    const radarBlipSprite = new Sprite(undefined);
+    void blipAssets.then((a) => {
+        // SVG bug https://github.com/pixijs/pixijs/issues/8694#issuecomment-1320702841
+        radarBlipSprite.texture = textures[t].includes('svg') ? Texture.from(textures[t]) : a[t];
+    });
     radarBlipSprite.tint = color;
     radarBlipSprite.height = size;
     radarBlipSprite.width = size;
