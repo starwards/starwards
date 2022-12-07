@@ -25,7 +25,8 @@ export function azimuthCircle(root: CameraView, shipState: ShipState, rangeInMet
         () => root.metersToPixles(rangeInMeters())
     );
     stage.addChild(layer.renderRoot);
-    void Assets.load('images/asimuth-circle.svg').then((texture: Texture) => {
+    void Assets.load('images/asimuth-circle.svg').then((_texture: Texture) => {
+        const texture = Texture.from('images/asimuth-circle.svg'); // SVG bug https://github.com/pixijs/pixijs/issues/8694#issuecomment-1320702841
         layer.texture = texture;
     });
     return stage;

@@ -51,7 +51,8 @@ const blipAssets = Assets.loadBundle('blips') as Promise<Record<keyof typeof tex
 function blipSprite(t: keyof typeof textures, size: number, color: number) {
     const radarBlipSprite = new Sprite(undefined);
     void blipAssets.then((a) => {
-        radarBlipSprite.texture = a[t];
+        // SVG bug https://github.com/pixijs/pixijs/issues/8694#issuecomment-1320702841
+        radarBlipSprite.texture = textures[t].includes('svg') ? Texture.from(textures[t]) : a[t];
     });
     radarBlipSprite.tint = color;
     radarBlipSprite.height = size;
