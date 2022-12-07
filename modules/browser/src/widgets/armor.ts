@@ -1,4 +1,4 @@
-import { Application, Graphics, SVGResource, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
+import { Application, Graphics, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, degToRad } from '@starwards/core';
 
 import { Assets } from '@pixi/assets';
