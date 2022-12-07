@@ -31,7 +31,7 @@ export function isGamepadButtonsRangeConfig(
 ): v is GamepadButtonsRangeConfig {
     return !!(v as GamepadButtonsRangeConfig).step;
 }
-class KeysRangeConfig {
+export class KeysRangeConfig {
     constructor(public up: string, public down: string, public center: string, public step: number) {}
 }
 export interface RangeConfig {
@@ -39,7 +39,7 @@ export interface RangeConfig {
     buttons?: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig;
     keys?: KeysRangeConfig;
 }
-interface ShipInputConfig {
+export interface ShipInputConfig {
     tubeIsFiring?: string | GamepadButtonConfig;
     chainGunIsFiring?: string | GamepadButtonConfig;
     target?: string | GamepadButtonConfig;
@@ -51,6 +51,7 @@ interface ShipInputConfig {
     maneuveringMode?: string | GamepadButtonConfig;
     warpUp?: string | GamepadButtonConfig;
     warpDown?: string | GamepadButtonConfig;
+    dock?: string | GamepadButtonConfig;
     // ranges
     rotationCommand?: RangeConfig;
     resetRotatioTargetOffset?: string | GamepadButtonConfig;
@@ -59,11 +60,12 @@ interface ShipInputConfig {
     shellRange?: RangeConfig;
 }
 
-export const shipInputConfig: ShipInputConfig = {
+export const shipInputConfig = {
     // buttons
     tubeIsFiring: 'x',
     warpUp: 'r',
     warpDown: 'f',
+    dock: 'z',
     chainGunIsFiring: new GamepadButtonConfig(0, 4),
     target: new GamepadButtonConfig(0, 2),
     clearTarget: new GamepadButtonConfig(0, 0),

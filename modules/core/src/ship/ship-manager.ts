@@ -26,6 +26,8 @@ import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
+import { Docking } from './docking';
+import { DockingManager } from './docking-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
@@ -42,7 +44,7 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp;
+type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
@@ -69,13 +71,20 @@ export type Die = {
 };
 export class ShipManager {
     public bot: Bot | null = null;
-    public target: SpaceObject | null = null;
+    public weaponsTarget: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
     private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
         [
             ShipArea.front,
-            [this.state.chainGun, this.state.radar, this.state.smartPilot, this.state.magazine, this.state.warp],
+            [
+                this.state.chainGun,
+                this.state.radar,
+                this.state.smartPilot,
+                this.state.magazine,
+                this.state.warp,
+                this.state.docking,
+            ],
         ],
         [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
     ]);
@@ -83,6 +92,7 @@ export class ShipManager {
     private tubeManagers = new Array<ChainGunManager>();
     private chainGunManager: ChainGunManager | null = null;
     private movementManager: MovementManager;
+    private dockingManager: DockingManager;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -112,13 +122,14 @@ export class ShipManager {
             );
         }
         this.movementManager = new MovementManager(this.spaceObject, this.state, this.spaceManager, this, this.die);
+        this.dockingManager = new DockingManager(this.spaceObject, this.state, this.spaceManager, this);
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
         }
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
-        if (value === SmartPilotMode.TARGET && !this.target) {
+        if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
             // eslint-disable-next-line no-console
             console.error(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
         } else {
@@ -131,7 +142,7 @@ export class ShipManager {
     }
 
     public setSmartPilotRotationMode(value: SmartPilotMode) {
-        if (value === SmartPilotMode.TARGET && !this.target) {
+        if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
             // eslint-disable-next-line no-console
             console.error(new Error(`attempt to set smartPilot.rotationMode to TARGET with no target`));
         } else {
@@ -149,7 +160,7 @@ export class ShipManager {
 
     public setTarget(id: string | null) {
         this.state.weaponsTarget.targetId = id;
-        this.validateTargetId();
+        this.validateWeaponsTargetId();
     }
 
     public handleTargetCommands() {
@@ -195,13 +206,15 @@ export class ShipManager {
 
     update(deltaSeconds: number) {
         this.totalSeconds += deltaSeconds;
+        // sync relevant ship props, before any other calculation
+        this.syncShipProperties();
         this.healPlates(deltaSeconds);
         this.handleDamage();
         this.applyBotOrders();
         if (this.bot) {
-            this.bot(deltaSeconds, this.spaceManager.state, this);
+            this.bot.update(deltaSeconds, this.spaceManager.state, this);
         }
-        this.validateTargetId();
+        this.validateWeaponsTargetId();
         this.chainGunManager?.update(deltaSeconds);
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(deltaSeconds);
@@ -211,8 +224,6 @@ export class ShipManager {
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
         this.calcTargetedStatus();
-        // sync relevant ship props
-        this.syncShipProperties();
         this.updateEnergy(deltaSeconds);
 
         this.calcSmartPilotRotation(deltaSeconds);
@@ -220,6 +231,7 @@ export class ShipManager {
         this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
         this.updateChainGunAmmo();
+        this.dockingManager.update();
     }
 
     private updateRadarRange() {
@@ -313,6 +325,8 @@ export class ShipManager {
                 this.damageMagazine(system, damageObject.id);
             } else if (Warp.isInstance(system)) {
                 this.damageWarp(system, damageObject.id);
+            } else if (Docking.isInstance(system)) {
+                DockingManager.damageDocking(system);
             }
         }
     }
@@ -320,7 +334,7 @@ export class ShipManager {
     private damageWarp(warp: Warp, damageId: string) {
         if (!warp.broken) {
             if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
-                warp.damageFactor *= 0.9;
+                warp.damageFactor += 0.05;
             } else {
                 warp.velocityFactor *= 0.9;
             }
@@ -426,7 +440,7 @@ export class ShipManager {
                 rotationCommand = this.state.smartPilot.rotation;
                 break;
             case SmartPilotMode.TARGET: {
-                if (this.target) {
+                if (this.weaponsTarget) {
                     this.state.smartPilot.rotationTargetOffset = capToRange(
                         -1,
                         1,
@@ -440,7 +454,7 @@ export class ShipManager {
                         deltaSeconds,
                         this.state,
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        this.target.position,
+                        this.weaponsTarget.position,
                         this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
                     );
                 } else {
@@ -492,18 +506,18 @@ export class ShipManager {
         this.state.targeted = status;
     }
 
-    private validateTargetId() {
-        if (this.state.weaponsTarget.targetId) {
-            this.target = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
-            if (!this.target) {
+    private validateWeaponsTargetId() {
+        if (typeof this.state.weaponsTarget.targetId === 'string') {
+            this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
+            if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
             }
         } else {
-            this.target = null;
+            this.weaponsTarget = null;
         }
-        this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
-        this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.target);
-        this.setShellRangeMode(this.target ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
+        this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
+        this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
+        this.setShellRangeMode(this.weaponsTarget ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
     }
 
     private syncShipProperties() {

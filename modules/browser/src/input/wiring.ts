@@ -7,6 +7,16 @@ import { shipInputConfig } from '../input/input-config';
 export function wireSinglePilotInput(shipDriver: ShipDriver) {
     const input = new InputManager();
     input.addRangeAction(readWriteNumberProp(shipDriver, '/chainGun/shellRange'), shipInputConfig.shellRange);
+
+    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), shipInputConfig.target);
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/weaponsTarget/clearTargetCommand'),
+        shipInputConfig.clearTarget
+    );
+    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), shipInputConfig.tubeIsFiring);
+
+    // pilot
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/rotation'), shipInputConfig.rotationCommand);
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/y'), shipInputConfig.strafeCommand);
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/x'), shipInputConfig.boostCommand);
@@ -22,14 +32,8 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     );
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/antiDrift')), shipInputConfig.antiDrift);
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaks);
-    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/isFiring'), shipInputConfig.chainGunIsFiring);
-    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), shipInputConfig.target);
-    input.addMomentaryClickAction(
-        writeProp(shipDriver, '/weaponsTarget/clearTargetCommand'),
-        shipInputConfig.clearTarget
-    );
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), shipInputConfig.tubeIsFiring);
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), shipInputConfig.warpUp);
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), shipInputConfig.warpDown);
+    input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), shipInputConfig.dock);
     input.init();
 }

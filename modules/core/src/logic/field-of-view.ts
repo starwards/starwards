@@ -1,4 +1,3 @@
-import { Body, Circle } from 'detect-collisions';
 import {
     EPSILON,
     MAX_SAFE_FLOAT,
@@ -8,14 +7,13 @@ import {
     toStrictPositiveDegreesDelta,
 } from './formulas';
 
+import { Circle } from 'detect-collisions';
 import { SpaceObject } from '../space';
+import { SpatialIndex } from './space-manager';
 import { XY } from './xy';
 
 const MIN_RADIUS_RADAR_BLOCK = 1;
 
-export type SpatialIndex = {
-    selectPotentials(area: Body): Iterable<SpaceObject>;
-};
 type VisibleObject = {
     object: SpaceObject | null;
     distance: number;

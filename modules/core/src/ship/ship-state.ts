@@ -5,6 +5,7 @@ import { range, rangeSchema } from '../range';
 import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
+import { Docking } from './docking';
 import { Magazine } from './magazine';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
@@ -66,6 +67,9 @@ export class ShipState extends Spaceship {
 
     @type(Warp)
     warp!: Warp;
+
+    @type(Docking)
+    docking!: Docking;
 
     @number2Digits
     @range([-1, 1])

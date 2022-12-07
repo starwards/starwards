@@ -1,7 +1,15 @@
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Faction, Spaceship, Waypoint } from '../space';
-import { FieldOfView, circlesIntersection, limitPercision, moveToTarget, rotateToTarget, toDegreesDelta } from '.';
+import {
+    FieldOfView,
+    circlesIntersection,
+    limitPercision,
+    moveToTarget,
+    rotateToTarget,
+    toDegreesDelta,
+    toPositiveDegreesDelta,
+} from '.';
 
 import { SWResponse } from './collisions-utils';
 import { uniqueId } from '../id';
@@ -29,11 +37,18 @@ type ExtraData = {
     fov: FieldOfView;
 };
 export type BotOrder = MoveOrder | AttackOrder;
+const nullPtr = [] as readonly [];
+export type SpatialIndex = {
+    selectPotentials(area: Body): Iterable<SpaceObject>;
+};
+
 export class SpaceManager {
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
     private collisionToState = new WeakMap<Body, SpaceObject>();
     private stateToExtraData = new WeakMap<SpaceObject, ExtraData>();
+    private attachments = new Map<string, string>();
+    private attachmentCliques = new Map<string, Set<SpaceObject>>();
     private objectDamage = new Map<string, Damage[]>();
     private objectOrder = new Map<string, BotOrder>();
     private toInsert: SpaceObject[] = [];
@@ -65,33 +80,60 @@ export class SpaceManager {
     }))(this);
 
     public changeTurnSpeed(id: string, delta: number) {
-        const subject = this.state.get(id);
-        if (subject && !subject.destroyed) {
+        const [subject] = this.getObjectPtr(id);
+        if (subject) {
             subject.turnSpeed += delta;
         }
     }
     public changeVelocity(id: string, delta: XY) {
-        const subject = this.state.get(id);
-        if (subject && !subject.destroyed) {
+        const [subject] = this.getObjectPtr(id);
+        if (subject) {
             subject.velocity.x += delta.x;
             subject.velocity.y += delta.y;
         }
     }
     public setVelocity(id: string, velocity: XY) {
-        const subject = this.state.get(id);
-        if (subject && !subject.destroyed) {
+        const [subject] = this.getObjectPtr(id);
+        if (subject) {
             subject.velocity.setValue(velocity);
         }
     }
 
-    private moveObjects(ids: string[], delta: XY) {
-        for (const id of ids) {
-            const subject = this.state.get(id);
-            if (subject && !subject.destroyed) {
-                Vec2.add(subject.position, delta, subject.position);
-                this.toUpdateCollisions.add(subject);
+    private handleMoveCommand(ids: string[], delta: XY) {
+        for (const subject of this.getAttachedClique(ids)) {
+            Vec2.add(subject.position, delta, subject.position);
+            this.toUpdateCollisions.add(subject);
+        }
+    }
+
+    getObjectPtr(id: string): readonly [SpaceObject] | readonly [] {
+        const o = this.state.get(id);
+        return o && !o.destroyed ? [o] : nullPtr;
+    }
+
+    private calcAttachmentCliques() {
+        this.attachmentCliques.clear();
+        for (const [attacherId, attacheeId] of this.attachments.entries()) {
+            const clique = new Set<SpaceObject>();
+            for (const obj of this.attachmentCliques.get(attacherId) || this.getObjectPtr(attacherId)) {
+                clique.add(obj);
+                this.attachmentCliques.set(obj.id, clique);
+            }
+            for (const obj of this.attachmentCliques.get(attacheeId) || this.getObjectPtr(attacheeId)) {
+                clique.add(obj);
+                this.attachmentCliques.set(obj.id, clique);
             }
         }
+    }
+
+    private getAttachedClique(ids: string[]) {
+        const result = new Set<SpaceObject>(); // use set to not emit same object twice
+        for (const id of ids) {
+            for (const obj of this.attachmentCliques.get(id) || this.getObjectPtr(id)) {
+                result.add(obj);
+            }
+        }
+        return result;
     }
 
     // batch changes to map indexes to save i/o
@@ -106,16 +148,17 @@ export class SpaceManager {
     }
 
     public update(deltaSeconds: number) {
+        this.calcAttachmentCliques();
         this.handleToInsert();
         for (const moveCommand of this.state.moveCommands) {
-            this.moveObjects(moveCommand.ids, moveCommand.delta);
+            this.handleMoveCommand(moveCommand.ids, moveCommand.delta);
         }
         this.state.moveCommands = [];
 
         for (const cmd of this.state.botOrderCommands) {
             for (const id of cmd.ids) {
-                const subject = this.state.get(id);
-                if (subject && !subject.destroyed && Spaceship.isInstance(subject)) {
+                const [subject] = this.getObjectPtr(id);
+                if (subject && Spaceship.isInstance(subject)) {
                     this.objectOrder.set(id, cmd.order);
                 }
             }
@@ -126,7 +169,7 @@ export class SpaceManager {
         this.destroyTimedOut(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
         this.untrackDestroyedObjects();
-        this.applyFreeze();
+        this.frozendAndAttachedDontMove();
         this.applyPhysics(deltaSeconds);
         this.updateFieldsOFView();
         this.updateCollisionBodies();
@@ -187,8 +230,8 @@ export class SpaceManager {
     private calcHomingProjectiles(deltaSeconds: number) {
         for (const projectile of this.state.getAll('Projectile')) {
             if (!projectile.freeze && projectile.design.homing && projectile.targetId) {
-                const target = this.state.get(projectile.targetId);
-                if (target && !target.destroyed) {
+                const [target] = this.getObjectPtr(projectile.targetId);
+                if (target) {
                     const destination = target.position;
                     const relativeDestination = XY.difference(destination, projectile.position);
                     if (
@@ -241,6 +284,7 @@ export class SpaceManager {
                 this.stateToExtraData.delete(destroyed);
                 this.collisionToState.delete(data.body);
                 this.collisions.remove(data.body);
+                this.attachments.delete(destroyed.id);
             }
         }
     }
@@ -257,6 +301,28 @@ export class SpaceManager {
         this.handleToInsert();
     }
 
+    public attach(attacherId: string, attacheeId: string) {
+        this.attachments.set(attacherId, attacheeId);
+    }
+
+    public detach(attacherId: string) {
+        const clique = this.attachmentCliques.get(attacherId);
+        if (clique) {
+            const [subject] = this.getObjectPtr(attacherId);
+            if (subject) {
+                let velocity = XY.zero;
+                let turnSpeed = 0;
+                for (const obj of clique) {
+                    velocity = XY.add(velocity, obj.velocity);
+                    turnSpeed += obj.turnSpeed;
+                }
+                subject.velocity.setValue(velocity);
+                subject.turnSpeed = toDegreesDelta(turnSpeed);
+            }
+        }
+        this.attachments.delete(attacherId);
+    }
+
     private handleToInsert() {
         if (this.toInsert.length) {
             this.gc();
@@ -271,10 +337,9 @@ export class SpaceManager {
         }
     }
 
-    private applyFreeze() {
-        // loop over objects and apply velocity
+    private frozendAndAttachedDontMove() {
         for (const object of this.state) {
-            if (object.freeze) {
+            if (object.freeze || this.attachments.get(object.id)) {
                 object.velocity.x = object.velocity.y = object.turnSpeed = 0;
             }
         }
@@ -290,18 +355,32 @@ export class SpaceManager {
         // loop over objects and apply velocity
         for (const subject of this.state) {
             if (!XY.isZero(subject.velocity, ZERO_VELOCITY_THRESHOLD)) {
-                let destination = XY.add(subject.position, XY.scale(subject.velocity, deltaSeconds));
-                if (this.isProjectile(subject)) {
-                    const res = this.collisions.raycast(subject.position, destination, this.allowRaycastCollision);
-                    if (res) {
-                        destination = res.point;
+                const positionDelta = XY.scale(subject.velocity, deltaSeconds);
+                for (const obj of this.attachmentCliques.get(subject.id) || [subject]) {
+                    let destination = XY.add(obj.position, positionDelta);
+                    if (this.isProjectile(obj)) {
+                        const res = this.collisions.raycast(obj.position, destination, this.allowRaycastCollision);
+                        if (res) {
+                            destination = res.point;
+                        }
                     }
+                    obj.position.setValue(destination);
+                    this.toUpdateCollisions.add(obj);
                 }
-                subject.position.setValue(destination);
-                this.toUpdateCollisions.add(subject);
             }
             if (subject.turnSpeed) {
-                subject.angle = (360 + subject.angle + subject.turnSpeed * deltaSeconds) % 360;
+                const angleDelta = subject.turnSpeed * deltaSeconds;
+                for (const obj of this.attachmentCliques.get(subject.id) || [subject]) {
+                    obj.angle = toPositiveDegreesDelta(obj.angle + angleDelta);
+                    if (subject !== obj) {
+                        const destination = XY.add(
+                            XY.rotate(XY.difference(obj.position, subject.position), angleDelta),
+                            subject.position
+                        );
+                        obj.position.setValue(destination);
+                        this.toUpdateCollisions.add(obj);
+                    }
+                }
             }
         }
     }
@@ -375,8 +454,10 @@ export class SpaceManager {
             }
         });
         for (const { s, p } of positionChanges) {
-            Vec2.add(s.position, p, s.position);
-            this.toUpdateCollisions.add(s);
+            for (const obj of this.attachmentCliques.get(s.id) || [s]) {
+                Vec2.add(obj.position, p, obj.position);
+                this.toUpdateCollisions.add(obj);
+            }
         }
     }
     private handleExplosionCollision(subject: Explosion, response: SWResponse) {
