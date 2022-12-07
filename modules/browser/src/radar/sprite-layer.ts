@@ -4,7 +4,7 @@ import { CameraView } from './camera-view';
 import { XY } from '@starwards/core';
 
 type SpriteStyle = {
-    texture: Texture | undefined;
+    texture?: Texture | undefined;
     tint: number;
 };
 export class SpriteLayer {
@@ -39,6 +39,9 @@ export class SpriteLayer {
             null,
             UPDATE_PRIORITY.LOW
         );
+    }
+    set texture(texture: Texture) {
+        this.sprite.texture = texture;
     }
     get renderRoot(): DisplayObject {
         return this.sprite;
