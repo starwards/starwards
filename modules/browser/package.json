@@ -29,7 +29,7 @@
         "d3": "^7.7.0",
         "eventemitter3": "^4.0.7",
         "golden-layout": "^1.5.9",
-        "hotkeys-js": "^3.9.5",
+        "hotkeys-js": "^3.10.1",
         "jquery": "^3.6.1",
         "js-file-download": "^0.4.12",
         "pixi.js": "^7.0.4",
