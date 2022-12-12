@@ -39,7 +39,7 @@
         "@colyseus/schema": "^1.0.43",
         "colyseus-events": "^2.1.1",
         "colyseus.js": "^0.14.13",
-        "detect-collisions": "^6.6.7",
+        "detect-collisions": "^6.6.8",
         "eventemitter2": "^6.4.9",
         "eventemitter3": "^5.0.0",
         "json-ptr": "^3.1.1",
