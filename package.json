@@ -61,7 +61,7 @@
         "@types/webfontloader": "^1.6.35",
         "@typescript-eslint/eslint-plugin": "^5.44.0",
         "@typescript-eslint/parser": "^5.46.1",
-        "@xstate/cli": "^0.3.3",
+        "@xstate/cli": "^0.4.0",
         "chai": "^4.3.7",
         "concurrently": "^7.6.0",
         "copyfiles": "^2.4.1",
