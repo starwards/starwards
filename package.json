@@ -59,7 +59,7 @@
         "@types/sinon": "^10.0.13",
         "@types/supertest": "^2.0.12",
         "@types/webfontloader": "^1.6.35",
-        "@typescript-eslint/eslint-plugin": "^5.44.0",
+        "@typescript-eslint/eslint-plugin": "^5.46.1",
         "@typescript-eslint/parser": "^5.46.1",
         "@xstate/cli": "^0.4.0",
         "chai": "^4.3.7",
