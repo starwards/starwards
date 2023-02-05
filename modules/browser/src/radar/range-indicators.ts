@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Graphics, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
+import { Container, DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { TextsPool } from './texts-pool';

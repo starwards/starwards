@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Graphics, TextStyle } from 'pixi.js';
+import { Container, DisplayObject, Graphics } from 'pixi.js';
 import { XY, getSectorName, sectorSize } from '@starwards/core';
 
 import { CameraView } from './camera-view';
