@@ -67,7 +67,7 @@ export class GridLayer {
                                 ? horizontal.magnitude.color
                                 : vertical.magnitude.color;
                         text.text = getSectorName(horizontal.world, vertical.world);
-                        (text.style as TextStyle).fill = gridlineColor;
+                        text.style.fill = gridlineColor;
                         text.x = vertical.screen;
                         text.y = horizontal.screen;
                     }
