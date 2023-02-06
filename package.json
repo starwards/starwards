@@ -80,7 +80,7 @@
         "html-webpack-plugin": "^5.5.0",
         "husky": "^8.0.2",
         "jest": "^29.3.1",
-        "jest-junit": "^14.0.1",
+        "jest-junit": "^15.0.0",
         "lint-staged": "^13.1.0",
         "ncp": "^2.0.0",
         "node-red": "^3.0.2",
