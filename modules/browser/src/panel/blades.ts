@@ -33,11 +33,10 @@ export type Model<T> = {
  */
 export function addSliderBlade(
     guiFolder: FolderApi,
-    model: NumericModel,
+    { getValue, range, onChange, setValue }: NumericModel,
     params: Partial<SliderBladeParams>,
     cleanup: (d: Destructor) => void
 ) {
-    const { getValue, range, onChange, setValue } = model;
     const guiController = guiFolder.addBlade({
         parse: (v: number) => String(v),
         ...params,
@@ -47,7 +46,12 @@ export function addSliderBlade(
         value: getValue(),
     }) as SliderApi;
     if (setValue) {
-        guiController.on('change', (ev) => setValue(ev.value));
+        guiController.on('change', (ev) => {
+            if (ev.value != getValue()) {
+                guiController.value = getValue();
+                setValue(ev.value);
+            }
+        });
     } else {
         guiController.disabled = true;
     }
@@ -75,11 +79,10 @@ export function addCameraRingBlade(
 
 export function addTextBlade<T>(
     guiFolder: FolderApi,
-    model: Model<T>,
+    { getValue, onChange, setValue }: Model<T>,
     params: Partial<TextBladeParams<T>>,
     cleanup: (d: Destructor) => void
 ) {
-    const { getValue, onChange, setValue } = model;
     const guiController = guiFolder.addBlade({
         parse: (v: T) => String(v),
         ...params,
@@ -87,7 +90,12 @@ export function addTextBlade<T>(
         value: getValue(),
     }) as TextApi<T>;
     if (setValue) {
-        guiController.on('change', (ev) => setValue(ev.value));
+        guiController.on('change', (ev) => {
+            if (ev.value != getValue()) {
+                guiController.value = getValue();
+                setValue(ev.value);
+            }
+        });
     } else {
         guiController.disabled = true;
     }
@@ -103,33 +111,28 @@ export function addTextBlade<T>(
 
 export function addEnumListBlade<T>(
     guiFolder: FolderApi,
-    model: Model<T>,
+    { getValue, onChange, setValue }: Model<T>,
     params: Partial<ListBladeParams<T>>,
     cleanup: (d: Destructor) => void
 ) {
-    const { getValue, onChange, setValue } = model;
-    let lastValue = getValue();
     const guiController = guiFolder.addBlade({
         options: [],
         ...params,
         view: 'list',
-        value: lastValue,
+        value: getValue(),
     }) as ListApi<T>;
     if (setValue) {
-        guiController.on('change', (e) => {
-            if (e.value !== lastValue) {
-                setValue(e.value);
+        guiController.on('change', (ev) => {
+            if (ev.value != getValue()) {
+                guiController.value = getValue();
+                setValue(ev.value);
             }
         });
     } else {
         guiController.disabled = true;
     }
     const removeStateListener = onChange(() => {
-        const newValue = getValue();
-        if (newValue !== lastValue) {
-            lastValue = newValue;
-            guiController.value = newValue;
-        }
+        guiController.value = getValue();
     });
     cleanup(() => {
         guiController.dispose();
@@ -141,23 +144,24 @@ export function addEnumListBlade<T>(
 export type InputBladeParams = { label: string } & Partial<InputParams>;
 export function addInputBlade<T>(
     guiFolder: FolderApi,
-    model: Model<T>,
+    { getValue, onChange, setValue }: Model<T>,
     params: InputBladeParams,
     cleanup: (d: Destructor) => void
 ) {
-    const { getValue, onChange, setValue } = model;
     const viewModel: Record<string, T> = {};
     const { label } = params;
-    let lastValue = (viewModel[label] = getValue());
+    viewModel[label] = getValue();
     const guiController = guiFolder.addInput(viewModel, label, params);
     const removeStateListener = onChange(() => {
-        lastValue = viewModel[label] = getValue();
+        viewModel[label] = getValue();
         guiController.refresh();
     });
     if (setValue) {
         guiController.on('change', (e) => {
-            if (e.value !== lastValue) {
+            if (e.value !== getValue()) {
+                viewModel[label] = getValue();
                 setValue(e.value);
+                guiController.refresh();
             }
         });
     } else {
