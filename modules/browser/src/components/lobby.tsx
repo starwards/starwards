@@ -109,6 +109,13 @@ function ShipOptions({ shipId }: { shipId: string }) {
                         Pilot
                     </Button>
                     <Button
+                        key={`pilot-${shipId}`}
+                        palette="primary"
+                        onClick={() => window.location.assign(`ecr.html?ship=${shipId}`)}
+                    >
+                        E.C.R
+                    </Button>
+                    <Button
                         key="3D debug"
                         palette="secondary"
                         onClick={() => window.location.assign(`main-screen.html?ship=${shipId}&debug`)}
