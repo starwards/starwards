@@ -54,7 +54,7 @@
         "@types/node-red": "^1.2.1",
         "@types/node-red-node-test-helper": "^0.2.2",
         "@types/pluralize": "^0.0.29",
-        "@types/react": "^17.0.43",
+        "@types/react": "^18.0.28",
         "@types/react-dom": "^17.0.16",
         "@types/sinon": "^10.0.13",
         "@types/supertest": "^2.0.12",
