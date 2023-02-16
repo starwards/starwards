@@ -23,7 +23,7 @@
     --tp-monitor-background-color: hsla(230, 7%, 0%, 0.2);
     --tp-monitor-foreground-color: hsla(230, 7%, 75%, 0.7);
 
-    /* the following variables are not officially sup[ported by tweakpane themes: */
+    /* the following variables are not officially supported by tweakpane themes: */
     --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
     --tp-base-border-radius: 6px;
     --tp-container-horizontal-padding: 4px;

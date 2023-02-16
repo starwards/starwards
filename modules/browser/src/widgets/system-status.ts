@@ -38,9 +38,8 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
             getValue: getText,
         };
         const guiController = addTextBlade(pane, prop, { label: system.state.name }, panelCleanup.add);
-        // This allows overriding tweakpane theme for this folder
-        guiController.element.classList.add('tp-rotv');
-        const applyThemeByStatus = () => (guiController.element.dataset.status = system.getStatus());
+        guiController.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
+        const applyThemeByStatus = () => (guiController.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
         panelCleanup.add(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
         applyThemeByStatus();
     }

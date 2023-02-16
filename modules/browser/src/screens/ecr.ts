@@ -5,7 +5,7 @@ import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
-import { drawSystemsStatus } from '../widgets/system-status';
+import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
@@ -40,9 +40,9 @@ async function initScreen(driver: Driver, shipId: string) {
     const container = wrapWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     wireInput(shipDriver);
-    const topRight = $('<div style="position: absolute; top:0; right:0;" />');
-    container.getElement().append(topRight);
-    drawSystemsStatus(wrapWidgetContainer(topRight), shipDriver, shipDriver.systems);
+    const center = $('<div style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%);" />');
+    container.getElement().append(center);
+    drawFullSystemsStatus(wrapWidgetContainer(center), shipDriver, shipDriver.systems);
 }
 
 function wireInput(_shipDriver: ShipDriver) {

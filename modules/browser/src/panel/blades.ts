@@ -1,5 +1,5 @@
-import { Destructor, RTuple2 } from '@starwards/core';
 import {
+    BladeApi,
     FolderApi,
     InputParams,
     ListApi,
@@ -9,6 +9,8 @@ import {
     TextApi,
     TextBladeParams,
 } from 'tweakpane';
+import { BladeController, View } from '@tweakpane/core';
+import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
 
@@ -60,10 +62,8 @@ export function configEnumListBlade<T>(params: Partial<ListBladeParams<T>>, getV
 
 export type BladeGuiApi<T> = {
     value: T;
-    disabled: boolean;
-    dispose(): void;
     on(eventName: 'change', handler: (ev: { value: T }) => void): unknown;
-};
+} & BladeApi<BladeController<View>>;
 
 export function wireBlade<T>(
     blade: BladeGuiApi<T>,
