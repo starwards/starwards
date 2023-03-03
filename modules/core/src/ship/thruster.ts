@@ -68,7 +68,7 @@ export class Thruster extends Schema {
 
     @number2Digits
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
-    @defectible({ normal: 0, name: 'direction offset' })
+    @defectible({ normal: 0, name: 'offset' })
     angleError = 0.0;
 
     @number2Digits

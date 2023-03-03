@@ -86,7 +86,7 @@ export class ChainGun extends Schema {
     shellRangeMode!: SmartPilotMode;
 
     @number2Digits
-    @defectible({ normal: 0, name: 'direction offset' })
+    @defectible({ normal: 0, name: 'offset' })
     @range([-90, 90])
     angleOffset = 0;
 

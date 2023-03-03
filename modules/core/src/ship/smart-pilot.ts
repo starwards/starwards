@@ -69,7 +69,7 @@ export class SmartPilot extends Schema {
      */
     @number2Digits
     @range([0, 1])
-    @defectible({ normal: 0, name: 'direction offset' })
+    @defectible({ normal: 0, name: 'offset' })
     offsetFactor = 0;
 
     get broken(): boolean {

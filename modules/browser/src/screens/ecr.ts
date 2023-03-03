@@ -16,6 +16,17 @@ ElementQueries.listen();
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
 
+// const style = document.createElement('style');
+// style.innerHTML = `
+//     .tableContainer {
+//         width: 350px;
+//     }
+//     .tableContainer .tp-lblv_v {
+//         min-width: fit-content;
+//     }
+// `;
+// document.head.appendChild(style);
+
 const urlParams = new URLSearchParams(window.location.search);
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {

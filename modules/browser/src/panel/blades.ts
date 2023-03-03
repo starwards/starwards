@@ -42,9 +42,9 @@ export function configSliderBlade(params: Partial<SliderBladeParams>, range: RTu
     };
 }
 
-export function configTextBlade<T>(params: Partial<TextBladeParams<T>>, getValue: () => T) {
+export function configTextBlade(params: Partial<TextBladeParams<unknown>> = {}, getValue: () => unknown = () => '') {
     return {
-        parse: (v: T) => String(v),
+        parse: (v: unknown) => String(v),
         ...params,
         view: 'text',
         value: getValue(),
@@ -70,6 +70,7 @@ export function wireBlade<T>(
     { getValue, onChange, setValue }: Model<T>,
     cleanup: (d: Destructor) => void
 ) {
+    blade.value = getValue();
     if (setValue) {
         blade.on('change', (ev) => {
             if (ev.value !== getValue()) {
@@ -109,7 +110,9 @@ export function addTextBlade<T>(
     params: Partial<TextBladeParams<T>>,
     cleanup: (d: Destructor) => void
 ) {
-    const blade = guiFolder.addBlade(configTextBlade<T>(params, model.getValue)) as TextApi<T>;
+    const blade = guiFolder.addBlade(
+        configTextBlade(params as Partial<TextBladeParams<unknown>>, model.getValue)
+    ) as TextApi<T>;
     wireBlade(blade, model, cleanup);
     return blade;
 }
