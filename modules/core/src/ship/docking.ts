@@ -38,6 +38,9 @@ export class Docking extends Schema {
     public readonly type = 'Docking';
     public readonly name = 'Docking';
 
+    @number2Digits
+    public energyPerMinute = 0;
+
     @type(DockingDesignState)
     design = new DockingDesignState();
 

@@ -33,6 +33,9 @@ export class Warp extends Schema {
     public readonly type = 'Warp';
     public readonly name = 'Warp';
 
+    @number2Digits
+    public energyPerMinute = 0;
+
     @type(WarpDesignState)
     design = new WarpDesignState();
 

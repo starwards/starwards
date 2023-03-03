@@ -55,6 +55,9 @@ export class ChainGun extends Schema {
     get name() {
         return 'Chain gun';
     }
+
+    @number2Digits
+    public energyPerMinute = 0;
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */

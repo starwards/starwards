@@ -34,6 +34,9 @@ export class Magazine extends Schema {
     public readonly type = 'Magazine';
     public readonly name = 'Magazine';
 
+    @number2Digits
+    public energyPerMinute = 0;
+
     @type(MagazineDesignState)
     design = new MagazineDesignState();
 

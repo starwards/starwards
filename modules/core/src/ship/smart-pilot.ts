@@ -41,6 +41,9 @@ export class SmartPilot extends Schema {
     public readonly type = 'SmartPilot';
     public readonly name = 'Smart pilot';
 
+    @number2Digits
+    public energyPerMinute = 0;
+
     @type(SmartPilotDesignState)
     design = new SmartPilotDesignState();
 

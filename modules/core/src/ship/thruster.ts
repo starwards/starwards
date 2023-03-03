@@ -38,6 +38,9 @@ export class Thruster extends Schema {
         return `Thruster ${this.index} (${getDirectionConfigFromAngle(this.angle)})`;
     }
 
+    @number2Digits
+    public energyPerMinute = 0;
+
     @type(ThrusterDesignState)
     design = new ThrusterDesignState();
 

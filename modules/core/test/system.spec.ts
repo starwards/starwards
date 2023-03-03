@@ -9,6 +9,7 @@ class DeeplyNested extends Schema {
     name = '';
     design = design;
     broken = false;
+    energyPerMinute = 0;
 
     @defectible(DEFECTIBLE)
     @type('number')
@@ -18,6 +19,7 @@ class Target extends Schema {
     name = '';
     design = design;
     broken = false;
+    energyPerMinute = 0;
 
     @type([DeeplyNested])
     array = new ArraySchema<DeeplyNested>(new DeeplyNested());

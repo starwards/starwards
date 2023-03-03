@@ -25,6 +25,19 @@ export interface SystemState extends Schema {
      * should only be updated as result of changes to defectible properties
      */
     readonly broken: boolean;
+    readonly energyPerMinute: number;
+}
+export function isSystemState(state: unknown): state is SystemState {
+    if (state && state instanceof Schema) {
+        const ss = state as SystemState;
+        return (
+            typeof ss.name === 'string' &&
+            typeof ss.broken === 'boolean' &&
+            typeof ss.energyPerMinute === 'number' &&
+            ss.design instanceof DesignState
+        );
+    }
+    return false;
 }
 export function defectible(config: DefectibleConfig) {
     return (target: SystemState, propertyKey: string | symbol) => {
@@ -39,14 +52,14 @@ export type System = {
     defectibles: DefectibleValue[];
 };
 
-function System(systemPointer: string, state: Schema): System {
+function System(systemPointer: string, state: SystemState): System {
     const defectibles: DefectibleValue[] = [];
     return {
         pointer: systemPointer,
-        state: state as SystemState,
+        state: state,
         defectibles,
         getStatus: () => {
-            if ((state as SystemState).broken) {
+            if (state.broken) {
                 return 'OFFLINE';
             }
             if (
@@ -65,7 +78,7 @@ function System(systemPointer: string, state: Schema): System {
 export function getSystems(root: Schema): System[] {
     const systemsMap: Record<string, System> = {};
     for (const [state, systemPointer, field, value] of allColyseusProperties(root)) {
-        if (state instanceof Schema && typeof value === 'number' && typeof field === 'string') {
+        if (isSystemState(state) && typeof value === 'number' && typeof field === 'string') {
             const config = Reflect.getMetadata(defectiblePropertyMetadataKey, state, field) as
                 | DefectibleConfig
                 | undefined;

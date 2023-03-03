@@ -29,6 +29,9 @@ export class Radar extends Schema {
     public readonly type = 'Radar';
     public readonly name = 'Radar';
 
+    @number2Digits
+    public energyPerMinute = 0;
+
     @type(RadarDesignState)
     design = new RadarDesignState();
 

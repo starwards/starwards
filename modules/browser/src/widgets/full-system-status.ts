@@ -1,6 +1,6 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
-import { BladeGuiApi, configSliderBlade, configTextBlade, wireBlade } from '../panel';
+import { BladeGuiApi, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
 import { Destructors, ShipDriver } from '@starwards/core';
 import { abstractOnChange, readNumberProp, readProp } from '../property-wrappers';
 
@@ -25,6 +25,7 @@ export function fullSystemsStatusWidget(shipDriver: ShipDriver): DashboardWidget
     };
 }
 
+const totalWidth = 500;
 const defectibleWidth = 80;
 const systemNameWidth = 130;
 export function drawFullSystemsStatus(
@@ -34,8 +35,7 @@ export function drawFullSystemsStatus(
 ) {
     const panelCleanup = new Destructors();
     const pane = new Pane({ title: 'Full Systems Status', container: container.getElement().get(0) });
-    const maxDefectibles = Math.max(...systems.map((sys) => sys.defectibles.length));
-    container.getElement().width(`500px`);
+    container.getElement().width(`${totalWidth}px`);
     pane.registerPlugin(TweakpaneTablePlugin);
     panelCleanup.add(() => {
         pane.dispose();
@@ -46,33 +46,36 @@ export function drawFullSystemsStatus(
         label: '',
         headers: [
             { label: 'Status', width: '60px' },
-            { label: '', width: `${maxDefectibles * 120}px` },
+            { label: 'Energy', width: '60px' },
         ],
     });
     for (const system of systems) {
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
         const defectiblesProps = system.defectibles.map(defectReadProp(shipDriver));
         const statusChangeProps = [brokenProp, ...defectiblesProps];
-        const getText = () => system.getStatus();
         const prop = {
-            onChange: (cb: () => unknown) => abstractOnChange(statusChangeProps, getText, cb),
-            getValue: getText,
+            onChange: (cb: () => unknown) => abstractOnChange(statusChangeProps, system.getStatus, cb),
+            getValue: system.getStatus,
         };
         const standardRowApi = pane.addBlade({
             view: 'tableRow',
             label: system.state.name,
-            cells: [
-                { ...configTextBlade({}, getText), width: '60px' },
-                { ...configTextBlade({}, () => ''), width: `${maxDefectibles * defectibleWidth * 2 - 60}px` },
-            ],
         }) as RowApi;
 
-        const statusCell = standardRowApi.getCell(0) as unknown as BladeGuiApi<string>;
-        wireBlade(statusCell, prop, panelCleanup.add);
+        const statusCell = addTextBlade(standardRowApi.getPane(), prop, { width: '60px' }, panelCleanup.add);
         statusCell.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
         const applyThemeByStatus = () => (statusCell.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
-        panelCleanup.add(abstractOnChange(statusChangeProps, system.getStatus, applyThemeByStatus));
+        const detachApplyThemeByStatus = abstractOnChange(statusChangeProps, system.getStatus, applyThemeByStatus);
+        panelCleanup.add(detachApplyThemeByStatus);
+
         applyThemeByStatus();
+        addTextBlade(
+            standardRowApi.getPane(),
+            readProp<number>(shipDriver, `${system.pointer}/energyPerMinute`),
+            { format: (epm: number) => `${epm} EPM`, width: '60px' },
+            panelCleanup.add
+        );
+
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);
