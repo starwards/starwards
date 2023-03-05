@@ -2,6 +2,7 @@ import { DesignState, defectible } from './system';
 import { ProjectileModel, projectileModels } from '../space/projectile';
 import { Schema, type } from '@colyseus/schema';
 
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { SmartPilotMode } from './smart-pilot';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
@@ -58,6 +59,11 @@ export class ChainGun extends Schema {
 
     @number2Digits
     public energyPerMinute = 0;
+
+    @range([0, MAX_SYSTEM_HEAT])
+    @tweakable('number')
+    @number2Digits
+    public heat = 0;
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */

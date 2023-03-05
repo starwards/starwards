@@ -1,6 +1,7 @@
 import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
 
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
@@ -35,6 +36,11 @@ export class Warp extends Schema {
 
     @number2Digits
     public energyPerMinute = 0;
+
+    @range([0, MAX_SYSTEM_HEAT])
+    @tweakable('number')
+    @number2Digits
+    public heat = 0;
 
     @type(WarpDesignState)
     design = new WarpDesignState();

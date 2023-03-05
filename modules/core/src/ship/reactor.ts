@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
@@ -12,6 +13,8 @@ export type ReactorDesign = {
     maxAfterBurnerFuel: number;
     afterBurnerCharge: number;
     afterBurnerEnergyCost: number;
+    energyHeatEPMThreshold: number;
+    energyHeat: number;
     damage50: number;
 };
 
@@ -21,6 +24,8 @@ export class ReactorDesignState extends DesignState implements ReactorDesign {
     @number2Digits maxAfterBurnerFuel = 0;
     @number2Digits afterBurnerCharge = 0;
     @number2Digits afterBurnerEnergyCost = 0;
+    @number2Digits energyHeatEPMThreshold = 0;
+    @number2Digits energyHeat = 0;
     @number2Digits damage50 = 0;
 }
 
@@ -34,6 +39,11 @@ export class Reactor extends Schema {
 
     @number2Digits
     public energyPerMinute = 0;
+
+    @range([0, MAX_SYSTEM_HEAT])
+    @tweakable('number')
+    @number2Digits
+    public heat = 0;
 
     @type(ReactorDesignState)
     design = new ReactorDesignState();

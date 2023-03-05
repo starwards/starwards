@@ -1,6 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 
 import { DesignState } from './system';
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Vec2 } from '../space';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
@@ -43,6 +44,11 @@ export class SmartPilot extends Schema {
 
     @number2Digits
     public energyPerMinute = 0;
+
+    @range([0, MAX_SYSTEM_HEAT])
+    @tweakable('number')
+    @number2Digits
+    public heat = 0;
 
     @type(SmartPilotDesignState)
     design = new SmartPilotDesignState();

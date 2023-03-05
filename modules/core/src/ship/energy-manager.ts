@@ -1,20 +1,20 @@
 import { capToRange, limitPercisionHard } from '../logic';
 
+import { HeatManager } from './heat-manager';
 import { ShipState } from './ship-state';
-
-interface System {
-    energyPerMinute: number;
-}
+import { ShipSystem } from './ship-manager';
 
 class EpmEntry {
     total = 0;
 }
 
-export class EnergyManager {
-    private epm = new Map<System, EpmEntry>();
-    constructor(private state: ShipState) {}
+const SECONDS_IN_MINUTE = 60;
 
-    trySpendEnergy(value: number, system?: System): boolean {
+export class EnergyManager {
+    private epm = new Map<ShipSystem, EpmEntry>();
+    constructor(private state: ShipState, private heatManager: HeatManager) {}
+
+    trySpendEnergy(value: number, system?: ShipSystem): boolean {
         if (value < 0) {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
@@ -26,9 +26,12 @@ export class EnergyManager {
                 }
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const entry = this.epm.get(system)!;
-                entry.total = entry.total + value * 60;
+                entry.total = entry.total + value * SECONDS_IN_MINUTE;
             }
             this.state.reactor.energy = this.state.reactor.energy - value;
+            if (system && system.energyPerMinute > this.state.reactor.design.energyHeatEPMThreshold) {
+                this.heatManager.addHeat(value * this.state.reactor.design.energyHeat, system);
+            }
             return true;
         }
         this.state.reactor.energy = 0;

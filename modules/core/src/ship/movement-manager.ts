@@ -1,9 +1,9 @@
+import { DamageManager, Die } from './damage-manager';
 import { ManeuveringCommand, SpaceManager, XY, capToRange, limitPercisionHard, matchLocalSpeed } from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
-import { Die } from './ship-manager';
 import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
 import { MAX_WARP_LVL } from './warp';
@@ -14,7 +14,6 @@ type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
-    damageAllSystems(damageObject: { id: string; amount: number }): void;
 };
 export class MovementManager {
     constructor(
@@ -22,6 +21,7 @@ export class MovementManager {
         public state: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
+        private damageManager: DamageManager,
         private energyManager: EnergyManager,
         public die: Die
     ) {}
@@ -69,7 +69,7 @@ export class MovementManager {
                 const currentSpeed = XY.lengthOf(this.state.velocity);
                 if (currentSpeed) {
                     // penalty damage for existing velocity
-                    this.shipManager.damageAllSystems({
+                    this.damageManager.damageAllSystems({
                         id: 'warp_start',
                         amount: this.state.warp.design.damagePerPhysicalSpeed * currentSpeed,
                     });
@@ -99,7 +99,7 @@ export class MovementManager {
                 this.state.angle
             );
             // penalty damage for existing velocity
-            this.shipManager.damageAllSystems({
+            this.damageManager.damageAllSystems({
                 id: 'warp_speed',
                 amount: this.state.warp.damagePerWarpSpeedPerSecond * newSpeed * deltaSeconds,
             });

@@ -4,9 +4,11 @@ import { DesignState, defectible } from './system';
 import { Schema, type } from '@colyseus/schema';
 import { getDirectionConfigFromAngle, shipDirectionRange } from './ship-direction';
 
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { ShipState } from './ship-state';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export type ThrusterDesign = {
     maxAngleError: number;
@@ -40,6 +42,11 @@ export class Thruster extends Schema {
 
     @number2Digits
     public energyPerMinute = 0;
+
+    @range([0, MAX_SYSTEM_HEAT])
+    @tweakable('number')
+    @number2Digits
+    public heat = 0;
 
     @type(ThrusterDesignState)
     design = new ThrusterDesignState();

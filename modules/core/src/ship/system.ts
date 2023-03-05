@@ -26,6 +26,7 @@ export interface SystemState extends Schema {
      */
     readonly broken: boolean;
     readonly energyPerMinute: number;
+    readonly heat: number;
 }
 export function isSystemState(state: unknown): state is SystemState {
     if (state && state instanceof Schema) {
@@ -34,6 +35,7 @@ export function isSystemState(state: unknown): state is SystemState {
             typeof ss.name === 'string' &&
             typeof ss.broken === 'boolean' &&
             typeof ss.energyPerMinute === 'number' &&
+            typeof ss.heat === 'number' &&
             ss.design instanceof DesignState
         );
     }
