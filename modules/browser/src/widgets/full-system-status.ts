@@ -46,7 +46,7 @@ export function drawFullSystemsStatus(
         label: '',
         headers: [
             { label: 'Status', width: '60px' },
-            { label: 'Energy', width: '60px' },
+            { label: 'Energy / Minute', width: '60px' },
         ],
     });
     for (const system of systems) {
@@ -72,7 +72,7 @@ export function drawFullSystemsStatus(
         addTextBlade(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/energyPerMinute`),
-            { format: (epm: number) => `${epm} EPM`, width: '60px' },
+            { format: (epm: number) => `${Math.round(epm)}`, width: '60px' },
             panelCleanup.add
         );
 

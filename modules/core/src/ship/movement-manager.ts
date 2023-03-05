@@ -4,6 +4,7 @@ import { SpaceObject, Spaceship } from '../space';
 import { Circle } from 'detect-collisions';
 import { DeepReadonly } from 'ts-essentials';
 import { Die } from './ship-manager';
+import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
 import { MAX_WARP_LVL } from './warp';
 import { ShipState } from './ship-state';
@@ -11,7 +12,6 @@ import { SmartPilotMode } from './smart-pilot';
 
 type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
-    trySpendEnergy(value: number): boolean;
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
     damageAllSystems(damageObject: { id: string; amount: number }): void;
@@ -22,6 +22,7 @@ export class MovementManager {
         public state: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
+        private energyManager: EnergyManager,
         public die: Die
     ) {}
 
@@ -127,7 +128,7 @@ export class MovementManager {
             let speedToChange = 0;
             const rotateFactor = this.state.rotation * deltaSeconds;
             const enginePower = rotateFactor * this.state.design.rotationCapacity;
-            if (this.shipManager.trySpendEnergy(Math.abs(enginePower) * this.state.design.rotationEnergyCost)) {
+            if (this.energyManager.trySpendEnergy(Math.abs(enginePower) * this.state.design.rotationEnergyCost)) {
                 speedToChange += enginePower;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
@@ -215,7 +216,9 @@ export class MovementManager {
             const globalAngle = thruster.angle + this.state.angle;
             const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
             const axisCapacity = thruster.capacity * deltaSeconds;
-            if (this.shipManager.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost)) {
+            if (
+                this.energyManager.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost, thruster)
+            ) {
                 thruster.active = desiredAction;
             }
             if (this.state.afterBurner) {

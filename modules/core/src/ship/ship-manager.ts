@@ -22,12 +22,13 @@ import {
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { FRONT_ARC, REAR_ARC } from '.';
-import { RTuple2, limitPercisionHard, sinWave } from '../logic';
+import { RTuple2, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
 import { DockingManager } from './docking-manager';
+import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
@@ -93,6 +94,7 @@ export class ShipManager {
     private chainGunManager: ChainGunManager | null = null;
     private movementManager: MovementManager;
     private dockingManager: DockingManager;
+    private energyManager: EnergyManager;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -121,7 +123,15 @@ export class ShipManager {
                 this
             );
         }
-        this.movementManager = new MovementManager(this.spaceObject, this.state, this.spaceManager, this, this.die);
+        this.energyManager = new EnergyManager(this.state);
+        this.movementManager = new MovementManager(
+            this.spaceObject,
+            this.state,
+            this.spaceManager,
+            this,
+            this.energyManager,
+            this.die
+        );
         this.dockingManager = new DockingManager(this.spaceObject, this.state, this.spaceManager, this);
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
@@ -224,11 +234,10 @@ export class ShipManager {
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
         this.calcTargetedStatus();
-        this.updateEnergy(deltaSeconds);
+        this.energyManager.update(deltaSeconds);
 
         this.calcSmartPilotRotation(deltaSeconds);
 
-        this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
         this.updateChainGunAmmo();
         this.dockingManager.update();
@@ -473,21 +482,6 @@ export class ShipManager {
         }
         this.state.rotation = capToRange(-1, 1, rotationCommand);
     }
-
-    private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.reactor.afterBurnerFuel < this.state.reactor.design.maxAfterBurnerFuel) {
-            const afterBurnerFuelDelta = Math.min(
-                this.state.reactor.design.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
-                this.state.reactor.design.afterBurnerCharge * deltaSeconds
-            );
-            if (this.trySpendEnergy(afterBurnerFuelDelta * this.state.reactor.design.afterBurnerEnergyCost)) {
-                this.state.reactor.afterBurnerFuel = limitPercisionHard(
-                    this.state.reactor.afterBurnerFuel + afterBurnerFuelDelta
-                );
-            }
-        }
-    }
-
     private calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
@@ -531,27 +525,6 @@ export class ShipManager {
         this.state.faction = this.spaceObject.faction;
         this.state.radius = this.spaceObject.radius;
         this.state.radarRange = this.spaceObject.radarRange;
-    }
-
-    trySpendEnergy(value: number): boolean {
-        if (value < 0) {
-            // eslint-disable-next-line no-console
-            console.log('probably an error: spending negative energy');
-        }
-        if (this.state.reactor.energy > value) {
-            this.state.reactor.energy = this.state.reactor.energy - value;
-            return true;
-        }
-        this.state.reactor.energy = 0;
-        return false;
-    }
-
-    private updateEnergy(deltaSeconds: number) {
-        this.state.reactor.energy = capToRange(
-            0,
-            this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds
-        );
     }
 
     private updateChainGunAmmo() {
