@@ -65,6 +65,8 @@ export class Warp extends Schema {
     @tweakable('number')
     desiredLevel = 0;
 
+    @type('boolean')
+    jammed = false;
     // server only, used for commands
     public levelUpCommand = false;
     public levelDownCommand = false;

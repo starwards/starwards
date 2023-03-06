@@ -1,9 +1,10 @@
-import { DamageManager, Die } from './damage-manager';
 import { ManeuveringCommand, SpaceManager, XY, capToRange, limitPercisionHard, matchLocalSpeed } from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
+import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
+import { Die } from './ship-manager';
 import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
 import { MAX_WARP_LVL } from './warp';
@@ -15,7 +16,10 @@ type ShipManager = {
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
 };
+
+export const CHECK_JAM_INTERVAL_SECONDS = 5;
 export class MovementManager {
+    private lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
@@ -28,7 +32,7 @@ export class MovementManager {
 
     update(deltaSeconds: number) {
         this.handleWarpCommands();
-        this.handleWarpProximityJam();
+        this.handleWarpProximityJam(deltaSeconds);
         this.handleWarpLevel(deltaSeconds);
         this.handleWarpMovement(deltaSeconds);
         this.handleAfterburnerCommand();
@@ -51,16 +55,27 @@ export class MovementManager {
         }
     }
 
-    private handleWarpProximityJam() {
+    private handleWarpProximityJam(deltaSeconds: number) {
         if (this.state.warp.desiredLevel > 0) {
-            const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
-            const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
-                .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
-                .firstOr(null);
-            if (objectInRange) {
+            this.checkJam();
+            if (this.state.warp.jammed) {
                 this.state.warp.desiredLevel = 0;
             }
+        } else {
+            this.lastJamTime = this.lastJamTime - deltaSeconds;
+            if (this.lastJamTime <= 0) {
+                this.checkJam();
+            }
         }
+    }
+
+    private checkJam() {
+        const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
+        const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
+            .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
+            .firstOr(null);
+        this.state.warp.jammed = !!objectInRange;
+        this.lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
     }
 
     private handleWarpLevel(deltaSeconds: number) {

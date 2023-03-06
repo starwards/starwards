@@ -1,5 +1,5 @@
 import { Body, Circle, System } from 'detect-collisions';
-import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { Destructors, Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Faction, Spaceship, Waypoint } from '../space';
 import {
     FieldOfView,
@@ -53,6 +53,7 @@ export class SpaceManager {
     private objectOrder = new Map<string, BotOrder>();
     private toInsert: SpaceObject[] = [];
 
+    private cleanupBodies: Body[] = [];
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
 
@@ -65,7 +66,8 @@ export class SpaceManager {
                     yield object;
                 }
             }
-            mgr.collisions.remove(area);
+            mgr.cleanupBodies.push(area);
+            // mgr.collisions.remove(area);
         },
         *queryArea(area: Body): Iterable<SpaceObject> {
             mgr.collisions.insert(area);
@@ -75,7 +77,8 @@ export class SpaceManager {
                     yield object;
                 }
             }
-            mgr.collisions.remove(area);
+            mgr.cleanupBodies.push(area);
+            // mgr.collisions.remove(area);
         },
     }))(this);
 
@@ -287,6 +290,10 @@ export class SpaceManager {
                 this.attachments.delete(destroyed.id);
             }
         }
+        for (const body of this.cleanupBodies) {
+            this.collisions.remove(body);
+        }
+        this.cleanupBodies.length = 0;
     }
 
     public insert(object: SpaceObject) {

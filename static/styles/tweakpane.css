@@ -44,3 +44,9 @@
 :root .heat[data-status='WARMING'] {
     --tp-base-background-color: hsl(52, 61%, 18%, 1);
 }
+:root [data-status='WARN'] {
+    --tp-base-background-color: hsl(52, 61%, 18%, 1);
+}
+:root [data-status='ERROR'] {
+    --tp-base-background-color: hsl(52, 61%, 18%, 1);
+}
