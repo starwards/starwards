@@ -43,6 +43,7 @@ function fixArmor(armor: Armor) {
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
+    state.reactor.afterBurnerFuel = state.reactor.design.maxAfterBurnerFuel;
     fixArmor(state.armor);
     if (state.chainGun) {
         resetChainGun(state.chainGun);
@@ -97,6 +98,7 @@ export class ShipManager {
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET
         );
+        resetShipState(this.state);
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
                 this.state.chainGun,
@@ -107,7 +109,7 @@ export class ShipManager {
             );
         }
         this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
-        this.heatManager = new HeatManager(this.state, this.damageManager);
+        this.heatManager = new HeatManager(this.damageManager);
         this.energyManager = new EnergyManager(this.state, this.heatManager);
         this.movementManager = new MovementManager(
             this.spaceObject,

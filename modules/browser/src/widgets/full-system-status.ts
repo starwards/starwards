@@ -46,7 +46,8 @@ export function drawFullSystemsStatus(
         label: '',
         headers: [
             { label: 'Status', width: '60px' },
-            { label: 'Energy / Minute', width: '60px' },
+            { label: 'EPM', width: '60px' },
+            { label: 'Heat', width: '60px' },
         ],
     });
     for (const system of systems) {
@@ -73,6 +74,12 @@ export function drawFullSystemsStatus(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/energyPerMinute`),
             { format: (epm: number) => `${Math.round(epm)}`, width: '60px' },
+            panelCleanup.add
+        );
+        addTextBlade(
+            standardRowApi.getPane(),
+            readProp<number>(shipDriver, `${system.pointer}/heat`),
+            { format: (heat: number) => `${Math.round(heat)}`, width: '60px' },
             panelCleanup.add
         );
 

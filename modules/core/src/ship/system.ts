@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Schema } from '@colyseus/schema';
 import { allColyseusProperties } from '../traverse';
 
@@ -51,6 +52,7 @@ export type System = {
     pointer: string;
     state: SystemState;
     getStatus: () => 'OFFLINE' | 'DAMAGED' | 'OK';
+    getHeatStatus: () => 'OVERHEAT' | 'WARMING' | 'OK';
     defectibles: DefectibleValue[];
 };
 
@@ -71,6 +73,15 @@ function System(systemPointer: string, state: SystemState): System {
                 })
             ) {
                 return 'DAMAGED';
+            }
+            return 'OK';
+        },
+        getHeatStatus: () => {
+            if (state.heat >= MAX_SYSTEM_HEAT) {
+                return 'OVERHEAT';
+            }
+            if (state.heat >= MAX_SYSTEM_HEAT / 2) {
+                return 'WARMING';
             }
             return 'OK';
         },

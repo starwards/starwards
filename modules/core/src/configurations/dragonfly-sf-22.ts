@@ -37,8 +37,8 @@ export const dragonflyReactor = {
     maxAfterBurnerFuel: 5000,
     afterBurnerCharge: 20,
     afterBurnerEnergyCost: 0.07,
-    energyHeatEPMThreshold: 5,
-    energyHeat: 0.1,
+    energyHeatEPMThreshold: 20,
+    energyHeat: 0.5,
     damage50: 20,
 };
 export const dragonflyProperties = {
