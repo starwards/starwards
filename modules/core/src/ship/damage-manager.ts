@@ -26,21 +26,6 @@ import { Warp } from './warp';
 import { gaussianRandom } from '..';
 
 export class DamageManager {
-    private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
-        [
-            ShipArea.front,
-            [
-                this.state.chainGun,
-                this.state.radar,
-                this.state.smartPilot,
-                this.state.magazine,
-                this.state.warp,
-                this.state.docking,
-            ],
-        ],
-        [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
-    ]);
-
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         private state: ShipState,
@@ -59,7 +44,7 @@ export class DamageManager {
                 const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
                 if (areaUnarmoredHits) {
                     const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-                    for (const system of this.systemsByAreas.get(hitArea) || []) {
+                    for (const system of this.state.systemsByAreas(hitArea) || []) {
                         if (system) this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
                     }
                 }
@@ -69,8 +54,8 @@ export class DamageManager {
     }
 
     damageAllSystems(damageObject: { id: string; amount: number }) {
-        for (const system of [...this.systemsByAreas.values()].flat()) {
-            if (system) this.damageSystem(system, damageObject, 1);
+        for (const system of this.state.systems()) {
+            this.damageSystem(system, damageObject, 1);
         }
     }
 

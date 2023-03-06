@@ -44,6 +44,7 @@ export const dragonflyReactor = {
 export const dragonflyProperties = {
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
+    totalCoolant: 10,
 };
 export const dragonflyMagazine = {
     max_CannonShell: 3600,

@@ -5,6 +5,7 @@ import {
     Faction,
     Radar,
     Reactor,
+    ShipArea,
     ShipState,
     SmartPilot,
     SmartPilotMode,
@@ -31,7 +32,7 @@ import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
-import Warp from './warp';
+import { Warp } from './warp';
 import { sinWave } from '../logic';
 
 function fixArmor(armor: Armor) {
@@ -109,7 +110,7 @@ export class ShipManager {
             );
         }
         this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
-        this.heatManager = new HeatManager(this.damageManager);
+        this.heatManager = new HeatManager(this.state, this.damageManager);
         this.energyManager = new EnergyManager(this.state, this.heatManager);
         this.movementManager = new MovementManager(
             this.spaceObject,
@@ -206,6 +207,7 @@ export class ShipManager {
         this.totalSeconds += deltaSeconds;
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
+        this.heatManager.update(deltaSeconds);
         this.healPlates(deltaSeconds);
         this.damageManager.update();
         this.applyBotOrders();

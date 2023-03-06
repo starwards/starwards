@@ -37,6 +37,11 @@ export abstract class SystemState extends Schema {
     @tweakable('number')
     @number2Digits
     public heat = 0;
+
+    @range([0, 1])
+    @tweakable('number')
+    @number2Digits
+    public coolantFactor = 0;
 }
 
 export function defectible(config: DefectibleConfig) {

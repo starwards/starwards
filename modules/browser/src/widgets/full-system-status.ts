@@ -1,8 +1,8 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
-import { BladeGuiApi, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
+import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
 import { Destructors, ShipDriver } from '@starwards/core';
-import { abstractOnChange, readNumberProp, readProp } from '../property-wrappers';
+import { abstractOnChange, readNumberProp, readProp, readWriteNumberProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
@@ -25,7 +25,7 @@ export function fullSystemsStatusWidget(shipDriver: ShipDriver): DashboardWidget
     };
 }
 
-const totalWidth = 500;
+const totalWidth = 600;
 const defectibleWidth = 80;
 const systemNameWidth = 130;
 export function drawFullSystemsStatus(
@@ -48,6 +48,7 @@ export function drawFullSystemsStatus(
             { label: 'Status', width: '60px' },
             { label: 'EPM', width: '60px' },
             { label: 'Heat', width: '60px' },
+            { label: 'Coolant', width: '120px' },
         ],
     });
     for (const system of systems) {
@@ -82,7 +83,12 @@ export function drawFullSystemsStatus(
             { format: (heat: number) => `${Math.round(heat)}`, width: '60px' },
             panelCleanup.add
         );
-
+        addSliderBlade(
+            standardRowApi.getPane(),
+            readNumberProp(shipDriver, `${system.pointer}/coolantFactor`),
+            { format: (c: number) => `${Math.round(c * 100)}%`, width: '120px' },
+            panelCleanup.add
+        );
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);
