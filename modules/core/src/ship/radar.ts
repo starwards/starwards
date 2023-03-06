@@ -1,11 +1,9 @@
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState } from './system';
 
-import { DesignState } from './system';
-import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
-import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export type RadarDesign = {
     damage50: number;
@@ -23,21 +21,13 @@ export class RadarDesignState extends DesignState implements RadarDesign {
     @number2Digits rangeEaseFactor = 0;
     @number2Digits malfunctionRange = 0;
 }
-export class Radar extends Schema {
+export class Radar extends SystemState {
     public static isInstance = (o: unknown): o is Radar => {
         return (o as Radar)?.type === 'Radar';
     };
 
     public readonly type = 'Radar';
     public readonly name = 'Radar';
-
-    @number2Digits
-    public energyPerMinute = 0;
-
-    @range([0, MAX_SYSTEM_HEAT])
-    @tweakable('number')
-    @number2Digits
-    public heat = 0;
 
     @type(RadarDesignState)
     design = new RadarDesignState();

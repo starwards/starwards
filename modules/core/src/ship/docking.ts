@@ -1,11 +1,10 @@
-import { DesignState, defectible } from './system';
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
 import { EPSILON } from '../logic';
-import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export enum DockingMode {
     DOCKED,
@@ -31,21 +30,13 @@ export class DockingDesignState extends DesignState implements DockingDesign {
     @number2Digits angle = 0;
     @number2Digits width = 0;
 }
-export class Docking extends Schema {
+export class Docking extends SystemState {
     public static isInstance = (o: unknown): o is Docking => {
         return (o as Docking)?.type === 'Docking';
     };
 
     public readonly type = 'Docking';
     public readonly name = 'Docking';
-
-    @number2Digits
-    public energyPerMinute = 0;
-
-    @range([0, MAX_SYSTEM_HEAT])
-    @tweakable('number')
-    @number2Digits
-    public heat = 0;
 
     @type(DockingDesignState)
     design = new DockingDesignState();

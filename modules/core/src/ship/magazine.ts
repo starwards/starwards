@@ -1,10 +1,9 @@
-import { DesignState, defectible } from './system';
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
-import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 
@@ -26,21 +25,13 @@ export class MagazineDesignState extends DesignState implements MagazineDesign {
     @number2Digits capacityDamageFactor = 0;
 }
 
-export class Magazine extends Schema {
+export class Magazine extends SystemState {
     public static isInstance = (o: unknown): o is Magazine => {
         return (o as Magazine)?.type === 'Magazine';
     };
 
     public readonly type = 'Magazine';
     public readonly name = 'Magazine';
-
-    @number2Digits
-    public energyPerMinute = 0;
-
-    @range([0, MAX_SYSTEM_HEAT])
-    @tweakable('number')
-    @number2Digits
-    public heat = 0;
 
     @type(MagazineDesignState)
     design = new MagazineDesignState();

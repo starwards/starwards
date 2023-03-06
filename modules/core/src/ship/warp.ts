@@ -1,10 +1,9 @@
-import { DesignState, defectible } from './system';
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
-import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export type WarpDesign = {
     damage50: number;
@@ -26,21 +25,13 @@ export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits damagePerPhysicalSpeed = 0;
     @number2Digits baseDamagePerWarpSpeedPerSecond = 0;
 }
-export class Warp extends Schema {
+export class Warp extends SystemState {
     public static isInstance = (o: unknown): o is Warp => {
         return (o as Warp)?.type === 'Warp';
     };
 
     public readonly type = 'Warp';
     public readonly name = 'Warp';
-
-    @number2Digits
-    public energyPerMinute = 0;
-
-    @range([0, MAX_SYSTEM_HEAT])
-    @tweakable('number')
-    @number2Digits
-    public heat = 0;
 
     @type(WarpDesignState)
     design = new WarpDesignState();

@@ -1,12 +1,10 @@
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
-import { DesignState } from './system';
-import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Vec2 } from '../space';
-import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export type SmartPilotDesign = {
     maxTargetAimOffset: number;
@@ -34,21 +32,13 @@ export class SmartPilotDesignState extends DesignState implements SmartPilotDesi
     @number2Digits maxSpeedFromAfterBurner = 0;
 }
 
-export class SmartPilot extends Schema {
+export class SmartPilot extends SystemState {
     public static isInstance = (o: unknown): o is SmartPilot => {
         return (o as SmartPilot)?.type === 'SmartPilot';
     };
 
     public readonly type = 'SmartPilot';
     public readonly name = 'Smart pilot';
-
-    @number2Digits
-    public energyPerMinute = 0;
-
-    @range([0, MAX_SYSTEM_HEAT])
-    @tweakable('number')
-    @number2Digits
-    public heat = 0;
 
     @type(SmartPilotDesignState)
     design = new SmartPilotDesignState();

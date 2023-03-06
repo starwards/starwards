@@ -31,7 +31,7 @@ import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
-import { Warp } from './warp';
+import Warp from './warp';
 import { sinWave } from '../logic';
 
 function fixArmor(armor: Armor) {
