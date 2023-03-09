@@ -1,4 +1,13 @@
-import { ManeuveringCommand, SpaceManager, XY, capToRange, limitPercisionHard, matchLocalSpeed } from '../logic';
+import {
+    ManeuveringCommand,
+    SpaceManager,
+    XY,
+    capToRange,
+    limitPercisionHard,
+    matchLocalSpeed,
+    rotateToTarget,
+    rotationFromTargetTurnSpeed,
+} from '../logic';
 import { SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
@@ -38,6 +47,7 @@ export class MovementManager {
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
+        this.calcRotation(deltaSeconds);
         this.updateRotation(deltaSeconds);
         const maneuveringAction = this.calcManeuveringAction();
         this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
@@ -138,6 +148,46 @@ export class MovementManager {
         return !this.state.warp.broken && this.state.warp.currentLevel;
     }
 
+    private calcRotation(deltaSeconds: number) {
+        let rotationCommand: number | undefined = undefined;
+        switch (this.state.smartPilot.rotationMode) {
+            case SmartPilotMode.DIRECT:
+                rotationCommand = this.state.smartPilot.rotation;
+                break;
+            case SmartPilotMode.TARGET: {
+                if (this.shipManager.weaponsTarget) {
+                    this.state.smartPilot.rotationTargetOffset = capToRange(
+                        -1,
+                        1,
+                        this.state.smartPilot.rotationTargetOffset +
+                            (this.state.smartPilot.rotation *
+                                deltaSeconds *
+                                this.state.smartPilot.design.aimOffsetSpeed) /
+                                this.state.smartPilot.design.maxTargetAimOffset
+                    );
+                    rotationCommand = rotateToTarget(
+                        deltaSeconds,
+                        this.state,
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        this.shipManager.weaponsTarget.position,
+                        this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
+                    );
+                } else {
+                    rotationCommand = 0;
+                }
+                break;
+            }
+            case SmartPilotMode.VELOCITY: {
+                rotationCommand = rotationFromTargetTurnSpeed(
+                    deltaSeconds,
+                    this.state,
+                    this.state.smartPilot.rotation * this.state.smartPilot.design.maxTurnSpeed
+                );
+                break;
+            }
+        }
+        this.state.rotation = capToRange(-1, 1, rotationCommand);
+    }
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
             let speedToChange = 0;

@@ -15,8 +15,6 @@ import {
     capToRange,
     lerp,
     projectileModels,
-    rotateToTarget,
-    rotationFromTargetTurnSpeed,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 
@@ -225,10 +223,8 @@ export class ShipManager {
         this.calcTargetedStatus();
         this.energyManager.update(deltaSeconds);
 
-        this.calcSmartPilotRotation(deltaSeconds);
-
         this.updateRadarRange();
-        this.updateChainGunAmmo();
+        this.updateAmmo();
         this.dockingManager.update();
     }
 
@@ -279,46 +275,6 @@ export class ShipManager {
         }
     }
 
-    private calcSmartPilotRotation(deltaSeconds: number) {
-        let rotationCommand: number | undefined = undefined;
-        switch (this.state.smartPilot.rotationMode) {
-            case SmartPilotMode.DIRECT:
-                rotationCommand = this.state.smartPilot.rotation;
-                break;
-            case SmartPilotMode.TARGET: {
-                if (this.weaponsTarget) {
-                    this.state.smartPilot.rotationTargetOffset = capToRange(
-                        -1,
-                        1,
-                        this.state.smartPilot.rotationTargetOffset +
-                            (this.state.smartPilot.rotation *
-                                deltaSeconds *
-                                this.state.smartPilot.design.aimOffsetSpeed) /
-                                this.state.smartPilot.design.maxTargetAimOffset
-                    );
-                    rotationCommand = rotateToTarget(
-                        deltaSeconds,
-                        this.state,
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        this.weaponsTarget.position,
-                        this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
-                    );
-                } else {
-                    rotationCommand = 0;
-                }
-                break;
-            }
-            case SmartPilotMode.VELOCITY: {
-                rotationCommand = rotationFromTargetTurnSpeed(
-                    deltaSeconds,
-                    this.state,
-                    this.state.smartPilot.rotation * this.state.smartPilot.design.maxTurnSpeed
-                );
-                break;
-            }
-        }
-        this.state.rotation = capToRange(-1, 1, rotationCommand);
-    }
     private calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
@@ -364,7 +320,7 @@ export class ShipManager {
         this.state.radarRange = this.spaceObject.radarRange;
     }
 
-    private updateChainGunAmmo() {
+    private updateAmmo() {
         for (const projectileKey of projectileModels) {
             this.state.magazine[`count_${projectileKey}`] = Math.min(
                 this.state.magazine[`count_${projectileKey}`],
