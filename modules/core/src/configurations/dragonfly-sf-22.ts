@@ -15,9 +15,10 @@ export const dragonflyThruster = {
 };
 export const dragonflyRadar = {
     damage50: 20,
-    basicRange: 3_000,
+    range: 10_000,
+    energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 1_500,
+    malfunctionRange: 5_000,
 };
 export const dragonflyChaingun = {
     bulletsPerSecond: 20,

@@ -1,8 +1,7 @@
 import 'reflect-metadata';
 
-import { Schema, type } from '@colyseus/schema';
-
 import { MAX_SYSTEM_HEAT } from './heat-manager';
+import { Schema } from '@colyseus/schema';
 import { allColyseusProperties } from '../traverse';
 import { number2Digits } from '../number-field';
 import { range } from '../range';

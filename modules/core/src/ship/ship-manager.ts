@@ -223,18 +223,26 @@ export class ShipManager {
         this.calcTargetedStatus();
         this.energyManager.update(deltaSeconds);
 
-        this.updateRadarRange();
+        this.updateRadarRange(deltaSeconds);
         this.updateAmmo();
         this.dockingManager.update();
     }
 
-    private updateRadarRange() {
-        this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange());
+    private updateRadarRange(deltaSeconds: number) {
+        const range = this.calcRadarRange();
+        if (
+            this.energyManager.trySpendEnergy(
+                range * (this.state.radar.design.energyCost / 1000) * deltaSeconds,
+                this.state.radar
+            )
+        ) {
+            this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange());
+        }
         this.state.radarRange = this.spaceObject.radarRange;
     }
 
     private calcRadarRange() {
-        if (this.state.radar.malfunctionRangeFactor) {
+        if (this.state.radar.malfunctionRangeFactor && this.state.radar.power) {
             const frequency = this.die.getRollInRange('updateRadarRangeFrequency', 0.2, 1);
             const wave = sinWave(this.totalSeconds, frequency, 0.5, 0, 0.5);
             const factorEaseRange = [
@@ -242,13 +250,15 @@ export class ShipManager {
                 this.state.radar.malfunctionRangeFactor + this.state.radar.design.rangeEaseFactor,
             ] as const;
             const cappedWave = capToRange(...factorEaseRange, wave);
-            return lerp(
-                factorEaseRange,
-                [this.state.radar.design.malfunctionRange, this.state.radar.design.basicRange],
-                cappedWave
+            return (
+                lerp(
+                    factorEaseRange,
+                    [this.state.radar.design.malfunctionRange, this.state.radar.design.range],
+                    cappedWave
+                ) * this.state.radar.power
             );
         } else {
-            return this.state.radar.design.basicRange;
+            return this.state.radar.design.range * this.state.radar.power;
         }
     }
 
