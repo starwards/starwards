@@ -1,7 +1,8 @@
 import 'reflect-metadata';
 
+import { Schema, type } from '@colyseus/schema';
+
 import { MAX_SYSTEM_HEAT } from './heat-manager';
-import { Schema } from '@colyseus/schema';
 import { allColyseusProperties } from '../traverse';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
@@ -17,7 +18,13 @@ export abstract class DesignState extends Schema {
 
 export type DefectibleConfig = { normal: number; name: string };
 export type DefectibleValue = DefectibleConfig & { value: number; field: string; systemPointer: string };
-
+export enum PowerLevel {
+    SHUTDOWN = 0,
+    LOW = 0.25,
+    MID = 0.5,
+    HIGH = 0.75,
+    MAX = 1,
+}
 /**
  * An object that can be decorated with @defectible
  */
@@ -42,6 +49,11 @@ export abstract class SystemState extends Schema {
     @tweakable('number')
     @number2Digits
     public coolantFactor = 0;
+
+    @range([0, 3])
+    @tweakable({ type: 'enum', enum: PowerLevel })
+    @number2Digits
+    public power = PowerLevel.MAX;
 }
 
 export function defectible(config: DefectibleConfig) {
@@ -53,7 +65,7 @@ export function defectible(config: DefectibleConfig) {
 export type System = {
     pointer: string;
     state: SystemState;
-    getStatus: () => 'OFFLINE' | 'DAMAGED' | 'OK';
+    getStatus: () => 'DISABLED' | 'DAMAGED' | 'OK';
     getHeatStatus: () => 'OVERHEAT' | 'WARMING' | 'OK';
     defectibles: DefectibleValue[];
 };
@@ -66,7 +78,7 @@ function System(systemPointer: string, state: SystemState): System {
         defectibles,
         getStatus: () => {
             if (state.broken) {
-                return 'OFFLINE';
+                return 'DISABLED';
             }
             if (
                 defectibles.some((d) => {

@@ -1,6 +1,6 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
-import { Destructors, ShipDriver } from '@starwards/core';
+import { Destructors, PowerLevel, ShipDriver } from '@starwards/core';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -38,6 +38,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
         label: '',
         headers: [
             { label: 'Status', width: '60px' },
+            { label: 'Power', width: '60px' },
             { label: 'Heat', width: '60px' },
         ],
     });
@@ -58,6 +59,24 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
         const applyThemeToStatus = () => (statusBlade.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
         panelCleanup.add(statusProp.onChange(applyThemeToStatus));
         applyThemeToStatus();
+
+        const powerBlade = addTextBlade(
+            standardRowApi.getPane(),
+            readProp<number>(shipDriver, `${system.pointer}/power`),
+            { format: (p: PowerLevel) => PowerLevel[p], width: '60px' },
+            panelCleanup.add
+        );
+        powerBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
+        const powerStatusColor = {
+            [PowerLevel.MAX]: 'OK',
+            [PowerLevel.HIGH]: 'OK',
+            [PowerLevel.MID]: 'WARN',
+            [PowerLevel.LOW]: 'WARN',
+            [PowerLevel.SHUTDOWN]: 'ERROR',
+        } as const;
+        const applyThemeToPower = () => (powerBlade.element.dataset.status = powerStatusColor[system.state.power]); // this will change tweakpane theme for this folder, see tweakpane.css
+        panelCleanup.add(statusProp.onChange(applyThemeToPower));
+        applyThemeToPower();
 
         const heatProp = {
             onChange: (cb: () => unknown) =>
