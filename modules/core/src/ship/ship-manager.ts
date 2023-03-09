@@ -5,7 +5,6 @@ import {
     Faction,
     Radar,
     Reactor,
-    ShipArea,
     ShipState,
     SmartPilot,
     SmartPilotMode,

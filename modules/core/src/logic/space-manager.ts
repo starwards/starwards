@@ -1,5 +1,5 @@
 import { Body, Circle, System } from 'detect-collisions';
-import { Destructors, Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { Faction, Spaceship, Waypoint } from '../space';
 import {
     FieldOfView,

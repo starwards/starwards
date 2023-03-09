@@ -59,10 +59,13 @@ describe('ShipManager', () => {
                     [explosionAngleToShip, explosionAngleToShip],
                     sizeOfPlate + EPSILON
                 );
-                const brokenOutsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                //@ts-ignore : access private property
+                const brokenOutsideExplosion = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
                 expect(brokenOutsideExplosion).to.equal(2);
 
-                const brokenInsideExplosion = shipMgr.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
+                const brokenInsideExplosion =
+                    //@ts-ignore : access private property
+                    shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
                 expect(brokenInsideExplosion).to.equal(2);
                 expect(shipMgr.state.chainGun!.broken).to.be.false;
                 expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);

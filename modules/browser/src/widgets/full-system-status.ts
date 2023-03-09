@@ -2,7 +2,7 @@ import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
 import { Destructors, ShipDriver } from '@starwards/core';
-import { abstractOnChange, readNumberProp, readProp, readWriteNumberProp } from '../property-wrappers';
+import { abstractOnChange, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
