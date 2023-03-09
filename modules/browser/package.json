@@ -41,7 +41,7 @@
         "webfontloader": "^1.6.28"
     },
     "devDependencies": {
-        "@babylonjs/gui": "5.45.0",
+        "@babylonjs/gui": "5.49.2",
         "@babylonjs/inspector": "5.45.0"
     }
 }
