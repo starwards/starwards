@@ -7,9 +7,8 @@ export const dragonflyArmor = {
 };
 export const dragonflyThruster = {
     maxAngleError: 45,
-    capacity: 50,
+    capacity: 150,
     energyCost: 0.07,
-    speedFactor: 3,
     afterBurnerCapacity: 300,
     afterBurnerEffectFactor: 1,
     damage50: 15,

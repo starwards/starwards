@@ -206,12 +206,7 @@ export class MovementManager {
     private updateVelocityFromThrusters(deltaSeconds: number) {
         const speedToChange = XY.sum(
             ...this.state.thrusters.map((thruster) => {
-                const mvEffect =
-                    thruster.active *
-                    thruster.capacity *
-                    thruster.availableCapacity *
-                    thruster.design.speedFactor *
-                    deltaSeconds;
+                const mvEffect = thruster.active * thruster.capacity * thruster.availableCapacity * deltaSeconds;
                 const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(
                     mvEffect + abEffect,
