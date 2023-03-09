@@ -79,3 +79,7 @@ export function printError(err: unknown): string {
         return String(err);
     }
 }
+
+export function notNull<T>(e: T): e is Exclude<T, null> {
+    return e !== null;
+}

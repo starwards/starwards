@@ -1,8 +1,11 @@
+import * as TweakpaneTablePlugin from 'tweakpane-table';
+
 import { Destructors, ShipDriver } from '@starwards/core';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
+import { RowApi } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 import { addTextBlade } from '../panel';
 import { defectReadProp } from '../react/hooks';
@@ -25,23 +28,46 @@ export function systemsStatusWidget(shipDriver: ShipDriver): DashboardWidget {
 export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDriver, systems = shipDriver.systems) {
     const panelCleanup = new Destructors();
     const pane = new Pane({ title: 'Systems Status', container: container.getElement().get(0) });
+    pane.registerPlugin(TweakpaneTablePlugin);
     panelCleanup.add(() => {
         pane.dispose();
     });
     container.on('destroy', panelCleanup.destroy);
+    pane.addBlade({
+        view: 'tableHead',
+        label: '',
+        headers: [
+            { label: 'Status', width: '60px' },
+            { label: 'Heat', width: '60px' },
+        ],
+    });
     for (const system of systems) {
+        const standardRowApi = pane.addBlade({
+            view: 'tableRow',
+            label: system.state.name,
+        }) as RowApi;
+
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
         const defectibleProps = [brokenProp, ...system.defectibles.map(defectReadProp(shipDriver))];
-        const getText = () => system.getStatus();
-        const prop = {
-            onChange: (cb: () => unknown) => abstractOnChange(defectibleProps, getText, cb),
-            getValue: getText,
+        const statusProp = {
+            onChange: (cb: () => unknown) => abstractOnChange(defectibleProps, system.getStatus, cb),
+            getValue: system.getStatus,
         };
-        const guiController = addTextBlade(pane, prop, { label: system.state.name }, panelCleanup.add);
-        // This allows overriding tweakpane theme for this folder
-        guiController.element.classList.add('tp-rotv');
-        const applyThemeByStatus = () => (guiController.element.dataset.status = system.getStatus());
-        panelCleanup.add(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
-        applyThemeByStatus();
+        const statusBlade = addTextBlade(standardRowApi.getPane(), statusProp, { width: '60px' }, panelCleanup.add);
+        statusBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
+        const applyThemeToStatus = () => (statusBlade.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
+        panelCleanup.add(statusProp.onChange(applyThemeToStatus));
+        applyThemeToStatus();
+
+        const heatProp = {
+            onChange: (cb: () => unknown) =>
+                abstractOnChange([readProp<number>(shipDriver, `${system.pointer}/heat`)], system.getHeatStatus, cb),
+            getValue: system.getHeatStatus,
+        };
+        const heatBlade = addTextBlade(standardRowApi.getPane(), heatProp, { width: '60px' }, panelCleanup.add);
+        heatBlade.element.classList.add('heat', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
+        const applyThemeToHeat = () => (heatBlade.element.dataset.status = system.getHeatStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
+        panelCleanup.add(heatProp.onChange(applyThemeToHeat));
+        applyThemeToHeat();
     }
 }

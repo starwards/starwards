@@ -1,5 +1,5 @@
 import { ArraySchema, type } from '@colyseus/schema';
-import { XY, toDegreesDelta } from '..';
+import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
@@ -27,11 +27,13 @@ export enum TargetedStatus {
 export type ShipPropertiesDesign = {
     rotationCapacity: number;
     rotationEnergyCost: number;
+    totalCoolant: number;
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
     @number2Digits rotationCapacity = 0;
     @number2Digits rotationEnergyCost = 0;
+    @number2Digits totalCoolant = 0;
 }
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {
@@ -137,5 +139,21 @@ export class ShipState extends Spaceship {
 
     get rotationCapacity() {
         return this.design.rotationCapacity;
+    }
+
+    systems() {
+        return [...this.systemsByAreas(ShipArea.front), ...this.systemsByAreas(ShipArea.rear)];
+    }
+
+    systemsByAreas(area: ShipArea) {
+        switch (area) {
+            case ShipArea.front:
+                return [this.chainGun, this.radar, this.smartPilot, this.magazine, this.warp, this.docking].filter(
+                    notNull
+                );
+            case ShipArea.rear:
+                return [this.reactor, ...this.thrusters.toArray(), ...this.tubes.toArray()].filter(notNull);
+        }
+        return [];
     }
 }

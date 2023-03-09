@@ -1,10 +1,10 @@
-import { DesignState, defectible } from './system';
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
 import { EPSILON } from '../logic';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export enum DockingMode {
     DOCKED,
@@ -30,7 +30,7 @@ export class DockingDesignState extends DesignState implements DockingDesign {
     @number2Digits angle = 0;
     @number2Digits width = 0;
 }
-export class Docking extends Schema {
+export class Docking extends SystemState {
     public static isInstance = (o: unknown): o is Docking => {
         return (o as Docking)?.type === 'Docking';
     };

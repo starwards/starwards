@@ -1,9 +1,9 @@
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState } from './system';
 
-import { DesignState } from './system';
 import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { type } from '@colyseus/schema';
 
 export type RadarDesign = {
     damage50: number;
@@ -21,7 +21,7 @@ export class RadarDesignState extends DesignState implements RadarDesign {
     @number2Digits rangeEaseFactor = 0;
     @number2Digits malfunctionRange = 0;
 }
-export class Radar extends Schema {
+export class Radar extends SystemState {
     public static isInstance = (o: unknown): o is Radar => {
         return (o as Radar)?.type === 'Radar';
     };

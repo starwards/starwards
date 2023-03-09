@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 
-import { DesignState, defectible } from './system';
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 import { getDirectionConfigFromAngle, shipDirectionRange } from './ship-direction';
 
 import { ShipState } from './ship-state';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
+import { type } from '@colyseus/schema';
 
 export type ThrusterDesign = {
     maxAngleError: number;
@@ -27,7 +27,7 @@ export class ThrusterDesignState extends DesignState implements ThrusterDesign {
     @number2Digits afterBurnerEffectFactor = 0;
     @number2Digits damage50 = 0;
 }
-export class Thruster extends Schema {
+export class Thruster extends SystemState {
     public static isInstance = (o: unknown): o is Thruster => {
         return (o as Thruster)?.type === 'Thruster';
     };
@@ -68,7 +68,7 @@ export class Thruster extends Schema {
 
     @number2Digits
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
-    @defectible({ normal: 0, name: 'direction offset' })
+    @defectible({ normal: 0, name: 'offset' })
     angleError = 0.0;
 
     @number2Digits

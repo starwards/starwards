@@ -1,7 +1,11 @@
 import 'reflect-metadata';
 
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Schema } from '@colyseus/schema';
 import { allColyseusProperties } from '../traverse';
+import { number2Digits } from '../number-field';
+import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 const defectiblePropertyMetadataKey = Symbol('defectible:propertyMetadata');
 
@@ -17,15 +21,29 @@ export type DefectibleValue = DefectibleConfig & { value: number; field: string;
 /**
  * An object that can be decorated with @defectible
  */
-export interface SystemState extends Schema {
-    readonly name: string;
-    readonly design: DesignState;
+export abstract class SystemState extends Schema {
+    abstract readonly name: string;
+    abstract readonly design: DesignState;
     /**
      * is the system offline.
      * should only be updated as result of changes to defectible properties
      */
-    readonly broken: boolean;
+    abstract readonly broken: boolean;
+
+    @number2Digits
+    public energyPerMinute = 0;
+
+    @range([0, MAX_SYSTEM_HEAT])
+    @tweakable('number')
+    @number2Digits
+    public heat = 0;
+
+    @range([0, 1])
+    @tweakable('number')
+    @number2Digits
+    public coolantFactor = 0;
 }
+
 export function defectible(config: DefectibleConfig) {
     return (target: SystemState, propertyKey: string | symbol) => {
         Reflect.defineMetadata(defectiblePropertyMetadataKey, config, target, propertyKey);
@@ -36,17 +54,18 @@ export type System = {
     pointer: string;
     state: SystemState;
     getStatus: () => 'OFFLINE' | 'DAMAGED' | 'OK';
+    getHeatStatus: () => 'OVERHEAT' | 'WARMING' | 'OK';
     defectibles: DefectibleValue[];
 };
 
-function System(systemPointer: string, state: Schema): System {
+function System(systemPointer: string, state: SystemState): System {
     const defectibles: DefectibleValue[] = [];
     return {
         pointer: systemPointer,
-        state: state as SystemState,
+        state: state,
         defectibles,
         getStatus: () => {
-            if ((state as SystemState).broken) {
+            if (state.broken) {
                 return 'OFFLINE';
             }
             if (
@@ -59,13 +78,22 @@ function System(systemPointer: string, state: Schema): System {
             }
             return 'OK';
         },
+        getHeatStatus: () => {
+            if (state.heat >= MAX_SYSTEM_HEAT) {
+                return 'OVERHEAT';
+            }
+            if (state.heat >= MAX_SYSTEM_HEAT / 2) {
+                return 'WARMING';
+            }
+            return 'OK';
+        },
     };
 }
 
 export function getSystems(root: Schema): System[] {
     const systemsMap: Record<string, System> = {};
     for (const [state, systemPointer, field, value] of allColyseusProperties(root)) {
-        if (state instanceof Schema && typeof value === 'number' && typeof field === 'string') {
+        if (state && state instanceof SystemState && typeof value === 'number' && typeof field === 'string') {
             const config = Reflect.getMetadata(defectiblePropertyMetadataKey, state, field) as
                 | DefectibleConfig
                 | undefined;

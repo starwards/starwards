@@ -1,11 +1,10 @@
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
-import { DesignState } from './system';
 import { Vec2 } from '../space';
-import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export type SmartPilotDesign = {
     maxTargetAimOffset: number;
@@ -33,7 +32,7 @@ export class SmartPilotDesignState extends DesignState implements SmartPilotDesi
     @number2Digits maxSpeedFromAfterBurner = 0;
 }
 
-export class SmartPilot extends Schema {
+export class SmartPilot extends SystemState {
     public static isInstance = (o: unknown): o is SmartPilot => {
         return (o as SmartPilot)?.type === 'SmartPilot';
     };
@@ -69,7 +68,7 @@ export class SmartPilot extends Schema {
      */
     @number2Digits
     @range([0, 1])
-    @defectible({ normal: 0, name: 'direction offset' })
+    @defectible({ normal: 0, name: 'offset' })
     offsetFactor = 0;
 
     get broken(): boolean {

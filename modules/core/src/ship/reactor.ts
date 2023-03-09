@@ -1,10 +1,9 @@
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
-import { DesignState } from './system';
-import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export type ReactorDesign = {
     energyPerSecond: number;
@@ -12,6 +11,8 @@ export type ReactorDesign = {
     maxAfterBurnerFuel: number;
     afterBurnerCharge: number;
     afterBurnerEnergyCost: number;
+    energyHeatEPMThreshold: number;
+    energyHeat: number;
     damage50: number;
 };
 
@@ -21,10 +22,12 @@ export class ReactorDesignState extends DesignState implements ReactorDesign {
     @number2Digits maxAfterBurnerFuel = 0;
     @number2Digits afterBurnerCharge = 0;
     @number2Digits afterBurnerEnergyCost = 0;
+    @number2Digits energyHeatEPMThreshold = 0;
+    @number2Digits energyHeat = 0;
     @number2Digits damage50 = 0;
 }
 
-export class Reactor extends Schema {
+export class Reactor extends SystemState {
     public static isInstance = (o: unknown): o is Reactor => {
         return (o as Reactor)?.type === 'Reactor';
     };

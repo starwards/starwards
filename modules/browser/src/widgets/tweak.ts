@@ -81,10 +81,8 @@ const singleSelectionDetails = async (
                 defectibleProps.push(prop);
                 addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
             }
-            // This allows overriding tweakpane theme for this folder
-            systemFolder.element.classList.add('tp-rotv');
-            // this will change tweakpane theme for this folder, see tweakpane.css
-            const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus());
+            systemFolder.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
+            const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
             cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
             applyThemeByStatus();
             addTweakables(shipDriver, systemFolder, system.pointer, cleanup);

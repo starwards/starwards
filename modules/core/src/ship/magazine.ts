@@ -1,10 +1,9 @@
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
-import { DesignState } from './system';
-import { defectible } from './system';
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 
@@ -26,7 +25,7 @@ export class MagazineDesignState extends DesignState implements MagazineDesign {
     @number2Digits capacityDamageFactor = 0;
 }
 
-export class Magazine extends Schema {
+export class Magazine extends SystemState {
     public static isInstance = (o: unknown): o is Magazine => {
         return (o as Magazine)?.type === 'Magazine';
     };

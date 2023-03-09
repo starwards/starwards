@@ -1,8 +1,10 @@
 import { Bot, cleanupBot, jouster, p2pGoto } from '../logic/bot';
 import {
     ChainGun,
+    Docking,
     Faction,
-    ShipArea,
+    Radar,
+    Reactor,
     ShipState,
     SmartPilot,
     SmartPilotMode,
@@ -11,32 +13,26 @@ import {
     StatesToggle,
     TargetedStatus,
     capToRange,
-    gaussianRandom,
     lerp,
-    limitPercision,
     projectileModels,
     rotateToTarget,
     rotationFromTargetTurnSpeed,
-    shipAreasInRange,
-    toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
-import { FRONT_ARC, REAR_ARC } from '.';
-import { RTuple2, limitPercisionHard, sinWave } from '../logic';
 
 import { Armor } from './armor';
+import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
-import { Docking } from './docking';
 import { DockingManager } from './docking-manager';
+import { EnergyManager } from './energy-manager';
+import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { MovementManager } from './movement-manager';
-import NormalDistribution from 'normal-distribution';
-import { Radar } from './radar';
-import { Reactor } from './reactor';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
+import { sinWave } from '../logic';
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.design.plateMaxHealth;
@@ -44,10 +40,10 @@ function fixArmor(armor: Armor) {
         plate.health = plateMaxHealth;
     }
 }
-type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking;
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
+    state.reactor.afterBurnerFuel = state.reactor.design.maxAfterBurnerFuel;
     fixArmor(state.armor);
     if (state.chainGun) {
         resetChainGun(state.chainGun);
@@ -63,7 +59,7 @@ function resetThruster(thruster: Thruster) {
     thruster.angleError = 0;
     thruster.availableCapacity = 1.0;
 }
-
+export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking;
 export type Die = {
     getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
@@ -74,25 +70,15 @@ export class ShipManager {
     public weaponsTarget: SpaceObject | null = null;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
-    private systemsByAreas = new Map<number, (ShipSystem | null)[]>([
-        [
-            ShipArea.front,
-            [
-                this.state.chainGun,
-                this.state.radar,
-                this.state.smartPilot,
-                this.state.magazine,
-                this.state.warp,
-                this.state.docking,
-            ],
-        ],
-        [ShipArea.rear, [...this.state.thrusters.toArray(), this.state.reactor, ...this.state.tubes.toArray()]],
-    ]);
+
     private totalSeconds = 0;
     private tubeManagers = new Array<ChainGunManager>();
     private chainGunManager: ChainGunManager | null = null;
     private movementManager: MovementManager;
     private dockingManager: DockingManager;
+    private energyManager: EnergyManager;
+    private heatManager: HeatManager;
+    private damageManager: DamageManager;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -112,6 +98,7 @@ export class ShipManager {
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET
         );
+        resetShipState(this.state);
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
                 this.state.chainGun,
@@ -121,7 +108,18 @@ export class ShipManager {
                 this
             );
         }
-        this.movementManager = new MovementManager(this.spaceObject, this.state, this.spaceManager, this, this.die);
+        this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
+        this.heatManager = new HeatManager(this.state, this.damageManager);
+        this.energyManager = new EnergyManager(this.state, this.heatManager);
+        this.movementManager = new MovementManager(
+            this.spaceObject,
+            this.state,
+            this.spaceManager,
+            this,
+            this.damageManager,
+            this.energyManager,
+            this.die
+        );
         this.dockingManager = new DockingManager(this.spaceObject, this.state, this.spaceManager, this);
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
@@ -208,8 +206,9 @@ export class ShipManager {
         this.totalSeconds += deltaSeconds;
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
+        this.heatManager.update(deltaSeconds);
         this.healPlates(deltaSeconds);
-        this.handleDamage();
+        this.damageManager.update();
         this.applyBotOrders();
         if (this.bot) {
             this.bot.update(deltaSeconds, this.spaceManager.state, this);
@@ -224,11 +223,10 @@ export class ShipManager {
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
         this.calcTargetedStatus();
-        this.updateEnergy(deltaSeconds);
+        this.energyManager.update(deltaSeconds);
 
         this.calcSmartPilotRotation(deltaSeconds);
 
-        this.chargeAfterBurner(deltaSeconds);
         this.updateRadarRange();
         this.updateChainGunAmmo();
         this.dockingManager.update();
@@ -281,158 +279,6 @@ export class ShipManager {
         }
     }
 
-    getNumberOfBrokenPlatesInRange(hitRange: RTuple2): number {
-        let brokenPlates = 0;
-        for (const [_, plate] of this.state.armor.platesInRange(hitRange)) {
-            if (plate.health <= 0) {
-                brokenPlates++;
-            }
-        }
-        return brokenPlates;
-    }
-
-    private applyDamageToArmor(damageFactor: number, localAnglesHitRange: [number, number]) {
-        for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
-            if (plate.health > 0) {
-                const newHealth = plate.health - damageFactor * gaussianRandom(20, 4);
-                plate.health = Math.max(newHealth, 0);
-            }
-        }
-    }
-
-    private damageSystem(
-        system: ShipSystem,
-        damageObject: { id: string; amount: number },
-        percentageOfBrokenPlates: number
-    ) {
-        if (system.broken) {
-            return;
-        }
-        const dist = new NormalDistribution(system.design.damage50, system.design.damage50 / 2);
-        const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
-        if (this.die.getRoll(damageObject.id + 'damageSystem') < normalizedDamageProbability) {
-            if (Thruster.isInstance(system)) {
-                this.damageThruster(system, damageObject.id);
-            } else if (ChainGun.isInstance(system)) {
-                this.damageChainGun(system, damageObject.id);
-            } else if (Radar.isInstance(system)) {
-                this.damageRadar(system);
-            } else if (SmartPilot.isInstance(system)) {
-                this.damageSmartPilot(system);
-            } else if (Reactor.isInstance(system)) {
-                this.damageReactor(system, damageObject.id);
-            } else if (Magazine.isInstance(system)) {
-                this.damageMagazine(system, damageObject.id);
-            } else if (Warp.isInstance(system)) {
-                this.damageWarp(system, damageObject.id);
-            } else if (Docking.isInstance(system)) {
-                DockingManager.damageDocking(system);
-            }
-        }
-    }
-
-    private damageWarp(warp: Warp, damageId: string) {
-        if (!warp.broken) {
-            if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
-                warp.damageFactor += 0.05;
-            } else {
-                warp.velocityFactor *= 0.9;
-            }
-        }
-    }
-
-    private damageMagazine(magazine: Magazine, damageId: string) {
-        if (!magazine.broken) {
-            if (this.die.getSuccess('damageMagazine' + damageId, 0.5)) {
-                // todo convert to a defectible property that accumulates damage
-                const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
-                const projectileKey = projectileModels[idx];
-                magazine[`count_${projectileKey}`] = Math.round(
-                    magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor)
-                );
-            } else {
-                magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
-            }
-        }
-    }
-
-    private damageReactor(reactor: Reactor, damageId: string) {
-        if (!reactor.broken) {
-            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
-                // todo convert to a defectible property that accumulates damage
-                reactor.energy *= 0.9;
-            } else {
-                reactor.effeciencyFactor -= 0.05;
-            }
-        }
-    }
-
-    private damageSmartPilot(smartPilot: SmartPilot) {
-        if (!smartPilot.broken) {
-            smartPilot.offsetFactor += 0.01;
-        }
-    }
-
-    private damageRadar(radar: Radar) {
-        if (!radar.broken) {
-            radar.malfunctionRangeFactor += 0.05;
-        }
-    }
-
-    private damageThruster(thruster: Thruster, damageId: string) {
-        if (thruster.broken) {
-            return;
-        }
-        if (this.die.getSuccess('damageThruster' + damageId, 0.5)) {
-            thruster.angleError +=
-                limitPercision(this.die.getRollInRange('thrusterAngleOffset' + damageId, 1, 3)) *
-                (this.die.getSuccess('thrusterAngleSign' + damageId, 0.5) ? 1 : -1);
-            thruster.angleError = capToRange(-180, 180, thruster.angleError);
-        } else {
-            thruster.availableCapacity -= limitPercision(
-                this.die.getRollInRange('availableCapacity' + damageId, 0.01, 0.1)
-            );
-        }
-    }
-
-    private damageChainGun(chainGun: ChainGun, damageId: string) {
-        if (!chainGun.broken) {
-            if (this.die.getSuccess('damageChaingun' + damageId, 0.5)) {
-                chainGun.angleOffset +=
-                    limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
-                    (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
-            } else {
-                chainGun.rateOfFireFactor *= 0.9;
-            }
-        }
-    }
-
-    private handleDamage() {
-        for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
-            for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
-                const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
-                const areaHitRangeAngles: [number, number] = [
-                    Math.max(toPositiveDegreesDelta(areaArc[0]), damage.damageSurfaceArc[0]),
-                    Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
-                ];
-                const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-                if (areaUnarmoredHits) {
-                    const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-                    for (const system of this.systemsByAreas.get(hitArea) || []) {
-                        if (system) this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
-                    }
-                }
-                this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
-            }
-        }
-    }
-
-    damageAllSystems(damageObject: { id: string; amount: number }) {
-        for (const system of [...this.systemsByAreas.values()].flat()) {
-            if (system) this.damageSystem(system, damageObject, 1);
-        }
-    }
-
     private calcSmartPilotRotation(deltaSeconds: number) {
         let rotationCommand: number | undefined = undefined;
         switch (this.state.smartPilot.rotationMode) {
@@ -473,21 +319,6 @@ export class ShipManager {
         }
         this.state.rotation = capToRange(-1, 1, rotationCommand);
     }
-
-    private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.reactor.afterBurnerFuel < this.state.reactor.design.maxAfterBurnerFuel) {
-            const afterBurnerFuelDelta = Math.min(
-                this.state.reactor.design.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
-                this.state.reactor.design.afterBurnerCharge * deltaSeconds
-            );
-            if (this.trySpendEnergy(afterBurnerFuelDelta * this.state.reactor.design.afterBurnerEnergyCost)) {
-                this.state.reactor.afterBurnerFuel = limitPercisionHard(
-                    this.state.reactor.afterBurnerFuel + afterBurnerFuelDelta
-                );
-            }
-        }
-    }
-
     private calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
@@ -531,27 +362,6 @@ export class ShipManager {
         this.state.faction = this.spaceObject.faction;
         this.state.radius = this.spaceObject.radius;
         this.state.radarRange = this.spaceObject.radarRange;
-    }
-
-    trySpendEnergy(value: number): boolean {
-        if (value < 0) {
-            // eslint-disable-next-line no-console
-            console.log('probably an error: spending negative energy');
-        }
-        if (this.state.reactor.energy > value) {
-            this.state.reactor.energy = this.state.reactor.energy - value;
-            return true;
-        }
-        this.state.reactor.energy = 0;
-        return false;
-    }
-
-    private updateEnergy(deltaSeconds: number) {
-        this.state.reactor.energy = capToRange(
-            0,
-            this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds
-        );
     }
 
     private updateChainGunAmmo() {

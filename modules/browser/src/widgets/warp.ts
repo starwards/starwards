@@ -1,10 +1,10 @@
 import { Destructors, ShipDriver } from '@starwards/core';
+import { addSliderBlade, addTextBlade } from '../panel';
+import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
-import { addSliderBlade } from '../panel';
-import { readNumberProp } from '../property-wrappers';
 
 export function warpWidget(shipDriver: ShipDriver): DashboardWidget {
     class WarpComponent {
@@ -26,4 +26,15 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
     container.on('destroy', panelCleanup.destroy);
     addSliderBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual' }, panelCleanup.add);
     addSliderBlade(pane, readNumberProp(shipDriver, '/warp/desiredLevel'), { label: 'Designated' }, panelCleanup.add);
+    const jammedProp = readProp(shipDriver, '/warp/jammed');
+    const jamBlade = addTextBlade(
+        pane,
+        jammedProp,
+        { label: 'Proximity Jam', format: (j) => (j ? 'JAMMED' : 'CLEAR') },
+        panelCleanup.add
+    );
+    jamBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
+    const applyThemeToJammed = () => (jamBlade.element.dataset.status = shipDriver.state.warp.jammed ? 'WARN' : ''); // this will change tweakpane theme for this folder, see tweakpane.css
+    panelCleanup.add(jammedProp.onChange(applyThemeToJammed));
+    applyThemeToJammed();
 }

@@ -1,9 +1,9 @@
-import { DesignState, defectible } from './system';
-import { Schema, type } from '@colyseus/schema';
+import { DesignState, SystemState, defectible } from './system';
 
 import { number2Digits } from '../number-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+import { type } from '@colyseus/schema';
 
 export type WarpDesign = {
     damage50: number;
@@ -25,7 +25,7 @@ export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits damagePerPhysicalSpeed = 0;
     @number2Digits baseDamagePerWarpSpeedPerSecond = 0;
 }
-export class Warp extends Schema {
+export class Warp extends SystemState {
     public static isInstance = (o: unknown): o is Warp => {
         return (o as Warp)?.type === 'Warp';
     };
@@ -56,6 +56,8 @@ export class Warp extends Schema {
     @tweakable('number')
     desiredLevel = 0;
 
+    @type('boolean')
+    jammed = false;
     // server only, used for commands
     public levelUpCommand = false;
     public levelDownCommand = false;
