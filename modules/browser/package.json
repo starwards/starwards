@@ -22,7 +22,7 @@
         "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
         "@pixi/graphics-extras": "^7.1.2",
         "@tweakpane/core": "^1.1.4",
-        "@tweakpane/plugin-camerakit": "^0.2.2",
+        "@tweakpane/plugin-camerakit": "^0.2.3",
         "@xstate/react": "^3.0.1",
         "colyseus.js": "^0.14.13",
         "css-element-queries": "^1.2.3",
