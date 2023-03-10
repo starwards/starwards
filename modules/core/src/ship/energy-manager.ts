@@ -59,7 +59,7 @@ export class EnergyManager {
         if (this.state.reactor.afterBurnerFuel < this.state.reactor.design.maxAfterBurnerFuel) {
             const afterBurnerFuelDelta = Math.min(
                 this.state.reactor.design.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
-                this.state.reactor.design.afterBurnerCharge * deltaSeconds
+                this.state.reactor.design.afterBurnerCharge * deltaSeconds * this.state.reactor.power
             );
             if (
                 this.trySpendEnergy(
