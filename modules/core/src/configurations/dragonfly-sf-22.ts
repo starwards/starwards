@@ -86,8 +86,9 @@ export const dragonflyWarp = {
     chargeTime: 10,
     dechargeTime: 5,
     speedPerLevel: 1000,
+    energyCostPerLevel: 2,
     damagePerPhysicalSpeed: 20,
-    baseDamagePerWarpSpeedPerSecond: 0.5,
+    baseDamagePerWarpSpeedPerSecond: 0.1,
 };
 export const dragonflyDocking = {
     damage50: 20,

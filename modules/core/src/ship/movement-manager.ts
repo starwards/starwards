@@ -90,6 +90,7 @@ export class MovementManager {
 
     private handleWarpLevel(deltaSeconds: number) {
         if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
+            // increase warp level
             if (this.state.warp.currentLevel == 0) {
                 const currentSpeed = XY.lengthOf(this.state.velocity);
                 if (currentSpeed) {
@@ -102,12 +103,15 @@ export class MovementManager {
             }
             this.state.warp.currentLevel = Math.min(
                 this.state.warp.desiredLevel,
-                this.state.warp.currentLevel + deltaSeconds / this.state.warp.design.chargeTime
+                this.state.warp.currentLevel +
+                    (this.state.warp.power * deltaSeconds) / this.state.warp.design.chargeTime
             );
         } else if (this.state.warp.desiredLevel < this.state.warp.currentLevel) {
+            // decrease warp level
             this.state.warp.currentLevel = Math.max(
                 0,
-                this.state.warp.currentLevel - deltaSeconds / this.state.warp.design.dechargeTime
+                this.state.warp.currentLevel -
+                    (this.state.warp.power * deltaSeconds) / this.state.warp.design.dechargeTime
             );
             if (this.state.warp.currentLevel == 0) {
                 // edge case where handleWarpMovement() will not know to set speed to 0
@@ -117,13 +121,19 @@ export class MovementManager {
     }
 
     private handleWarpMovement(deltaSeconds: number) {
-        if (this.isWarpActive()) {
-            const newSpeed = this.state.warp.currentLevel * this.state.warp.design.speedPerLevel;
+        if (
+            this.isWarpActive() &&
+            this.energyManager.trySpendEnergy(
+                this.state.warp.currentLevel * this.state.warp.power * this.state.warp.design.energyCostPerLevel
+            )
+        ) {
+            const newSpeed =
+                this.state.warp.currentLevel * this.state.warp.power * this.state.warp.design.speedPerLevel;
             const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
                 this.state.angle
             );
-            // penalty damage for existing velocity
+            // penalty damage for existing velocity (in case of warp system malfunction)
             this.damageManager.damageAllSystems({
                 id: 'warp_speed',
                 amount: this.state.warp.damagePerWarpSpeedPerSecond * newSpeed * deltaSeconds,

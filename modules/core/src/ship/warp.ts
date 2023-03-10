@@ -11,6 +11,7 @@ export type WarpDesign = {
     chargeTime: number;
     dechargeTime: number;
     speedPerLevel: number;
+    energyCostPerLevel: number;
     damagePerPhysicalSpeed: number;
     baseDamagePerWarpSpeedPerSecond: number;
 };
@@ -22,6 +23,7 @@ export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits chargeTime = 0;
     @number2Digits dechargeTime = 0;
     @number2Digits speedPerLevel = 0;
+    @number2Digits energyCostPerLevel = 0;
     @number2Digits damagePerPhysicalSpeed = 0;
     @number2Digits baseDamagePerWarpSpeedPerSecond = 0;
 }
