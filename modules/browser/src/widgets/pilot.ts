@@ -26,7 +26,7 @@ export function drawPilotStats(container: WidgetContainer, shipDriver: ShipDrive
     });
 
     panel.addProperty('energy', readNumberProp(shipDriver, `/reactor/energy`));
-    panel.addProperty('afterBurnerFuel', readNumberProp(shipDriver, `/reactor/afterBurnerFuel`));
+    panel.addProperty('afterBurnerFuel', readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`));
 
     panel.addProperty('heading', readNumberProp(shipDriver, `/angle`));
     panel.addProperty('speed', readNumberProp(shipDriver, `/speed`));

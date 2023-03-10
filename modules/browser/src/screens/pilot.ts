@@ -59,6 +59,7 @@ async function initScreen(driver: Driver, shipId: string) {
                 s.pointer.startsWith('/thrusters/') ||
                 s.pointer === '/warp' ||
                 s.pointer === '/radar' ||
+                s.pointer === '/maneuvering' ||
                 s.pointer === '/smartPilot'
         )
     );
