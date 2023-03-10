@@ -202,14 +202,17 @@ export class MovementManager {
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
             let speedToChange = 0;
-            // TODO implement energy, power
-            const enginePower = this.state.rotation * deltaSeconds * this.state.maneuvering.design.rotationCapacity;
+            const enginePower =
+                this.state.rotation *
+                deltaSeconds *
+                this.state.maneuvering.power *
+                this.state.maneuvering.design.rotationCapacity;
             if (
                 this.energyManager.trySpendEnergy(
                     Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost
                 )
             ) {
-                speedToChange += enginePower;
+                speedToChange += enginePower * this.state.maneuvering.efficiency;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
             this.state.turnSpeed = this.spaceObject.turnSpeed;
@@ -286,22 +289,22 @@ export class MovementManager {
 
     private updateThrustersFromManeuvering(maneuveringAction: XY, deltaSeconds: number) {
         for (const thruster of this.state.thrusters) {
-            // TODO implement energy, power
             thruster.afterBurnerActive = 0;
             thruster.active = 0;
             const globalAngle = thruster.angle + this.state.angle;
             const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
-            const axisCapacity = thruster.capacity * deltaSeconds;
+            const axisCapacity = thruster.capacity * thruster.power * deltaSeconds;
             if (
                 this.energyManager.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost, thruster)
             ) {
                 thruster.active = desiredAction;
             }
             if (this.state.afterBurner) {
-                const axisAfterBurnerCapacity = thruster.afterBurnerCapacity * deltaSeconds;
+                const axisAfterBurnerCapacity =
+                    thruster.afterBurnerCapacity * this.state.maneuvering.power * deltaSeconds;
                 const desireAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
                 if (this.trySpendAfterBurner(desireAfterBurnedAction * axisAfterBurnerCapacity)) {
-                    thruster.afterBurnerActive = desireAfterBurnedAction;
+                    thruster.afterBurnerActive = desireAfterBurnedAction * this.state.maneuvering.efficiency;
                 }
             }
         }
