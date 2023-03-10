@@ -149,7 +149,7 @@ describe('SpaceManager', () => {
             shipMgr.state.armor.design.healRate = 0;
 
             sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {
-                shipMgr.state.reactor.afterBurnerFuel = shipMgr.state.reactor.design.maxAfterBurnerFuel;
+                shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
             });
             const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, REAR_ARC))];
             expect(hitArchs).to.not.be.empty;

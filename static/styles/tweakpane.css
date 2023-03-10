@@ -32,7 +32,7 @@
     --tp-blade-unit-size: 20px;
 }
 
-:root .status[data-status='OFFLINE'] {
+:root .status[data-status='DISABLED'] {
     --tp-base-background-color: hsl(0, 69%, 17%, 1);
 }
 :root .status[data-status='DAMAGED'] {
@@ -44,9 +44,12 @@
 :root .heat[data-status='WARMING'] {
     --tp-base-background-color: hsl(52, 61%, 18%, 1);
 }
+:root [data-status='OK'] {
+    --tp-base-background-color: hsl(123, 61%, 18%);
+}
 :root [data-status='WARN'] {
     --tp-base-background-color: hsl(52, 61%, 18%, 1);
 }
 :root [data-status='ERROR'] {
-    --tp-base-background-color: hsl(52, 61%, 18%, 1);
+    --tp-base-background-color: hsl(0, 69%, 17%, 1);
 }

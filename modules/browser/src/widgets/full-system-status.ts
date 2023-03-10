@@ -1,7 +1,7 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
-import { Destructors, ShipDriver } from '@starwards/core';
+import { Destructors, PowerLevel, ShipDriver } from '@starwards/core';
 import { abstractOnChange, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -46,6 +46,7 @@ export function drawFullSystemsStatus(
         label: '',
         headers: [
             { label: 'Status', width: '60px' },
+            { label: 'Power', width: '60px' },
             { label: 'EPM', width: '60px' },
             { label: 'Heat', width: '60px' },
             { label: 'Coolant', width: '120px' },
@@ -71,6 +72,12 @@ export function drawFullSystemsStatus(
         panelCleanup.add(detachApplyThemeByStatus);
 
         applyThemeByStatus();
+        addTextBlade(
+            standardRowApi.getPane(),
+            readProp<number>(shipDriver, `${system.pointer}/power`),
+            { format: (p: PowerLevel) => PowerLevel[p], width: '60px' },
+            panelCleanup.add
+        );
         addTextBlade(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/energyPerMinute`),

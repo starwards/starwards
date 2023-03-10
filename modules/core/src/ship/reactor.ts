@@ -8,9 +8,6 @@ import { type } from '@colyseus/schema';
 export type ReactorDesign = {
     energyPerSecond: number;
     maxEnergy: number;
-    maxAfterBurnerFuel: number;
-    afterBurnerCharge: number;
-    afterBurnerEnergyCost: number;
     energyHeatEPMThreshold: number;
     energyHeat: number;
     damage50: number;
@@ -19,9 +16,6 @@ export type ReactorDesign = {
 export class ReactorDesignState extends DesignState implements ReactorDesign {
     @number2Digits energyPerSecond = 0;
     @number2Digits maxEnergy = 0;
-    @number2Digits maxAfterBurnerFuel = 0;
-    @number2Digits afterBurnerCharge = 0;
-    @number2Digits afterBurnerEnergyCost = 0;
     @number2Digits energyHeatEPMThreshold = 0;
     @number2Digits energyHeat = 0;
     @number2Digits damage50 = 0;
@@ -42,11 +36,6 @@ export class Reactor extends SystemState {
     @range((t: Reactor) => [0, t.design.maxEnergy])
     @tweakable('number')
     energy = 1000;
-
-    @type('number')
-    @range((t: Reactor) => [0, t.design.maxAfterBurnerFuel])
-    @tweakable('number')
-    afterBurnerFuel = 0;
 
     @number2Digits
     @range([0, 1])

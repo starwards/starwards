@@ -45,7 +45,7 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
 }
 
 const statusPallete = {
-    OFFLINE: 'error',
+    DISABLED: 'error',
     DAMAGED: 'secondary',
     OK: 'success',
 } as const;
@@ -86,7 +86,7 @@ export function monitorWidget(shipDriver: ShipDriver): DashboardWidget {
                                 warn={300}
                             />
                             <Metric
-                                property={readNumberProp(shipDriver, `/reactor/afterBurnerFuel`)}
+                                property={readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`)}
                                 metricName="Afterburner"
                                 error={500}
                                 warn={2000}

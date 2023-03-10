@@ -2,6 +2,7 @@ import { Armor, ArmorDesign, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
 import { Magazine, MagazineDesign } from './magazine';
+import { Maneuvering, ManeuveringDesign } from './maneuvering';
 import { Radar, RadarDesign } from './radar';
 import { Reactor, ReactorDesign } from './reactor';
 import { ShipDirectionConfig, getDirectionFromConfig } from './ship-direction';
@@ -28,6 +29,7 @@ export type ShipDesign = {
     weaponsTarget: TargetingDesign;
     warp: WarpDesign;
     docking: DockingDesign;
+    maneuvering: ManeuveringDesign;
 };
 
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
@@ -81,6 +83,11 @@ function makeDocking(design: DockingDesign) {
     const docking = new Docking();
     docking.design.assign(design);
     return docking;
+}
+function makeManeuvering(design: ManeuveringDesign) {
+    const maneuvering = new Maneuvering();
+    maneuvering.design.assign(design);
+    return maneuvering;
 }
 
 function makeWarp(design: WarpDesign) {
@@ -137,5 +144,6 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.weaponsTarget = makeTargeting(design.weaponsTarget);
     state.warp = makeWarp(design.warp);
     state.docking = makeDocking(design.docking);
+    state.maneuvering = makeManeuvering(design.maneuvering);
     return state;
 }

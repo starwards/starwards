@@ -7,6 +7,7 @@ import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
 import { Magazine } from './magazine';
+import { Maneuvering } from './maneuvering';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
@@ -25,14 +26,10 @@ export enum TargetedStatus {
 }
 
 export type ShipPropertiesDesign = {
-    rotationCapacity: number;
-    rotationEnergyCost: number;
     totalCoolant: number;
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
-    @number2Digits rotationCapacity = 0;
-    @number2Digits rotationEnergyCost = 0;
     @number2Digits totalCoolant = 0;
 }
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
@@ -72,6 +69,9 @@ export class ShipState extends Spaceship {
 
     @type(Docking)
     docking!: Docking;
+
+    @type(Maneuvering)
+    maneuvering!: Maneuvering;
 
     @number2Digits
     @range([-1, 1])
@@ -138,7 +138,7 @@ export class ShipState extends Spaceship {
     }
 
     get rotationCapacity() {
-        return this.design.rotationCapacity;
+        return this.maneuvering.design.rotationCapacity;
     }
 
     systems() {
@@ -152,7 +152,9 @@ export class ShipState extends Spaceship {
                     notNull
                 );
             case ShipArea.rear:
-                return [this.reactor, ...this.thrusters.toArray(), ...this.tubes.toArray()].filter(notNull);
+                return [this.reactor, this.maneuvering, ...this.thrusters.toArray(), ...this.tubes.toArray()].filter(
+                    notNull
+                );
         }
         return [];
     }

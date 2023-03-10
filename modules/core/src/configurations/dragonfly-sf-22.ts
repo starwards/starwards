@@ -15,9 +15,10 @@ export const dragonflyThruster = {
 };
 export const dragonflyRadar = {
     damage50: 20,
-    basicRange: 3_000,
+    range: 10_000,
+    energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 1_500,
+    malfunctionRange: 5_000,
 };
 export const dragonflyChaingun = {
     bulletsPerSecond: 20,
@@ -29,20 +30,16 @@ export const dragonflyChaingun = {
     use_CannonShell: true,
     use_BlastCannonShell: true,
     damage50: 20,
+    energyCost: 1,
 };
 export const dragonflyReactor = {
     energyPerSecond: 5,
     maxEnergy: 1000,
-    maxAfterBurnerFuel: 5000,
-    afterBurnerCharge: 20,
-    afterBurnerEnergyCost: 0.07,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
 };
 export const dragonflyProperties = {
-    rotationCapacity: 25,
-    rotationEnergyCost: 0.07,
     totalCoolant: 10,
 };
 export const dragonflyMagazine = {
@@ -71,6 +68,7 @@ export const dragonflyTube = {
     maxShellRange: 1_000_000,
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
+    energyCost: 30,
     use_Missile: true,
 };
 export const dragonflyTargeting = {
@@ -83,8 +81,9 @@ export const dragonflyWarp = {
     chargeTime: 10,
     dechargeTime: 5,
     speedPerLevel: 1000,
+    energyCostPerLevel: 2,
     damagePerPhysicalSpeed: 20,
-    baseDamagePerWarpSpeedPerSecond: 0.5,
+    baseDamagePerWarpSpeedPerSecond: 0.1,
 };
 export const dragonflyDocking = {
     damage50: 20,
@@ -93,6 +92,14 @@ export const dragonflyDocking = {
     undockingTargetDistance: 100,
     angle: -90,
     width: 45,
+};
+export const dragonflyManeuvering = {
+    rotationCapacity: 25,
+    rotationEnergyCost: 0.07,
+    maxAfterBurnerFuel: 5000,
+    afterBurnerCharge: 20,
+    afterBurnerEnergyCost: 0.07,
+    damage50: 20,
 };
 
 export const dragonflySF22: ShipDesign = {
@@ -115,4 +122,5 @@ export const dragonflySF22: ShipDesign = {
     weaponsTarget: dragonflyTargeting,
     warp: dragonflyWarp,
     docking: dragonflyDocking,
+    maneuvering: dragonflyManeuvering,
 };

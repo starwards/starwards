@@ -7,9 +7,13 @@ import { type } from '@colyseus/schema';
 
 export type RadarDesign = {
     damage50: number;
-    basicRange: number;
+    range: number;
     /**
-     * percent of the time in which the range is easing from/to basicRange
+     * in energy per 1000m per second
+     */
+    energyCost: number;
+    /**
+     * percent of the time in which the range is easing from/to range
      */
     rangeEaseFactor: number;
     malfunctionRange: number;
@@ -17,7 +21,8 @@ export type RadarDesign = {
 
 export class RadarDesignState extends DesignState implements RadarDesign {
     @number2Digits damage50 = 0;
-    @number2Digits basicRange = 0;
+    @number2Digits range = 0;
+    @number2Digits energyCost = 0;
     @number2Digits rangeEaseFactor = 0;
     @number2Digits malfunctionRange = 0;
 }

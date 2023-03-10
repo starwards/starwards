@@ -56,19 +56,19 @@ export class EnergyManager {
     }
 
     private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.reactor.afterBurnerFuel < this.state.reactor.design.maxAfterBurnerFuel) {
+        if (this.state.maneuvering.afterBurnerFuel < this.state.maneuvering.design.maxAfterBurnerFuel) {
             const afterBurnerFuelDelta = Math.min(
-                this.state.reactor.design.maxAfterBurnerFuel - this.state.reactor.afterBurnerFuel,
-                this.state.reactor.design.afterBurnerCharge * deltaSeconds
+                this.state.maneuvering.design.maxAfterBurnerFuel - this.state.maneuvering.afterBurnerFuel,
+                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.reactor.power
             );
             if (
                 this.trySpendEnergy(
-                    afterBurnerFuelDelta * this.state.reactor.design.afterBurnerEnergyCost,
+                    afterBurnerFuelDelta * this.state.maneuvering.design.afterBurnerEnergyCost,
                     this.state.reactor
                 )
             ) {
-                this.state.reactor.afterBurnerFuel = limitPercisionHard(
-                    this.state.reactor.afterBurnerFuel + afterBurnerFuelDelta
+                this.state.maneuvering.afterBurnerFuel = limitPercisionHard(
+                    this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta
                 );
             }
         }

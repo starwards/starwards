@@ -17,6 +17,7 @@ import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
 import { DockingManager } from './docking-manager';
 import { Magazine } from './magazine';
+import { Maneuvering } from './maneuvering';
 import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
@@ -82,6 +83,18 @@ export class DamageManager {
                 this.damageWarp(system, damageObject.id);
             } else if (Docking.isInstance(system)) {
                 DockingManager.damageDocking(system);
+            } else if (Maneuvering.isInstance(system)) {
+                this.damageManeuvering(system, damageObject.id);
+            }
+        }
+    }
+
+    private damageManeuvering(maneuvering: Maneuvering, damageId: string) {
+        if (!maneuvering.broken) {
+            if (this.die.getSuccess('damageManeuvering' + damageId, 0.5)) {
+                maneuvering.efficiency -= 0.05;
+            } else {
+                maneuvering.afterBurnerFuel *= 0.9;
             }
         }
     }
