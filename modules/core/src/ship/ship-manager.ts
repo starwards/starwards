@@ -97,15 +97,7 @@ export class ShipManager {
             SmartPilotMode.TARGET
         );
         resetShipState(this.state);
-        if (this.state.chainGun) {
-            this.chainGunManager = new ChainGunManager(
-                this.state.chainGun,
-                this.spaceObject,
-                this.state,
-                this.spaceManager,
-                this
-            );
-        }
+
         this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
         this.heatManager = new HeatManager(this.state, this.damageManager);
         this.energyManager = new EnergyManager(this.state, this.heatManager);
@@ -119,8 +111,20 @@ export class ShipManager {
             this.die
         );
         this.dockingManager = new DockingManager(this.spaceObject, this.state, this.spaceManager, this);
+        if (this.state.chainGun) {
+            this.chainGunManager = new ChainGunManager(
+                this.state.chainGun,
+                this.spaceObject,
+                this.state,
+                this.spaceManager,
+                this,
+                this.energyManager
+            );
+        }
         for (const tube of this.state.tubes) {
-            this.tubeManagers.push(new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this));
+            this.tubeManagers.push(
+                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.energyManager)
+            );
         }
     }
 

@@ -19,6 +19,7 @@ export type ChaingunDesign = {
     minShellRange: number;
     overrideSecondsToLive: number;
     damage50: number;
+    energyCost: number;
     use_CannonShell?: boolean;
     use_BlastCannonShell?: boolean;
     use_Missile?: boolean;
@@ -32,6 +33,7 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @number2Digits minShellRange = 0;
     @number2Digits overrideSecondsToLive = -1;
     @number2Digits damage50 = 0;
+    @number2Digits energyCost = 0;
     @type('boolean') use_CannonShell = false;
     @type('boolean') use_BlastCannonShell = false;
     @type('boolean') use_Missile = false;

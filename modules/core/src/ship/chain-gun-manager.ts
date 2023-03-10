@@ -5,6 +5,7 @@ import { Vec2, gaussianRandom } from '..';
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
+import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
@@ -39,7 +40,8 @@ export class ChainGunManager {
         public spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
         private spaceManager: SpaceManager,
-        private shipManager: ShipManager
+        private shipManager: ShipManager,
+        private energyManager: EnergyManager
     ) {
         switchToAvailableAmmo(chainGun, state.magazine);
     }
@@ -120,32 +122,39 @@ export class ChainGunManager {
             chainGun.projectile !== 'None' &&
             chainGun.loading === 0 &&
             this.state.magazine[`count_${chainGun.projectile}`] < 1;
-        const rof = chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor;
-        if (!chainGun.broken && rof > 0) {
+        const loadingDelta =
+            chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor * chainGun.power * deltaSeconds;
+        const loadingEnergy =
+            chainGun.design.bulletsPerSecond * chainGun.power * deltaSeconds * chainGun.design.energyCost;
+        if (!chainGun.broken && loadingDelta > 0) {
             // const loadAction = this.calcLoadAction();
             if (
                 chainGun.loadedProjectile !== 'None' &&
                 (chainGun.projectile !== chainGun.loadedProjectile || !chainGun.loadAmmo)
             ) {
                 // unload
-                chainGun.loading -= deltaSeconds * rof;
-                if (chainGun.loading <= 0) {
-                    chainGun.loading = 0;
-                    this.state.magazine[`count_${chainGun.loadedProjectile}`] += 1;
-                    chainGun.loadedProjectile = 'None';
+                if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
+                    chainGun.loading -= loadingDelta;
+                    if (chainGun.loading <= 0) {
+                        chainGun.loading = 0;
+                        this.state.magazine[`count_${chainGun.loadedProjectile}`] += 1;
+                        chainGun.loadedProjectile = 'None';
+                    }
                 }
             } else if (chainGun.projectile !== 'None' && chainGun.loadAmmo && chainGun.loading < 1 && !dontLoad) {
                 // load
-                if (chainGun.loading === 0) {
-                    this.state.magazine[`count_${chainGun.projectile}`] -= 1;
-                    chainGun.loadedProjectile = chainGun.projectile;
-                    chainGun.loading += this.loadingRemainder;
-                    this.loadingRemainder = 0;
-                }
-                chainGun.loading += deltaSeconds * rof;
-                if (chainGun.loading >= 1) {
-                    this.loadingRemainder = chainGun.loading - 1;
-                    chainGun.loading = 1;
+                if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
+                    if (chainGun.loading === 0) {
+                        this.state.magazine[`count_${chainGun.projectile}`] -= 1;
+                        chainGun.loadedProjectile = chainGun.projectile;
+                        chainGun.loading += this.loadingRemainder;
+                        this.loadingRemainder = 0;
+                    }
+                    chainGun.loading += loadingDelta;
+                    if (chainGun.loading >= 1) {
+                        this.loadingRemainder = chainGun.loading - 1;
+                        chainGun.loading = 1;
+                    }
                 }
             }
         }

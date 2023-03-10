@@ -30,6 +30,7 @@ export const dragonflyChaingun = {
     use_CannonShell: true,
     use_BlastCannonShell: true,
     damage50: 20,
+    energyCost: 1,
 };
 export const dragonflyReactor = {
     energyPerSecond: 5,
@@ -72,6 +73,7 @@ export const dragonflyTube = {
     maxShellRange: 1_000_000,
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
+    energyCost: 30,
     use_Missile: true,
 };
 export const dragonflyTargeting = {
