@@ -16,7 +16,7 @@ export type Craft = {
 export type ManeuveringCommand = { strafe: number; boost: number };
 
 export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipState, targetTurnSpeed: number) {
-    return accelerateToSpeed(deltaSeconds, ship.design.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
+    return accelerateToSpeed(deltaSeconds, ship.maneuvering.design.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
 }
 
 export function matchGlobalSpeed(deltaSeconds: number, ship: ShipState, globalVelocity: XY): ManeuveringCommand {

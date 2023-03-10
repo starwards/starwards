@@ -52,6 +52,7 @@ export class MovementManager {
         const maneuveringAction = this.calcManeuveringAction();
         this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);
         this.updateVelocityFromThrusters(deltaSeconds);
+        this.chargeAfterBurner(deltaSeconds);
     }
 
     private handleWarpCommands() {
@@ -201,9 +202,13 @@ export class MovementManager {
     private updateRotation(deltaSeconds: number) {
         if (this.state.rotation) {
             let speedToChange = 0;
-            const rotateFactor = this.state.rotation * deltaSeconds;
-            const enginePower = rotateFactor * this.state.design.rotationCapacity;
-            if (this.energyManager.trySpendEnergy(Math.abs(enginePower) * this.state.design.rotationEnergyCost)) {
+            // TODO implement energy, power
+            const enginePower = this.state.rotation * deltaSeconds * this.state.maneuvering.design.rotationCapacity;
+            if (
+                this.energyManager.trySpendEnergy(
+                    Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost
+                )
+            ) {
                 speedToChange += enginePower;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
@@ -281,6 +286,7 @@ export class MovementManager {
 
     private updateThrustersFromManeuvering(maneuveringAction: XY, deltaSeconds: number) {
         for (const thruster of this.state.thrusters) {
+            // TODO implement energy, power
             thruster.afterBurnerActive = 0;
             thruster.active = 0;
             const globalAngle = thruster.angle + this.state.angle;
@@ -300,17 +306,35 @@ export class MovementManager {
             }
         }
     }
+    private chargeAfterBurner(deltaSeconds: number) {
+        if (this.state.maneuvering.afterBurnerFuel < this.state.maneuvering.design.maxAfterBurnerFuel) {
+            const afterBurnerFuelDelta = Math.min(
+                this.state.maneuvering.design.maxAfterBurnerFuel - this.state.maneuvering.afterBurnerFuel,
+                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.maneuvering.power
+            );
+            if (
+                this.energyManager.trySpendEnergy(
+                    afterBurnerFuelDelta * this.state.maneuvering.design.afterBurnerEnergyCost,
+                    this.state.maneuvering
+                )
+            ) {
+                this.state.maneuvering.afterBurnerFuel = limitPercisionHard(
+                    this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta
+                );
+            }
+        }
+    }
 
     private trySpendAfterBurner(value: number): boolean {
         if (value < 0) {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative afterBurnerFuel');
         }
-        if (this.state.reactor.afterBurnerFuel > value) {
-            this.state.reactor.afterBurnerFuel = limitPercisionHard(this.state.reactor.afterBurnerFuel - value);
+        if (this.state.maneuvering.afterBurnerFuel > value) {
+            this.state.maneuvering.afterBurnerFuel = limitPercisionHard(this.state.maneuvering.afterBurnerFuel - value);
             return true;
         }
-        this.state.reactor.afterBurnerFuel = 0;
+        this.state.maneuvering.afterBurnerFuel = 0;
         return false;
     }
 

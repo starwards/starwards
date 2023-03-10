@@ -35,16 +35,11 @@ export const dragonflyChaingun = {
 export const dragonflyReactor = {
     energyPerSecond: 5,
     maxEnergy: 1000,
-    maxAfterBurnerFuel: 5000,
-    afterBurnerCharge: 20,
-    afterBurnerEnergyCost: 0.07,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
 };
 export const dragonflyProperties = {
-    rotationCapacity: 25,
-    rotationEnergyCost: 0.07,
     totalCoolant: 10,
 };
 export const dragonflyMagazine = {
@@ -98,6 +93,14 @@ export const dragonflyDocking = {
     angle: -90,
     width: 45,
 };
+export const dragonflyManeuvering = {
+    rotationCapacity: 25,
+    rotationEnergyCost: 0.07,
+    maxAfterBurnerFuel: 5000,
+    afterBurnerCharge: 20,
+    afterBurnerEnergyCost: 0.07,
+    damage50: 20,
+};
 
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
@@ -119,4 +122,5 @@ export const dragonflySF22: ShipDesign = {
     weaponsTarget: dragonflyTargeting,
     warp: dragonflyWarp,
     docking: dragonflyDocking,
+    maneuvering: dragonflyManeuvering,
 };

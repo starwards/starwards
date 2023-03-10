@@ -26,6 +26,7 @@ import { EnergyManager } from './energy-manager';
 import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
+import { Maneuvering } from './maneuvering';
 import { MovementManager } from './movement-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
@@ -41,7 +42,7 @@ function fixArmor(armor: Armor) {
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
-    state.reactor.afterBurnerFuel = state.reactor.design.maxAfterBurnerFuel;
+    state.maneuvering.afterBurnerFuel = state.maneuvering.design.maxAfterBurnerFuel;
     fixArmor(state.armor);
     if (state.chainGun) {
         resetChainGun(state.chainGun);
@@ -57,7 +58,7 @@ function resetThruster(thruster: Thruster) {
     thruster.angleError = 0;
     thruster.availableCapacity = 1.0;
 }
-export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking;
+export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering;
 export type Die = {
     getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
