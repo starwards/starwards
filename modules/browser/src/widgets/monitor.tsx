@@ -45,7 +45,7 @@ function Metric({ property, metricName, warn, error }: MetricProps) {
 }
 
 const statusPallete = {
-    OFFLINE: 'error',
+    DISABLED: 'error',
     DAMAGED: 'secondary',
     OK: 'success',
 } as const;
