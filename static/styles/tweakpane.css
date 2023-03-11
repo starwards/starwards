@@ -53,3 +53,8 @@
 :root [data-status='ERROR'] {
     --tp-base-background-color: hsl(0, 69%, 17%, 1);
 }
+
+/* from https://github.com/amir-arad/tweakpane-table */
+:root .tp-lblv_v {
+    min-width: fit-content; /* don't cut off cells */
+}
