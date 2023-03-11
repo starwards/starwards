@@ -24,6 +24,11 @@ export enum PowerLevel {
     HIGH = 0.75,
     MAX = 1,
 }
+export enum HackLevel {
+    DISABLED = 0,
+    COMPROMISED = 0.5,
+    OK = 1,
+}
 /**
  * An object that can be decorated with @defectible
  */
@@ -49,10 +54,15 @@ export abstract class SystemState extends Schema {
     @number2Digits
     public coolantFactor = 0;
 
-    @range([0, 3])
+    @range([0, 1])
     @tweakable({ type: 'enum', enum: PowerLevel })
     @number2Digits
     public power = PowerLevel.MAX;
+
+    @range([0, 1])
+    @tweakable({ type: 'enum', enum: HackLevel })
+    @number2Digits
+    public hacked = HackLevel.OK;
 }
 
 export function defectible(config: DefectibleConfig) {
