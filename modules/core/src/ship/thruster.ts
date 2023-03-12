@@ -13,7 +13,6 @@ export type ThrusterDesign = {
     capacity: number;
     energyCost: number;
     afterBurnerCapacity: number;
-    afterBurnerEffectFactor: number;
     damage50: number;
 };
 
@@ -22,7 +21,6 @@ export class ThrusterDesignState extends DesignState implements ThrusterDesign {
     @number2Digits capacity = 0;
     @number2Digits energyCost = 0;
     @number2Digits afterBurnerCapacity = 0;
-    @number2Digits afterBurnerEffectFactor = 0;
     @number2Digits damage50 = 0;
 }
 export class Thruster extends SystemState {
@@ -81,14 +79,6 @@ export class Thruster extends SystemState {
         return this.angle + parent.angle;
     }
     getVelocityCapacity(parent: ShipState): number {
-        return this.capacity + parent.afterBurner * this.afterBurnerCapacity * this.design.afterBurnerEffectFactor;
-    }
-
-    get capacity(): number {
-        return this.broken ? 0 : this.design.capacity;
-    }
-
-    get afterBurnerCapacity(): number {
-        return this.broken ? 0 : this.design.afterBurnerCapacity;
+        return this.effectiveness * (this.design.capacity + parent.afterBurner * this.design.afterBurnerCapacity);
     }
 }

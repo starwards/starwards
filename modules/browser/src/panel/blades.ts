@@ -9,7 +9,7 @@ import {
     TextApi,
     TextBladeParams,
 } from 'tweakpane';
-import { BladeController, View } from '@tweakpane/core';
+import { BladeController, ButtonParams, View } from '@tweakpane/core';
 import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
@@ -138,6 +138,18 @@ export function addCameraRingBlade(
     cleanup: (d: Destructor) => void
 ) {
     addInputBlade(guiFolder, model, { series: 0, ...params, view: 'cameraring' }, cleanup);
+}
+
+export function addButtonBlade(
+    guiFolder: FolderApi,
+    onClick: () => unknown,
+    params: { label: string } & ButtonParams,
+    cleanup: (d: Destructor) => void
+) {
+    const button = guiFolder.addButton({ ...params }).on('click', onClick);
+    cleanup(() => {
+        button.dispose();
+    });
 }
 
 export type InputBladeParams = { label: string } & Partial<InputParams>;

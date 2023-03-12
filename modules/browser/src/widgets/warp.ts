@@ -1,4 +1,4 @@
-import { Destructors, ShipDriver } from '@starwards/core';
+import { Destructors, ShipDriver, WarpFrequency } from '@starwards/core';
 import { addSliderBlade, addTextBlade } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
@@ -19,13 +19,19 @@ export function warpWidget(shipDriver: ShipDriver): DashboardWidget {
         defaultProps: {},
     };
 }
+
 export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
     const pane = new Pane({ title: 'Warp', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
-    addSliderBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual' }, panelCleanup.add);
-    addSliderBlade(pane, readNumberProp(shipDriver, '/warp/desiredLevel'), { label: 'Designated' }, panelCleanup.add);
+    addSliderBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual LVL' }, panelCleanup.add);
+    addSliderBlade(
+        pane,
+        readNumberProp(shipDriver, '/warp/desiredLevel'),
+        { label: 'Designated LVL' },
+        panelCleanup.add
+    );
     const jammedProp = readProp(shipDriver, '/warp/jammed');
     const jamBlade = addTextBlade(
         pane,
@@ -37,4 +43,23 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
     const applyThemeToJammed = () => (jamBlade.element.dataset.status = shipDriver.state.warp.jammed ? 'WARN' : ''); // this will change tweakpane theme for this folder, see tweakpane.css
     panelCleanup.add(jammedProp.onChange(applyThemeToJammed));
     applyThemeToJammed();
+
+    addTextBlade(
+        pane,
+        readProp<WarpFrequency>(shipDriver, '/warp/currentFrequency'),
+        { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Actual FRQ' },
+        panelCleanup.add
+    );
+    addTextBlade(
+        pane,
+        readProp<WarpFrequency>(shipDriver, '/warp/desiredFrequency'),
+        { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Designated FRQ' },
+        panelCleanup.add
+    );
+    addSliderBlade(
+        pane,
+        readNumberProp(shipDriver, '/warp/frequencyChange'),
+        { label: 'Calibration' },
+        panelCleanup.add
+    );
 }

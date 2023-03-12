@@ -15,7 +15,6 @@ import { Die, FRONT_ARC, REAR_ARC, ShipSystem } from '.';
 
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
-import { DockingManager } from './docking-manager';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import NormalDistribution from 'normal-distribution';
@@ -82,75 +81,67 @@ export class DamageManager {
             } else if (Warp.isInstance(system)) {
                 this.damageWarp(system, damageObject.id);
             } else if (Docking.isInstance(system)) {
-                DockingManager.damageDocking(system);
+                this.damageDocking(system);
             } else if (Maneuvering.isInstance(system)) {
                 this.damageManeuvering(system, damageObject.id);
             }
         }
     }
 
+    damageDocking(docking: Docking) {
+        if (docking.broken) {
+            return;
+        }
+        docking.rangesFactor -= 0.05;
+    }
+
     private damageManeuvering(maneuvering: Maneuvering, damageId: string) {
-        if (!maneuvering.broken) {
-            if (this.die.getSuccess('damageManeuvering' + damageId, 0.5)) {
-                maneuvering.efficiency -= 0.05;
-            } else {
-                maneuvering.afterBurnerFuel *= 0.9;
-            }
+        if (this.die.getSuccess('damageManeuvering' + damageId, 0.5)) {
+            maneuvering.efficiency -= 0.05;
+        } else {
+            maneuvering.afterBurnerFuel *= 0.9;
         }
     }
 
     private damageWarp(warp: Warp, damageId: string) {
-        if (!warp.broken) {
-            if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
-                warp.damageFactor += 0.05;
-            } else {
-                warp.velocityFactor *= 0.9;
-            }
+        if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
+            warp.damageFactor += 0.05;
+        } else {
+            warp.velocityFactor *= 0.9;
         }
     }
 
     private damageMagazine(magazine: Magazine, damageId: string) {
-        if (!magazine.broken) {
-            if (this.die.getSuccess('damageMagazine' + damageId, 0.5)) {
-                // todo convert to a defectible property that accumulates damage
-                const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
-                const projectileKey = projectileModels[idx];
-                magazine[`count_${projectileKey}`] = Math.round(
-                    magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor)
-                );
-            } else {
-                magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
-            }
+        if (this.die.getSuccess('damageMagazine' + damageId, 0.5)) {
+            // todo convert to a defectible property that accumulates damage
+            const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
+            const projectileKey = projectileModels[idx];
+            magazine[`count_${projectileKey}`] = Math.round(
+                magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor)
+            );
+        } else {
+            magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
         }
     }
 
     private damageReactor(reactor: Reactor, damageId: string) {
-        if (!reactor.broken) {
-            if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
-                // todo convert to a defectible property that accumulates damage
-                reactor.energy *= 0.9;
-            } else {
-                reactor.effeciencyFactor -= 0.05;
-            }
+        if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+            // todo convert to a defectible property that accumulates damage
+            reactor.energy *= 0.9;
+        } else {
+            reactor.effeciencyFactor -= 0.05;
         }
     }
 
     private damageSmartPilot(smartPilot: SmartPilot) {
-        if (!smartPilot.broken) {
-            smartPilot.offsetFactor += 0.01;
-        }
+        smartPilot.offsetFactor += 0.01;
     }
 
     private damageRadar(radar: Radar) {
-        if (!radar.broken) {
-            radar.malfunctionRangeFactor += 0.05;
-        }
+        radar.malfunctionRangeFactor += 0.05;
     }
 
     private damageThruster(thruster: Thruster, damageId: string) {
-        if (thruster.broken) {
-            return;
-        }
         if (this.die.getSuccess('damageThruster' + damageId, 0.5)) {
             thruster.angleError +=
                 limitPercision(this.die.getRollInRange('thrusterAngleOffset' + damageId, 1, 3)) *
@@ -164,14 +155,12 @@ export class DamageManager {
     }
 
     private damageChainGun(chainGun: ChainGun, damageId: string) {
-        if (!chainGun.broken) {
-            if (this.die.getSuccess('damageChaingun' + damageId, 0.5)) {
-                chainGun.angleOffset +=
-                    limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
-                    (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
-            } else {
-                chainGun.rateOfFireFactor *= 0.9;
-            }
+        if (this.die.getSuccess('damageChaingun' + damageId, 0.5)) {
+            chainGun.angleOffset +=
+                limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
+                (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
+        } else {
+            chainGun.rateOfFireFactor *= 0.9;
         }
     }
 

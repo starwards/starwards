@@ -10,7 +10,6 @@ export const dragonflyThruster = {
     capacity: 150,
     energyCost: 0.07,
     afterBurnerCapacity: 300,
-    afterBurnerEffectFactor: 1,
     damage50: 15,
 };
 export const dragonflyRadar = {
@@ -84,6 +83,7 @@ export const dragonflyWarp = {
     energyCostPerLevel: 2,
     damagePerPhysicalSpeed: 20,
     baseDamagePerWarpSpeedPerSecond: 0.1,
+    secondsToChangeFrequency: 10,
 };
 export const dragonflyDocking = {
     damage50: 20,
