@@ -1,8 +1,8 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
-import { Destructors, PowerLevel, ShipDriver } from '@starwards/core';
-import { abstractOnChange, readNumberProp, readProp } from '../property-wrappers';
+import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
+import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
@@ -50,16 +50,14 @@ export function drawFullSystemsStatus(
             { label: 'EPM', width: '60px' },
             { label: 'Heat', width: '60px' },
             { label: 'Coolant', width: '120px' },
+            { label: 'Hacked', width: '60px' },
         ],
     });
     for (const system of systems) {
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
         const defectiblesProps = system.defectibles.map(defectReadProp(shipDriver));
         const statusChangeProps = [brokenProp, ...defectiblesProps];
-        const prop = {
-            onChange: (cb: () => unknown) => abstractOnChange(statusChangeProps, system.getStatus, cb),
-            getValue: system.getStatus,
-        };
+        const prop = aggregate(statusChangeProps, system.getStatus);
         const standardRowApi = pane.addBlade({
             view: 'tableRow',
             label: system.state.name,
@@ -96,6 +94,13 @@ export function drawFullSystemsStatus(
             { format: (c: number) => `${Math.round(c * 100)}%`, width: '120px' },
             panelCleanup.add
         );
+        addTextBlade(
+            standardRowApi.getPane(),
+            readProp<number>(shipDriver, `${system.pointer}/hacked`),
+            { format: (p: HackLevel) => HackLevel[p], width: '60px' },
+            panelCleanup.add
+        );
+
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);

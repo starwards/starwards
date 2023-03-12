@@ -13,6 +13,13 @@ interface Driver {
 export type Callback = () => void;
 export type OnChange = (cb: Callback) => () => void;
 
+export function aggregate<T>(underlyingProps: { onChange: OnChange }[], getValue: () => T) {
+    return {
+        onChange: (cb: () => unknown) => abstractOnChange(underlyingProps, getValue, cb),
+        getValue,
+    };
+}
+
 export function abstractOnChange(
     underlyingProps: { onChange: OnChange }[],
     getValue: () => unknown,

@@ -123,9 +123,9 @@ export class ChainGunManager {
             chainGun.loading === 0 &&
             this.state.magazine[`count_${chainGun.projectile}`] < 1;
         const loadingDelta =
-            chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor * chainGun.power * deltaSeconds;
+            chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor * chainGun.effectiveness * deltaSeconds;
         const loadingEnergy =
-            chainGun.design.bulletsPerSecond * chainGun.power * deltaSeconds * chainGun.design.energyCost;
+            chainGun.design.bulletsPerSecond * chainGun.effectiveness * deltaSeconds * chainGun.design.energyCost;
         if (!chainGun.broken && loadingDelta > 0) {
             // const loadAction = this.calcLoadAction();
             if (
