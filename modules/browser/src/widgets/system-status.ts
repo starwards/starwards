@@ -1,13 +1,13 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
-import { abstractOnChange, readProp } from '../property-wrappers';
+import { Model, addTextBlade } from '../panel';
+import { aggregate, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
 import { RowApi } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
-import { addTextBlade } from '../panel';
 import { defectReadProp } from '../react/hooks';
 
 export function systemsStatusWidget(shipDriver: ShipDriver): DashboardWidget {
@@ -24,7 +24,8 @@ export function systemsStatusWidget(shipDriver: ShipDriver): DashboardWidget {
         defaultProps: {},
     };
 }
-const totalWidth = 350;
+
+const totalWidth = 370;
 const cellWidth = 50;
 export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDriver, systems = shipDriver.systems) {
     const panelCleanup = new Destructors();
@@ -53,71 +54,61 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
 
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
         const defectibleProps = [brokenProp, ...system.defectibles.map(defectReadProp(shipDriver))];
-        const statusProp = {
-            onChange: (cb: () => unknown) => abstractOnChange(defectibleProps, system.getStatus, cb),
-            getValue: system.getStatus,
-        };
-        const statusBlade = addTextBlade(
-            standardRowApi.getPane(),
-            statusProp,
-            { width: `${cellWidth}px` },
-            panelCleanup.add
-        );
-        statusBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
-        const applyThemeToStatus = () => (statusBlade.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
-        panelCleanup.add(statusProp.onChange(applyThemeToStatus));
-        applyThemeToStatus();
+        addStatusBlade(standardRowApi, aggregate(defectibleProps, system.getStatus), (p) => p, panelCleanup, {
+            OK: 'OK',
+            DAMAGED: 'WARN',
+            DISABLED: 'ERROR',
+        });
 
-        const powerProp = readProp<number>(shipDriver, `${system.pointer}/power`);
-        const powerBlade = addTextBlade(
-            standardRowApi.getPane(),
-            powerProp,
-            { format: (p: PowerLevel) => PowerLevel[p], width: `${cellWidth}px` },
-            panelCleanup.add
+        addStatusBlade(
+            standardRowApi,
+            readProp<PowerLevel>(shipDriver, `${system.pointer}/power`),
+            (p: PowerLevel) => PowerLevel[p],
+            panelCleanup,
+            {
+                [PowerLevel.MAX]: 'OK',
+                [PowerLevel.HIGH]: 'OK',
+                [PowerLevel.MID]: 'WARN',
+                [PowerLevel.LOW]: 'WARN',
+                [PowerLevel.SHUTDOWN]: 'ERROR',
+            }
         );
-        powerBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
-        const powerStatusColor = {
-            [PowerLevel.MAX]: 'OK',
-            [PowerLevel.HIGH]: 'OK',
-            [PowerLevel.MID]: 'WARN',
-            [PowerLevel.LOW]: 'WARN',
-            [PowerLevel.SHUTDOWN]: 'ERROR',
-        } as const;
-        const applyThemeToPower = () => (powerBlade.element.dataset.status = powerStatusColor[system.state.power]); // this will change tweakpane theme for this folder, see tweakpane.css
-        panelCleanup.add(powerProp.onChange(applyThemeToPower));
-        applyThemeToPower();
 
-        const heatProp = {
-            onChange: (cb: () => unknown) =>
-                abstractOnChange([readProp<number>(shipDriver, `${system.pointer}/heat`)], system.getHeatStatus, cb),
-            getValue: system.getHeatStatus,
-        };
-        const heatBlade = addTextBlade(
-            standardRowApi.getPane(),
-            heatProp,
-            { width: `${cellWidth}px` },
-            panelCleanup.add
+        addStatusBlade(
+            standardRowApi,
+            aggregate([readProp<number>(shipDriver, `${system.pointer}/heat`)], system.getHeatStatus),
+            system.getHeatStatus,
+            panelCleanup,
+            {
+                OK: 'OK',
+                WARMING: 'WARN',
+                OVERHEAT: 'ERROR',
+            }
         );
-        heatBlade.element.classList.add('heat', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
-        const applyThemeToHeat = () => (heatBlade.element.dataset.status = system.getHeatStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
-        panelCleanup.add(heatProp.onChange(applyThemeToHeat));
-        applyThemeToHeat();
 
-        const hackedProp = readProp<number>(shipDriver, `${system.pointer}/hacked`);
-        const hackedBlade = addTextBlade(
-            standardRowApi.getPane(),
-            hackedProp,
-            { format: (p: HackLevel) => HackLevel[p], width: `${cellWidth}px` },
-            panelCleanup.add
+        addStatusBlade(
+            standardRowApi,
+            readProp<HackLevel>(shipDriver, `${system.pointer}/hacked`),
+            (p: HackLevel) => HackLevel[p],
+            panelCleanup,
+            {
+                [HackLevel.OK]: 'OK',
+                [HackLevel.COMPROMISED]: 'WARN',
+                [HackLevel.DISABLED]: 'ERROR',
+            }
         );
-        hackedBlade.element.classList.add('heat', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
-        const hackedStatusColor = {
-            [HackLevel.OK]: 'OK',
-            [HackLevel.COMPROMISED]: 'WARN',
-            [HackLevel.DISABLED]: 'ERROR',
-        } as const;
-        const applyThemeToHacked = () => (hackedBlade.element.dataset.status = hackedStatusColor[system.state.hacked]); // this will change tweakpane theme for this folder, see tweakpane.css
-        panelCleanup.add(hackedProp.onChange(applyThemeToHacked));
-        applyThemeToHacked();
     }
+}
+function addStatusBlade<T extends string | number>(
+    standardRowApi: TweakpaneTablePlugin.RowApi,
+    prop: Model<T>,
+    format: (p: T) => string,
+    panelCleanup: Destructors,
+    hackedStatusColor: Record<T, 'OK' | 'WARN' | 'ERROR'>
+) {
+    const blade = addTextBlade(standardRowApi.getPane(), prop, { format, width: `${cellWidth}px` }, panelCleanup.add);
+    blade.element.classList.add('heat', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
+    const applyTheme = () => (blade.element.dataset.status = hackedStatusColor[prop.getValue()]); // this will change tweakpane theme for this folder, see tweakpane.css
+    panelCleanup.add(prop.onChange(applyTheme));
+    applyTheme();
 }
