@@ -76,7 +76,7 @@ export class Warp extends SystemState {
     desiredFrequency = WarpFrequency.W770HZ;
 
     @range([0, 1])
-    @number2Digits
+    @type('float32')
     frequencyChange = 1;
 
     @type('boolean')
@@ -86,8 +86,11 @@ export class Warp extends SystemState {
     changingFrequency = false;
 
     // server only, used for commands
+    @tweakable('boolean')
     public levelUpCommand = false;
+    @tweakable('boolean')
     public levelDownCommand = false;
+    @tweakable('boolean')
     public changeFrequencyCommand = false;
 
     get damagePerWarpSpeedPerSecond() {

@@ -57,6 +57,11 @@ export class MovementManager {
     }
 
     private handleWarpCommands() {
+        if (this.state.warp.changingFrequency) {
+            this.state.warp.changeFrequencyCommand = false;
+            this.state.warp.levelUpCommand = false;
+            this.state.warp.levelDownCommand = false;
+        }
         if (this.state.warp.changeFrequencyCommand) {
             this.state.warp.changeFrequencyCommand = false;
             if (
@@ -65,6 +70,7 @@ export class MovementManager {
                 this.state.warp.currentFrequency !== this.state.warp.desiredFrequency
             ) {
                 this.state.warp.changingFrequency = true;
+                this.state.warp.desiredLevel = 0;
                 this.state.warp.frequencyChange = 0;
             }
         }
@@ -87,6 +93,8 @@ export class MovementManager {
                 this.state.warp.currentFrequency = this.state.warp.desiredFrequency;
                 this.state.warp.changingFrequency = false;
             }
+        } else {
+            this.state.warp.frequencyChange = 1;
         }
     }
 
