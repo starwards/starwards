@@ -6,8 +6,8 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
-import { wrapWidgetContainer } from '../container';
 import { readProp } from '../property-wrappers';
+import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
 
