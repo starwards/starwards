@@ -111,7 +111,13 @@ export class ShipManager {
             this.energyManager,
             this.die
         );
-        this.dockingManager = new DockingManager(this.spaceObject, this.state, this.spaceManager, this);
+        this.dockingManager = new DockingManager(
+            this.spaceObject,
+            this.state,
+            this.spaceManager,
+            this,
+            this.damageManager
+        );
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
                 this.state.chainGun,

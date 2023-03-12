@@ -112,7 +112,7 @@ export class ChainGunManager {
                 chainGun.projectile = ammoTypes.elementAfter(chainGun.projectile);
             }
         }
-        if (chainGun.broken) {
+        if (!chainGun.effectiveness) {
             chainGun.isFiring = false;
         }
         if (!chainGun.isFiring) {
@@ -126,7 +126,7 @@ export class ChainGunManager {
             chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor * chainGun.effectiveness * deltaSeconds;
         const loadingEnergy =
             chainGun.design.bulletsPerSecond * chainGun.effectiveness * deltaSeconds * chainGun.design.energyCost;
-        if (!chainGun.broken && loadingDelta > 0) {
+        if (loadingDelta > 0) {
             // const loadAction = this.calcLoadAction();
             if (
                 chainGun.loadedProjectile !== 'None' &&
@@ -162,7 +162,12 @@ export class ChainGunManager {
 
     private fireChainGun() {
         const chainGun = this.chainGun;
-        if (!chainGun.broken && chainGun.isFiring && chainGun.loading >= 1 && chainGun.loadedProjectile !== 'None') {
+        if (
+            chainGun.effectiveness > 0 &&
+            chainGun.isFiring &&
+            chainGun.loading >= 1 &&
+            chainGun.loadedProjectile !== 'None'
+        ) {
             const projectile = new Projectile(chainGun.loadedProjectile);
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';

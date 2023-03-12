@@ -182,7 +182,7 @@ export class MovementManager {
     }
 
     private isWarpActive() {
-        return !this.state.warp.broken && this.state.warp.currentLevel && !this.state.warp.changingFrequency;
+        return this.state.warp.effectiveness > 0 && this.state.warp.currentLevel && !this.state.warp.changingFrequency;
     }
 
     private calcRotation(deltaSeconds: number) {
@@ -246,7 +246,7 @@ export class MovementManager {
     }
 
     private calcSmartPilotModes() {
-        if (this.state.smartPilot.broken) {
+        if (!this.state.smartPilot.effectiveness) {
             this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         }
@@ -300,10 +300,15 @@ export class MovementManager {
     private updateVelocityFromThrusters(deltaSeconds: number) {
         const speedToChange = XY.sum(
             ...this.state.thrusters.map((thruster) => {
-                const mvEffect = thruster.active * thruster.capacity * thruster.availableCapacity * deltaSeconds;
-                const abEffect = thruster.afterBurnerActive * thruster.afterBurnerCapacity * deltaSeconds;
+                const mvEffect = thruster.active * thruster.design.capacity;
+                const abEffect =
+                    thruster.afterBurnerActive *
+                    thruster.design.afterBurnerCapacity *
+                    this.state.maneuvering.effectiveness *
+                    this.state.maneuvering.efficiency;
+                const actionFactor = thruster.effectiveness * thruster.availableCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(
-                    mvEffect + abEffect,
+                    (mvEffect + abEffect) * actionFactor,
                     thruster.angle + thruster.angleError + this.state.angle
                 );
             })
@@ -317,20 +322,28 @@ export class MovementManager {
         for (const thruster of this.state.thrusters) {
             thruster.afterBurnerActive = 0;
             thruster.active = 0;
-            const globalAngle = thruster.angle + this.state.angle;
-            const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
-            const axisCapacity = thruster.capacity * thruster.effectiveness * deltaSeconds;
-            if (
-                this.energyManager.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost, thruster)
-            ) {
-                thruster.active = desiredAction;
-            }
-            if (this.state.afterBurner) {
-                const axisAfterBurnerCapacity =
-                    thruster.afterBurnerCapacity * this.state.maneuvering.effectiveness * deltaSeconds;
-                const desireAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
-                if (this.trySpendAfterBurner(desireAfterBurnedAction * axisAfterBurnerCapacity)) {
-                    thruster.afterBurnerActive = desireAfterBurnedAction * this.state.maneuvering.efficiency;
+            if (thruster.effectiveness) {
+                const globalAngle = thruster.angle + this.state.angle;
+                const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
+                const axisCapacity = thruster.design.capacity * thruster.effectiveness * deltaSeconds;
+                if (
+                    this.energyManager.trySpendEnergy(
+                        desiredAction * axisCapacity * thruster.design.energyCost,
+                        thruster
+                    )
+                ) {
+                    thruster.active = desiredAction;
+                }
+                if (this.state.afterBurner) {
+                    const desiredAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
+                    const afterBurnerCapacity =
+                        thruster.design.afterBurnerCapacity *
+                        thruster.effectiveness *
+                        this.state.maneuvering.effectiveness *
+                        deltaSeconds;
+                    if (this.trySpendAfterBurner(desiredAfterBurnedAction * afterBurnerCapacity)) {
+                        thruster.afterBurnerActive = desiredAfterBurnedAction;
+                    }
                 }
             }
         }

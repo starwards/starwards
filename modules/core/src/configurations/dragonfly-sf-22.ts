@@ -10,7 +10,6 @@ export const dragonflyThruster = {
     capacity: 150,
     energyCost: 0.07,
     afterBurnerCapacity: 300,
-    afterBurnerEffectFactor: 1,
     damage50: 15,
 };
 export const dragonflyRadar = {
