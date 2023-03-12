@@ -19,6 +19,7 @@ export function warpWidget(shipDriver: ShipDriver): DashboardWidget {
         defaultProps: {},
     };
 }
+
 export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
     const pane = new Pane({ title: 'Warp', container: container.getElement().get(0) });
