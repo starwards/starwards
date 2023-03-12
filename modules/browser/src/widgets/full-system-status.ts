@@ -1,7 +1,7 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
-import { Destructors, PowerLevel, ShipDriver } from '@starwards/core';
+import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
 import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -50,6 +50,7 @@ export function drawFullSystemsStatus(
             { label: 'EPM', width: '60px' },
             { label: 'Heat', width: '60px' },
             { label: 'Coolant', width: '120px' },
+            { label: 'Hacked', width: '60px' },
         ],
     });
     for (const system of systems) {
@@ -93,6 +94,13 @@ export function drawFullSystemsStatus(
             { format: (c: number) => `${Math.round(c * 100)}%`, width: '120px' },
             panelCleanup.add
         );
+        addTextBlade(
+            standardRowApi.getPane(),
+            readProp<number>(shipDriver, `${system.pointer}/hacked`),
+            { format: (p: HackLevel) => HackLevel[p], width: '60px' },
+            panelCleanup.add
+        );
+
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);
