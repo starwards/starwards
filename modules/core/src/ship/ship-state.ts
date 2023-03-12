@@ -1,5 +1,5 @@
 import { ArraySchema, type } from '@colyseus/schema';
-import { ShipArea, XY, notNull, toDegreesDelta, tweakable } from '..';
+import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
@@ -18,6 +18,7 @@ import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
 import { number2Digits } from '../number-field';
+import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {
     NONE,
