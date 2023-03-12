@@ -52,25 +52,5 @@ export class EnergyManager {
             }
             entry.total = 0;
         }
-        this.chargeAfterBurner(deltaSeconds);
-    }
-
-    private chargeAfterBurner(deltaSeconds: number) {
-        if (this.state.maneuvering.afterBurnerFuel < this.state.maneuvering.design.maxAfterBurnerFuel) {
-            const afterBurnerFuelDelta = Math.min(
-                this.state.maneuvering.design.maxAfterBurnerFuel - this.state.maneuvering.afterBurnerFuel,
-                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.reactor.power
-            );
-            if (
-                this.trySpendEnergy(
-                    afterBurnerFuelDelta * this.state.maneuvering.design.afterBurnerEnergyCost,
-                    this.state.reactor
-                )
-            ) {
-                this.state.maneuvering.afterBurnerFuel = limitPercisionHard(
-                    this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta
-                );
-            }
-        }
     }
 }
