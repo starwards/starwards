@@ -105,14 +105,14 @@ export class MovementManager {
             this.state.warp.currentLevel = Math.min(
                 this.state.warp.desiredLevel,
                 this.state.warp.currentLevel +
-                    (this.state.warp.power * deltaSeconds) / this.state.warp.design.chargeTime
+                    (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.chargeTime
             );
         } else if (this.state.warp.desiredLevel < this.state.warp.currentLevel) {
             // decrease warp level
             this.state.warp.currentLevel = Math.max(
                 0,
                 this.state.warp.currentLevel -
-                    (this.state.warp.power * deltaSeconds) / this.state.warp.design.dechargeTime
+                    (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.dechargeTime
             );
             if (this.state.warp.currentLevel == 0) {
                 // edge case where handleWarpMovement() will not know to set speed to 0
@@ -125,11 +125,11 @@ export class MovementManager {
         if (
             this.isWarpActive() &&
             this.energyManager.trySpendEnergy(
-                this.state.warp.currentLevel * this.state.warp.power * this.state.warp.design.energyCostPerLevel
+                this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.energyCostPerLevel
             )
         ) {
             const newSpeed =
-                this.state.warp.currentLevel * this.state.warp.power * this.state.warp.design.speedPerLevel;
+                this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.speedPerLevel;
             const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
                 this.state.angle
@@ -205,7 +205,7 @@ export class MovementManager {
             const enginePower =
                 this.state.rotation *
                 deltaSeconds *
-                this.state.maneuvering.power *
+                this.state.maneuvering.effectiveness *
                 this.state.maneuvering.design.rotationCapacity;
             if (
                 this.energyManager.trySpendEnergy(
@@ -293,7 +293,7 @@ export class MovementManager {
             thruster.active = 0;
             const globalAngle = thruster.angle + this.state.angle;
             const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
-            const axisCapacity = thruster.capacity * thruster.power * deltaSeconds;
+            const axisCapacity = thruster.capacity * thruster.effectiveness * deltaSeconds;
             if (
                 this.energyManager.trySpendEnergy(desiredAction * axisCapacity * thruster.design.energyCost, thruster)
             ) {
@@ -301,7 +301,7 @@ export class MovementManager {
             }
             if (this.state.afterBurner) {
                 const axisAfterBurnerCapacity =
-                    thruster.afterBurnerCapacity * this.state.maneuvering.power * deltaSeconds;
+                    thruster.afterBurnerCapacity * this.state.maneuvering.effectiveness * deltaSeconds;
                 const desireAfterBurnedAction = Math.min(desiredAction * this.state.afterBurner, 1);
                 if (this.trySpendAfterBurner(desireAfterBurnedAction * axisAfterBurnerCapacity)) {
                     thruster.afterBurnerActive = desireAfterBurnedAction * this.state.maneuvering.efficiency;
@@ -313,7 +313,7 @@ export class MovementManager {
         if (this.state.maneuvering.afterBurnerFuel < this.state.maneuvering.design.maxAfterBurnerFuel) {
             const afterBurnerFuelDelta = Math.min(
                 this.state.maneuvering.design.maxAfterBurnerFuel - this.state.maneuvering.afterBurnerFuel,
-                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.maneuvering.power
+                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.maneuvering.effectiveness
             );
             if (
                 this.energyManager.trySpendEnergy(

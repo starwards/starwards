@@ -63,6 +63,10 @@ export abstract class SystemState extends Schema {
     @tweakable({ type: 'enum', enum: HackLevel })
     @number2Digits
     public hacked = HackLevel.OK;
+
+    public get effectiveness() {
+        return this.power * this.hacked;
+    }
 }
 
 export function defectible(config: DefectibleConfig) {

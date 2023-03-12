@@ -247,7 +247,7 @@ export class ShipManager {
     }
 
     private calcRadarRange() {
-        if (this.state.radar.malfunctionRangeFactor && this.state.radar.power) {
+        if (this.state.radar.malfunctionRangeFactor && this.state.radar.effectiveness) {
             const frequency = this.die.getRollInRange('updateRadarRangeFrequency', 0.2, 1);
             const wave = sinWave(this.totalSeconds, frequency, 0.5, 0, 0.5);
             const factorEaseRange = [
@@ -260,10 +260,10 @@ export class ShipManager {
                     factorEaseRange,
                     [this.state.radar.design.malfunctionRange, this.state.radar.design.range],
                     cappedWave
-                ) * this.state.radar.power
+                ) * this.state.radar.effectiveness
             );
         } else {
-            return this.state.radar.design.range * this.state.radar.power;
+            return this.state.radar.design.range * this.state.radar.effectiveness;
         }
     }
 
