@@ -7,6 +7,7 @@ import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { wrapWidgetContainer } from '../container';
+import { readProp } from '../property-wrappers';
 
 ElementQueries.listen();
 
@@ -57,8 +58,11 @@ async function initScreen(driver: Driver, shipId: string) {
     drawFullSystemsStatus(wrapWidgetContainer(center), shipDriver, shipDriver.systems);
 }
 
-function wireInput(_shipDriver: ShipDriver) {
-    const input = new InputManager();
+function wireInput(shipDriver: ShipDriver) {
+    const controlledInput = new InputManager();
 
-    input.init();
+    const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
+    const updateControl = () => (ecrControl.getValue() === isEcr ? controlledInput.init() : controlledInput.destroy());
+    ecrControl.onChange(updateControl);
+    updateControl();
 }

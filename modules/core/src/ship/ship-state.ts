@@ -1,5 +1,5 @@
 import { ArraySchema, type } from '@colyseus/schema';
-import { ShipArea, XY, notNull, toDegreesDelta } from '..';
+import { ShipArea, XY, notNull, toDegreesDelta, tweakable } from '..';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
@@ -99,6 +99,10 @@ export class ShipState extends Spaceship {
 
     @type('int8')
     targeted = TargetedStatus.NONE;
+
+    @type('boolean')
+    @tweakable('boolean')
+    ecrControl = false;
 
     // server only, used for commands
     @range([0, 1])
