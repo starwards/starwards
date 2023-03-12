@@ -1,5 +1,5 @@
 import { Destructors, ShipDriver, projectileDesigns, projectileModels } from '@starwards/core';
-import { abstractOnChange, readProp } from '../property-wrappers';
+import { aggregate, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
@@ -32,10 +32,7 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
             `${shipDriver.state.magazine[`count_${projectileKey}`]} / ${
                 shipDriver.state.magazine[`max_${projectileKey}`]
             }`;
-        const prop = {
-            onChange: (cb: () => unknown) => abstractOnChange([countProp, maxProp, capacityProp], getText, cb),
-            getValue: getText,
-        };
+        const prop = aggregate([countProp, maxProp, capacityProp], getText);
         addTextBlade(pane, prop, { label: projectileDesigns[projectileKey].name }, panelCleanup.add);
     }
 }

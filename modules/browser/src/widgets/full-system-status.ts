@@ -2,7 +2,7 @@ import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
 import { Destructors, PowerLevel, ShipDriver } from '@starwards/core';
-import { abstractOnChange, readNumberProp, readProp } from '../property-wrappers';
+import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
@@ -56,10 +56,7 @@ export function drawFullSystemsStatus(
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
         const defectiblesProps = system.defectibles.map(defectReadProp(shipDriver));
         const statusChangeProps = [brokenProp, ...defectiblesProps];
-        const prop = {
-            onChange: (cb: () => unknown) => abstractOnChange(statusChangeProps, system.getStatus, cb),
-            getValue: system.getStatus,
-        };
+        const prop = aggregate(statusChangeProps, system.getStatus);
         const standardRowApi = pane.addBlade({
             view: 'tableRow',
             label: system.state.name,

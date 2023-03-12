@@ -1,6 +1,6 @@
 import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad } from '@starwards/core';
-import { abstractOnChange, readProp } from '../property-wrappers';
+import { aggregate, readProp } from '../property-wrappers';
 import { azimuthCircle, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
@@ -41,11 +41,7 @@ export function pilotRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDrive
 
 export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
     const warpLevelProp = readProp<number>(shipDriver, '/warp/currentLevel');
-    const getValue = () => warpLevelProp.getValue() > 0.5;
-    const isWarpProp = {
-        onChange: (cb: () => unknown) => abstractOnChange([warpLevelProp], getValue, cb),
-        getValue,
-    };
+    const isWarpProp = aggregate([warpLevelProp], () => warpLevelProp.getValue() > 0.5);
     const camera = new Camera();
     const p = { range: isWarpProp.getValue() ? 100_000 : 5_000 };
     const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
