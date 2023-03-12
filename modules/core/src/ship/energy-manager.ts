@@ -1,8 +1,7 @@
-import { capToRange, limitPercisionHard } from '../logic';
-
 import { HeatManager } from './heat-manager';
 import { ShipState } from './ship-state';
 import { ShipSystem } from './ship-manager';
+import { capToRange } from '../logic';
 
 class EpmEntry {
     total = 0;
