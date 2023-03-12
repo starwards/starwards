@@ -32,18 +32,6 @@
     --tp-blade-unit-size: 20px;
 }
 
-:root .status[data-status='DISABLED'] {
-    --tp-base-background-color: hsl(0, 69%, 17%, 1);
-}
-:root .status[data-status='DAMAGED'] {
-    --tp-base-background-color: hsl(52, 61%, 18%, 1);
-}
-:root .heat[data-status='OVERHEAT'] {
-    --tp-base-background-color: hsl(0, 69%, 17%, 1);
-}
-:root .heat[data-status='WARMING'] {
-    --tp-base-background-color: hsl(52, 61%, 18%, 1);
-}
 :root [data-status='OK'] {
     --tp-base-background-color: hsl(123, 61%, 18%);
 }
