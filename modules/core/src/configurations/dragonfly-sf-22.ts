@@ -84,6 +84,7 @@ export const dragonflyWarp = {
     energyCostPerLevel: 2,
     damagePerPhysicalSpeed: 20,
     baseDamagePerWarpSpeedPerSecond: 0.1,
+    secondsToChangeFrequency: 10,
 };
 export const dragonflyDocking = {
     damage50: 20,

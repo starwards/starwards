@@ -41,6 +41,7 @@ export class MovementManager {
 
     update(deltaSeconds: number) {
         this.handleWarpCommands();
+        this.handleWarpFrequencyChange(deltaSeconds);
         this.handleWarpProximityJam(deltaSeconds);
         this.handleWarpLevel(deltaSeconds);
         this.handleWarpMovement(deltaSeconds);
@@ -56,6 +57,17 @@ export class MovementManager {
     }
 
     private handleWarpCommands() {
+        if (this.state.warp.changeFrequencyCommand) {
+            this.state.warp.changeFrequencyCommand = false;
+            if (
+                !this.isWarpActive() &&
+                this.state.warp.effectiveness &&
+                this.state.warp.currentFrequency !== this.state.warp.desiredFrequency
+            ) {
+                this.state.warp.changingFrequency = true;
+                this.state.warp.frequencyChange = 0;
+            }
+        }
         if (this.state.warp.levelUpCommand) {
             this.state.warp.levelUpCommand = false;
             this.state.warp.desiredLevel = Math.min(this.state.warp.desiredLevel + 1, MAX_WARP_LVL);
@@ -63,6 +75,18 @@ export class MovementManager {
         if (this.state.warp.levelDownCommand) {
             this.state.warp.levelDownCommand = false;
             this.state.warp.desiredLevel = Math.max(this.state.warp.desiredLevel - 1, 0);
+        }
+    }
+
+    private handleWarpFrequencyChange(deltaSeconds: number) {
+        if (this.state.warp.changingFrequency) {
+            this.state.warp.frequencyChange +=
+                (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.secondsToChangeFrequency;
+            if (this.state.warp.frequencyChange >= 1) {
+                this.state.warp.frequencyChange = 1;
+                this.state.warp.currentFrequency = this.state.warp.desiredFrequency;
+                this.state.warp.changingFrequency = false;
+            }
         }
     }
 
@@ -90,33 +114,35 @@ export class MovementManager {
     }
 
     private handleWarpLevel(deltaSeconds: number) {
-        if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
-            // increase warp level
-            if (this.state.warp.currentLevel == 0) {
-                const currentSpeed = XY.lengthOf(this.state.velocity);
-                if (currentSpeed) {
-                    // penalty damage for existing velocity
-                    this.damageManager.damageAllSystems({
-                        id: 'warp_start',
-                        amount: this.state.warp.design.damagePerPhysicalSpeed * currentSpeed,
-                    });
+        if (!this.state.warp.changingFrequency) {
+            if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
+                // increase warp level
+                if (this.state.warp.currentLevel == 0) {
+                    const currentSpeed = XY.lengthOf(this.state.velocity);
+                    if (currentSpeed) {
+                        // penalty damage for existing velocity
+                        this.damageManager.damageAllSystems({
+                            id: 'warp_start',
+                            amount: this.state.warp.design.damagePerPhysicalSpeed * currentSpeed,
+                        });
+                    }
                 }
-            }
-            this.state.warp.currentLevel = Math.min(
-                this.state.warp.desiredLevel,
-                this.state.warp.currentLevel +
-                    (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.chargeTime
-            );
-        } else if (this.state.warp.desiredLevel < this.state.warp.currentLevel) {
-            // decrease warp level
-            this.state.warp.currentLevel = Math.max(
-                0,
-                this.state.warp.currentLevel -
-                    (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.dechargeTime
-            );
-            if (this.state.warp.currentLevel == 0) {
-                // edge case where handleWarpMovement() will not know to set speed to 0
-                this.setVelocity(XY.zero);
+                this.state.warp.currentLevel = Math.min(
+                    this.state.warp.desiredLevel,
+                    this.state.warp.currentLevel +
+                        (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.chargeTime
+                );
+            } else if (this.state.warp.desiredLevel < this.state.warp.currentLevel) {
+                // decrease warp level
+                this.state.warp.currentLevel = Math.max(
+                    0,
+                    this.state.warp.currentLevel -
+                        (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.dechargeTime
+                );
+                if (this.state.warp.currentLevel == 0) {
+                    // edge case where handleWarpMovement() will not know to set speed to 0
+                    this.setVelocity(XY.zero);
+                }
             }
         }
     }
@@ -156,7 +182,7 @@ export class MovementManager {
     }
 
     private isWarpActive() {
-        return !this.state.warp.broken && this.state.warp.currentLevel;
+        return !this.state.warp.broken && this.state.warp.currentLevel && !this.state.warp.changingFrequency;
     }
 
     private calcRotation(deltaSeconds: number) {

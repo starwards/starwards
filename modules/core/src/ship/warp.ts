@@ -14,9 +14,17 @@ export type WarpDesign = {
     energyCostPerLevel: number;
     damagePerPhysicalSpeed: number;
     baseDamagePerWarpSpeedPerSecond: number;
+    secondsToChangeFrequency: number;
 };
 
 export const MAX_WARP_LVL = 4;
+export enum WarpFrequency {
+    W770HZ,
+    W780HZ,
+    W790HZ,
+    W800HZ,
+    W810HZ,
+}
 export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits damage50 = 0;
     @number2Digits maxProximity = 0;
@@ -26,6 +34,7 @@ export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits energyCostPerLevel = 0;
     @number2Digits damagePerPhysicalSpeed = 0;
     @number2Digits baseDamagePerWarpSpeedPerSecond = 0;
+    @number2Digits secondsToChangeFrequency = 0;
 }
 export class Warp extends SystemState {
     public static isInstance = (o: unknown): o is Warp => {
@@ -58,11 +67,29 @@ export class Warp extends SystemState {
     @tweakable('number')
     desiredLevel = 0;
 
+    @type('int8')
+    @tweakable({ type: 'enum', enum: WarpFrequency })
+    currentFrequency = WarpFrequency.W770HZ;
+
+    @type('int8')
+    @tweakable({ type: 'enum', enum: WarpFrequency })
+    desiredFrequency = WarpFrequency.W770HZ;
+
+    @type('float32')
+    @range([0, 1])
+    @number2Digits
+    frequencyChange = 1;
+
     @type('boolean')
     jammed = false;
+
+    @type('boolean')
+    changingFrequency = false;
+
     // server only, used for commands
     public levelUpCommand = false;
     public levelDownCommand = false;
+    public changeFrequencyCommand = false;
 
     get damagePerWarpSpeedPerSecond() {
         return this.damageFactor * this.design.baseDamagePerWarpSpeedPerSecond;

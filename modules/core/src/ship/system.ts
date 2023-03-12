@@ -65,7 +65,7 @@ export abstract class SystemState extends Schema {
     public hacked = HackLevel.OK;
 
     public get effectiveness() {
-        return this.power * this.hacked;
+        return this.broken ? 0 : this.power * this.hacked;
     }
 }
 
