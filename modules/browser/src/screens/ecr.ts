@@ -28,6 +28,7 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
 // document.head.appendChild(style);
 
 const urlParams = new URLSearchParams(window.location.search);
+const isEcr = (urlParams.get('station') || '').toLowerCase() === 'ecr';
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
