@@ -87,7 +87,7 @@
         "node-red-node-test-helper": "^0.3.0",
         "pkg": "^5.8.0",
         "playwright": "^1.26.1",
-        "prettier": "^2.7.1",
+        "prettier": "^2.8.6",
         "pretty-quick": "^3.1.0",
         "rimraf": "^3.0.2",
         "rollup": "^2.79.1",
