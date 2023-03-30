@@ -5,6 +5,9 @@ abstract class BaseLoop {
     protected abstract readonly interval: number;
     protected abstract readonly body: (deltaSeconds: number) => void;
 
+    public isStarted() {
+        return this.timer !== null;
+    }
     public start() {
         if (this.timer === null) {
             this.t0 = Date.now();

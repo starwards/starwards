@@ -18,6 +18,7 @@ import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
 import { number2Digits } from '../number-field';
+import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {
     NONE,
@@ -99,6 +100,10 @@ export class ShipState extends Spaceship {
 
     @type('int8')
     targeted = TargetedStatus.NONE;
+
+    @type('boolean')
+    @tweakable('boolean')
+    ecrControl = false;
 
     // server only, used for commands
     @range([0, 1])

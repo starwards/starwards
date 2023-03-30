@@ -6,6 +6,7 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { readProp } from '../property-wrappers';
 import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
@@ -28,6 +29,7 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
 // document.head.appendChild(style);
 
 const urlParams = new URLSearchParams(window.location.search);
+const isEcr = (urlParams.get('station') || '').toLowerCase() === 'ecr';
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
@@ -56,8 +58,11 @@ async function initScreen(driver: Driver, shipId: string) {
     drawFullSystemsStatus(wrapWidgetContainer(center), shipDriver, shipDriver.systems);
 }
 
-function wireInput(_shipDriver: ShipDriver) {
-    const input = new InputManager();
+function wireInput(shipDriver: ShipDriver) {
+    const controlledInput = new InputManager();
 
-    input.init();
+    const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
+    const updateControl = () => (ecrControl.getValue() === isEcr ? controlledInput.init() : controlledInput.destroy());
+    ecrControl.onChange(updateControl);
+    updateControl();
 }

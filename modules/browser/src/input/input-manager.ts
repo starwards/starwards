@@ -73,27 +73,31 @@ export class InputManager {
     };
 
     init() {
-        this.loop.start();
-        addEventListener('mmk-gamepad-button-value', this.onButton);
-        addEventListener('mmk-gamepad-axis-value', this.onAxis);
-        for (const key of this.keys) {
-            hotkeys(key.key, { keyup: true }, (e) => {
-                const value = e.type === 'keydown';
-                if (value && key.onClick) {
-                    key.onClick();
-                }
-                if (key.setValue) {
-                    key.setValue(value);
-                }
-            });
+        if (!this.loop.isStarted()) {
+            addEventListener('mmk-gamepad-button-value', this.onButton);
+            addEventListener('mmk-gamepad-axis-value', this.onAxis);
+            for (const key of this.keys) {
+                hotkeys(key.key, { keyup: true }, (e) => {
+                    const value = e.type === 'keydown';
+                    if (value && key.onClick) {
+                        key.onClick();
+                    }
+                    if (key.setValue) {
+                        key.setValue(value);
+                    }
+                });
+            }
+            this.loop.start();
         }
     }
 
     destroy() {
-        removeEventListener('mmk-gamepad-axis-value', this.onAxis);
-        removeEventListener('mmk-gamepad-button-value', this.onButton);
-        hotkeys.unbind(); // unbind everything
-        this.loop.stop();
+        if (this.loop.isStarted()) {
+            this.loop.stop();
+            removeEventListener('mmk-gamepad-axis-value', this.onAxis);
+            removeEventListener('mmk-gamepad-button-value', this.onButton);
+            hotkeys.unbind(); // unbind everything
+        }
     }
 
     addRangeAction(property: RangeAction, range: RangeConfig | undefined) {
