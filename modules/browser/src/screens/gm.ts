@@ -11,6 +11,7 @@ import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
+import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
@@ -101,6 +102,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
             dashboard.registerWidget(systemsStatusWidget(shipDriver), {}, shipId + ' systems');
             dashboard.registerWidget(fullSystemsStatusWidget(shipDriver), {}, shipId + ' systems (full)');
+            dashboard.registerWidget(engineeringStatusWidget(shipDriver), {}, shipId + ' engineering status');
             dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
             dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
             dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, shipId + ' docking');
