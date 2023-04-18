@@ -37,7 +37,7 @@ export class KeysRangeConfig {
 export interface RangeConfig {
     axis?: GamepadAxisConfig;
     buttons?: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig;
-    keys?: KeysRangeConfig;
+    offsetKeys?: KeysRangeConfig;
 }
 export interface ShipInputConfig {
     tubeIsFiring?: string | GamepadButtonConfig;
@@ -77,15 +77,15 @@ export const shipInputConfig = {
     // ranges
     rotationCommand: {
         axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
-        keys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
+        offsetKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
     },
     strafeCommand: {
         axis: new GamepadAxisConfig(0, 2, [-0.1, 0.1]),
-        keys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
+        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
     },
     boostCommand: {
         axis: new GamepadAxisConfig(0, 3, [-0.1, 0.1], true),
-        keys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
+        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
     },
     shellRange: {
         axis: new GamepadAxisConfig(0, 1, [-0.1, 0.1], true, 0.33),

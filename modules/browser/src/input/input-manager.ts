@@ -23,6 +23,7 @@ function lerpAxisToRange(range: RTuple2, axisValue: number) {
 }
 interface RangeAction {
     range: RTuple2;
+    getValue: () => number;
     setValue: (v: number) => unknown;
 }
 interface TriggerAction {
@@ -96,28 +97,29 @@ export class InputManager {
             this.loop.stop();
             removeEventListener('mmk-gamepad-axis-value', this.onAxis);
             removeEventListener('mmk-gamepad-button-value', this.onButton);
-            hotkeys.unbind(); // unbind everything
+            for (const key of this.keys) {
+                hotkeys.unbind(key.key);
+            }
         }
     }
 
     addRangeAction(property: RangeAction, range: RangeConfig | undefined) {
         if (range) {
-            const { axis, buttons, keys } = range;
-            if (buttons || keys || axis?.velocity) {
-                const callbacks = new CombinedRangeCallbacks(property);
+            const { axis, buttons, offsetKeys } = range;
+            if (buttons || offsetKeys || axis?.velocity) {
+                const offSetonly = !axis;
+                const callbacks = new CombinedRangeCallbacks(property, offSetonly);
                 if (buttons) {
                     buttons.center && this.buttons.push({ button: buttons.center, onClick: callbacks.centerOffset });
                     if (isGamepadButtonsRangeConfig(buttons)) {
-                        const step = getStepOfRange(buttons.step, property.range);
-                        this.buttons.push({ button: buttons.up, onClick: callbacks.upOffset(step) });
-                        this.buttons.push({ button: buttons.down, onClick: callbacks.downOffset(step) });
+                        this.buttons.push({ button: buttons.up, onClick: callbacks.upOffset(buttons.step) });
+                        this.buttons.push({ button: buttons.down, onClick: callbacks.downOffset(buttons.step) });
                     }
                 }
-                if (keys) {
-                    const step = getStepOfRange(keys.step, property.range);
-                    this.keys.push({ key: keys.center, onClick: callbacks.centerOffset });
-                    this.keys.push({ key: keys.up, onClick: callbacks.upOffset(step) });
-                    this.keys.push({ key: keys.down, onClick: callbacks.downOffset(step) });
+                if (offsetKeys) {
+                    this.keys.push({ key: offsetKeys.center, onClick: callbacks.centerOffset });
+                    this.keys.push({ key: offsetKeys.up, onClick: callbacks.upOffset(offsetKeys.step) });
+                    this.keys.push({ key: offsetKeys.down, onClick: callbacks.downOffset(offsetKeys.step) });
                 }
                 if (axis) {
                     if (axis.velocity) {
@@ -165,16 +167,14 @@ export class InputManager {
         }
     }
 }
-
-function getStepOfRange(step: number, range: RTuple2) {
-    return (step * (range[1] - range[0])) / 2;
-}
 class CombinedRangeCallbacks {
     private readonly midRange = lerpAxisToRange(this.property.range, 0);
-    private axisValue = this.midRange;
-    private offsetValue = this.midRange;
+    private axisValue = 0;
+    private offsetValue: number;
 
-    constructor(private property: RangeAction) {}
+    constructor(private property: RangeAction, offSetonly: boolean) {
+        this.offsetValue = offSetonly ? property.getValue() : 0;
+    }
     private onChange() {
         this.property.setValue(this.axisValue + this.offsetValue);
     }

@@ -85,15 +85,15 @@ function wireInput(shipDriver: ShipDriver) {
 
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/rotation'), {
         axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
-        keys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
+        offsetKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
     });
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/y'), {
         axis: new GamepadAxisConfig(0, 2, [-0.1, 0.1]),
-        keys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
+        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
     });
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/x'), {
         axis: new GamepadAxisConfig(0, 3, [-0.1, 0.1], true),
-        keys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
+        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
     });
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
