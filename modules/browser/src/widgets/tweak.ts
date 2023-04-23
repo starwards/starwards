@@ -44,8 +44,8 @@ const singleSelectionDetails = async (
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
 
-        const prop = readWriteProp(shipDriver, `/ecrControl`);
-        addInputBlade(guiFolder, prop, { label: 'ECR control' }, cleanup);
+        const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
+        addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
 
         const armorFolder = guiFolder.addFolder({
             title: `Armor`,

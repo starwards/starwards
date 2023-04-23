@@ -1,14 +1,15 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
+import { ClientStatus, Driver, Iterator, PowerLevelStep, ShipDriver, Status } from '@starwards/core';
 import { radarFogOfWar, toCss } from '../colors';
+import { readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
+import { KeysRangeConfig } from '../input/input-config';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
-import { readProp } from '../property-wrappers';
 import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
@@ -68,7 +69,42 @@ async function initScreen(driver: Driver, shipId: string) {
 
 function wireInput(shipDriver: ShipDriver) {
     const controlledInput = new InputManager();
-
+    const keyPairs: [string, string][] = [
+        ['1', 'q'],
+        ['2', 'w'],
+        ['3', 'e'],
+        ['4', 'r'],
+        ['5', 't'],
+        ['6', 'y'],
+        ['7', 'u'],
+        ['8', 'i'],
+        ['9', 'o'],
+        ['0', 'p'],
+        ['-', '['],
+        ['=', ']'],
+        ['a', 'z'],
+        ['s', 'x'],
+        ['d', 'c'],
+        ['f', 'v'],
+        ['g', 'b'],
+        ['h', 'n'],
+        ['j', 'm'],
+        ['k', ','],
+        ['l', '.'],
+    ];
+    for (const [system, keys] of new Iterator(shipDriver.systems).tuples(keyPairs)) {
+        controlledInput.addRangeAction(readWriteNumberProp(shipDriver, `${system.pointer}/power`), {
+            offsetKeys: new KeysRangeConfig(keys[0], keys[1], '', PowerLevelStep),
+        });
+        controlledInput.addRangeAction(readWriteNumberProp(shipDriver, `${system.pointer}/coolantFactor`), {
+            offsetKeys: new KeysRangeConfig('shift+' + keys[0], 'shift+' + keys[1], '', 0.1),
+        });
+    }
+    if (isEcr) {
+        const ecrControlInput = new InputManager();
+        ecrControlInput.addToggleClickAction(readWriteProp<boolean>(shipDriver, `/ecrControl`), 'k');
+        ecrControlInput.init();
+    }
     const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
     const updateControl = () => (ecrControl.getValue() === isEcr ? controlledInput.init() : controlledInput.destroy());
     ecrControl.onChange(updateControl);

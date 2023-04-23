@@ -5,6 +5,22 @@ export class Iterator<T> implements Iterable<T> {
         for (const e of this.elements) yield e;
     }
 
+    tuples<S>(values: Iterable<S>) {
+        const arg = {
+            elements: this.elements,
+            valuesIterator: values[Symbol.iterator](),
+            *[Symbol.iterator]() {
+                let v = this.valuesIterator.next();
+                for (const e of this.elements) {
+                    if (v.done) return;
+                    yield [e, v.value] as [T, S];
+                    v = this.valuesIterator.next();
+                }
+            },
+        };
+        return new Iterator<[T, S]>(arg);
+    }
+
     add<S>(...values: S[]) {
         const arg = {
             elements: this.elements,
