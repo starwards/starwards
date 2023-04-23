@@ -43,6 +43,10 @@ const singleSelectionDetails = async (
     addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
+
+        const prop = readWriteProp(shipDriver, `/ecrControl`);
+        addInputBlade(guiFolder, prop, { label: 'ECR control' }, cleanup);
+
         const armorFolder = guiFolder.addFolder({
             title: `Armor`,
             expanded: false,
