@@ -52,7 +52,7 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
     );
     addTextBlade(
         pane,
-        readProp<WarpFrequency>(shipDriver, '/warp/desiredFrequency'),
+        readProp<WarpFrequency>(shipDriver, '/warp/standbyFrequency'),
         { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Designated FRQ' },
         panelCleanup.add
     );

@@ -67,7 +67,7 @@ export class MovementManager {
             if (
                 !this.isWarpActive() &&
                 this.state.warp.effectiveness &&
-                this.state.warp.currentFrequency !== this.state.warp.desiredFrequency
+                this.state.warp.currentFrequency !== this.state.warp.standbyFrequency
             ) {
                 this.state.warp.changingFrequency = true;
                 this.state.warp.desiredLevel = 0;
@@ -90,7 +90,7 @@ export class MovementManager {
                 (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.secondsToChangeFrequency;
             if (this.state.warp.frequencyChange >= 1) {
                 this.state.warp.frequencyChange = 1;
-                this.state.warp.currentFrequency = this.state.warp.desiredFrequency;
+                this.state.warp.currentFrequency = this.state.warp.standbyFrequency;
                 this.state.warp.changingFrequency = false;
             }
         } else {

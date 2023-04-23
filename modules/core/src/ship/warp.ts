@@ -73,7 +73,7 @@ export class Warp extends SystemState {
 
     @type('int8')
     @tweakable({ type: 'enum', enum: WarpFrequency })
-    desiredFrequency = WarpFrequency.W770HZ;
+    standbyFrequency = WarpFrequency.W770HZ;
 
     @range([0, 1])
     @type('float32')
