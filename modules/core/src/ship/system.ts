@@ -17,11 +17,12 @@ export abstract class DesignState extends Schema {
 
 export type DefectibleConfig = { normal: number; name: string };
 export type DefectibleValue = DefectibleConfig & { value: number; field: string; systemPointer: string };
+export const PowerLevelStep = 0.25;
 export enum PowerLevel {
     SHUTDOWN = 0,
-    LOW = 0.25,
-    MID = 0.5,
-    HIGH = 0.75,
+    LOW = PowerLevelStep,
+    MID = PowerLevelStep * 2,
+    HIGH = PowerLevelStep * 3,
     MAX = 1,
 }
 export enum HackLevel {
