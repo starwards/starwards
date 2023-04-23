@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Iterator, PowerLevelStep, ShipDriver, Status } from '@starwards/core';
+import { ClientStatus, Driver, Iterator, PowerLevelStep, ShipDriver, Status, WarpFrequency } from '@starwards/core';
 import { radarFogOfWar, toCss } from '../colors';
-import { readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
+import { readProp, readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
@@ -80,8 +80,6 @@ function wireInput(shipDriver: ShipDriver) {
         ['8', 'i'],
         ['9', 'o'],
         ['0', 'p'],
-        ['-', '['],
-        ['=', ']'],
         ['a', 'z'],
         ['s', 'x'],
         ['d', 'c'],
@@ -100,9 +98,20 @@ function wireInput(shipDriver: ShipDriver) {
             offsetKeys: new KeysRangeConfig('shift+' + keys[0], 'shift+' + keys[1], '', 0.1),
         });
     }
+
     if (isEcr) {
         const ecrControlInput = new InputManager();
-        ecrControlInput.addToggleClickAction(readWriteProp<boolean>(shipDriver, `/ecrControl`), 'k');
+        ecrControlInput.addToggleClickAction(readWriteProp<boolean>(shipDriver, `/ecrControl`), '`');
+        ecrControlInput.addRangeAction(
+            {
+                ...readWriteProp<number>(shipDriver, `/warp/standbyFrequency`),
+                range: [0, WarpFrequency.WARP_FREQUENCY_COUNT - 1],
+            },
+            {
+                offsetKeys: new KeysRangeConfig(']', '[', '', 1),
+            }
+        );
+        ecrControlInput.addMomentaryClickAction(writeProp(shipDriver, `/warp/changeFrequencyCommand`), '\\');
         ecrControlInput.init();
     }
     const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);

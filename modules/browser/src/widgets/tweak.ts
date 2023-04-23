@@ -122,6 +122,7 @@ function addTweakables(
             const enumObj = tweakable.config.enum;
             const options = Object.values(enumObj)
                 .filter<number>((k): k is number => typeof k === 'number')
+                .filter((k) => !String(enumObj[k]).endsWith('_COUNT'))
                 .map((value) => ({ value, text: String(enumObj[value]) }));
             addEnumListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
         } else if (tweakable.config.type === 'string enum') {
