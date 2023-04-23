@@ -24,6 +24,7 @@ export enum WarpFrequency {
     W790HZ,
     W800HZ,
     W810HZ,
+    WARP_FREQUENCY_COUNT,
 }
 export class WarpDesignState extends DesignState implements WarpDesign {
     @number2Digits damage50 = 0;
