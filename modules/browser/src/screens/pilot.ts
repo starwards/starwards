@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
+import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
 import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
@@ -13,7 +14,6 @@ import { drawPilotRadar } from '../widgets/pilot-radar';
 import { drawPilotStats } from '../widgets/pilot';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
-import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
 
@@ -44,15 +44,13 @@ if (shipUrlParam) {
 }
 
 async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapWidgetContainer($('#wrapper'));
+    const container = wrapRootWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     drawPilotRadar(spaceDriver, shipDriver, container);
     wireInput(shipDriver);
-    const topRight = $('<div style="position: absolute; top:0; right:0;" />');
-    container.getElement().append(topRight);
     drawSystemsStatus(
-        wrapWidgetContainer(topRight),
+        container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
         shipDriver.systems.filter(
             (s) =>
@@ -63,21 +61,10 @@ async function initScreen(driver: Driver, shipId: string) {
                 s.pointer === '/smartPilot'
         )
     );
-    const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
-    container.getElement().append(topLeft);
-    drawPilotStats(wrapWidgetContainer(topLeft), shipDriver);
-
-    const bottomLeft = $('<div style="position: absolute; bottom:0; left:0;" />');
-    container.getElement().append(bottomLeft);
-    drawArmorStatus(wrapWidgetContainer(bottomLeft), shipDriver, 200);
-
-    const middleRight = $('<div style="position: absolute; top:50%; right:0;" />');
-    container.getElement().append(middleRight);
-    drawWarpStatus(wrapWidgetContainer(middleRight), shipDriver);
-
-    const bottomRight = $('<div style="position: absolute; bottom:0; right:0;" />');
-    container.getElement().append(bottomRight);
-    drawDockingStatus(wrapWidgetContainer(bottomRight), spaceDriver, shipDriver);
+    drawPilotStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
+    drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
+    drawDockingStatus(container.subContainer(VPos.BOTTOM, HPos.RIGHT), spaceDriver, shipDriver);
 }
 
 function wireInput(shipDriver: ShipDriver) {
