@@ -10,6 +10,7 @@ import { InputManager } from '../input/input-manager';
 import { KeysRangeConfig } from '../input/input-config';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { drawWarpStatus } from '../widgets/warp';
 import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
@@ -61,6 +62,10 @@ async function initScreen(driver: Driver, shipId: string) {
     const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
     container.getElement().append(topLeft);
     drawEngineeringStatus(wrapWidgetContainer(topLeft), shipDriver);
+
+    const midLeft = $('<div style="position: absolute; top:50%; left:0;" />');
+    container.getElement().append(midLeft);
+    drawWarpStatus(wrapWidgetContainer(midLeft), shipDriver);
 
     const center = $('<div style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%);" />');
     container.getElement().append(center);
