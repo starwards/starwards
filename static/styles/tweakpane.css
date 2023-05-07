@@ -46,3 +46,6 @@
 :root .tp-lblv_v {
     min-width: fit-content; /* don't cut off cells */
 }
+:root .tp-grlv_g {
+    width: 160px; /* cut off monitor cell */
+}
