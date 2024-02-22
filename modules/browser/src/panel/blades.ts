@@ -9,7 +9,7 @@ import {
     TextApi,
     TextBladeParams,
 } from 'tweakpane';
-import { BladeController, ButtonParams, View } from '@tweakpane/core';
+import { BladeController, ButtonParams, NumberMonitorParams, View } from '@tweakpane/core';
 import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
@@ -140,7 +140,7 @@ export function addCameraRingBlade(
     addInputBlade(guiFolder, model, { series: 0, ...params, view: 'cameraring' }, cleanup);
 }
 
-export function addButtonBlade(
+export function addButton(
     guiFolder: FolderApi,
     onClick: () => unknown,
     params: { label: string } & ButtonParams,
@@ -149,6 +149,31 @@ export function addButtonBlade(
     const button = guiFolder.addButton({ ...params }).on('click', onClick);
     cleanup(() => {
         button.dispose();
+    });
+}
+
+export function addGraph(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    params: { label: string } & NumberMonitorParams,
+    cleanup: (d: Destructor) => void
+) {
+    const graph = guiFolder.addMonitor(
+        {
+            get value() {
+                return model.getValue();
+            },
+        },
+        'value',
+        {
+            ...params,
+            view: 'graph',
+            min: model.range[0],
+            max: model.range[1],
+        }
+    );
+    cleanup(() => {
+        graph.dispose();
     });
 }
 

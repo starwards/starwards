@@ -1,12 +1,12 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { Destructors, ShipDriver } from '@starwards/core';
+import { addGraph, addTextBlade } from '../panel';
+import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
-import { addTextBlade } from '../panel';
-import { readProp } from '../property-wrappers';
 
 export function engineeringStatusWidget(shipDriver: ShipDriver): DashboardWidget {
     class EngineeringStatus {
@@ -39,4 +39,10 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
         { label: 'control', format: (isEcr) => (isEcr ? 'ECR' : 'Bridge') },
         panelCleanup.add
     );
+
+    const energy = readNumberProp(shipDriver, `/reactor/energy`);
+    addGraph(pane, energy, { label: 'energy' }, panelCleanup.add);
+
+    const afterBurnerFuel = readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`);
+    addGraph(pane, afterBurnerFuel, { label: 'after-burner fuel' }, panelCleanup.add);
 }

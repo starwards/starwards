@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, Iterator, PowerLevelStep, ShipDriver, Status, WarpFrequency } from '@starwards/core';
+import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { radarFogOfWar, toCss } from '../colors';
 import { readProp, readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
@@ -8,9 +9,10 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { KeysRangeConfig } from '../input/input-config';
+import { drawArmorStatus } from '../widgets/armor';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
-import { wrapWidgetContainer } from '../container';
+import { drawWarpStatus } from '../widgets/warp';
 
 ElementQueries.listen();
 
@@ -53,18 +55,15 @@ if (shipUrlParam) {
 }
 
 async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapWidgetContainer($('#wrapper'));
+    const container = wrapRootWidgetContainer($('#wrapper'));
     container.getElement().css('background-color', toCss(radarFogOfWar));
     const shipDriver = await driver.getShipDriver(shipId);
     wireInput(shipDriver);
 
-    const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
-    container.getElement().append(topLeft);
-    drawEngineeringStatus(wrapWidgetContainer(topLeft), shipDriver);
-
-    const center = $('<div style="position: absolute; top:50%; left:50%; transform: translate(-50%, -50%);" />');
-    container.getElement().append(center);
-    drawFullSystemsStatus(wrapWidgetContainer(center), shipDriver, shipDriver.systems);
+    drawEngineeringStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
+    drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
+    drawFullSystemsStatus(container.subContainer(VPos.MIDDLE, HPos.MIDDLE), shipDriver, shipDriver.systems);
 }
 
 function wireInput(shipDriver: ShipDriver) {

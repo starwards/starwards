@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
+import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { readWriteProp, writeProp } from '../property-wrappers';
 
 import $ from 'jquery';
@@ -11,7 +12,6 @@ import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
 import { drawTubesStatus } from '../widgets/tubes-status';
-import { wrapWidgetContainer } from '../container';
 
 ElementQueries.listen();
 
@@ -42,15 +42,13 @@ if (shipUrlParam) {
 }
 
 async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapWidgetContainer($('#wrapper'));
+    const container = wrapRootWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
     wireInput(shipDriver);
-    const topRight = $('<div style="position: absolute; top:0; right:0;" />');
-    container.getElement().append(topRight);
     drawSystemsStatus(
-        wrapWidgetContainer(topRight),
+        container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
         shipDriver.systems.filter(
             (s) =>
@@ -60,17 +58,9 @@ async function initScreen(driver: Driver, shipId: string) {
                 s.pointer === '/radar'
         )
     );
-    const topLeft = $('<div style="position: absolute; top:0; left:0;" />');
-    container.getElement().append(topLeft);
-    drawTubesStatus(wrapWidgetContainer(topLeft), shipDriver);
-
-    const middleLeft = $('<div style="position: absolute; top:50%; left:0;" />');
-    container.getElement().append(middleLeft);
-    drawAmmoStatus(wrapWidgetContainer(middleLeft), shipDriver);
-
-    const middleRight = $('<div style="position: absolute; top:50%; right:0;" />');
-    container.getElement().append(middleRight);
-    drawTargetingStatus(wrapWidgetContainer(middleRight), shipDriver);
+    drawTubesStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
+    drawTargetingStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
 }
 
 function wireInput(shipDriver: ShipDriver) {
