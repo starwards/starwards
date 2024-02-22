@@ -1,7 +1,7 @@
 import { MapSchema, Schema } from '@colyseus/schema';
 import { schemaToString, stringToSchema } from '../serialization/game-state-serialization';
 
-import { gameField } from 'modules/core/src/game-field';
+import { gameField } from '@starwards/core';
 
 describe('game-state-serialization', () => {
     class TestMapSchema extends Schema {
