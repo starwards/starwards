@@ -1,10 +1,9 @@
 import { DesignState, SystemState, defectible } from './system';
 
 import { Vec2 } from '../space';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export type SmartPilotDesign = {
     maxTargetAimOffset: number;
@@ -23,13 +22,13 @@ export enum SmartPilotMode {
 }
 
 export class SmartPilotDesignState extends DesignState implements SmartPilotDesign {
-    @number2Digits maxTargetAimOffset = 0;
-    @number2Digits aimOffsetSpeed = 0;
-    @number2Digits maxTurnSpeed = 0;
-    @number2Digits offsetBrokenThreshold = 0;
-    @number2Digits damage50 = 0;
-    @number2Digits maxSpeed = 0;
-    @number2Digits maxSpeedFromAfterBurner = 0;
+    @gameField('float32') maxTargetAimOffset = 0;
+    @gameField('float32') aimOffsetSpeed = 0;
+    @gameField('float32') maxTurnSpeed = 0;
+    @gameField('float32') offsetBrokenThreshold = 0;
+    @gameField('float32') damage50 = 0;
+    @gameField('float32') maxSpeed = 0;
+    @gameField('float32') maxSpeedFromAfterBurner = 0;
 }
 
 export class SmartPilot extends SystemState {
@@ -40,33 +39,33 @@ export class SmartPilot extends SystemState {
     public readonly type = 'SmartPilot';
     public readonly name = 'Smart pilot';
 
-    @type(SmartPilotDesignState)
+    @gameField(SmartPilotDesignState)
     design = new SmartPilotDesignState();
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: SmartPilotMode })
     rotationMode!: SmartPilotMode;
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: SmartPilotMode })
     maneuveringMode!: SmartPilotMode;
 
-    @number2Digits
+    @gameField('float32')
     @range([-1, 1])
     rotation = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([-1, 1])
     rotationTargetOffset = 0;
 
-    @type(Vec2)
+    @gameField(Vec2)
     @range({ '/x': [-1, 1], '/y': [-1, 1] })
     maneuvering: Vec2 = new Vec2(0, 0);
 
     /**
      * factor of error vector when active
      */
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 0, name: 'offset' })
     offsetFactor = 0;

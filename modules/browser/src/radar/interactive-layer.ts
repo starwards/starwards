@@ -86,7 +86,7 @@ export class InteractiveLayer {
 
     onPointerDown = (event: FederatedPointerEvent) => {
         if (this.actionType === ActionType.none) {
-            if (event.button === MouseButton.main) {
+            if (event.button === (MouseButton.main as number)) {
                 this.dragFrom = XY.clone(event.global);
                 if (
                     this.selectionContainer.size > 0 &&
@@ -100,7 +100,7 @@ export class InteractiveLayer {
                     this.actionType = ActionType.select;
                     this.drawSelection();
                 }
-            } else if (event.button === MouseButton.right) {
+            } else if (event.button === (MouseButton.right as number)) {
                 this.actionType = ActionType.panCameraOrOrder;
                 this.dragFrom = XY.clone(event.global);
             }

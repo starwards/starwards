@@ -1,9 +1,8 @@
 import { DesignState, SystemState } from './system';
 
 import { defectible } from './system';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
-import { type } from '@colyseus/schema';
 
 export type RadarDesign = {
     damage50: number;
@@ -20,11 +19,11 @@ export type RadarDesign = {
 };
 
 export class RadarDesignState extends DesignState implements RadarDesign {
-    @number2Digits damage50 = 0;
-    @number2Digits range = 0;
-    @number2Digits energyCost = 0;
-    @number2Digits rangeEaseFactor = 0;
-    @number2Digits malfunctionRange = 0;
+    @gameField('float32') damage50 = 0;
+    @gameField('float32') range = 0;
+    @gameField('float32') energyCost = 0;
+    @gameField('float32') rangeEaseFactor = 0;
+    @gameField('float32') malfunctionRange = 0;
 }
 export class Radar extends SystemState {
     public static isInstance = (o: unknown): o is Radar => {
@@ -34,13 +33,13 @@ export class Radar extends SystemState {
     public readonly type = 'Radar';
     public readonly name = 'Radar';
 
-    @type(RadarDesignState)
+    @gameField(RadarDesignState)
     design = new RadarDesignState();
 
     /**
      * percent of the time in which the range is malfunctionRange
      */
-    @number2Digits
+    @gameField('float32')
     @defectible({ normal: 0, name: 'range fluctuation' })
     @range((t: Radar) => [0, 1 - t.design.rangeEaseFactor * 2])
     malfunctionRangeFactor = 0;

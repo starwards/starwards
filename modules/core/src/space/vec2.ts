@@ -29,7 +29,7 @@ import { degToRad, limitPercision } from '../logic/formulas';
 
 import { Schema } from '@colyseus/schema';
 import { XY } from '../logic/xy';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 
 export class Vec2 extends Schema implements XY {
     public static add(vector: XY, vector2: XY, dest?: Vec2): Vec2 {
@@ -203,10 +203,10 @@ export class Vec2 extends Schema implements XY {
         return new Vec2(vector.x, vector.y);
     }
 
-    @number2Digits
+    @gameField('float32')
     public x = 0;
 
-    @number2Digits
+    @gameField('float32')
     public y = 0;
 
     constructor(x = 0, y = 0) {

@@ -1,9 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
 
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export type WarpDesign = {
     damage50: number;
@@ -27,15 +26,15 @@ export enum WarpFrequency {
     WARP_FREQUENCY_COUNT,
 }
 export class WarpDesignState extends DesignState implements WarpDesign {
-    @number2Digits damage50 = 0;
-    @number2Digits maxProximity = 0;
-    @number2Digits chargeTime = 0;
-    @number2Digits dechargeTime = 0;
-    @number2Digits speedPerLevel = 0;
-    @number2Digits energyCostPerLevel = 0;
-    @number2Digits damagePerPhysicalSpeed = 0;
-    @number2Digits baseDamagePerWarpSpeedPerSecond = 0;
-    @number2Digits secondsToChangeFrequency = 0;
+    @gameField('float32') damage50 = 0;
+    @gameField('float32') maxProximity = 0;
+    @gameField('float32') chargeTime = 0;
+    @gameField('float32') dechargeTime = 0;
+    @gameField('float32') speedPerLevel = 0;
+    @gameField('float32') energyCostPerLevel = 0;
+    @gameField('float32') damagePerPhysicalSpeed = 0;
+    @gameField('float32') baseDamagePerWarpSpeedPerSecond = 0;
+    @gameField('float32') secondsToChangeFrequency = 0;
 }
 export class Warp extends SystemState {
     public static isInstance = (o: unknown): o is Warp => {
@@ -45,45 +44,45 @@ export class Warp extends SystemState {
     public readonly type = 'Warp';
     public readonly name = 'Warp';
 
-    @type(WarpDesignState)
+    @gameField(WarpDesignState)
     design = new WarpDesignState();
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'velocity' })
     velocityFactor = 1;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 0, name: 'damage' })
     damageFactor = 0;
 
-    @type('float32')
+    @gameField('float32')
     @range([0, MAX_WARP_LVL])
     @tweakable('number')
     currentLevel = 0;
 
-    @type('uint8')
+    @gameField('uint8')
     @range([0, MAX_WARP_LVL])
     @tweakable('number')
     desiredLevel = 0;
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: WarpFrequency })
     currentFrequency = WarpFrequency.W770HZ;
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: WarpFrequency })
     standbyFrequency = WarpFrequency.W770HZ;
 
     @range([0, 1])
-    @type('float32')
+    @gameField('float32')
     frequencyChange = 1;
 
-    @type('boolean')
+    @gameField('boolean')
     jammed = false;
 
-    @type('boolean')
+    @gameField('boolean')
     changingFrequency = false;
 
     // server only, used for commands

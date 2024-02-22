@@ -1,9 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
 
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 
@@ -17,12 +16,12 @@ export type MagazineDesign = {
 };
 
 export class MagazineDesignState extends DesignState implements MagazineDesign {
-    @number2Digits damage50 = 0;
-    @type('uint16') max_CannonShell = 0;
-    @type('uint16') max_BlastCannonShell = 0;
-    @type('uint16') max_Missile = 0;
-    @number2Digits capacityBrokenThreshold = 0;
-    @number2Digits capacityDamageFactor = 0;
+    @gameField('float32') damage50 = 0;
+    @gameField('uint16') max_CannonShell = 0;
+    @gameField('uint16') max_BlastCannonShell = 0;
+    @gameField('uint16') max_Missile = 0;
+    @gameField('float32') capacityBrokenThreshold = 0;
+    @gameField('float32') capacityDamageFactor = 0;
 }
 
 export class Magazine extends SystemState {
@@ -33,25 +32,25 @@ export class Magazine extends SystemState {
     public readonly type = 'Magazine';
     public readonly name = 'Magazine';
 
-    @type(MagazineDesignState)
+    @gameField(MagazineDesignState)
     design = new MagazineDesignState();
 
-    @type('uint16')
+    @gameField('uint16')
     @range((t: Magazine) => [0, t.max_CannonShell])
     @tweakable('number')
     count_CannonShell = 0;
 
-    @type('uint16')
+    @gameField('uint16')
     @range((t: Magazine) => [0, t.max_BlastCannonShell])
     @tweakable('number')
     count_BlastCannonShell = 0;
 
-    @type('uint16')
+    @gameField('uint16')
     @range((t: Magazine) => [0, t.max_Missile])
     @tweakable('number')
     count_Missile = 0;
 
-    @number2Digits
+    @gameField('float32')
     @defectible({ normal: 1, name: 'capacity' })
     @range([0, 1])
     capacity = 1;

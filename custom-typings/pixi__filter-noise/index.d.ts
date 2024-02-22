@@ -13,10 +13,12 @@ declare module '@pixi/filter-noise' {
      * @memberof PIXI.filters
      */
     export class NoiseFilter extends Filter {
+        public noise: number;
+        public seed: number;
         /**
          * @param {number} [noise=0.5] - The noise intensity, should be a normalized value in the range [0, 1].
          * @param {number} [seed] - A random seed for the noise generation. Default is `Math.random()`.
          */
-        constructor(public noise: number, public seed: number);
+        constructor(noise: number, seed: number);
     }
 }

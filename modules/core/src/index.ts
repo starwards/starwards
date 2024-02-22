@@ -10,7 +10,7 @@ export const schemaClasses = {
 };
 
 export type RoomName = keyof typeof schemaClasses;
-export type State<R extends RoomName> = typeof schemaClasses[R]['prototype'];
+export type State<R extends RoomName> = (typeof schemaClasses)[R]['prototype'];
 export interface Stateful<S extends Schema> {
     readonly state: S;
 }
@@ -33,3 +33,4 @@ export * from './task-loop';
 export * from './events';
 export * from './async-utils';
 export * from './tweakable';
+export * from './game-field';

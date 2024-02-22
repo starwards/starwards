@@ -1,6 +1,6 @@
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
-import { type } from '@colyseus/schema';
+import { gameField } from '../game-field';
 
 export class Asteroid extends SpaceObjectBase {
     public static maxSize = 350;
@@ -10,7 +10,7 @@ export class Asteroid extends SpaceObjectBase {
 
     public readonly type = 'Asteroid';
 
-    @type('uint16')
+    @gameField('uint16')
     public health = 0;
 
     constructor() {

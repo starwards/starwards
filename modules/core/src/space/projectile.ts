@@ -3,10 +3,9 @@ import { Explosion } from './explosion';
 import { ShipDirection } from '../ship';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
+import { gameField } from '../game-field';
 import { getKeys } from '../utils';
-import { number2Digits } from '../number-field';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 // currently projectiles config is hard-coded. should move to a more dynamic solution in the future.
 // when adding new Projectile types, also add relevent fields to the Magazine and chaingun systems
@@ -55,27 +54,27 @@ export const projectileDesigns = {
 
 export const projectileModels = getKeys(projectileDesigns);
 export type ProjectileModel = keyof typeof projectileDesigns;
-export type ProjectileDesign = typeof projectileDesigns[ProjectileModel];
+export type ProjectileDesign = (typeof projectileDesigns)[ProjectileModel];
 
 export class Projectile extends SpaceObjectBase implements Craft {
     public static isInstance = (o: unknown): o is Projectile => {
         return !!o && (o as SpaceObjectBase).type === 'Projectile';
     };
 
-    @number2Digits
+    @gameField('float32')
     @tweakable({ type: 'number', number: { min: 0.01 } })
     public secondsToLive = 0;
 
     public readonly type = 'Projectile';
-    @type('uint16')
+    @gameField('uint16')
     public health = 10;
     public _explosion?: Explosion;
 
-    @type('string')
+    @gameField('string')
     @tweakable('string')
     public targetId: string | null = null;
 
-    @type('string')
+    @gameField('string')
     @tweakable({ type: 'string enum', enum: projectileModels })
     public model: ProjectileModel = 'CannonShell';
 

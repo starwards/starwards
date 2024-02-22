@@ -1,14 +1,14 @@
-import { ArraySchema, Schema, type } from '@colyseus/schema';
+import { ArraySchema, Schema } from '@colyseus/schema';
 
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 
 export class AdminState extends Schema {
-    @type('boolean')
+    @gameField('boolean')
     isGameRunning = false;
 
-    @type(['string'])
+    @gameField(['string'])
     shipIds = new ArraySchema<string>();
 
-    @number2Digits
+    @gameField('float32')
     speed = 1;
 }

@@ -2,9 +2,8 @@ import { Faction } from './faction';
 import { ShipModel } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export class Spaceship extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is Spaceship => {
@@ -13,14 +12,14 @@ export class Spaceship extends SpaceObjectBase {
     public static radius = 50;
     public readonly type = 'Spaceship';
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: Faction })
     public faction: Faction = Faction.none;
 
-    @number2Digits
+    @gameField('float32')
     public radarRange = 0;
 
-    @type('string')
+    @gameField('string')
     @tweakable('string')
     public model: ShipModel | null = null;
 

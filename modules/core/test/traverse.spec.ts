@@ -1,24 +1,25 @@
-import { ArraySchema, Schema, type } from '@colyseus/schema';
+import { ArraySchema, Schema } from '@colyseus/schema';
 
 import { expect } from 'chai';
+import { gameField } from '../src/game-field';
 import { getColyseusPrimitivesJsonPointers } from '../src/traverse';
 
 class DeeplyNested extends Schema {
     transient = '';
 
-    @type('number')
+    @gameField('number')
     property = 0;
 }
 class Target extends Schema {
     transient = '';
 
-    @type([DeeplyNested])
+    @gameField([DeeplyNested])
     array = new ArraySchema(new DeeplyNested());
 
-    @type(['number'])
+    @gameField(['number'])
     numbers = new ArraySchema(1, 2, 3);
 
-    @type('number')
+    @gameField('number')
     property = 0;
 }
 
