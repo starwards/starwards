@@ -2,8 +2,8 @@ import '@arwes/core';
 declare module '@arwes/core' {
     declare const FrameCorners: import('react').ForwardRefExoticComponent<
         Pick<
-            FrameCornersProps<unknown> &
-                import('@arwes/animation/lib/withAnimator/withAnimator').WithAnimatorInputProps,
+            // FrameCornersProps<unknown> &
+            import('@arwes/animation/lib/withAnimator/withAnimator').WithAnimatorInputProps,
             | 'children'
             | 'palette'
             | 'rootRef'
@@ -27,8 +27,8 @@ declare module '@arwes/core' {
     > & {
         defaultProps: Partial<
             Pick<
-                FrameCornersProps<unknown> &
-                    import('@arwes/animation/lib/withAnimator/withAnimator').WithAnimatorInputProps,
+                // FrameCornersProps<unknown> &
+                import('@arwes/animation/lib/withAnimator/withAnimator').WithAnimatorInputProps,
                 | 'children'
                 | 'palette'
                 | 'rootRef'

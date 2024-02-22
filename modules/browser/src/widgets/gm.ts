@@ -71,7 +71,7 @@ export class GmWidgets {
                 );
                 const rangeFilter = new RadarRangeFilter(spaceDriver);
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
-                for (let faction = 0; faction < Faction.factionCount; faction++) {
+                for (let faction = 0; faction < (Faction.factionCount as number); faction++) {
                     const fovGraphics = new Graphics();
                     fovGraphics.filters = [new filters.AlphaFilter(0.1)];
                     root.addLayer(fovGraphics);
@@ -81,7 +81,7 @@ export class GmWidgets {
                             fovGraphics.clear();
                             fovGraphics.lineStyle(0);
                             for (const fov of rangeFilter.fieldsOfView()) {
-                                if (fov.object.faction === faction) {
+                                if ((fov.object.faction as number) === faction) {
                                     fovGraphics.beginFill(getFactionColor(faction), 1);
                                     fov.draw(root, fovGraphics);
                                     fovGraphics.endFill();
