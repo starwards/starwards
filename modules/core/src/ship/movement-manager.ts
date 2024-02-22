@@ -1,3 +1,4 @@
+import { MAX_WARP_LVL, WarpFrequency } from './warp';
 import {
     ManeuveringCommand,
     SpaceManager,
@@ -16,7 +17,6 @@ import { DeepReadonly } from 'ts-essentials';
 import { Die } from './ship-manager';
 import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
-import { MAX_WARP_LVL } from './warp';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
 
@@ -29,6 +29,7 @@ type ShipManager = {
 export const CHECK_JAM_INTERVAL_SECONDS = 5;
 export class MovementManager {
     private lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
+    private calibrationGoal = WarpFrequency.WARP_FREQUENCY_COUNT;
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
@@ -86,11 +87,18 @@ export class MovementManager {
 
     private handleWarpFrequencyChange(deltaSeconds: number) {
         if (this.state.warp.changingFrequency) {
+            if (this.calibrationGoal === WarpFrequency.WARP_FREQUENCY_COUNT) {
+                // first update after change command or server restart
+                this.calibrationGoal = this.state.warp.standbyFrequency;
+            } else {
+                this.state.warp.standbyFrequency = this.calibrationGoal;
+            }
             this.state.warp.frequencyChange +=
                 (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.secondsToChangeFrequency;
             if (this.state.warp.frequencyChange >= 1) {
                 this.state.warp.frequencyChange = 1;
-                this.state.warp.currentFrequency = this.state.warp.standbyFrequency;
+                this.state.warp.currentFrequency = this.calibrationGoal;
+                this.calibrationGoal = WarpFrequency.WARP_FREQUENCY_COUNT;
                 this.state.warp.changingFrequency = false;
             }
         } else {
