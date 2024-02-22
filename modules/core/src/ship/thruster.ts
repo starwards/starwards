@@ -4,9 +4,8 @@ import { DesignState, SystemState, defectible } from './system';
 import { getDirectionConfigFromAngle, shipDirectionRange } from './ship-direction';
 
 import { ShipState } from './ship-state';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
-import { type } from '@colyseus/schema';
 
 export type ThrusterDesign = {
     maxAngleError: number;
@@ -17,11 +16,11 @@ export type ThrusterDesign = {
 };
 
 export class ThrusterDesignState extends DesignState implements ThrusterDesign {
-    @number2Digits maxAngleError = 0;
-    @number2Digits capacity = 0;
-    @number2Digits energyCost = 0;
-    @number2Digits afterBurnerCapacity = 0;
-    @number2Digits damage50 = 0;
+    @gameField('float32') maxAngleError = 0;
+    @gameField('float32') capacity = 0;
+    @gameField('float32') energyCost = 0;
+    @gameField('float32') afterBurnerCapacity = 0;
+    @gameField('float32') damage50 = 0;
 }
 export class Thruster extends SystemState {
     public static isInstance = (o: unknown): o is Thruster => {
@@ -34,40 +33,40 @@ export class Thruster extends SystemState {
         return `Thruster ${this.index} (${getDirectionConfigFromAngle(this.angle)})`;
     }
 
-    @type(ThrusterDesignState)
+    @gameField(ThrusterDesignState)
     design = new ThrusterDesignState();
 
     /**
      * the index of thruster in the parent ship
      */
-    @type('int8')
+    @gameField('int8')
     index = 0;
     /**
      * the measure of current engine activity
      */
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     active = 0;
     /**
      * the measure of current afterburner activity
      */
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     afterBurnerActive = 0;
 
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
-    @number2Digits
+    @gameField('float32')
     @range(shipDirectionRange)
     angle = 0.0;
 
-    @number2Digits
+    @gameField('float32')
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
     @defectible({ normal: 0, name: 'offset' })
     angleError = 0.0;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'capacity' })
     availableCapacity = 1.0;

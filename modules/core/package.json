@@ -33,6 +33,7 @@
         "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
         "build": "tsup-node",
+        "build:unity": "schema-codegen src/space/space-state.ts --output ./unity-schema/ --decorator gameField --csharp",
         "build:watch": "tsup-node --watch"
     },
     "dependencies": {

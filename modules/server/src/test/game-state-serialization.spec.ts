@@ -1,9 +1,11 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { MapSchema, Schema } from '@colyseus/schema';
 import { schemaToString, stringToSchema } from '../serialization/game-state-serialization';
+
+import { gameField } from 'modules/core/src/game-field';
 
 describe('game-state-serialization', () => {
     class TestMapSchema extends Schema {
-        @type({ map: 'number' })
+        @gameField({ map: 'number' })
         value = new MapSchema<number>();
     }
     it('carbon-copy MapSchema', async () => {

@@ -1,9 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
 
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export type ReactorDesign = {
     energyPerSecond: number;
@@ -14,11 +13,11 @@ export type ReactorDesign = {
 };
 
 export class ReactorDesignState extends DesignState implements ReactorDesign {
-    @number2Digits energyPerSecond = 0;
-    @number2Digits maxEnergy = 0;
-    @number2Digits energyHeatEPMThreshold = 0;
-    @number2Digits energyHeat = 0;
-    @number2Digits damage50 = 0;
+    @gameField('float32') energyPerSecond = 0;
+    @gameField('float32') maxEnergy = 0;
+    @gameField('float32') energyHeatEPMThreshold = 0;
+    @gameField('float32') energyHeat = 0;
+    @gameField('float32') damage50 = 0;
 }
 
 export class Reactor extends SystemState {
@@ -29,15 +28,15 @@ export class Reactor extends SystemState {
     public readonly type = 'Reactor';
     public readonly name = 'Reactor';
 
-    @type(ReactorDesignState)
+    @gameField(ReactorDesignState)
     design = new ReactorDesignState();
 
-    @type('number')
+    @gameField('number')
     @range((t: Reactor) => [0, t.design.maxEnergy])
     @tweakable('number')
     energy = 1000;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'effeciency' })
     effeciencyFactor = 1;

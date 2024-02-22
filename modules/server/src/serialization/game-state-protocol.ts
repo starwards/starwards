@@ -1,21 +1,23 @@
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { MapSchema, Schema } from '@colyseus/schema';
 import { ShipState, SpaceState } from '@starwards/core';
+
+import { gameField } from 'modules/core/src/game-field';
 
 /**
  * this class is designed to serialize and de-serialize game state
  */
 class GameStateFragment extends Schema {
-    @type({ map: ShipState })
+    @gameField({ map: ShipState })
     public ship = new MapSchema<ShipState>();
 
-    @type(SpaceState)
+    @gameField(SpaceState)
     public space = new SpaceState();
 }
 
 export class SavedGame extends Schema {
-    @type('string')
+    @gameField('string')
     public mapName = '';
 
-    @type(GameStateFragment)
+    @gameField(GameStateFragment)
     public fragment = new GameStateFragment();
 }

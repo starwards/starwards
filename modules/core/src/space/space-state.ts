@@ -1,11 +1,12 @@
 import { BulkBotOrderArg, BulkMoveArg } from './space-properties';
-import { MapSchema, Schema, type } from '@colyseus/schema';
+import { MapSchema, Schema } from '@colyseus/schema';
 import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
 import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
+import { gameField } from '../game-field';
 
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
     return !!k;
@@ -13,19 +14,19 @@ function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
 export class SpaceState extends Schema {
     // the names of each map is the type of the objects it contains
     // this is part of the events API
-    @type({ map: Projectile })
+    @gameField({ map: Projectile })
     private readonly Projectile = new MapSchema<Projectile>();
 
-    @type({ map: Explosion })
+    @gameField({ map: Explosion })
     private readonly Explosion = new MapSchema<Explosion>();
 
-    @type({ map: Asteroid })
+    @gameField({ map: Asteroid })
     private readonly Asteroid = new MapSchema<Asteroid>();
 
-    @type({ map: Spaceship })
+    @gameField({ map: Spaceship })
     private readonly Spaceship = new MapSchema<Spaceship>();
 
-    @type({ map: Waypoint })
+    @gameField({ map: Waypoint })
     private readonly Waypoint = new MapSchema<Waypoint>();
 
     // server only, used for commands

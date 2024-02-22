@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Schema } from '@colyseus/schema';
 import { allColyseusProperties } from '../traverse';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -42,27 +42,27 @@ export abstract class SystemState extends Schema {
      */
     abstract readonly broken: boolean;
 
-    @number2Digits
+    @gameField('float32')
     public energyPerMinute = 0;
 
     @range([0, MAX_SYSTEM_HEAT])
     @tweakable('number')
-    @number2Digits
+    @gameField('float32')
     public heat = 0;
 
     @range([0, 1])
     @tweakable('number')
-    @number2Digits
+    @gameField('float32')
     public coolantFactor = 0;
 
     @range([0, 1])
     @tweakable({ type: 'enum', enum: PowerLevel })
-    @number2Digits
+    @gameField('float32')
     public power = PowerLevel.MAX;
 
     @range([0, 1])
     @tweakable({ type: 'enum', enum: HackLevel })
-    @number2Digits
+    @gameField('float32')
     public hacked = HackLevel.OK;
 
     public get effectiveness() {

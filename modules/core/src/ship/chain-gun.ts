@@ -2,11 +2,10 @@ import { DesignState, SystemState, defectible } from './system';
 import { ProjectileModel, projectileModels } from '../space/projectile';
 
 import { SmartPilotMode } from './smart-pilot';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export type SelectedProjectileModel = 'None' | ProjectileModel;
 
@@ -26,17 +25,17 @@ export type ChaingunDesign = {
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
-    @number2Digits bulletsPerSecond = 0;
-    @number2Digits bulletSpeed = 0;
-    @number2Digits bulletDegreesDeviation = 0;
-    @number2Digits maxShellRange = 0;
-    @number2Digits minShellRange = 0;
-    @number2Digits overrideSecondsToLive = -1;
-    @number2Digits damage50 = 0;
-    @number2Digits energyCost = 0;
-    @type('boolean') use_CannonShell = false;
-    @type('boolean') use_BlastCannonShell = false;
-    @type('boolean') use_Missile = false;
+    @gameField('float32') bulletsPerSecond = 0;
+    @gameField('float32') bulletSpeed = 0;
+    @gameField('float32') bulletDegreesDeviation = 0;
+    @gameField('float32') maxShellRange = 0;
+    @gameField('float32') minShellRange = 0;
+    @gameField('float32') overrideSecondsToLive = -1;
+    @gameField('float32') damage50 = 0;
+    @gameField('float32') energyCost = 0;
+    @gameField('boolean') use_CannonShell = false;
+    @gameField('boolean') use_BlastCannonShell = false;
+    @gameField('boolean') use_Missile = false;
 
     // get explosionSecondsToLive(): number {
     //     return this.explosionRadius / this.explosionExpansionSpeed;
@@ -61,58 +60,58 @@ export class ChainGun extends SystemState {
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
-    @number2Digits
+    @gameField('float32')
     @range(shipDirectionRange)
     angle = 0;
 
     @tweakable('boolean')
-    @type('boolean')
+    @gameField('boolean')
     isFiring = false;
 
     @tweakable('boolean')
-    @type('boolean')
+    @gameField('boolean')
     loadAmmo = true;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     loading = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range((t: ChainGun) => [t.design.minShellSecondsToLive, t.design.maxShellSecondsToLive])
     shellSecondsToLive = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([-1, 1])
     shellRange = 0; // just used for command, not for firing
 
-    @type('int8')
+    @gameField('int8')
     shellRangeMode!: SmartPilotMode;
 
-    @number2Digits
+    @gameField('float32')
     @defectible({ normal: 0, name: 'offset' })
     @range([-90, 90])
     angleOffset = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
     rateOfFireFactor = 1;
 
-    @type('string')
+    @gameField('string')
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
         enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
     }))
     projectile: SelectedProjectileModel = 'None';
 
-    @type('string')
+    @gameField('string')
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
         enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
     }))
     loadedProjectile: SelectedProjectileModel = 'None';
 
-    @type(ChaingunDesignState)
+    @gameField(ChaingunDesignState)
     design = new ChaingunDesignState();
 
     // server only, used for commands

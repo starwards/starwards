@@ -1,9 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
 
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export type ManeuveringDesign = {
     rotationCapacity: number;
@@ -15,12 +14,12 @@ export type ManeuveringDesign = {
 };
 
 export class ManeuveringDesignState extends DesignState implements ManeuveringDesign {
-    @number2Digits rotationCapacity = 0;
-    @number2Digits rotationEnergyCost = 0;
-    @number2Digits maxAfterBurnerFuel = 0;
-    @number2Digits afterBurnerCharge = 0;
-    @number2Digits afterBurnerEnergyCost = 0;
-    @number2Digits damage50 = 0;
+    @gameField('float32') rotationCapacity = 0;
+    @gameField('float32') rotationEnergyCost = 0;
+    @gameField('float32') maxAfterBurnerFuel = 0;
+    @gameField('float32') afterBurnerCharge = 0;
+    @gameField('float32') afterBurnerEnergyCost = 0;
+    @gameField('float32') damage50 = 0;
 }
 export class Maneuvering extends SystemState {
     public static isInstance = (o: unknown): o is Maneuvering => {
@@ -30,15 +29,15 @@ export class Maneuvering extends SystemState {
     public readonly type = 'Maneuvering';
     public readonly name = 'Maneuvering';
 
-    @type(ManeuveringDesignState)
+    @gameField(ManeuveringDesignState)
     design = new ManeuveringDesignState();
 
-    @type('number')
+    @gameField('number')
     @range((t: Maneuvering) => [0, t.design.maxAfterBurnerFuel])
     @tweakable('number')
     afterBurnerFuel = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'efficiency' })
     efficiency = 1;

@@ -1,14 +1,15 @@
-import { Schema, type } from '@colyseus/schema';
 import { getRange, range, rangeSchema } from '../src/range';
 
 import { JsonPointer } from 'json-ptr';
+import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
+import { gameField } from '../src/game-field';
 
 const RANGE = [-1, 1] as const;
 describe('range', () => {
     it('@range([number, number]) for defining literal range to property', () => {
         class Target extends Schema {
-            @type('float32')
+            @gameField('float32')
             @range(RANGE)
             property = 0;
         }
@@ -31,7 +32,7 @@ describe('range', () => {
 
     it('@range((this) => [number, number]) for defining dynamic range to property', () => {
         class Target extends Schema {
-            @type('float32')
+            @gameField('float32')
             @range((t: Target) => t.range)
             property = 0;
 
@@ -44,11 +45,11 @@ describe('range', () => {
 
     it('@range(SchemaRanges) for defining range on composed models ', () => {
         class ModelWithNoRange extends Schema {
-            @type('float32')
+            @gameField('float32')
             property = 0;
         }
         class Target extends Schema {
-            @type(ModelWithNoRange)
+            @gameField(ModelWithNoRange)
             @range({ '/property': RANGE })
             inner = new ModelWithNoRange();
         }
@@ -59,7 +60,7 @@ describe('range', () => {
 
     it('@rangeSchema for defining range on parent or mixin models', () => {
         class ModelWithNoRange extends Schema {
-            @type('float32')
+            @gameField('float32')
             property = 0;
         }
         @rangeSchema({ '/property': RANGE })

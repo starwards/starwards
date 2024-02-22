@@ -1,7 +1,8 @@
-import { ArraySchema, type } from '@colyseus/schema';
 import { DesignState, SystemState, defectible, getSystems } from '../src/ship/system';
 
+import { ArraySchema } from '@colyseus/schema';
 import { expect } from 'chai';
+import { gameField } from '../src/game-field';
 
 const DEFECTIBLE = { normal: 0, name: 'something' };
 const design = new (class extends DesignState {})();
@@ -12,7 +13,7 @@ class DeeplyNested extends SystemState {
     energyPerMinute = 0;
 
     @defectible(DEFECTIBLE)
-    @type('number')
+    @gameField('number')
     property = 0;
 }
 class Target extends SystemState {
@@ -21,18 +22,18 @@ class Target extends SystemState {
     broken = false;
     energyPerMinute = 0;
 
-    @type([DeeplyNested])
+    @gameField([DeeplyNested])
     array = new ArraySchema<DeeplyNested>(new DeeplyNested());
 
     @defectible(DEFECTIBLE)
-    @type('number')
+    @gameField('number')
     property = 0;
 
     /**
      * here to keep in mind that getters are NOT detected
      */
     @defectible(DEFECTIBLE)
-    @type('number')
+    @gameField('number')
     get propertyGetter() {
         return 3;
     }

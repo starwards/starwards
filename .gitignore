@@ -96,3 +96,5 @@ ngrok.*
 assets
 test-results
 *.tsbuildinfo
+
+modules/core/unity-schema

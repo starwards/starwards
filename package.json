@@ -18,6 +18,7 @@
         "prettify": "prettier \"./modules/*/src/**/*.{ts,tsx,json}\" --write",
         "build:browser": "npm --prefix ./modules/browser run build",
         "build:core": "npm --prefix ./modules/core run build",
+        "build:unity": "npm --prefix ./modules/core run build:unity",
         "build:node-red": "npm --prefix ./modules/node-red run build",
         "build:server": "npm --prefix ./modules/server run build",
         "build": "npm run build:core && concurrently --kill-others-on-fail -c blue,yellow,green,magenta \"npm:build:*(!core)\"",

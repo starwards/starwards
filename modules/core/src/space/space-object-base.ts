@@ -1,10 +1,9 @@
-import { Schema, type } from '@colyseus/schema';
-
 import { Faction } from './faction';
+import { Schema } from '@colyseus/schema';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -16,25 +15,25 @@ export function distanceSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): nu
     return XY.lengthOf(XY.difference(a.position, b.position)) - a.radius - b.radius;
 }
 export abstract class SpaceObjectBase extends Schema {
-    @type('string')
+    @gameField('string')
     public abstract readonly type: keyof SpaceObjects;
-    @type('boolean')
+    @gameField('boolean')
     // @tweakable('boolean')
     public destroyed = false;
 
     @tweakable('boolean')
-    @type('boolean')
+    @gameField('boolean')
     public freeze = false;
 
-    @type('string')
+    @gameField('string')
     public id = '';
-    @type(Vec2)
+    @gameField(Vec2)
     public position: Vec2 = new Vec2(0, 0);
 
     @tweakable({ type: 'number', number: { min: 0.05 } })
-    @number2Digits
+    @gameField('float32')
     public radius = 0.05;
-    @type(Vec2)
+    @gameField(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 
     // default static placeholder for all space obejcts. children can replace with dynamic field.
@@ -55,14 +54,14 @@ export abstract class SpaceObjectBase extends Schema {
      */
     @tweakable('number')
     @range([0, 360])
-    @number2Digits
+    @gameField('float32')
     public angle = 0;
 
     /*!
      * [config] Speed of rotation, change of angle in deg/second
      */
     @tweakable({ type: 'number' })
-    @number2Digits
+    @gameField('float32')
     public turnSpeed = 0;
 
     // can later add globalToLocalPosition, globalToLocalVelocity etc.

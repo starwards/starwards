@@ -1,8 +1,8 @@
-import { ArraySchema, type } from '@colyseus/schema';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
+import { ArraySchema } from '@colyseus/schema';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
@@ -17,7 +17,7 @@ import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {
@@ -31,77 +31,77 @@ export type ShipPropertiesDesign = {
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
-    @number2Digits totalCoolant = 0;
+    @gameField('float32') totalCoolant = 0;
 }
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {
-    @type(ShipPropertiesDesignState)
+    @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
-    @type([Thruster])
+    @gameField([Thruster])
     thrusters!: ArraySchema<Thruster>;
 
-    @type([Tube])
+    @gameField([Tube])
     tubes = new ArraySchema<Tube>();
 
-    @type(ChainGun)
+    @gameField(ChainGun)
     chainGun: ChainGun | null = null;
 
-    @type(Radar)
+    @gameField(Radar)
     radar!: Radar;
 
-    @type(Reactor)
+    @gameField(Reactor)
     reactor!: Reactor;
 
-    @type(SmartPilot)
+    @gameField(SmartPilot)
     smartPilot!: SmartPilot;
 
-    @type(Armor)
+    @gameField(Armor)
     armor!: Armor;
 
-    @type(Magazine)
+    @gameField(Magazine)
     magazine!: Magazine;
 
-    @type(Targeting)
+    @gameField(Targeting)
     weaponsTarget!: Targeting;
 
-    @type(Warp)
+    @gameField(Warp)
     warp!: Warp;
 
-    @type(Docking)
+    @gameField(Docking)
     docking!: Docking;
 
-    @type(Maneuvering)
+    @gameField(Maneuvering)
     maneuvering!: Maneuvering;
 
-    @number2Digits
+    @gameField('float32')
     @range([-1, 1])
     rotation = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([-1, 1])
     boost = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([-1, 1])
     strafe = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     antiDrift = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     breaks = 0;
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     afterBurner = 0;
 
-    @type('int8')
+    @gameField('int8')
     targeted = TargetedStatus.NONE;
 
-    @type('boolean')
+    @gameField('boolean')
     @tweakable('boolean')
     ecrControl = false;
 

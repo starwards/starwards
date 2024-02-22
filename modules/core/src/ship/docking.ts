@@ -1,10 +1,9 @@
 import { DesignState, SystemState, defectible } from './system';
 
 import { EPSILON } from '../logic';
-import { number2Digits } from '../number-field';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export enum DockingMode {
     DOCKED,
@@ -23,12 +22,12 @@ export type DockingDesign = {
 };
 
 export class DockingDesignState extends DesignState implements DockingDesign {
-    @number2Digits damage50 = 0;
-    @number2Digits maxDockingDistance = 0;
-    @number2Digits maxDockedDistance = 0;
-    @number2Digits undockingTargetDistance = 0;
-    @number2Digits angle = 0;
-    @number2Digits width = 0;
+    @gameField('float32') damage50 = 0;
+    @gameField('float32') maxDockingDistance = 0;
+    @gameField('float32') maxDockedDistance = 0;
+    @gameField('float32') undockingTargetDistance = 0;
+    @gameField('float32') angle = 0;
+    @gameField('float32') width = 0;
 }
 export class Docking extends SystemState {
     public static isInstance = (o: unknown): o is Docking => {
@@ -38,18 +37,18 @@ export class Docking extends SystemState {
     public readonly type = 'Docking';
     public readonly name = 'Docking';
 
-    @type(DockingDesignState)
+    @gameField(DockingDesignState)
     design = new DockingDesignState();
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: DockingMode })
     mode: DockingMode = DockingMode.UNDOCKED;
 
-    @type('string')
+    @gameField('string')
     @tweakable('string')
     public targetId = '';
 
-    @number2Digits
+    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'range' })
     rangesFactor = 1;

@@ -1,8 +1,8 @@
 import { Faction } from './faction';
 import { SpaceObjectBase } from './space-object-base';
+import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-import { type } from '@colyseus/schema';
 
 export class Waypoint extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is Waypoint => {
@@ -13,23 +13,23 @@ export class Waypoint extends SpaceObjectBase {
     public readonly isCorporal = false;
     public freeze = true;
 
-    @type('int8')
+    @gameField('int8')
     @tweakable({ type: 'enum', enum: Faction })
     public faction: Faction = Faction.none;
 
-    @type('string')
+    @gameField('string')
     @tweakable('string')
     public owner: string | null = null;
 
-    @type('string')
+    @gameField('string')
     @tweakable('string')
     public collection = '';
 
-    @type('string')
+    @gameField('string')
     @tweakable('string')
     public title = '';
 
-    @type('uint32')
+    @gameField('uint32')
     @tweakable('number')
     @range([0x000000, 0xffffff])
     public color = 0xffffff;
