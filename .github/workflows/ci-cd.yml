@@ -25,6 +25,20 @@ jobs:
       - run: npm run test:format
       - run: npm run build
 
+  Test-Units:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - name: Set up Node.js
+            uses: actions/setup-node@v4
+            with:
+              node-version-file: '.nvmrc'
+          - run: node --version
+          - run: npm --version
+          - run: env
+          - run: npm ci
+          - run: npm run test
+
   Test-E2e:
     runs-on: ubuntu-latest
     container:
