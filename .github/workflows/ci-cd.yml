@@ -1,6 +1,5 @@
 name: CI
 
-
 on:
   push:
     branches:
@@ -10,32 +9,7 @@ on:
       - master
 
 jobs:
-  prepare-cache:
-    name: Prepare npm cache
-    runs-on: ubuntu-latest
-    outputs:
-      cache-hit: ${{ steps.cache-check.outputs.cache-hit }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        id: setup-node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-
-      - name: Check for cache hit
-        id: cache-check
-        run: echo "::set-output name=cache-hit::${{ steps.setup-node.outputs.cache-hit }}"
-
-      - name: Install dependencies if cache was not hit
-        if: steps.cache-check.outputs.cache-hit != 'true'
-        run: npm ci
-
   Test-Static:
-    needs: prepare-cache
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +17,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
       - run: node --version
       - run: npm --version
       - run: env
@@ -53,7 +26,6 @@ jobs:
       - run: npm run build
 
   Test-E2e:
-    needs: prepare-cache
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.22.2
@@ -64,7 +36,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
       - run: node --version
       - run: npm --version
       - run: env
@@ -85,7 +56,6 @@ jobs:
           if-no-files-found: ignore
 
   Build:
-    needs: prepare-cache
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +63,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-          cache: 'npm'
       - run: node --version
       - run: npm --version
       - run: env
