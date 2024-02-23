@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.22.2
+      options: --user root
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
