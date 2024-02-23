@@ -26,7 +26,7 @@ jobs:
       - run: npm run test:format
       - run: npm run build
 
-  Test-E2e:
+  Test-E2e-container:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.22.2
@@ -44,6 +44,35 @@ jobs:
       - run: npm ci
       - run: npm run build:core
       - run: npm run build:server
+      - run: npm run test:e2e
+      - name: Store test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: playwright-results
+          path: playwright-results.xml
+      - name: Store artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: test-results
+
+  Test-E2e-containerless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: node --version
+      - run: npm --version
+      - run: env
+      - run: npm ci
+      - run: npm run build:core
+      - run: npm run build:server
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
       - run: npm run test:e2e
       - name: Store test results
         uses: actions/upload-artifact@v2
