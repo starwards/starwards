@@ -37,7 +37,9 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
+      - run: node --version
       - run: npm --version
+      - run: env
       - run: npm ci
       - run: npm run build:core
       - run: npm run build:server
