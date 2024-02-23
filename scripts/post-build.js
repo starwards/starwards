@@ -59,7 +59,7 @@ async function getPackage(modulePath) {
                     },
                     pkg: {
                         assets: 'static/**/*',
-                        targets: ['node18-win-x64', 'node18-linux-x64', 'node18-osx-x64'],
+                        targets: ['node18-win-x64'], // , 'node18-linux-x64', 'node18-osx-x64'
                     },
                     dependencies,
                 },
