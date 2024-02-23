@@ -69,9 +69,16 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run pkg
-      - name: Store build artifacts
+      - name: Store Windows executable
         uses: actions/upload-artifact@v4
         with:
           name: Windows executable
           path: dist/exec/starwards.exe
+          if-no-files-found: error
+      - run: npm run build:unity
+      - name: Store Unity Schemas
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unity Schemas
+          path: modules/core/unity-schema
           if-no-files-found: error
