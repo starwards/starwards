@@ -11,8 +11,6 @@ on:
 jobs:
   Test-Static:
     runs-on: ubuntu-latest
-    # container:
-    #   image: node:18.3
     steps:
       - uses: actions/checkout@v3
       - name: Set up Node.js
@@ -28,31 +26,33 @@ jobs:
       - run: npm run test:format
       - run: npm run build
 
-#   Test-E2e:
-#     runs-on: ubuntu-latest
-#     container:
-#       image: mcr.microsoft.com/playwright:v1.22.2
-#     steps:
-#       - uses: actions/checkout@v2
-#       - name: Set up Node.js
-#         uses: actions/setup-node@v2
-#         with:
-#           node-version: '18.3'
-#       - run: npm --version
-#       - run: npm ci --cache .npm --prefer-offline
-#       - run: npm run build:core
-#       - run: npm run build:server
-#       - run: npm run test:e2e
-#       - name: Store test results
-#         uses: actions/upload-artifact@v2
-#         with:
-#           name: playwright-results
-#           path: playwright-results.xml
-#       - name: Store artifacts
-#         uses: actions/upload-artifact@v2
-#         with:
-#           name: test-results
-#           path: test-results
+  Test-E2e:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.22.2
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm --version
+      - run: npm ci --cache .npm --prefer-offline
+      - run: npm run build:core
+      - run: npm run build:server
+      - run: npm run test:e2e
+      - name: Store test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: playwright-results
+          path: playwright-results.xml
+      - name: Store artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: test-results
+
 
 #   Build:
 #     runs-on: ubuntu-latest
