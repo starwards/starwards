@@ -61,6 +61,8 @@ export function LoadGame({ adminDriver }: Props) {
                     ))}
                 </Blockquote>
             ) : null}
+            {/* 
+// @ts-ignore : old arwes */}
             <FrameCorners animator={{ activate: true }} palette={isDragActive ? 'success' : ''} hover>
                 <div style={{ width: 400, height: 100 }}>
                     <input {...getInputProps()} />
