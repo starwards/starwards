@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.26.1
+FROM mcr.microsoft.com/playwright:v1.41.2
 
 WORKDIR /work
 COPY . ./
