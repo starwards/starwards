@@ -12,7 +12,7 @@ export function* getColyseusPrimitivesJsonPointers(state: Colyseus) {
 }
 
 export function* allColyseusProperties(
-    root: Colyseus
+    root: Colyseus,
 ): IterableIterator<[Container, string, string | number, Colyseus]> {
     const states: [Colyseus, string][] = [[root, '']];
     for (const [state, namespace] of states) {

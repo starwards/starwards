@@ -15,7 +15,7 @@ export class SpriteLayer {
         style: SpriteStyle,
         getLocation: () => XY | undefined,
         getRotation: () => number,
-        getRadius: () => number
+        getRadius: () => number,
     ) {
         this.sprite = new Sprite(style.texture);
         this.sprite.anchor.set(0.5);
@@ -37,7 +37,7 @@ export class SpriteLayer {
                 }
             },
             null,
-            UPDATE_PRIORITY.LOW
+            UPDATE_PRIORITY.LOW,
         );
     }
     set texture(texture: Texture) {

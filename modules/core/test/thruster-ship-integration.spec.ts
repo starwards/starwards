@@ -28,11 +28,11 @@ describe('thrusters-ship integration', function () {
                         const metrics = new TimedTestMetrics(
                             iterationsPerSecond,
                             startVelocity / thrusterCapacity,
-                            startVelocity
+                            startVelocity,
                         );
                         harness.simulate(metrics.timeToReach, metrics.iterations);
                         expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.be.closeTo(0, metrics.errorMargin);
-                    })
+                    }),
                 );
             });
         }
@@ -51,7 +51,7 @@ describe('thrusters-ship integration', function () {
                         thruster.availableCapacity = 0;
                     }
                     expect(harness.shipState.velocityCapacity(direction), 'thruster capacity').to.be.closeTo(0, 0);
-                })
+                }),
             );
         });
     });
@@ -67,7 +67,7 @@ describe('thrusters-ship integration', function () {
                 harness.shipMgr.state.smartPilot.maneuvering.x = 1;
                 harness.simulate(1, iterationsPerSecond);
                 expect(XY.lengthOf(harness.shipObj.velocity), 'velocity').to.be.closeTo(0, 0);
-            })
+            }),
         );
     });
 
@@ -82,9 +82,9 @@ describe('thrusters-ship integration', function () {
                 harness.simulate(1, iterationsPerSecond);
                 expect(limitPercisionHard(XY.angleOf(harness.shipObj.velocity)), 'velocity').to.be.closeTo(
                     limitPercisionHard(toPositiveDegreesDelta(offset)),
-                    EPSILON * 5
+                    EPSILON * 5,
                 );
-            })
+            }),
         );
     });
 });

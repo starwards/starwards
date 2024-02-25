@@ -64,7 +64,7 @@ function getRangeFromProperty<T extends Schema>(target: T, propertyKey: string):
 function getRangeFromAncestor<T extends Schema>(
     ancestor: T,
     propertyKey: string,
-    descendantPath: string
+    descendantPath: string,
 ): RTuple2 | undefined {
     const ranges = Reflect.getMetadata(descendantMetadataKey, ancestor, propertyKey) as SchemaRanges | undefined;
     if (ranges) {
@@ -93,8 +93,8 @@ export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | RTu
     if (!(target instanceof Object) || typeof propertyName !== 'string') {
         throw new Error(
             `pointer ${pointer.pointer} does not point at a legal location: target=${JSON.stringify(
-                target
-            )}, propertyName=${JSON.stringify(propertyName)}`
+                target,
+            )}, propertyName=${JSON.stringify(propertyName)}`,
         );
     }
     if (!(target instanceof Schema)) {
@@ -114,8 +114,8 @@ export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | RTu
         if (!(ancestor instanceof Object) || typeof ancestorPropertyName !== 'string') {
             throw new Error(
                 `pointer ${pointer.pointer} does not point at a legal location: ancestor=${JSON.stringify(
-                    ancestor
-                )}, ancestorPropertyName=${JSON.stringify(ancestorPropertyName)}`
+                    ancestor,
+                )}, ancestorPropertyName=${JSON.stringify(ancestorPropertyName)}`,
             );
         }
         if (ancestor instanceof Schema) {

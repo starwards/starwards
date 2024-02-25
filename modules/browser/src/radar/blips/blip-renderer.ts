@@ -26,7 +26,7 @@ function renderText(y: number, value: string[], color: number) {
             fontSize: 14,
             fill: color,
             align: 'left',
-        })
+        }),
     );
     result.y = y;
     result.x = -result.getLocalBounds(new Rectangle()).width / 2;
@@ -70,7 +70,10 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
     private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
 
-    constructor(stage: Container, private blipSize: number) {
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
         stage.addChild(this.directionSprite);
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
@@ -100,7 +103,10 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
     private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
     private asteroidSprite = blipSprite('dradis_asteroid', this.blipSize, white);
     private collisionOutline = new Graphics();
-    constructor(stage: Container, private blipSize: number) {
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
         stage.addChild(this.asteroidSprite);
@@ -122,7 +128,10 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
 class CircleRenderer implements BlipRenderer<SpaceObject> {
     private shellCircle = new Graphics();
     private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
-    constructor(stage: Container, private blipSize: number) {
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
         stage.addChild(this.shellCircle);
         stage.addChild(this.selectionSprite);
     }
@@ -142,7 +151,10 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
     private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
 
-    constructor(stage: Container, private blipSize: number) {
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
         stage.addChild(this.fighterSprite);
         stage.addChild(this.text);
         stage.addChild(this.collisionOutline);
@@ -170,7 +182,10 @@ class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
     private iconSprite = blipSprite('tactical_waypoint', this.blipSize, white);
     private text = renderText(this.blipSize / 2, [], white);
 
-    constructor(stage: Container, private blipSize: number) {
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
         stage.addChild(this.iconSprite);
         stage.addChild(this.text);
         stage.addChild(this.selectionSprite);

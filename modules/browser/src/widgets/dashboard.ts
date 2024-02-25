@@ -31,7 +31,7 @@ export class Dashboard extends GoldenLayout {
     constructor(
         configuration: GoldenLayout.Config,
         container: JQuery,
-        private dragContainer: JQuery<HTMLElement> | null
+        private dragContainer: JQuery<HTMLElement> | null,
     ) {
         super(configuration, container);
         if (!this.dragContainer?.length) {
@@ -83,7 +83,7 @@ export class Dashboard extends GoldenLayout {
     public registerWidget<T>(
         { name: wName, component, type, defaultProps, makeHeaders }: DashboardWidget<T>,
         props: Partial<T> = {},
-        name?: string
+        name?: string,
     ) {
         name = name || wName;
         this.registerComponent(name, component);

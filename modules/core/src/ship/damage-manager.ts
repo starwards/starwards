@@ -30,7 +30,7 @@ export class DamageManager {
         public spaceObject: DeepReadonly<Spaceship>,
         private state: ShipState,
         private spaceManager: SpaceManager,
-        private die: Die
+        private die: Die,
     ) {}
 
     update() {
@@ -117,7 +117,7 @@ export class DamageManager {
             const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
             const projectileKey = projectileModels[idx];
             magazine[`count_${projectileKey}`] = Math.round(
-                magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor)
+                magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor),
             );
         } else {
             magazine.capacity *= 1 - magazine.design.capacityDamageFactor;
@@ -149,7 +149,7 @@ export class DamageManager {
             thruster.angleError = capToRange(-180, 180, thruster.angleError);
         } else {
             thruster.availableCapacity -= limitPercision(
-                this.die.getRollInRange('availableCapacity' + damageId, 0.01, 0.1)
+                this.die.getRollInRange('availableCapacity' + damageId, 0.01, 0.1),
             );
         }
     }

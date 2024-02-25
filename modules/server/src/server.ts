@@ -44,7 +44,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
         asyncHandler(async (_, res) => {
             await manager.stopGame();
             res.send();
-        })
+        }),
     );
 
     app.post(
@@ -60,7 +60,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
                 console.error(`can't find map named "${String(mapName)}`);
                 res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             }
-        })
+        }),
     );
 
     app.post(
@@ -73,7 +73,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
                 console.error(`can't save game when no game is running`);
                 res.sendStatus(HTTP_CONFLICT_STATUS);
             }
-        })
+        }),
     );
 
     app.post(
@@ -95,7 +95,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
                 console.error(`missing "data" field to load game`);
                 res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             }
-        })
+        }),
     );
 
     app.use((err: TypeError, _req: Request, res: Response, next: NextFunction) => {

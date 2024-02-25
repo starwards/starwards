@@ -36,7 +36,7 @@ if (shipUrlParam) {
             await initScreen(driver, shipUrlParam);
         },
         // eslint-disable-next-line no-console
-        (e) => console.error(e)
+        (e) => console.error(e),
     );
 } else {
     // eslint-disable-next-line no-console
@@ -58,8 +58,8 @@ async function initScreen(driver: Driver, shipId: string) {
                 s.pointer === '/warp' ||
                 s.pointer === '/radar' ||
                 s.pointer === '/maneuvering' ||
-                s.pointer === '/smartPilot'
-        )
+                s.pointer === '/smartPilot',
+        ),
     );
     drawPilotStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
@@ -84,13 +84,13 @@ function wireInput(shipDriver: ShipDriver) {
     });
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
-        new GamepadButtonConfig(0, 14)
+        new GamepadButtonConfig(0, 14),
     );
     input.addMomentaryClickAction(writeProp(shipDriver, '/rotationModeCommand'), new GamepadButtonConfig(0, 10));
     input.addMomentaryClickAction(writeProp(shipDriver, '/maneuveringModeCommand'), new GamepadButtonConfig(0, 11));
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/afterBurnerCommand')),
-        new GamepadButtonConfig(0, 6)
+        new GamepadButtonConfig(0, 6),
     );
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/antiDrift')), new GamepadButtonConfig(0, 7));
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), new GamepadButtonConfig(0, 5));

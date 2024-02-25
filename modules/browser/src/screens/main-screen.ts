@@ -59,7 +59,7 @@ if (shipId) {
             }
         },
         // eslint-disable-next-line no-console
-        (e) => console.error(e)
+        (e) => console.error(e),
     );
 } else {
     // eslint-disable-next-line no-console

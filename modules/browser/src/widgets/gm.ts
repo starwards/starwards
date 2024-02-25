@@ -67,7 +67,7 @@ export class GmWidgets {
                     64,
                     getColor,
                     tacticalDrawFunctions,
-                    selectionContainer
+                    selectionContainer,
                 );
                 const rangeFilter = new RadarRangeFilter(spaceDriver);
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
@@ -89,7 +89,7 @@ export class GmWidgets {
                             }
                         },
                         null,
-                        UPDATE_PRIORITY.LOW
+                        UPDATE_PRIORITY.LOW,
                     );
                 }
                 root.addLayer(blipLayer.renderRoot);
@@ -100,7 +100,7 @@ export class GmWidgets {
                     32,
                     (w) => w.color,
                     tacticalDrawWaypoints,
-                    selectionContainer
+                    selectionContainer,
                 );
                 root.addLayer(waypointsLayer.renderRoot);
                 root.addLayer(selection.renderRoot);

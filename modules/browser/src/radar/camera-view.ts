@@ -15,7 +15,11 @@ export class CameraView extends Application<HTMLCanvasElement> {
      * @param pixiOptions options for the pixi application
      * @param camera a point in the world that the radar is watching, and a zoom level
      */
-    constructor(pixiOptions: IApplicationOptions, public camera: Camera, container: WidgetContainer) {
+    constructor(
+        pixiOptions: IApplicationOptions,
+        public camera: Camera,
+        container: WidgetContainer,
+    ) {
         super(pixiOptions);
         this.ticker.maxFPS = 30; // if no limit, then GPU and CPU start heating up and FPS reach ~250
         camera.events.on('view', () => this.events.emit('screenChanged'));

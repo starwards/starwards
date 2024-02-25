@@ -51,7 +51,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
             });
             void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-                camera.followSpaceObject(tracked, spaceDriver.events)
+                camera.followSpaceObject(tracked, spaceDriver.events),
             );
             const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
             const radarRangeLayer = new ObjectsLayer(
@@ -61,14 +61,14 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 () => radarVisibleBg,
                 rangeRangeDrawFunctions,
                 undefined,
-                (s: SpaceObject) => s.faction === shipDriver.state.faction
+                (s: SpaceObject) => s.faction === shipDriver.state.faction,
             );
             root.addLayer(radarRangeLayer.renderRoot);
             const grid = new GridLayer(root);
             root.addLayer(grid.renderRoot);
             const rangeFilter = new RadarRangeFilter(
                 spaceDriver,
-                (o: SpaceObject) => o.faction === shipDriver.state.faction
+                (o: SpaceObject) => o.faction === shipDriver.state.faction,
             );
             root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
             const blipLayer = new ObjectsLayer(
@@ -82,7 +82,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 },
                 dradisDrawFunctions,
                 new SelectionContainer().init(spaceDriver),
-                rangeFilter.isInRange
+                rangeFilter.isInRange,
             );
             root.addLayer(blipLayer.renderRoot);
         }

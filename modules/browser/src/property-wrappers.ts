@@ -23,7 +23,7 @@ export function aggregate<T>(underlyingProps: { onChange: OnChange }[], getValue
 export function abstractOnChange(
     underlyingProps: { onChange: OnChange }[],
     getValue: () => unknown,
-    cb: () => unknown
+    cb: () => unknown,
 ) {
     const d = new Destructors();
     let lastValue = getValue();
@@ -35,7 +35,7 @@ export function abstractOnChange(
                     lastValue = newValue;
                     cb();
                 }
-            })
+            }),
         );
     }
     return d.destroy;

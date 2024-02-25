@@ -244,7 +244,7 @@ export class SpaceManager {
                         this.explodeProjectile(projectile);
                     } else {
                         const velocityDestinationDiff = toDegreesDelta(
-                            XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity)
+                            XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
 
                         let rotation = 0;
@@ -255,7 +255,7 @@ export class SpaceManager {
                                 deltaSeconds,
                                 projectile,
                                 XY.add(projectile.position, XY.scale(projectile.velocity, -10)),
-                                0
+                                0,
                             );
                             boost = 1;
                         } else {
@@ -267,7 +267,7 @@ export class SpaceManager {
                         if (boost > 0) {
                             const desiredSpeed = XY.scale(
                                 XY.rotate(XY.one, projectile.angle),
-                                boost * deltaSeconds * projectile.design.homing.velocityCapacity
+                                boost * deltaSeconds * projectile.design.homing.velocityCapacity,
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
@@ -382,7 +382,7 @@ export class SpaceManager {
                     if (subject !== obj) {
                         const destination = XY.add(
                             XY.rotate(XY.difference(obj.position, subject.position), angleDelta),
-                            subject.position
+                            subject.position,
                         );
                         obj.position.setValue(destination);
                         this.toUpdateCollisions.add(obj);
@@ -482,7 +482,7 @@ export class SpaceManager {
         deltaSeconds: number,
         subject: Exclude<SpaceObject, Projectile | Explosion>,
         object: SpaceObject,
-        response: SWResponse
+        response: SWResponse,
     ) {
         if (Explosion.isInstance(object)) {
             const exposure = deltaSeconds * Math.min(response.overlap, object.radius * 2);
@@ -506,7 +506,7 @@ export class SpaceManager {
         damageAmount: number,
         subject: Spaceship,
         object: SpaceObject,
-        response: SWResponse
+        response: SWResponse,
     ) {
         const damageBoundries = circlesIntersection(subject, object);
         if (damageBoundries) {
@@ -533,7 +533,7 @@ export class SpaceManager {
         } else {
             // eslint-disable-next-line no-console
             console.error(
-                `unexpected undefined intersection with Spaceship.\n${collisionErrorMsg(object, subject, response)}`
+                `unexpected undefined intersection with Spaceship.\n${collisionErrorMsg(object, subject, response)}`,
             );
         }
     }
@@ -571,10 +571,10 @@ export class SpaceManager {
 
 function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: SWResponse) {
     return `Subject ${subject.type} data: centre: ${JSON.stringify(subject.position)}(${JSON.stringify(
-        response.a.pos
+        response.a.pos,
     )}) radius: ${JSON.stringify(subject.radius)}\n Object ${object.type} data: centre: ${JSON.stringify(
-        object.position
+        object.position,
     )}(${JSON.stringify(response.b.pos)}) radius: ${JSON.stringify(object.radius)}. state distance: ${XY.lengthOf(
-        XY.difference(subject.position, object.position)
+        XY.difference(subject.position, object.position),
     )}. collision distance: ${XY.lengthOf(XY.difference(response.a.pos, response.b.pos))}`;
 }

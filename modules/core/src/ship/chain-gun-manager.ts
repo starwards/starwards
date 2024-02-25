@@ -41,7 +41,7 @@ export class ChainGunManager {
         public state: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
-        private energyManager: EnergyManager
+        private energyManager: EnergyManager,
     ) {
         switchToAvailableAmmo(chainGun, state.magazine);
     }
@@ -79,20 +79,20 @@ export class ChainGunManager {
                         this.chainGun.design.minShellRange,
                         this.chainGun.design.maxShellRange,
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        XY.lengthOf(XY.difference(this.shipManager.weaponsTarget!.position, this.state.position))
+                        XY.lengthOf(XY.difference(this.shipManager.weaponsTarget!.position, this.state.position)),
                     );
                     break;
                 default:
                     throw new Error(
                         `unknown state ${SmartPilotMode[this.chainGun.shellRangeMode]} (${
                             this.chainGun.shellRangeMode
-                        })`
+                        })`,
                     );
             }
             const range = capToRange(
                 this.chainGun.design.minShellRange,
                 this.chainGun.design.maxShellRange,
-                baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange)
+                baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange),
             );
             this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, this.chainGun, range);
         }
@@ -173,18 +173,18 @@ export class ChainGunManager {
             chainGun.loadedProjectile = 'None';
             projectile.angle = gaussianRandom(
                 this.spaceObject.angle + chainGun.angle + chainGun.angleOffset,
-                chainGun.design.bulletDegreesDeviation
+                chainGun.design.bulletDegreesDeviation,
             );
             projectile.velocity = Vec2.sum(
                 this.spaceObject.velocity,
-                XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, projectile.angle)
+                XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, projectile.angle),
             );
             const shellPosition = Vec2.make(
                 XY.sum(
                     this.spaceObject.position, // position of ship
                     XY.byLengthAndDirection(this.spaceObject.radius + projectile.radius + EPSILON, projectile.angle), // muzzle related to ship
-                    XY.byLengthAndDirection(projectile.radius * 2, projectile.angle) // some initial distance
-                )
+                    XY.byLengthAndDirection(projectile.radius * 2, projectile.angle), // some initial distance
+                ),
             );
             projectile.init(uniqueId('shell'), shellPosition);
             if (projectile.design.homing) {

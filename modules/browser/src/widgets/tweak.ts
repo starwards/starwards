@@ -37,7 +37,7 @@ const singleSelectionDetails = async (
     driver: Driver,
     spaceDriver: SpaceDriver,
     guiFolder: FolderApi,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) => {
     guiFolder.addInput(subject, 'id', { disabled: true });
     addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
@@ -61,7 +61,7 @@ const singleSelectionDetails = async (
                 label: 'Plates',
                 disabled: true,
             },
-            cleanup
+            cleanup,
         );
         addTextBlade(
             armorFolder,
@@ -70,7 +70,7 @@ const singleSelectionDetails = async (
                 label: 'Healthy Plates',
                 disabled: true,
             },
-            cleanup
+            cleanup,
         );
         addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
         for (const system of shipDriver.systems) {
@@ -100,7 +100,7 @@ function addTweakables(
     driver: SpaceDriver | ShipDriver,
     guiFolder: FolderApi,
     pointer: string,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
     for (const tweakable of getTweakables(state)) {
@@ -139,7 +139,7 @@ function addDesignFolder(
     shipDriver: ShipDriver,
     guiFolder: FolderApi,
     pointer: string,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const designFolder = guiFolder.addFolder({
         title: 'design',
@@ -204,7 +204,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                         driver,
                         this.spaceDriver,
                         itemFolder,
-                        this.selectionCleanup.add
+                        this.selectionCleanup.add,
                     );
                 }
             }

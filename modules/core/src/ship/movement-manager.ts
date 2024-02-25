@@ -37,7 +37,7 @@ export class MovementManager {
         private shipManager: ShipManager,
         private damageManager: DamageManager,
         private energyManager: EnergyManager,
-        public die: Die
+        public die: Die,
     ) {}
 
     update(deltaSeconds: number) {
@@ -146,14 +146,14 @@ export class MovementManager {
                 this.state.warp.currentLevel = Math.min(
                     this.state.warp.desiredLevel,
                     this.state.warp.currentLevel +
-                        (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.chargeTime
+                        (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.chargeTime,
                 );
             } else if (this.state.warp.desiredLevel < this.state.warp.currentLevel) {
                 // decrease warp level
                 this.state.warp.currentLevel = Math.max(
                     0,
                     this.state.warp.currentLevel -
-                        (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.dechargeTime
+                        (this.state.warp.effectiveness * deltaSeconds) / this.state.warp.design.dechargeTime,
                 );
                 if (this.state.warp.currentLevel == 0) {
                     // edge case where handleWarpMovement() will not know to set speed to 0
@@ -167,14 +167,16 @@ export class MovementManager {
         if (
             this.isWarpActive() &&
             this.energyManager.trySpendEnergy(
-                this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.energyCostPerLevel
+                this.state.warp.currentLevel *
+                    this.state.warp.effectiveness *
+                    this.state.warp.design.energyCostPerLevel,
             )
         ) {
             const newSpeed =
                 this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.speedPerLevel;
             const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
-                this.state.angle
+                this.state.angle,
             );
             // penalty damage for existing velocity (in case of warp system malfunction)
             this.damageManager.damageAllSystems({
@@ -216,14 +218,14 @@ export class MovementManager {
                             (this.state.smartPilot.rotation *
                                 deltaSeconds *
                                 this.state.smartPilot.design.aimOffsetSpeed) /
-                                this.state.smartPilot.design.maxTargetAimOffset
+                                this.state.smartPilot.design.maxTargetAimOffset,
                     );
                     rotationCommand = rotateToTarget(
                         deltaSeconds,
                         this.state,
                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                         this.shipManager.weaponsTarget.position,
-                        this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset
+                        this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset,
                     );
                 } else {
                     rotationCommand = 0;
@@ -234,7 +236,7 @@ export class MovementManager {
                 rotationCommand = rotationFromTargetTurnSpeed(
                     deltaSeconds,
                     this.state,
-                    this.state.smartPilot.rotation * this.state.smartPilot.design.maxTurnSpeed
+                    this.state.smartPilot.rotation * this.state.smartPilot.design.maxTurnSpeed,
                 );
                 break;
             }
@@ -251,7 +253,7 @@ export class MovementManager {
                 this.state.maneuvering.design.rotationCapacity;
             if (
                 this.energyManager.trySpendEnergy(
-                    Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost
+                    Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost,
                 )
             ) {
                 speedToChange += enginePower * this.state.maneuvering.efficiency;
@@ -293,7 +295,7 @@ export class MovementManager {
                         const velocity = XY.add(
                             XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
                             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                            this.state.globalToLocal(this.shipManager.weaponsTarget.velocity)
+                            this.state.globalToLocal(this.shipManager.weaponsTarget.velocity),
                         );
                         maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
                     } else {
@@ -325,9 +327,9 @@ export class MovementManager {
                 const actionFactor = thruster.effectiveness * thruster.availableCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(
                     (mvEffect + abEffect) * actionFactor,
-                    thruster.angle + thruster.angleError + this.state.angle
+                    thruster.angle + thruster.angleError + this.state.angle,
                 );
-            })
+            }),
         );
         if (!XY.isZero(speedToChange)) {
             this.changeVelocity(speedToChange);
@@ -345,7 +347,7 @@ export class MovementManager {
                 if (
                     this.energyManager.trySpendEnergy(
                         desiredAction * axisCapacity * thruster.design.energyCost,
-                        thruster
+                        thruster,
                     )
                 ) {
                     thruster.active = desiredAction;
@@ -368,16 +370,16 @@ export class MovementManager {
         if (this.state.maneuvering.afterBurnerFuel < this.state.maneuvering.design.maxAfterBurnerFuel) {
             const afterBurnerFuelDelta = Math.min(
                 this.state.maneuvering.design.maxAfterBurnerFuel - this.state.maneuvering.afterBurnerFuel,
-                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.maneuvering.effectiveness
+                this.state.maneuvering.design.afterBurnerCharge * deltaSeconds * this.state.maneuvering.effectiveness,
             );
             if (
                 this.energyManager.trySpendEnergy(
                     afterBurnerFuelDelta * this.state.maneuvering.design.afterBurnerEnergyCost,
-                    this.state.maneuvering
+                    this.state.maneuvering,
                 )
             ) {
                 this.state.maneuvering.afterBurnerFuel = limitPercisionHard(
-                    this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta
+                    this.state.maneuvering.afterBurnerFuel + afterBurnerFuelDelta,
                 );
             }
         }
@@ -423,7 +425,7 @@ export class MovementManager {
             const strafeFactor = XY.scale(XY.rotate(XY.one, this.spaceObject.angle + 90), this.state.strafe);
             const antiDriftFactor = XY.scale(
                 XY.normalize(XY.negate(XY.projection(this.spaceObject.velocity, this.spaceObject.directionAxis))),
-                this.state.antiDrift
+                this.state.antiDrift,
             );
             const breaksFactor = XY.scale(XY.normalize(XY.negate(this.spaceObject.velocity)), this.state.breaks);
             const desiredSpeed = XY.sum(boostFactor, strafeFactor, antiDriftFactor, breaksFactor);

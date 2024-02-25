@@ -46,7 +46,7 @@ describe('ShipManager', () => {
                 explosion.damageFactor = Number.MAX_SAFE_INTEGER;
                 explosion.position = Vec2.sum(
                     shipObj.position,
-                    XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip)
+                    XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip),
                 );
                 spaceMgr.insert(explosion);
 
@@ -57,7 +57,7 @@ describe('ShipManager', () => {
 
                 const expectedHitPlatesRange = padArch(
                     [explosionAngleToShip, explosionAngleToShip],
-                    sizeOfPlate + EPSILON
+                    sizeOfPlate + EPSILON,
                 );
                 //@ts-ignore : access private property
                 const brokenOutsideExplosion = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
@@ -70,7 +70,7 @@ describe('ShipManager', () => {
                 expect(shipMgr.state.chainGun!.broken).to.be.false;
                 expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
                 expect(shipMgr.state.chainGun!.rateOfFireFactor).to.equal(1);
-            })
+            }),
         );
     });
 
@@ -85,7 +85,7 @@ describe('ShipManager', () => {
                     shipObj,
                     makeShipState(shipObj.id, dragonflyConfig),
                     spaceMgr,
-                    new MockDie()
+                    new MockDie(),
                 );
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -102,12 +102,12 @@ describe('ShipManager', () => {
                 const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                 expect(cannonShells.length).to.be.closeTo(
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
-                    1
+                    1,
                 );
                 expect(shipMgr.state.magazine.count_CannonShell).to.equal(
-                    shipMgr.state.magazine.design.max_CannonShell - cannonShells.length
+                    shipMgr.state.magazine.design.max_CannonShell - cannonShells.length,
                 );
-            })
+            }),
         );
     });
 
@@ -125,7 +125,7 @@ describe('ShipManager', () => {
                         shipObj,
                         makeShipState(shipObj.id, dragonflyConfig),
                         spaceMgr,
-                        new MockDie()
+                        new MockDie(),
                     );
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -148,8 +148,8 @@ describe('ShipManager', () => {
                     const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                     expect(cannonShells.length).to.equal(availableAmmo);
                     expect(shipMgr.state.magazine.count_CannonShell).to.equal(0);
-                }
-            )
+                },
+            ),
         );
     });
 
@@ -167,7 +167,7 @@ describe('ShipManager', () => {
                         shipObj,
                         makeShipState(shipObj.id, dragonflyConfig),
                         spaceMgr,
-                        new MockDie()
+                        new MockDie(),
                     );
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -185,8 +185,8 @@ describe('ShipManager', () => {
                     for (const cannonShell of spaceMgr.state.getAll('Projectile')) {
                         expect(limitPercisionHard(XY.angleOf(cannonShell.velocity))).to.equal(angleOffset);
                     }
-                }
-            )
+                },
+            ),
         );
     });
 
@@ -204,7 +204,7 @@ describe('ShipManager', () => {
                         shipObj,
                         makeShipState(shipObj.id, dragonflyConfig),
                         spaceMgr,
-                        new MockDie()
+                        new MockDie(),
                     );
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -222,12 +222,12 @@ describe('ShipManager', () => {
                     }
                     expect([...spaceMgr.state.getAll('Projectile')].length).to.be.closeTo(
                         Math.floor(
-                            shipMgr.state.chainGun!.design.bulletsPerSecond * shipMgr.state.chainGun!.rateOfFireFactor
+                            shipMgr.state.chainGun!.design.bulletsPerSecond * shipMgr.state.chainGun!.rateOfFireFactor,
                         ),
-                        1
+                        1,
                     );
-                }
-            )
+                },
+            ),
         );
     });
 
@@ -245,13 +245,13 @@ describe('ShipManager', () => {
                     shipObj,
                     makeShipState(shipObj.id, dragonflyConfig),
                     spaceMgr,
-                    new MockDie()
+                    new MockDie(),
                 );
                 shipObj.position = Vec2.make(
                     XY.byLengthAndDirection(
                         distance + targetRadius + shipObj.radius + shipMgr.state.docking.maxDockedDistance,
-                        angle
-                    )
+                        angle,
+                    ),
                 );
                 spaceMgr.insert(shipObj);
                 const asteroid = new Asteroid().init('asteroid', new Vec2(0, 0), targetRadius);
@@ -268,7 +268,7 @@ describe('ShipManager', () => {
                     counter++;
                 }
                 expect(shipMgr.state.docking.mode).to.eql(DockingMode.DOCKED);
-            })
+            }),
         );
     });
 });

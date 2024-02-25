@@ -75,7 +75,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             }
         },
         null,
-        UPDATE_PRIORITY.LOW
+        UPDATE_PRIORITY.LOW,
     );
 
     const background = new MovementAnchorLayer(
@@ -86,7 +86,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             alpha: 0.1,
         },
         1000,
-        p.range
+        p.range,
     );
     contentElements.addChild(background.renderRoot);
     const range = new RangeIndicators(root, p.range / 5);
@@ -103,7 +103,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
         () => green,
         tacticalDrawFunctions,
         shipTarget,
-        rangeFilter.isInRange
+        rangeFilter.isInRange,
     );
     contentElements.addChild(blipLayer.renderRoot);
     const waypointsInRange = new ObjectsLayer(
@@ -113,7 +113,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) => XY.lengthOf(XY.difference(w.position, camera)) <= p.range
+        (w) => XY.lengthOf(XY.difference(w.position, camera)) <= p.range,
     );
     contentElements.addChild(waypointsInRange.renderRoot);
 
@@ -130,9 +130,9 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             XY.lengthOf(XY.difference(w.position, camera)) > p.range,
         (w) =>
             root.worldToScreen(
-                XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera))))
+                XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera)))),
             ),
-        () => 0.5
+        () => 0.5,
     );
     allElements.addChild(waypointsOutOfRange.renderRoot);
 
@@ -153,7 +153,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
                 ...XY.tuple(coneCorner),
                 radius,
                 degToRad * (-90 - arcAngle / 2),
-                degToRad * (-90 + arcAngle / 2)
+                degToRad * (-90 + arcAngle / 2),
             );
             camera.setRange(((sizeFactor - sizeFactorGrace) * container.height) / 2, p.range);
             allElements.x = -root.renderer.width / 2;
@@ -167,7 +167,7 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
             allElements.scale = { x: 1, y: 1 };
             camera.setRange(
                 ((sizeFactor - sizeFactorGrace) * Math.min(container.width, container.height)) / 2,
-                p.range
+                p.range,
             );
         }
         overallMask.endFill();
@@ -184,6 +184,6 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
     isWarpProp.onChange(onRangeChange);
     onRangeChange();
     void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true)
+        camera.followSpaceObject(tracked, spaceDriver.events, true),
     );
 }

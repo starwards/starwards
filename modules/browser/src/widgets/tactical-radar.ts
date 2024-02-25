@@ -42,7 +42,7 @@ export function drawTacticalRadar(
     spaceDriver: SpaceDriver,
     shipDriver: ShipDriver,
     container: WidgetContainer,
-    p: Props
+    p: Props,
 ) {
     const camera = new Camera();
     camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
@@ -78,7 +78,7 @@ export function drawTacticalRadar(
             }
         },
         null,
-        UPDATE_PRIORITY.LOW
+        UPDATE_PRIORITY.LOW,
     );
 
     const background = new MovementAnchorLayer(
@@ -89,7 +89,7 @@ export function drawTacticalRadar(
             alpha: 0.1,
         },
         1000,
-        p.range
+        p.range,
     );
     root.addLayer(background.renderRoot);
     const range = new RangeIndicators(root, p.range / 5);
@@ -109,13 +109,13 @@ export function drawTacticalRadar(
         () => green,
         tacticalDrawFunctions,
         shipTarget,
-        rangeFilter.isInRange
+        rangeFilter.isInRange,
     );
 
     blipLayer.renderRoot.mask = circleMask;
     root.addLayer(blipLayer.renderRoot);
 
     void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true)
+        camera.followSpaceObject(tracked, spaceDriver.events, true),
     );
 }

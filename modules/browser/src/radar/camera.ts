@@ -97,14 +97,14 @@ export class Camera {
     public worldToScreen(screen: { width: number; height: number }, x: number, y: number): XY {
         return XY.add(
             XY.rotate(XY.scale(XY.difference({ x, y }, this.point), this.zoom), -this.angle),
-            this.screenCenter(screen)
+            this.screenCenter(screen),
         );
     }
 
     public screenToWorld(screen: Screen, x: number, y: number): XY {
         return XY.add(
             XY.scale(XY.rotate(XY.difference({ x, y }, this.screenCenter(screen)), this.angle), 1 / this.zoom),
-            this.point
+            this.point,
         );
     }
 

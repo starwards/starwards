@@ -68,7 +68,7 @@ export type BladeGuiApi<T> = {
 export function wireBlade<T>(
     blade: BladeGuiApi<T>,
     { getValue, onChange, setValue }: Model<T>,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     blade.value = getValue();
     if (setValue) {
@@ -97,7 +97,7 @@ export function addSliderBlade(
     guiFolder: FolderApi,
     model: NumericModel,
     params: Partial<SliderBladeParams>,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const blade = guiFolder.addBlade(configSliderBlade(params, model.range, model.getValue)) as SliderApi;
     wireBlade(blade, model, cleanup);
@@ -108,10 +108,10 @@ export function addTextBlade<T>(
     guiFolder: FolderApi,
     model: Model<T>,
     params: Partial<TextBladeParams<T>>,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const blade = guiFolder.addBlade(
-        configTextBlade(params as Partial<TextBladeParams<unknown>>, model.getValue)
+        configTextBlade(params as Partial<TextBladeParams<unknown>>, model.getValue),
     ) as TextApi<T>;
     wireBlade(blade, model, cleanup);
     return blade;
@@ -121,7 +121,7 @@ export function addEnumListBlade<T>(
     guiFolder: FolderApi,
     model: Model<T>,
     params: Partial<ListBladeParams<T>>,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const blade = guiFolder.addBlade(configEnumListBlade<T>(params, model.getValue)) as ListApi<T>;
     wireBlade(blade, model, cleanup);
@@ -135,7 +135,7 @@ export function addCameraRingBlade(
     guiFolder: FolderApi,
     model: Model<number>,
     params: { label: string } & Partial<RingInputParams>,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     addInputBlade(guiFolder, model, { series: 0, ...params, view: 'cameraring' }, cleanup);
 }
@@ -144,7 +144,7 @@ export function addButton(
     guiFolder: FolderApi,
     onClick: () => unknown,
     params: { label: string } & ButtonParams,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const button = guiFolder.addButton({ ...params }).on('click', onClick);
     cleanup(() => {
@@ -156,7 +156,7 @@ export function addGraph(
     guiFolder: FolderApi,
     model: NumericModel,
     params: { label: string } & NumberMonitorParams,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const graph = guiFolder.addMonitor(
         {
@@ -170,7 +170,7 @@ export function addGraph(
             view: 'graph',
             min: model.range[0],
             max: model.range[1],
-        }
+        },
     );
     cleanup(() => {
         graph.dispose();
@@ -183,7 +183,7 @@ export function addInputBlade<T>(
     guiFolder: FolderApi,
     model: Model<T>,
     params: InputBladeParams,
-    cleanup: (d: Destructor) => void
+    cleanup: (d: Destructor) => void,
 ) {
     const viewModel: Record<string, T> = {};
     const { label } = params;

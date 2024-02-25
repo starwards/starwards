@@ -49,7 +49,7 @@ export class SpaceSimulator {
     simulateUntilCondition(predicate: (spaceMgr: SpaceManager) => boolean, timeInSeconds = 0) {
         let timePassed = 0;
         const timeRemainder = Math.abs(
-            timeInSeconds - timeInSeconds * this.iterationTimeInSeconds * this.numIterationsPerSecond
+            timeInSeconds - timeInSeconds * this.iterationTimeInSeconds * this.numIterationsPerSecond,
         );
         const timeRange = this.iterationTimeInSeconds * 1.5 + timeRemainder;
         while (!predicate(this.spaceMgr)) {

@@ -64,7 +64,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
         this.createBlip,
         this.updateBlip,
         this.destroyBlip,
-        this.shouldTrack
+        this.shouldTrack,
     );
 
     constructor(
@@ -76,7 +76,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
         private readonly selectedItems?: Selection,
         private readonly filter?: Filter<K>,
         private readonly position: Positioning<K> = (o: SpaceObjects[K]) => this.parent.worldToScreen(o.position),
-        private readonly getAlpha: (s: SpaceObjects[K]) => number = () => 1
+        private readonly getAlpha: (s: SpaceObjects[K]) => number = () => 1,
     ) {
         parent.ticker.add(this.blips.update, UPDATE_PRIORITY.LOW);
     }

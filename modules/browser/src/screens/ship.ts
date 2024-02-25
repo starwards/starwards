@@ -48,7 +48,7 @@ if (shipUrlParam) {
             await initScreen(dashboard, shipUrlParam);
         },
         // eslint-disable-next-line no-console
-        (e) => console.error(e)
+        (e) => console.error(e),
     );
 } else {
     // eslint-disable-next-line no-console
@@ -92,7 +92,7 @@ function makeDashboard(shipId: string, layout: string | null): Dashboard {
         const dashboard = new Dashboard(
             JSON.parse(layoutStr, reviver) as Config,
             $('#layoutContainer'),
-            $('#menuContainer')
+            $('#menuContainer'),
         );
         let canSaveState = true;
         dashboard.on('stateChanged', function () {

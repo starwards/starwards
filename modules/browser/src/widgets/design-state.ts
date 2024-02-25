@@ -34,7 +34,7 @@ export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
             addDesignStateToPanel(
                 rootPanel.addFolder(thruster.name, false),
                 shipDriver,
-                `/thrusters/${thruster.index}/design`
+                `/thrusters/${thruster.index}/design`,
             );
         }
         addDesignStateToPanel(rootPanel.addFolder('armor'), shipDriver, `/armor/design`);

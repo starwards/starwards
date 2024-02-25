@@ -84,18 +84,18 @@ export class ShipManager {
         public state: ShipState,
         private spaceManager: SpaceManager,
         public die: Die,
-        private ships?: Map<string, ShipManager>
+        private ships?: Map<string, ShipManager>,
     ) {
         this.smartPilotManeuveringMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotManeuveringMode(s),
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET,
-            SmartPilotMode.DIRECT
+            SmartPilotMode.DIRECT,
         );
         this.smartPilotRotationMode = new StatesToggle<SmartPilotMode>(
             (s) => this.setSmartPilotRotationMode(s),
             SmartPilotMode.VELOCITY,
-            SmartPilotMode.TARGET
+            SmartPilotMode.TARGET,
         );
         resetShipState(this.state);
 
@@ -109,14 +109,14 @@ export class ShipManager {
             this,
             this.damageManager,
             this.energyManager,
-            this.die
+            this.die,
         );
         this.dockingManager = new DockingManager(
             this.spaceObject,
             this.state,
             this.spaceManager,
             this,
-            this.damageManager
+            this.damageManager,
         );
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
@@ -125,12 +125,12 @@ export class ShipManager {
                 this.state,
                 this.spaceManager,
                 this,
-                this.energyManager
+                this.energyManager,
             );
         }
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(
-                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.energyManager)
+                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.energyManager),
             );
         }
     }
@@ -244,7 +244,7 @@ export class ShipManager {
         if (
             this.energyManager.trySpendEnergy(
                 range * (this.state.radar.design.energyCost / 1000) * deltaSeconds,
-                this.state.radar
+                this.state.radar,
             )
         ) {
             this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange());
@@ -265,7 +265,7 @@ export class ShipManager {
                 lerp(
                     factorEaseRange,
                     [this.state.radar.design.malfunctionRange, this.state.radar.design.range],
-                    cappedWave
+                    cappedWave,
                 ) * this.state.radar.effectiveness
             );
         } else {
@@ -290,7 +290,7 @@ export class ShipManager {
             if (plate.health > 0 && plate.health < this.state.armor.design.plateMaxHealth) {
                 plate.health = Math.min(
                     plate.health + this.state.armor.design.healRate * deltaSeconds,
-                    this.state.armor.design.plateMaxHealth
+                    this.state.armor.design.plateMaxHealth,
                 );
             }
         }
@@ -345,7 +345,7 @@ export class ShipManager {
         for (const projectileKey of projectileModels) {
             this.state.magazine[`count_${projectileKey}`] = Math.min(
                 this.state.magazine[`count_${projectileKey}`],
-                this.state.magazine[`max_${projectileKey}`]
+                this.state.magazine[`max_${projectileKey}`],
             );
         }
     }

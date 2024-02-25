@@ -30,14 +30,14 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
         pane,
         readNumberProp(shipDriver, '/warp/desiredLevel'),
         { label: 'Designated LVL' },
-        panelCleanup.add
+        panelCleanup.add,
     );
     const jammedProp = readProp(shipDriver, '/warp/jammed');
     const jamBlade = addTextBlade(
         pane,
         jammedProp,
         { label: 'Proximity Jam', format: (j) => (j ? 'JAMMED' : 'CLEAR') },
-        panelCleanup.add
+        panelCleanup.add,
     );
     jamBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
     const applyThemeToJammed = () => (jamBlade.element.dataset.status = shipDriver.state.warp.jammed ? 'WARN' : ''); // this will change tweakpane theme for this folder, see tweakpane.css
@@ -48,18 +48,18 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
         pane,
         readProp<WarpFrequency>(shipDriver, '/warp/currentFrequency'),
         { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Actual FRQ' },
-        panelCleanup.add
+        panelCleanup.add,
     );
     addTextBlade(
         pane,
         readProp<WarpFrequency>(shipDriver, '/warp/standbyFrequency'),
         { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Designated FRQ' },
-        panelCleanup.add
+        panelCleanup.add,
     );
     addSliderBlade(
         pane,
         readNumberProp(shipDriver, '/warp/frequencyChange'),
         { label: 'Calibration' },
-        panelCleanup.add
+        panelCleanup.add,
     );
 }

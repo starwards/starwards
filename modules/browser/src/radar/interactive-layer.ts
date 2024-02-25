@@ -32,7 +32,7 @@ export class InteractiveLayer {
     constructor(
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
-        private selectionContainer: SelectionContainer
+        private selectionContainer: SelectionContainer,
     ) {
         this.stage.cursor = 'crosshair';
         this.stage.interactive = true;
@@ -63,7 +63,7 @@ export class InteractiveLayer {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
         const selected = [...this.spaceDriver.state].filter((spaceObject) =>
-            XY.inRange(spaceObject.position, from, to)
+            XY.inRange(spaceObject.position, from, to),
         );
         this.selectionContainer.set(selected);
     }
@@ -92,7 +92,7 @@ export class InteractiveLayer {
                     this.selectionContainer.size > 0 &&
                     this.getObjectAtPoint(
                         this.selectionContainer.selectedItems,
-                        this.parent.screenToWorld(this.dragFrom)
+                        this.parent.screenToWorld(this.dragFrom),
                     )
                 ) {
                     this.actionType = ActionType.dragObjects;

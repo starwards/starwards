@@ -22,7 +22,7 @@ export function createShipNode(
     node: ShipNode,
     options: NodeDef & ShipOptions,
     handleShipFound: null | ((shipDriver: ShipDriver) => () => unknown),
-    handleInput: (shipDriver: ShipDriver, msg: NodeMessageInFlow, send: Send) => void
+    handleInput: (shipDriver: ShipDriver, msg: NodeMessageInFlow, send: Send) => void,
 ) {
     node.cleanups = new Destructors();
     node.on('close', node.cleanups.destroy);
@@ -54,7 +54,7 @@ export function createShipNode(
                                     shipHandlerCleanup.cleanup();
                                     shipDriver = null;
                                 }
-                            }
+                            },
                         );
                     }
                     if (handleShipFound && !shipFoundHandled) {
@@ -69,13 +69,13 @@ export function createShipNode(
                     shipHandlerCleanup.cleanup();
                     node.status({ fill: 'red', shape: 'dot', text });
                 }
-            })
+            }),
         );
         node.on('input', (msg, send, done) => {
             void (async () => {
                 if (!shipDriver) {
                     done?.(
-                        new Error(`can't handle commands while in status: ${(await statusTracker.getStatus()).text}`)
+                        new Error(`can't handle commands while in status: ${(await statusTracker.getStatus()).text}`),
                     );
                 } else {
                     try {

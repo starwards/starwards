@@ -40,7 +40,7 @@ describe('ship-node', () => {
                 expect.objectContaining({
                     fill: 'red',
                     text: expect.stringContaining('ECONNREFUSED') as unknown,
-                }) as NodeStatus
+                }) as NodeStatus,
             );
         });
     });

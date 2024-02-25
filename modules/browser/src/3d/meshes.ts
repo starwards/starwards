@@ -54,7 +54,7 @@ export class Meshes {
         private scene: Scene,
         private spaceshipCont: AssetContainer,
         private asteroidCont: AssetContainer,
-        private cannonShellCont: AssetContainer
+        private cannonShellCont: AssetContainer,
     ) {}
     skybox() {
         return placeSkybox(this.scene, 'space-engine-2', drawingDistance * 2);

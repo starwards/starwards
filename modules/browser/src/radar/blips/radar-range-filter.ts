@@ -12,12 +12,12 @@ class DrawableFieldOfView extends FieldOfView {
         const objectScreenPos = parent.worldToScreen(this.object.position);
         const lastArc = view[view.length - 1];
         const lastArcEnd = parent.worldToScreen(
-            XY.add(this.object.position, XY.byLengthAndDirection(lastArc.distance, lastArc.toAngle))
+            XY.add(this.object.position, XY.byLengthAndDirection(lastArc.distance, lastArc.toAngle)),
         );
         fovGraphics.moveTo(lastArcEnd.x, lastArcEnd.y);
         for (const visibleArc of view) {
             const arcStart = parent.worldToScreen(
-                XY.add(this.object.position, XY.byLengthAndDirection(visibleArc.distance, visibleArc.fromAngle))
+                XY.add(this.object.position, XY.byLengthAndDirection(visibleArc.distance, visibleArc.fromAngle)),
             );
             fovGraphics.lineTo(arcStart.x, arcStart.y);
             fovGraphics.arc(
@@ -25,7 +25,7 @@ class DrawableFieldOfView extends FieldOfView {
                 objectScreenPos.y,
                 parent.metersToPixles(visibleArc.distance),
                 degToRad * (visibleArc.fromAngle - parent.camera.angle),
-                degToRad * (visibleArc.toAngle - parent.camera.angle)
+                degToRad * (visibleArc.toAngle - parent.camera.angle),
             );
         }
     }
@@ -40,9 +40,12 @@ export class RadarRangeFilter {
         this.createFieldOfView,
         this.updateFieldOfView,
         noop,
-        this.shouldTrackFov as (o: SpaceObject) => o is SpaceObject
+        this.shouldTrackFov as (o: SpaceObject) => o is SpaceObject,
     );
-    constructor(private spaceDriver: SpaceDriver, private shouldTrackFov?: (o: SpaceObject) => boolean) {}
+    constructor(
+        private spaceDriver: SpaceDriver,
+        private shouldTrackFov?: (o: SpaceObject) => boolean,
+    ) {}
 
     public update = () => {
         this.visibleObjects.clear();

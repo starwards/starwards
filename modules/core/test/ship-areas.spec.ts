@@ -13,14 +13,14 @@ describe('shipAreasInRange', () => {
             fc.property(range(...FRONT_ARC_TEST), (arc: [number, number]) => {
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front]);
-            })
+            }),
         ));
     it('detects rear-only range', () =>
         fc.assert(
             fc.property(range(...REAR_ARC_TEST), (arc: [number, number]) => {
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.rear]);
-            })
+            }),
         ));
     it('detects combined range from front to rear', () =>
         fc.assert(
@@ -28,7 +28,7 @@ describe('shipAreasInRange', () => {
                 const arc = [from, to] as const;
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front, ShipArea.rear]);
-            })
+            }),
         ));
     it('detects combined range from rear to front', () =>
         fc.assert(
@@ -36,7 +36,7 @@ describe('shipAreasInRange', () => {
                 const arc = [from, to] as const;
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front, ShipArea.rear]);
-            })
+            }),
         ));
     it('detects combined range from front to front', () =>
         fc.assert(
@@ -44,7 +44,7 @@ describe('shipAreasInRange', () => {
                 const arc = [from, to] as const; // reverse order
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front, ShipArea.rear]);
-            })
+            }),
         ));
     it('detects combined range from rear to rear', () =>
         fc.assert(
@@ -52,6 +52,6 @@ describe('shipAreasInRange', () => {
                 const arc = [from, to] as const; // reverse order
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front, ShipArea.rear]);
-            })
+            }),
         ));
 });

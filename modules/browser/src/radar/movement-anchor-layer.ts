@@ -16,7 +16,12 @@ export class MovementAnchorLayer {
     private readonly anchors = new Graphics();
     private shouldRender = true;
 
-    constructor(private parent: CameraView, private style: Style, private spacing: number, private range: number) {
+    constructor(
+        private parent: CameraView,
+        private style: Style,
+        private spacing: number,
+        private range: number,
+    ) {
         if (!this.anchors.drawStar) {
             throw new Error('looks like @pixi/graphics-extras is not loaded correctly');
         }

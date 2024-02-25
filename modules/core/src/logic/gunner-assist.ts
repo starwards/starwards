@@ -10,7 +10,7 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
     const fireAngle = ship.angle + chainGun.angle;
     const fireVelocity = Math.max(
         XY.lengthOf(XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle))),
-        1
+        1,
     );
     let time = 0;
     let predictedPosition: XY = target.position;

@@ -9,7 +9,7 @@ const safeDeg = 180 - GRACE;
 const assertRotation = (vec: XY) => (deg: number) =>
     void expect(toDegreesDelta(XY.angleOf(XY.rotate(vec, deg))), `vector rotated ${deg} degrees`).to.be.closeTo(
         toDegreesDelta(deg),
-        GRACE
+        GRACE,
     );
 
 describe('core', () => {
@@ -21,9 +21,9 @@ describe('core', () => {
                     expect(XY.lengthOf(vec), `vector length ${length}`).to.be.closeTo(length, GRACE);
                     expect(toDegreesDelta(XY.angleOf(vec)), `vector rotated ${deg} degrees`).to.be.closeTo(
                         toDegreesDelta(deg),
-                        GRACE
+                        GRACE,
                     );
-                })
+                }),
             ));
     });
     describe('XY.angleOf()', () => {

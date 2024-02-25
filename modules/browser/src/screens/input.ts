@@ -192,14 +192,14 @@ addEventListener('load', function () {
                 type: e.type,
                 gamepadIndex: e.gamepadIndex.toString(),
                 value: e.connected ? 'connected' : 'disconnected',
-            })
+            }),
         );
         addEventListener('mmk-gamepad-disconnected', (e) =>
             eventRows.push({
                 type: e.type,
                 gamepadIndex: e.gamepadIndex.toString(),
                 value: e.connected ? 'connected' : 'disconnected',
-            })
+            }),
         );
         addEventListener('mmk-gamepad-button-down', (e) =>
             eventRows.push({
@@ -209,7 +209,7 @@ addEventListener('load', function () {
                 held: e.held ? 'held' : 'released',
                 value: e.buttonValue.toFixed(2),
                 valueLabel: metadata.getGamepadButtonLabel(e.gamepadType, e.buttonIndex),
-            })
+            }),
         );
         addEventListener('mmk-gamepad-button-up', (e) =>
             eventRows.push({
@@ -219,7 +219,7 @@ addEventListener('load', function () {
                 held: e.held ? 'held' : 'released',
                 value: e.buttonValue.toFixed(2),
                 valueLabel: metadata.getGamepadButtonLabel(e.gamepadType, e.buttonIndex),
-            })
+            }),
         );
         addEventListener('mmk-gamepad-button-value', (e) =>
             eventRows.push({
@@ -229,7 +229,7 @@ addEventListener('load', function () {
                 held: e.held ? 'held' : 'released',
                 value: e.buttonValue.toFixed(2),
                 valueLabel: metadata.getGamepadButtonLabel(e.gamepadType, e.buttonIndex),
-            })
+            }),
         );
         addEventListener('mmk-gamepad-axis-value', (e) =>
             eventRows.push({
@@ -238,7 +238,7 @@ addEventListener('load', function () {
                 index: e.axisIndex.toString(),
                 value: e.axisValue.toFixed(2),
                 valueLabel: metadata.getGamepadAxisLabel(e.gamepadType, e.axisIndex),
-            })
+            }),
         );
     }
 });
