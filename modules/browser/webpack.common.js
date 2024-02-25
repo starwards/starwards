@@ -16,10 +16,19 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.tsx?$/,
+                test: /\.tsx$/,
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'tsx',
+                    target: 'es2020',
+                    tsconfigRaw: require('./tsconfig.json'),
+                },
+            },
+            {
+                test: /\.ts$/,
+                loader: 'esbuild-loader',
+                options: {
+                    loader: 'ts',
                     target: 'es2020',
                     tsconfigRaw: require('./tsconfig.json'),
                 },
