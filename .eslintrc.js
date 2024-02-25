@@ -48,7 +48,7 @@ module.exports = {
                         objects: 'always-multiline',
                         imports: 'always-multiline',
                         exports: 'always-multiline',
-                        functions: 'never',
+                        functions: 'always-multiline',
                     },
                 ],
                 // note you must disable the base rule as it can report incorrect errors
