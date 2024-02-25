@@ -25,6 +25,7 @@ export class Explosion extends SpaceObjectBase {
     @gameField('float32')
     public blastFactor = 1;
 
+    @gameField('string')
     public readonly type = 'Explosion';
 
     constructor() {

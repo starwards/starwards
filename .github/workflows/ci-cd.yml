@@ -1,99 +1,98 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    push:
+        branches:
+            - master
+    pull_request:
+        branches:
+            - master
 
 jobs:
-  Test-Static:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-      - run: node --version
-      - run: npm --version
-      - run: env
-      - run: npm ci
-      - run: npm run test:types
-      - run: npm run test:format
-      - run: npm run build
-
-  Test-Units:
+    Test-Static:
         runs-on: ubuntu-latest
         steps:
-          - uses: actions/checkout@v4
-          - name: Set up Node.js
-            uses: actions/setup-node@v4
-            with:
-              node-version-file: '.nvmrc'
-          - run: node --version
-          - run: npm --version
-          - run: env
-          - run: npm ci
-          - run: npm run test
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: node --version
+            - run: npm --version
+            - run: env
+            - run: npm ci
+            - run: npm run test:types
+            - run: npm run test:format
+            - run: npm run build
 
-  Test-E2e:
-    runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v1.22.2
-      options: --user 1001
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-      - run: node --version
-      - run: npm --version
-      - run: env
-      - run: npm ci
-      - run: npm run build:core
-      - run: npm run build:server
-      - run: npm run test:e2e
-      - name: Store test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-results
-          path: playwright-results.xml
-      - name: Store artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results
-          if-no-files-found: ignore
+    Test-Units:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: node --version
+            - run: npm --version
+            - run: env
+            - run: npm ci
+            - run: npm run test
 
-          
-  Build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-      - run: node --version
-      - run: npm --version
-      - run: env
-      - run: npm ci
-      - run: npm run build
-      - run: npm run pkg
-      - name: Store Windows executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows executable
-          path: dist/exec/starwards.exe
-          if-no-files-found: error
-      - run: npm run build:unity
-      - name: Store Unity Schemas
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unity Schemas
-          path: modules/core/unity-schema
-          if-no-files-found: error
+    Test-E2e:
+        runs-on: ubuntu-latest
+        container:
+            image: mcr.microsoft.com/playwright:v1.41.2
+            options: --user 1001
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: node --version
+            - run: npm --version
+            - run: env
+            - run: npm ci
+            - run: npm run build:core
+            - run: npm run build:server
+            - run: npm run test:e2e
+            - name: Store test results
+              uses: actions/upload-artifact@v4
+              with:
+                  name: playwright-results
+                  path: playwright-results.xml
+            - name: Store artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-results
+                  path: test-results
+                  if-no-files-found: ignore
+
+    Build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: node --version
+            - run: npm --version
+            - run: env
+            - run: npm ci
+            - run: npm run build
+            - run: npm run pkg
+            - name: Store Windows executable
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Windows executable
+                  path: dist/exec/starwards.exe
+                  if-no-files-found: error
+            - run: npm run build:unity
+            - name: Store Unity Schemas
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Unity Schemas
+                  path: modules/core/unity-schema
+                  if-no-files-found: error

@@ -8,6 +8,7 @@ export class Asteroid extends SpaceObjectBase {
         return !!o && (o as SpaceObjectBase).type === 'Asteroid';
     };
 
+    @gameField('string')
     public readonly type = 'Asteroid';
 
     @gameField('uint16')

@@ -10,6 +10,8 @@ export class Spaceship extends SpaceObjectBase {
         return !!o && (o as SpaceObjectBase).type === 'Spaceship';
     };
     public static radius = 50;
+
+    @gameField('string')
     public readonly type = 'Spaceship';
 
     @gameField('int8')

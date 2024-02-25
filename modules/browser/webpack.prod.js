@@ -2,7 +2,7 @@ const { mergeWithRules } = require('webpack-merge');
 const path = require('path');
 const common = require('./webpack.common.js');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
-const { ESBuildMinifyPlugin } = require('esbuild-loader');
+const { EsbuildPlugin } = require('esbuild-loader');
 
 module.exports = mergeWithRules({
     module: {
@@ -20,10 +20,19 @@ module.exports = mergeWithRules({
     module: {
         rules: [
             {
-                test: /\.tsx?$/,
+                test: /\.tsx$/,
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'tsx',
+                    target: 'es2020',
+                    tsconfigRaw: require('./tsconfig.runtime.json'),
+                },
+            },
+            {
+                test: /\.ts$/,
+                loader: 'esbuild-loader',
+                options: {
+                    loader: 'ts',
                     target: 'es2020',
                     tsconfigRaw: require('./tsconfig.runtime.json'),
                 },
@@ -34,5 +43,5 @@ module.exports = mergeWithRules({
         extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'],
         plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.runtime.json') })],
     },
-    optimization: { minimizer: [new ESBuildMinifyPlugin({ target: 'es2020' })] },
+    optimization: { minimizer: [new EsbuildPlugin({ target: 'es2020' })] },
 });

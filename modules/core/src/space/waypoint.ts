@@ -9,7 +9,9 @@ export class Waypoint extends SpaceObjectBase {
         return !!o && (o as SpaceObjectBase).type === 'Waypoint';
     };
 
+    @gameField('string')
     public readonly type = 'Waypoint';
+
     public readonly isCorporal = false;
     public freeze = true;
 
