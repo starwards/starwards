@@ -22,7 +22,7 @@ export function azimuthCircle(root: CameraView, shipState: ShipState, rangeInMet
         { tint: 0xaaffaa },
         () => shipState.position,
         () => degToRad * -shipState.angle,
-        () => root.metersToPixles(rangeInMeters())
+        () => root.metersToPixles(rangeInMeters()),
     );
     stage.addChild(layer.renderRoot);
     void Assets.load('images/asimuth-circle.svg').then((_texture: Texture) => {
@@ -39,7 +39,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
         { tint: 0xffaaaa },
         () => getShellExplosionLocation(shipState, chainGun),
         () => 0,
-        () => 32
+        () => 32,
     );
     stage.addChild(shellCrosshairLayer.renderRoot);
     void Assets.load('images/radar/target.png').then((texture: Texture) => {
@@ -53,7 +53,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
             return target && getTargetLocationAtShellExplosion(chainGun, target);
         },
         () => 0,
-        () => 32
+        () => 32,
     );
     stage.addChild(deflectionCrosshairLayer.renderRoot);
     void Assets.load('images/radar/deflection.png').then((texture: Texture) => {
@@ -77,7 +77,7 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
             width: 2,
             color: 0x26fd9a,
             alpha: 0.5,
-        }
+        },
     );
     const targetSpeedLineLayer = new LineLayer(
         root,
@@ -92,7 +92,7 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
             width: 2,
             color: 0x26cbcb,
             alpha: 0.5,
-        }
+        },
     );
     stage.addChild(speedLineLayer.renderRoot);
     stage.addChild(targetSpeedLineLayer.renderRoot);

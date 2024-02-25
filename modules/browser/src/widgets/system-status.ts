@@ -71,7 +71,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
                 [PowerLevel.MID]: 'WARN',
                 [PowerLevel.LOW]: 'WARN',
                 [PowerLevel.SHUTDOWN]: 'ERROR',
-            }
+            },
         );
 
         addStatusBlade(
@@ -83,7 +83,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
                 OK: 'OK',
                 WARMING: 'WARN',
                 OVERHEAT: 'ERROR',
-            }
+            },
         );
 
         addStatusBlade(
@@ -95,7 +95,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
                 [HackLevel.OK]: 'OK',
                 [HackLevel.COMPROMISED]: 'WARN',
                 [HackLevel.DISABLED]: 'ERROR',
-            }
+            },
         );
     }
 }
@@ -104,7 +104,7 @@ function addStatusBlade<T extends string | number>(
     prop: Model<T>,
     format: (p: T) => string,
     panelCleanup: Destructors,
-    hackedStatusColor: Record<T, 'OK' | 'WARN' | 'ERROR'>
+    hackedStatusColor: Record<T, 'OK' | 'WARN' | 'ERROR'>,
 ) {
     const blade = addTextBlade(standardRowApi.getPane(), prop, { format, width: `${cellWidth}px` }, panelCleanup.add);
     blade.element.classList.add('heat', 'tp-rotv'); // This allows overriding tweakpane theme for this folder

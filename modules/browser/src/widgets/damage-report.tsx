@@ -69,7 +69,7 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
 function AllReports({ driver }: { driver: ShipDriver }) {
     const divRef = useRef<null | HTMLDivElement>(null);
     const defectsState = useProperties(driver.systems.flatMap((s) => s.defectibles).map(defectReadProp(driver))).sort(
-        (a, b) => a.alertTime - b.alertTime
+        (a, b) => a.alertTime - b.alertTime,
     );
     return (
         <>

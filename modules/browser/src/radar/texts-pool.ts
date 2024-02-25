@@ -10,7 +10,10 @@ export class TextsPool {
 class TextsPoolIterator {
     private nextElement = 0;
 
-    constructor(private parent: Container, private instances: Text[]) {}
+    constructor(
+        private parent: Container,
+        private instances: Text[],
+    ) {}
 
     public next() {
         if (this.nextElement < this.instances.length) {
@@ -23,7 +26,7 @@ class TextsPoolIterator {
                     fontFamily: 'Bebas',
                     fontSize: 18,
                     align: 'center',
-                })
+                }),
             );
             this.instances.push(value);
             this.parent.addChild(value);

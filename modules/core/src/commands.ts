@@ -32,7 +32,7 @@ export function cmdSender<T, R extends RoomName, P = void>(room: GameRoom<R>, p:
 
 export function* cmdReceivers<S extends Schema>(
     commands: Record<string, unknown>,
-    manager: Stateful<S>
+    manager: Stateful<S>,
 ): Generator<[string, CmdReceiver], void, unknown> {
     for (const prop of Object.values(commands)) {
         if (isStateCommand(prop)) {
@@ -62,7 +62,7 @@ function setNumericProperty<S extends Schema, P>(
     manager: Stateful<S>,
     p: NumericStatePropertyCommand,
     value: number,
-    path: P
+    path: P,
 ) {
     const range = typeof p.range === 'function' ? p.range(manager.state, path) : p.range;
     p.setValue(manager.state, capToRange(range[0], range[1], value), path);
@@ -70,7 +70,7 @@ function setNumericProperty<S extends Schema, P>(
 
 export function cmdReceiver<T, S extends Schema, P>(
     manager: Stateful<S>,
-    p: StateCommand<T, S, P>
+    p: StateCommand<T, S, P>,
 ): (_: unknown, m: { value: T; path: P }) => unknown {
     if (isNumericStatePropertyCommand(p)) {
         return (_: unknown, { value, path }: { value: T; path: P }) =>

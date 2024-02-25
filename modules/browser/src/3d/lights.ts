@@ -12,7 +12,7 @@ export function placeLights(scene: Scene, drawingDistance: number) {
 
     const coldAmbiencePosition = Vector3.TransformCoordinates(
         scene2SunPosition,
-        Matrix.RotationAxis(new Vector3(0, 1, 0.2), Math.PI / 2)
+        Matrix.RotationAxis(new Vector3(0, 1, 0.2), Math.PI / 2),
     );
 
     // use https://playground.babylonjs.com/#20OAV9 to balance lights

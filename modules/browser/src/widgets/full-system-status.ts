@@ -31,7 +31,7 @@ const systemNameWidth = 130;
 export function drawFullSystemsStatus(
     container: WidgetContainer,
     shipDriver: ShipDriver,
-    systems = shipDriver.systems
+    systems = shipDriver.systems,
 ) {
     const panelCleanup = new Destructors();
     const pane = new Pane({ title: 'Full Systems Status', container: container.getElement().get(0) });
@@ -74,31 +74,31 @@ export function drawFullSystemsStatus(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/power`),
             { format: (p: PowerLevel) => PowerLevel[p], width: '60px' },
-            panelCleanup.add
+            panelCleanup.add,
         );
         addTextBlade(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/energyPerMinute`),
             { format: (epm: number) => `${Math.round(epm)}`, width: '60px' },
-            panelCleanup.add
+            panelCleanup.add,
         );
         addTextBlade(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/heat`),
             { format: (heat: number) => `${Math.round(heat)}`, width: '60px' },
-            panelCleanup.add
+            panelCleanup.add,
         );
         addSliderBlade(
             standardRowApi.getPane(),
             readNumberProp(shipDriver, `${system.pointer}/coolantFactor`),
             { format: (c: number) => `${Math.round(c * 100)}%`, width: '120px' },
-            panelCleanup.add
+            panelCleanup.add,
         );
         addTextBlade(
             standardRowApi.getPane(),
             readProp<number>(shipDriver, `${system.pointer}/hacked`),
             { format: (p: HackLevel) => HackLevel[p], width: '60px' },
-            panelCleanup.add
+            panelCleanup.add,
         );
 
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;

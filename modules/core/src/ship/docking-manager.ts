@@ -21,7 +21,7 @@ export class DockingManager {
         private state: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
-        private damageManager: DamageManager
+        private damageManager: DamageManager,
     ) {}
 
     update() {

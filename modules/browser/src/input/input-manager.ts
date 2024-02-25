@@ -172,7 +172,10 @@ class CombinedRangeCallbacks {
     private axisValue = 0;
     private offsetValue: number;
 
-    constructor(private property: RangeAction, offSetonly: boolean) {
+    constructor(
+        private property: RangeAction,
+        offSetonly: boolean,
+    ) {
         this.offsetValue = offSetonly ? property.getValue() : 0;
     }
     private onChange() {
@@ -206,7 +209,7 @@ class CombinedRangeCallbacks {
                 this.offsetValue = capToRange(
                     this.property.range[0],
                     this.property.range[1],
-                    this.offsetValue + velocity * deltaSeconds
+                    this.offsetValue + velocity * deltaSeconds,
                 );
                 this.onChange();
             }

@@ -32,7 +32,7 @@ function makeParticlesSystem(
     scene: Scene,
     emitter: AbstractMesh,
     config: ParticleConfig,
-    direction: XYZ
+    direction: XYZ,
 ) {
     const myParticleSystem = new ParticleSystem(name, config.capacity, scene);
     myParticleSystem.particleTexture = new Texture(`particles/${config.textureName}`, scene);

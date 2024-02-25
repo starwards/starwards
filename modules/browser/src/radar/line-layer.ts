@@ -21,7 +21,7 @@ export class LineLayer {
                 }
             },
             null,
-            UPDATE_PRIORITY.LOW
+            UPDATE_PRIORITY.LOW,
         );
     }
     get renderRoot(): DisplayObject {

@@ -75,7 +75,7 @@ export function makeDriver() {
             expect(data.mapName).toEqual(this.map?.name);
             expect(data.fragment.space.toJSON()).toEqual(this.spaceManager.state.toJSON());
             expect([...data.fragment.ship].map(([k, v]) => [k, v.toJSON()])).toEqual(
-                [...this.ships].map(([k, v]) => [k, v.state.toJSON()])
+                [...this.ships].map(([k, v]) => [k, v.state.toJSON()]),
             );
         },
     };

@@ -30,7 +30,10 @@ type EndPoint = {
 export class FieldOfView {
     private archs: VisibleArc[] = [];
     private isDirty = true;
-    constructor(private objects: SpatialIndex, public object: SpaceObject) {}
+    constructor(
+        private objects: SpatialIndex,
+        public object: SpaceObject,
+    ) {}
 
     get view() {
         if (this.isDirty) {

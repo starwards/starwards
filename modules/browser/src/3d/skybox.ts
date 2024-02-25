@@ -18,7 +18,7 @@ export function placeSkybox(scene: Scene, name: string, size: number) {
             `environment/${name}/bottom.png`,
             `environment/${name}/back.png`,
         ],
-        scene
+        scene,
     );
     const skyboxMaterial = new StandardMaterial('skyBox', scene);
     skyboxMaterial.backFaceCulling = false;

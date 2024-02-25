@@ -16,7 +16,7 @@ export function useSaveGameHandler(adminDriver: AdminDriver | null) {
                     content,
                     `save_${d.getDate()}-${
                         d.getMonth() + 1
-                    }-${d.getFullYear()}_${d.getHours()}:${d.getMinutes()}${saveFileExtention}`
+                    }-${d.getFullYear()}_${d.getHours()}:${d.getMinutes()}${saveFileExtention}`,
                 );
             });
         }
@@ -44,7 +44,7 @@ export function LoadGame({ adminDriver }: Props) {
             });
             setErrors(errorMsgs);
         },
-        [adminDriver]
+        [adminDriver],
     );
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,

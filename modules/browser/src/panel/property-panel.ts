@@ -45,7 +45,7 @@ export class PropertyPanel implements Panel {
         viewModel: ViewModel,
         name: string,
         getValue: () => T,
-        params: InputParams
+        params: InputParams,
     ) {
         let lastGetValue = (viewModel[name] = getValue());
         const guiController: InputBindingApi<unknown, T> = guiFolder.addInput(viewModel, name, params);

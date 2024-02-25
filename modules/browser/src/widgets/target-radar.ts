@@ -47,7 +47,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
             root.setSquare();
             const rangeFilter = new RadarRangeFilter(
                 spaceDriver,
-                (o: SpaceObject) => o.faction === shipDriver.state.faction
+                (o: SpaceObject) => o.faction === shipDriver.state.faction,
             );
             root.ticker.add(
                 () => {
@@ -61,7 +61,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                     }
                 },
                 null,
-                UPDATE_PRIORITY.LOW
+                UPDATE_PRIORITY.LOW,
             );
             const fovGraphics = new Graphics();
             root.stage.addChild(fovGraphics);
@@ -79,7 +79,7 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 () => green,
                 tacticalDrawFunctions,
                 shipTarget,
-                rangeFilter.isInRange
+                rangeFilter.isInRange,
             );
             root.addLayer(blipLayer.renderRoot);
             trackObject(camera, spaceDriver.events, shipTarget);

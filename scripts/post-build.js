@@ -64,8 +64,8 @@ async function getPackage(modulePath) {
                     dependencies,
                 },
                 null,
-                2
-            )
+                2,
+            ),
         );
     } catch (e) {
         console.error(e);

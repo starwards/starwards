@@ -5,7 +5,7 @@ const speedMax = 50;
 export function newAsteroid() {
     const asteroid = new Asteroid().init(
         makeId(),
-        Vec2.Rotate({ x: Math.random() * sectorSize * 2, y: 0 }, Math.random() * 360)
+        Vec2.Rotate({ x: Math.random() * sectorSize * 2, y: 0 }, Math.random() * 360),
     );
     asteroid.radius = Math.random() * Asteroid.maxSize;
     // asteroid.velocity = Vec2.Rotate({ x: Math.random() * speedMax, y: 0 }, Math.random() * 360);

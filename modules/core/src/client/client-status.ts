@@ -13,7 +13,10 @@ export type StatusInfo = {
 };
 
 export class ClientStatus {
-    constructor(private driver: Driver, private shipId?: string) {}
+    constructor(
+        private driver: Driver,
+        private shipId?: string,
+    ) {}
 
     onStatusChange = (cb: (s: StatusInfo) => unknown): (() => void) => {
         let lastStatus: StatusInfo = { status: -1 as Status, text: '-1' };

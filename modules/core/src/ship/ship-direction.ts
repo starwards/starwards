@@ -13,7 +13,7 @@ export enum ShipDirection {
 type Eighth = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export const ShipDirections = Object.values(ShipDirection).filter<ShipDirection>(
-    (k): k is ShipDirection => typeof k === 'number'
+    (k): k is ShipDirection => typeof k === 'number',
 );
 
 export function getDirectionFromConfig(config: ShipDirectionConfig): ShipDirection {

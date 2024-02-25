@@ -42,7 +42,7 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
             tubeFolder,
             readProp(shipDriver, `/tubes/${tube.index}/loadAmmo`),
             { label: 'auto load' },
-            panelCleanup.add
+            panelCleanup.add,
         );
         if (tube.index < shipDriver.state.tubes.length - 1) {
             pane.addSeparator();

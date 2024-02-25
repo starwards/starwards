@@ -53,7 +53,7 @@ void driver.waitForGame().then(
                 ],
             },
             $('#layoutContainer'),
-            $('#menuContainer')
+            $('#menuContainer'),
         );
 
         dashboard.registerWidget(gmWidgets.radar);
@@ -71,7 +71,7 @@ void driver.waitForGame().then(
                         delta,
                     }),
             },
-            gmInputConfig.rotate
+            gmInputConfig.rotate,
         );
         input.addMomentaryClickAction(
             {
@@ -81,7 +81,7 @@ void driver.waitForGame().then(
                         ids: gmWidgets.selectionContainer.selectedItemsIds,
                     }),
             },
-            gmInputConfig.toggleFreeze
+            gmInputConfig.toggleFreeze,
         );
 
         input.init();
@@ -110,5 +110,5 @@ void driver.waitForGame().then(
         }
     },
     // eslint-disable-next-line no-console
-    (e) => console.error(e)
+    (e) => console.error(e),
 );

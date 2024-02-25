@@ -10,7 +10,7 @@ export class TrackObjects<C, T extends SpaceObject = SpaceObject> {
         private createCtx: (object: T) => C,
         private updateCtx: (object: T, ctx: C) => void,
         private destroyCtx: (ctx: C) => void = noop,
-        private shouldTrack = (_o: SpaceObject): _o is T => true
+        private shouldTrack = (_o: SpaceObject): _o is T => true,
     ) {
         objects.events.on('$remove', (event: Remove) => this.stopTracking(event.path.split('/')[2]));
     }

@@ -47,7 +47,7 @@ if (shipUrlParam) {
             await initScreen(driver, shipUrlParam);
         },
         // eslint-disable-next-line no-console
-        (e) => console.error(e)
+        (e) => console.error(e),
     );
 } else {
     // eslint-disable-next-line no-console
@@ -108,7 +108,7 @@ function wireInput(shipDriver: ShipDriver) {
             },
             {
                 offsetKeys: new KeysRangeConfig(']', '[', '', 1),
-            }
+            },
         );
         ecrControlInput.addMomentaryClickAction(writeProp(shipDriver, `/warp/changeFrequencyCommand`), '\\');
         ecrControlInput.init();

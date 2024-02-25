@@ -35,7 +35,7 @@ export class SpaceRoom extends Room<SpaceState> {
                 if (!handleJsonPointerCommand(message, type, manager.state)) {
                     // eslint-disable-next-line no-console
                     console.error(
-                        `JSON pointer command can't be handled. message="${JSON.stringify(message)}" type="${type}"`
+                        `JSON pointer command can't be handled. message="${JSON.stringify(message)}" type="${type}"`,
                     );
                 }
             }

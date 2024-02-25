@@ -11,7 +11,10 @@ const SECONDS_IN_MINUTE = 60;
 
 export class EnergyManager {
     private epm = new Map<ShipSystem, EpmEntry>();
-    constructor(private state: ShipState, private heatManager: HeatManager) {}
+    constructor(
+        private state: ShipState,
+        private heatManager: HeatManager,
+    ) {}
 
     trySpendEnergy(value: number, system?: ShipSystem): boolean {
         if (value < 0) {
@@ -41,7 +44,7 @@ export class EnergyManager {
         this.state.reactor.energy = capToRange(
             0,
             this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds
+            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds,
         );
         for (const [system, entry] of this.epm.entries()) {
             system.energyPerMinute = system.energyPerMinute * (1 - deltaSeconds) + entry.total;

@@ -1,7 +1,11 @@
 export class StatesToggle<S> {
     private readonly states: ReadonlyArray<S>;
     private readonly legalStates: Set<S>;
-    constructor(private callBack: (s: S) => unknown, private state: S, ...states: Array<S>) {
+    constructor(
+        private callBack: (s: S) => unknown,
+        private state: S,
+        ...states: Array<S>
+    ) {
         this.states = [this.state, ...states];
         this.legalStates = new Set(this.states);
         this.state = this.states[0];

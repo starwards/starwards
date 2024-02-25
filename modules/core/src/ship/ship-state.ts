@@ -154,11 +154,11 @@ export class ShipState extends Spaceship {
         switch (area) {
             case ShipArea.front:
                 return [this.chainGun, this.radar, this.smartPilot, this.magazine, this.warp, this.docking].filter(
-                    notNull
+                    notNull,
                 );
             case ShipArea.rear:
                 return [this.reactor, this.maneuvering, ...this.thrusters.toArray(), ...this.tubes.toArray()].filter(
-                    notNull
+                    notNull,
                 );
         }
         return [];

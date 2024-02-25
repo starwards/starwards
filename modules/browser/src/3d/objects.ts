@@ -7,7 +7,11 @@ import { SpaceDriver } from '@starwards/core';
 
 export class Objects3D {
     private graphics = new Map<string, ObjectGraphics>();
-    constructor(driver: SpaceDriver, private meshes: Meshes, private shipId: string) {
+    constructor(
+        driver: SpaceDriver,
+        private meshes: Meshes,
+        private shipId: string,
+    ) {
         driver.events.on('$add', (event: Add) => this.onNewSpaceObject(event.value as SpaceObject));
         driver.events.on('$remove', (event: Remove) => this.graphics.get(event.path.split('/')[2])?.destroy());
 
@@ -77,7 +81,11 @@ type Mesh = {
 // eslint-disable-next-line: max-classes-per-file
 class ObjectGraphics {
     public trackRotation = true;
-    constructor(public spaceObject: SpaceObject, private mesh: Mesh, private onDestroyed: () => unknown) {}
+    constructor(
+        public spaceObject: SpaceObject,
+        private mesh: Mesh,
+        private onDestroyed: () => unknown,
+    ) {}
 
     redraw() {
         if (this.spaceObject.destroyed) {

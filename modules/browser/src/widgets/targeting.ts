@@ -31,6 +31,6 @@ export function drawTargetingStatus(container: WidgetContainer, shipDriver: Ship
         pane,
         readProp(shipDriver, '/weaponsTarget/shortRangeOnly'),
         { label: 'Short Range' },
-        panelCleanup.add
+        panelCleanup.add,
     );
 }

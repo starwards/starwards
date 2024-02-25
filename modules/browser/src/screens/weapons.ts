@@ -34,7 +34,7 @@ if (shipUrlParam) {
             await initScreen(driver, shipUrlParam);
         },
         // eslint-disable-next-line no-console
-        (e) => console.error(e)
+        (e) => console.error(e),
     );
 } else {
     // eslint-disable-next-line no-console
@@ -55,8 +55,8 @@ async function initScreen(driver: Driver, shipId: string) {
                 s.pointer.startsWith('/tubes/') ||
                 s.pointer === '/chainGun' ||
                 s.pointer === '/magazine' ||
-                s.pointer === '/radar'
-        )
+                s.pointer === '/radar',
+        ),
     );
     drawTubesStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);

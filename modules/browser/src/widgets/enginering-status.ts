@@ -37,7 +37,7 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
         pane,
         ecrControl,
         { label: 'control', format: (isEcr) => (isEcr ? 'ECR' : 'Bridge') },
-        panelCleanup.add
+        panelCleanup.add,
     );
 
     const energy = readNumberProp(shipDriver, `/reactor/energy`);

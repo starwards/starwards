@@ -53,7 +53,7 @@ export function docker(dockingTarget: SpaceObject): Bot {
             if (!isInRange(0.75, 0.25, distance / ship.docking.maxDockedDistance)) {
                 const targetPos = XY.add(
                     ship.position,
-                    XY.byLengthAndDirection(distance - ship.docking.maxDockedDistance / 2, XY.angleOf(diff))
+                    XY.byLengthAndDirection(distance - ship.docking.maxDockedDistance / 2, XY.angleOf(diff)),
                 );
                 const maneuvering = moveToTarget(deltaSeconds, ship, targetPos);
                 shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
@@ -76,8 +76,8 @@ export function docker(dockingTarget: SpaceObject): Bot {
                 ship.position,
                 XY.byLengthAndDirection(
                     ship.docking.design.undockingTargetDistance * UndockingOvershootFactor,
-                    180 + XY.angleOf(diff)
-                )
+                    180 + XY.angleOf(diff),
+                ),
             );
             const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
             const maneuvering = moveToTarget(deltaSeconds, ship, destination);
@@ -130,7 +130,7 @@ export function jouster(targetId: string): Bot {
                 deltaSeconds,
                 ship,
                 XY.add(hitLocation, getShellAimVelocityCompensation(ship, ship.chainGun)),
-                0
+                0,
             );
             ship.smartPilot.rotation = rotation;
             const shipToTarget = XY.difference(hitLocation, ship.position);

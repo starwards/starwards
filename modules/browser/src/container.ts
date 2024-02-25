@@ -25,8 +25,8 @@ export function wrapRootWidgetContainer(element: JQuery<HTMLElement>) {
         subContainer(v: VPos, h: HPos): WidgetContainer {
             const divElement = $(
                 `<div style="position: absolute; ${vPos(v)} ${hPos(h)} transform: translate(${trans(h)}, ${trans(
-                    v
-                )});" />'`
+                    v,
+                )});" />'`,
             );
             element.append(divElement);
             return wrapWidgetContainer(divElement);

@@ -4,7 +4,10 @@ import { ShipSystem } from './ship-manager';
 
 export const MAX_SYSTEM_HEAT = 100;
 export class HeatManager {
-    constructor(private state: ShipState, private damageManager: DamageManager) {}
+    constructor(
+        private state: ShipState,
+        private damageManager: DamageManager,
+    ) {}
 
     addHeat(value: number, system: ShipSystem) {
         system.heat = system.heat + value;

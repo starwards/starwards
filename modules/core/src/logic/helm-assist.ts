@@ -48,7 +48,7 @@ export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY,
         deltaSeconds,
         ship.rotationCapacity,
         ship.turnSpeed,
-        toDegreesDelta(angleDiff + offset)
+        toDegreesDelta(angleDiff + offset),
     );
 }
 
@@ -76,7 +76,7 @@ function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: 
     const maxBreakDistance = whereWillItStop(0, absVelocity + pinPointVelocity, -capacity) + pinPointDistance;
     const minBreakDistance = Math.max(
         0,
-        whereWillItStop(0, absVelocity - pinPointVelocity, -capacity) - pinPointDistance
+        whereWillItStop(0, absVelocity - pinPointVelocity, -capacity) - pinPointDistance,
     );
     const targetDistance = Math.abs(relTargetPosition);
 

@@ -12,7 +12,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), shipInputConfig.target);
     input.addMomentaryClickAction(
         writeProp(shipDriver, '/weaponsTarget/clearTargetCommand'),
-        shipInputConfig.clearTarget
+        shipInputConfig.clearTarget,
     );
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), shipInputConfig.tubeIsFiring);
 
@@ -22,13 +22,13 @@ export function wireSinglePilotInput(shipDriver: ShipDriver) {
     input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/x'), shipInputConfig.boostCommand);
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
-        shipInputConfig.resetRotatioTargetOffset
+        shipInputConfig.resetRotatioTargetOffset,
     );
     input.addMomentaryClickAction(writeProp(shipDriver, '/rotationModeCommand'), shipInputConfig.rotationMode);
     input.addMomentaryClickAction(writeProp(shipDriver, '/maneuveringModeCommand'), shipInputConfig.maneuveringMode);
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/afterBurnerCommand')),
-        shipInputConfig.afterBurner
+        shipInputConfig.afterBurner,
     );
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/antiDrift')), shipInputConfig.antiDrift);
     input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), shipInputConfig.breaks);

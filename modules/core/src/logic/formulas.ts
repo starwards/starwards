@@ -132,7 +132,7 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
         // move object to diameter of subject
         objPosition = XY.add(
             subject.position,
-            XY.byLengthAndDirection(subject.radius, XY.angleOf(XY.difference(object.position, subject.position)))
+            XY.byLengthAndDirection(subject.radius, XY.angleOf(XY.difference(object.position, subject.position))),
         );
     }
 
@@ -145,7 +145,7 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
     if (distance > subject.radius + object.radius) {
         // eslint-disable-next-line no-console
         console.log(
-            `no intersection distance: ${distance}, (x0, y0): ${subject.position.x}, ${subject.position.y}, subject.radius = ${subject.radius}, (x1, y1): ${objPosition.x}, ${objPosition.y}, object.radius = ${object.radius}`
+            `no intersection distance: ${distance}, (x0, y0): ${subject.position.x}, ${subject.position.y}, subject.radius = ${subject.radius}, (x1, y1): ${objPosition.x}, ${objPosition.y}, object.radius = ${object.radius}`,
         );
         return undefined;
     }

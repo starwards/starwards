@@ -12,7 +12,10 @@ export class RangeIndicators {
     private sizeFactor = 1;
     private shouldRender = true;
 
-    constructor(private parent: CameraView, private stepSize: number) {
+    constructor(
+        private parent: CameraView,
+        private stepSize: number,
+    ) {
         this.parent.events.on('screenChanged', () => {
             this.shouldRender = true;
         });
@@ -24,7 +27,7 @@ export class RangeIndicators {
                 }
             },
             null,
-            UPDATE_PRIORITY.LOW
+            UPDATE_PRIORITY.LOW,
         );
         this.stage.addChild(this.rangeIndicators);
     }
