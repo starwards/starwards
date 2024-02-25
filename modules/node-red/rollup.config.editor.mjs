@@ -1,13 +1,15 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import fs from 'fs';
 import globby from 'globby';
-import packageJson from './package.json';
+import packageJson from './package.json' assert { type: 'json' };
 import path from 'path';
 import process from 'process';
 import sucrase from '@rollup/plugin-sucrase';
 
 const allNodeTypes = Object.keys(packageJson['node-red'].nodes);
 const basePath = path
-    .relative(process.cwd(), __dirname)
+    .relative(process.cwd(), dirname(fileURLToPath(import.meta.url)))
     .split(path.sep)
     .filter((e) => !!e)
     .map((e) => e + '/')
