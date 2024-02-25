@@ -16,7 +16,7 @@
         "test": "jest"
     },
     "dependencies": {
-        "@colyseus/monitor": "^0.14.22",
+        "@colyseus/monitor": "^0.15.5",
         "@colyseus/ws-transport": "^0.14.21",
         "colyseus": "^0.14.24",
         "express": "^4.18.2",
