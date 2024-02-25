@@ -1,0 +1,9 @@
+{
+    "extends": "../../../tsconfig.json",
+    "compilerOptions": {
+        "paths": {
+            "@starwards/*": ["modules/*/cjs"]
+        }
+    },
+    "include": ["./*.ts"]
+}
