@@ -65,7 +65,9 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @tweakable({ type: 'number', number: { min: 0.01 } })
     public secondsToLive = 0;
 
+    @gameField('string')
     public readonly type = 'Projectile';
+
     @gameField('uint16')
     public health = 10;
     public _explosion?: Explosion;

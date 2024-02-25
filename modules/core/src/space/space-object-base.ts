@@ -15,7 +15,6 @@ export function distanceSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): nu
     return XY.lengthOf(XY.difference(a.position, b.position)) - a.radius - b.radius;
 }
 export abstract class SpaceObjectBase extends Schema {
-    @gameField('string')
     public abstract readonly type: keyof SpaceObjects;
     @gameField('boolean')
     // @tweakable('boolean')
