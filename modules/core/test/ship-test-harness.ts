@@ -36,7 +36,10 @@ export class MockDie {
     }
 }
 abstract class AbsTestMetrics {
-    constructor(public iterationsPerSecond: number, public distance: number) {}
+    constructor(
+        public iterationsPerSecond: number,
+        public distance: number,
+    ) {}
     abstract readonly timeToReach: number;
     get iterations() {
         return Math.floor(this.timeToReach * this.iterationsPerSecond);
@@ -51,14 +54,14 @@ abstract class AbsTestMetrics {
         return Math.max(
             1,
             this.distance * 0.05,
-            limitPercision(2 * this.iterationDistance + this.percisionErrorsBoundery)
+            limitPercision(2 * this.iterationDistance + this.percisionErrorsBoundery),
         );
     }
     get sqrtErrorMargin() {
         return Math.max(
             1,
             limitPercision(Math.sqrt(this.iterationDistance) + this.percisionErrorsBoundery),
-            limitPercision(Math.sqrt(this.distance * 0.05))
+            limitPercision(Math.sqrt(this.distance * 0.05)),
         );
     }
 }
@@ -69,7 +72,7 @@ export class MovementTestMetrics extends AbsTestMetrics {
         public iterationsPerSecond: number,
         public distance: number,
         public capacity: number,
-        private maxSpeed: number = MAX_SAFE_FLOAT
+        private maxSpeed: number = MAX_SAFE_FLOAT,
     ) {
         super(iterationsPerSecond, distance);
     }
@@ -79,7 +82,11 @@ export class MovementTestMetrics extends AbsTestMetrics {
     }
 }
 export class SpeedTestMetrics extends AbsTestMetrics {
-    constructor(public iterationsPerSecond: number, public speedDiff: number, public capacity: number) {
+    constructor(
+        public iterationsPerSecond: number,
+        public speedDiff: number,
+        public capacity: number,
+    ) {
         super(iterationsPerSecond, speedDiff);
     }
     get timeToReach() {
@@ -88,7 +95,11 @@ export class SpeedTestMetrics extends AbsTestMetrics {
 }
 
 export class TimedTestMetrics extends AbsTestMetrics {
-    constructor(iterationsPerSecond: number, public timeToReach: number, distance: number) {
+    constructor(
+        iterationsPerSecond: number,
+        public timeToReach: number,
+        distance: number,
+    ) {
         super(iterationsPerSecond, distance);
     }
 }
@@ -106,7 +117,7 @@ export class ShipTestHarness {
         this.shipObj,
         makeShipState(this.shipObj.id, dragonflyConfig),
         this.spaceMgr,
-        new ShipDie(3)
+        new ShipDie(3),
     );
     private graphBuilder: PlotlyGraphBuilder | null = null;
 

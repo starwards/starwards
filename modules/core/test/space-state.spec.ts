@@ -9,8 +9,8 @@ const map = Array(100)
     .map<SpaceObject>(() =>
         new Asteroid().init(
             nanoid(),
-            new Vec2(Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2)
-        )
+            new Vec2(Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2),
+        ),
     );
 map.push(new Spaceship().init(nanoid(), new Vec2(0, 0), 'dragonfly-SF22'));
 

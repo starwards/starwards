@@ -26,7 +26,7 @@ function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number)
     const velocity = XY.byLengthAndDirection(speed, hitAngle);
     const position = XY.sum(
         target.position,
-        XY.byLengthAndDirection(timeInSeconds * speed + target.radius, 180 - hitAngle)
+        XY.byLengthAndDirection(timeInSeconds * speed + target.radius, 180 - hitAngle),
     );
     return { velocity, position };
 }
@@ -67,8 +67,8 @@ describe('SpaceManager', () => {
                     const distance = XY.lengthOf(XY.difference(explosionCenter, target.position));
                     expect(distance).to.be.closeTo(target.radius, bulletSpeed * iterationTimeInSeconds * 2);
                     expect(distance).to.be.gte(target.radius);
-                }
-            )
+                },
+            ),
         );
     });
     it('upon collision, target takes damage', () => {
@@ -89,8 +89,8 @@ describe('SpaceManager', () => {
                     new SpaceSimulator(numIterationsPerSecond)
                         .withObjects(target, collider)
                         .simulateUntilCondition(() => target.health !== initialHealth, timeInSeconds);
-                }
-            )
+                },
+            ),
         );
     });
     it('upon collision, ship takes damage', () => {
@@ -110,10 +110,10 @@ describe('SpaceManager', () => {
                         .withObjects(target, collider)
                         .simulateUntilCondition(
                             (spaceMgr) => [...spaceMgr.resolveObjectDamage(target.id)].length > 0,
-                            timeInSeconds
+                            timeInSeconds,
                         );
-                }
-            )
+                },
+            ),
         );
     });
     describe(`ship in high speed (up to ${bulletSpeed} m/s )`, () => {
@@ -134,7 +134,7 @@ describe('SpaceManager', () => {
             const shellSecondsToLive = calcShellSecondsToLive(
                 shipMgr.state,
                 shipMgr.state.chainGun!,
-                shipMgr.state.chainGun!.design.maxShellRange
+                shipMgr.state.chainGun!.design.maxShellRange,
             );
             return { sim, shellSecondsToLive, ship, shipMgr };
         }

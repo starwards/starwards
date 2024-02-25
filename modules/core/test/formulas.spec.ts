@@ -31,7 +31,7 @@ describe('formulas', () => {
                 fc.property(floatIn(1000), (number: number) => {
                     expect(toDegreesDelta(number)).to.be.within(-180, 180);
                     expect(toDegreesDelta(number), 'dont return -180').to.not.eql(-180);
-                })
+                }),
             );
         });
         it('same direction', () => {
@@ -41,7 +41,7 @@ describe('formulas', () => {
                     const mod360 = limitPercision(((deg % 360) + 360) % 360);
                     const minus360mod360 = limitPercision((mod360 - 360) % 360);
                     expect(result).to.be.oneOf([mod360, minus360mod360]);
-                })
+                }),
             );
         });
     });
@@ -50,43 +50,43 @@ describe('formulas', () => {
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([a0, a1, b0, b1]) => {
                     expect(archIntersection([a0, a1], [b0, b1])).to.be.false;
-                })
+                }),
             ));
         it('returns false on b before a', () =>
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([b0, b1, a0, a1]) => {
                     expect(archIntersection([a0, a1], [b0, b1])).to.be.false;
-                })
+                }),
             ));
         it('returns true on b in a', () =>
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([a0, b0, b1, a1]) => {
                     expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                })
+                }),
             ));
         it('returns true on a in b', () =>
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([b0, a0, a1, b1]) => {
                     expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                })
+                }),
             ));
         it('returns true on a starts in b and ends afterwards', () =>
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([a0, b0, a1, b1]) => {
                     expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                })
+                }),
             ));
         it('returns true on b starts in a and ends afterwards', () =>
             fc.assert(
                 fc.property(orderedDegreesTuple4(), ([b0, a0, b1, a1]) => {
                     expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                })
+                }),
             ));
     });
 
     describe('lerp', () => {
         const lerpProperty = (
-            predicate: (fromRange: [number, number], toRange: [number, number], fromValue: number) => boolean | void
+            predicate: (fromRange: [number, number], toRange: [number, number], fromValue: number) => boolean | void,
         ) =>
             fc.property(orderedTuple3(), orderedTuple2(), (from: [number, number, number], to: [number, number]) => {
                 predicate([from[0], from[2]], to, from[1]);
@@ -95,7 +95,7 @@ describe('formulas', () => {
             fc.assert(
                 lerpProperty((fromRange: [number, number], toRange: [number, number], fromValue: number) => {
                     expect(lerp(fromRange, toRange, fromValue)).to.be.within(...toRange);
-                })
+                }),
             );
         });
         it('symettric and reversible', () => {
@@ -104,7 +104,7 @@ describe('formulas', () => {
                     const toValue = lerp(fromRange, toRange, fromValue);
                     const grace = (fromRange[1] - fromRange[0]) * (toRange[1] - toRange[0]) * 0.0001;
                     expect(lerp(toRange, fromRange, toValue)).to.be.closeTo(fromValue, Math.abs(grace));
-                })
+                }),
             );
         });
     });
@@ -125,8 +125,8 @@ describe('formulas', () => {
                         v += a * timeSlice;
                     }
                     expect(equasionOfMotion(x0, v0, a, t)).to.be.closeTo(x, Math.abs(x / Math.sqrt(SLICES)));
-                }
-            )
+                },
+            ),
         );
     });
     it('timeToReachDistanceByAcceleration', () => {
@@ -143,11 +143,11 @@ describe('formulas', () => {
                         0,
                         (acceleration * totalTime) / 2,
                         -acceleration,
-                        halfTime
+                        halfTime,
                     );
                     expect(distanceSpeedingDown).to.be.closeTo(distance / 2, EPSILON);
-                }
-            )
+                },
+            ),
         );
     });
     describe('whenWillItStop', () => {
@@ -164,8 +164,8 @@ describe('formulas', () => {
                             v += a * iterationTime;
                         }
                         expect(v).to.be.closeTo(0, 1 / Math.sqrt(ITERATIONS));
-                    }
-                )
+                    },
+                ),
             );
         });
         it('detects no-stop correctly', () => {
@@ -174,8 +174,8 @@ describe('formulas', () => {
                     differentSignTuple2().filter((t) => t[0] !== 0 && t[1] !== 0),
                     ([v0, a]: [number, number]) => {
                         expect(whenWillItStop(v0, -a)).to.eql(Infinity);
-                    }
-                )
+                    },
+                ),
             );
         });
     });

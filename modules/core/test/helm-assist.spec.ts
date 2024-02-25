@@ -42,7 +42,7 @@ describe('helm assist', function () {
                         iterationsPerSecond,
                         Math.abs(originalAngle),
                         harness.shipState.maneuvering.design.rotationCapacity,
-                        harness.shipState.smartPilot.design.maxTurnSpeed
+                        harness.shipState.smartPilot.design.maxTurnSpeed,
                     );
                     harness.initGraph({
                         angle: () => toDegreesDelta(harness.shipState.angle),
@@ -61,7 +61,7 @@ describe('helm assist', function () {
                     //     0,
                     //     metrics.errorMargin
                     // );
-                })
+                }),
             );
         });
     });
@@ -73,7 +73,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(turnSpeed),
-                        harness.shipState.maneuvering.design.rotationCapacity
+                        harness.shipState.maneuvering.design.rotationCapacity,
                     );
                     harness.shipObj.turnSpeed = turnSpeed;
                     harness.initGraph({
@@ -85,7 +85,7 @@ describe('helm assist', function () {
                         harness.shipMgr.state.smartPilot.rotation = rotation;
                     });
                     expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.errorMargin);
-                })
+                }),
             );
         });
     });
@@ -99,7 +99,7 @@ describe('helm assist', function () {
                     const metrics = new SpeedTestMetrics(
                         iterationsPerSecond,
                         Math.abs(fromX),
-                        harness.shipState.velocityCapacity(ShipDirection.FWD)
+                        harness.shipState.velocityCapacity(ShipDirection.FWD),
                     );
                     harness.initGraph({
                         velocity: () => harness.shipState.velocity.x,
@@ -115,9 +115,9 @@ describe('helm assist', function () {
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     expect(harness.shipObj.velocity.x, 'velocity after stabling').to.be.closeTo(
                         0,
-                        metrics.sqrtErrorMargin
+                        metrics.sqrtErrorMargin,
                     );
-                })
+                }),
             );
         });
         it('acheives target speed in a reasonable time from 0 speed', () => {
@@ -134,7 +134,7 @@ describe('helm assist', function () {
                         const metrics = new SpeedTestMetrics(
                             20,
                             XY.lengthOf(from),
-                            Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d)))
+                            Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d))),
                         );
                         harness.initGraph({
                             velocityX: () => harness.shipState.velocity.x,
@@ -154,10 +154,10 @@ describe('helm assist', function () {
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.velocity), 'velocity after stabling').to.be.closeTo(
                             0,
-                            metrics.sqrtErrorMargin
+                            metrics.sqrtErrorMargin,
                         );
-                    }
-                )
+                    },
+                ),
             );
         });
     });
@@ -172,7 +172,7 @@ describe('helm assist', function () {
                         iterationsPerSecond,
                         Math.abs(fromX),
                         harness.shipState.velocityCapacity(ShipDirection.FWD),
-                        harness.shipState.maxSpeed
+                        harness.shipState.maxSpeed,
                     );
                     harness.initGraph({
                         position: () => harness.shipState.position.x,
@@ -189,9 +189,9 @@ describe('helm assist', function () {
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     expect(harness.shipObj.position.x, 'position after stabling').to.be.closeTo(
                         0,
-                        metrics.sqrtErrorMargin
+                        metrics.sqrtErrorMargin,
                     );
-                })
+                }),
             );
         });
         it('acheives target location in a reasonable time from 0 speed', () => {
@@ -209,7 +209,7 @@ describe('helm assist', function () {
                             20,
                             XY.lengthOf(from),
                             Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d))),
-                            harness.shipState.maxSpeed
+                            harness.shipState.maxSpeed,
                         );
                         const iteration = (time: number) => {
                             const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
@@ -221,10 +221,10 @@ describe('helm assist', function () {
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.position), 'position after stabling').to.be.closeTo(
                             0,
-                            metrics.sqrtErrorMargin
+                            metrics.sqrtErrorMargin,
                         );
-                    }
-                )
+                    },
+                ),
             );
         });
     });
