@@ -47,7 +47,7 @@
         "@colyseus/loadtest": "^0.14.8",
         "@jgoz/jest-esbuild": "^1.0.5",
         "@playwright/test": "^1.41.2",
-        "@rollup/plugin-sucrase": "^5.0.1",
+        "@rollup/plugin-sucrase": "^5.0.2",
         "@swc/core": "^1.4.2",
         "@types/chai": "^4.3.4",
         "@types/d3-selection": "^3.0.4",
