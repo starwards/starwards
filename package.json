@@ -57,7 +57,7 @@
         "@types/node": "18.11.13",
         "@types/node-red": "^1.2.1",
         "@types/node-red-node-test-helper": "^0.2.2",
-        "@types/pluralize": "^0.0.29",
+        "@types/pluralize": "^0.0.33",
         "@types/react": "^17.0.43",
         "@types/react-dom": "^17.0.16",
         "@types/sinon": "^10.0.13",
