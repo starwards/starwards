@@ -16,7 +16,7 @@ export class Spaceship extends SpaceObjectBase {
 
     @gameField('int8')
     @tweakable({ type: 'enum', enum: Faction })
-    public faction: Faction = Faction.none;
+    public faction: Faction = Faction.NONE;
 
     @gameField('float32')
     public radarRange = 0;
@@ -30,10 +30,11 @@ export class Spaceship extends SpaceObjectBase {
         this.radius = Spaceship.radius;
     }
 
-    init(id: string, position: Vec2, shipModel: ShipModel): this {
+    init(id: string, position: Vec2, shipModel: ShipModel, faction: Faction): this {
         this.id = id;
         this.position = position;
         this.model = shipModel;
+        this.faction = faction;
         return this;
     }
 }

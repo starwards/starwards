@@ -1,6 +1,6 @@
-import { BotOrder, SpaceObjectBase, XY } from '..';
+import { BotOrder, ShipModel, SpaceObjectBase, XY } from '..';
 
-import { SpaceState } from '.';
+import { Faction, SpaceState } from '.';
 
 export type BulkMoveArg = {
     ids: Array<SpaceObjectBase['id']>;
@@ -51,5 +51,29 @@ export const bulkBotOrder = {
     cmdName: 'bulkBotOrder',
     setValue: (state: SpaceState, value: BulkBotOrderArg) => {
         state.botOrderCommands.push(value);
+    },
+};
+
+export type CreateSpaceshipOrderArg = {
+    position: XY;
+    shipModel: ShipModel;
+    faction: Faction;
+};
+
+export const createSpaceshipOrder = {
+    cmdName: 'createSpaceshipOrder',
+    setValue: (state: SpaceState, value: CreateSpaceshipOrderArg) => {
+        state.createSpaceshipCommands.push(value);
+    },
+};
+export type CreateAsteroidOrderArg = {
+    position: XY;
+    radius: number;
+};
+
+export const createAsteroidOrder = {
+    cmdName: 'createAsteroidOrder',
+    setValue: (state: SpaceState, value: CreateAsteroidOrderArg) => {
+        state.createAsteroidCommands.push(value);
     },
 };

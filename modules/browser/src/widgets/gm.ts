@@ -6,25 +6,32 @@ import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/bli
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
+import { CreateObjectsContainer } from '../radar/create-objects-container';
 import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
+import { createWidget } from './create';
 import { makeRadarHeaders } from './radar';
 import { tweakWidget } from './tweak';
 
 interface RadarState {
     zoom: number;
 }
+
 export class GmWidgets {
     public radar: DashboardWidget<RadarState>;
     public tweak: DashboardWidget;
-    public selectionContainer: SelectionContainer;
+    public create: DashboardWidget;
+    public selectionContainer = new SelectionContainer();
+    public createContainer = new CreateObjectsContainer();
     constructor(driver: Driver) {
-        const selectionContainer = new SelectionContainer();
-        this.selectionContainer = selectionContainer;
+        this.tweak = tweakWidget(driver, this.selectionContainer);
+        this.create = createWidget(this.createContainer);
+        void driver.getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver));
+        const { selectionContainer, createContainer } = this;
         class GmRadarComponent {
             constructor(container: Container, state: RadarState) {
                 const camera = new Camera();
@@ -48,11 +55,11 @@ export class GmWidgets {
             private async init(root: CameraView) {
                 const [spaceDriver] = await Promise.all([driver.getSpaceDriver()]);
                 // const fps = new FpsCounter(root);
-                const selection = new InteractiveLayer(root, spaceDriver, selectionContainer);
+                const interactiveLayer = new InteractiveLayer(root, spaceDriver, selectionContainer, createContainer);
                 const getFactionColor = (faction: Faction) => {
                     switch (faction) {
-                        case Faction.none:
-                        case Faction.factionCount:
+                        case Faction.NONE:
+                        case Faction.FACTION_COUNT:
                             return yellow;
                         case Faction.Gravitas:
                             return red;
@@ -71,7 +78,7 @@ export class GmWidgets {
                 );
                 const rangeFilter = new RadarRangeFilter(spaceDriver);
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
-                for (let faction = 0; faction < (Faction.factionCount as number); faction++) {
+                for (let faction = 0; faction < (Faction.FACTION_COUNT as number); faction++) {
                     const fovGraphics = new Graphics();
                     fovGraphics.filters = [new filters.AlphaFilter(0.1)];
                     root.addLayer(fovGraphics);
@@ -103,10 +110,9 @@ export class GmWidgets {
                     selectionContainer,
                 );
                 root.addLayer(waypointsLayer.renderRoot);
-                root.addLayer(selection.renderRoot);
+                root.addLayer(interactiveLayer.renderRoot);
             }
         }
-        // todo make lazy
         this.radar = {
             name: 'GM Radar',
             type: 'component',
@@ -114,7 +120,5 @@ export class GmWidgets {
             makeHeaders: makeRadarHeaders,
             component: GmRadarComponent,
         };
-        this.tweak = tweakWidget(driver, selectionContainer);
-        void driver.getSpaceDriver().then((spaceDriver) => selectionContainer.init(spaceDriver));
     }
 }

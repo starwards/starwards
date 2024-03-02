@@ -6,6 +6,10 @@ const TWO_PI = Math.PI * 2;
 
 export type RTuple2 = readonly [number, number];
 
+export function literal2Range(r: { min: number; max: number }) {
+    return [r.min, r.max] as RTuple2;
+}
+
 export type Tuple2 = [number, number];
 
 export function calcArcAngle(arcLength: number, radius: number) {

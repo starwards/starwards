@@ -1,6 +1,6 @@
 // import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status, spaceProperties } from '@starwards/core';
+import { ClientStatus, Driver, Status, spaceCommands } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 
 import $ from 'jquery';
@@ -44,7 +44,16 @@ void driver.waitForGame().then(
                     {
                         content: [
                             { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80 },
-                            { ...getGoldenLayoutItemConfig(gmWidgets.tweak), width: 20 },
+                            {
+                                content: [
+                                    { ...getGoldenLayoutItemConfig(gmWidgets.tweak) },
+                                    { ...getGoldenLayoutItemConfig(gmWidgets.create) },
+                                ],
+                                isClosable: true,
+                                title: '',
+                                type: 'stack',
+                                width: 20,
+                            },
                         ],
                         isClosable: true,
                         title: '',
@@ -58,6 +67,7 @@ void driver.waitForGame().then(
 
         dashboard.registerWidget(gmWidgets.radar);
         dashboard.registerWidget(gmWidgets.tweak);
+        dashboard.registerWidget(gmWidgets.create);
 
         dashboard.setup();
         // constantly scan for new ships and add widgets for them
@@ -66,7 +76,7 @@ void driver.waitForGame().then(
         input.addStepsAction(
             {
                 setValue: (delta: number) =>
-                    spaceDriver.command(spaceProperties.bulkRotate, {
+                    spaceDriver.command(spaceCommands.bulkRotate, {
                         ids: gmWidgets.selectionContainer.selectedItemsIds,
                         delta,
                     }),
@@ -77,7 +87,7 @@ void driver.waitForGame().then(
             {
                 setValue: (v: boolean) =>
                     v &&
-                    spaceDriver.command(spaceProperties.bulkFreezeToggle, {
+                    spaceDriver.command(spaceCommands.bulkFreezeToggle, {
                         ids: gmWidgets.selectionContainer.selectedItemsIds,
                     }),
             },

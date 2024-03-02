@@ -5,7 +5,7 @@ import {
     handleJsonPointerCommand,
     isJsonPointer,
     isSetValueCommand,
-    spaceProperties,
+    spaceCommands,
 } from '@starwards/core';
 
 import { Room } from 'colyseus';
@@ -21,7 +21,7 @@ export class SpaceRoom extends Room<SpaceState> {
     public onCreate({ manager }: { manager: SpaceManager }) {
         this.roomId = SpaceRoom.id;
         this.setState(manager.state);
-        for (const [cmdName, handler] of cmdReceivers(spaceProperties, manager)) {
+        for (const [cmdName, handler] of cmdReceivers(spaceCommands, manager)) {
             this.onMessage(cmdName, handler);
         }
         // handle all other messages

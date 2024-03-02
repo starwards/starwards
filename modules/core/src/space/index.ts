@@ -1,4 +1,4 @@
-import * as _spaceProperties from './space-properties';
+import * as _spaceCommands from './space-commands';
 
 import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
@@ -26,5 +26,6 @@ export * from './vec2';
 export * from './sectors';
 export * from './space-state';
 export * from './faction';
+export * from './space-commands';
 
-export const spaceProperties = _spaceProperties;
+export const spaceCommands = _spaceCommands;

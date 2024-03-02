@@ -191,7 +191,7 @@ export class ShipManager {
             : this.spaceManager.state;
         let result = new Iterator(iterable).filter((v) => v.id !== this.state.id);
         if (this.state.weaponsTarget.enemyOnly) {
-            result = result.filter((v) => v.faction !== Faction.none && v.faction !== this.state.faction);
+            result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.faction);
         }
         const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.faction);
         return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
