@@ -6,6 +6,8 @@ import {
     SpaceManager,
     SpaceObject,
     Spaceship,
+    Vec2,
+    makeId,
     makeShipState,
     shipConfigurations,
 } from '@starwards/core';
@@ -49,6 +51,11 @@ export class GameManager {
                 shipManager.update(adjustedDeltaSeconds);
             }
             this.spaceManager.update(adjustedDeltaSeconds);
+            for (const cmd of this.spaceManager.state.createSpaceshipCommands) {
+                const ship = new Spaceship().init(makeId(), Vec2.make(cmd.position), cmd.shipModel, cmd.faction);
+                this.addShip(ship);
+            }
+            this.spaceManager.state.createSpaceshipCommands = [];
         }
     }
 

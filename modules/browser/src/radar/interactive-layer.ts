@@ -1,5 +1,6 @@
 import { Container, DisplayObject, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
-import { SpaceObject, XY, spaceProperties } from '@starwards/core';
+import { CreateObjectsContainer, CreateTemplate } from './create-objects-container';
+import { SpaceObject, XY, assertUnreachable, lerp, literal2Range, spaceCommands } from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
@@ -20,27 +21,35 @@ enum ActionType {
     panCameraOrOrder,
     panCamera,
     dragObjects,
+    create,
 }
+const defaultCursor = 'crosshair';
+const panCameraCursor = 'grab';
+const createCursor = 'cell';
 export class InteractiveLayer {
     private static readonly selectPointGrace = 32;
 
     private actionType: ActionType = ActionType.none;
     private dragFrom: XY | null = null;
     private dragTo: XY | null = null;
+    private createTemplate: CreateTemplate | null = null;
     private stage = new Container();
 
     constructor(
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
         private selectionContainer: SelectionContainer,
+        private createContainer: CreateObjectsContainer,
     ) {
-        this.stage.cursor = 'crosshair';
+        this.stage.cursor = defaultCursor;
         this.stage.interactive = true;
         this.stage.hitArea = new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
         this.parent.events.on('screenChanged', () => {
             this.stage.hitArea = new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
             this.drawSelection();
         });
+        this.createContainer.events.on('createByTemplate', this.onCreateByTemplate);
+        this.createContainer.events.on('cancel', this.onCancelCreate);
         this.stage.on('pointerdown', this.onPointerDown);
         this.stage.on('pointermove', this.onPointermove);
         this.stage.on('pointerup', this.onPointerup);
@@ -84,9 +93,21 @@ export class InteractiveLayer {
         return null;
     }
 
+    onCancelCreate = () => {
+        if (this.actionType === ActionType.create) this.clearAction();
+    };
+
+    onCreateByTemplate = (template: CreateTemplate) => {
+        this.clearAction();
+        this.actionType = ActionType.create;
+        this.stage.cursor = createCursor;
+        this.createTemplate = template;
+    };
+
     onPointerDown = (event: FederatedPointerEvent) => {
+        const isMainButton = event.button === (MouseButton.main as number);
         if (this.actionType === ActionType.none) {
-            if (event.button === (MouseButton.main as number)) {
+            if (isMainButton) {
                 this.dragFrom = XY.clone(event.global);
                 if (
                     this.selectionContainer.size > 0 &&
@@ -104,6 +125,8 @@ export class InteractiveLayer {
                 this.actionType = ActionType.panCameraOrOrder;
                 this.dragFrom = XY.clone(event.global);
             }
+        } else if (this.actionType === ActionType.create && isMainButton) {
+            this.dragFrom = XY.clone(event.global);
         }
     };
 
@@ -114,7 +137,7 @@ export class InteractiveLayer {
                 this.drawSelection();
             } else if (this.actionType === ActionType.panCamera || this.actionType === ActionType.panCameraOrOrder) {
                 this.actionType = ActionType.panCamera;
-                this.stage.cursor = 'grab';
+                this.stage.cursor = panCameraCursor;
                 const dragTo = XY.clone(event.global);
                 const screenMove = XY.difference(this.dragFrom, dragTo); // camera moves opposite to the drag direction
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
@@ -125,7 +148,7 @@ export class InteractiveLayer {
                 const dragTo = XY.clone(event.global);
                 const screenMove = XY.difference(dragTo, this.dragFrom);
                 const worldMove = XY.scale(screenMove, 1 / this.parent.camera.zoom);
-                this.spaceDriver.command(spaceProperties.bulkMove, {
+                this.spaceDriver.command(spaceCommands.bulkMove, {
                     ids: this.selectionContainer.selectedItemsIds,
                     delta: worldMove,
                 });
@@ -135,7 +158,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointerup = (_event: FederatedPointerEvent) => {
+    onPointerup = (event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 if (this.dragTo == null) {
@@ -144,11 +167,22 @@ export class InteractiveLayer {
                     const to = this.parent.screenToWorld(this.dragTo);
                     this.onSelectArea(this.parent.screenToWorld(this.dragFrom), to);
                 }
+            } else if (this.actionType === ActionType.create && this.createTemplate) {
+                const position = this.parent.screenToWorld(event.global);
+                if (this.createTemplate.type === 'Asteroid') {
+                    const radius = lerp([0, 1], literal2Range(this.createTemplate.radius), Math.random());
+                    this.spaceDriver.command(spaceCommands.createAsteroidOrder, { position, radius });
+                } else if (this.createTemplate.type === 'Spaceship') {
+                    const { shipModel, faction } = this.createTemplate;
+                    this.spaceDriver.command(spaceCommands.createSpaceshipOrder, { position, shipModel, faction });
+                } else {
+                    assertUnreachable(this.createTemplate);
+                }
             } else if (this.actionType === ActionType.panCameraOrOrder || this.actionType === ActionType.panCamera) {
                 const position = this.parent.screenToWorld(this.dragFrom);
                 const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
                 if (spaceObject) {
-                    this.spaceDriver.command(spaceProperties.bulkBotOrder, {
+                    this.spaceDriver.command(spaceCommands.bulkBotOrder, {
                         ids: this.selectionContainer.selectedItemsIds,
                         order: {
                             type: 'attack',
@@ -156,7 +190,7 @@ export class InteractiveLayer {
                         },
                     });
                 } else {
-                    this.spaceDriver.command(spaceProperties.bulkBotOrder, {
+                    this.spaceDriver.command(spaceCommands.bulkBotOrder, {
                         ids: this.selectionContainer.selectedItemsIds,
                         order: {
                             type: 'move',
@@ -166,12 +200,21 @@ export class InteractiveLayer {
                 }
             }
         }
-        this.stage.cursor = 'crosshair';
+        this.clearAction();
+    };
+
+    private clearAction() {
+        const shouldCancelCreate = this.actionType === ActionType.create;
+        this.stage.cursor = defaultCursor;
         this.actionType = ActionType.none;
         this.dragFrom = null;
         this.dragTo = null;
+        this.createTemplate = null;
         this.drawSelection();
-    };
+        if (shouldCancelCreate) {
+            this.createContainer.cancel();
+        }
+    }
 
     private drawSelection() {
         this.stage.removeChildren();

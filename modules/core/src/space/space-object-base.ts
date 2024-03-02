@@ -36,7 +36,7 @@ export abstract class SpaceObjectBase extends Schema {
     public velocity: Vec2 = new Vec2(0, 0);
 
     // default static placeholder for all space obejcts. children can replace with dynamic field.
-    public readonly faction: Faction = Faction.none;
+    public readonly faction: Faction = Faction.NONE;
     public readonly radarRange: number = 0;
     /**
      * how much collision overlap turns into velocity (0-1)

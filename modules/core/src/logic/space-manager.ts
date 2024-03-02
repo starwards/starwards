@@ -1,6 +1,6 @@
+import { Asteroid, Faction, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
-import { Faction, Spaceship, Waypoint } from '../space';
 import {
     FieldOfView,
     circlesIntersection,
@@ -10,9 +10,9 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
+import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
-import { uniqueId } from '../id';
 
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
@@ -152,6 +152,11 @@ export class SpaceManager {
 
     public update(deltaSeconds: number) {
         this.calcAttachmentCliques();
+        for (const cmd of this.state.createAsteroidCommands) {
+            const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);
+            this.insert(asteroid);
+        }
+        this.state.createAsteroidCommands = [];
         this.handleToInsert();
         for (const moveCommand of this.state.moveCommands) {
             this.handleMoveCommand(moveCommand.ids, moveCommand.delta);

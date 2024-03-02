@@ -17,7 +17,7 @@ export class Waypoint extends SpaceObjectBase {
 
     @gameField('int8')
     @tweakable({ type: 'enum', enum: Faction })
-    public faction: Faction = Faction.none;
+    public faction: Faction = Faction.NONE;
 
     @gameField('string')
     @tweakable('string')

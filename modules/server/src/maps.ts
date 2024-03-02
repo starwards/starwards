@@ -40,8 +40,7 @@ export const test_map_1 = {
     name: 'test_map_1',
     testShipId,
     init: (game: GameApi) => {
-        const ship = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22');
-        ship.faction = Faction.Gravitas;
+        const ship = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22', Faction.Gravitas);
         game.addSpaceship(ship);
         const asteroidHiddenInRange = new Asteroid().init('astro1', new Vec2(2000, 2000));
         asteroidHiddenInRange.radius = 200;

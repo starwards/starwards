@@ -1,4 +1,4 @@
-import { BulkBotOrderArg, BulkMoveArg } from './space-properties';
+import { BulkBotOrderArg, BulkMoveArg, CreateAsteroidOrderArg, CreateSpaceshipOrderArg } from './space-commands';
 import { MapSchema, Schema } from '@colyseus/schema';
 import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
@@ -32,6 +32,8 @@ export class SpaceState extends Schema {
     // server only, used for commands
     public moveCommands = Array.of<BulkMoveArg>();
     public botOrderCommands = Array.of<BulkBotOrderArg>();
+    public createAsteroidCommands = Array.of<CreateAsteroidOrderArg>();
+    public createSpaceshipCommands = Array.of<CreateSpaceshipOrderArg>();
 
     public get(id: string): SpaceObject | undefined {
         return (

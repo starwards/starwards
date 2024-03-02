@@ -1,6 +1,6 @@
 export enum Faction {
-    none = -1,
-    Gravitas,
-    Raiders,
-    factionCount,
+    NONE = -1,
+    Gravitas = 0,
+    Raiders = 1,
+    FACTION_COUNT = 2,
 }

@@ -83,3 +83,7 @@ export function printError(err: unknown): string {
 export function notNull<T>(e: T): e is Exclude<T, null> {
     return e !== null;
 }
+
+export function assertUnreachable(_: never): never {
+    throw new Error('Should never get here');
+}

@@ -76,7 +76,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 spaceDriver,
                 64,
                 (s: SpaceObject) => {
-                    if (s.faction === Faction.none) return yellow;
+                    if (s.faction === Faction.NONE) return yellow;
                     if (s.faction === shipDriver.state.faction) return blue;
                     return red;
                 },
