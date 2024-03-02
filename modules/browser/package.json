@@ -24,7 +24,7 @@
         "@tweakpane/core": "^1.1.4",
         "@tweakpane/plugin-essentials": "^0.1.8",
         "@tweakpane/plugin-camerakit": "^0.2.3",
-        "@xstate/react": "^3.0.1",
+        "@xstate/react": "^4.1.0",
         "colyseus.js": "^0.14.13",
         "css-element-queries": "^1.2.3",
         "d3": "^7.8.2",
