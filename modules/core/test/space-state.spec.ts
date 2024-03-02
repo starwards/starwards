@@ -1,4 +1,4 @@
-import { Asteroid, SpaceObject, SpaceState, Spaceship, Vec2, compareSpaceObjects } from '../src';
+import { Asteroid, Faction, SpaceObject, SpaceState, Spaceship, Vec2, compareSpaceObjects } from '../src';
 
 import { expect } from 'chai';
 import { nanoid } from 'nanoid';
@@ -12,7 +12,7 @@ const map = Array(100)
             new Vec2(Math.random() * fieldSize - fieldSize / 2, Math.random() * fieldSize - fieldSize / 2),
         ),
     );
-map.push(new Spaceship().init(nanoid(), new Vec2(0, 0), 'dragonfly-SF22'));
+map.push(new Spaceship().init(nanoid(), new Vec2(0, 0), 'dragonfly-SF22', Faction.NONE));
 
 describe('SpaceState', () => {
     it('iterator has same number of elements', () => {
