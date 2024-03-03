@@ -30,10 +30,13 @@ export class SpaceState extends Schema {
     private readonly Waypoint = new MapSchema<Waypoint>();
 
     // server only, used for commands
+    // commands handled by space manager:
     public moveCommands = Array.of<BulkMoveArg>();
     public botOrderCommands = Array.of<BulkBotOrderArg>();
     public createAsteroidCommands = Array.of<CreateAsteroidOrderArg>();
+    // commands handled by game manager:
     public createSpaceshipCommands = Array.of<CreateSpaceshipOrderArg>();
+    public destroySpaceshipCommands = Array.of<string>();
 
     public get(id: string): SpaceObject | undefined {
         return (

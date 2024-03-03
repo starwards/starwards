@@ -114,6 +114,16 @@ export class SpaceManager {
         return o && !o.destroyed ? [o] : nullPtr;
     }
 
+    destroyObject(id: string) {
+        const o = this.state.get(id);
+        if (o && !o.destroyed) {
+            if (Spaceship.isInstance(o)) {
+                this.state.destroySpaceshipCommands.push(id);
+            }
+            o.destroyed = true;
+        }
+    }
+
     private calcAttachmentCliques() {
         this.attachmentCliques.clear();
         for (const [attacherId, attacheeId] of this.attachments.entries()) {
@@ -299,6 +309,10 @@ export class SpaceManager {
             this.collisions.remove(body);
         }
         this.cleanupBodies.length = 0;
+    }
+
+    public checkDuplicateShip(shipId: string) {
+        return this.state.getShip(shipId) || this.toInsert.find(({ id }) => id === shipId);
     }
 
     public insert(object: SpaceObject) {
