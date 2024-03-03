@@ -28,10 +28,12 @@ export enum TargetedStatus {
 
 export type ShipPropertiesDesign = {
     totalCoolant: number;
+    systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
     @gameField('float32') totalCoolant = 0;
+    @gameField('float32') systemKillRatio = 0;
 }
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
 export class ShipState extends Spaceship {

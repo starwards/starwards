@@ -1,5 +1,6 @@
 import {
     ChainGun,
+    Damage,
     RTuple2,
     ShipArea,
     SmartPilot,
@@ -34,23 +35,45 @@ export class DamageManager {
     ) {}
 
     update() {
+        let damagedInternals = false;
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
-            for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
-                const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
-                const areaHitRangeAngles: [number, number] = [
-                    Math.max(toPositiveDegreesDelta(areaArc[0]), damage.damageSurfaceArc[0]),
-                    Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
-                ];
-                const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-                if (areaUnarmoredHits) {
-                    const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-                    for (const system of this.state.systemsByAreas(hitArea) || []) {
-                        if (system) this.damageSystem(system, damage, areaUnarmoredHits / platesInArea); // the more plates, more damage?
-                    }
-                }
-                this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
+            damagedInternals = this.takeExternalDamage(damage);
+        }
+        if (damagedInternals && this.spaceObject.expendable) {
+            const { count, broken } = this.state
+                .systems()
+                .map((s) => s.broken)
+                .reduce((acc, curr) => ({ count: acc.count + 1, broken: curr ? acc.broken + 1 : acc.broken }), {
+                    count: 0,
+                    broken: 0,
+                });
+            if (count * this.state.design.systemKillRatio < broken) {
+                this.spaceManager.destroyObject(this.spaceObject.id);
             }
         }
+    }
+
+    private takeExternalDamage(damage: Damage) {
+        let damagedInternals = false;
+        for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
+            const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
+            const areaHitRangeAngles: [number, number] = [
+                Math.max(toPositiveDegreesDelta(areaArc[0]), damage.damageSurfaceArc[0]),
+                Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
+            ];
+            const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
+            if (areaUnarmoredHits) {
+                const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
+                for (const system of this.state.systemsByAreas(hitArea) || []) {
+                    if (system) {
+                        damagedInternals = true;
+                        this.damageSystem(system, damage, areaUnarmoredHits / platesInArea);
+                    } // the more plates, more damage?
+                }
+            }
+            this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
+        }
+        return damagedInternals;
     }
 
     damageAllSystems(damageObject: { id: string; amount: number }) {
