@@ -20,8 +20,8 @@ type Die = {
     update: (deltaSeconds: number) => void;
 };
 export class GameManager {
-    private shipCleanups = new Map<string, () => unknown>();
     public state = new AdminState();
+    private shipCleanups = new Map<string, () => unknown>();
     private ships = new Map<string, ShipManager>();
     private dice: Die[] = [];
     private spaceManager = new SpaceManager();
@@ -159,7 +159,7 @@ export class GameManager {
     }
 
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState) {
-        const { id } = spaceObject;
+        const id = spaceObject.id;
         const die = new ShipDie(3);
         const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships); // create a manager to manage the ship
         this.ships.set(id, shipManager);

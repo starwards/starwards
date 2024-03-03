@@ -193,9 +193,10 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             });
             if (this.spaceDriver) {
                 const selectedItems = [...selectionContainer.selectedItems];
+                const isSingleSelect = selectedItems.length === 1;
                 const spaceDriver = this.spaceDriver;
                 if (selectedItems.length) {
-                    guiFolder.addButton({ title: 'Delete all' }).on('click', () =>
+                    guiFolder.addButton({ title: isSingleSelect ? 'Delete' : 'Delete all' }).on('click', () =>
                         spaceDriver.command(spaceCommands.bulkDeleteOrder, {
                             ids: selectionContainer.selectedItemsIds,
                         }),
@@ -204,7 +205,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                 for (const subject of selectedItems) {
                     const itemFolder = guiFolder.addFolder({
                         title: `${subject.type} ${subject.id}`,
-                        expanded: selectedItems.length === 1,
+                        expanded: isSingleSelect,
                     });
                     this.selectionCleanup.add(() => {
                         itemFolder.dispose();
