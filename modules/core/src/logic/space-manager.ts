@@ -43,6 +43,16 @@ export type SpatialIndex = {
 };
 
 export class SpaceManager {
+    static destroyObject(state: SpaceState, id: string) {
+        const subject = state.get(id);
+        if (subject && !subject.destroyed && subject.expendable) {
+            if (Spaceship.isInstance(subject)) {
+                state.destroySpaceshipCommands.push(id);
+            }
+            subject.destroyed = true;
+        }
+    }
+
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
     private collisionToState = new WeakMap<Body, SpaceObject>();
@@ -115,13 +125,7 @@ export class SpaceManager {
     }
 
     destroyObject(id: string) {
-        const o = this.state.get(id);
-        if (o && !o.destroyed) {
-            if (Spaceship.isInstance(o)) {
-                this.state.destroySpaceshipCommands.push(id);
-            }
-            o.destroyed = true;
-        }
+        SpaceManager.destroyObject(this.state, id);
     }
 
     private calcAttachmentCliques() {
