@@ -24,6 +24,10 @@ export abstract class SpaceObjectBase extends Schema {
     @gameField('boolean')
     public freeze = false;
 
+    @tweakable('boolean')
+    @gameField('boolean')
+    public expendable = true;
+
     @gameField('string')
     public id = '';
     @gameField(Vec2)

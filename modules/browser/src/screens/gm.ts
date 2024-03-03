@@ -93,6 +93,16 @@ void driver.waitForGame().then(
             },
             gmInputConfig.toggleFreeze,
         );
+        input.addMomentaryClickAction(
+            {
+                setValue: (v: boolean) =>
+                    v &&
+                    spaceDriver.command(spaceCommands.bulkDeleteOrder, {
+                        ids: gmWidgets.selectionContainer.selectedItemsIds,
+                    }),
+            },
+            gmInputConfig.delete,
+        );
 
         input.init();
 

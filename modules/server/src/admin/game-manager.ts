@@ -21,6 +21,7 @@ type Die = {
 };
 export class GameManager {
     public state = new AdminState();
+    private shipCleanups = new Map<string, () => unknown>();
     private ships = new Map<string, ShipManager>();
     private dice: Die[] = [];
     private spaceManager = new SpaceManager();
@@ -51,6 +52,10 @@ export class GameManager {
                 shipManager.update(adjustedDeltaSeconds);
             }
             this.spaceManager.update(adjustedDeltaSeconds);
+            for (const id of this.spaceManager.state.destroySpaceshipCommands) {
+                this.cleanupShip(id);
+            }
+            this.spaceManager.state.destroySpaceshipCommands = [];
             for (const cmd of this.spaceManager.state.createSpaceshipCommands) {
                 const ship = new Spaceship().init(makeId(), Vec2.make(cmd.position), cmd.shipModel, cmd.faction);
                 this.addShip(ship);
@@ -117,20 +122,33 @@ export class GameManager {
         for (const [id, shipState] of source.fragment.ship) {
             const so = source.fragment.space.getShip(id);
             if (so) {
-                this.initShipRoom(so, shipState);
+                this.initShipManagerAndRoom(so, shipState);
             }
         }
         await this.waitForAllShipRoomInit();
     }
 
-    private addShip(spaceObject: Spaceship) {
-        this.spaceManager.insert(spaceObject);
-        if (!spaceObject.model) {
-            throw new Error(`missing ship model for ship ${spaceObject.id}`);
+    private cleanupShip(id: string) {
+        const shipCleanup = this.shipCleanups.get(id);
+        if (shipCleanup) {
+            shipCleanup();
+        } else {
+            // eslint-disable-next-line no-console
+            console.error(`Attempted to clean up ship ${id}, but it does not exist.`);
         }
+    }
+
+    private addShip(spaceObject: Spaceship) {
+        if (!spaceObject.model) {
+            throw new Error(`Missing ship model for ship ${spaceObject.id}`);
+        }
+        if (this.spaceManager.checkDuplicateShip(spaceObject.id)) {
+            throw new Error(`Ship with same ID already exist! ${spaceObject.id}`);
+        }
+        this.spaceManager.insert(spaceObject);
         const configuration = shipConfigurations[spaceObject.model];
         const shipState = makeShipState(spaceObject.id, configuration);
-        const shipManager = this.initShipRoom(spaceObject, shipState);
+        const shipManager = this.initShipManagerAndRoom(spaceObject, shipState);
         return shipManager;
     }
 
@@ -140,14 +158,24 @@ export class GameManager {
         }
     }
 
-    private initShipRoom(spaceObject: Spaceship, shipState: ShipState) {
+    private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState) {
+        const id = spaceObject.id;
         const die = new ShipDie(3);
         const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships); // create a manager to manage the ship
-        this.ships.set(spaceObject.id, shipManager);
+        this.ships.set(id, shipManager);
         this.dice.push(die);
-        void matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-            await this.waitForRoom({ roomId: spaceObject.id, name: 'ship' });
-            this.state.shipIds.push(spaceObject.id);
+        const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
+            await this.waitForRoom({ roomId: id, name: 'ship' });
+            this.state.shipIds.push(id);
+        });
+        this.shipCleanups.set(id, async () => {
+            await createRoomPromise;
+            if (this.shipCleanups.delete(id)) {
+                this.state.shipIds.deleteAt(this.state.shipIds.indexOf(id));
+                void matchMaker.getRoomById(id).disconnect();
+                this.dice.splice(this.dice.indexOf(die), 1);
+                this.ships.delete(id);
+            }
         });
         return shipManager;
     }

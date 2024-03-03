@@ -1,5 +1,4 @@
-import { BotOrder, ShipModel, SpaceObjectBase, XY } from '..';
-
+import { BotOrder, ShipModel, SpaceManager, SpaceObjectBase, XY } from '..';
 import { Faction, SpaceState } from '.';
 
 export type BulkMoveArg = {
@@ -51,6 +50,18 @@ export const bulkBotOrder = {
     cmdName: 'bulkBotOrder',
     setValue: (state: SpaceState, value: BulkBotOrderArg) => {
         state.botOrderCommands.push(value);
+    },
+};
+
+export type BulkDeleteOrderArg = {
+    ids: Array<SpaceObjectBase['id']>;
+};
+export const bulkDeleteOrder = {
+    cmdName: 'bulkDeleteOrder',
+    setValue: (state: SpaceState, value: BulkDeleteOrderArg) => {
+        for (const id of value.ids) {
+            SpaceManager.destroyObject(state, id);
+        }
     },
 };
 

@@ -10,6 +10,7 @@ import {
     SpaceObject,
     Spaceship,
     getTweakables,
+    spaceCommands,
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
@@ -191,10 +192,20 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                 guiFolder.dispose();
             });
             if (this.spaceDriver) {
-                for (const subject of selectionContainer.selectedItems) {
+                const selectedItems = [...selectionContainer.selectedItems];
+                const isSingleSelect = selectedItems.length === 1;
+                const spaceDriver = this.spaceDriver;
+                if (selectedItems.length) {
+                    guiFolder.addButton({ title: isSingleSelect ? 'Delete' : 'Delete all' }).on('click', () =>
+                        spaceDriver.command(spaceCommands.bulkDeleteOrder, {
+                            ids: selectionContainer.selectedItemsIds,
+                        }),
+                    );
+                }
+                for (const subject of selectedItems) {
                     const itemFolder = guiFolder.addFolder({
                         title: `${subject.type} ${subject.id}`,
-                        expanded: [...selectionContainer.selectedItems].length === 1,
+                        expanded: isSingleSelect,
                     });
                     this.selectionCleanup.add(() => {
                         itemFolder.dispose();

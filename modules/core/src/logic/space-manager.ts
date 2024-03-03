@@ -43,6 +43,16 @@ export type SpatialIndex = {
 };
 
 export class SpaceManager {
+    static destroyObject(state: SpaceState, id: string) {
+        const subject = state.get(id);
+        if (subject && !subject.destroyed && subject.expendable) {
+            if (Spaceship.isInstance(subject)) {
+                state.destroySpaceshipCommands.push(id);
+            }
+            subject.destroyed = true;
+        }
+    }
+
     public state = new SpaceState(false); // this state tree should only be exposed by the space room
     public collisions = new System();
     private collisionToState = new WeakMap<Body, SpaceObject>();
@@ -112,6 +122,10 @@ export class SpaceManager {
     getObjectPtr(id: string): readonly [SpaceObject] | readonly [] {
         const o = this.state.get(id);
         return o && !o.destroyed ? [o] : nullPtr;
+    }
+
+    destroyObject(id: string) {
+        SpaceManager.destroyObject(this.state, id);
     }
 
     private calcAttachmentCliques() {
@@ -299,6 +313,10 @@ export class SpaceManager {
             this.collisions.remove(body);
         }
         this.cleanupBodies.length = 0;
+    }
+
+    public checkDuplicateShip(shipId: string) {
+        return this.state.getShip(shipId) || this.toInsert.find(({ id }) => id === shipId);
     }
 
     public insert(object: SpaceObject) {

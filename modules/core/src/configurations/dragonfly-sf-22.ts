@@ -40,6 +40,7 @@ export const dragonflyReactor = {
 };
 export const dragonflyProperties = {
     totalCoolant: 10,
+    systemKillRatio: 0.5,
 };
 export const dragonflyMagazine = {
     max_CannonShell: 3600,
