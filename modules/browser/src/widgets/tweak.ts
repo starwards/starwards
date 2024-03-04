@@ -5,6 +5,7 @@ import {
     Destructor,
     Destructors,
     Driver,
+    IdleStrategy,
     ShipDriver,
     SpaceDriver,
     SpaceObject,
@@ -47,6 +48,19 @@ const singleSelectionDetails = async (
 
         const lastCommandProp = readProp(shipDriver, `/lastCommand`);
         addTextBlade(guiFolder, lastCommandProp, { label: 'Last Command', disabled: true }, cleanup);
+
+        const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
+        addEnumListBlade(
+            guiFolder,
+            idleStrategyProp,
+            {
+                label: 'Idle strategy',
+                options: Object.values(IdleStrategy)
+                    .filter<number>((k): k is number => typeof k === 'number')
+                    .map((value) => ({ value, text: String(IdleStrategy[value]) })),
+            },
+            cleanup,
+        );
 
         const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
         addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);

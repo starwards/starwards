@@ -26,6 +26,12 @@ export enum TargetedStatus {
     FIRED_UPON,
 }
 
+export enum IdleStrategy {
+    PLAY_DEAD,
+    ROAM,
+    STAND_GROUND,
+}
+
 export type ShipPropertiesDesign = {
     totalCoolant: number;
     systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
@@ -39,6 +45,10 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
 export class ShipState extends Spaceship {
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
+
+    @gameField('int8')
+    @tweakable({ type: 'enum', enum: IdleStrategy })
+    idleStrategy = IdleStrategy.PLAY_DEAD;
 
     @gameField('string')
     lastCommand = '';
