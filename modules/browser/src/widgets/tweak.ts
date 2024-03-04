@@ -45,6 +45,9 @@ const singleSelectionDetails = async (
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
 
+        const lastCommandProp = readProp(shipDriver, `/lastCommand`);
+        addTextBlade(guiFolder, lastCommandProp, { label: 'Last Command', disabled: true }, cleanup);
+
         const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
         addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
 

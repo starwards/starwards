@@ -27,6 +27,7 @@ export type Bot = {
 };
 
 export function cleanupBot(shipManager: ShipManager) {
+    shipManager.state.lastCommand = '';
     shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
     shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
     shipManager.state.smartPilot.rotation = 0;
@@ -42,10 +43,13 @@ export function cleanupBot(shipManager: ShipManager) {
 export function docker(dockingTarget: SpaceObject): Bot {
     const UndockingOvershootFactor = 1.2;
     let deltaSeconds = 1 / 20;
+    const dockingCmd = `Dock at  ${dockingTarget.id}`;
+    const undockingCmd = `Undock from  ${dockingTarget.id}`;
     const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         if (shipManager.state.docking.mode === DockingMode.DOCKING) {
+            shipManager.state.lastCommand = dockingCmd;
             shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
             const diff = XY.difference(dockingTarget.position, ship.position);
@@ -71,6 +75,7 @@ export function docker(dockingTarget: SpaceObject): Bot {
                 shipManager.state.smartPilot.rotation = rotation;
             }
         } else if (shipManager.state.docking.mode === DockingMode.UNDOCKING) {
+            shipManager.state.lastCommand = undockingCmd;
             const diff = XY.difference(dockingTarget.position, ship.position);
             const destination = XY.add(
                 ship.position,
@@ -91,7 +96,9 @@ export function docker(dockingTarget: SpaceObject): Bot {
 
 export function p2pGoto(destination: XY): Bot {
     let deltaSeconds = 1 / 20;
+    const cmdName = `Go to ${destination.x},${destination.y} (direct)`;
     const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
+        shipManager.state.lastCommand = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         if (XY.equals(ship.position, destination, 1) && XY.isZero(ship.velocity, 1)) {
@@ -112,7 +119,9 @@ export function p2pGoto(destination: XY): Bot {
 export function jouster(targetId: string): Bot {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;
+    const cmdName = `Attack ${targetId} (joust)`;
     const update = (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
+        shipManager.state.lastCommand = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);

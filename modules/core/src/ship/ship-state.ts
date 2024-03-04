@@ -40,6 +40,9 @@ export class ShipState extends Spaceship {
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
+    @gameField('string')
+    lastCommand = '';
+
     @gameField([Thruster])
     thrusters!: ArraySchema<Thruster>;
 
