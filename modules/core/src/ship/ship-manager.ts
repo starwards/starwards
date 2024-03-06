@@ -9,7 +9,6 @@ import {
     XY,
     vector2ShipDirections,
 } from '..';
-import { jouster, p2pGoto } from '../logic/bot';
 
 import { DeepReadonly } from 'ts-essentials';
 import { EnergyManager } from './energy-manager';
