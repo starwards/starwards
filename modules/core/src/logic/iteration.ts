@@ -5,6 +5,17 @@ export class Iterator<T> implements Iterable<T> {
         for (const e of this.elements) yield e;
     }
 
+    count() {
+        const i = this.elements[Symbol.iterator]();
+        let cnt = 0;
+        let e = i.next();
+        while (!e.done) {
+            cnt += 1;
+            e = i.next();
+        }
+        return cnt;
+    }
+
     tuples<S>(values: Iterable<S>) {
         const arg = {
             elements: this.elements,

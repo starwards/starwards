@@ -1,3 +1,4 @@
+import { Die, EnergySource } from './ship-manager-abstract';
 import { MAX_WARP_LVL, WarpFrequency } from './warp';
 import {
     ManeuveringCommand,
@@ -14,8 +15,6 @@ import { SpaceObject, Spaceship } from '../space';
 import { Circle } from 'detect-collisions';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
-import { Die } from './ship-manager';
-import { EnergyManager } from './energy-manager';
 import { Iterator } from '../logic/iteration';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
@@ -36,7 +35,7 @@ export class MovementManager {
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
         private damageManager: DamageManager,
-        private energyManager: EnergyManager,
+        private energyManager: EnergySource,
         public die: Die,
     ) {}
 
@@ -408,11 +407,7 @@ export class MovementManager {
     }
 
     private shouldEnforceMaxSpeed() {
-        const maxSpeed = this.state.getMaxSpeedForAfterburner(this.state.afterBurnerCommand);
-        return (
-            this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT &&
-            XY.lengthOf(this.spaceObject.velocity) > maxSpeed
-        );
+        return XY.lengthOf(this.spaceObject.velocity) > this.state.maxSpeed;
     }
 
     private calcManeuveringAction() {

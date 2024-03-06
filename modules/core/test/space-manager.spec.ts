@@ -6,6 +6,8 @@ import {
     Projectile,
     REAR_ARC,
     ShipDie,
+    ShipManagerNpc,
+    ShipManagerPc,
     SpaceObject,
     Spaceship,
     Tuple2,
@@ -116,43 +118,47 @@ describe('SpaceManager', () => {
             ),
         );
     });
-    describe(`ship in high speed (up to ${bulletSpeed} m/s )`, () => {
-        function highSpeedShip(numIterationsPerSecond: number, speed: number) {
-            const sim = new SpaceSimulator(numIterationsPerSecond);
-            const ship = new Spaceship();
-            ship.id = 'ship';
-            const shipMgr = sim.withShip(ship, new ShipDie(0));
-            shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
-            shipMgr.state.chainGun!.design.maxShellRange = 10_000;
-            shipMgr.state.chainGun!.shellRange = 1;
-            shipMgr.state.chainGun!.loading = 1;
-            shipMgr.state.chainGun!.loadedProjectile = 'CannonShell';
-            shipMgr.state.chainGun!.isFiring = true;
-            switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
-            // stop simulation when first bullet reaches its range
-            const shellSecondsToLive = calcShellSecondsToLive(
-                shipMgr.state,
-                shipMgr.state.chainGun!,
-                shipMgr.state.chainGun!.design.maxShellRange,
-            );
-            return { sim, shellSecondsToLive, ship, shipMgr };
-        }
+    describe.each([ShipManagerPc, ShipManagerNpc])(
+        `%i in high speed (up to ${bulletSpeed} m/s )`,
+        (shipManagerCtor) => {
+            function highSpeedShip(numIterationsPerSecond: number, speed: number) {
+                const sim = new SpaceSimulator(numIterationsPerSecond);
+                const ship = new Spaceship();
+                ship.id = 'ship';
+                const shipMgr = sim.withShip(ship, new ShipDie(0), shipManagerCtor);
+                shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
+                shipMgr.state.chainGun!.design.maxShellRange = 10_000;
+                shipMgr.state.chainGun!.shellRange = 1;
+                shipMgr.state.chainGun!.loading = 1;
+                shipMgr.state.chainGun!.loadedProjectile = 'CannonShell';
+                shipMgr.state.chainGun!.isFiring = true;
+                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
-        it('does not shoot itself in the back when accelerating (regression)', () => {
-            const speed = bulletSpeed;
-            const numIterationsPerSecond = 20;
-            const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
-            shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
-            shipMgr.state.afterBurnerCommand = 1; // afterburner
+                // stop simulation when first bullet reaches its range
+                const shellSecondsToLive = calcShellSecondsToLive(
+                    shipMgr.state,
+                    shipMgr.state.chainGun!,
+                    shipMgr.state.chainGun!.design.maxShellRange,
+                );
+                return { sim, shellSecondsToLive, ship, shipMgr };
+            }
 
-            shipMgr.state.armor.design.healRate = 0;
+            it('does not shoot itself in the back when accelerating (regression)', () => {
+                const speed = bulletSpeed;
+                const numIterationsPerSecond = 20;
+                const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
+                shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
+                shipMgr.state.afterBurnerCommand = 1; // afterburner
 
-            sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {
-                shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
+                shipMgr.state.armor.design.healRate = 0;
+
+                sim.simulateUntilTime(shellSecondsToLive * 100, (_spaceMgr) => {
+                    shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
+                });
+                const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, REAR_ARC))];
+                expect(hitArchs).to.not.be.empty;
             });
-            const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, REAR_ARC))];
-            expect(hitArchs).to.not.be.empty;
-        });
-    });
+        },
+    );
 });

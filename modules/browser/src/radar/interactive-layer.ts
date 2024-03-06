@@ -1,6 +1,15 @@
 import { Container, DisplayObject, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
 import { CreateObjectsContainer, CreateTemplate } from './create-objects-container';
-import { SpaceObject, XY, assertUnreachable, lerp, literal2Range, spaceCommands } from '@starwards/core';
+import {
+    Iterator,
+    SpaceObject,
+    Spaceship,
+    XY,
+    assertUnreachable,
+    lerp,
+    literal2Range,
+    spaceCommands,
+} from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
@@ -173,30 +182,42 @@ export class InteractiveLayer {
                     const radius = lerp([0, 1], literal2Range(this.createTemplate.radius), Math.random());
                     this.spaceDriver.command(spaceCommands.createAsteroidOrder, { position, radius });
                 } else if (this.createTemplate.type === 'Spaceship') {
-                    const { shipModel, faction } = this.createTemplate;
-                    this.spaceDriver.command(spaceCommands.createSpaceshipOrder, { position, shipModel, faction });
+                    const { isPlayerShip, shipModel, faction } = this.createTemplate;
+                    this.spaceDriver.command(spaceCommands.createSpaceshipOrder, {
+                        position,
+                        isPlayerShip,
+                        shipModel,
+                        faction,
+                    });
                 } else {
                     assertUnreachable(this.createTemplate);
                 }
-            } else if (this.actionType === ActionType.panCameraOrOrder || this.actionType === ActionType.panCamera) {
-                const position = this.parent.screenToWorld(this.dragFrom);
-                const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
-                if (spaceObject) {
-                    this.spaceDriver.command(spaceCommands.bulkBotOrder, {
-                        ids: this.selectionContainer.selectedItemsIds,
-                        order: {
-                            type: 'attack',
-                            targetId: spaceObject.id,
-                        },
-                    });
-                } else {
-                    this.spaceDriver.command(spaceCommands.bulkBotOrder, {
-                        ids: this.selectionContainer.selectedItemsIds,
-                        order: {
-                            type: 'move',
-                            position,
-                        },
-                    });
+            } else if (this.actionType === ActionType.panCameraOrOrder) {
+                const selectedShipIds = [
+                    ...new Iterator(this.selectionContainer.selectedItems)
+                        .filter((so) => Spaceship.isInstance(so))
+                        .map((so) => so.id),
+                ];
+                if (selectedShipIds.length) {
+                    const position = this.parent.screenToWorld(this.dragFrom);
+                    const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
+                    if (spaceObject) {
+                        this.spaceDriver.command(spaceCommands.bulkBotOrder, {
+                            ids: selectedShipIds,
+                            order: {
+                                type: 'attack',
+                                targetId: spaceObject.id,
+                            },
+                        });
+                    } else {
+                        this.spaceDriver.command(spaceCommands.bulkBotOrder, {
+                            ids: selectedShipIds,
+                            order: {
+                                type: 'move',
+                                position,
+                            },
+                        });
+                    }
                 }
             }
         }

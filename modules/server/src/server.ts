@@ -103,7 +103,11 @@ export async function server(port: number, staticDir: string, manager: GameManag
             return next(err);
         }
         res.status(500);
-        res.render('error', { error: err });
+        res.json({
+            message: err.message,
+            error: err,
+            stack: err.stack,
+        });
     });
 
     await gameServer.listen(port);

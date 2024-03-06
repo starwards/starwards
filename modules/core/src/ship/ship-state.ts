@@ -46,6 +46,9 @@ export class ShipState extends Spaceship {
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
+    @gameField('boolean')
+    isPlayerShip = true;
+
     @gameField('int8')
     @tweakable({ type: 'enum', enum: IdleStrategy })
     idleStrategy = IdleStrategy.PLAY_DEAD;

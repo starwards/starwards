@@ -1,6 +1,6 @@
 import {
-    Die,
-    ShipManager,
+    ShipManagerNpc,
+    ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
     SpaceObject,
@@ -11,6 +11,7 @@ import {
 } from '../src';
 import { Updateable, isUpdateable } from '../src/updateable';
 
+import { Die } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
@@ -26,8 +27,8 @@ export class SpaceSimulator {
         this.spaceMgr.insertBulk(objects);
         return this;
     }
-    withShip(ship: Spaceship, die: Die) {
-        const shipMgr = new ShipManager(ship, makeShipState(ship.id, dragonflyConfig), this.spaceMgr, die);
+    withShip(ship: Spaceship, die: Die, shipManagerCtor: typeof ShipManagerPc | typeof ShipManagerNpc) {
+        const shipMgr = new shipManagerCtor(ship, makeShipState(ship.id, dragonflyConfig), this.spaceMgr, die);
         this.updateables.push(shipMgr);
         if (isUpdateable(die)) {
             this.updateables.push(die);
@@ -39,12 +40,6 @@ export class SpaceSimulator {
         shipMgr.setShellRangeMode(SmartPilotMode.DIRECT);
         return shipMgr;
     }
-
-    // withShip2(ship: ShipManager) {
-    //     this.shipMgrs.push(ship);
-    //     this.spaceMgr.insert(ship.spaceObject as Spaceship);
-    //     return this;
-    // }
 
     simulateUntilCondition(predicate: (spaceMgr: SpaceManager) => boolean, timeInSeconds = 0) {
         let timePassed = 0;

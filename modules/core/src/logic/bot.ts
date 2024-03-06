@@ -1,5 +1,4 @@
 import {
-    ShipManager,
     SmartPilotMode,
     SpaceObject,
     SpaceState,
@@ -18,15 +17,17 @@ import {
 } from '../';
 
 import { DockingMode } from '../ship/docking';
+import { ShipManager } from '../ship/ship-manager-abstract';
 import { switchToAvailableAmmo } from '../ship/chain-gun-manager';
 
 // TODO: use ShipApi
 export type Bot = {
     type: string;
     update(deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager): void;
+    cleanup(shipManager: ShipManager): void;
 };
 
-export function cleanupBot(shipManager: ShipManager) {
+function cleanup(shipManager: ShipManager) {
     shipManager.state.lastCommand = '';
     shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
     shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
@@ -91,7 +92,7 @@ export function docker(dockingTarget: SpaceObject): Bot {
             shipManager.state.smartPilot.rotation = rotation;
         }
     };
-    return { type: 'docker', update };
+    return { type: 'docker', update, cleanup };
 }
 
 export function p2pGoto(destination: XY): Bot {
@@ -102,18 +103,18 @@ export function p2pGoto(destination: XY): Bot {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         if (XY.equals(ship.position, destination, 1) && XY.isZero(ship.velocity, 1)) {
-            cleanupBot(shipManager);
+            cleanup(shipManager);
         } else {
             shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
             const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
             const maneuvering = moveToTarget(deltaSeconds, ship, destination);
-            shipManager.state.smartPilot.rotation = rotation;
-            shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
-            shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
+            ship.smartPilot.rotation = rotation;
+            ship.smartPilot.maneuvering.x = maneuvering.boost;
+            ship.smartPilot.maneuvering.y = maneuvering.strafe;
         }
     };
-    return { type: 'p2pGoto', update };
+    return { type: 'p2pGoto', update, cleanup };
 }
 
 export function jouster(targetId: string): Bot {
@@ -166,8 +167,8 @@ export function jouster(targetId: string): Bot {
             lastTargetVelocity = XY.clone(target.velocity);
             ship.chainGun.isFiring = isTargetInKillZone(ship, ship.chainGun, target);
         } else {
-            cleanupBot(shipManager);
+            cleanup(shipManager);
         }
     };
-    return { type: 'jouster', update };
+    return { type: 'jouster', update, cleanup };
 }

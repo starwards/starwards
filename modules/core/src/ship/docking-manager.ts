@@ -1,12 +1,12 @@
 import { SpaceManager, XY, getClosestDockingTarget, isInRange, toDegreesDelta } from '../logic';
-import { cleanupBot, docker } from '../logic/bot';
 
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { DockingMode } from './docking';
-import { ShipManager } from '..';
+import { ShipManager } from './ship-manager-abstract';
 import { ShipState } from './ship-state';
 import { Spaceship } from '../space';
+import { docker } from '../logic/bot';
 
 const toggleTransition = {
     [DockingMode.DOCKED]: DockingMode.UNDOCKING,
@@ -37,7 +37,7 @@ export class DockingManager {
 
     private clearDocking() {
         if (this.shipManager.bot?.type === 'docker') {
-            cleanupBot(this.shipManager);
+            this.shipManager.bot.cleanup(this.shipManager);
         }
         this.state.docking.targetId = '';
         this.state.docking.mode = DockingMode.UNDOCKED;
@@ -53,7 +53,7 @@ export class DockingManager {
                 // don't reset this.state.docking.targetId
                 this.spaceManager.detach(this.state.id);
                 if (this.shipManager.bot?.type === 'docker') {
-                    cleanupBot(this.shipManager);
+                    this.shipManager.bot.cleanup(this.shipManager);
                 }
             } else {
                 const diff = XY.difference(dockingTarget.position, this.state.position);

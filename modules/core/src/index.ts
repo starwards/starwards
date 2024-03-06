@@ -34,3 +34,4 @@ export * from './events';
 export * from './async-utils';
 export * from './tweakable';
 export * from './game-field';
+export * from './scripts-api';

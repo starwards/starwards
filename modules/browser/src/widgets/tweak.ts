@@ -46,6 +46,9 @@ const singleSelectionDetails = async (
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
 
+        const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
+        addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
+
         const lastCommandProp = readProp(shipDriver, `/lastCommand`);
         addTextBlade(guiFolder, lastCommandProp, { label: 'Last Command', disabled: true }, cleanup);
 

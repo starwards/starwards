@@ -3,7 +3,8 @@ import {
     Asteroid,
     EPSILON,
     Explosion,
-    ShipManager,
+    ShipManagerNpc,
+    ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
@@ -24,7 +25,7 @@ import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
-describe('ShipManager', () => {
+describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
     it('explosion must damage only affected areas', () => {
         fc.assert(
             // TODO explosionAngleToShip should also be a property
@@ -35,7 +36,7 @@ describe('ShipManager', () => {
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
                 const die = new MockDie();
-                const shipMgr = new ShipManager(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+                const shipMgr = new shipManagerCtor(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
                 die.expectedRoll = 1;
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -81,7 +82,7 @@ describe('ShipManager', () => {
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
-                const shipMgr = new ShipManager(
+                const shipMgr = new shipManagerCtor(
                     shipObj,
                     makeShipState(shipObj.id, dragonflyConfig),
                     spaceMgr,
@@ -121,7 +122,7 @@ describe('ShipManager', () => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(
+                    const shipMgr = new shipManagerCtor(
                         shipObj,
                         makeShipState(shipObj.id, dragonflyConfig),
                         spaceMgr,
@@ -163,7 +164,7 @@ describe('ShipManager', () => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(
+                    const shipMgr = new shipManagerCtor(
                         shipObj,
                         makeShipState(shipObj.id, dragonflyConfig),
                         spaceMgr,
@@ -200,7 +201,7 @@ describe('ShipManager', () => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
-                    const shipMgr = new ShipManager(
+                    const shipMgr = new shipManagerCtor(
                         shipObj,
                         makeShipState(shipObj.id, dragonflyConfig),
                         spaceMgr,
@@ -241,7 +242,7 @@ describe('ShipManager', () => {
                 const shipObj = new Spaceship();
                 shipObj.id = 'ship';
                 shipObj.angle = rotation;
-                const shipMgr = new ShipManager(
+                const shipMgr = new shipManagerCtor(
                     shipObj,
                     makeShipState(shipObj.id, dragonflyConfig),
                     spaceMgr,

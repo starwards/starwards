@@ -1,7 +1,7 @@
 import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 import {
     MAX_SAFE_FLOAT,
-    ShipManager,
+    ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
@@ -113,7 +113,7 @@ const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 export class ShipTestHarness {
     public spaceMgr = new SpaceManager();
     public shipObj = new Spaceship();
-    public shipMgr = new ShipManager(
+    public shipMgr = new ShipManagerPc(
         this.shipObj,
         makeShipState(this.shipObj.id, dragonflyConfig),
         this.spaceMgr,

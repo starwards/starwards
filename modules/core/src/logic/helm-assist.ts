@@ -35,7 +35,7 @@ export function matchLocalSpeed(deltaSeconds: number, ship: ShipState, localVelo
 export function moveToTarget(deltaSeconds: number, ship: Craft, targetPos: XY): ManeuveringCommand {
     const posDiff = ship.globalToLocal(XY.difference(targetPos, ship.position));
     const velocity = ship.globalToLocal(ship.velocity); // TODO cap to range maxMovementInTime
-    const velocityDirection = vector2ShipDirections(velocity);
+    const velocityDirection = vector2ShipDirections(posDiff);
     return {
         strafe: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.y), velocity.y, posDiff.y),
         boost: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.x), velocity.x, posDiff.x),

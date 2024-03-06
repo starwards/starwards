@@ -66,7 +66,7 @@ export class Driver {
         this.rooms = new Client(colyseusEndpoint);
         this.connectionManager.events.on('exit:connected', this.clearCache);
         void this.onGameStateChange(async () => {
-            if (!(await this.isActiveGame())) {
+            if (!(await this.getGameStatus())) {
                 this.spaceDriver = null;
                 this.shipDrivers.clear();
             }
@@ -132,15 +132,22 @@ export class Driver {
             unRegister();
         };
     }
-    async isActiveGame() {
-        return (await this.getAdminDriver()).state.isGameRunning;
+    async getGameStatus() {
+        return (await this.getAdminDriver()).state.gameStatus;
     }
 
     /**
-     * Returns a finite iterator for the IDs of the ships currently active
+     * Returns a finite iterator for the IDs of the ship currently active
      */
     async getCurrentShipIds(): Promise<Iterable<string>> {
         return (await this.getAdminDriver()).state.shipIds;
+    }
+
+    /**
+     * Returns a finite iterator for the IDs of the player ship currently active
+     */
+    async getCurrentPlayerShipIds(): Promise<Iterable<string>> {
+        return (await this.getAdminDriver()).state.playerShipIds;
     }
 
     async doesShipExist(shipId: string): Promise<boolean> {
@@ -167,7 +174,7 @@ export class Driver {
      * constantly scan for a game and return when a game is running
      */
     async waitForGame(): Promise<void> {
-        while (!(await this.isActiveGame())) {
+        while (!(await this.getGameStatus())) {
             await new Promise((res) => setTimeout(res, 500));
         }
     }

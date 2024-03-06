@@ -1,4 +1,4 @@
-import { AdminDriver, DefectibleValue, Destructors, Driver, ShipDriver, TaskLoop } from '@starwards/core';
+import { AdminDriver, DefectibleValue, Destructors, Driver, GameStatus, ShipDriver, TaskLoop } from '@starwards/core';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
@@ -30,13 +30,19 @@ export function useAdminDriver(driver: Driver): AdminDriver | null {
 
 export function useIsGameRunning(driver: Driver): boolean | null {
     const [gamesCount, setgamesCount] = useState<boolean | null>(null);
-    useLoop(async () => setgamesCount(await driver.isActiveGame()), 500, [driver]);
+    useLoop(async () => setgamesCount((await driver.getGameStatus()) === GameStatus.RUNNING), 500, [driver]);
     return gamesCount;
 }
 
-export function useShips(driver: Driver): string[] {
+export function useCanStartGame(driver: Driver): boolean | null {
+    const [gamesCount, setgamesCount] = useState<boolean | null>(null);
+    useLoop(async () => setgamesCount((await driver.getGameStatus()) === GameStatus.STOPPED), 500, [driver]);
+    return gamesCount;
+}
+
+export function usePlayerShips(driver: Driver): string[] {
     const [ships, setShips] = useState<string[]>([]);
-    useLoop(async () => setShips([...(await driver.getCurrentShipIds())]), 500, [driver]);
+    useLoop(async () => setShips([...(await driver.getCurrentPlayerShipIds())]), 500, [driver]);
     return ships;
 }
 
