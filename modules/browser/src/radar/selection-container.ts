@@ -43,6 +43,29 @@ export class SelectionContainer {
         }
     }
 
+    public add(selected: SpaceObject[]) {
+        const changed = selected.filter((so) => !this.selected.has(so.id));
+        for (const spaceObject of selected) {
+            this.selected.set(spaceObject.id, spaceObject);
+        }
+        if (changed.length) {
+            for (const spaceObject of changed) {
+                this.events.emit(spaceObject.id);
+            }
+            this.events.emit('changed');
+        }
+    }
+
+    public remove(selected: SpaceObject[]) {
+        const changed = selected.filter((so) => this.selected.delete(so.id));
+        if (changed.length) {
+            for (const spaceObject of changed) {
+                this.events.emit(spaceObject.id);
+            }
+            this.events.emit('changed');
+        }
+    }
+
     public set(selected: SpaceObject[]) {
         const changed = selected.filter((so) => !this.selected.delete(so.id)).concat(...this.selected.values());
         this.selected.clear();

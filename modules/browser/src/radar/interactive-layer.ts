@@ -14,6 +14,7 @@ import {
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 import { SpaceDriver } from '@starwards/core';
+import hotkeys from 'hotkeys-js';
 import { selectionColor } from '../colors';
 
 enum MouseButton {
@@ -31,6 +32,11 @@ enum ActionType {
     panCamera,
     dragObjects,
     create,
+}
+enum SelectModifier {
+    replace,
+    add,
+    subtract,
 }
 const defaultCursor = 'crosshair';
 const panCameraCursor = 'grab';
@@ -68,22 +74,27 @@ export class InteractiveLayer {
         return this.stage;
     }
 
-    onSelectPoint(point: XY) {
+    onSelectPoint(modifier: SelectModifier, point: XY) {
         const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, point);
         if (spaceObject) {
-            this.selectionContainer.set([spaceObject]);
-        } else {
+            const selected = [spaceObject];
+            if (modifier === SelectModifier.replace) this.selectionContainer.set(selected);
+            else if (modifier === SelectModifier.add) this.selectionContainer.add(selected);
+            else if (modifier === SelectModifier.subtract) this.selectionContainer.remove(selected);
+        } else if (modifier === SelectModifier.replace) {
             this.selectionContainer.clear();
         }
     }
 
-    onSelectArea(a: XY, b: XY) {
+    onSelectArea(modifier: SelectModifier, a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
         const selected = [...this.spaceDriver.state].filter((spaceObject) =>
             XY.inRange(spaceObject.position, from, to),
         );
-        this.selectionContainer.set(selected);
+        if (modifier === SelectModifier.replace) this.selectionContainer.set(selected);
+        else if (modifier === SelectModifier.add) this.selectionContainer.add(selected);
+        else if (modifier === SelectModifier.subtract) this.selectionContainer.remove(selected);
     }
 
     getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
@@ -170,11 +181,16 @@ export class InteractiveLayer {
     onPointerup = (event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
+                const modifier = hotkeys.ctrl
+                    ? SelectModifier.add
+                    : hotkeys.alt
+                      ? SelectModifier.subtract
+                      : SelectModifier.replace;
                 if (this.dragTo == null) {
-                    this.onSelectPoint(this.parent.screenToWorld(this.dragFrom));
+                    this.onSelectPoint(modifier, this.parent.screenToWorld(this.dragFrom));
                 } else {
                     const to = this.parent.screenToWorld(this.dragTo);
-                    this.onSelectArea(this.parent.screenToWorld(this.dragFrom), to);
+                    this.onSelectArea(modifier, this.parent.screenToWorld(this.dragFrom), to);
                 }
             } else if (this.actionType === ActionType.create && this.createTemplate) {
                 const position = this.parent.screenToWorld(event.global);
