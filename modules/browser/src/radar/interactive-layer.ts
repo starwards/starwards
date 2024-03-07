@@ -38,6 +38,11 @@ enum SelectModifier {
     add,
     subtract,
 }
+enum OrderModifier {
+    contextual,
+    move,
+    attack,
+}
 const defaultCursor = 'crosshair';
 const panCameraCursor = 'grab';
 const createCursor = 'cell';
@@ -215,13 +220,18 @@ export class InteractiveLayer {
                         .map((so) => so.id),
                 ];
                 if (selectedShipIds.length) {
+                    const modifier = hotkeys.ctrl
+                        ? OrderModifier.attack
+                        : hotkeys.alt
+                          ? OrderModifier.move
+                          : OrderModifier.contextual;
                     const position = this.parent.screenToWorld(this.dragFrom);
                     const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
                     if (spaceObject) {
                         this.spaceDriver.command(spaceCommands.bulkBotOrder, {
                             ids: selectedShipIds,
                             order: {
-                                type: 'attack',
+                                type: modifier === OrderModifier.move ? 'defend' : 'attack',
                                 targetId: spaceObject.id,
                             },
                         });
