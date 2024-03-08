@@ -16,6 +16,7 @@ import {
     projectileModels,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
+import { follow, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DamageManager } from './damage-manager';
@@ -27,7 +28,6 @@ import { Maneuvering } from './maneuvering';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
-import { sinWave } from '../logic';
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.design.plateMaxHealth;
@@ -203,7 +203,9 @@ export abstract class ShipManager {
             if (order.type === 'move') {
                 this.bot = p2pGoto(order.position);
             } else if (order.type === 'attack') {
-                this.bot = jouster(order.targetId);
+                this.bot = jouster(order.targetId, true);
+            } else if (order.type === 'follow') {
+                this.bot = jouster(order.targetId, false);
             }
         }
     }

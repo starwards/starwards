@@ -20,14 +20,17 @@ export namespace XY {
     export function tuple({ x, y }: XY): [number, number] {
         return [x, y];
     }
-
     export function sum(...vectors: XY[]): XY {
+        if (!vectors.length) return zero;
+        if (vectors.length === 1) return vectors[0];
         return {
             x: limitPercision(vectors.reduce((acc, curr) => acc + curr.x, 0)),
             y: limitPercision(vectors.reduce((acc, curr) => acc + curr.y, 0)),
         };
     }
     export function add(vector: XY, vector2: XY): XY {
+        if (vector2 === zero) return vector;
+        if (vector === zero) return vector2;
         return {
             x: limitPercision(vector.x + vector2.x),
             y: limitPercision(vector.y + vector2.y),

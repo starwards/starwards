@@ -1,9 +1,46 @@
 import { ChainGun, ShipState } from '../ship';
+import { RTuple2, addScale } from './formulas';
 import { SpaceObject, projectileDesigns } from '../space';
 
 import { XY } from './xy';
-import { addScale } from './formulas';
 
+/*
+GPT suggester this:
+export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject, targetAccel: XY): XY {
+    const fireAngle = ship.angle + chainGun.angle;
+    const bulletSpeed = chainGun.design.bulletSpeed;
+    const bulletVelocity = XY.add(ship.velocity, XY.rotate({ x: bulletSpeed, y: 0 }, fireAngle));
+
+    // Relative acceleration between target and bullet
+    const relativeAccel = targetAccel; // Assuming bullet has no acceleration in this model
+
+    // Initial relative position and velocity (target relative to ship + bullet initial velocity)
+    const initialRelativePos = XY.difference(target.position, ship.position);
+    const initialRelativeVel = XY.difference(target.velocity, bulletVelocity);
+
+    // Solve quadratic equation Ax^2 + Bx + C = 0 for time t
+    const A = 0.5 * XY.dot(relativeAccel, relativeAccel);
+    const B = XY.dot(initialRelativeVel, relativeAccel);
+    const C = XY.dot(initialRelativePos, initialRelativePos);
+
+    // Discriminant
+    const D = B*B - 4*A*C;
+
+    if (D < 0) {
+        // No real solution; use fallback or heuristic
+        return target.position;
+    }
+
+    // Quadratic formula to find time; only considering positive root
+    const t = (-B + Math.sqrt(D)) / (2 * A);
+
+    // Predicted position of target at time t
+    const predictedPosition = XY.equasionOfMotion(target.position, target.velocity, targetAccel, t);
+
+    return predictedPosition;
+}
+
+*/
 export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject, targetAccel: XY) {
     const maxIterations = 20;
     const maxSeconds = 100;
@@ -42,7 +79,7 @@ export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPos
     return XY.div(posDeltaOnDirection, direction);
 }
 
-export function getKillZoneRadiusRange(chainGun: ChainGun): [number, number] {
+export function getKillZoneRadiusRange(chainGun: ChainGun): RTuple2 {
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     if (chainGun.projectile === 'None') {
         return [0, 1_000_000];

@@ -1,4 +1,7 @@
 import {
+    ManeuveringCommand,
+    RTuple2,
+    ShipState,
     SmartPilotMode,
     SpaceObject,
     SpaceState,
@@ -102,73 +105,88 @@ export function p2pGoto(destination: XY): Bot {
         shipManager.state.lastCommand = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
-        if (XY.equals(ship.position, destination, 1) && XY.isZero(ship.velocity, 1)) {
+        const trackRange: RTuple2 = [0, ship.radius];
+        if (XY.equals(ship.position, destination, trackRange[1]) && XY.isZero(ship.velocity)) {
             cleanup(shipManager);
-        } else {
-            shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-            shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-            const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
-            const maneuvering = moveToTarget(deltaSeconds, ship, destination);
-            ship.smartPilot.rotation = rotation;
-            ship.smartPilot.maneuvering.x = maneuvering.boost;
-            ship.smartPilot.maneuvering.y = maneuvering.strafe;
+            return;
         }
+        positionNearTarget(shipManager, XY.zero, destination, XY.zero, trackRange, deltaSeconds);
     };
     return { type: 'p2pGoto', update, cleanup };
 }
 
-export function jouster(targetId: string): Bot {
+function positionNearTarget(
+    shipManager: ShipManager,
+    targetVelocity: XY,
+    targetPosition: XY,
+    rotationCompensation: XY,
+    trackRange: RTuple2,
+    deltaSeconds: number,
+) {
+    const ship = shipManager.state;
+    const shipToTarget = XY.difference(targetPosition, ship.position);
+    const distanceToTarget = XY.lengthOf(shipToTarget);
+    let maneuvering: ManeuveringCommand;
+    if (isInRange(trackRange[0], trackRange[1], distanceToTarget)) {
+        maneuvering = matchGlobalSpeed(deltaSeconds, ship, targetVelocity);
+    } else {
+        maneuvering = moveToTarget(deltaSeconds, ship, targetPosition);
+        if (distanceToTarget < trackRange[0]) {
+            maneuvering.boost = -maneuvering.boost;
+            maneuvering.strafe = -maneuvering.strafe;
+        }
+    }
+    const rotation = rotateToTarget(deltaSeconds, ship, XY.add(targetPosition, rotationCompensation), 0);
+    shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+    shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+    ship.smartPilot.maneuvering.x = maneuvering.boost;
+    ship.smartPilot.maneuvering.y = maneuvering.strafe;
+    ship.smartPilot.rotation = rotation;
+}
+
+export function jouster(targetId: string, fire: boolean): Bot {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;
     const cmdName = `Attack ${targetId} (joust)`;
     const update = (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
         shipManager.state.lastCommand = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
-        shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-        shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         const target = spaceState.get(targetId) || null;
         const ship = shipManager.state;
-        if (target && !target.destroyed && ship.chainGun) {
-            shipManager.setTarget(targetId);
-            switchToAvailableAmmo(ship.chainGun, ship.magazine);
-            const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
-            const hitLocation = predictHitLocation(ship, ship.chainGun, target, targetAccel);
-            const rangeDiff = calcRangediff(ship, target, hitLocation);
-            const range = ship.chainGun.design.maxShellRange - ship.chainGun.design.minShellRange;
-            ship.chainGun.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
-            const rotation = rotateToTarget(
-                deltaSeconds,
-                ship,
-                XY.add(hitLocation, getShellAimVelocityCompensation(ship, ship.chainGun)),
-                0,
-            );
-            ship.smartPilot.rotation = rotation;
-            const shipToTarget = XY.difference(hitLocation, ship.position);
-            const distanceToTarget = XY.lengthOf(shipToTarget);
-            const killRadius = getKillZoneRadiusRange(ship.chainGun);
-            if (isInRange(killRadius[0], killRadius[1], distanceToTarget)) {
-                // if close enough to target, tail it
-                const maneuvering = matchGlobalSpeed(deltaSeconds, ship, target.velocity);
-
-                ship.smartPilot.maneuvering.x = maneuvering.boost;
-                ship.smartPilot.maneuvering.y = maneuvering.strafe;
-            } else {
-                const maneuvering = moveToTarget(deltaSeconds, ship, hitLocation);
-                // close distance to target
-                if (distanceToTarget > killRadius[1]) {
-                    ship.smartPilot.maneuvering.x = maneuvering.boost;
-                    ship.smartPilot.maneuvering.y = maneuvering.strafe;
-                } else {
-                    // distanceToTarget < killRadius[0]
-                    ship.smartPilot.maneuvering.x = -maneuvering.boost;
-                    ship.smartPilot.maneuvering.y = -maneuvering.strafe;
-                }
-            }
-            lastTargetVelocity = XY.clone(target.velocity);
-            ship.chainGun.isFiring = isTargetInKillZone(ship, ship.chainGun, target);
-        } else {
+        const controlWeapon = ship.chainGun;
+        if (!target || target.destroyed || (fire && !controlWeapon)) {
             cleanup(shipManager);
+            return;
         }
+        let trackRange: RTuple2, rotationCompensation: XY;
+        if (fire && controlWeapon) {
+            shipManager.setTarget(targetId);
+            const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
+            switchToAvailableAmmo(controlWeapon, ship.magazine);
+            const destination = predictHitLocation(ship, controlWeapon, target, targetAccel);
+            rotationCompensation = getShellAimVelocityCompensation(ship, controlWeapon);
+            //  XY.add(
+            //     getShellAimVelocityCompensation(ship, controlWeapon),
+            //     XY.difference(destination, target.position),
+            // );
+            const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
+            const rangeDiff = calcRangediff(ship, target, destination);
+            trackRange = getKillZoneRadiusRange(controlWeapon);
+            controlWeapon.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
+            controlWeapon.isFiring = isTargetInKillZone(ship, controlWeapon, target);
+        } else {
+            trackRange = [1000, 3000];
+            rotationCompensation = XY.zero;
+        }
+        positionNearTarget(
+            shipManager,
+            target.velocity,
+            target.position,
+            rotationCompensation,
+            trackRange,
+            deltaSeconds,
+        );
+        lastTargetVelocity = XY.clone(target.velocity);
     };
     return { type: 'jouster', update, cleanup };
 }

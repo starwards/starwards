@@ -231,7 +231,7 @@ export class InteractiveLayer {
                         this.spaceDriver.command(spaceCommands.bulkBotOrder, {
                             ids: selectedShipIds,
                             order: {
-                                type: modifier === OrderModifier.move ? 'defend' : 'attack',
+                                type: modifier === OrderModifier.move ? 'follow' : 'attack',
                                 targetId: spaceObject.id,
                             },
                         });

@@ -32,15 +32,15 @@ type AttackOrder = {
     type: 'attack';
     targetId: string;
 };
-type DefendOrder = {
-    type: 'defend';
+type FollowOrder = {
+    type: 'follow';
     targetId: string;
 };
 type ExtraData = {
     body: Circle;
     fov: FieldOfView;
 };
-export type BotOrder = MoveOrder | AttackOrder | DefendOrder;
+export type BotOrder = MoveOrder | AttackOrder | FollowOrder;
 const nullPtr = [] as readonly [];
 export type SpatialIndex = {
     selectPotentials(area: Body): Iterable<SpaceObject>;
