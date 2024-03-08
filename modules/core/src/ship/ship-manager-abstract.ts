@@ -1,4 +1,4 @@
-import { AutonomousTask, jouster, p2pGoto, sinWave } from '../logic';
+import { AutonomousTask, follow, goto, sinWave } from '../logic';
 import {
     ChainGun,
     Docking,
@@ -200,11 +200,11 @@ export abstract class ShipManager {
         if (order) {
             this.autonomoustask?.cleanup(this);
             if (order.type === 'move') {
-                this.autonomoustask = p2pGoto(order.position);
+                this.autonomoustask = goto(order.position);
             } else if (order.type === 'attack') {
-                this.autonomoustask = jouster(order.targetId, true);
+                this.autonomoustask = follow(order.targetId, true);
             } else if (order.type === 'follow') {
-                this.autonomoustask = jouster(order.targetId, false);
+                this.autonomoustask = follow(order.targetId, false);
             }
         }
     }

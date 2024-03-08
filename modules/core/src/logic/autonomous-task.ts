@@ -97,9 +97,9 @@ export function docker(dockingTarget: SpaceObject): AutonomousTask {
     return { type: 'docker', update, cleanup };
 }
 
-export function p2pGoto(destination: XY): AutonomousTask {
+export function goto(destination: XY): AutonomousTask {
     let deltaSeconds = 1 / 20;
-    const cmdName = `Go to ${destination.x},${destination.y} (direct)`;
+    const cmdName = `Go to ${destination.x},${destination.y}`;
     const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
         shipManager.state.currentTask = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
@@ -143,10 +143,10 @@ function positionNearTarget(
     ship.smartPilot.rotation = rotation;
 }
 
-export function jouster(targetId: string, fire: boolean): AutonomousTask {
+export function follow(targetId: string, fire: boolean): AutonomousTask {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;
-    const cmdName = `Attack ${targetId} (joust)`;
+    const cmdName = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
     const update = (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
         shipManager.state.currentTask = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
