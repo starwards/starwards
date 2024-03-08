@@ -3,6 +3,7 @@ import {
     ChainGun,
     Docking,
     Faction,
+    Order,
     Radar,
     Reactor,
     ShipState,
@@ -179,8 +180,8 @@ export abstract class ShipManager {
         this.syncShipProperties();
         this.healPlates(deltaSeconds);
         this.damageManager.update();
-        this.autonomoustask?.update(deltaSeconds, this.spaceManager.state, this);
         this.applyBotOrders();
+        this.autonomoustask?.update(deltaSeconds, this.spaceManager.state, this);
         this.validateWeaponsTargetId();
         this.chainGunManager?.update(deltaSeconds);
         for (const tubeManager of this.tubeManagers) {
@@ -200,12 +201,20 @@ export abstract class ShipManager {
         if (order) {
             this.autonomoustask?.cleanup(this);
             if (order.type === 'move') {
+                this.state.order = Order.MOVE;
                 this.autonomoustask = goto(order.position);
             } else if (order.type === 'attack') {
+                this.state.order = Order.ATTACK;
+                this.state.orderTargetId = order.targetId;
                 this.autonomoustask = follow(order.targetId, true);
+                this.state.order = Order.FOLLOW;
             } else if (order.type === 'follow') {
+                this.state.orderTargetId = order.targetId;
                 this.autonomoustask = follow(order.targetId, false);
             }
+        }
+        if (typeof this.state.orderTargetId === 'string' && !this.spaceManager.state.get(this.state.orderTargetId)) {
+            this.state.orderTargetId = null;
         }
     }
 

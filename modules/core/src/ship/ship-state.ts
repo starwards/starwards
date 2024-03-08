@@ -32,6 +32,13 @@ export enum IdleStrategy {
     STAND_GROUND,
 }
 
+export enum Order {
+    NONE,
+    MOVE,
+    ATTACK,
+    FOLLOW,
+}
+
 export type ShipPropertiesDesign = {
     totalCoolant: number;
     systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
@@ -52,6 +59,14 @@ export class ShipState extends Spaceship {
     @gameField('int8')
     @tweakable({ type: 'enum', enum: IdleStrategy })
     idleStrategy = IdleStrategy.PLAY_DEAD;
+
+    @gameField('int8')
+    @tweakable({ type: 'enum', enum: Order })
+    order = Order.NONE;
+
+    @gameField('string')
+    @tweakable('string')
+    orderTargetId: string | null = null;
 
     @gameField('string')
     currentTask = '';
