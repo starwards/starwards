@@ -10,6 +10,7 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
+import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
@@ -46,7 +47,7 @@ export type SpatialIndex = {
     selectPotentials(area: Body): Iterable<SpaceObject>;
 };
 
-export class SpaceManager {
+export class SpaceManager implements Updateable {
     static destroyObject(state: SpaceState, id: string) {
         const subject = state.get(id);
         if (subject && !subject.destroyed && subject.expendable) {
@@ -168,7 +169,7 @@ export class SpaceManager {
         }
     }
 
-    public update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         this.calcAttachmentCliques();
         for (const cmd of this.state.createAsteroidCommands) {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);

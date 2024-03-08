@@ -1,4 +1,5 @@
 import { Die, EnergySource } from './ship-manager-abstract';
+import { IterationData, Updateable } from '../updateable';
 import { MAX_WARP_LVL, WarpFrequency } from './warp';
 import {
     ManeuveringCommand,
@@ -26,7 +27,7 @@ type ShipManager = {
 };
 
 export const CHECK_JAM_INTERVAL_SECONDS = 5;
-export class MovementManager {
+export class MovementManager implements Updateable {
     private lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
     private calibrationGoal = WarpFrequency.WARP_FREQUENCY_COUNT;
     constructor(
@@ -39,7 +40,7 @@ export class MovementManager {
         public die: Die,
     ) {}
 
-    update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         this.handleWarpCommands();
         this.handleWarpFrequencyChange(deltaSeconds);
         this.handleWarpProximityJam(deltaSeconds);

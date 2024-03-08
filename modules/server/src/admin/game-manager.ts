@@ -19,18 +19,18 @@ import {
 import { IRoomListingData, matchMaker } from 'colyseus';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { Updateable } from 'modules/core/src/updateable';
 
-type Die = {
-    update: (deltaSeconds: number) => void;
-};
 type ShipManager = ShipManagerPc | ShipManagerNpc;
 export class GameManager {
     public state = new AdminState();
     private shipCleanups = new Map<string, () => unknown>();
     private shipManagers = new Map<string, ShipManager>();
-    private dice: Die[] = [];
+    private dice: Updateable[] = [];
     private spaceManager = new SpaceManager();
     private map: GameMap | null = null;
+    private deltaSecondsAvg = 1 / 20;
+    private totalSeconds = 0;
     public readonly scriptApi: GameApi = {
         getShip: (shipId: string) => this.shipManagers.get(shipId) as ShipApi | undefined,
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
@@ -47,17 +47,24 @@ export class GameManager {
         },
     };
 
-    update(deltaSeconds: number) {
-        const adjustedDeltaSeconds = deltaSeconds * this.state.speed;
+    update(currDeltaSeconds: number) {
+        this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
+        const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
+        this.totalSeconds = this.totalSeconds + adjustedDeltaSeconds;
         if (this.state.isGameRunning && adjustedDeltaSeconds > 0) {
+            const iterationData = {
+                deltaSeconds: currDeltaSeconds * this.state.speed,
+                deltaSecondsAvg: this.deltaSecondsAvg * this.state.speed,
+                totalSeconds: this.totalSeconds,
+            };
             this.map?.update?.(adjustedDeltaSeconds);
             for (const die of this.dice) {
-                die.update(adjustedDeltaSeconds);
+                die.update(iterationData);
             }
             for (const shipManager of this.shipManagers.values()) {
-                shipManager.update(adjustedDeltaSeconds);
+                shipManager.update(iterationData);
             }
-            this.spaceManager.update(adjustedDeltaSeconds);
+            this.spaceManager.update(iterationData);
             for (const id of this.spaceManager.state.destroySpaceshipCommands) {
                 this.cleanupShip(id);
             }

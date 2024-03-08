@@ -17,6 +17,7 @@ import {
     projectileModels,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
+import { IterationData, Updateable } from '../updateable';
 
 import { Armor } from './armor';
 import { DamageManager } from './damage-manager';
@@ -55,6 +56,7 @@ function resetThruster(thruster: Thruster) {
     thruster.availableCapacity = 1.0;
 }
 export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering;
+
 export type Die = {
     getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
@@ -64,14 +66,13 @@ export type Die = {
 export interface EnergySource {
     trySpendEnergy(value: number, system?: ShipSystem): boolean;
 }
-export abstract class ShipManager {
+export abstract class ShipManager implements Updateable {
     protected readonly internalProxy = {
         trySpendEnergy: (_: number, _2?: ShipSystem) => false,
     };
     public autonomoustask: AutonomousTask | null = null;
     public weaponsTarget: SpaceObject | null = null;
 
-    public totalSeconds = 0;
     protected tubeManagers = new Array<ChainGunManager>();
     protected chainGunManager: ChainGunManager | null = null;
     protected dockingManager: DockingManager;
@@ -174,8 +175,8 @@ export abstract class ShipManager {
         return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
     }
 
-    protected update(deltaSeconds: number) {
-        this.totalSeconds += deltaSeconds;
+    update(id: IterationData) {
+        const { deltaSeconds } = id;
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
         this.healPlates(deltaSeconds);
@@ -183,15 +184,15 @@ export abstract class ShipManager {
         this.applyBotOrders();
         this.autonomoustask?.update(deltaSeconds, this.spaceManager.state, this);
         this.validateWeaponsTargetId();
-        this.chainGunManager?.update(deltaSeconds);
+        this.chainGunManager?.update(id);
         for (const tubeManager of this.tubeManagers) {
-            tubeManager.update(deltaSeconds);
+            tubeManager.update(id);
         }
         // this.movementManager.update(deltaSeconds);
         this.handleTargetCommands();
         this.calcTargetedStatus();
 
-        this.updateRadarRange(deltaSeconds);
+        this.updateRadarRange(id);
         this.updateAmmo();
         this.dockingManager.update();
     }
@@ -218,23 +219,23 @@ export abstract class ShipManager {
         }
     }
 
-    protected updateRadarRange(deltaSeconds: number) {
-        const range = this.calcRadarRange();
+    protected updateRadarRange({ totalSeconds, deltaSeconds }: IterationData) {
+        const range = this.calcRadarRange(totalSeconds);
         if (
             this.internalProxy.trySpendEnergy(
                 range * (this.state.radar.design.energyCost / 1000) * deltaSeconds,
                 this.state.radar,
             )
         ) {
-            this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange());
+            this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange(totalSeconds));
         }
         this.state.radarRange = this.spaceObject.radarRange;
     }
 
-    private calcRadarRange() {
+    private calcRadarRange(totalSeconds: number) {
         if (this.state.radar.malfunctionRangeFactor && this.state.radar.effectiveness) {
             const frequency = this.die.getRollInRange('updateRadarRangeFrequency', 0.2, 1);
-            const wave = sinWave(this.totalSeconds, frequency, 0.5, 0, 0.5);
+            const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
             const factorEaseRange = [
                 this.state.radar.malfunctionRangeFactor,
                 this.state.radar.malfunctionRangeFactor + this.state.radar.design.rangeEaseFactor,

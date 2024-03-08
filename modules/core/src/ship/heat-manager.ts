@@ -1,9 +1,11 @@
+import { IterationData, Updateable } from '../updateable';
+
 import { DamageManager } from './damage-manager';
 import { ShipState } from './ship-state';
-import { ShipSystem } from './ship-manager';
+import { ShipSystem } from './ship-manager-abstract';
 
 export const MAX_SYSTEM_HEAT = 100;
-export class HeatManager {
+export class HeatManager implements Updateable {
     constructor(
         private state: ShipState,
         private damageManager: DamageManager,
@@ -24,7 +26,7 @@ export class HeatManager {
         }
     }
 
-    update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         const totalCoolant = this.state.design.totalCoolant; // each coolant removes 1 heat per second
         const totalCoolantFactors = this.state
             .systems()

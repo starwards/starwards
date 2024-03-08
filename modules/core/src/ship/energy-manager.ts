@@ -1,4 +1,5 @@
 import { EnergySource, ShipSystem } from './ship-manager-abstract';
+import { IterationData, Updateable } from '../updateable';
 
 import { HeatManager } from './heat-manager';
 import { ShipState } from './ship-state';
@@ -10,7 +11,7 @@ class EpmEntry {
 
 const SECONDS_IN_MINUTE = 60;
 
-export class EnergyManager implements EnergySource {
+export class EnergyManager implements EnergySource, Updateable {
     private epm = new Map<ShipSystem, EpmEntry>();
     constructor(
         private state: ShipState,
@@ -41,7 +42,7 @@ export class EnergyManager implements EnergySource {
         return false;
     };
 
-    update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         this.state.reactor.energy = capToRange(
             0,
             this.state.reactor.design.maxEnergy,

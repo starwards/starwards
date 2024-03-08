@@ -13,6 +13,7 @@ import {
 import { DeepReadonly } from 'ts-essentials';
 import { EnergyManager } from './energy-manager';
 import { HeatManager } from './heat-manager';
+import { IterationData } from '../updateable';
 import { MovementManager } from './movement-manager';
 import { SpaceManager } from '../logic/space-manager';
 
@@ -72,14 +73,14 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
         }
     }
 
-    update(deltaSeconds: number) {
-        super.update(deltaSeconds);
+    update(id: IterationData) {
+        super.update(id);
 
-        this.heatManager.update(deltaSeconds);
-        this.movementManager.update(deltaSeconds);
+        this.heatManager.update(id);
+        this.movementManager.update(id);
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
-        this.energyManager.update(deltaSeconds);
+        this.energyManager.update(id);
     }
 
     protected validateWeaponsTargetId() {
@@ -124,8 +125,9 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         this.state.velocity.y = this.spaceObject.velocity.y;
     }
 
-    update(deltaSeconds: number) {
-        super.update(deltaSeconds);
+    update(id: IterationData) {
+        super.update(id);
+        const { deltaSeconds } = id;
         // enforce maxSpeed
         this.handleManeuvering(deltaSeconds);
         if (this.state.smartPilot.rotation) {

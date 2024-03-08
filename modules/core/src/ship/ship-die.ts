@@ -1,10 +1,12 @@
-export class ShipDie {
+import { IterationData, Updateable } from '../updateable';
+
+export class ShipDie implements Updateable {
     private timeSinceUpdate = 0;
     private rolls = new Map<string, number>();
 
     constructor(public updateTimeInSeconds: number) {}
 
-    public update(deltaSeconds: number) {
+    public update({ deltaSeconds }: IterationData) {
         this.timeSinceUpdate += deltaSeconds;
         if (this.timeSinceUpdate > this.updateTimeInSeconds) {
             this.rolls = new Map<string, number>();

@@ -1,5 +1,10 @@
+export interface IterationData {
+    readonly deltaSeconds: number;
+    readonly deltaSecondsAvg: number;
+    readonly totalSeconds: number;
+}
 export interface Updateable {
-    update(deltaSeconds: number): void;
+    update(data: IterationData): void;
 }
 
 export function isUpdateable(v: unknown): v is Updateable {
