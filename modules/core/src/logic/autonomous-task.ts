@@ -1,7 +1,6 @@
 import {
     ManeuveringCommand,
     RTuple2,
-    ShipState,
     SmartPilotMode,
     SpaceObject,
     SpaceState,
@@ -17,14 +16,14 @@ import {
     predictHitLocation,
     rotateToTarget,
     toDegreesDelta,
-} from '../';
+} from '..';
 
 import { DockingMode } from '../ship/docking';
 import { ShipManager } from '../ship/ship-manager-abstract';
 import { switchToAvailableAmmo } from '../ship/chain-gun-manager';
 
 // TODO: use ShipApi
-export type Bot = {
+export type AutonomousTask = {
     type: string;
     update(deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager): void;
     cleanup(shipManager: ShipManager): void;
@@ -41,10 +40,10 @@ function cleanup(shipManager: ShipManager) {
         shipManager.state.chainGun.isFiring = false;
     }
     shipManager.setTarget(null);
-    shipManager.bot = null;
+    shipManager.autonomoustask = null;
 }
 
-export function docker(dockingTarget: SpaceObject): Bot {
+export function docker(dockingTarget: SpaceObject): AutonomousTask {
     const UndockingOvershootFactor = 1.2;
     let deltaSeconds = 1 / 20;
     const dockingCmd = `Dock at  ${dockingTarget.id}`;
@@ -98,7 +97,7 @@ export function docker(dockingTarget: SpaceObject): Bot {
     return { type: 'docker', update, cleanup };
 }
 
-export function p2pGoto(destination: XY): Bot {
+export function p2pGoto(destination: XY): AutonomousTask {
     let deltaSeconds = 1 / 20;
     const cmdName = `Go to ${destination.x},${destination.y} (direct)`;
     const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
@@ -144,7 +143,7 @@ function positionNearTarget(
     ship.smartPilot.rotation = rotation;
 }
 
-export function jouster(targetId: string, fire: boolean): Bot {
+export function jouster(targetId: string, fire: boolean): AutonomousTask {
     let lastTargetVelocity = XY.zero;
     let deltaSeconds = 1 / 20;
     const cmdName = `Attack ${targetId} (joust)`;

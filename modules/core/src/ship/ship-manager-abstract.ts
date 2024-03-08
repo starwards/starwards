@@ -1,4 +1,4 @@
-import { Bot, jouster, p2pGoto } from '../logic/bot';
+import { AutonomousTask, jouster, p2pGoto, sinWave } from '../logic';
 import {
     ChainGun,
     Docking,
@@ -16,7 +16,6 @@ import {
     projectileModels,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
-import { follow, sinWave } from '../logic';
 
 import { Armor } from './armor';
 import { DamageManager } from './damage-manager';
@@ -68,7 +67,7 @@ export abstract class ShipManager {
     protected readonly internalProxy = {
         trySpendEnergy: (_: number, _2?: ShipSystem) => false,
     };
-    public bot: Bot | null = null;
+    public autonomoustask: AutonomousTask | null = null;
     public weaponsTarget: SpaceObject | null = null;
 
     public totalSeconds = 0;
@@ -180,7 +179,7 @@ export abstract class ShipManager {
         this.syncShipProperties();
         this.healPlates(deltaSeconds);
         this.damageManager.update();
-        this.bot?.update(deltaSeconds, this.spaceManager.state, this);
+        this.autonomoustask?.update(deltaSeconds, this.spaceManager.state, this);
         this.applyBotOrders();
         this.validateWeaponsTargetId();
         this.chainGunManager?.update(deltaSeconds);
@@ -199,13 +198,13 @@ export abstract class ShipManager {
     private applyBotOrders() {
         const order = this.spaceManager.resolveObjectOrder(this.spaceObject.id);
         if (order) {
-            this.bot?.cleanup(this);
+            this.autonomoustask?.cleanup(this);
             if (order.type === 'move') {
-                this.bot = p2pGoto(order.position);
+                this.autonomoustask = p2pGoto(order.position);
             } else if (order.type === 'attack') {
-                this.bot = jouster(order.targetId, true);
+                this.autonomoustask = jouster(order.targetId, true);
             } else if (order.type === 'follow') {
-                this.bot = jouster(order.targetId, false);
+                this.autonomoustask = jouster(order.targetId, false);
             }
         }
     }

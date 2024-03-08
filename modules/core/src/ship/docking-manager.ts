@@ -6,7 +6,7 @@ import { DockingMode } from './docking';
 import { ShipManager } from './ship-manager-abstract';
 import { ShipState } from './ship-state';
 import { Spaceship } from '../space';
-import { docker } from '../logic/bot';
+import { docker } from '../logic';
 
 const toggleTransition = {
     [DockingMode.DOCKED]: DockingMode.UNDOCKING,
@@ -36,8 +36,8 @@ export class DockingManager {
     }
 
     private clearDocking() {
-        if (this.shipManager.bot?.type === 'docker') {
-            this.shipManager.bot.cleanup(this.shipManager);
+        if (this.shipManager.autonomoustask?.type === 'docker') {
+            this.shipManager.autonomoustask.cleanup(this.shipManager);
         }
         this.state.docking.targetId = '';
         this.state.docking.mode = DockingMode.UNDOCKED;
@@ -52,8 +52,8 @@ export class DockingManager {
             } else if (this.state.docking.mode === DockingMode.UNDOCKED) {
                 // don't reset this.state.docking.targetId
                 this.spaceManager.detach(this.state.id);
-                if (this.shipManager.bot?.type === 'docker') {
-                    this.shipManager.bot.cleanup(this.shipManager);
+                if (this.shipManager.autonomoustask?.type === 'docker') {
+                    this.shipManager.autonomoustask.cleanup(this.shipManager);
                 }
             } else {
                 const diff = XY.difference(dockingTarget.position, this.state.position);
@@ -62,8 +62,8 @@ export class DockingManager {
                     this.clearDocking();
                 } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
                     this.spaceManager.detach(this.state.id);
-                    if (this.shipManager.bot?.type !== 'docker') {
-                        this.shipManager.bot = docker(dockingTarget);
+                    if (this.shipManager.autonomoustask?.type !== 'docker') {
+                        this.shipManager.autonomoustask = docker(dockingTarget);
                     }
                     if (distance > this.state.docking.design.undockingTargetDistance) {
                         this.clearDocking();
@@ -83,8 +83,8 @@ export class DockingManager {
                         }
                     } else if (this.state.docking.mode === DockingMode.DOCKING) {
                         this.spaceManager.detach(this.state.id);
-                        if (this.shipManager.bot?.type !== 'docker') {
-                            this.shipManager.bot = docker(dockingTarget);
+                        if (this.shipManager.autonomoustask?.type !== 'docker') {
+                            this.shipManager.autonomoustask = docker(dockingTarget);
                         }
                         if (isDockedPosition) {
                             this.state.docking.mode = DockingMode.DOCKED;

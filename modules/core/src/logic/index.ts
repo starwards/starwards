@@ -1,4 +1,4 @@
-export * from './bot';
+export * from './autonomous-task';
 export * from './docking-target';
 export * from './field-of-view';
 export * from './formulas';

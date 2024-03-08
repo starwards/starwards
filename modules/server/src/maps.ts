@@ -11,7 +11,7 @@ export const two_vs_one: GameMap = {
         game.addPlayerSpaceship(newShip('GVTS2', Faction.Gravitas, 'dragonfly-SF22'));
         const ship2 = game.addNpcSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
         ship2.setTarget('GVTS');
-        // bManager.bot = jouster();
+        // bManager.autonomoustask = jouster();
     },
 };
 

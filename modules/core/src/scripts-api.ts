@@ -1,4 +1,4 @@
-import { Bot } from './logic/bot';
+import { AutonomousTask } from './logic';
 import { DeepReadonly } from 'ts-essentials';
 import { SpaceObject } from './space';
 import { Spaceship } from './space/spaceship';
@@ -6,13 +6,13 @@ import { Spaceship } from './space/spaceship';
 export interface NpcShipApi {
     readonly isPlayerShip: false;
     setTarget(id: string | null): void;
-    bot: Bot | null;
+    autonomoustask: AutonomousTask | null;
     readonly spaceObject: DeepReadonly<Spaceship>;
 }
 export interface PcShipApi {
     readonly isPlayerShip: true;
     setTarget(id: string | null): void;
-    bot: Bot | null;
+    autonomoustask: AutonomousTask | null;
     readonly spaceObject: DeepReadonly<Spaceship>;
 }
 export type ShipApi = PcShipApi | NpcShipApi;
