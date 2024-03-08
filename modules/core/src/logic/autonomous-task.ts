@@ -111,7 +111,7 @@ export function goto(destination: XY): AutonomousTask {
         }
         positionNearTarget(shipManager, XY.zero, destination, XY.zero, trackRange, deltaSeconds);
     };
-    return { type: 'p2pGoto', update, cleanup };
+    return { type: 'goto', update, cleanup };
 }
 
 function positionNearTarget(
@@ -187,5 +187,5 @@ export function follow(targetId: string, fire: boolean): AutonomousTask {
         );
         lastTargetVelocity = XY.clone(target.velocity);
     };
-    return { type: 'jouster', update, cleanup };
+    return { type: 'follow', update, cleanup };
 }
