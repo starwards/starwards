@@ -49,8 +49,8 @@ const singleSelectionDetails = async (
         const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
         addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
 
-        const lastCommandProp = readProp(shipDriver, `/lastCommand`);
-        addTextBlade(guiFolder, lastCommandProp, { label: 'Last Command', disabled: true }, cleanup);
+        const currentTaskProp = readProp(shipDriver, `/currentTask`);
+        addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
 
         const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
         addEnumListBlade(

@@ -54,7 +54,7 @@ export class ShipState extends Spaceship {
     idleStrategy = IdleStrategy.PLAY_DEAD;
 
     @gameField('string')
-    lastCommand = '';
+    currentTask = '';
 
     @gameField([Thruster])
     thrusters!: ArraySchema<Thruster>;

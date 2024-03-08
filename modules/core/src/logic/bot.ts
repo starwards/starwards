@@ -31,7 +31,7 @@ export type Bot = {
 };
 
 function cleanup(shipManager: ShipManager) {
-    shipManager.state.lastCommand = '';
+    shipManager.state.currentTask = '';
     shipManager.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
     shipManager.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
     shipManager.state.smartPilot.rotation = 0;
@@ -53,7 +53,7 @@ export function docker(dockingTarget: SpaceObject): Bot {
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         if (shipManager.state.docking.mode === DockingMode.DOCKING) {
-            shipManager.state.lastCommand = dockingCmd;
+            shipManager.state.currentTask = dockingCmd;
             shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
             const diff = XY.difference(dockingTarget.position, ship.position);
@@ -79,7 +79,7 @@ export function docker(dockingTarget: SpaceObject): Bot {
                 shipManager.state.smartPilot.rotation = rotation;
             }
         } else if (shipManager.state.docking.mode === DockingMode.UNDOCKING) {
-            shipManager.state.lastCommand = undockingCmd;
+            shipManager.state.currentTask = undockingCmd;
             const diff = XY.difference(dockingTarget.position, ship.position);
             const destination = XY.add(
                 ship.position,
@@ -102,7 +102,7 @@ export function p2pGoto(destination: XY): Bot {
     let deltaSeconds = 1 / 20;
     const cmdName = `Go to ${destination.x},${destination.y} (direct)`;
     const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
-        shipManager.state.lastCommand = cmdName;
+        shipManager.state.currentTask = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         const trackRange: RTuple2 = [0, ship.radius];
@@ -149,7 +149,7 @@ export function jouster(targetId: string, fire: boolean): Bot {
     let deltaSeconds = 1 / 20;
     const cmdName = `Attack ${targetId} (joust)`;
     const update = (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
-        shipManager.state.lastCommand = cmdName;
+        shipManager.state.currentTask = cmdName;
         deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const target = spaceState.get(targetId) || null;
         const ship = shipManager.state;
