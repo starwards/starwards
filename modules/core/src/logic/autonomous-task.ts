@@ -19,13 +19,14 @@ import {
 } from '..';
 
 import { DockingMode } from '../ship/docking';
+import { IterationData } from '../updateable';
 import { ShipManager } from '../ship/ship-manager-abstract';
 import { switchToAvailableAmmo } from '../ship/chain-gun-manager';
 
 // TODO: use ShipApi
 export type AutonomousTask = {
     type: string;
-    update(deltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager): void;
+    update(id: IterationData, spaceState: SpaceState, shipManager: ShipManager): void;
     cleanup(shipManager: ShipManager): void;
 };
 
@@ -45,11 +46,9 @@ function cleanup(shipManager: ShipManager) {
 
 export function docker(dockingTarget: SpaceObject): AutonomousTask {
     const UndockingOvershootFactor = 1.2;
-    let deltaSeconds = 1 / 20;
     const dockingCmd = `Dock at  ${dockingTarget.id}`;
     const undockingCmd = `Undock from  ${dockingTarget.id}`;
-    const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
-        deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
+    const update = ({ deltaSecondsAvg }: IterationData, _spaceState: SpaceState, shipManager: ShipManager) => {
         const ship = shipManager.state;
         if (shipManager.state.docking.mode === DockingMode.DOCKING) {
             shipManager.state.currentTask = dockingCmd;
@@ -62,11 +61,11 @@ export function docker(dockingTarget: SpaceObject): AutonomousTask {
                     ship.position,
                     XY.byLengthAndDirection(distance - ship.docking.maxDockedDistance / 2, XY.angleOf(diff)),
                 );
-                const maneuvering = moveToTarget(deltaSeconds, ship, targetPos);
+                const maneuvering = moveToTarget(deltaSecondsAvg, ship, targetPos);
                 shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
                 shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
             } else {
-                const maneuvering = matchGlobalSpeed(deltaSeconds, ship, XY.zero);
+                const maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, XY.zero);
                 ship.smartPilot.maneuvering.x = maneuvering.boost;
                 ship.smartPilot.maneuvering.y = maneuvering.strafe;
             }
@@ -74,7 +73,7 @@ export function docker(dockingTarget: SpaceObject): AutonomousTask {
             const angleDiff = XY.angleOf(diff) - shipManager.state.angle - ship.docking.design.angle;
             if (!isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff))) {
                 const offset = -ship.docking.design.angle;
-                const rotation = rotateToTarget(deltaSeconds, ship, dockingTarget.position, offset);
+                const rotation = rotateToTarget(deltaSecondsAvg, ship, dockingTarget.position, offset);
                 shipManager.state.smartPilot.rotation = rotation;
             }
         } else if (shipManager.state.docking.mode === DockingMode.UNDOCKING) {
@@ -87,8 +86,8 @@ export function docker(dockingTarget: SpaceObject): AutonomousTask {
                     180 + XY.angleOf(diff),
                 ),
             );
-            const rotation = rotateToTarget(deltaSeconds, ship, destination, 0);
-            const maneuvering = moveToTarget(deltaSeconds, ship, destination);
+            const rotation = rotateToTarget(deltaSecondsAvg, ship, destination, 0);
+            const maneuvering = moveToTarget(deltaSecondsAvg, ship, destination);
             shipManager.state.smartPilot.maneuvering.x = maneuvering.boost;
             shipManager.state.smartPilot.maneuvering.y = maneuvering.strafe;
             shipManager.state.smartPilot.rotation = rotation;
@@ -98,18 +97,16 @@ export function docker(dockingTarget: SpaceObject): AutonomousTask {
 }
 
 export function goto(destination: XY): AutonomousTask {
-    let deltaSeconds = 1 / 20;
     const cmdName = `Go to ${destination.x},${destination.y}`;
-    const update = (currDeltaSeconds: number, _spaceState: SpaceState, shipManager: ShipManager) => {
+    const update = ({ deltaSecondsAvg }: IterationData, _spaceState: SpaceState, shipManager: ShipManager) => {
         shipManager.state.currentTask = cmdName;
-        deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const ship = shipManager.state;
         const trackRange: RTuple2 = [0, ship.radius];
         if (XY.equals(ship.position, destination, trackRange[1]) && XY.isZero(ship.velocity)) {
             cleanup(shipManager);
             return;
         }
-        positionNearTarget(shipManager, XY.zero, destination, XY.zero, trackRange, deltaSeconds);
+        positionNearTarget(shipManager, XY.zero, destination, XY.zero, trackRange, deltaSecondsAvg);
     };
     return { type: 'goto', update, cleanup };
 }
@@ -145,11 +142,9 @@ function positionNearTarget(
 
 export function follow(targetId: string, fire: boolean): AutonomousTask {
     let lastTargetVelocity = XY.zero;
-    let deltaSeconds = 1 / 20;
     const cmdName = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
-    const update = (currDeltaSeconds: number, spaceState: SpaceState, shipManager: ShipManager) => {
+    const update = ({ deltaSecondsAvg }: IterationData, spaceState: SpaceState, shipManager: ShipManager) => {
         shipManager.state.currentTask = cmdName;
-        deltaSeconds = deltaSeconds * 0.8 + currDeltaSeconds * 0.2;
         const target = spaceState.get(targetId) || null;
         const ship = shipManager.state;
         const controlWeapon = ship.chainGun;
@@ -160,14 +155,10 @@ export function follow(targetId: string, fire: boolean): AutonomousTask {
         let trackRange: RTuple2, rotationCompensation: XY;
         if (fire && controlWeapon) {
             shipManager.setTarget(targetId);
-            const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSeconds);
+            const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSecondsAvg);
             switchToAvailableAmmo(controlWeapon, ship.magazine);
             const destination = predictHitLocation(ship, controlWeapon, target, targetAccel);
             rotationCompensation = getShellAimVelocityCompensation(ship, controlWeapon);
-            //  XY.add(
-            //     getShellAimVelocityCompensation(ship, controlWeapon),
-            //     XY.difference(destination, target.position),
-            // );
             const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
             const rangeDiff = calcRangediff(ship, target, destination);
             trackRange = getKillZoneRadiusRange(controlWeapon);
@@ -183,7 +174,7 @@ export function follow(targetId: string, fire: boolean): AutonomousTask {
             target.position,
             rotationCompensation,
             trackRange,
-            deltaSeconds,
+            deltaSecondsAvg,
         );
         lastTargetVelocity = XY.clone(target.velocity);
     };

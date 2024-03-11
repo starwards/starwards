@@ -176,19 +176,17 @@ export abstract class ShipManager implements Updateable {
     }
 
     update(id: IterationData) {
-        const { deltaSeconds } = id;
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
-        this.healPlates(deltaSeconds);
+        this.healPlates(id.deltaSeconds);
         this.damageManager.update();
         this.applyBotOrders();
-        this.autonomoustask?.update(deltaSeconds, this.spaceManager.state, this);
+        this.autonomoustask?.update(id, this.spaceManager.state, this);
         this.validateWeaponsTargetId();
         this.chainGunManager?.update(id);
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(id);
         }
-        // this.movementManager.update(deltaSeconds);
         this.handleTargetCommands();
         this.calcTargetedStatus();
 
