@@ -41,7 +41,7 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
 }
 
 */
-export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject, targetAccel: XY) {
+export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject) {
     const maxIterations = 20;
     const maxSeconds = 100;
     const fireAngle = ship.angle + chainGun.angle;
@@ -62,7 +62,7 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
         if (time > maxSeconds) {
             break;
         }
-        const newTargetPos = XY.equasionOfMotion(target.position, target.velocity, targetAccel, time);
+        const newTargetPos = XY.equasionOfMotion(target.position, target.velocity, XY.zero, time);
         if (!XY.isFinite(newTargetPos)) {
             break;
         }

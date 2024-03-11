@@ -141,7 +141,6 @@ function positionNearTarget(
 }
 
 export function follow(targetId: string, fire: boolean): AutonomousTask {
-    let lastTargetVelocity = XY.zero;
     const cmdName = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
     const update = ({ deltaSecondsAvg }: IterationData, spaceState: SpaceState, shipManager: ShipManager) => {
         shipManager.state.currentTask = cmdName;
@@ -155,9 +154,8 @@ export function follow(targetId: string, fire: boolean): AutonomousTask {
         let trackRange: RTuple2, rotationCompensation: XY;
         if (fire && controlWeapon) {
             shipManager.setTarget(targetId);
-            const targetAccel = XY.scale(XY.difference(target.velocity, lastTargetVelocity), 1 / deltaSecondsAvg);
             switchToAvailableAmmo(controlWeapon, ship.magazine);
-            const destination = predictHitLocation(ship, controlWeapon, target, targetAccel);
+            const destination = predictHitLocation(ship, controlWeapon, target);
             rotationCompensation = getShellAimVelocityCompensation(ship, controlWeapon);
             const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
             const rangeDiff = calcRangediff(ship, target, destination);
@@ -176,7 +174,6 @@ export function follow(targetId: string, fire: boolean): AutonomousTask {
             trackRange,
             deltaSecondsAvg,
         );
-        lastTargetVelocity = XY.clone(target.velocity);
     };
     return { type: 'follow', update, cleanup };
 }
