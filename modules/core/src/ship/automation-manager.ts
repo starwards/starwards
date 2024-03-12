@@ -186,8 +186,8 @@ export class AutomationManager implements Updateable {
             } else if (order.type === 'attack') {
                 this.state.order = Order.ATTACK;
                 this.state.orderTargetId = order.targetId;
-                this.state.order = Order.FOLLOW;
             } else if (order.type === 'follow') {
+                this.state.order = Order.FOLLOW;
                 this.state.orderTargetId = order.targetId;
             }
         }
