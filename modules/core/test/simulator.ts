@@ -13,9 +13,11 @@ import { Updateable, isUpdateable } from '../src/updateable';
 
 import { Die } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
+import { makeIterationsData } from './ship-test-harness';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
+const MAX_SIMULATION_TIME = 60 * 60 * 24;
 export class SpaceSimulator {
     public spaceMgr = new SpaceManager();
     private updateables: Updateable[] = [];
@@ -42,16 +44,21 @@ export class SpaceSimulator {
     }
 
     simulateUntilCondition(predicate: (spaceMgr: SpaceManager) => boolean, timeInSeconds = 0) {
-        let timePassed = 0;
         const timeRemainder = Math.abs(
             timeInSeconds - timeInSeconds * this.iterationTimeInSeconds * this.numIterationsPerSecond,
         );
         const timeRange = this.iterationTimeInSeconds * 1.5 + timeRemainder;
-        while (!predicate(this.spaceMgr)) {
+        let timePassed = 0;
+        const i = makeIterationsData(
+            MAX_SIMULATION_TIME,
+            MAX_SIMULATION_TIME * this.numIterationsPerSecond,
+            (id) => !predicate(this.spaceMgr) && (timeInSeconds <= 0 || id.totalSeconds < timeInSeconds + timeRange),
+        );
+        for (const id of i) {
             for (const u of this.updateables) {
-                u.update(this.iterationTimeInSeconds);
+                u.update(id);
             }
-            this.spaceMgr.update(this.iterationTimeInSeconds);
+            this.spaceMgr.update(id);
             timePassed += this.iterationTimeInSeconds;
         }
         if (timeInSeconds > 0) {
@@ -61,16 +68,15 @@ export class SpaceSimulator {
     }
 
     simulateUntilTime(timeInSeconds: number, body?: (spaceMgr: SpaceManager) => unknown) {
-        let timePassed = 0;
-        while (timePassed < timeInSeconds) {
+        const i = makeIterationsData(timeInSeconds, timeInSeconds * this.numIterationsPerSecond);
+        for (const id of i) {
             for (const u of this.updateables) {
-                u.update(this.iterationTimeInSeconds);
+                u.update(id);
             }
-            this.spaceMgr.update(this.iterationTimeInSeconds);
+            this.spaceMgr.update(id);
             if (body) {
                 body(this.spaceMgr);
             }
-            timePassed += this.iterationTimeInSeconds;
         }
         return this;
     }

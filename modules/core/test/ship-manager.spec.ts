@@ -15,10 +15,10 @@ import {
     padArch,
     shipConfigurations,
 } from '../src';
+import { MockDie, makeIterationsData } from './ship-test-harness';
 import { degree, float } from './properties';
 
 import { DockingMode } from '../src/ship/docking';
-import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
@@ -31,7 +31,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
             // TODO explosionAngleToShip should also be a property
             fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
                 const explosionAngleToShip = 180;
-                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
@@ -50,10 +49,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                     XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip),
                 );
                 spaceMgr.insert(explosion);
-
-                while (!explosion.destroyed) {
-                    shipMgr.update(iterationTimeInSeconds);
-                    spaceMgr.update(iterationTimeInSeconds);
+                const totalTime = explosion.secondsToLive * 2;
+                const i = makeIterationsData(totalTime, totalTime * numIterationsPerSecond, () => !explosion.destroyed);
+                for (const id of i) {
+                    shipMgr.update(id);
+                    spaceMgr.update(id);
                 }
 
                 const expectedHitPlatesRange = padArch(
@@ -78,7 +78,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
     it('chaingun must expend ammo', () => {
         fc.assert(
             fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
-                const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                 const spaceMgr = new SpaceManager();
                 const shipObj = new Spaceship();
                 shipObj.id = '1';
@@ -94,11 +93,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                 shipMgr.state.chainGun!.isFiring = true;
                 switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
-                let timePassed = 0;
-                while (timePassed <= 1) {
-                    shipMgr.update(iterationTimeInSeconds);
-                    spaceMgr.update(iterationTimeInSeconds);
-                    timePassed += iterationTimeInSeconds;
+                const i = makeIterationsData(1, numIterationsPerSecond);
+                for (const id of i) {
+                    shipMgr.update(id);
+                    spaceMgr.update(id);
                 }
                 const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                 expect(cannonShells.length).to.be.closeTo(
@@ -118,7 +116,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                 fc.integer({ min: 15, max: 20 }),
                 fc.integer({ min: 0, max: 10 }),
                 (numIterationsPerSecond: number, availableAmmo: number) => {
-                    const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
@@ -140,11 +137,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                     shipMgr.state.chainGun!.isFiring = true;
                     switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
-                    let timePassed = 0;
-                    while (timePassed <= 1) {
-                        shipMgr.update(iterationTimeInSeconds);
-                        spaceMgr.update(iterationTimeInSeconds);
-                        timePassed += iterationTimeInSeconds;
+                    const i = makeIterationsData(1, numIterationsPerSecond);
+                    for (const id of i) {
+                        shipMgr.update(id);
+                        spaceMgr.update(id);
                     }
                     const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                     expect(cannonShells.length).to.equal(availableAmmo);
@@ -160,7 +156,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                 float(1, 180),
                 fc.integer({ min: 15, max: 20 }),
                 (angleOffset: number, numIterationsPerSecond: number) => {
-                    const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
@@ -176,11 +171,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                     shipMgr.state.chainGun!.angleOffset = angleOffset;
                     shipMgr.state.chainGun!.design.bulletDegreesDeviation = 0;
                     shipMgr.state.chainGun!.isFiring = true;
-                    let timePassed = 0;
-                    while (timePassed <= 1) {
-                        shipMgr.update(iterationTimeInSeconds);
-                        spaceMgr.update(iterationTimeInSeconds);
-                        timePassed += iterationTimeInSeconds;
+
+                    const i = makeIterationsData(1, numIterationsPerSecond);
+                    for (const id of i) {
+                        shipMgr.update(id);
+                        spaceMgr.update(id);
                     }
 
                     for (const cannonShell of spaceMgr.state.getAll('Projectile')) {
@@ -197,7 +192,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                 fc.integer({ min: 15, max: 20 }),
                 fc.integer({ min: 10, max: 20 }),
                 (numIterationsPerSecond: number, bulletsPerSecond: number) => {
-                    const iterationTimeInSeconds = 1 / numIterationsPerSecond;
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
@@ -215,11 +209,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                     shipMgr.state.chainGun!.isFiring = true;
                     switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
-                    let timePassed = 0;
-                    while (timePassed <= 1) {
-                        shipMgr.update(iterationTimeInSeconds);
-                        spaceMgr.update(iterationTimeInSeconds);
-                        timePassed += iterationTimeInSeconds;
+                    const i = makeIterationsData(1, numIterationsPerSecond);
+                    for (const id of i) {
+                        shipMgr.update(id);
+                        spaceMgr.update(id);
                     }
                     expect([...spaceMgr.state.getAll('Projectile')].length).to.be.closeTo(
                         Math.floor(
@@ -235,7 +228,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
     it('ship can dock', () => {
         fc.assert(
             fc.property(float(0, 2_000), degree(), degree(), (distance: number, angle: number, rotation: number) => {
-                const iterationTimeInSeconds = 1 / 20;
+                const numIterationsPerSecond = 20;
                 const distanceGrace = 1_000;
                 const targetRadius = 100;
                 const spaceMgr = new SpaceManager();
@@ -261,12 +254,16 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
                     distance + shipMgr.state.docking.maxDockedDistance + distanceGrace;
                 shipMgr.state.docking.targetId = asteroid.id;
                 shipMgr.state.docking.mode = DockingMode.DOCKING as DockingMode;
-                const maxTime = (60 * 60) / iterationTimeInSeconds;
-                let counter = 0;
-                while (counter < maxTime && shipMgr.state.docking.mode === DockingMode.DOCKING) {
-                    spaceMgr.update(iterationTimeInSeconds);
-                    shipMgr.update(iterationTimeInSeconds);
-                    counter++;
+                const maxTime = 60 * 60;
+
+                const i = makeIterationsData(
+                    maxTime,
+                    numIterationsPerSecond,
+                    () => shipMgr.state.docking.mode === DockingMode.DOCKING,
+                );
+                for (const id of i) {
+                    spaceMgr.update(id);
+                    shipMgr.update(id);
                 }
                 expect(shipMgr.state.docking.mode).to.eql(DockingMode.DOCKED);
             }),

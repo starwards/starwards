@@ -27,7 +27,7 @@ export class GameManager {
     private shipCleanups = new Map<string, () => unknown>();
     private shipManagers = new Map<string, ShipManager>();
     private dice: Updateable[] = [];
-    private spaceManager = new SpaceManager();
+    public spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     private deltaSecondsAvg = 1 / 20;
     private totalSeconds = 0;

@@ -1,3 +1,4 @@
+const PRV_NULL = Symbol();
 export class Iterator<T> implements Iterable<T> {
     constructor(private elements: Iterable<T>) {}
 
@@ -113,9 +114,22 @@ export class Iterator<T> implements Iterable<T> {
         return new Iterator<T>(arg);
     }
 
+    first() {
+        for (const e of this.elements) return e;
+        throw new Error('no elements!');
+    }
+
     firstOr<S>(defaultValue: S) {
         for (const e of this.elements) return e;
         return defaultValue;
+    }
+
+    last() {
+        const last = this.lastOr(PRV_NULL);
+        if (last === PRV_NULL) {
+            throw new Error('no elements!');
+        }
+        return last;
     }
 
     lastOr<S>(defaultValue: S) {
