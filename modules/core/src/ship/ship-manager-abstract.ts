@@ -1,9 +1,7 @@
-import { AutonomousTask, follow, goto, sinWave } from '../logic';
 import {
     ChainGun,
     Docking,
     Faction,
-    Order,
     Radar,
     Reactor,
     ShipState,
@@ -20,6 +18,7 @@ import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
 
 import { Armor } from './armor';
+import { AutomationManager } from './automation-manager';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { DockingManager } from './docking-manager';
@@ -29,6 +28,7 @@ import { Maneuvering } from './maneuvering';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
+import { sinWave } from '../logic';
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.design.plateMaxHealth;
@@ -70,12 +70,12 @@ export abstract class ShipManager implements Updateable {
     protected readonly internalProxy = {
         trySpendEnergy: (_: number, _2?: ShipSystem) => false,
     };
-    public autonomoustask: AutonomousTask | null = null;
     public weaponsTarget: SpaceObject | null = null;
 
     protected tubeManagers = new Array<ChainGunManager>();
     protected chainGunManager: ChainGunManager | null = null;
     protected dockingManager: DockingManager;
+    protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
 
     constructor(
@@ -88,14 +88,8 @@ export abstract class ShipManager implements Updateable {
         resetShipState(this.state);
 
         this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
-
-        this.dockingManager = new DockingManager(
-            this.spaceObject,
-            this.state,
-            this.spaceManager,
-            this,
-            this.damageManager,
-        );
+        this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
+        this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
                 this.state.chainGun,
@@ -111,6 +105,11 @@ export abstract class ShipManager implements Updateable {
                 new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.internalProxy),
             );
         }
+    }
+
+    public cancelAllTasks() {
+        this.dockingManager.cancelTask();
+        this.automationManager.cancelTask();
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
@@ -180,8 +179,8 @@ export abstract class ShipManager implements Updateable {
         this.syncShipProperties();
         this.healPlates(id.deltaSeconds);
         this.damageManager.update();
-        this.applyBotOrders();
-        this.autonomoustask?.update(id, this.spaceManager.state, this);
+        this.automationManager.update(id);
+
         this.validateWeaponsTargetId();
         this.chainGunManager?.update(id);
         for (const tubeManager of this.tubeManagers) {
@@ -193,28 +192,6 @@ export abstract class ShipManager implements Updateable {
         this.updateRadarRange(id);
         this.updateAmmo();
         this.dockingManager.update();
-    }
-
-    private applyBotOrders() {
-        const order = this.spaceManager.resolveObjectOrder(this.spaceObject.id);
-        if (order) {
-            this.autonomoustask?.cleanup(this);
-            if (order.type === 'move') {
-                this.state.order = Order.MOVE;
-                this.autonomoustask = goto(order.position);
-            } else if (order.type === 'attack') {
-                this.state.order = Order.ATTACK;
-                this.state.orderTargetId = order.targetId;
-                this.autonomoustask = follow(order.targetId, true);
-                this.state.order = Order.FOLLOW;
-            } else if (order.type === 'follow') {
-                this.state.orderTargetId = order.targetId;
-                this.autonomoustask = follow(order.targetId, false);
-            }
-        }
-        if (typeof this.state.orderTargetId === 'string' && !this.spaceManager.state.get(this.state.orderTargetId)) {
-            this.state.orderTargetId = null;
-        }
     }
 
     protected updateRadarRange({ totalSeconds, deltaSeconds }: IterationData) {

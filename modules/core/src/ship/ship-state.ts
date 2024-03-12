@@ -1,4 +1,5 @@
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
+import { Spaceship, Vec2 } from '../space';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
@@ -12,7 +13,6 @@ import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
 import { SmartPilot } from './smart-pilot';
-import { Spaceship } from '../space';
 import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
@@ -67,6 +67,9 @@ export class ShipState extends Spaceship {
     @gameField('string')
     @tweakable('string')
     orderTargetId: string | null = null;
+
+    @gameField(Vec2)
+    orderPosition = new Vec2();
 
     @gameField('string')
     currentTask = '';

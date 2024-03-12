@@ -25,6 +25,9 @@ export type Damage = {
     damageDurationSeconds: number;
 };
 
+type NoOrder = {
+    type: 'none';
+};
 type MoveOrder = {
     type: 'move';
     position: XY;
@@ -41,7 +44,7 @@ type ExtraData = {
     body: Circle;
     fov: FieldOfView;
 };
-export type BotOrder = MoveOrder | AttackOrder | FollowOrder;
+export type BotOrder = NoOrder | MoveOrder | AttackOrder | FollowOrder;
 const nullPtr = [] as readonly [];
 export type SpatialIndex = {
     selectPotentials(area: Body): Iterable<SpaceObject>;
