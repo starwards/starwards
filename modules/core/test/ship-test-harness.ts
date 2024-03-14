@@ -112,25 +112,21 @@ declare let global: typeof globalThis & {
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
-export function makeIterationsData(
+export function* makeIterationsData(
     timeInSeconds: number,
     iterations: number,
     condition: (id: IterationData) => boolean = () => true,
-) {
-    return new Iterator([
-        ...(function* (): Generator<IterationData> {
-            const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
-            for (let i = 0; i < iterations; i++) {
-                const id = {
-                    deltaSeconds: iterationTimeInSeconds,
-                    deltaSecondsAvg: iterationTimeInSeconds,
-                    totalSeconds: i * iterationTimeInSeconds,
-                };
-                yield id;
-                if (condition(id)) return;
-            }
-        })(),
-    ]);
+): Generator<IterationData> {
+    const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
+    for (let i = 0; i < iterations; i++) {
+        const id = {
+            deltaSeconds: iterationTimeInSeconds,
+            deltaSecondsAvg: iterationTimeInSeconds,
+            totalSeconds: (i + 1) * iterationTimeInSeconds,
+        };
+        yield id;
+        if (condition(id)) return;
+    }
 }
 
 export class ShipTestHarness {
@@ -168,8 +164,7 @@ export class ShipTestHarness {
     }
 
     simulate(timeInSeconds: number, iterations: number, body?: (time: number, log?: GraphPointInput) => unknown) {
-        const i = makeIterationsData(timeInSeconds, iterations);
-
+        const i = new Iterator([...makeIterationsData(timeInSeconds, iterations)]);
         this.shipMgr.update(i.first());
         this.spaceMgr.update(i.first());
         this.graphBuilder?.newPoint(0);

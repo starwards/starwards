@@ -52,14 +52,14 @@ export class SpaceSimulator {
         const i = makeIterationsData(
             MAX_SIMULATION_TIME,
             MAX_SIMULATION_TIME * this.numIterationsPerSecond,
-            (id) => !predicate(this.spaceMgr) && (timeInSeconds <= 0 || id.totalSeconds < timeInSeconds + timeRange),
+            predicate.bind(null, this.spaceMgr),
         );
         for (const id of i) {
             for (const u of this.updateables) {
                 u.update(id);
             }
             this.spaceMgr.update(id);
-            timePassed += this.iterationTimeInSeconds;
+            timePassed = id.totalSeconds;
         }
         if (timeInSeconds > 0) {
             expect(timePassed).to.be.closeTo(timeInSeconds, timeRange);
