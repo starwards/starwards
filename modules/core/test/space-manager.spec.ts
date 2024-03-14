@@ -120,7 +120,7 @@ describe('SpaceManager', () => {
     });
 
     describe.each([ShipManagerPc, ShipManagerNpc])(
-        `%i in high speed (up to ${bulletSpeed} m/s )`,
+        `%p in high speed (up to ${bulletSpeed} m/s )`,
         (shipManagerCtor) => {
             function highSpeedShip(numIterationsPerSecond: number, speed: number) {
                 const sim = new SpaceSimulator(numIterationsPerSecond);

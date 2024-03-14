@@ -25,7 +25,7 @@ import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
-describe.each([ShipManagerPc, ShipManagerNpc])('%i', (shipManagerCtor) => {
+describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('explosion must damage only affected areas', () => {
         fc.assert(
             // TODO explosionAngleToShip should also be a property
