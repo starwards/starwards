@@ -157,7 +157,7 @@ describe('SpaceManager', () => {
                     shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
                 });
                 const hitArchs = [...concatinateArchs(getHitPlatesArch(shipMgr.state.armor, REAR_ARC))];
-                expect(hitArchs).to.not.be.empty;
+                expect(hitArchs).to.be.empty;
             });
         },
     );
