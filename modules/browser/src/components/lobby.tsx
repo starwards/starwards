@@ -122,20 +122,6 @@ function ShipOptions({ shipId }: { shipId: string }) {
                     >
                         Bridge Engineer
                     </Button>
-                    <Button
-                        key="3D debug"
-                        palette="secondary"
-                        onClick={() => window.location.assign(`main-screen.html?ship=${shipId}&debug`)}
-                    >
-                        3D debug
-                    </Button>
-                    <Button
-                        key="Main Screen"
-                        palette="secondary"
-                        onClick={() => window.location.assign(`main-screen.html?ship=${shipId}`)}
-                    >
-                        Main Screen
-                    </Button>
                 </>
             }
             style={{ maxWidth: 400, display: 'inline-block', padding: '10px' }}

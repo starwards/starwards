@@ -35,14 +35,6 @@ test('tactical radar view', async ({ page }) => {
     expect(await radarCanvas.screenshot()).toMatchSnapshot();
 });
 
-test.skip('main screen', async ({ page }) => {
-    test.setTimeout(1 * 60 * 1000);
-    await gameDriver.gameManager.startGame(test_map_1);
-    await page.goto(`/main-screen.html?ship=${test_map_1.testShipId}`);
-    const canvas = page.locator('[data-id="3dCanvas"][data-loaded="true"]');
-    expect(await canvas.screenshot()).toMatchSnapshot();
-});
-
 test('GM view', async ({ page }) => {
     await gameDriver.gameManager.startGame(test_map_1);
     gameDriver.gameManager.spaceManager.changeShipRadarRange(test_map_1.testShipId, 3_000);

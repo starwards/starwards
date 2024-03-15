@@ -5,17 +5,5 @@
     "typescript.enablePromptUseWorkspaceTsdk": true,
     "js/ts.implicitProjectConfig.experimentalDecorators": true,
     "typescript.tsdk": "node_modules\\typescript\\lib",
-    "cSpell.words": [
-        "Arwes",
-        "PIXI",
-        "Starwards",
-        "babylonjs",
-        "colyseus",
-        "gamepad",
-        "gltf",
-        "maulingmonkey",
-        "nortend",
-        "skybox"
-    ],
     "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
