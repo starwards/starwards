@@ -115,7 +115,7 @@ const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 export function* makeIterationsData(
     timeInSeconds: number,
     iterations: number,
-    condition: (id: IterationData) => boolean = () => true,
+    breakCondition: (id: IterationData) => boolean = () => false,
 ): Generator<IterationData> {
     const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
     for (let i = 0; i < iterations; i++) {
@@ -125,7 +125,7 @@ export function* makeIterationsData(
             totalSeconds: (i + 1) * iterationTimeInSeconds,
         };
         yield id;
-        if (condition(id)) return;
+        if (breakCondition(id)) return;
     }
 }
 

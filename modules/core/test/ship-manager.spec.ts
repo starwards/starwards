@@ -50,7 +50,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 );
                 spaceMgr.insert(explosion);
                 const totalTime = explosion.secondsToLive * 2;
-                const i = makeIterationsData(totalTime, totalTime * numIterationsPerSecond, () => !explosion.destroyed);
+                const i = makeIterationsData(totalTime, totalTime * numIterationsPerSecond, () => explosion.destroyed);
                 for (const id of i) {
                     shipMgr.update(id);
                     spaceMgr.update(id);
@@ -253,13 +253,13 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipMgr.state.docking.design.maxDockingDistance =
                     distance + shipMgr.state.docking.maxDockedDistance + distanceGrace;
                 shipMgr.state.docking.targetId = asteroid.id;
-                shipMgr.state.docking.mode = DockingMode.DOCKING as DockingMode;
-                const maxTime = 60 * 60;
+                shipMgr.state.docking.mode = DockingMode.DOCKING;
+                const maxTimeSeconds = 60 * 60;
 
                 const i = makeIterationsData(
-                    maxTime,
-                    numIterationsPerSecond,
-                    () => shipMgr.state.docking.mode === DockingMode.DOCKING,
+                    maxTimeSeconds,
+                    numIterationsPerSecond * maxTimeSeconds,
+                    () => shipMgr.state.docking.mode !== DockingMode.DOCKING,
                 );
                 for (const id of i) {
                     spaceMgr.update(id);
