@@ -1,7 +1,8 @@
 import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 import {
+    Iterator,
     MAX_SAFE_FLOAT,
-    ShipManager,
+    ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
@@ -12,6 +13,7 @@ import {
     timeToReachVelocityByAcceleration,
 } from '../src';
 
+import { IterationData } from '../src/updateable';
 import { ShipDie } from '../src/ship/ship-die';
 
 export class MockDie {
@@ -110,10 +112,27 @@ declare let global: typeof globalThis & {
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
+export function* makeIterationsData(
+    timeInSeconds: number,
+    iterations: number,
+    breakCondition: (id: IterationData) => boolean = () => false,
+): Generator<IterationData> {
+    const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
+    for (let i = 0; i < iterations; i++) {
+        const id = {
+            deltaSeconds: iterationTimeInSeconds,
+            deltaSecondsAvg: iterationTimeInSeconds,
+            totalSeconds: (i + 1) * iterationTimeInSeconds,
+        };
+        yield id;
+        if (breakCondition(id)) return;
+    }
+}
+
 export class ShipTestHarness {
     public spaceMgr = new SpaceManager();
     public shipObj = new Spaceship();
-    public shipMgr = new ShipManager(
+    public shipMgr = new ShipManagerPc(
         this.shipObj,
         makeShipState(this.shipObj.id, dragonflyConfig),
         this.spaceMgr,
@@ -145,19 +164,19 @@ export class ShipTestHarness {
     }
 
     simulate(timeInSeconds: number, iterations: number, body?: (time: number, log?: GraphPointInput) => unknown) {
-        const iterationTimeInSeconds = limitPercision(timeInSeconds / iterations);
-        this.shipMgr.update(iterationTimeInSeconds);
-        this.spaceMgr.update(iterationTimeInSeconds);
+        const i = new Iterator([...makeIterationsData(timeInSeconds, iterations)]);
+        this.shipMgr.update(i.first());
+        this.spaceMgr.update(i.first());
         this.graphBuilder?.newPoint(0);
-        for (let i = 0; i < iterations; i++) {
-            const p = this.graphBuilder?.newPoint(iterationTimeInSeconds);
+        for (const id of i.allAfter(i.first())) {
+            const p = this.graphBuilder?.newPoint(id.deltaSeconds);
             this.shipState.maneuvering.afterBurnerFuel = this.shipState.maneuvering.design.maxAfterBurnerFuel;
             this.shipState.reactor.energy = this.shipState.reactor.design.maxEnergy;
-            body && body(iterationTimeInSeconds, p);
-            this.shipMgr.update(iterationTimeInSeconds);
-            this.spaceMgr.update(iterationTimeInSeconds);
+            body && body(id.deltaSeconds, p);
+            this.shipMgr.update(id);
+            this.spaceMgr.update(id);
         }
-        this.graphBuilder?.newPoint(iterationTimeInSeconds);
+        this.graphBuilder?.newPoint(i.last().deltaSeconds);
     }
 
     addToGraph(n: string, v: number) {

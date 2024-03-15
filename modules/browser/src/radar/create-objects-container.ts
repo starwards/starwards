@@ -9,6 +9,7 @@ export type CreateAsteroidTemplate = {
 };
 export type CreateSpaceshipTemplate = {
     type: 'Spaceship';
+    isPlayerShip: boolean;
     shipModel: ShipModel;
     faction: Faction;
 };

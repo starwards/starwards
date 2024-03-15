@@ -67,6 +67,7 @@ export const bulkDeleteOrder = {
 
 export type CreateSpaceshipOrderArg = {
     position: XY;
+    isPlayerShip: boolean;
     shipModel: ShipModel;
     faction: Faction;
 };

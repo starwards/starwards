@@ -44,11 +44,11 @@ export class SmartPilot extends SystemState {
 
     @gameField('int8')
     @tweakable({ type: 'enum', enum: SmartPilotMode })
-    rotationMode!: SmartPilotMode;
+    rotationMode = SmartPilotMode.DIRECT;
 
     @gameField('int8')
     @tweakable({ type: 'enum', enum: SmartPilotMode })
-    maneuveringMode!: SmartPilotMode;
+    maneuveringMode = SmartPilotMode.DIRECT;
 
     @gameField('float32')
     @range([-1, 1])

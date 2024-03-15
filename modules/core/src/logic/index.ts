@@ -1,4 +1,3 @@
-export * from './bot';
 export * from './docking-target';
 export * from './field-of-view';
 export * from './formulas';

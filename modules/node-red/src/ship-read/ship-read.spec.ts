@@ -8,6 +8,7 @@ import { maps } from '@starwards/server';
 
 const { test_map_1 } = maps;
 
+const testPayload = 0;
 describe('ship-read', () => {
     const gameDriver = makeDriver();
 
@@ -31,7 +32,7 @@ describe('ship-read', () => {
     });
 
     it('queries state', async () => {
-        gameDriver.getShip('GVTS').state.magazine.count_CannonShell = 1234;
+        gameDriver.getShip(test_map_1.testShipId).state.magazine.capacity = testPayload;
         const flows: Flows = [
             { id: 'n0', type: 'starwards-config', url: gameDriver.url() },
             { id: 'n1', type: 'ship-read', shipId: test_map_1.testShipId, configNode: 'n0' },
@@ -39,8 +40,8 @@ describe('ship-read', () => {
         await helper.load(initNodes, flows);
         const { node, waitForOutput, waitForStatus } = getNode<ShipReadNode>('n1');
         await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
-        const eventPromise = waitForOutput({ topic: '/magazine/count_CannonShell', payload: 1234 });
-        node.receive({ topic: '/magazine/count_CannonShell', payload: { read: true } });
+        const eventPromise = waitForOutput({ topic: '/magazine/capacity', payload: testPayload });
+        node.receive({ topic: '/magazine/capacity', payload: { read: true } });
         await eventPromise;
     });
 
@@ -52,8 +53,8 @@ describe('ship-read', () => {
         await helper.load(initNodes, flows);
         const { waitForOutput, waitForStatus } = getNode<ShipReadNode>('n1');
         await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
-        const eventPromise = waitForOutput({ topic: '/magazine/count_CannonShell', payload: 1234 });
-        gameDriver.getShip('GVTS').state.magazine.count_CannonShell = 1234;
+        const eventPromise = waitForOutput({ topic: '/magazine/capacity', payload: testPayload });
+        gameDriver.getShip(test_map_1.testShipId).state.magazine.capacity = testPayload;
         await eventPromise;
     });
 });

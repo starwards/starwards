@@ -1,5 +1,4 @@
-import { Asteroid, Faction, Spaceship, Vec2, Waypoint, makeId, sectorSize } from '@starwards/core';
-import { GameApi, GameMap } from './admin/scripts-api';
+import { Asteroid, Faction, GameApi, GameMap, Spaceship, Vec2, Waypoint, makeId, sectorSize } from '@starwards/core';
 import { newAsteroid, newShip } from './admin/map-helper';
 
 export const two_vs_one: GameMap = {
@@ -8,26 +7,26 @@ export const two_vs_one: GameMap = {
         for (let i = 0; i < 20; i++) {
             game.addObject(newAsteroid());
         }
-        game.addSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
-        game.addSpaceship(newShip('GVTS2', Faction.Gravitas, 'dragonfly-SF22'));
-        const ship2 = game.addSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
+        game.addPlayerSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
+        game.addPlayerSpaceship(newShip('GVTS2', Faction.Gravitas, 'dragonfly-SF22'));
+        const ship2 = game.addNpcSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
         ship2.setTarget('GVTS');
-        // bManager.bot = jouster();
     },
 };
 
 export const solo: GameMap = {
     name: 'solo',
     init: (game: GameApi) => {
-        const ship = game.addSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
-        ship.spaceObject.position.x = ship.spaceObject.position.y = 0;
+        const spaceObject = newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22');
+        game.addPlayerSpaceship(spaceObject);
+        spaceObject.position.x = spaceObject.position.y = 0;
         for (let i = 0; i < 20; i++) {
             const wp = new Waypoint();
             wp.id = makeId();
-            wp.owner = ship.spaceObject.id;
+            wp.owner = spaceObject.id;
             wp.collection = i % 2 ? 'route' : 'collection 1';
             wp.color = i % 2 ? 0xffffff : 0x0000ff;
-            wp.faction = ship.spaceObject.faction;
+            wp.faction = spaceObject.faction;
             wp.title = `${i}`;
             wp.position = Vec2.Rotate({ x: Math.random() * sectorSize, y: 0 }, Math.random() * 360);
             game.addObject(wp);
@@ -40,8 +39,8 @@ export const test_map_1 = {
     name: 'test_map_1',
     testShipId,
     init: (game: GameApi) => {
-        const ship = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22', Faction.Gravitas);
-        game.addSpaceship(ship);
+        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
         const asteroidHiddenInRange = new Asteroid().init('astro1', new Vec2(2000, 2000));
         asteroidHiddenInRange.radius = 200;
         game.addObject(asteroidHiddenInRange);

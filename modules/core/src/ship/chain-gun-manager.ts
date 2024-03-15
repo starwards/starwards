@@ -1,3 +1,4 @@
+import { IterationData, Updateable } from '../updateable';
 import { Projectile, SpaceObject, Spaceship, projectileModels } from '../space';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
@@ -5,7 +6,7 @@ import { Vec2, gaussianRandom } from '..';
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
-import { EnergyManager } from './energy-manager';
+import { EnergySource } from './ship-manager-abstract';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
@@ -29,7 +30,7 @@ export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
             .firstOr('None');
     }
 }
-export class ChainGunManager {
+export class ChainGunManager implements Updateable {
     /**
      * used to accuretly simulate very high rate of fire
      */
@@ -41,7 +42,7 @@ export class ChainGunManager {
         public state: ShipState,
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
-        private energyManager: EnergyManager,
+        private energyManager: EnergySource,
     ) {
         switchToAvailableAmmo(chainGun, state.magazine);
     }
@@ -58,7 +59,7 @@ export class ChainGunManager {
         }
     }
 
-    update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         this.calcShellSecondsToLive();
         this.updateChainGun(deltaSeconds);
         this.fireChainGun();

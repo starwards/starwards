@@ -12,7 +12,8 @@ import {
     shipAreasInRange,
     toPositiveDegreesDelta,
 } from '..';
-import { Die, FRONT_ARC, REAR_ARC, ShipSystem } from '.';
+import { Die, ShipSystem } from './ship-manager-abstract';
+import { FRONT_ARC, REAR_ARC } from '.';
 
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';

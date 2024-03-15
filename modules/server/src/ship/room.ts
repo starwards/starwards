@@ -1,4 +1,4 @@
-import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/core';
+import { ShipManagerPc, ShipState, handleJsonPointerCommand } from '@starwards/core';
 
 import { Room } from 'colyseus';
 
@@ -8,7 +8,7 @@ export class ShipRoom extends Room<ShipState> {
         this.autoDispose = false;
     }
 
-    public onCreate({ manager }: { manager: ShipManager }) {
+    public onCreate({ manager }: { manager: ShipManagerPc }) {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
         // handle all other messages

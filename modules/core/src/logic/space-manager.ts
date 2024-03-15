@@ -10,6 +10,7 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
+import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
@@ -24,6 +25,9 @@ export type Damage = {
     damageDurationSeconds: number;
 };
 
+type NoOrder = {
+    type: 'none';
+};
 type MoveOrder = {
     type: 'move';
     position: XY;
@@ -32,17 +36,21 @@ type AttackOrder = {
     type: 'attack';
     targetId: string;
 };
+type FollowOrder = {
+    type: 'follow';
+    targetId: string;
+};
 type ExtraData = {
     body: Circle;
     fov: FieldOfView;
 };
-export type BotOrder = MoveOrder | AttackOrder;
+export type BotOrder = NoOrder | MoveOrder | AttackOrder | FollowOrder;
 const nullPtr = [] as readonly [];
 export type SpatialIndex = {
     selectPotentials(area: Body): Iterable<SpaceObject>;
 };
 
-export class SpaceManager {
+export class SpaceManager implements Updateable {
     static destroyObject(state: SpaceState, id: string) {
         const subject = state.get(id);
         if (subject && !subject.destroyed && subject.expendable) {
@@ -164,7 +172,7 @@ export class SpaceManager {
         }
     }
 
-    public update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         this.calcAttachmentCliques();
         for (const cmd of this.state.createAsteroidCommands) {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);

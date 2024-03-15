@@ -5,6 +5,7 @@ import {
     Destructor,
     Destructors,
     Driver,
+    IdleStrategy,
     ShipDriver,
     SpaceDriver,
     SpaceObject,
@@ -44,6 +45,25 @@ const singleSelectionDetails = async (
     addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
+
+        const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
+        addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
+
+        const currentTaskProp = readProp(shipDriver, `/currentTask`);
+        addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
+
+        const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
+        addEnumListBlade(
+            guiFolder,
+            idleStrategyProp,
+            {
+                label: 'Idle strategy',
+                options: Object.values(IdleStrategy)
+                    .filter<number>((k): k is number => typeof k === 'number')
+                    .map((value) => ({ value, text: String(IdleStrategy[value]) })),
+            },
+            cleanup,
+        );
 
         const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
         addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);

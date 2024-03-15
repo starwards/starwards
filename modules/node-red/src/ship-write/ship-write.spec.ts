@@ -9,6 +9,7 @@ import { waitFor } from '@starwards/core';
 
 const { test_map_1 } = maps;
 
+const testPayload = 0;
 describe('ship-write', () => {
     const gameDriver = makeDriver();
 
@@ -40,9 +41,9 @@ describe('ship-write', () => {
         const { node, waitForStatus } = getNode<ShipWriteNode>('n1');
         await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
         const eventPromise = waitFor(() => {
-            expect(gameDriver.getShip('GVTS').state.magazine.count_CannonShell).toEqual(1234);
+            expect(gameDriver.getShip(test_map_1.testShipId).state.magazine.capacity).toEqual(testPayload);
         }, 3_000);
-        node.receive({ topic: '/magazine/count_CannonShell', payload: 1234 });
+        node.receive({ topic: '/magazine/capacity', payload: testPayload });
         await eventPromise;
     });
 });

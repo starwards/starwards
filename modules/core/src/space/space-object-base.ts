@@ -72,6 +72,10 @@ export abstract class SpaceObjectBase extends Schema {
         return XY.rotate(global, -this.angle);
     }
 
+    localToGlobal(local: XY) {
+        return XY.rotate(local, this.angle);
+    }
+
     get directionAxis() {
         return XY.rotate(XY.one, this.angle - 90);
     }

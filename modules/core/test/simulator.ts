@@ -1,6 +1,6 @@
 import {
-    Die,
-    ShipManager,
+    ShipManagerNpc,
+    ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
     SpaceObject,
@@ -11,10 +11,13 @@ import {
 } from '../src';
 import { Updateable, isUpdateable } from '../src/updateable';
 
+import { Die } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
+import { makeIterationsData } from './ship-test-harness';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
+const MAX_SIMULATION_TIME = 60 * 60 * 24;
 export class SpaceSimulator {
     public spaceMgr = new SpaceManager();
     private updateables: Updateable[] = [];
@@ -26,8 +29,8 @@ export class SpaceSimulator {
         this.spaceMgr.insertBulk(objects);
         return this;
     }
-    withShip(ship: Spaceship, die: Die) {
-        const shipMgr = new ShipManager(ship, makeShipState(ship.id, dragonflyConfig), this.spaceMgr, die);
+    withShip(ship: Spaceship, die: Die, shipManagerCtor: typeof ShipManagerPc | typeof ShipManagerNpc) {
+        const shipMgr = new shipManagerCtor(ship, makeShipState(ship.id, dragonflyConfig), this.spaceMgr, die);
         this.updateables.push(shipMgr);
         if (isUpdateable(die)) {
             this.updateables.push(die);
@@ -40,24 +43,23 @@ export class SpaceSimulator {
         return shipMgr;
     }
 
-    // withShip2(ship: ShipManager) {
-    //     this.shipMgrs.push(ship);
-    //     this.spaceMgr.insert(ship.spaceObject as Spaceship);
-    //     return this;
-    // }
-
     simulateUntilCondition(predicate: (spaceMgr: SpaceManager) => boolean, timeInSeconds = 0) {
-        let timePassed = 0;
         const timeRemainder = Math.abs(
             timeInSeconds - timeInSeconds * this.iterationTimeInSeconds * this.numIterationsPerSecond,
         );
         const timeRange = this.iterationTimeInSeconds * 1.5 + timeRemainder;
-        while (!predicate(this.spaceMgr)) {
+        let timePassed = 0;
+        const i = makeIterationsData(
+            MAX_SIMULATION_TIME,
+            MAX_SIMULATION_TIME * this.numIterationsPerSecond,
+            predicate.bind(null, this.spaceMgr),
+        );
+        for (const id of i) {
             for (const u of this.updateables) {
-                u.update(this.iterationTimeInSeconds);
+                u.update(id);
             }
-            this.spaceMgr.update(this.iterationTimeInSeconds);
-            timePassed += this.iterationTimeInSeconds;
+            this.spaceMgr.update(id);
+            timePassed = id.totalSeconds;
         }
         if (timeInSeconds > 0) {
             expect(timePassed).to.be.closeTo(timeInSeconds, timeRange);
@@ -66,16 +68,15 @@ export class SpaceSimulator {
     }
 
     simulateUntilTime(timeInSeconds: number, body?: (spaceMgr: SpaceManager) => unknown) {
-        let timePassed = 0;
-        while (timePassed < timeInSeconds) {
+        const i = makeIterationsData(timeInSeconds, timeInSeconds * this.numIterationsPerSecond);
+        for (const id of i) {
             for (const u of this.updateables) {
-                u.update(this.iterationTimeInSeconds);
+                u.update(id);
             }
-            this.spaceMgr.update(this.iterationTimeInSeconds);
+            this.spaceMgr.update(id);
             if (body) {
                 body(this.spaceMgr);
             }
-            timePassed += this.iterationTimeInSeconds;
         }
         return this;
     }

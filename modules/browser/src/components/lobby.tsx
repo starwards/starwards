@@ -1,6 +1,6 @@
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from '@arwes/core';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
-import { useAdminDriver, useIsGameRunning, useShips } from '../react/hooks';
+import { useAdminDriver, useCanStartGame, useIsGameRunning, usePlayerShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from '@arwes/animation';
 import { BleepsProvider } from '@arwes/sounds';
@@ -26,7 +26,7 @@ const bleepsSettings = {
 const generalAnimator = { duration: { enter: 200, exit: 200 } };
 
 const InGameMenu = (p: Props) => {
-    const ships = useShips(p.driver);
+    const ships = usePlayerShips(p.driver);
     const adminDriver = useAdminDriver(p.driver);
     const saveGame = useSaveGameHandler(adminDriver);
     return (
@@ -148,6 +148,7 @@ function ShipOptions({ shipId }: { shipId: string }) {
 
 export const Lobby = (p: Props) => {
     const isGameRunning = useIsGameRunning(p.driver);
+    const canStartGame = useCanStartGame(p.driver);
     const adminDriver = useAdminDriver(p.driver);
     return (
         <ArwesThemeProvider>
@@ -161,8 +162,7 @@ export const Lobby = (p: Props) => {
                     <div style={{ padding: 20, textAlign: 'center' }}>
                         <h1 data-id="title">Starwards</h1>
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
-
-                        {false === isGameRunning && adminDriver && (
+                        {canStartGame && adminDriver && (
                             <pre key="2V1 game">
                                 <LoadGame adminDriver={adminDriver} />
                                 <br />

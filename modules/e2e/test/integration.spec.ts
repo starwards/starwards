@@ -45,11 +45,7 @@ test.skip('main screen', async ({ page }) => {
 
 test('GM view', async ({ page }) => {
     await gameDriver.gameManager.startGame(test_map_1);
-    const ship = gameDriver.gameManager.scriptApi.getShip(test_map_1.testShipId);
-    if (!ship) {
-        throw new Error(`ship ${test_map_1.testShipId} not found`);
-    }
-    ship.spaceObject.radarRange = 3_000;
+    gameDriver.gameManager.spaceManager.changeShipRadarRange(test_map_1.testShipId, 3_000);
     await page.goto(`/gm.html`);
     const radar = new RadarDriver(page.locator('[data-id="GM Radar"]'));
     await radar.setZoom(0.1);

@@ -1,6 +1,8 @@
+import { EnergySource, ShipSystem } from './ship-manager-abstract';
+import { IterationData, Updateable } from '../updateable';
+
 import { HeatManager } from './heat-manager';
 import { ShipState } from './ship-state';
-import { ShipSystem } from './ship-manager';
 import { capToRange } from '../logic';
 
 class EpmEntry {
@@ -9,14 +11,14 @@ class EpmEntry {
 
 const SECONDS_IN_MINUTE = 60;
 
-export class EnergyManager {
+export class EnergyManager implements EnergySource, Updateable {
     private epm = new Map<ShipSystem, EpmEntry>();
     constructor(
         private state: ShipState,
         private heatManager: HeatManager,
     ) {}
 
-    trySpendEnergy(value: number, system?: ShipSystem): boolean {
+    trySpendEnergy = (value: number, system?: ShipSystem): boolean => {
         if (value < 0) {
             // eslint-disable-next-line no-console
             console.log('probably an error: spending negative energy');
@@ -38,9 +40,9 @@ export class EnergyManager {
         }
         this.state.reactor.energy = 0;
         return false;
-    }
+    };
 
-    update(deltaSeconds: number) {
+    update({ deltaSeconds }: IterationData) {
         this.state.reactor.energy = capToRange(
             0,
             this.state.reactor.design.maxEnergy,

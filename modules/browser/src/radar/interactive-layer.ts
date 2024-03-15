@@ -1,10 +1,20 @@
 import { Container, DisplayObject, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
 import { CreateObjectsContainer, CreateTemplate } from './create-objects-container';
-import { SpaceObject, XY, assertUnreachable, lerp, literal2Range, spaceCommands } from '@starwards/core';
+import {
+    Iterator,
+    SpaceObject,
+    Spaceship,
+    XY,
+    assertUnreachable,
+    lerp,
+    literal2Range,
+    spaceCommands,
+} from '@starwards/core';
 
 import { CameraView } from './camera-view';
 import { SelectionContainer } from './selection-container';
 import { SpaceDriver } from '@starwards/core';
+import hotkeys from 'hotkeys-js';
 import { selectionColor } from '../colors';
 
 enum MouseButton {
@@ -22,6 +32,16 @@ enum ActionType {
     panCamera,
     dragObjects,
     create,
+}
+enum SelectModifier {
+    replace,
+    add,
+    subtract,
+}
+enum OrderModifier {
+    contextual,
+    move,
+    attack,
 }
 const defaultCursor = 'crosshair';
 const panCameraCursor = 'grab';
@@ -59,22 +79,27 @@ export class InteractiveLayer {
         return this.stage;
     }
 
-    onSelectPoint(point: XY) {
+    onSelectPoint(modifier: SelectModifier, point: XY) {
         const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, point);
         if (spaceObject) {
-            this.selectionContainer.set([spaceObject]);
-        } else {
+            const selected = [spaceObject];
+            if (modifier === SelectModifier.replace) this.selectionContainer.set(selected);
+            else if (modifier === SelectModifier.add) this.selectionContainer.add(selected);
+            else if (modifier === SelectModifier.subtract) this.selectionContainer.remove(selected);
+        } else if (modifier === SelectModifier.replace) {
             this.selectionContainer.clear();
         }
     }
 
-    onSelectArea(a: XY, b: XY) {
+    onSelectArea(modifier: SelectModifier, a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
         const selected = [...this.spaceDriver.state].filter((spaceObject) =>
             XY.inRange(spaceObject.position, from, to),
         );
-        this.selectionContainer.set(selected);
+        if (modifier === SelectModifier.replace) this.selectionContainer.set(selected);
+        else if (modifier === SelectModifier.add) this.selectionContainer.add(selected);
+        else if (modifier === SelectModifier.subtract) this.selectionContainer.remove(selected);
     }
 
     getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
@@ -161,11 +186,16 @@ export class InteractiveLayer {
     onPointerup = (event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
+                const modifier = hotkeys.ctrl
+                    ? SelectModifier.add
+                    : hotkeys.alt
+                      ? SelectModifier.subtract
+                      : SelectModifier.replace;
                 if (this.dragTo == null) {
-                    this.onSelectPoint(this.parent.screenToWorld(this.dragFrom));
+                    this.onSelectPoint(modifier, this.parent.screenToWorld(this.dragFrom));
                 } else {
                     const to = this.parent.screenToWorld(this.dragTo);
-                    this.onSelectArea(this.parent.screenToWorld(this.dragFrom), to);
+                    this.onSelectArea(modifier, this.parent.screenToWorld(this.dragFrom), to);
                 }
             } else if (this.actionType === ActionType.create && this.createTemplate) {
                 const position = this.parent.screenToWorld(event.global);
@@ -173,30 +203,47 @@ export class InteractiveLayer {
                     const radius = lerp([0, 1], literal2Range(this.createTemplate.radius), Math.random());
                     this.spaceDriver.command(spaceCommands.createAsteroidOrder, { position, radius });
                 } else if (this.createTemplate.type === 'Spaceship') {
-                    const { shipModel, faction } = this.createTemplate;
-                    this.spaceDriver.command(spaceCommands.createSpaceshipOrder, { position, shipModel, faction });
+                    const { isPlayerShip, shipModel, faction } = this.createTemplate;
+                    this.spaceDriver.command(spaceCommands.createSpaceshipOrder, {
+                        position,
+                        isPlayerShip,
+                        shipModel,
+                        faction,
+                    });
                 } else {
                     assertUnreachable(this.createTemplate);
                 }
-            } else if (this.actionType === ActionType.panCameraOrOrder || this.actionType === ActionType.panCamera) {
-                const position = this.parent.screenToWorld(this.dragFrom);
-                const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
-                if (spaceObject) {
-                    this.spaceDriver.command(spaceCommands.bulkBotOrder, {
-                        ids: this.selectionContainer.selectedItemsIds,
-                        order: {
-                            type: 'attack',
-                            targetId: spaceObject.id,
-                        },
-                    });
-                } else {
-                    this.spaceDriver.command(spaceCommands.bulkBotOrder, {
-                        ids: this.selectionContainer.selectedItemsIds,
-                        order: {
-                            type: 'move',
-                            position,
-                        },
-                    });
+            } else if (this.actionType === ActionType.panCameraOrOrder) {
+                const selectedShipIds = [
+                    ...new Iterator(this.selectionContainer.selectedItems)
+                        .filter((so) => Spaceship.isInstance(so))
+                        .map((so) => so.id),
+                ];
+                if (selectedShipIds.length) {
+                    const modifier = hotkeys.ctrl
+                        ? OrderModifier.attack
+                        : hotkeys.alt
+                          ? OrderModifier.move
+                          : OrderModifier.contextual;
+                    const position = this.parent.screenToWorld(this.dragFrom);
+                    const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, position);
+                    if (spaceObject) {
+                        this.spaceDriver.command(spaceCommands.bulkBotOrder, {
+                            ids: selectedShipIds,
+                            order: {
+                                type: modifier === OrderModifier.move ? 'follow' : 'attack',
+                                targetId: spaceObject.id,
+                            },
+                        });
+                    } else {
+                        this.spaceDriver.command(spaceCommands.bulkBotOrder, {
+                            ids: selectedShipIds,
+                            order: {
+                                type: 'move',
+                                position,
+                            },
+                        });
+                    }
                 }
             }
         }

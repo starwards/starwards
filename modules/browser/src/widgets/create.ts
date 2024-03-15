@@ -49,6 +49,7 @@ export function createWidget(createContainer: CreateObjectsContainer): Dashboard
             });
             const createShipTemplate: CreateSpaceshipTemplate = {
                 type: 'Spaceship',
+                isPlayerShip: false,
                 shipModel: 'dragonfly-SF22',
                 faction: Faction.NONE,
             };
@@ -61,6 +62,7 @@ export function createWidget(createContainer: CreateObjectsContainer): Dashboard
             makeShipFolder.addInput(createShipTemplate, 'shipModel', {
                 options: shipModels.map((sm) => ({ text: sm, value: sm })),
             });
+            makeShipFolder.addInput(createShipTemplate, 'isPlayerShip');
             makeShipFolder
                 .addButton({ title: 'Create Ship' })
                 .on('click', () => createContainer.createSpaceship(createShipTemplate));

@@ -55,10 +55,9 @@ export function getNode<T extends Node = Node>(id: string) {
                 expect(node.status.callCount).toBeGreaterThan(0);
                 expect(node.status.lastCall.firstArg).toEqual(expected);
             }, 3_000),
-        waitForOutput: (msg: Partial<NodeMessage>) => {
-            return waitFor(() => {
+        waitForOutput: (msg: Partial<NodeMessage>) =>
+            waitFor(() => {
                 expect(output).toEqual(expect.arrayContaining([msg]));
-            }, 3_000);
-        },
+            }, 3_000),
     };
 }

@@ -1,12 +1,8 @@
 import { SpaceManager, XY, getClosestDockingTarget, isInRange, toDegreesDelta } from '../logic';
-import { cleanupBot, docker } from '../logic/bot';
 
 import { DamageManager } from './damage-manager';
-import { DeepReadonly } from 'ts-essentials';
 import { DockingMode } from './docking';
-import { ShipManager } from '..';
 import { ShipState } from './ship-state';
-import { Spaceship } from '../space';
 
 const toggleTransition = {
     [DockingMode.DOCKED]: DockingMode.UNDOCKING,
@@ -17,10 +13,8 @@ const toggleTransition = {
 
 export class DockingManager {
     constructor(
-        private spaceObject: DeepReadonly<Spaceship>,
         private state: ShipState,
         private spaceManager: SpaceManager,
-        private shipManager: ShipManager,
         private damageManager: DamageManager,
     ) {}
 
@@ -35,36 +29,33 @@ export class DockingManager {
         }
     }
 
-    private clearDocking() {
-        if (this.shipManager.bot?.type === 'docker') {
-            cleanupBot(this.shipManager);
+    public cancelTask() {
+        if (this.state.docking.mode !== DockingMode.DOCKED && this.state.docking.mode !== DockingMode.UNDOCKED) {
+            this.clearDocking();
         }
-        this.state.docking.targetId = '';
-        this.state.docking.mode = DockingMode.UNDOCKED;
-        this.spaceManager.detach(this.state.id);
+    }
+
+    private clearDocking() {
+        if (this.state.docking.targetId && this.state.docking.mode !== DockingMode.DOCKED) {
+            this.state.docking.targetId = '';
+            this.state.docking.mode = DockingMode.UNDOCKED;
+            this.spaceManager.detach(this.state.id);
+        }
     }
 
     private calcDockingMode() {
         if (this.state.docking.targetId) {
             const [dockingTarget] = this.spaceManager.getObjectPtr(this.state.docking.targetId);
-            if (!dockingTarget || dockingTarget === this.spaceObject) {
+            if (!dockingTarget || this.state.docking.targetId === this.state.id) {
                 this.clearDocking();
             } else if (this.state.docking.mode === DockingMode.UNDOCKED) {
-                // don't reset this.state.docking.targetId
                 this.spaceManager.detach(this.state.id);
-                if (this.shipManager.bot?.type === 'docker') {
-                    cleanupBot(this.shipManager);
-                }
             } else {
                 const diff = XY.difference(dockingTarget.position, this.state.position);
                 const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
                 if (distance > this.state.docking.maxDockingDistance) {
                     this.clearDocking();
                 } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
-                    this.spaceManager.detach(this.state.id);
-                    if (this.shipManager.bot?.type !== 'docker') {
-                        this.shipManager.bot = docker(dockingTarget);
-                    }
                     if (distance > this.state.docking.design.undockingTargetDistance) {
                         this.clearDocking();
                     }
@@ -83,9 +74,6 @@ export class DockingManager {
                         }
                     } else if (this.state.docking.mode === DockingMode.DOCKING) {
                         this.spaceManager.detach(this.state.id);
-                        if (this.shipManager.bot?.type !== 'docker') {
-                            this.shipManager.bot = docker(dockingTarget);
-                        }
                         if (isDockedPosition) {
                             this.state.docking.mode = DockingMode.DOCKED;
                         }

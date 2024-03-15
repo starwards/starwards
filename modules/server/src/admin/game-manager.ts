@@ -1,33 +1,38 @@
 import {
     AdminState,
+    GameApi,
+    GameMap,
+    GameStatus,
+    ShipApi,
     ShipDie,
-    ShipManager,
+    ShipManagerNpc,
+    ShipManagerPc,
     ShipState,
     SpaceManager,
     SpaceObject,
     Spaceship,
+    Updateable,
     Vec2,
     makeId,
     makeShipState,
     shipConfigurations,
 } from '@starwards/core';
-import { GameApi, GameMap, ShipApi } from './scripts-api';
 import { IRoomListingData, matchMaker } from 'colyseus';
 
 import { SavedGame } from '../serialization/game-state-protocol';
 
-type Die = {
-    update: (deltaSeconds: number) => void;
-};
+type ShipManager = ShipManagerPc | ShipManagerNpc;
 export class GameManager {
     public state = new AdminState();
     private shipCleanups = new Map<string, () => unknown>();
-    private ships = new Map<string, ShipManager>();
-    private dice: Die[] = [];
-    private spaceManager = new SpaceManager();
+    private shipManagers = new Map<string, ShipManager>();
+    private dice: Updateable[] = [];
+    public spaceManager = new SpaceManager();
     private map: GameMap | null = null;
+    private deltaSecondsAvg = 1 / 20;
+    private totalSeconds = 0;
     public readonly scriptApi: GameApi = {
-        getShip: (shipId: string) => this.ships.get(shipId) as unknown as ShipApi,
+        getShip: (shipId: string) => this.shipManagers.get(shipId) as ShipApi | undefined,
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
             const existing = this.spaceManager.state.get(obj.id);
             if (existing) {
@@ -35,30 +40,38 @@ export class GameManager {
             }
             this.spaceManager.insert(obj);
         },
-        addSpaceship: (ship: Spaceship) => this.addShip(ship) as unknown as ShipApi,
+        addPlayerSpaceship: (ship: Spaceship) => this.addShip(ship, true),
+        addNpcSpaceship: (ship: Spaceship) => this.addShip(ship, false),
         stopGame: () => {
             void this.stopGame();
         },
     };
 
-    update(deltaSeconds: number) {
-        const adjustedDeltaSeconds = deltaSeconds * this.state.speed;
+    update(currDeltaSeconds: number) {
+        this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
+        const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
+        this.totalSeconds = this.totalSeconds + adjustedDeltaSeconds;
         if (this.state.isGameRunning && adjustedDeltaSeconds > 0) {
+            const iterationData = {
+                deltaSeconds: currDeltaSeconds * this.state.speed,
+                deltaSecondsAvg: this.deltaSecondsAvg * this.state.speed,
+                totalSeconds: this.totalSeconds,
+            };
             this.map?.update?.(adjustedDeltaSeconds);
             for (const die of this.dice) {
-                die.update(adjustedDeltaSeconds);
+                die.update(iterationData);
             }
-            for (const shipManager of this.ships.values()) {
-                shipManager.update(adjustedDeltaSeconds);
+            for (const shipManager of this.shipManagers.values()) {
+                shipManager.update(iterationData);
             }
-            this.spaceManager.update(adjustedDeltaSeconds);
+            this.spaceManager.update(iterationData);
             for (const id of this.spaceManager.state.destroySpaceshipCommands) {
                 this.cleanupShip(id);
             }
             this.spaceManager.state.destroySpaceshipCommands = [];
             for (const cmd of this.spaceManager.state.createSpaceshipCommands) {
                 const ship = new Spaceship().init(makeId(), Vec2.make(cmd.position), cmd.shipModel, cmd.faction);
-                this.addShip(ship);
+                this.addShip(ship, cmd.isPlayerShip);
             }
             this.spaceManager.state.createSpaceshipCommands = [];
         }
@@ -66,7 +79,9 @@ export class GameManager {
 
     public async stopGame() {
         this.map = null;
-        if (this.state.isGameRunning) {
+        if (this.state.gameStatus === GameStatus.RUNNING) {
+            this.state.gameStatus = GameStatus.STOPPING;
+            this.state.playerShipIds.splice(0);
             this.state.shipIds.splice(0);
             const shipRooms = await matchMaker.query({ name: 'ship' });
             for (const shipRoom of shipRooms) {
@@ -77,21 +92,23 @@ export class GameManager {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
             this.dice = [];
-            this.state.isGameRunning = false;
+            this.shipCleanups.clear();
+            this.state.gameStatus = GameStatus.STOPPED;
         }
     }
 
     public async startGame(map: GameMap) {
-        if (!this.state.isGameRunning) {
-            this.state.isGameRunning = true;
+        if (this.state.gameStatus === GameStatus.STOPPED) {
+            this.state.gameStatus = GameStatus.STARTING;
             this.map = map;
-            this.ships = new Map<string, ShipManager>();
+            this.shipManagers = new Map<string, ShipManager>();
             this.spaceManager = new SpaceManager();
             map.init(this.scriptApi);
-            await this.waitForAllShipRoomInit();
+            await this.waitForAllShipRoomsInit();
             this.spaceManager.forceFlushEntities();
             await matchMaker.createRoom('space', { manager: this.spaceManager });
             await this.waitForRoom({ name: 'space' });
+            this.state.gameStatus = GameStatus.RUNNING;
         }
     }
 
@@ -103,17 +120,19 @@ export class GameManager {
         state.mapName = this.map.name;
         this.spaceManager.forceFlushEntities();
         state.fragment.space = this.spaceManager.state;
-        for (const [shipId, shipManager] of this.ships.entries()) {
+        for (const [shipId, shipManager] of this.shipManagers.entries()) {
             state.fragment.ship.set(shipId, shipManager.state);
         }
         return state.clone();
     }
 
     public async loadGame(source: SavedGame, map: GameMap) {
-        if (this.state.isGameRunning) {
+        while (this.state.gameStatus !== GameStatus.STOPPED) {
+            // also handle starting and stopping
+            await new Promise((res) => setTimeout(res, 100));
             await this.stopGame();
         }
-        this.state.isGameRunning = true;
+        this.state.gameStatus = GameStatus.STARTING;
         this.map = map;
         this.spaceManager = new SpaceManager();
         this.spaceManager.insertBulk(source.fragment.space);
@@ -122,10 +141,11 @@ export class GameManager {
         for (const [id, shipState] of source.fragment.ship) {
             const so = source.fragment.space.getShip(id);
             if (so) {
-                this.initShipManagerAndRoom(so, shipState);
+                this.initShipManagerAndRoom(so, shipState, shipState.isPlayerShip);
             }
         }
-        await this.waitForAllShipRoomInit();
+        await this.waitForAllShipRoomsInit();
+        this.state.gameStatus = GameStatus.RUNNING;
     }
 
     private cleanupShip(id: string) {
@@ -138,7 +158,10 @@ export class GameManager {
         }
     }
 
-    private addShip(spaceObject: Spaceship) {
+    private addShip(spaceObject: Spaceship, isPlayerShip: true): ShipManagerPc;
+    private addShip(spaceObject: Spaceship, isPlayerShip: false): ShipManagerNpc;
+    private addShip(spaceObject: Spaceship, isPlayerShip: boolean): ShipManager;
+    private addShip(spaceObject: Spaceship, isPlayerShip: boolean) {
         if (!spaceObject.model) {
             throw new Error(`Missing ship model for ship ${spaceObject.id}`);
         }
@@ -148,33 +171,44 @@ export class GameManager {
         this.spaceManager.insert(spaceObject);
         const configuration = shipConfigurations[spaceObject.model];
         const shipState = makeShipState(spaceObject.id, configuration);
-        const shipManager = this.initShipManagerAndRoom(spaceObject, shipState);
+        const shipManager = this.initShipManagerAndRoom(spaceObject, shipState, isPlayerShip);
         return shipManager;
     }
 
-    private async waitForAllShipRoomInit() {
-        while (this.ships.size > this.state.shipIds.length) {
+    private async waitForAllShipRoomsInit() {
+        const expectedShipCount = this.shipManagers.size;
+        while (expectedShipCount > this.state.shipIds.length) {
             await new Promise((res) => setTimeout(res, 100));
         }
     }
 
-    private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState) {
+    private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: true): ShipManagerPc;
+    private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: false): ShipManagerNpc;
+    private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean): ShipManager;
+    private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean) {
         const id = spaceObject.id;
         const die = new ShipDie(3);
-        const shipManager = new ShipManager(spaceObject, shipState, this.spaceManager, die, this.ships); // create a manager to manage the ship
-        this.ships.set(id, shipManager);
+        const managerCtor = isPlayerShip ? ShipManagerPc : ShipManagerNpc;
+        const shipManager = new managerCtor(spaceObject, shipState, this.spaceManager, die, this.shipManagers); // create a manager to manage the ship
+        this.shipManagers.set(id, shipManager);
         this.dice.push(die);
         const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
             await this.waitForRoom({ roomId: id, name: 'ship' });
             this.state.shipIds.push(id);
+            if (isPlayerShip) {
+                this.state.playerShipIds.push(id);
+            }
         });
         this.shipCleanups.set(id, async () => {
             await createRoomPromise;
             if (this.shipCleanups.delete(id)) {
+                if (isPlayerShip) {
+                    this.state.playerShipIds.deleteAt(this.state.playerShipIds.indexOf(id));
+                }
                 this.state.shipIds.deleteAt(this.state.shipIds.indexOf(id));
                 void matchMaker.getRoomById(id).disconnect();
                 this.dice.splice(this.dice.indexOf(die), 1);
-                this.ships.delete(id);
+                this.shipManagers.delete(id);
             }
         });
         return shipManager;

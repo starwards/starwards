@@ -52,15 +52,15 @@ export function makeDriver() {
             // @ts-ignore : access private field
             return gameManager.spaceManager;
         },
-        get ships() {
+        get shipManagers() {
             if (!gameManager) throw new Error('missing gameManager');
             // @ts-ignore : access private field
-            return gameManager.ships;
+            return gameManager.shipManagers;
         },
         getShip(id: string) {
             if (!gameManager) throw new Error('missing gameManager');
             // @ts-ignore : access private field
-            const ship = gameManager.ships.get(id);
+            const ship = this.shipManagers.get(id);
             if (!ship) throw new Error('missing ship ' + id);
             return ship;
         },
@@ -75,7 +75,7 @@ export function makeDriver() {
             expect(data.mapName).toEqual(this.map?.name);
             expect(data.fragment.space.toJSON()).toEqual(this.spaceManager.state.toJSON());
             expect([...data.fragment.ship].map(([k, v]) => [k, v.toJSON()])).toEqual(
-                [...this.ships].map(([k, v]) => [k, v.state.toJSON()]),
+                [...this.shipManagers].map(([k, v]) => [k, v.state.toJSON()]),
             );
         },
     };

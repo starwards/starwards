@@ -1,4 +1,5 @@
 import { Driver } from './driver';
+import { GameStatus } from '../admin';
 
 export enum Status {
     DISCONNECTED,
@@ -42,8 +43,14 @@ export class ClientStatus {
         if (!this.driver.isConnected) {
             return { status: Status.DISCONNECTED, text: text || 'not connected to server' };
         }
-        if (!(await this.driver.isActiveGame())) {
+        if ((await this.driver.getGameStatus()) === GameStatus.STOPPED) {
             return { status: Status.CONNECTED, text: text || 'no active game' };
+        }
+        if ((await this.driver.getGameStatus()) === GameStatus.STARTING) {
+            return { status: Status.CONNECTED, text: text || 'game starting' };
+        }
+        if ((await this.driver.getGameStatus()) === GameStatus.STOPPING) {
+            return { status: Status.CONNECTED, text: text || 'game stopping' };
         }
         if (!this.shipId) {
             return { status: Status.GAME_RUNNING, text: '' };
