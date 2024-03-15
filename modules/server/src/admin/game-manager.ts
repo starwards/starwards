@@ -11,6 +11,7 @@ import {
     SpaceManager,
     SpaceObject,
     Spaceship,
+    Updateable,
     Vec2,
     makeId,
     makeShipState,
@@ -19,7 +20,6 @@ import {
 import { IRoomListingData, matchMaker } from 'colyseus';
 
 import { SavedGame } from '../serialization/game-state-protocol';
-import { Updateable } from 'modules/core/src/updateable';
 
 type ShipManager = ShipManagerPc | ShipManagerNpc;
 export class GameManager {

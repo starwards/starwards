@@ -19,19 +19,20 @@ export interface GameRoom<R extends RoomName> extends Stateful<State<R>> {
 }
 
 export * from './admin';
-export * from './commands';
+export * from './async-utils';
 export * from './client';
+export * from './commands';
+export * from './configurations';
+export * from './events';
+export * from './game-field';
 export * from './id';
+export * from './json-ptr';
 export * from './logic';
+export * from './range';
+export * from './scripts-api';
 export * from './ship';
 export * from './space';
-export * from './utils';
-export * from './configurations';
-export * from './range';
-export * from './json-ptr';
 export * from './task-loop';
-export * from './events';
-export * from './async-utils';
 export * from './tweakable';
-export * from './game-field';
-export * from './scripts-api';
+export * from './updateable';
+export * from './utils';
