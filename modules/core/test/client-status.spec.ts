@@ -20,7 +20,7 @@ describe('client status', () => {
                 status.getStatus,
                 expect.objectContaining({
                     status: Status.DISCONNECTED,
-                    text: expect.stringContaining('ECONNREFUSED') as unknown,
+                    text: expect.stringContaining('offline') as unknown,
                 }) as StatusInfo,
             );
         });
