@@ -27,5 +27,17 @@ module.exports = merge(common, {
                 // changeOrigin: true,
             },
         },
+        client: {
+            overlay: {
+                runtimeErrors: (error) => {
+                    if (error?.message === 'ResizeObserver loop completed with undelivered notifications.') {
+                        // eslint-disable-next-line no-console
+                        console.error(error);
+                        return false;
+                    }
+                    return true;
+                },
+            },
+        },
     },
 });
