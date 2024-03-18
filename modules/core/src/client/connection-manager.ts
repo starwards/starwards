@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { createMachine, interpret } from 'xstate';
+import { createActor, setup } from 'xstate';
 
 import { ErrorCode } from 'colyseus.js';
 import EventEmitter from 'eventemitter3';
@@ -7,11 +7,28 @@ import { isCoded } from './errors';
 import { printError } from '../utils';
 import { raceEvents } from '../async-utils';
 
-type StatusContext = { lastGameError: unknown };
-const statusMachine = createMachine({
-    context: { lastGameError: null } as StatusContext,
-    tsTypes: {} as import('./connection-manager.typegen').Typegen0,
-    predictableActionArguments: true,
+const statusMachine = setup({
+    types: {} as {
+        context: { lastGameError: unknown };
+        events:
+            | { type: 'CONNECT' }
+            | { type: 'CONNECTED' }
+            | { type: 'ERROR' }
+            | { type: 'DESTROY' }
+            | { type: 'DISCONNECT' };
+    },
+}).createMachine({
+    /** @xstate-layout N4IgpgJg5mDOIC5QGUAuBDATgdyxWABAMIA2AlmAHaoFrqoCusAdAMYD2llYrqZlUAMREA8gDkxAUSIAVSQBEA2gAYAuolAAHdrDJ9OGkAA9EARgBMAGhABPM+YC+D63Rx5CpCtVoZGLDlw8fAKCkgBKYSJhKupIINq6+pSGJgjmAMymzABsAOymAJyZ2QW5AKwFymUALNZ2CAXVABzM5k0FHaam6bkdZY7OIK64mPjE5FQ0dH5snNy8-ELyksgykQCaMYYJemQGcanm5ll5hcWlFVW1tmam7cy57QXtucrPHdlOLhhuox4T3mmTFmgQWISMsF8YGY6AAZqgwJgABRlZRogCUgmG7nGXimvmBAXmwSgWziOySKUQRxO+SKphK5UqNTqiEqygeT1KbWUr3STS+Qx+IzGnkmPnohLmQUggnkAElkKIJNIZGStDpdvtQKk7ll2spssdcjymk1sqyEOkyukHuy0d1su1UZ9Bti-rjxUD-NLeLLwpFomptprKQc2VYbghHhzlOkOqUOtVygzBe7RQD8ZKfaCERA5Ss1iJNsHyaG9slwwh+pbTGV+sw4x0muU8q2ymnhTixYCCSwIGRYESZfnlVJZOr4uXtcZEM1ssx0tUegVzAUSkvzDbLRlbcpqmi0U1UY1zLlXd8sCL-niJTMB0PfXmC6sNpOKRWqQh54vl701xu1RbuklrJtUzA2gmp5tMm3Sdle3aZnewKIpg7CYHKipjqq77TpWOqICataZBykHPE8ZTHgMl6-Bmt7eswqHocI4jjmqpYaokn5VhktJnAyFzMtc9SmIaBSNvGHT7hkjTlPBtE3l6faMZgaEYcsr7FrhXEzqkNotE0y4FF0FhNKYuTCWyhScgmXQrgU-ROIMlDsBAcCGOmim9tmIY6fhs4IAAtOkFpRoF5QQYeyhHL0cbHtU8nXp63kzMOYJQL5Wr+akLa1oaC53AmTRbtUlTVKYiWIfRylpXmmVhgR36RvUS4tNUB5or0eTHgyuSVR6PZZveg61ZA9XcY16Q9BJFj5PG5kZJZVo1K0TxNG8DL9PkF5CghA1IQxTGYONumIFNtrZGU2TpGiN01NalqPOJT0OXc1TXQyCVul2+3VdmKlqcwDCUAA1i52D+R+p1WmZORXTdcZXA9UYtrkq0dEuZXPH1317XRSn-UdzB8AAtmA7AMKgJ3ZWd5pw9dt1I2UlpFGUNmlIU5lGrk6T9fjKXAm5kJoTYY1ln5X7ZJdDyXTG1QVE0mQgVGdbTaVDr8tyxwDE4QA */
+    context: () => ({ lastGameError: null as unknown }),
+    types: {} as {
+        context: { lastGameError: unknown };
+        events:
+            | { type: 'CONNECT' }
+            | { type: 'CONNECTED' }
+            | { type: 'ERROR' }
+            | { type: 'DESTROY' }
+            | { type: 'DISCONNECT' };
+    },
     id: 'Starwards Client Status',
     initial: 'disconnected',
     states: {
@@ -60,40 +77,57 @@ type StateName =
     | 'error.timeout'
     | 'error.unknown'
     | 'destroyed';
+type StateValue = StateName | { error?: 'unknown' | 'timeout' | undefined };
 
 export type ConnectionStateEvent = '*' | StateName | `exit:${StateName}`;
 function isErrorLike(e: unknown): e is { message: string; stack?: string } {
     return typeof (e as Error)?.message === 'string';
 }
+function isEqual(v1: StateValue, v2: StateValue) {
+    if (typeof v1 === 'object' && typeof v2 === 'object') {
+        return v1.error === v2.error;
+    }
+    return v1 === v2;
+}
+function toStrings(value: StateValue): StateName[] {
+    if (typeof value === 'string') {
+        return [value];
+    }
+    if (value.error) {
+        return [`error.${value.error}`];
+    }
+    return ['error'];
+}
+
 export class ConnectionManager {
     readonly events = new EventEmitter<ConnectionStateEvent>();
     public reconnectIntervalMS = 10;
-    private statusService = interpret(statusMachine)
-        .start()
-        .onTransition((state) => {
-            if (state.changed) {
-                for (const stateStr of (this.statusService.state.history?.toStrings() || []) as StateName[]) {
+    private statusService = createActor(statusMachine).start();
+    private previousSnapshot = this.statusService.getSnapshot();
+    constructor(private connectJob: () => Promise<unknown>) {
+        this.events.on('error', () => void setTimeout(this.connect, this.reconnectIntervalMS));
+        this.statusService.subscribe((snapshot) => {
+            if (!isEqual(snapshot.value, this.previousSnapshot.value)) {
+                for (const stateStr of toStrings(this.previousSnapshot.value)) {
                     this.events.emit(`exit:${stateStr}`);
                 }
                 this.events.emit(`*`);
-                for (const stateStr of this.statusService.state.toStrings() as StateName[]) {
+                for (const stateStr of toStrings(snapshot.value)) {
                     this.events.emit(stateStr);
                 }
             }
+            this.previousSnapshot = snapshot;
         });
-
-    constructor(private connectJob: () => Promise<unknown>) {
-        this.events.on('error', () => void setTimeout(this.connect, this.reconnectIntervalMS));
     }
 
     connect = () => {
-        if (this.statusService.state.hasTag('connectable')) {
-            this.statusService.send('CONNECT');
+        if (this.statusService.getSnapshot().hasTag('connectable')) {
+            this.statusService.send({ type: 'CONNECT' });
             void (async () => {
                 try {
                     await this.connectJob();
-                    this.statusService.state.context.lastGameError = null;
-                    this.statusService.send('CONNECTED');
+                    this.statusService.getSnapshot().context.lastGameError = null;
+                    this.statusService.send({ type: 'CONNECTED' });
                 } catch (e) {
                     if (!this.isDestroyed) {
                         this.onConnectionError(e);
@@ -103,25 +137,26 @@ export class ConnectionManager {
         }
     };
     onConnectionError = (err: unknown) => {
-        if (printError(err) !== printError(this.statusService.state.context.lastGameError)) {
+        if (printError(err) !== printError(this.statusService.getSnapshot().context.lastGameError)) {
             console.log(`connection error: ${printError(err)}`);
         }
         if (!this.isDestroyed) {
-            this.statusService.state.context.lastGameError = err;
-            this.statusService.send('ERROR');
+            this.statusService.getSnapshot().context.lastGameError = err;
+            this.statusService.send({ type: 'ERROR' });
         }
     };
 
     destroy() {
-        this.statusService.send('DESTROY');
+        this.statusService.send({ type: 'DESTROY' });
+        this.statusService.stop();
         this.events.removeAllListeners();
     }
     get stateConnected() {
-        return this.statusService.state.matches('connected');
+        return this.statusService.getSnapshot().matches('connected');
     }
 
     get isDestroyed() {
-        return this.statusService.state.hasTag('destroyed');
+        return this.statusService.getSnapshot().hasTag('destroyed');
     }
     async waitForConnected() {
         if (this.stateConnected) {
@@ -138,7 +173,7 @@ export class ConnectionManager {
 
     getErrorMessage() {
         if (!this.stateConnected) {
-            const e = this.statusService.state.context.lastGameError;
+            const e = this.statusService.getSnapshot().context.lastGameError;
             if (!e) {
                 return null;
             }
