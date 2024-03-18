@@ -10,7 +10,7 @@ const baseConfig = {
                 sourcemap: true,
                 esbuild: {
                     platform: 'node',
-                    target: 'node18',
+                    target: 'node20',
                     tsconfigRaw: fs.readFileSync('./tsconfig.json', 'utf8'),
                 },
             },
