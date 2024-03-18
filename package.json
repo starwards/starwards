@@ -94,7 +94,6 @@
         "rimraf": "^5.0.5",
         "rollup": "^4.13.0",
         "supertest": "^6.3.4",
-        "ts-essentials": "^9.4.1",
         "ts-node": "^10.9.2",
         "tsconfig-paths-webpack-plugin": "^4.1.0",
         "tsup": "^8.0.2",
