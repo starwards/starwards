@@ -2,7 +2,7 @@
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
-const globby = require('globby');
+const globbyPromise = import('globby');
 const ncp = util.promisify(require('ncp').ncp);
 const rimraf = util.promisify(require('rimraf'));
 const mkdir = util.promisify(fs.mkdir);
@@ -21,6 +21,7 @@ const coreModulePath = path.join(rootPath, 'modules', 'core');
 const browserModulePath = path.join(rootPath, 'modules', 'browser');
 
 async function getPackage(modulePath) {
+    const { globby } = await globbyPromise;
     const pattern = path.join(modulePath, 'starwards-*.tgz').split(path.sep).join('/');
     const arr = await globby(pattern);
     if (!arr.length) {
