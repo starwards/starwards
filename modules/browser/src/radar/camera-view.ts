@@ -16,7 +16,7 @@ export class CameraView extends Application<HTMLCanvasElement> {
      * @param camera a point in the world that the radar is watching, and a zoom level
      */
     constructor(
-        pixiOptions: IApplicationOptions,
+        pixiOptions: Partial<IApplicationOptions>,
         public camera: Camera,
         container: WidgetContainer,
     ) {
