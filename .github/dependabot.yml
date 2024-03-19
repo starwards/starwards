@@ -11,6 +11,3 @@ updates:
           - dependency-name: 'golden-layout'
             # version 2 has too many breaking changes for now
             versions: ['2.x']
-          - dependency-name: 'globby'
-            # version 12 and above moved to es-modules
-            versions: ['11.x']
