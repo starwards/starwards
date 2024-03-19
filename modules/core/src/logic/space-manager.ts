@@ -114,6 +114,11 @@ export class SpaceManager implements Updateable {
         }
     }
     public setVelocity(id: string, velocity: XY) {
+        if (isNaN(velocity.x) || isNaN(velocity.y)) {
+            // eslint-disable-next-line no-console
+            console.warn(`trying to set "NaN" in velocity of ${id}`);
+            return;
+        }
         const [subject] = this.getObjectPtr(id);
         if (subject) {
             subject.velocity.setValue(velocity);
