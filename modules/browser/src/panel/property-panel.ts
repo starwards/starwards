@@ -44,18 +44,21 @@ export class PropertyPanel implements Panel {
         guiFolder: FolderApi,
         viewModel: ViewModel,
         name: string,
-        getValue: () => T,
+        getValue: () => T | undefined,
         params: InputParams,
     ) {
-        let lastGetValue = (viewModel[name] = getValue());
         const guiController: InputBindingApi<unknown, T> = guiFolder.addInput(viewModel, name, params);
-        this.viewLoop.onLoop(() => {
-            const newGetValue = getValue();
-            if (newGetValue !== lastGetValue) {
-                viewModel[name] = lastGetValue = newGetValue;
-                guiController.refresh();
-            }
-        });
+        const value = getValue();
+        if (value !== undefined) {
+            let lastGetValue = (viewModel[name] = value);
+            this.viewLoop.onLoop(() => {
+                const newGetValue = getValue();
+                if (newGetValue !== undefined && newGetValue !== lastGetValue) {
+                    viewModel[name] = lastGetValue = newGetValue;
+                    guiController.refresh();
+                }
+            });
+        }
         return guiController;
     }
 

@@ -20,8 +20,7 @@
         "registry": "https://registry.npmjs.org/"
     },
     "engines": {
-        "node": ">= 18.3",
-        "npm": ">= 7.5.4"
+        "node": ">= 18"
     },
     "license": "SEE LICENSE IN LICENSE.md",
     "files": [
@@ -37,19 +36,18 @@
         "build:watch": "tsup-node --watch"
     },
     "dependencies": {
-        "@colyseus/schema": "^1.0.46",
-        "colyseus-events": "^2.1.1",
-        "colyseus.js": "^0.14.13",
-        "detect-collisions": "^9.3.1",
+        "@colyseus/schema": "^2.0.27",
+        "colyseus-events": "^3.0.0",
+        "colyseus.js": "^0.15.18",
+        "detect-collisions": "^9.4.0",
         "eventemitter2": "^6.4.9",
         "eventemitter3": "^5.0.1",
         "json-ptr": "^3.1.1",
-        "nanoid": "^3.3.4",
         "normal-distribution": "^1.1.1",
         "reflect-metadata": "^0.2.1",
-        "ts-essentials": "^9.3.0",
-        "tslib": "^2.5.0",
+        "ts-essentials": "^9.4.1",
+        "tslib": "^2.6.2",
         "ws": "^8.16.0",
-        "xstate": "^4.35.4"
+        "xstate": "^5.9.1"
     }
 }

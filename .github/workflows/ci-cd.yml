@@ -42,7 +42,7 @@ jobs:
     Test-E2e:
         runs-on: ubuntu-latest
         container:
-            image: mcr.microsoft.com/playwright:v1.41.2
+            image: mcr.microsoft.com/playwright:v1.42.1-jammy
             options: --user 1001
         steps:
             - uses: actions/checkout@v4

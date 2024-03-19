@@ -26,7 +26,7 @@ export async function server(port: number, staticDir: string, manager: GameManag
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
-    const gameServer = new Server({ transport: new WebSocketTransport({ server: httpServer }) });
+    const gameServer = new Server({ transport: new WebSocketTransport({ server: httpServer }), greet: false });
 
     gameServer.define('space', SpaceRoom);
     gameServer.define('admin', AdminRoom);

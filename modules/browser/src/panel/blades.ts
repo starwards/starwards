@@ -15,14 +15,14 @@ import { Destructor, RTuple2 } from '@starwards/core';
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
 
 export type NumericModel = {
-    getValue: () => number;
+    getValue: () => number | undefined;
     setValue?: (v: number) => unknown;
     onChange: (cb: () => unknown) => Destructor;
     range: RTuple2;
 };
 
 export type Model<T> = {
-    getValue: () => T;
+    getValue: () => T | undefined;
     setValue?: (v: T) => unknown;
     onChange: (cb: () => unknown) => Destructor;
 };
@@ -31,7 +31,11 @@ export type Model<T> = {
     This is the module to use to creatte new panels
 */
 
-export function configSliderBlade(params: Partial<SliderBladeParams>, range: RTuple2, getValue: () => number) {
+export function configSliderBlade(
+    params: Partial<SliderBladeParams>,
+    range: RTuple2,
+    getValue: () => number | undefined,
+) {
     return {
         parse: (v: number) => String(v),
         ...params,
@@ -51,7 +55,7 @@ export function configTextBlade(params: Partial<TextBladeParams<unknown>> = {}, 
     };
 }
 
-export function configEnumListBlade<T>(params: Partial<ListBladeParams<T>>, getValue: () => T) {
+export function configEnumListBlade<T>(params: Partial<ListBladeParams<T>>, getValue: () => T | undefined) {
     return {
         options: [],
         ...params,
@@ -70,11 +74,15 @@ export function wireBlade<T>(
     { getValue, onChange, setValue }: Model<T>,
     cleanup: (d: Destructor) => void,
 ) {
-    blade.value = getValue();
+    const v = getValue();
+    if (v !== undefined) {
+        blade.value = v;
+    }
     if (setValue) {
         blade.on('change', (ev) => {
-            if (ev.value !== getValue()) {
-                blade.value = getValue();
+            const value = getValue();
+            if (value !== undefined && ev.value !== value) {
+                blade.value = value;
                 setValue(ev.value);
             }
         });
@@ -82,7 +90,10 @@ export function wireBlade<T>(
         blade.disabled = true;
     }
     const removeStateListener = onChange(() => {
-        blade.value = getValue();
+        const value = getValue();
+        if (value !== undefined) {
+            blade.value = value;
+        }
     });
     cleanup(() => {
         blade.dispose();
@@ -187,7 +198,10 @@ export function addInputBlade<T>(
 ) {
     const viewModel: Record<string, T> = {};
     const { label } = params;
-    viewModel[label] = model.getValue();
+    const value = model.getValue();
+    if (value !== undefined) {
+        viewModel[label] = value;
+    }
     const input = guiFolder.addInput(viewModel, label, params);
     const bladeApi = Object.create(input, {
         value: {

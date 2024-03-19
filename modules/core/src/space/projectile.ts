@@ -62,7 +62,6 @@ export class Projectile extends SpaceObjectBase implements Craft {
     };
 
     @gameField('float32')
-    @tweakable({ type: 'number', number: { min: 0.01 } })
     public secondsToLive = 0;
 
     @gameField('string')

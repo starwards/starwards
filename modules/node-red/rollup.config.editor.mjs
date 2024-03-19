@@ -1,7 +1,7 @@
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'fs';
-import globby from 'globby';
+import { globbySync } from 'globby';
 import packageJson from './package.json' assert { type: 'json' };
 import path from 'path';
 import process from 'process';
@@ -26,7 +26,7 @@ const makeConfigItem = (nodeType) => ({
             name: 'htmlWatch',
             load(id) {
                 const editorDir = path.dirname(id);
-                const htmlFiles = globby.sync(path.join(editorDir, '*.html'));
+                const htmlFiles = globbySync(path.join(editorDir, '*.html'));
                 htmlFiles.map((file) => this.addWatchFile(file));
             },
         },
@@ -38,7 +38,7 @@ const makeConfigItem = (nodeType) => ({
             name: 'htmlBundle',
             renderChunk(code, chunk) {
                 const editorDir = path.dirname(chunk.facadeModuleId);
-                const htmlFiles = globby.sync(path.join(editorDir, '*.html').replace(/\\/g, '/'));
+                const htmlFiles = globbySync(path.join(editorDir, '*.html').replace(/\\/g, '/'));
                 const htmlContents = htmlFiles.map((fPath) => fs.readFileSync(fPath));
 
                 code = '<script type="text/javascript">\n' + code + '\n' + '</script>\n' + htmlContents.join('\n');

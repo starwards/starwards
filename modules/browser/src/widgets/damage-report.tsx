@@ -49,7 +49,7 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
     const [current, send] = useMachine(disappearMachine);
 
     useEffect(() => {
-        send(String(broken));
+        send({ type: String(broken) });
     }, [broken, send]);
 
     if (current.matches('hide')) {

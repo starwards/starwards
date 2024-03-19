@@ -67,7 +67,7 @@ export function readProp<T>(driver: Driver, pointerStr: JsonStringPointer) {
     if (!pointer) {
         throw new Error(`Illegal json path:${pointerStr}`);
     }
-    const getValue = () => pointer.get(driver.state) as T;
+    const getValue = () => pointer.get(driver.state) as T | undefined;
     const onChange: OnChange = (cb: () => unknown) => {
         let lastValue = getValue();
         const listener = () => {
