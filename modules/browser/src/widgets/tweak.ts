@@ -124,6 +124,7 @@ function addTweakables(
     cleanup: (d: Destructor) => void,
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
+    if (!state) return;
     for (const tweakable of getTweakables(state)) {
         if (tweakable.config === 'number') {
             const prop = readWriteNumberProp(driver, `${pointer}/${tweakable.field}`);
@@ -168,6 +169,7 @@ function addDesignFolder(
     });
     cleanup(() => designFolder.dispose());
     const state = readProp<DesignState>(shipDriver, `${pointer}/design`).getValue();
+    if (!state) return;
     for (const designParam of state.keys()) {
         const prop = readWriteProp<number>(shipDriver, `${pointer}/design/${designParam}`);
         addCameraRingBlade(designFolder, prop, { label: designParam }, cleanup);

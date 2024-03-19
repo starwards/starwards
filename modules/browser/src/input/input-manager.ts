@@ -23,14 +23,14 @@ function lerpAxisToRange(range: RTuple2, axisValue: number) {
 }
 interface RangeAction {
     range: RTuple2;
-    getValue: () => number;
+    getValue: () => number | undefined;
     setValue: (v: number) => unknown;
 }
 interface TriggerAction {
     setValue: (v: boolean) => unknown;
 }
 interface ToggleAction {
-    getValue: () => boolean;
+    getValue: () => boolean | undefined;
     setValue: (v: boolean) => unknown;
 }
 export function numberAction(action: { setValue: (v: number) => unknown }): TriggerAction {
@@ -176,7 +176,7 @@ class CombinedRangeCallbacks {
         private property: RangeAction,
         offSetonly: boolean,
     ) {
-        this.offsetValue = offSetonly ? property.getValue() : 0;
+        this.offsetValue = (offSetonly && property.getValue()) || 0;
     }
     private onChange() {
         this.property.setValue(this.axisValue + this.offsetValue);

@@ -41,7 +41,10 @@ export function pilotRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDrive
 
 export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
     const warpLevelProp = readProp<number>(shipDriver, '/warp/currentLevel');
-    const isWarpProp = aggregate([warpLevelProp], () => warpLevelProp.getValue() > 0.5);
+    const isWarpProp = aggregate([warpLevelProp], () => {
+        const warpLevel = warpLevelProp.getValue();
+        return warpLevel !== undefined && warpLevel > 0.5;
+    });
     const camera = new Camera();
     const p = { range: isWarpProp.getValue() ? 100_000 : 5_000 };
     const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);

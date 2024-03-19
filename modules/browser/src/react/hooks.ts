@@ -58,7 +58,7 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
 export function defectReadProp(driver: ShipDriver) {
     return (d: DefectibleValue) => {
         const pointer = `${d.systemPointer}/${d.field}`;
-        const name = readProp<string>(driver, `${d.systemPointer}/name`).getValue();
+        const name = readProp<string>(driver, `${d.systemPointer}/name`).getValue() || 'unknown';
         const numberProp = readProp<number>(driver, pointer);
         let alertTime = 0;
         const getIsOk = () => numberProp.getValue() === d.normal;
@@ -83,10 +83,10 @@ export function defectReadProp(driver: ShipDriver) {
 
 export type ReadProperty<T> = {
     pointer: { pointer: string };
-    getValue: () => T;
+    getValue: () => T | undefined;
     onChange: (cb: () => void) => () => void;
 };
-export function useProperty<T>(property: ReadProperty<T>): T {
+export function useProperty<T>(property: ReadProperty<T>): T | undefined {
     const [value, setValue] = useState(property.getValue());
     useEffect(() => property.onChange(() => setValue(property.getValue())), [property]);
     return value;
@@ -101,5 +101,5 @@ export function useProperties<T>(properties: ReadProperty<T>[]): T[] {
         }
         return d.destroy;
     }, [properties]);
-    return value;
+    return value.filter((v): v is T => v !== undefined);
 }

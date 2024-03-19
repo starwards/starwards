@@ -9,12 +9,12 @@ import { WidgetContainer } from '../container';
 
 function addDesignStateToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
     const p = readProp<DesignState>(shipDriver, pointerStr);
-    const fields = new Set(p.getValue().keys());
+    const fields = new Set(p.getValue()?.keys());
     for (const constName of fields) {
         panel.addConfig(constName, readWriteProp(shipDriver, pointerStr + '/' + constName));
     }
     p.onChange(() => {
-        for (const constName of p.getValue().keys()) {
+        for (const constName of p.getValue()?.keys() || []) {
             if (!fields.has(constName)) {
                 fields.add(constName);
                 panel.addConfig(constName, readWriteProp(shipDriver, pointerStr + '/' + constName));
