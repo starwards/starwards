@@ -94,7 +94,7 @@ function toStrings(value: StateValue): StateName[] {
         return [value];
     }
     if (value.error) {
-        return [`error.${value.error}`];
+        return ['error', `error.${value.error}`];
     }
     return ['error'];
 }
