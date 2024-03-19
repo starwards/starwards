@@ -21,7 +21,7 @@
         "@pixi/graphics-extras": "^7.1.2",
         "@tweakpane/core": "^1.1.4",
         "@tweakpane/plugin-essentials": "^0.1.8",
-        "@tweakpane/plugin-camerakit": "^0.2.3",
+        "@tweakpane/plugin-camerakit": "^0.3.0",
         "@xstate/react": "^4.1.0",
         "css-element-queries": "^1.2.3",
         "d3": "^7.9.0",
