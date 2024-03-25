@@ -20,9 +20,14 @@ export class HeatManager implements Updateable {
         }
     }
     reduceHeat(value: number, system: ShipSystem) {
-        system.heat = system.heat - value;
-        if (system.heat < 0) {
-            system.heat = 0;
+        const heat = system.heat;
+        if (heat > 0) {
+            const newHeat = heat - value;
+            if (newHeat < 0) {
+                system.heat = 0;
+            } else {
+                system.heat = heat - value;
+            }
         }
     }
 

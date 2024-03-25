@@ -78,25 +78,23 @@ export class SpaceManager implements Updateable {
     public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
             mgr.collisions.insert(area);
+            mgr.cleanupBodies.push(area);
             for (const potential of mgr.collisions.getPotentials(area)) {
                 const object = mgr.collisionToState.get(potential);
                 if (object && !object.destroyed) {
                     yield object;
                 }
             }
-            mgr.cleanupBodies.push(area);
-            // mgr.collisions.remove(area);
         },
         *queryArea(area: Body): Iterable<SpaceObject> {
             mgr.collisions.insert(area);
+            mgr.cleanupBodies.push(area);
             for (const potential of mgr.collisions.getPotentials(area)) {
                 const object = mgr.collisionToState.get(potential);
                 if (object && !object.destroyed && mgr.collisions.checkCollision(area, potential)) {
                     yield object;
                 }
             }
-            mgr.cleanupBodies.push(area);
-            // mgr.collisions.remove(area);
         },
     }))(this);
 
