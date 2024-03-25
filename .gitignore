@@ -98,3 +98,5 @@ test-results
 *.tsbuildinfo
 
 modules/core/unity-schema
+*.cpuprofile
+*.heapprofile
