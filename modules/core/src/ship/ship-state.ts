@@ -193,7 +193,7 @@ export class ShipState extends Spaceship {
                     notNull,
                 );
             case ShipArea.rear:
-                return [this.reactor, this.maneuvering, ...this.thrusters.toArray(), ...this.tubes.toArray()].filter(
+                return [this.reactor, this.maneuvering, ...this.thrusters.values(), ...this.tubes.values()].filter(
                     notNull,
                 );
         }
