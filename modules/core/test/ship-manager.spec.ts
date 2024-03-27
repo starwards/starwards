@@ -28,50 +28,61 @@ const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('explosion must damage only affected areas', () => {
         fc.assert(
-            // TODO explosionAngleToShip should also be a property
-            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
-                const explosionAngleToShip = 180;
-                const spaceMgr = new SpaceManager();
-                const shipObj = new Spaceship();
-                shipObj.id = '1';
-                const die = new MockDie();
-                const shipMgr = new shipManagerCtor(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
-                die.expectedRoll = 1;
-                spaceMgr.insert(shipObj);
-                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                const explosion = new Explosion();
-                const sizeOfPlate = (2 * Math.PI * shipObj.radius) / shipMgr.state.armor.numberOfPlates;
-                explosion.expansionSpeed = sizeOfPlate / explosion.secondsToLive; // expand to size of a plate
-                explosion.damageFactor = Number.MAX_SAFE_INTEGER;
-                explosion.position = Vec2.sum(
-                    shipObj.position,
-                    XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip),
-                );
-                spaceMgr.insert(explosion);
-                const totalTime = explosion.secondsToLive * 2;
-                const i = makeIterationsData(totalTime, totalTime * numIterationsPerSecond, () => explosion.destroyed);
-                for (const id of i) {
-                    shipMgr.update(id);
-                    spaceMgr.update(id);
-                }
+            fc.property(
+                fc.integer({ min: 15, max: 20 }),
+                degree(),
+                (numIterationsPerSecond: number, explosionAngleToShip: number) => {
+                    const spaceMgr = new SpaceManager();
+                    const shipObj = new Spaceship();
+                    shipObj.id = '1';
+                    const die = new MockDie();
+                    const shipMgr = new shipManagerCtor(
+                        shipObj,
+                        makeShipState(shipObj.id, dragonflyConfig),
+                        spaceMgr,
+                        die,
+                    );
+                    die.expectedRoll = 1;
+                    spaceMgr.insert(shipObj);
+                    shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                    shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                    const explosion = new Explosion();
+                    const sizeOfPlate = (2 * Math.PI * shipObj.radius) / shipMgr.state.armor.numberOfPlates;
+                    explosion.expansionSpeed = sizeOfPlate / explosion.secondsToLive; // expand to size of a plate
+                    explosion.damageFactor = Number.MAX_SAFE_INTEGER;
+                    explosion.position = Vec2.sum(
+                        shipObj.position,
+                        XY.byLengthAndDirection(shipObj.radius, explosionAngleToShip),
+                    );
+                    spaceMgr.insert(explosion);
+                    const totalTime = explosion.secondsToLive * 2;
+                    const i = makeIterationsData(
+                        totalTime,
+                        totalTime * numIterationsPerSecond,
+                        () => explosion.destroyed,
+                    );
+                    for (const id of i) {
+                        shipMgr.update(id);
+                        spaceMgr.update(id);
+                    }
 
-                const expectedHitPlatesRange = padArch(
-                    [explosionAngleToShip, explosionAngleToShip],
-                    sizeOfPlate + EPSILON,
-                );
-                //@ts-ignore : access private property
-                const brokenOutsideExplosion = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
-                expect(brokenOutsideExplosion).to.equal(2);
-
-                const brokenInsideExplosion =
+                    const expectedHitPlatesRange = padArch(
+                        [explosionAngleToShip, explosionAngleToShip],
+                        sizeOfPlate + EPSILON,
+                    );
                     //@ts-ignore : access private property
-                    shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
-                expect(brokenInsideExplosion).to.equal(2);
-                expect(shipMgr.state.chainGun!.broken).to.be.false;
-                expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
-                expect(shipMgr.state.chainGun!.rateOfFireFactor).to.equal(1);
-            }),
+                    const brokenOutsideExplosion = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                    expect(brokenOutsideExplosion).to.equal(2);
+
+                    const brokenInsideExplosion =
+                        //@ts-ignore : access private property
+                        shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
+                    expect(brokenInsideExplosion).to.equal(2);
+                    expect(shipMgr.state.chainGun!.broken).to.be.false;
+                    expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
+                    expect(shipMgr.state.chainGun!.rateOfFireFactor).to.equal(1);
+                },
+            ),
         );
     });
 
