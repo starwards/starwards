@@ -170,6 +170,13 @@ export const Lobby = (p: Props) => {
                             >
                                 Input
                             </Button>
+                            <Button
+                                key="input"
+                                palette="secondary"
+                                onClick={() => window.location.assign('colyseus-monitor')}
+                            >
+                                Colyseus Monitor
+                            </Button>
                         </pre>
                     </div>
                 </AnimatorGeneralProvider>
