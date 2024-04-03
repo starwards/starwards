@@ -11,7 +11,6 @@ import {
     limitPercision,
     projectileModels,
     shipAreasInRange,
-    toPositiveDegreesDelta,
 } from '..';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';

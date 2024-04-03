@@ -26,6 +26,36 @@ import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
 describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
+    it('explosion from the side must hit the side (Regression)', () => {
+        const numIterationsPerSecond = 20;
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = '1';
+        shipObj.angle = 0;
+        shipObj.turnSpeed = 0;
+        shipObj.position.assign(XY.zero);
+        const die = new MockDie();
+        const shipMgr = new shipManagerCtor(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+        die.expectedRoll = 1;
+        spaceMgr.insert(shipObj);
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+        const explosion = new Explosion();
+        const sizeOfPlate = (2 * Math.PI * shipObj.radius) / shipMgr.state.armor.numberOfPlates;
+        explosion.expansionSpeed = sizeOfPlate / explosion.secondsToLive;
+        explosion.damageFactor = Number.MAX_SAFE_INTEGER;
+        explosion.position.assign({ x: shipObj.radius / 4, y: shipObj.radius });
+        spaceMgr.insert(explosion);
+        const totalTime = explosion.secondsToLive * 2;
+        const i = makeIterationsData(totalTime, totalTime * numIterationsPerSecond, () => explosion.destroyed);
+        for (const id of i) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        const maxHealth = shipMgr.state.armor.design.plateMaxHealth;
+        const plates = shipMgr.state.armor.armorPlates.map((plate) => +(plate.health / maxHealth));
+        expect(plates).to.eql([1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1]);
+    });
     it('explosion must damage only affected areas', () => {
         fc.assert(
             fc.property(
