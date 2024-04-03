@@ -97,6 +97,11 @@ describe('formulas', () => {
                 ),
             );
         });
+        it('regression (B in A)', () => {
+            const arcA = [90, -90.01] as RTuple2;
+            const arcB = [96.91, 97.3] as RTuple2;
+            expectArcToBe(archIntersection(arcA, arcB), arcB, 'archIntersection()');
+        });
     });
     describe('lerp', () => {
         const lerpProperty = (

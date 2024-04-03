@@ -62,12 +62,13 @@ export function archIntersection(a: RTuple2, b: RTuple2): RTuple2 | null {
     }
     const aNorm = [0, toPositiveDegreesDelta(a[1] - a[0])];
     const bNorm = [toPositiveDegreesDelta(b[0] - a[0]), toPositiveDegreesDelta(b[1] - a[0])];
+    const res1 = aNorm[1] > bNorm[1] ? b[1] : a[1];
     if (bNorm[0] > bNorm[1]) {
         // a0 is between b0 and b1
-        return [a[0], Math.min(a[1], b[1])];
+        return [a[0], res1];
     } else if (bNorm[0] < aNorm[1]) {
         // b0 is between a0 and a1
-        return [b[0], Math.min(a[1], b[1])];
+        return [b[0], res1];
     }
     return null;
 }
