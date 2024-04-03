@@ -182,6 +182,11 @@ export class SpaceManager implements Updateable {
             this.insert(asteroid);
         }
         this.state.createAsteroidCommands = [];
+        for (const cmd of this.state.createExplosionCommands) {
+            const explosion = new Explosion().init(makeId(), Vec2.make(cmd.position), cmd.damageFactor);
+            this.insert(explosion);
+        }
+        this.state.createExplosionCommands = [];
         this.handleToInsert();
         for (const moveCommand of this.state.moveCommands) {
             this.handleMoveCommand(moveCommand.ids, moveCommand.delta);
@@ -429,7 +434,7 @@ export class SpaceManager implements Updateable {
     private explodeProjectile(projectile: Projectile) {
         projectile.destroyed = true;
         const explosion = projectile._explosion || new Explosion();
-        explosion.init(uniqueId('explosion'), projectile.position.clone());
+        explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
         this.insert(explosion);
     }

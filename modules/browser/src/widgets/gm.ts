@@ -6,10 +6,10 @@ import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/bli
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { Container } from 'golden-layout';
-import { CreateObjectsContainer } from '../radar/create-objects-container';
 import { DashboardWidget } from './dashboard';
 import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
+import { InteractiveLayerCommands } from '../radar/interactive-layer-commands';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
@@ -26,12 +26,12 @@ export class GmWidgets {
     public tweak: DashboardWidget;
     public create: DashboardWidget;
     public selectionContainer = new SelectionContainer();
-    public createContainer = new CreateObjectsContainer();
+    public interactiveLayerCommands = new InteractiveLayerCommands();
     constructor(driver: Driver) {
         this.tweak = tweakWidget(driver, this.selectionContainer);
-        this.create = createWidget(this.createContainer);
+        this.create = createWidget(this.interactiveLayerCommands);
         void driver.getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver));
-        const { selectionContainer, createContainer } = this;
+        const { selectionContainer, interactiveLayerCommands } = this;
         class GmRadarComponent {
             constructor(container: Container, state: RadarState) {
                 const camera = new Camera();
@@ -55,7 +55,12 @@ export class GmWidgets {
             private async init(root: CameraView) {
                 const [spaceDriver] = await Promise.all([driver.getSpaceDriver()]);
                 // const fps = new FpsCounter(root);
-                const interactiveLayer = new InteractiveLayer(root, spaceDriver, selectionContainer, createContainer);
+                const interactiveLayer = new InteractiveLayer(
+                    root,
+                    spaceDriver,
+                    selectionContainer,
+                    interactiveLayerCommands,
+                );
                 const getFactionColor = (faction: Faction) => {
                     switch (faction) {
                         case Faction.NONE:

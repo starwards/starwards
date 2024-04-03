@@ -13,20 +13,20 @@ export type CreateSpaceshipTemplate = {
     shipModel: ShipModel;
     faction: Faction;
 };
-export type CreateTemplate = CreateAsteroidTemplate | CreateSpaceshipTemplate;
+export type CreateExplosionTemplate = {
+    type: 'Explosion';
+    damageFactor: TemplateRange;
+};
+export type CreateTemplate = CreateAsteroidTemplate | CreateSpaceshipTemplate | CreateExplosionTemplate;
 export type EventTypes = {
     cancel: [];
     createByTemplate: [CreateTemplate];
 };
-export class CreateObjectsContainer {
+export class InteractiveLayerCommands {
     private _events = new EventEmitter<EventTypes>();
     public readonly events: Pick<EventEmitter<EventTypes>, 'on' | 'once' | 'off' | 'removeListener'> = this._events;
 
-    createAsteroid(t: CreateAsteroidTemplate) {
-        this._events.emit('createByTemplate', t);
-    }
-
-    createSpaceship(t: CreateSpaceshipTemplate) {
+    createByTemplate(t: CreateTemplate) {
         this._events.emit('createByTemplate', t);
     }
 

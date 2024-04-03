@@ -230,7 +230,7 @@ export abstract class ShipManager implements Updateable {
 
     protected healPlates(deltaSeconds: number) {
         for (const plate of this.state.armor.armorPlates) {
-            if (plate.health > 0 && plate.health < this.state.armor.design.plateMaxHealth) {
+            if (plate.health < this.state.armor.design.plateMaxHealth) {
                 plate.health = Math.min(
                     plate.health + this.state.armor.design.healRate * deltaSeconds,
                     this.state.armor.design.plateMaxHealth,
