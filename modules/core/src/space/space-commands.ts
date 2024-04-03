@@ -89,3 +89,14 @@ export const createAsteroidOrder = {
         state.createAsteroidCommands.push(value);
     },
 };
+export type CreateExplosionOrderArg = {
+    position: XY;
+    damageFactor: number;
+};
+
+export const createExplosionOrder = {
+    cmdName: 'createExplosionOrder',
+    setValue: (state: SpaceState, value: CreateExplosionOrderArg) => {
+        state.createExplosionCommands.push(value);
+    },
+};

@@ -43,19 +43,19 @@ void driver.waitForGame().then(
                 content: [
                     {
                         content: [
-                            { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80 },
+                            { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
                             {
                                 content: [
-                                    { ...getGoldenLayoutItemConfig(gmWidgets.tweak) },
-                                    { ...getGoldenLayoutItemConfig(gmWidgets.create) },
+                                    { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
+                                    { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
                                 ],
-                                isClosable: true,
+                                isClosable: false,
                                 title: '',
                                 type: 'stack',
                                 width: 20,
                             },
                         ],
-                        isClosable: true,
+                        isClosable: false,
                         title: '',
                         type: 'row',
                     },

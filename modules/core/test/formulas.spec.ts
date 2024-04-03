@@ -1,5 +1,6 @@
 import {
     EPSILON,
+    RTuple2,
     archIntersection,
     equasionOfMotion,
     lerp,
@@ -46,44 +47,62 @@ describe('formulas', () => {
         });
     });
     describe('archIntersection', () => {
-        it('returns false on a before b', () =>
+        function getArcsCase(a0: number, a1: number, b0: number, b1: number): [RTuple2, RTuple2] {
+            return [[a0, a1] as RTuple2, [b0, b1] as RTuple2];
+        }
+        function expectArcToBe(actual: RTuple2 | null, expected: RTuple2 | null, message: string) {
+            if (expected) {
+                expect(actual && toDegreesDelta(actual[0]), message).to.be.closeTo(
+                    toDegreesDelta(expected[0]),
+                    EPSILON * 2,
+                );
+                expect(actual && toDegreesDelta(actual[1]), message).to.be.closeTo(
+                    toDegreesDelta(expected[1]),
+                    EPSILON * 2,
+                );
+            } else {
+                expect(actual, message).to.eql(null);
+            }
+        }
+        it('on A before B', () => {
             fc.assert(
-                fc.property(orderedDegreesTuple4(), ([a0, a1, b0, b1]) => {
-                    expect(archIntersection([a0, a1], [b0, b1])).to.be.false;
-                }),
-            ));
-        it('returns false on b before a', () =>
+                fc.property(
+                    orderedDegreesTuple4().map(([a0, a1, b0, b1]) => getArcsCase(a0, a1, b0, b1)),
+                    ([arcA, arcB]) => {
+                        expectArcToBe(archIntersection(arcA, arcB), null, 'archIntersection()');
+                        expectArcToBe(archIntersection(arcB, arcA), null, 'archIntersection() reverse');
+                    },
+                ),
+            );
+        });
+        it('on A in B', () => {
             fc.assert(
-                fc.property(orderedDegreesTuple4(), ([b0, b1, a0, a1]) => {
-                    expect(archIntersection([a0, a1], [b0, b1])).to.be.false;
-                }),
-            ));
-        it('returns true on b in a', () =>
+                fc.property(
+                    orderedDegreesTuple4().map(([b0, a0, a1, b1]) => getArcsCase(a0, a1, b0, b1)),
+                    ([arcA, arcB]) => {
+                        expectArcToBe(archIntersection(arcA, arcB), arcA, 'archIntersection()');
+                        expectArcToBe(archIntersection(arcB, arcA), arcA, 'archIntersection() reverse');
+                    },
+                ),
+            );
+        });
+        it('on interwined: B starts in A, and A ends in B', () => {
             fc.assert(
-                fc.property(orderedDegreesTuple4(), ([a0, b0, b1, a1]) => {
-                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                }),
-            ));
-        it('returns true on a in b', () =>
-            fc.assert(
-                fc.property(orderedDegreesTuple4(), ([b0, a0, a1, b1]) => {
-                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                }),
-            ));
-        it('returns true on a starts in b and ends afterwards', () =>
-            fc.assert(
-                fc.property(orderedDegreesTuple4(), ([a0, b0, a1, b1]) => {
-                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                }),
-            ));
-        it('returns true on b starts in a and ends afterwards', () =>
-            fc.assert(
-                fc.property(orderedDegreesTuple4(), ([b0, a0, b1, a1]) => {
-                    expect(archIntersection([a0, a1], [b0, b1])).to.be.true;
-                }),
-            ));
+                fc.property(
+                    orderedDegreesTuple4().map(([a0, b0, a1, b1]) => getArcsCase(a0, a1, b0, b1)),
+                    ([arcA, arcB]) => {
+                        expectArcToBe(archIntersection(arcA, arcB), [arcB[0], arcA[1]], 'archIntersection()');
+                        expectArcToBe(archIntersection(arcB, arcA), [arcB[0], arcA[1]], 'archIntersection() reverse');
+                    },
+                ),
+            );
+        });
+        it('regression (B in A)', () => {
+            const arcA = [90, -90.01] as RTuple2;
+            const arcB = [96.91, 97.3] as RTuple2;
+            expectArcToBe(archIntersection(arcA, arcB), arcB, 'archIntersection()');
+        });
     });
-
     describe('lerp', () => {
         const lerpProperty = (
             predicate: (fromRange: [number, number], toRange: [number, number], fromValue: number) => boolean | void,

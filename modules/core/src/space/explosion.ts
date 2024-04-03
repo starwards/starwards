@@ -33,9 +33,10 @@ export class Explosion extends SpaceObjectBase {
         this.radius = 0.01;
     }
 
-    init(id: string, position: Vec2): this {
+    init(id: string, position: Vec2, damageFactor: number): this {
         this.id = id;
         this.position = position;
+        this.damageFactor = damageFactor;
         return this;
     }
 }

@@ -35,13 +35,14 @@ export const orderedTuple3 = () =>
         .filter((t) => t[0] < t[2]);
 
 export const degree = () => float(0.0, 360.0 - EPSILON);
-type Tuple4 = [number, number, number, number];
+export type Tuple4 = [number, number, number, number];
 
+const cycles = { min: -2, max: 2 };
 export const orderedDegreesTuple4 = () =>
-    float(-360.0 * 2, 360.0).chain((delta) =>
+    fc.tuple(fc.integer(cycles), fc.integer(cycles), fc.integer(cycles), fc.integer(cycles)).chain((deltas) =>
         fc
             .tuple(degree(), degree(), degree(), degree())
             .map((t) => t.sort((a, b) => a - b))
             .filter((t) => t[0] < t[1] && t[1] < t[2] && t[2] < t[3])
-            .map((t) => t.map((x) => x + delta) as Tuple4),
+            .map((t) => t.map((x, i) => x + deltas[i] * 360) as Tuple4),
     );

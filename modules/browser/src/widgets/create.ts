@@ -3,15 +3,16 @@ import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
 import { Asteroid, Destructors, Faction, shipModels } from '@starwards/core';
 import {
     CreateAsteroidTemplate,
-    CreateObjectsContainer,
+    CreateExplosionTemplate,
     CreateSpaceshipTemplate,
-} from '../radar/create-objects-container';
+    InteractiveLayerCommands,
+} from '../radar/interactive-layer-commands';
 
 import { DashboardWidget } from './dashboard';
 import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
-export function createWidget(createContainer: CreateObjectsContainer): DashboardWidget {
+export function createWidget(createContainer: InteractiveLayerCommands): DashboardWidget {
     class CreateRoot {
         private pane: Pane;
         private panelCleanup = new Destructors();
@@ -34,13 +35,12 @@ export function createWidget(createContainer: CreateObjectsContainer): Dashboard
                 radius: { min: 1, max: Asteroid.maxSize },
             };
             makeAsteroidFolder.addInput(createAsteroidTemplate, 'radius', {
-                min: 1,
-                max: Asteroid.maxSize,
+                ...createAsteroidTemplate.radius,
                 step: 1,
             });
             makeAsteroidFolder
                 .addButton({ title: 'Create Asteroid' })
-                .on('click', () => createContainer.createAsteroid(createAsteroidTemplate));
+                .on('click', () => createContainer.createByTemplate(createAsteroidTemplate));
 
             // Spaceship
             const makeShipFolder = this.pane.addFolder({
@@ -65,7 +65,24 @@ export function createWidget(createContainer: CreateObjectsContainer): Dashboard
             makeShipFolder.addInput(createShipTemplate, 'isPlayerShip');
             makeShipFolder
                 .addButton({ title: 'Create Ship' })
-                .on('click', () => createContainer.createSpaceship(createShipTemplate));
+                .on('click', () => createContainer.createByTemplate(createShipTemplate));
+
+            // Explosion
+            const makeExplosionFolder = this.pane.addFolder({
+                title: 'Create Explosion',
+                expanded: true,
+            });
+            const createExplosionTemplate: CreateExplosionTemplate = {
+                type: 'Explosion',
+                damageFactor: { min: 1, max: 1_000 },
+            };
+            makeExplosionFolder.addInput(createExplosionTemplate, 'damageFactor', {
+                ...createExplosionTemplate.damageFactor,
+                step: 1,
+            });
+            makeExplosionFolder
+                .addButton({ title: 'Create Explosion' })
+                .on('click', () => createContainer.createByTemplate(createExplosionTemplate));
         }
     }
 

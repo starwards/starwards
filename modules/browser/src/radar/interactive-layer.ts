@@ -1,5 +1,5 @@
 import { Container, DisplayObject, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
-import { CreateObjectsContainer, CreateTemplate } from './create-objects-container';
+import { CreateTemplate, InteractiveLayerCommands } from './interactive-layer-commands';
 import {
     Iterator,
     SpaceObject,
@@ -59,7 +59,7 @@ export class InteractiveLayer {
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
         private selectionContainer: SelectionContainer,
-        private createContainer: CreateObjectsContainer,
+        private interactiveLayerCommands: InteractiveLayerCommands,
     ) {
         this.stage.cursor = defaultCursor;
         this.stage.interactive = true;
@@ -68,8 +68,8 @@ export class InteractiveLayer {
             this.stage.hitArea = new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
             this.drawSelection();
         });
-        this.createContainer.events.on('createByTemplate', this.onCreateByTemplate);
-        this.createContainer.events.on('cancel', this.onCancelCreate);
+        this.interactiveLayerCommands.events.on('createByTemplate', this.onCreateByTemplate);
+        this.interactiveLayerCommands.events.on('cancel', this.onCancelCreate);
         this.stage.on('pointerdown', this.onPointerDown);
         this.stage.on('pointermove', this.onPointermove);
         this.stage.on('pointerup', this.onPointerup);
@@ -210,6 +210,12 @@ export class InteractiveLayer {
                         shipModel,
                         faction,
                     });
+                } else if (this.createTemplate.type === 'Explosion') {
+                    const damageFactor = lerp([0, 1], literal2Range(this.createTemplate.damageFactor), Math.random());
+                    this.spaceDriver.command(spaceCommands.createExplosionOrder, {
+                        position,
+                        damageFactor,
+                    });
                 } else {
                     assertUnreachable(this.createTemplate);
                 }
@@ -259,7 +265,7 @@ export class InteractiveLayer {
         this.createTemplate = null;
         this.drawSelection();
         if (shouldCancelCreate) {
-            this.createContainer.cancel();
+            this.interactiveLayerCommands.cancel();
         }
     }
 
