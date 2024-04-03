@@ -35,7 +35,7 @@ export const orderedTuple3 = () =>
         .filter((t) => t[0] < t[2]);
 
 export const degree = () => float(0.0, 360.0 - EPSILON);
-type Tuple4 = [number, number, number, number];
+export type Tuple4 = [number, number, number, number];
 
 export const orderedDegreesTuple4 = () =>
     float(-360.0 * 2, 360.0).chain((delta) =>

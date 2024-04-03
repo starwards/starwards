@@ -6,6 +6,7 @@ import {
     SmartPilot,
     SpaceManager,
     Spaceship,
+    archIntersection,
     capToRange,
     limitPercision,
     projectileModels,
@@ -58,10 +59,10 @@ export class DamageManager {
         let damagedInternals = false;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
-            const areaHitRangeAngles: [number, number] = [
-                Math.max(toPositiveDegreesDelta(areaArc[0]), damage.damageSurfaceArc[0]),
-                Math.min(toPositiveDegreesDelta(areaArc[1]), damage.damageSurfaceArc[1]),
-            ];
+            const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
+            if (!areaHitRangeAngles) {
+                continue;
+            }
             const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
             if (areaUnarmoredHits) {
                 const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
@@ -198,7 +199,7 @@ export class DamageManager {
         return brokenPlates;
     }
 
-    private applyDamageToArmor(damageFactor: number, localAnglesHitRange: [number, number]) {
+    private applyDamageToArmor(damageFactor: number, localAnglesHitRange: RTuple2) {
         for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
                 const newHealth = plate.health - damageFactor * gaussianRandom(20, 4);

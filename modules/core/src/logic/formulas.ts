@@ -55,10 +55,21 @@ export function* concatinateArchs(archs: Iterable<RTuple2>): Iterable<RTuple2> {
     yield* concatinateArchsAcyclic(shiftPushIter(concatinateArchsAcyclic(archs)));
 }
 
-export function archIntersection(a: RTuple2, b: RTuple2): boolean {
+export function archIntersection(a: RTuple2, b: RTuple2): RTuple2 | null {
+    if (a[1] === a[0] || b[1] === b[0]) {
+        // no practical intersection
+        return null;
+    }
     const aNorm = [0, toPositiveDegreesDelta(a[1] - a[0])];
     const bNorm = [toPositiveDegreesDelta(b[0] - a[0]), toPositiveDegreesDelta(b[1] - a[0])];
-    return bNorm[0] >= bNorm[1] || bNorm[0] <= aNorm[1] || bNorm[1] <= aNorm[1];
+    if (bNorm[0] > bNorm[1]) {
+        // a0 is between b0 and b1
+        return [a[0], Math.min(a[1], b[1])];
+    } else if (bNorm[0] < aNorm[1]) {
+        // b0 is between a0 and a1
+        return [b[0], Math.min(a[1], b[1])];
+    }
+    return null;
 }
 
 export function padArch(arch: RTuple2, pad: number): RTuple2 {
