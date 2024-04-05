@@ -46,7 +46,7 @@
     "devDependencies": {
         "@colyseus/loadtest": "^0.15.2",
         "@jgoz/jest-esbuild": "^1.0.5",
-        "@playwright/test": "^1.42.1",
+        "@playwright/test": "^1.43.0",
         "@rollup/plugin-sucrase": "^5.0.2",
         "@types/chai": "^4.3.12",
         "@types/d3-selection": "^3.0.10",
