@@ -201,7 +201,7 @@ export class DamageManager {
     private applyDamageToArmor(damageFactor: number, localAnglesHitRange: RTuple2) {
         for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
-                const newHealth = plate.health - damageFactor * gaussianRandom(20, 4);
+                const newHealth = plate.health - damageFactor;
                 plate.health = Math.max(newHealth, 0);
             }
         }

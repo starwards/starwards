@@ -48,7 +48,9 @@ export class Armor extends Schema {
     }
 
     public numberOfPlatesInRange(localAngleHitRange: RTuple2): number {
-        return Math.ceil(toPositiveDegreesDelta(localAngleHitRange[1] - localAngleHitRange[0]) / this.degreesPerPlate);
+        const firstPlateHitOffset = toPositiveDegreesDelta(localAngleHitRange[0]) % this.degreesPerPlate;
+        const hitRangeSize = toPositiveDegreesDelta(localAngleHitRange[1] - localAngleHitRange[0]);
+        return Math.ceil((firstPlateHitOffset + hitRangeSize) / this.degreesPerPlate);
     }
 
     public *platesInRange(localAngleHitRange: RTuple2): IterableIterator<[number, ArmorPlate]> {
