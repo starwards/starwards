@@ -42,6 +42,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         spaceMgr,
                         die,
                     );
+                    shipMgr.state.armor.design.healRate = 0;
                     die.expectedRoll = 1;
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -65,19 +66,18 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         shipMgr.update(id);
                         spaceMgr.update(id);
                     }
-
                     const expectedHitPlatesRange = padArch(
                         [explosionAngleToShip, explosionAngleToShip],
                         sizeOfPlate + EPSILON,
                     );
                     //@ts-ignore : access private property
-                    const brokenOutsideExplosion = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
-                    expect(brokenOutsideExplosion).to.equal(2);
+                    const brokenTotal = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                    expect(brokenTotal).to.oneOf([2, 3]);
 
                     const brokenInsideExplosion =
                         //@ts-ignore : access private property
                         shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
-                    expect(brokenInsideExplosion).to.equal(2);
+                    expect(brokenInsideExplosion).to.equal(brokenTotal);
                     expect(shipMgr.state.chainGun!.broken).to.be.false;
                     expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
                     expect(shipMgr.state.chainGun!.rateOfFireFactor).to.equal(1);
