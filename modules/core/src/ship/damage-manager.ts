@@ -25,7 +25,6 @@ import { Reactor } from './reactor';
 import { ShipState } from './ship-state';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
-import { gaussianRandom } from '..';
 
 export class DamageManager {
     constructor(
