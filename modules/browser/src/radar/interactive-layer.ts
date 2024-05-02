@@ -79,7 +79,7 @@ export class InteractiveLayer {
         return this.stage;
     }
 
-    onSelectPoint(modifier: SelectModifier, point: XY) {
+    private onSelectPoint(modifier: SelectModifier, point: XY) {
         const spaceObject = this.getObjectAtPoint(this.spaceDriver.state, point);
         if (spaceObject) {
             const selected = [spaceObject];
@@ -91,7 +91,7 @@ export class InteractiveLayer {
         }
     }
 
-    onSelectArea(modifier: SelectModifier, a: XY, b: XY) {
+    private onSelectArea(modifier: SelectModifier, a: XY, b: XY) {
         const from = XY.min(a, b);
         const to = XY.max(a, b);
         const selected = [...this.spaceDriver.state].filter((spaceObject) =>
@@ -102,7 +102,7 @@ export class InteractiveLayer {
         else if (modifier === SelectModifier.subtract) this.selectionContainer.remove(selected);
     }
 
-    getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
+    private getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
         // TODO: simplify and refer to object radius by measuring distance?
         const grace = {
             x: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
@@ -118,18 +118,18 @@ export class InteractiveLayer {
         return null;
     }
 
-    onCancelCreate = () => {
+    private onCancelCreate = () => {
         if (this.actionType === ActionType.create) this.clearAction();
     };
 
-    onCreateByTemplate = (template: CreateTemplate) => {
+    private onCreateByTemplate = (template: CreateTemplate) => {
         this.clearAction();
         this.actionType = ActionType.create;
         this.stage.cursor = createCursor;
         this.createTemplate = template;
     };
 
-    onPointerDown = (event: FederatedPointerEvent) => {
+    private onPointerDown = (event: FederatedPointerEvent) => {
         const isMainButton = event.button === (MouseButton.main as number);
         if (this.actionType === ActionType.none) {
             if (isMainButton) {
@@ -155,7 +155,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointermove = (event: FederatedPointerEvent) => {
+    private onPointermove = (event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 this.dragTo = XY.clone(event.global);
@@ -183,7 +183,7 @@ export class InteractiveLayer {
         }
     };
 
-    onPointerup = (event: FederatedPointerEvent) => {
+    private onPointerup = (event: FederatedPointerEvent) => {
         if (this.dragFrom) {
             if (this.actionType === ActionType.select) {
                 const modifier = hotkeys.ctrl
