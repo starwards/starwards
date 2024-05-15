@@ -2,8 +2,16 @@ import { SpaceDriver, SpaceObject } from '@starwards/core';
 
 import EventEmitter from 'eventemitter3';
 import { Remove } from 'colyseus-events';
+import { propertyStub } from '../property-wrappers';
+
+export enum TypeFilter {
+    ALL,
+    OBJECTS,
+    WAYPOINTS,
+}
 
 export class SelectionContainer {
+    public filterProp = propertyStub(TypeFilter.ALL);
     /**
      * emits an event after an object chnanges its selection state
      * event name is the object's ID
@@ -13,8 +21,29 @@ export class SelectionContainer {
      * currently selected objects
      */
     private selected = new Map<string, SpaceObject>();
+
+    constructor() {
+        this.filterProp.onChange(() => this.set([...this.selectedItems]));
+    }
+
+    private isSelectable = (o: SpaceObject) => {
+        switch (this.filterProp.getValue()) {
+            case TypeFilter.ALL:
+                return true;
+            case TypeFilter.OBJECTS:
+                return o.type !== 'Waypoint';
+            case TypeFilter.WAYPOINTS:
+                return o.type === 'Waypoint';
+        }
+    };
+    private *filterItems() {
+        for (const o of this.selected.values()) {
+            if (this.isSelectable(o)) yield o;
+        }
+    }
+
     public get selectedItems(): Iterable<SpaceObject> {
-        return this.selected.values();
+        return this.filterItems();
     }
 
     public get selectedItemsIds() {
@@ -44,6 +73,7 @@ export class SelectionContainer {
     }
 
     public add(selected: SpaceObject[]) {
+        selected = selected.filter(this.isSelectable);
         const changed = selected.filter((so) => !this.selected.has(so.id));
         for (const spaceObject of selected) {
             this.selected.set(spaceObject.id, spaceObject);
@@ -67,6 +97,7 @@ export class SelectionContainer {
     }
 
     public set(selected: SpaceObject[]) {
+        selected = selected.filter(this.isSelectable);
         const changed = selected.filter((so) => !this.selected.delete(so.id)).concat(...this.selected.values());
         this.selected.clear();
         for (const spaceObject of selected) {
