@@ -10,12 +10,12 @@ import {
     SpaceDriver,
     SpaceObject,
     Spaceship,
+    TypeFilter,
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
-import { SelectionContainer, TypeFilter } from '../radar/selection-container';
 import {
     addCameraRingBlade,
     addEnumListBlade,
@@ -27,6 +27,7 @@ import {
 
 import { DashboardWidget } from './dashboard';
 import { Schema } from '@colyseus/schema';
+import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 import pluralize from 'pluralize';
 
@@ -197,7 +198,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                 title: 'Select Options',
                 expanded: true,
             });
-            addEnumListBlade(optionsFolder, selectionContainer.filterProp, 'type', TypeFilter, this.panelCleanup.add);
+            addEnumListBlade(optionsFolder, selectionContainer.filter, 'type', TypeFilter, this.panelCleanup.add);
 
             void this.init();
         }
