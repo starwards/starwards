@@ -14,6 +14,23 @@ export function compareSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): num
 export function distanceSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
     return XY.lengthOf(XY.difference(a.position, b.position)) - a.radius - b.radius;
 }
+
+export enum TypeFilter {
+    ALL = 0,
+    OBJECTS,
+    WAYPOINTS,
+}
+
+export const filterObject = (f: TypeFilter) => (o: SpaceObjectBase) => {
+    switch (f) {
+        case TypeFilter.ALL:
+            return true;
+        case TypeFilter.OBJECTS:
+            return o.type !== 'Waypoint';
+        case TypeFilter.WAYPOINTS:
+            return o.type === 'Waypoint';
+    }
+};
 export abstract class SpaceObjectBase extends Schema {
     public abstract readonly type: keyof SpaceObjects;
     @gameField('boolean')

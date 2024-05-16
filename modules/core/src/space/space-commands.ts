@@ -100,3 +100,13 @@ export const createExplosionOrder = {
         state.createExplosionCommands.push(value);
     },
 };
+
+export type CreateWaypointOrderArg = {
+    position: XY;
+};
+export const createWaypointOrder = {
+    cmdName: 'createWaypointOrder',
+    setValue: (state: SpaceState, value: CreateWaypointOrderArg) => {
+        state.createWaypointCommands.push(value);
+    },
+};

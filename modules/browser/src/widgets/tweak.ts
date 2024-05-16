@@ -9,13 +9,22 @@ import {
     ShipDriver,
     SpaceDriver,
     SpaceObject,
+    SpaceState,
     Spaceship,
+    TypeFilter,
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
-import { addCameraRingBlade, addEnumListBlade, addInputBlade, addSliderBlade, addTextBlade } from '../panel';
+import {
+    addCameraRingBlade,
+    addEnumListBlade,
+    addInputBlade,
+    addListBlade,
+    addSliderBlade,
+    addTextBlade,
+} from '../panel';
 
 import { DashboardWidget } from './dashboard';
 import { Schema } from '@colyseus/schema';
@@ -53,7 +62,7 @@ const singleSelectionDetails = async (
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
 
         const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
-        addEnumListBlade(
+        addListBlade(
             guiFolder,
             idleStrategyProp,
             {
@@ -135,22 +144,35 @@ function addTweakables(
         } else if (tweakable.config === 'string') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
             addTextBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config === 'shipId') {
+            const rootState = driver.state;
+            if (rootState instanceof SpaceState) {
+                const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+                const list = addListBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+                const shipsProp = readProp<SpaceState['Spaceship']>(driver, `/Spaceship`);
+                const updateOptions = () => {
+                    list.options = ['', ...(shipsProp.getValue()?.keys() || [])].map((value) => ({
+                        value,
+                        text: value,
+                    }));
+                };
+                cleanup(shipsProp.onChange(updateOptions));
+                updateOptions();
+            } else {
+                // eslint-disable-next-line no-console
+                console.error('shipId tweak property found outside of space state');
+            }
         } else if (tweakable.config.type === 'number') {
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
             const config = tweakable.config.number || {};
             addCameraRingBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
         } else if (tweakable.config.type === 'enum') {
-            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
-            const enumObj = tweakable.config.enum;
-            const options = Object.values(enumObj)
-                .filter<number>((k): k is number => typeof k === 'number')
-                .filter((k) => !String(enumObj[k]).endsWith('_COUNT'))
-                .map((value) => ({ value, text: String(enumObj[value]) }));
-            addEnumListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
+            const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
+            addEnumListBlade(guiFolder, prop, tweakable.field, tweakable.config.enum, cleanup);
         } else if (tweakable.config.type === 'string enum') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
             const options = tweakable.config.enum.map((value) => ({ value, text: value }));
-            addEnumListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
+            addListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
         } else {
             throw new Error(`unknown tweakable type :"${JSON.stringify(tweakable.config)}"`);
         }
@@ -190,6 +212,12 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
                 this.pane.dispose();
             });
             container.on('destroy', this.panelCleanup.destroy);
+            const optionsFolder = this.pane.addFolder({
+                title: 'Select Options',
+                expanded: true,
+            });
+            addEnumListBlade(optionsFolder, selectionContainer.filter, 'type', TypeFilter, this.panelCleanup.add);
+
             void this.init();
         }
 

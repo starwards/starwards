@@ -197,7 +197,7 @@ class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
         this.iconSprite.height = blipSize;
         this.iconSprite.width = blipSize;
         this.text.alpha = alpha;
-        this.text.text = `${spaceObject.id}`;
+        this.text.text = `${spaceObject.title}`;
         this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;

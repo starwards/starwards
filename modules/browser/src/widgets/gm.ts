@@ -1,4 +1,4 @@
-import { Driver, Faction, Projectile, SpaceObject } from '@starwards/core';
+import { Destructors, Driver, Faction, Projectile, SpaceObject, TypeFilter } from '@starwards/core';
 import { Graphics, UPDATE_PRIORITY, filters } from 'pixi.js';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
@@ -11,10 +11,13 @@ import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { InteractiveLayerCommands } from '../radar/interactive-layer-commands';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
+import { Pane } from 'tweakpane';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
+import { addEnumListBlade } from '../panel';
 import { createWidget } from './create';
 import { makeRadarHeaders } from './radar';
+import { propertyStub } from '../property-wrappers';
 import { tweakWidget } from './tweak';
 
 interface RadarState {
@@ -25,15 +28,24 @@ export class GmWidgets {
     public radar: DashboardWidget<RadarState>;
     public tweak: DashboardWidget;
     public create: DashboardWidget;
-    public selectionContainer = new SelectionContainer();
+    private viewFilter = propertyStub(TypeFilter.ALL);
+    public selectionContainer = new SelectionContainer(this.viewFilter);
     public interactiveLayerCommands = new InteractiveLayerCommands();
     constructor(driver: Driver) {
         this.tweak = tweakWidget(driver, this.selectionContainer);
         this.create = createWidget(this.interactiveLayerCommands);
         void driver.getSpaceDriver().then((spaceDriver) => this.selectionContainer.init(spaceDriver));
-        const { selectionContainer, interactiveLayerCommands } = this;
+        const { selectionContainer, interactiveLayerCommands, viewFilter } = this;
         class GmRadarComponent {
             constructor(container: Container, state: RadarState) {
+                const pane = new Pane({ container: container.getElement().get(0) });
+                const panelCleanup = new Destructors();
+                panelCleanup.add(() => {
+                    pane.dispose();
+                });
+                container.on('destroy', panelCleanup.destroy);
+                addEnumListBlade(pane, viewFilter, 'type', TypeFilter, panelCleanup.add);
+
                 const camera = new Camera();
                 camera.bindZoom(container, state);
                 container.getElement().bind('wheel', (e) => {
@@ -48,6 +60,7 @@ export class GmWidgets {
 
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
+
                 void this.init(root);
             }
 
@@ -80,6 +93,7 @@ export class GmWidgets {
                     getColor,
                     tacticalDrawFunctions,
                     selectionContainer,
+                    () => viewFilter.getValue() !== TypeFilter.WAYPOINTS,
                 );
                 const rangeFilter = new RadarRangeFilter(spaceDriver);
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
@@ -113,6 +127,7 @@ export class GmWidgets {
                     (w) => w.color,
                     tacticalDrawWaypoints,
                     selectionContainer,
+                    () => viewFilter.getValue() !== TypeFilter.OBJECTS,
                 );
                 root.addLayer(waypointsLayer.renderRoot);
                 root.addLayer(interactiveLayer.renderRoot);

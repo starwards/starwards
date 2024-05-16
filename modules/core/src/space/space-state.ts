@@ -4,6 +4,7 @@ import {
     CreateAsteroidOrderArg,
     CreateExplosionOrderArg,
     CreateSpaceshipOrderArg,
+    CreateWaypointOrderArg,
 } from './space-commands';
 import { MapSchema, Schema } from '@colyseus/schema';
 import { SpaceObject, SpaceObjects, Waypoint } from '.';
@@ -41,6 +42,7 @@ export class SpaceState extends Schema {
     public botOrderCommands = Array.of<BulkBotOrderArg>();
     public createAsteroidCommands = Array.of<CreateAsteroidOrderArg>();
     public createExplosionCommands = Array.of<CreateExplosionOrderArg>();
+    public createWaypointCommands = Array.of<CreateWaypointOrderArg>();
     // commands handled by game manager:
     public createSpaceshipCommands = Array.of<CreateSpaceshipOrderArg>();
     public destroySpaceshipCommands = Array.of<string>();

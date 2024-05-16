@@ -55,7 +55,7 @@ export function configTextBlade(params: Partial<TextBladeParams<unknown>> = {}, 
     };
 }
 
-export function configEnumListBlade<T>(params: Partial<ListBladeParams<T>>, getValue: () => T | undefined) {
+export function configListBlade<T>(params: Partial<ListBladeParams<T>>, getValue: () => T | undefined) {
     return {
         options: [],
         ...params,
@@ -128,13 +128,27 @@ export function addTextBlade<T>(
     return blade;
 }
 
-export function addEnumListBlade<T>(
+export function addEnumListBlade(
+    guiFolder: FolderApi,
+    model: Model<number>,
+    label: string,
+    enumObj: { [name: string | number]: string | number },
+    cleanup: (d: Destructor) => void,
+) {
+    const options = Object.values(enumObj)
+        .filter<number>((k): k is number => typeof k === 'number')
+        .filter((k) => !String(enumObj[k]).endsWith('_COUNT'))
+        .map((value) => ({ value, text: String(enumObj[value]) }));
+    return addListBlade(guiFolder, model, { label, options }, cleanup);
+}
+
+export function addListBlade<T>(
     guiFolder: FolderApi,
     model: Model<T>,
     params: Partial<ListBladeParams<T>>,
     cleanup: (d: Destructor) => void,
 ) {
-    const blade = guiFolder.addBlade(configEnumListBlade<T>(params, model.getValue)) as ListApi<T>;
+    const blade = guiFolder.addBlade(configListBlade<T>(params, model.getValue)) as ListApi<T>;
     wireBlade(blade, model, cleanup);
     return blade;
 }

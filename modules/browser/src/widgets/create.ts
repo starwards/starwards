@@ -5,6 +5,7 @@ import {
     CreateAsteroidTemplate,
     CreateExplosionTemplate,
     CreateSpaceshipTemplate,
+    CreateWaypointTemplate,
     InteractiveLayerCommands,
 } from '../radar/interactive-layer-commands';
 
@@ -83,6 +84,19 @@ export function createWidget(createContainer: InteractiveLayerCommands): Dashboa
             makeExplosionFolder
                 .addButton({ title: 'Create Explosion' })
                 .on('click', () => createContainer.createByTemplate(createExplosionTemplate));
+
+            // Waypoint
+            const makeWaypointFolder = this.pane.addFolder({
+                title: 'Create Waypoint',
+                expanded: true,
+            });
+            const createWaypointTemplate: CreateWaypointTemplate = {
+                type: 'Waypoint',
+            };
+
+            makeWaypointFolder
+                .addButton({ title: 'Create Waypoint' })
+                .on('click', () => createContainer.createByTemplate(createWaypointTemplate));
         }
     }
 

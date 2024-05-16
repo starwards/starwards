@@ -8,6 +8,7 @@ export type TweakableConfig =
     | 'boolean'
     | 'number'
     | 'string'
+    | 'shipId'
     | {
           type: 'enum';
           enum: {

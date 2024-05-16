@@ -1,5 +1,5 @@
 import { Destructors, DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget } from '@starwards/core';
-import { addEnumListBlade, addTextBlade } from '../panel';
+import { addListBlade, addTextBlade } from '../panel';
 import { propertyStub, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -30,7 +30,7 @@ export function drawDockingStatus(container: WidgetContainer, spaceDriver: Space
     const options = Object.values(DockingMode)
         .filter<number>((k): k is number => typeof k === 'number')
         .map((value) => ({ value, text: String(DockingMode[value]) }));
-    addEnumListBlade(pane, readProp(shipDriver, '/docking/mode'), { label: 'Mode', options }, cleanup.add);
+    addListBlade(pane, readProp(shipDriver, '/docking/mode'), { label: 'Mode', options }, cleanup.add);
 
     const loop = new EmitterLoop(250);
     const spatial = getSpatialIndex(spaceDriver);
