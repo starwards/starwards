@@ -216,6 +216,10 @@ export class InteractiveLayer {
                         position,
                         damageFactor,
                     });
+                } else if (this.createTemplate.type === 'Waypoint') {
+                    this.spaceDriver.command(spaceCommands.createWaypointOrder, {
+                        position,
+                    });
                 } else {
                     assertUnreachable(this.createTemplate);
                 }

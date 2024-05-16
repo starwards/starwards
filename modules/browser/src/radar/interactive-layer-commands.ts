@@ -17,7 +17,15 @@ export type CreateExplosionTemplate = {
     type: 'Explosion';
     damageFactor: TemplateRange;
 };
-export type CreateTemplate = CreateAsteroidTemplate | CreateSpaceshipTemplate | CreateExplosionTemplate;
+export type CreateWaypointTemplate = {
+    type: 'Waypoint';
+};
+
+export type CreateTemplate =
+    | CreateAsteroidTemplate
+    | CreateSpaceshipTemplate
+    | CreateExplosionTemplate
+    | CreateWaypointTemplate;
 export type EventTypes = {
     cancel: [];
     createByTemplate: [CreateTemplate];
