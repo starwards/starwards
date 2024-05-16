@@ -20,7 +20,7 @@ export class Waypoint extends SpaceObjectBase {
     public faction: Faction = Faction.NONE;
 
     @gameField('string')
-    @tweakable('string')
+    @tweakable('shipId')
     public owner: string | null = null;
 
     @gameField('string')

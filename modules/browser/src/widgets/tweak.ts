@@ -9,6 +9,7 @@ import {
     ShipDriver,
     SpaceDriver,
     SpaceObject,
+    SpaceState,
     Spaceship,
     TypeFilter,
     getTweakables,
@@ -143,6 +144,24 @@ function addTweakables(
         } else if (tweakable.config === 'string') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
             addTextBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config === 'shipId') {
+            const rootState = driver.state;
+            if (rootState instanceof SpaceState) {
+                const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+                const list = addListBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+                const shipsProp = readProp<SpaceState['Spaceship']>(driver, `/Spaceship`);
+                const updateOptions = () => {
+                    list.options = ['', ...(shipsProp.getValue()?.keys() || [])].map((value) => ({
+                        value,
+                        text: value,
+                    }));
+                };
+                cleanup(shipsProp.onChange(updateOptions));
+                updateOptions();
+            } else {
+                // eslint-disable-next-line no-console
+                console.error('shipId tweak property found outside of space state');
+            }
         } else if (tweakable.config.type === 'number') {
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
             const config = tweakable.config.number || {};
@@ -152,9 +171,8 @@ function addTweakables(
             addEnumListBlade(guiFolder, prop, tweakable.field, tweakable.config.enum, cleanup);
         } else if (tweakable.config.type === 'string enum') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
-            const label = tweakable.field;
             const options = tweakable.config.enum.map((value) => ({ value, text: value }));
-            addListBlade(guiFolder, prop, { label, options }, cleanup);
+            addListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
         } else {
             throw new Error(`unknown tweakable type :"${JSON.stringify(tweakable.config)}"`);
         }
