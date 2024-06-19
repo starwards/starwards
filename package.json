@@ -85,7 +85,7 @@
         "jest": "^29.7.0",
         "lint-staged": "^15.2.2",
         "ncp": "^2.0.0",
-        "node-red": "^3.1.8",
+        "node-red": "^3.1.11",
         "node-red-node-test-helper": "^0.3.3",
         "pkg": "^5.8.1",
         "playwright": "^1.42.1",
