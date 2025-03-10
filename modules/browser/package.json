@@ -13,7 +13,7 @@
     },
     "dependencies": {
         "@arwes/animation": "1.0.0-alpha.19",
-        "@arwes/core": "1.0.0-alpha.19",
+        "@arwes/core": "1.0.0-next.24051001",
         "@arwes/design": "1.0.0-alpha.19",
         "@arwes/sounds": "1.0.0-alpha.19",
         "@maulingmonkey/gamepad": "^0.0.5",
