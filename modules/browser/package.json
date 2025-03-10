@@ -17,7 +17,7 @@
         "@arwes/design": "1.0.0-alpha.19",
         "@arwes/sounds": "1.0.0-alpha.19",
         "@maulingmonkey/gamepad": "^0.0.5",
-        "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
+        "@pangenerator/tweakpane-textarea-plugin": "^2.0.0",
         "@pixi/graphics-extras": "^7.1.2",
         "@tweakpane/core": "^1.1.4",
         "@tweakpane/plugin-essentials": "^0.1.8",
