@@ -18,7 +18,7 @@
         "@arwes/sounds": "1.0.0-alpha.19",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pangenerator/tweakpane-textarea-plugin": "^1.0.4",
-        "@pixi/graphics-extras": "^7.1.2",
+        "@pixi/graphics-extras": "^7.4.2",
         "@tweakpane/core": "^1.1.4",
         "@tweakpane/plugin-essentials": "^0.1.8",
         "@tweakpane/plugin-camerakit": "^0.2.3",
