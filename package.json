@@ -5,7 +5,7 @@
     "private": true,
     "license": "SEE LICENSE IN LICENSE.md",
     "engines": {
-        "node": ">= 20.11.1",
+        "node": ">= 20.19.5",
         "npm": ">= 10.2.4"
     },
     "workspaces": [
