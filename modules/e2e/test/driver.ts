@@ -20,7 +20,7 @@ export function makeDriver(t: typeof test) {
         await gameManager?.stopGame();
     });
     return {
-        get gameManager() {
+        get gameManager(): GameManager {
             if (!gameManager) throw new Error('missing gameManager');
             return gameManager;
         },

@@ -2,7 +2,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'fs';
 import { globbySync } from 'globby';
-import packageJson from './package.json' assert { type: 'json' };
+import packageJson from './package.json' with { type: 'json' };
 import path from 'path';
 import process from 'process';
 import sucrase from '@rollup/plugin-sucrase';

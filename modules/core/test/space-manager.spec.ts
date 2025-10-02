@@ -45,6 +45,10 @@ function* getHitPlatesArch(armor: Armor, range: Tuple2) {
 
 const bulletSpeed = 1000;
 describe('SpaceManager', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     it('upon collision, shell explodes on surface of object (not inside)', () => {
         fc.assert(
             fc.property(
@@ -145,6 +149,22 @@ describe('SpaceManager', () => {
             }
 
             it.skip('does not shoot itself in the back when accelerating (regression)', () => {
+                // KNOWN BUG: Ships CAN shoot themselves at high speeds
+                //
+                // Root Cause:
+                // - Projectiles don't track which ship fired them (no sourceShipId field)
+                // - Collision detection in SpaceManager doesn't prevent self-damage
+                // - At high speeds (ship speed = projectile speed), ships catch their own projectiles
+                //
+                // To Fix:
+                // 1. Add @gameField('string') sourceShipId to Projectile class
+                // 2. Set sourceShipId when projectile is spawned
+                // 3. In SpaceManager.handleCollisions(), skip collision if:
+                //    - One object is a Projectile
+                //    - Other object is a Spaceship
+                //    - projectile.sourceShipId === ship.id
+                //
+                // Test uses 100% bullet speed to verify the bug is fixed
                 const speed = bulletSpeed;
                 const numIterationsPerSecond = 20;
                 const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);

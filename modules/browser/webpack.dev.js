@@ -7,7 +7,7 @@ module.exports = merge(common, {
     devServer: {
         // index: '',
         hot: false,
-        port: 80,
+        port: 3000,
         allowedHosts: 'all',
         // contentBase: ''
         proxy: [

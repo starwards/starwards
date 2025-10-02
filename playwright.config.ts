@@ -7,11 +7,11 @@ const config: PlaywrightTestConfig = {
     testMatch: 'modules/e2e/**/*.spec.ts',
     use: {
         trace: 'on-first-retry',
-        baseURL: `http://localhost:80`,
+        baseURL: `http://localhost:3000`,
     },
     webServer: {
         command: 'npm run browser',
-        url: 'http://localhost:80/',
+        url: 'http://localhost:3000/',
         timeout: 2 * 60 * 1000,
         reuseExistingServer: !process.env.CI,
     },
