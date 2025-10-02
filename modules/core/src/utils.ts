@@ -54,6 +54,10 @@ export class Destructors {
     };
 }
 
+export async function sleep(ms: number): Promise<void> {
+    await new Promise((res) => setTimeout(res, ms));
+}
+
 export async function waitFor<T>(body: () => T | Promise<T>, timeout: number, interval = 20): Promise<T> {
     let error: unknown = new Error('timeout is not a positive number');
     while (timeout > 0) {
@@ -63,7 +67,7 @@ export async function waitFor<T>(body: () => T | Promise<T>, timeout: number, in
         } catch (e) {
             error = e;
         }
-        await new Promise<void>((res) => void setTimeout(res, interval));
+        await sleep(interval);
         timeout -= Date.now() - startTime;
     }
     throw error;

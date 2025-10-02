@@ -198,6 +198,51 @@ describe('Ship acceleration', () => {
 });
 ```
 
+## Sleep Helper
+
+**Location**: [`modules/core/src/utils.ts`](../../modules/core/src/utils.ts)
+
+Simple async sleep function for test setup/teardown delays.
+
+### Usage
+
+```typescript
+import { sleep } from '@starwards/core';
+
+// Wait for a fixed duration
+await sleep(300); // Wait 300ms
+```
+
+**When to use**:
+- Test setup/teardown cleanup delays
+- Small sequencing delays between operations (e.g., `sleep(50)`)
+- Only when predicate-based waiting is not possible
+
+**Prefer instead**:
+- `waitForShipProperty()` for ship state changes
+- `waitForSubsystemProperty()` for subsystem changes
+- `waitForSync()` with predicates for complex conditions
+- `waitFor()` for polling with conditions
+- `waitForConsistency()` for multi-client state sync
+
+**Example anti-pattern**:
+```typescript
+// ❌ Bad: Fixed delay after command
+await client.sendCommand(room, '/ship/angle', { value: 90 });
+await sleep(300);
+
+// ❌ Still verbose: Manual predicate with waitForSync
+await client.sendCommand(room, '/ship/angle', { value: 90 });
+await client.waitForSync(room, state => {
+    const ship = state.getShip(shipId);
+    return ship && Math.abs(ship.angle - 90) < 1;
+});
+
+// ✅ Best: Specialized helper
+await client.sendCommand(room, '/ship/angle', { value: 90 });
+await client.waitForShipProperty(room, shipId, 'angle', 90, 1);
+```
+
 ## Multi-Client Driver
 
 **Location**: [`modules/server/src/test/multi-client-driver.ts`](../../modules/server/src/test/multi-client-driver.ts)
@@ -230,7 +275,35 @@ const space2 = await client2.connectSpace();
 const admin = await gm.connectAdmin();
 ```
 
-#### Sync Waiting
+#### Specialized Property Waiting
+
+**Ship Properties** - Wait for ship property value changes:
+
+```typescript
+// Wait for ship angle (with tolerance)
+await client.waitForShipProperty(spaceRoom, shipId, 'angle', 90, 1);
+// Waits for ship.angle ≈ 90 ± 1
+
+// Wait for nested property
+await client.waitForShipProperty(spaceRoom, shipId, 'position.x', 500, 0.01);
+// Waits for ship.position.x ≈ 500 ± 0.01
+
+// Custom tolerance (default: 0.01)
+await client.waitForShipProperty(spaceRoom, shipId, 'velocity.x', 10, 0.5);
+```
+
+**Subsystem Properties** - Wait for ship subsystem changes:
+
+```typescript
+// Wait for reactor power change
+await client.waitForSubsystemProperty(shipRoom, 'reactor', 'power', PowerLevel.HIGH);
+// Waits for shipState.reactor.power ≈ PowerLevel.HIGH ± 0.1
+
+// Wait for radar power (custom tolerance)
+await client.waitForSubsystemProperty(shipRoom, 'radar', 'power', 0.5, 0.05);
+```
+
+**Generic Sync Waiting** - For complex conditions:
 
 ```typescript
 // Wait for state to sync with predicate
@@ -245,23 +318,11 @@ await client1.waitForSync(space1);
 await driver.waitForConsistency();
 ```
 
-**Predicate patterns:**
-```typescript
-// Collection size
-state => state.getAll('Spaceship').size >= 3
-
-// Specific property
-state => {
-    const ship = state.getAll('Spaceship').get('ship-1');
-    return ship && ship.angle === 90;
-}
-
-// Complex condition
-state => {
-    const ships = Array.from(state.getAll('Spaceship'));
-    return ships.every(s => s.armor.health > 0);
-}
-```
+**When to use which:**
+- `waitForShipProperty()` - Single ship numeric property (angle, position.x, etc.)
+- `waitForSubsystemProperty()` - Ship subsystem property (reactor.power, radar.power)
+- `waitForSync()` - Complex predicates, collections, boolean conditions
+- `waitForConsistency()` - Verify all clients have identical state
 
 #### State Access
 
