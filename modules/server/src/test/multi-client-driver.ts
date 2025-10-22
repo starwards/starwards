@@ -104,9 +104,9 @@ export class TestClient {
                 const ship = state.getShip(shipId);
                 if (!ship) return false;
 
-                // Navigate nested property path
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-                const value = propertyPath.split('.').reduce((obj, key) => obj?.[key], ship as any);
+                // @ts-ignore dynamic property access
+                // eslint-disable-next-line
+                const value = propertyPath.split('.').reduce((obj, key) => obj?.[key], ship as unknown);
                 if (value === undefined || value === null) return false;
 
                 return Math.abs((value as number) - expectedValue) <= tolerance;
