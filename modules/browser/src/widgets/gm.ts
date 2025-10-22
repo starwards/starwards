@@ -1,5 +1,6 @@
 import { Destructors, Driver, Faction, Projectile, SpaceObject, TypeFilter } from '@starwards/core';
 import { Graphics, UPDATE_PRIORITY, filters } from 'pixi.js';
+import { addEnumListBlade, createPane } from '../panel';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
@@ -11,10 +12,8 @@ import { GridLayer } from '../radar/grid-layer';
 import { InteractiveLayer } from '../radar/interactive-layer';
 import { InteractiveLayerCommands } from '../radar/interactive-layer-commands';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
-import { Pane } from 'tweakpane';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
-import { addEnumListBlade } from '../panel';
 import { createWidget } from './create';
 import { makeRadarHeaders } from './radar';
 import { propertyStub } from '../property-wrappers';
@@ -38,7 +37,7 @@ export class GmWidgets {
         const { selectionContainer, interactiveLayerCommands, viewFilter } = this;
         class GmRadarComponent {
             constructor(container: Container, state: RadarState) {
-                const pane = new Pane({ container: container.getElement().get(0) });
+                const pane = createPane({ title: 'GM Controls', container: container.getElement().get(0) });
                 const panelCleanup = new Destructors();
                 panelCleanup.add(() => {
                     pane.dispose();

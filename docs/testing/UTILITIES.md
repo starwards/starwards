@@ -33,11 +33,11 @@ Multi-Client Tests (3 files - modules/server/src/test/):
   └─ multi-client-network.spec.ts (11 tests) - Network failures/recovery
 
 E2E Tests (5 files - modules/e2e/test/):
-  ├─ integration.spec.ts (4 tests) - Core workflows
-  ├─ movement-controls.spec.ts (11 tests) - Helm UI & navigation
-  ├─ weapon-controls.spec.ts (13 tests) - Gunner UI & combat
-  ├─ multi-ship-combat.spec.ts (12 tests) - Multi-ship scenarios
-  └─ power-management.spec.ts (15 tests) - Reactor & power systems
+  ├─ integration.spec.ts (6 tests) - Core workflows
+  ├─ movement-controls.spec.ts (9 tests) - Helm UI & navigation
+  ├─ weapon-controls.spec.ts (11 tests) - Gunner UI & combat
+  ├─ multi-ship-combat.spec.ts (11 tests) - Multi-ship scenarios (1 passing)
+  └─ power-management.spec.ts (11 tests) - Reactor & power systems
 
 Node-RED Tests (4 files - modules/node-red/src/):
   └─ Integration nodes: ship-read, ship-write, starwards-config, ship-node
@@ -197,6 +197,214 @@ describe('Ship acceleration', () => {
     });
 });
 ```
+
+## E2E Tweakpane Testing
+
+**Location**: [`modules/e2e/test/driver.ts`](../../modules/e2e/test/driver.ts)
+
+Utilities for testing Tweakpane PropertyPanel displays in E2E tests.
+
+### Architecture
+
+**Tweakpane Structure:**
+- **Panes** with titles get `data-id` automatically via `createPane({ title, container })`
+- **Folders** inside panes create button elements (for collapse) + label elements (inside)
+- **Inputs** may be CSS-hidden (checkboxes) but remain DOM-interactive
+
+**Test Strategy:**
+1. **Panel selection**: Use semantic `[data-id="Panel Name"]` selectors
+2. **Property access**: Use `getPropertyValue()` helper (understands Tweakpane structure)
+3. **Scoping**: Pass `panelTitle` parameter when labels appear in multiple panels
+
+### Core Helpers
+
+#### `getPropertyValue()`
+Extract value from a Tweakpane property input by label.
+
+```typescript
+// Get current heading value (global search)
+const headingValue = await getPropertyValue(page, 'heading');
+console.log(headingValue); // "45.2"
+
+// Get value from specific panel (scoped search - prevents strict mode violations)
+const warpLevel = await getPropertyValue(page, 'Designated LVL', 'Warp');
+const reactorPower = await getPropertyValue(page, 'power', 'Reactor');
+```
+
+**Parameters:**
+- `page`: Playwright page
+- `labelText`: Exact label text (e.g., 'heading', 'speed')
+- `panelTitle` (optional): Panel title for scoped search (uses `data-id`)
+
+**How it works:**
+```typescript
+if (panelTitle) {
+    // Scope search to panel via data-id (prevents strict mode violations)
+    const panel = page.locator(`[data-id="${panelTitle}"]`);
+    const label = panel.getByText(labelText, { exact: true });
+    const input = label.locator('..').locator('input');
+    // No visibility check - Tweakpane checkboxes are CSS-hidden but interactive
+    return await input.inputValue();
+} else {
+    // Global search - may fail if label appears in multiple places
+    const label = page.getByText(labelText, { exact: true });
+    const input = label.locator('..').locator('input');
+    return await input.inputValue();
+}
+```
+
+**Common Issues:**
+- **Strict mode violation**: Label appears in multiple panels → Use `panelTitle` parameter
+- **Hidden checkbox**: Tweakpane checkboxes return `"on"` not `"true"/"false"`
+- **Folder ambiguity**: Folder button + labels share text → Use scoped search via `data-id`
+
+#### `waitForPropertyValue()`
+Wait for a Tweakpane property to match a condition.
+
+```typescript
+// Wait for heading to be non-zero
+await waitForPropertyValue(
+    page,
+    'heading',
+    (value) => parseFloat(value) > 0
+);
+
+// Wait for specific text value
+await waitForPropertyValue(
+    page,
+    'status',
+    (value) => value === 'ACTIVE'
+);
+
+// Wait for value in specific panel
+await waitForPropertyValue(
+    page,
+    'Designated LVL',
+    (value) => parseFloat(value) > 0,
+    'Warp'
+);
+```
+
+**Parameters:**
+- `page`: Playwright page
+- `labelText`: Exact label text
+- `condition`: Function that returns true when value is correct
+- `panelTitle` (optional): Panel/folder title for disambiguation
+- `timeout` (optional): Max wait time in ms (default: 2000)
+
+#### `waitForPropertyFloatValue()`
+Wait for a numeric property to reach a specific value (with tolerance).
+
+```typescript
+// Wait for heading to reach 90° (±0.1)
+await waitForPropertyFloatValue(page, 'heading', 90);
+
+// Wait for speed to reach 100 (±5)
+await waitForPropertyFloatValue(page, 'speed', 100, undefined, 5);
+
+// Wait for value in specific panel
+await waitForPropertyFloatValue(page, 'Designated LVL', 5, 'Warp');
+
+// With custom tolerance and timeout
+await waitForPropertyFloatValue(page, 'energy', 1000, undefined, 0.1, 5000);
+```
+
+**Parameters:**
+- `page`: Playwright page
+- `labelText`: Exact label text (e.g., 'heading', 'speed', 'energy')
+- `expectedValue`: Target numeric value
+- `panelTitle` (optional): Panel/folder title for disambiguation
+- `tolerance` (optional): Acceptable deviation (default: 0.1)
+- `timeout` (optional): Max wait time in ms (default: 2000)
+
+**Note:** When providing custom tolerance without panel title, pass `undefined` for panelTitle:
+```typescript
+await waitForPropertyFloatValue(page, 'speed', 100, undefined, 5);
+```
+
+### PropertyPanel Race Condition Fix
+
+**Issue:** PropertyPanel could fail to render if `getValue()` returned `undefined` during initialization.
+
+**Root cause:** In `property-panel.ts:50`, Tweakpane's `addInput()` needs an initial value to infer the controller type. If the ship state hadn't synced yet, `getValue()` returned `undefined`.
+
+**Fix (modules/browser/src/panel/property-panel.ts:51-54):**
+```typescript
+const value = getValue();
+// Set initial value BEFORE addInput so Tweakpane can infer controller type
+if (value !== undefined) {
+    viewModel[name] = value;
+}
+const guiController = guiFolder.addInput(viewModel, name, params);
+```
+
+Now Tweakpane gracefully handles undefined initial values, and the update loop fills them in when data arrives.
+
+### Complete E2E Example
+
+```typescript
+import {
+    waitForPropertyFloatValue,
+    getPropertyValue
+} from './driver';
+
+test('helm widget displays current ship heading', async ({ page }) => {
+    // Load pilot screen
+    await page.goto(`/pilot.html?ship=${shipId}`);
+    const pilotRadar = page.locator('[data-id="Pilot Radar"]');
+    await expect(pilotRadar).toBeVisible({ timeout: 10000 });
+
+    // Get SpaceObject (source of truth - see PATTERNS.md)
+    const spaceShip = gameDriver.gameManager.spaceManager.state.getShip(shipId);
+    const initialAngle = spaceShip.angle;
+
+    // Wait for initial heading to display
+    await waitForPropertyFloatValue(page, 'heading', initialAngle);
+
+    // Change angle (on SpaceObject, NOT ship.state!)
+    const newAngle = (initialAngle + 45) % 360;
+    spaceShip.angle = newAngle;
+
+    // Verify UI updates
+    await waitForPropertyFloatValue(page, 'heading', newAngle);
+
+    // Can also read directly
+    const displayedValue = await getPropertyValue(page, 'heading');
+    expect(parseFloat(displayedValue)).toBeCloseTo(newAngle, 0);
+});
+```
+
+### Best Practices
+
+```typescript
+// ✓ Wait for values (not timeouts)
+await waitForPropertyFloatValue(page, 'heading', 90);
+
+// ✗ Fixed delays (race conditions)
+await page.waitForTimeout(500);
+const value = await getPropertyValue(page, 'heading');
+
+// ✓ Modify SpaceObject for physics properties
+spaceShip.angle = 90;  // Persists
+
+// ✗ Modify ship.state (overwritten by syncShipProperties)
+ship.state.angle = 90;  // Lost next tick!
+
+// ✓ Appropriate tolerances for float32
+await waitForPropertyFloatValue(page, 'position.x', 1000, 0.1);
+
+// ✗ Exact comparisons (will fail)
+await waitForPropertyValue(page, 'heading', (v) => parseFloat(v) === 90);
+```
+
+### Known Limitations
+
+**Tweakpane class selectors:** PropertyPanel uses Tweakpane's internal DOM structure:
+- Labels use dynamic classes that may change between Tweakpane versions
+- Current helpers use semantic selectors (`.getByText()`) which are more stable
+- If Tweakpane's DOM structure changes, helpers may need updates
+
+**Monitor displays:** Current helpers target `<input>` elements. Tweakpane monitors (read-only displays) use different DOM structure and aren't yet supported.
 
 ## Sleep Helper
 

@@ -4,6 +4,7 @@ import {
     InputParams,
     ListApi,
     ListBladeParams,
+    Pane,
     SliderApi,
     SliderBladeParams,
     TextApi,
@@ -30,6 +31,14 @@ export type Model<T> = {
     This module was written after ./property-panel
     This is the module to use to creatte new panels
 */
+
+export function createPane(params: { title?: string; container?: HTMLElement }): Pane {
+    const pane = new Pane(params);
+    if (params.title) {
+        pane.element.dataset.id = params.title;
+    }
+    return pane;
+}
 
 export function configSliderBlade(
     params: Partial<SliderBladeParams>,
@@ -93,6 +102,7 @@ export function wireBlade<T>(
         const value = getValue();
         if (value !== undefined) {
             blade.value = value;
+            tagValueData(blade, value);
         }
     });
     cleanup(() => {
@@ -217,15 +227,33 @@ export function addInputBlade<T>(
         viewModel[label] = value;
     }
     const input = guiFolder.addInput(viewModel, label, params);
+    // Add data attributes for E2E testing after input is created
+    if (value !== undefined) {
+        tagValueData(input, value);
+    }
     const bladeApi = Object.create(input, {
         value: {
             get: () => viewModel[label],
             set: (v: T) => {
                 viewModel[label] = v;
+                tagValueData(input, v);
                 input.refresh();
             },
         },
     }) as BladeGuiApi<T>;
     wireBlade(bladeApi, model, cleanup);
     return input;
+}
+
+/**
+ * add value to DOM dataset for css selectors
+ */
+function tagValueData(input: { readonly element: HTMLElement }, value: unknown) {
+    if (typeof value === 'boolean') {
+        const inputElement = input.element.querySelector('input');
+        if (inputElement) {
+            inputElement.dataset.checked = String(value);
+            inputElement.dataset.value = String(value);
+        }
+    }
 }

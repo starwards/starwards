@@ -57,6 +57,8 @@
 | breaks | [0,1] | Rapid deceleration |
 | afterBurner | [0,1] | Rotation speed boost (high heat) |
 
+**Input mapping:** Keyboard keys and gamepad controls map to these commands via `input-config.ts`. See [Input Configuration System](TECHNICAL_REFERENCE.md#input-configuration-system) for details on step-based keyboard input (0.05 increments) and gamepad axis mapping.
+
 ## Bot AI
 
 ### Orders (priority: high → low)

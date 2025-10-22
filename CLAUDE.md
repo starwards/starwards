@@ -26,6 +26,7 @@ ship.x                     # ❌ Wrong
 ## Docs
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - System design
 - [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Endpoints & events
+- [`docs/TECHNICAL_REFERENCE.md`](docs/TECHNICAL_REFERENCE.md) - @gameField, JSON Pointer, Input Config
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) - Dev setup
 - [`docs/testing/README.md`](docs/testing/README.md) - Testing guide
 
@@ -60,6 +61,7 @@ SpaceState → ShipState → Subsystems → Client sync via Colyseus
 - **Unit**: Jest, `*.spec.ts` files
 - **E2E**: Playwright
 - **Update snapshots**: `npm run test:e2e -- --update-snapshots`
+- **UI Testing**: Use semantic `data-id` selectors for Tweakpane panels
 
 ## Critical Patterns
 
@@ -79,11 +81,14 @@ SpaceState → ShipState → Subsystems → Client sync via Colyseus
 - Float precision: use `toBeCloseTo()` in tests
 - Angles: use `toPositiveDegreesDelta()`
 - Zero checks: use `XY.isZero(velocity, threshold)`
+- Tweakpane panels: Always use `createPane({ title, container })` not `new Pane()`
+- E2E tests: Use `page.locator('[data-id="Panel Name"]')` for panel selectors
+- Multiple labels: Use `getPropertyValue(page, 'label', 'PanelTitle')` to scope search
 
 ## Extension Points
 1. **New Objects**: Extend `SpaceObjectBase`
-2. **New Systems**: Extend `SystemState`  
-3. **New Widgets**: Implement in `modules/browser/src/widgets/`
+2. **New Systems**: Extend `SystemState`
+3. **New Widgets**: Use `createPane({ title, container })` for Tweakpane panels
 
 ## Node Requirements
 Node.js >= 20.19.5, npm >= 10.2.4

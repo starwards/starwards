@@ -114,4 +114,140 @@ room.State.OnChange += (changes) => { /* handle */ };
 
 **Limitations:** Large size (~50-100 MB) | Native modules need platform builds | Source not editable
 
+## Input Configuration System
+**Location:** `modules/browser/src/input/input-config.ts`
+
+**Purpose:** Maps keyboard keys and gamepad controls to ship commands with configurable behavior
+
+### Configuration Classes
+
+#### KeysRangeConfig
+**Step-based keyboard input** - each key press increments/decrements by step value
+```typescript
+class KeysRangeConfig {
+    constructor(
+        public up: string,        // Key to increment
+        public down: string,      // Key to decrement
+        public center: string,    // Key combo to reset
+        public step: number,      // Increment/decrement amount
+    ) {}
+}
+```
+
+**Example:**
+```typescript
+rotationCommand: {
+    offsetKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05)
+}
+// Press 'e' → rotationCommand += 0.05
+// Press 'q' → rotationCommand -= 0.05
+// Press 'e+q' → rotationCommand = 0
+```
+
+#### GamepadAxisConfig
+**Analog gamepad input** with deadzone support
+```typescript
+class GamepadAxisConfig {
+    constructor(
+        public gamepadIndex: number,
+        public axisIndex: number,
+        public deadzone?: [number, number],  // [min, max] ignore range
+        public inverted?: boolean,
+        public velocity?: number,
+    ) {}
+}
+```
+
+**Example:**
+```typescript
+rotationCommand: {
+    axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1])
+}
+// Left stick X-axis (0), ignore inputs between -0.1 and 0.1
+```
+
+#### GamepadButtonConfig
+**Digital gamepad button**
+```typescript
+class GamepadButtonConfig {
+    constructor(
+        public gamepadIndex: number,
+        public buttonIndex: number,
+    ) {}
+}
+```
+
+#### RangeConfig
+**Combines keyboard and gamepad for a single command**
+```typescript
+interface RangeConfig {
+    axis?: GamepadAxisConfig;           // Gamepad analog control
+    buttons?: GamepadButtonsRangeConfig; // Gamepad button control
+    offsetKeys?: KeysRangeConfig;        // Keyboard step control
+}
+```
+
+### Ship Input Configuration
+
+**Location:** `modules/browser/src/input/input-config.ts:75`
+
+```typescript
+export const shipInputConfig = {
+    // Simple button mappings
+    tubeIsFiring: 'x',
+    warpUp: 'r',
+    warpDown: 'f',
+
+    // Range controls (keyboard + gamepad)
+    rotationCommand: {
+        axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
+        offsetKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
+    },
+    strafeCommand: {
+        axis: new GamepadAxisConfig(0, 2, [-0.1, 0.1]),
+        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
+    },
+    boostCommand: {
+        axis: new GamepadAxisConfig(0, 3, [-0.1, 0.1], true),
+        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
+    },
+};
+```
+
+### Key Behaviors
+
+**Step-based keyboard (offsetKeys):**
+- Each key press increments/decrements by `step` value
+- Values accumulate (press 'w' twice → boostCommand = 0.10)
+- Center key combo resets to 0
+- Used for: rotation, strafe, boost
+
+**Gamepad axis (axis):**
+- Maps analog stick position directly to command value
+- Deadzone ignores small inputs (stick drift)
+- Inverted flag reverses direction
+- Used for: rotation, strafe, boost
+
+**Simple buttons:**
+- String key or GamepadButtonConfig
+- Binary on/off state
+- Used for: firing, warp, docking
+
+### Testing Implications
+
+**E2E tests are coupled to step values:**
+```typescript
+// ❌ Wrong - assumes absolute value
+await page.keyboard.press('w');
+await waitForPropertyFloatValue(page, 'boostCommand', 1.0);
+
+// ✓ Correct - uses step value from config
+await page.keyboard.press('w');
+await waitForPropertyFloatValue(page, 'boostCommand', 0.05);
+```
+
+**Why:** Keyboard input uses step-based accumulation, not absolute values. Each press adds/subtracts the configured `step` (0.05 for all movement commands).
+
+**See:** [Testing Guide - E2E Anti-Patterns](testing/README.md#e2e-anti-patterns) for more details.
+
 **Related:** [API_REFERENCE.md](API_REFERENCE.md) | [PATTERNS.md](PATTERNS.md) | [Colyseus Docs](https://docs.colyseus.io/)

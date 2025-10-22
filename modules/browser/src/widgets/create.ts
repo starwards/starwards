@@ -10,16 +10,16 @@ import {
 } from '../radar/interactive-layer-commands';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
+import { createPane } from '../panel';
 
 export function createWidget(createContainer: InteractiveLayerCommands): DashboardWidget {
     class CreateRoot {
-        private pane: Pane;
+        private pane: ReturnType<typeof createPane>;
         private panelCleanup = new Destructors();
 
         constructor(container: WidgetContainer, _: unknown) {
-            this.pane = new Pane({ container: container.getElement().get(0) });
+            this.pane = createPane({ title: 'Create Objects', container: container.getElement().get(0) });
             this.pane.registerPlugin(EssentialsPlugin);
 
             this.panelCleanup.add(() => {

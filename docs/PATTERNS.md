@@ -85,6 +85,81 @@ class ReactorManager {
 }
 ```
 
+### State Synchronization Architecture
+
+**Critical for testing:** SpaceObject properties sync **one-way** to ShipRoom state.
+
+#### Data Flow
+```
+SpaceObject (SpaceRoom)         ShipRoom.state
+   ↓ source of truth              ↓ read-only mirror
+   ├── position                    ├── position (synced)
+   ├── velocity                    ├── velocity (synced)
+   ├── angle                       ├── angle (synced)
+   ├── turnSpeed                   ├── turnSpeed (synced)
+   └── faction                     └── faction (synced)
+
+syncShipProperties() runs every tick
+```
+
+#### Implementation
+**Location:** `modules/core/src/ship/ship-manager-abstract.ts:272-283`
+
+```typescript
+protected syncShipProperties() {
+    // Only sync data that should be exposed to room clients
+    this.state.position.x = this.spaceObject.position.x;
+    this.state.position.y = this.spaceObject.position.y;
+    this.state.velocity.x = this.spaceObject.velocity.x;
+    this.state.velocity.y = this.spaceObject.velocity.y;
+    this.state.turnSpeed = this.spaceObject.turnSpeed;
+    this.state.angle = this.spaceObject.angle;  // ← READ-ONLY!
+    this.state.faction = this.spaceObject.faction;
+    this.state.radius = this.spaceObject.radius;
+    this.state.radarRange = this.spaceObject.radarRange;
+}
+```
+
+Called from `update()` method at start of every physics tick:
+```typescript
+update(id: IterationData) {
+    // Sync relevant ship props, BEFORE any other calculation
+    this.syncShipProperties();  // ← Overwrites ShipRoom.state
+    // ... rest of update logic
+}
+```
+
+#### Testing Implications
+
+```typescript
+// ✗ Wrong - Will be overwritten next tick!
+ship.state.angle = 90;
+await page.waitForTimeout(100);  // Angle reverts to spaceObject.angle
+
+// ✓ Correct - Modify source of truth
+const spaceObject = gameManager.spaceManager.state.getShip(shipId);
+spaceObject.angle = 90;
+await waitForPropertyFloatValue(page, 'heading', 90);  // ✓ Persists
+```
+
+**When to use each:**
+- **Modify `spaceObject`**: Position, velocity, angle, faction changes
+- **Modify `ship.state`**: Subsystem properties (reactor.power, shields.health)
+- **Read either**: Both reflect current state (after sync)
+
+**Example from E2E test:**
+```typescript
+// Get SpaceObject (source of truth)
+const spaceShip = gameDriver.gameManager.spaceManager.state.getShip(shipId);
+
+// Change angle on SpaceObject
+const newAngle = (spaceShip.angle + 45) % 360;
+spaceShip.angle = newAngle;
+
+// Wait for UI to reflect change
+await waitForPropertyFloatValue(page, 'heading', newAngle);
+```
+
 ## Common Gotchas
 
 ### Float Precision

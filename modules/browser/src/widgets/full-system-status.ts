@@ -1,11 +1,18 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
-import { BladeGuiApi, addSliderBlade, addTextBlade, configSliderBlade, configTextBlade, wireBlade } from '../panel';
+import {
+    BladeGuiApi,
+    addSliderBlade,
+    addTextBlade,
+    configSliderBlade,
+    configTextBlade,
+    createPane,
+    wireBlade,
+} from '../panel';
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
 import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { RowApi } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 import { defectReadProp } from '../react/hooks';
@@ -34,7 +41,7 @@ export function drawFullSystemsStatus(
     systems = shipDriver.systems,
 ) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Full Systems Status', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Full Systems Status', container: container.getElement().get(0) });
     container.getElement().width(`${totalWidth}px`);
     pane.registerPlugin(TweakpaneTablePlugin);
     panelCleanup.add(() => {

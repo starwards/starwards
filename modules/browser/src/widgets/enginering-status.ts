@@ -1,11 +1,10 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { Destructors, ShipDriver } from '@starwards/core';
-import { addGraph, addTextBlade } from '../panel';
+import { addGraph, addTextBlade, createPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
 export function engineeringStatusWidget(shipDriver: ShipDriver): DashboardWidget {
@@ -25,7 +24,7 @@ export function engineeringStatusWidget(shipDriver: ShipDriver): DashboardWidget
 
 export function drawEngineeringStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Engineering Status', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Engineering Status', container: container.getElement().get(0) });
     pane.registerPlugin(TweakpaneTablePlugin);
     panelCleanup.add(() => {
         pane.dispose();

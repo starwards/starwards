@@ -491,14 +491,14 @@ export const powerControl = createWidget({
 
 **Advanced Controls:**
 ```typescript
-import { Pane } from 'tweakpane';
+import { createPane } from '../panel';
 
 export const systemControl = createWidget({
     name: 'system-control',
     render: (ship: ShipDriver) => {
         const container = document.createElement('div');
-        const pane = new Pane({ container });
-        
+        const pane = createPane({ title: 'System Control', container });
+
         // Add controls
         pane.addInput(ship.state.reactor, 'power', {
             min: 0,
@@ -507,7 +507,7 @@ export const systemControl = createWidget({
         }).on('change', (ev) => {
             ship.room.send('/reactor/power', { value: ev.value });
         });
-        
+
         pane.addInput(ship.state.reactor, 'coolantFactor', {
             min: 0,
             max: 1,
@@ -515,7 +515,7 @@ export const systemControl = createWidget({
         }).on('change', (ev) => {
             ship.room.send('/reactor/coolantFactor', { value: ev.value });
         });
-        
+
         return container;
     }
 });

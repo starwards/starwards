@@ -1,9 +1,8 @@
 import { Destructors, ShipDriver, WarpFrequency } from '@starwards/core';
-import { addSliderBlade, addTextBlade } from '../panel';
+import { addSliderBlade, addTextBlade, createPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
 export function warpWidget(shipDriver: ShipDriver): DashboardWidget {
@@ -22,7 +21,7 @@ export function warpWidget(shipDriver: ShipDriver): DashboardWidget {
 
 export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Warp', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Warp', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
     addSliderBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual LVL' }, panelCleanup.add);

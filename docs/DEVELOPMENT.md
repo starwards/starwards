@@ -183,6 +183,7 @@ docker-compose down                    # Stop
 | Core changes not reflected | Ensure `npm run build:watch` running |
 | Port in use | `lsof -ti:2567 \| xargs kill -9` |
 | Type errors after update | `npm run clean && npm ci && npm run build` |
+| Webpack overlay shows `[object Object]` | **Known Issue:** Webpack dev server error overlay displays `[object Object]` instead of actual error message when errors are wrapped. Check browser console (F12) for the actual error message and stack trace. Enhanced logging is configured in `webpack.dev.js:42` |
 
 ## VSCode Config
 

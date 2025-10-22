@@ -1,8 +1,7 @@
 import { Destructors, ShipDriver } from '@starwards/core';
-import { addInputBlade, addTextBlade } from '../panel';
+import { addInputBlade, addTextBlade, createPane } from '../panel';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 import { readProp } from '../property-wrappers';
 
@@ -21,7 +20,7 @@ export function targetingWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 export function drawTargetingStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Targeting', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Targeting', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
     addTextBlade(pane, readProp(shipDriver, '/weaponsTarget/targetId'), { label: 'target' }, panelCleanup.add);

@@ -1,10 +1,9 @@
 import { Destructors, ShipDriver, projectileDesigns, projectileModels } from '@starwards/core';
+import { addTextBlade, createPane } from '../panel';
 import { aggregate, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
-import { addTextBlade } from '../panel';
 
 export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
     class AmmoComponent {
@@ -21,7 +20,7 @@ export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Ammunition', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Ammunition', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
     for (const projectileKey of projectileModels) {

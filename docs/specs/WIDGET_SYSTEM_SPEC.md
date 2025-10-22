@@ -210,25 +210,29 @@ export const statusWidget = createWidget({
 
 ### Widget with Tweakpane
 ```typescript
-import { Pane } from 'tweakpane';
+import { createPane } from '../panel';
 
 export const controlWidget = createWidget({
     name: 'controls',
     render: (ship: ShipDriver) => {
         const container = document.createElement('div');
-        const pane = new Pane({ container });
-        
+        // Use createPane() for automatic data-id attribute (enables semantic testing)
+        const pane = createPane({ title: 'Controls', container });
+
         // Add controls
         pane.addInput(ship.state.reactor, 'power', {
             min: 0,
             max: 1,
             step: 0.25
         });
-        
+
         return container;
     }
 });
 ```
+
+**Note**: Always use `createPane({ title: 'Panel Name', container })` instead of `new Pane({ container })`. This automatically adds `data-id="Panel Name"` for semantic testing via `page.locator('[data-id="Panel Name"]')`.
+
 
 ---
 
@@ -364,30 +368,30 @@ dashboard.createDragSource(menuItem, itemConfig);
 
 ## Basic Tweakpane Usage
 ```typescript
-import { Pane } from 'tweakpane';
+import { createPane } from '../panel';
 
 export const controlPanel = createWidget({
     name: 'controls',
     render: (ship: ShipDriver) => {
         const container = document.createElement('div');
-        const pane = new Pane({ container });
-        
+        const pane = createPane({ title: 'Controls', container });
+
         // Number input
         pane.addInput(ship.state.reactor, 'power', {
             min: 0,
             max: 1,
             step: 0.25
         });
-        
+
         // Boolean toggle
         pane.addInput(ship.state, 'freeze', {
             label: 'Freeze'
         });
-        
+
         // Button
         pane.addButton({ title: 'Fire' })
             .on('click', () => ship.fire());
-        
+
         return container;
     }
 });
@@ -395,7 +399,7 @@ export const controlPanel = createWidget({
 
 ## Folder Organization
 ```typescript
-const pane = new Pane({ container });
+const pane = createPane({ title: 'Systems', container });
 
 // Create folders
 const reactorFolder = pane.addFolder({ title: 'Reactor' });
@@ -536,14 +540,14 @@ export const displayWidget = createWidget({
 @purpose: user-input
 
 ```typescript
-import { Pane } from 'tweakpane';
+import { createPane } from '../panel';
 
 export const controlWidget = createWidget({
     name: 'controls',
     render: (ship: ShipDriver) => {
         const container = document.createElement('div');
-        const pane = new Pane({ container });
-        
+        const pane = createPane({ title: 'Controls', container });
+
         // Add controls
         pane.addInput(ship.state.reactor, 'power', {
             min: 0,
@@ -551,7 +555,7 @@ export const controlWidget = createWidget({
         }).on('change', (ev) => {
             ship.setPower('reactor', ev.value);
         });
-        
+
         return container;
     }
 });

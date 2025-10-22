@@ -8,7 +8,7 @@
 |----------|-------|-------|----------|
 | Unit | 16 | ~90 | `modules/core/test/` |
 | Multi-Client | 3 | 31 | `modules/server/src/test/` |
-| E2E | 5 | 55 | `modules/e2e/test/` |
+| E2E | 5 | 51 | `modules/e2e/test/` |
 | Integration | 4 | ~15 | `modules/node-red/src/` |
 
 **CI/CD:** Automated on every push, parallel execution (4 workers)
@@ -64,14 +64,196 @@ it('effectiveness ∈ [0,1]', () => {
 ### E2E Test
 ```typescript
 import { test, expect } from '@playwright/test';
-import { makeDriver } from './driver';
+import { makeDriver, waitForPropertyFloatValue } from './driver';
 
 const gameDriver = makeDriver(test);
 
-test('ship movement', async ({ page }) => {
+test('helm displays heading', async ({ page }) => {
     await gameDriver.gameManager.startGame(maps.test_map_1);
-    await page.goto(`/ship.html?ship=${maps.test_map_1.testShipId}`);
-    await expect(page.locator('[data-id="Helm"]')).toBeVisible();
+    await page.goto(`/pilot.html?ship=${maps.test_map_1.testShipId}`);
+
+    // Get SpaceObject (source of truth - see PATTERNS.md)
+    const spaceShip = gameDriver.gameManager.spaceManager.state.getShip(shipId);
+
+    // Wait for Tweakpane property to display
+    await waitForPropertyFloatValue(page, 'heading', spaceShip.angle);
+});
+```
+
+**Tweakpane Testing:** Use `getPropertyValue()`, `waitForPropertyValue()`, and `waitForPropertyFloatValue()` helpers to test PropertyPanel displays. See [E2E Tweakpane Testing](UTILITIES.md#e2e-tweakpane-testing) for details.
+
+#### UI Testing Best Practices
+
+**✓ Use semantic selectors (data-id)**
+```typescript
+// ✓ Semantic - stable across Tweakpane versions
+const panel = page.locator('[data-id="Targeting"]');
+
+// ❌ Implementation detail - brittle
+const panel = page.getByRole('button', { name: /Targeting/ });
+```
+
+**Why:** All Tweakpane panels created with `createPane({ title, container })` automatically get `data-id="title"` for semantic testing. This decouples tests from Tweakpane's internal DOM structure.
+
+**✓ Test panel presence, not internals**
+```typescript
+// ✓ Test panel exists
+await expect(page.locator('[data-id="Tubes Status"]')).toBeVisible();
+
+// ✓ Test properties via helpers
+const value = await getPropertyValue(page, 'auto load', 'Tube 0');
+expect(value).toBe('on');
+
+// ❌ Don't traverse Tweakpane DOM
+const checkbox = panel.locator('.tp-ckbv_i');  // Brittle!
+```
+
+**Why:** Tweakpane's internal DOM structure can change between versions. Use test helpers that understand the abstraction layer.
+
+**✓ Scope searches to panels**
+```typescript
+// ✓ When multiple panels have same label, scope to panel
+const value = await getPropertyValue(page, 'power', 'Reactor');
+
+// ❌ Global search fails with strict mode violations
+const value = await getPropertyValue(page, 'power');  // Error: multiple matches
+```
+
+**Why:** `getPropertyValue(page, label, panelTitle)` uses `[data-id="panelTitle"]` to scope searches, preventing ambiguity.
+
+**Key Insight:** Tweakpane creates multiple DOM elements per concept (folder button + labels). Always use semantic selectors (`data-id`) or scoped helpers (`panelTitle` parameter) to avoid strict mode violations.
+
+#### E2E Anti-Patterns
+
+**❌ Don't: Wait for arbitrary time**
+```typescript
+await page.keyboard.press('e');
+await page.waitForTimeout(100);  // ❌ Non-deterministic
+const value = await getPropertyValue(page, 'rotationCommand');
+expect(parseFloat(value)).not.toBe(0);  // ❌ Vague assertion
+```
+
+**✓ Do: Wait for specific state change**
+```typescript
+await page.keyboard.press('e');
+await waitForPropertyFloatValue(page, 'rotationCommand', 0.05);  // ✓ Deterministic + specific
+```
+
+### E2E Test Infrastructure
+
+**Problem:** When E2E tests fail, they can cause a "domino effect" where subsequent tests hang or slow down significantly. This happens when page crashes, JavaScript errors, or broken WebSocket connections leave the page in a corrupted state.
+
+**Solution:** Use the test infrastructure helpers from `modules/e2e/test/test-infrastructure.ts`:
+
+```typescript
+import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
+
+test.describe('My Screen', () => {
+    test.beforeEach(async ({ page }) => {
+        // Set up error handlers for fail-fast behavior
+        setupPageErrorHandlers(page);
+
+        await gameDriver.gameManager.startGame(single_ship);
+        await navigateToScreen(page, `/my-screen.html?ship=${shipId}`);
+        await waitForCriticalElement(page);
+    });
+
+    test.afterEach(async ({ page }) => {
+        // Clean up page state to prevent test failures from cascading
+        await cleanupPageState(page);
+    });
+});
+```
+
+**Features:**
+- **setupPageErrorHandlers()** - Detects page crashes and errors early, failing fast instead of hanging
+- **navigateToScreen()** - Navigates with proper timeout and error handling, detects ECONNREFUSED
+- **cleanupPageState()** - Removes listeners, clears timers/intervals between tests
+- **checkServerHealth()** - Verifies server is alive before starting test
+- **waitForCriticalElement()** - Waits with crash detection (optional, more robust than standard waits)
+
+**Configuration:**
+```typescript
+// playwright.config.ts
+{
+    timeout: 20000,              // 20s per test (setup + test + cleanup)
+    expect: { timeout: 5000 },   // 5s for assertions
+    use: {
+        actionTimeout: 5000,     // 5s for actions
+        navigationTimeout: 10000 // 10s for navigation (global)
+    }
+}
+
+// test-infrastructure.ts defaults
+navigateToScreen: 5000ms         // Navigation should be fast
+waitForCriticalElement: 10000ms  // Critical elements
+```
+
+**Why This Matters:**
+- Prevents 30-second timeouts from cascading across multiple tests
+- Detects page crashes immediately instead of waiting for element timeouts
+- Cleans up timers/intervals that could interfere with subsequent tests
+- Logs console errors for debugging without failing tests
+- Makes test failures fast and obvious, not slow and mysterious
+
+### Server Crash Protection
+
+**Problem:** When a test fails, `stopGame()` can crash the game server, causing ALL subsequent tests to hang waiting for connections that never succeed (ECONNREFUSED).
+
+**Solution:** Multi-layered protection in `driver.ts` and test files:
+
+1. **Defensive `stopGame()`** - Wrapped in try-catch with 5s timeout
+2. **Server health check** - Tests check if server is alive before running
+3. **Connection detection** - `navigateToScreen()` detects ECONNREFUSED immediately
+
+**Example beforeEach:**
+```typescript
+test.beforeEach(async ({ page }) => {
+    // Fail fast if server died in previous test
+    const serverAlive = await checkServerHealth(gameDriver.port);
+    if (!serverAlive) {
+        throw new Error('Game server crashed in previous test');
+    }
+
+    setupPageErrorHandlers(page);
+    await gameDriver.gameManager.startGame(single_ship);
+    await navigateToScreen(page, `/screen.html?ship=${shipId}`);
+});
+```
+
+**Result:** If server crashes, next test fails immediately with clear message instead of hanging for 20+ seconds.
+
+**❌ Don't: Test name mismatch**
+```typescript
+test('keyboard rotation controls update heading', async ({ page }) => {
+    // But test actually checks rotationCommand, not heading ❌
+    expect(await getPropertyValue(page, 'rotationCommand')).not.toBe(0);
+});
+```
+
+**✓ Do: Match test name to behavior**
+```typescript
+test('keyboard rotation controls update rotation command', async ({ page }) => {
+    await page.keyboard.press('e');
+    await waitForPropertyFloatValue(page, 'rotationCommand', 0.05);
+});
+```
+
+**❌ Don't: Assume absolute values without checking config**
+```typescript
+test('keyboard thrust', async ({ page }) => {
+    await page.keyboard.press('w');
+    await waitForPropertyFloatValue(page, 'boostCommand', 1.0);  // ❌ Wrong! Assumes absolute value
+});
+```
+
+**✓ Do: Use values from input-config.ts and document coupling**
+```typescript
+// NOTE: Coupled to step values in modules/browser/src/input/input-config.ts
+// boostCommand uses KeysRangeConfig with step: 0.05
+test('keyboard thrust', async ({ page }) => {
+    await page.keyboard.press('w');
+    await waitForPropertyFloatValue(page, 'boostCommand', 0.05);  // ✓ Correct step value
 });
 ```
 
@@ -176,7 +358,13 @@ npm run test:e2e -- --debug   # Inspector
 
 ### E2E Tests
 - ✓ Focus on critical user workflows
-- ✓ Wait for elements (avoid fixed timeouts)
+- ✓ **Wait for state changes, not arbitrary time** - use `waitForPropertyValue()` instead of `waitForTimeout()`
+- ✓ **Test specific expected values** - check `rotationCommand === 0.05` not `!== 0`
+- ✓ **Test names must match behavior** - "update rotation command" not "update heading" if testing rotationCommand
+- ✓ **Document configuration coupling** - E2E tests may depend on config files (e.g., keyboard step values in `input-config.ts`)
+- ✓ Use `waitForPropertyFloatValue()` for Tweakpane properties
+- ✓ Modify SpaceObject for physics properties (angle, position, velocity)
+- ✓ Extract common patterns into helpers (e.g., `waitForPilotRadar()`, `pressKey()`)
 - ✓ Use snapshots for visual regression
 - ✓ Don't E2E test everything (expensive)
 
@@ -191,6 +379,8 @@ npm run test:e2e -- --debug   # Inspector
 |-------|----------|
 | Tests hang during cleanup | Ensure sockets disconnect before room destroy |
 | State comparison fails | Pause physics (`state.speed = 0`) + use `toBeCloseTo()` |
+| Ship state changes revert | Modify SpaceObject not ship.state (see [PATTERNS.md](../PATTERNS.md#state-synchronization-architecture)) |
+| Tweakpane properties not rendering | PropertyPanel race condition - ensure value exists before display |
 | API access errors | Use driver's accessor, not public API |
 | MaxListeners warnings | Expected for multi-client (harmless) |
 
