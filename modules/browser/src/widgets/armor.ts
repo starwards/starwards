@@ -92,7 +92,11 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
 
         root.ticker.addOnce(
             () => {
-                root.view.setAttribute('data-loaded', 'true');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        root.view.setAttribute('data-loaded', 'true');
+                    });
+                });
             },
             null,
             UPDATE_PRIORITY.LOW + 1,
