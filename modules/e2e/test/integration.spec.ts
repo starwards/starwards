@@ -24,6 +24,9 @@ test('armor view', async ({ page }) => {
     await page.goto(`/ship.html?ship=${test_map_1.testShipId}`);
     await page.locator('[data-id="menu-armor"]').dragTo(page.locator('#layoutContainer'));
     const radarCanvas = page.locator('[data-id="Armor"]');
+    await radarCanvas.waitFor({ state: 'visible' });
+    await radarCanvas.waitFor({ state: 'attached' });
+    await expect(radarCanvas).toHaveAttribute('data-loaded', 'true', { timeout: 5000 });
     expect(await radarCanvas.screenshot()).toMatchSnapshot();
 });
 
