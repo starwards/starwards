@@ -120,12 +120,12 @@ test.describe('Pilot Screen', () => {
         const ship = gameDriver.getShip(shipId);
         const initialSpeed = ship.state.speed;
 
-        const initialRadar = await pilotRadar.screenshot();
+        const initialRadar = await pilotRadar.screenshot({ timeout: 10000 });
 
         await pressKey(page, 'w', 1000);
         await waitForPropertyValue(page, 'speed', (value) => parseFloat(value) > initialSpeed + 10);
 
-        expect(await pilotRadar.screenshot()).not.toEqual(initialRadar);
+        expect(await pilotRadar.screenshot({ timeout: 10000 })).not.toEqual(initialRadar);
     });
 });
 

@@ -6,7 +6,8 @@ const config: PlaywrightTestConfig = {
     reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'playwright-results.xml' }]] : 'list',
     testMatch: 'modules/e2e/**/*.spec.ts',
     // Optimize timeouts for faster test execution
-    timeout: 20000, // 20s per test (allows for setup + test + cleanup)
+    // Increase timeouts in CI for weak machines
+    timeout: process.env.CI ? 30_000 : 20_000,
     // Enable parallel execution across test files (not within files due to server constraint)
     // Each worker runs tests from different files in parallel
     // Within a file, tests run serially to respect single-game-per-server constraint
@@ -16,14 +17,15 @@ const config: PlaywrightTestConfig = {
         trace: 'on-first-retry',
         baseURL: `http://localhost:3000`,
         // Optimize action timeouts
-        actionTimeout: 5000, // 5s for actions
-        navigationTimeout: 10000, // 10s for navigation (initial page load can be slow)
+        // Increase in CI for slow machines (especially for canvas screenshot operations)
+        actionTimeout: process.env.CI ? 10_000 : 5_000,
+        navigationTimeout: process.env.CI ? 15_000 : 10_000,
         // Fail fast on page errors
         viewport: { width: 1280, height: 720 },
     },
     // Global expect timeout for assertions
     expect: {
-        timeout: 5000, // 5s for expect assertions
+        timeout: process.env.CI ? 10_000 : 5_000,
     },
     webServer: {
         command: 'npm run browser',

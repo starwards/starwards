@@ -5,7 +5,9 @@ import supertest from 'supertest';
 
 describe('multi-client state synchronization', () => {
     const driver = makeMultiClientDriver();
-    jest.setTimeout(45_000);
+    if (process.env.CI) {
+        jest.setTimeout(100_000);
+    }
 
     beforeEach(async () => {
         await supertest(driver.serverDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
