@@ -111,27 +111,3 @@ jobs:
                   name: Unity Schemas
                   path: modules/core/unity-schema
                   if-no-files-found: error
-
-    Performance-Tests:
-        runs-on: ubuntu-latest
-        needs: [Test-Static, Test-Units]
-        steps:
-            - uses: actions/checkout@v4
-            - name: Set up Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version-file: '.nvmrc'
-            - run: node --version
-            - run: npm --version
-            - run: npm ci
-            - run: npm run build:core
-            - run: npm run build:server
-            - name: Run performance tests
-              run: npm run test:e2e -- --grep="performance|combat.*load|stress" || echo "No performance tests found"
-            - name: Store performance metrics
-              uses: actions/upload-artifact@v4
-              if: always()
-              with:
-                  name: performance-metrics
-                  path: test-results/performance-metrics.json
-                  if-no-files-found: ignore
