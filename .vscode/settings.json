@@ -4,6 +4,9 @@
     "files.eol": "\n",
     "typescript.enablePromptUseWorkspaceTsdk": true,
     "js/ts.implicitProjectConfig.experimentalDecorators": true,
-    "typescript.tsdk": "node_modules\\typescript\\lib",
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[typescript]": {
+        "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    }
 }

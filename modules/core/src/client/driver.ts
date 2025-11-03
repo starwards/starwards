@@ -1,4 +1,4 @@
-import { AdminState, EventEmitter, schemaClasses } from '..';
+import { AdminState, EventEmitter, schemaClasses, sleep } from '..';
 import { Client, Room } from 'colyseus.js';
 import { ConnectionManager, ConnectionStateEvent } from './connection-manager';
 
@@ -166,7 +166,7 @@ export class Driver {
                     yield shipId;
                 }
             }
-            await new Promise((res) => setTimeout(res, 500));
+            await sleep(500);
         }
     }
 
@@ -175,7 +175,7 @@ export class Driver {
      */
     async waitForGame(): Promise<void> {
         while (!(await this.getGameStatus())) {
-            await new Promise((res) => setTimeout(res, 500));
+            await sleep(500);
         }
     }
     /**

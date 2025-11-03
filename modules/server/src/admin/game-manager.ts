@@ -16,6 +16,7 @@ import {
     makeId,
     makeShipState,
     shipConfigurations,
+    waitFor,
 } from '@starwards/core';
 import { IRoomListingData, matchMaker } from 'colyseus';
 
@@ -127,11 +128,16 @@ export class GameManager {
     }
 
     public async loadGame(source: SavedGame, map: GameMap) {
-        while (this.state.gameStatus !== GameStatus.STOPPED) {
-            // also handle starting and stopping
-            await new Promise((res) => setTimeout(res, 100));
-            await this.stopGame();
-        }
+        await waitFor(
+            async () => {
+                if (this.state.gameStatus !== GameStatus.STOPPED) {
+                    await this.stopGame();
+                    throw new Error('Waiting for game to stop');
+                }
+            },
+            10000,
+            100,
+        );
         this.state.gameStatus = GameStatus.STARTING;
         this.map = map;
         this.spaceManager = new SpaceManager();
@@ -177,9 +183,15 @@ export class GameManager {
 
     private async waitForAllShipRoomsInit() {
         const expectedShipCount = this.shipManagers.size;
-        while (expectedShipCount > this.state.shipIds.length) {
-            await new Promise((res) => setTimeout(res, 100));
-        }
+        await waitFor(
+            () => {
+                if (expectedShipCount > this.state.shipIds.length) {
+                    throw new Error('Waiting for ship rooms to initialize');
+                }
+            },
+            10000,
+            100,
+        );
     }
 
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: true): ShipManagerPc;
@@ -215,10 +227,15 @@ export class GameManager {
     }
 
     private async waitForRoom(conditions: Partial<IRoomListingData>) {
-        let roomRes = await matchMaker.query(conditions);
-        while (!roomRes.length) {
-            await new Promise((res) => setTimeout(res, 50));
-            roomRes = await matchMaker.query(conditions);
-        }
+        await waitFor(
+            async () => {
+                const roomRes = await matchMaker.query(conditions);
+                if (!roomRes.length) {
+                    throw new Error('Waiting for room to be created');
+                }
+            },
+            10000,
+            50,
+        );
     }
 }

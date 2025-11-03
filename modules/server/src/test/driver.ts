@@ -27,7 +27,7 @@ export function makeDriver() {
     afterEach(async () => {
         await gameManager?.stopGame();
         await serverInfo?.close();
-        await sockets?.waitForNoSockets();
+        await sockets?.waitForNoSockets(10_000); // Increase timeout for multi-client tests
     });
 
     return {
@@ -88,6 +88,7 @@ export function makeSocketsControls(netServer: Server) {
     const sockets: Socket[] = [];
     const onSocketsChange = new EventEmitter();
     const onConnection = (socket: Socket): void => {
+        if (sockets.includes(socket)) return;
         sockets.push(socket);
         socket.once('close', () => {
             sockets.splice(sockets.indexOf(socket), 1);
@@ -117,16 +118,28 @@ export function makeSocketsControls(netServer: Server) {
             lastPort = -1;
             return result;
         },
-        waitForNoSockets() {
-            return new Promise<void>((res) => {
+        waitForNoSockets(timeoutMs = 5000) {
+            return new Promise<void>((res, rej) => {
                 if (!sockets.length) {
                     res();
+                    return; // Don't add listener if already resolved
                 }
-                onSocketsChange.on('touch', () => {
+
+                const timeout = setTimeout(() => {
+                    onSocketsChange.off('touch', handler);
+                    rej(
+                        new Error(`waitForNoSockets timeout after ${timeoutMs}ms, ${sockets.length} sockets remaining`),
+                    );
+                }, timeoutMs);
+
+                const handler = () => {
                     if (!sockets.length) {
+                        clearTimeout(timeout);
+                        onSocketsChange.off('touch', handler); // Remove listener to prevent leak
                         res();
                     }
-                });
+                };
+                onSocketsChange.on('touch', handler);
             });
         },
     };

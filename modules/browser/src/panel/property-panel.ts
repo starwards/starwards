@@ -1,8 +1,8 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
 import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
-import { FolderApi, InputBindingApi, InputParams, Pane } from 'tweakpane';
-import { Model, NumericModel } from './blades';
+import { FolderApi, InputBindingApi, InputParams } from 'tweakpane';
+import { Model, NumericModel, createPane } from './blades';
 
 import { EmitterLoop } from '../loop';
 import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
@@ -27,10 +27,10 @@ export interface Panel {
 type ViewModel = Record<string, number | string>;
 export class PropertyPanel implements Panel {
     private rootViewModel: ViewModel = {};
-    private pane: Pane;
+    private pane: ReturnType<typeof createPane>;
     private viewLoop = new EmitterLoop();
     constructor(container: WidgetContainer) {
-        this.pane = new Pane({ container: container.getElement().get(0) });
+        this.pane = createPane({ title: 'Properties', container: container.getElement().get(0) });
         this.pane.registerPlugin(CamerakitPlugin);
         this.pane.registerPlugin(TextareaPlugin);
         this.viewLoop.start();
@@ -47,10 +47,14 @@ export class PropertyPanel implements Panel {
         getValue: () => T | undefined,
         params: InputParams,
     ) {
-        const guiController: InputBindingApi<unknown, T> = guiFolder.addInput(viewModel, name, params);
         const value = getValue();
+        // Set initial value before addInput so Tweakpane can infer controller type
         if (value !== undefined) {
-            let lastGetValue = (viewModel[name] = value);
+            viewModel[name] = value;
+        }
+        const guiController: InputBindingApi<unknown, T> = guiFolder.addInput(viewModel, name, params);
+        if (value !== undefined) {
+            let lastGetValue = value;
             this.viewLoop.onLoop(() => {
                 const newGetValue = getValue();
                 if (newGetValue !== undefined && newGetValue !== lastGetValue) {

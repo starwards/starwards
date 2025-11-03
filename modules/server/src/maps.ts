@@ -52,3 +52,12 @@ export const test_map_1 = {
         game.addObject(asteroidOutOfRange);
     },
 };
+
+export const single_ship = {
+    name: 'single_ship',
+    testShipId,
+    init: (game: GameApi) => {
+        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
+    },
+};

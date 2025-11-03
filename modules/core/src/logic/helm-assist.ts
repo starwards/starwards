@@ -68,17 +68,26 @@ function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: 
 
     const signVelocity = sign(velocity);
     const signRelTarget = sign(relTargetPosition);
+    const absVelocity = Math.abs(velocity);
+    const targetDistance = Math.abs(relTargetPosition);
+
+    if (absVelocity < pinPointVelocity * 0.5) {
+        const stopDistance = whereWillItStop(0, absVelocity, -capacity);
+        if (targetDistance < stopDistance * 2) {
+            const controlStrength = targetDistance / (stopDistance * 2);
+            return capToRange(-1, 1, controlStrength) * signRelTarget;
+        }
+    }
+
     if (signVelocity !== signRelTarget) {
         return signRelTarget;
     }
 
-    const absVelocity = Math.abs(velocity);
     const maxBreakDistance = whereWillItStop(0, absVelocity + pinPointVelocity, -capacity) + pinPointDistance;
     const minBreakDistance = Math.max(
         0,
         whereWillItStop(0, absVelocity - pinPointVelocity, -capacity) - pinPointDistance,
     );
-    const targetDistance = Math.abs(relTargetPosition);
 
     const result =
         capToRange(-1, 1, lerp([minBreakDistance, maxBreakDistance], [-1, 1], targetDistance)) * signRelTarget;

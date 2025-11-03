@@ -1,9 +1,8 @@
 import { Destructors, ShipDriver } from '@starwards/core';
-import { addInputBlade, addSliderBlade, addTextBlade } from '../panel/blades';
+import { addInputBlade, addSliderBlade, addTextBlade, createPane } from '../panel/blades';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
 export function tubesStatusWidget(shipDriver: ShipDriver): DashboardWidget {
@@ -21,7 +20,7 @@ export function tubesStatusWidget(shipDriver: ShipDriver): DashboardWidget {
 
 export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Tubes Status', container: container.getElement().get(0) });
     panelCleanup.add(() => {
         pane.dispose();
     });

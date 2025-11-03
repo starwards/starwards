@@ -15,7 +15,6 @@ import {
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
-import { FolderApi, Pane } from 'tweakpane';
 import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
 import {
     addCameraRingBlade,
@@ -24,9 +23,11 @@ import {
     addListBlade,
     addSliderBlade,
     addTextBlade,
+    createPane,
 } from '../panel';
 
 import { DashboardWidget } from './dashboard';
+import { FolderApi } from 'tweakpane';
 import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
@@ -200,13 +201,13 @@ function addDesignFolder(
 
 export function tweakWidget(driver: Driver, selectionContainer: SelectionContainer): DashboardWidget {
     class TweakRoot {
-        private pane: Pane;
+        private pane: ReturnType<typeof createPane>;
         private selectionCleanup = new Destructors();
         private spaceDriver: SpaceDriver | null = null;
         private panelCleanup = new Destructors();
 
         constructor(container: WidgetContainer, _: unknown) {
-            this.pane = new Pane({ container: container.getElement().get(0) });
+            this.pane = createPane({ title: 'Tweaks', container: container.getElement().get(0) });
             this.pane.registerPlugin(CamerakitPlugin);
             this.panelCleanup.add(() => {
                 this.pane.dispose();

@@ -1,11 +1,10 @@
 import * as TweakpaneTablePlugin from 'tweakpane-table';
 
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
-import { Model, addTextBlade } from '../panel';
+import { Model, addTextBlade, createPane } from '../panel';
 import { aggregate, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { Pane } from 'tweakpane';
 import { RowApi } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 import { defectReadProp } from '../react/hooks';
@@ -29,7 +28,7 @@ const totalWidth = 370;
 const cellWidth = 50;
 export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDriver, systems = shipDriver.systems) {
     const panelCleanup = new Destructors();
-    const pane = new Pane({ title: 'Systems Status', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Systems Status', container: container.getElement().get(0) });
     container.getElement().width(`${totalWidth}px`);
     pane.registerPlugin(TweakpaneTablePlugin);
     panelCleanup.add(() => {

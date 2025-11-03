@@ -100,3 +100,4 @@ test-results
 modules/core/unity-schema
 *.cpuprofile
 *.heapprofile
+.playwright-mcp/*

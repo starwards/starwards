@@ -1,0 +1,82 @@
+{
+    "$schema": "https://unpkg.com/knip@5/schema.json",
+    "workspaces": {
+        ".": {
+            "entry": ["jest.config.js", "playwright.config.ts", ".eslintrc.js", "scripts/**/*.{js,ts}"],
+            "project": ["**/*.{ts,tsx,js,jsx}"]
+        },
+        "modules/browser": {
+            "entry": [
+                "src/screens/gm.ts",
+                "src/screens/ship.ts",
+                "src/screens/weapons.ts",
+                "src/screens/pilot.ts",
+                "src/screens/ecr.ts",
+                "src/screens/index.tsx",
+                "src/screens/input.ts"
+            ],
+            "project": ["src/**/*.{ts,tsx}"]
+        },
+        "modules/core": {
+            "entry": ["src/index.ts", "test/**/*.spec.ts"],
+            "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
+        },
+        "modules/server": {
+            "entry": ["src/index.ts", "src/dev.ts", "src/prod.ts", "src/test/**/*.spec.ts"],
+            "project": ["src/**/*.{ts,tsx}"]
+        },
+        "modules/node-red": {
+            "entry": [
+                "src/ship-read/ship-read.ts",
+                "src/ship-write/ship-write.ts",
+                "src/starwards-config/starwards-config.ts",
+                "src/*/*.html/index.ts",
+                "src/**/*.spec.ts",
+                "rollup.config.editor.mjs"
+            ],
+            "project": ["src/**/*.{ts,tsx}"]
+        },
+        "modules/e2e": {
+            "entry": ["**/*.spec.ts"],
+            "project": ["**/*.{ts,tsx}"]
+        }
+    },
+    "include": ["classMembers", "dependencies", "exports", "files", "types", "duplicates", "nsTypes", "nsExports"],
+    "includeEntryExports": true,
+    "rules": {
+        "files": "error",
+        "dependencies": "error",
+        "exports": "error",
+        "nsExports": "error",
+        "nsTypes": "error",
+        "types": "error",
+        "duplicates": "error",
+        "classMembers": "warn"
+    },
+    "ignoreDependencies": ["@types/*"],
+    "ignoreExportsUsedInFile": {
+        "interface": true,
+        "type": true
+    },
+    "ignore": [
+        "**/*.d.ts",
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/cjs/**",
+        "**/node_modules/**",
+        "**/*.map",
+        "modules/browser/webpack*",
+        "modules/browser/templates/**/*.html",
+        "modules/core/unity-schema/**",
+        "static/**",
+        "psd/**",
+        "docker/**",
+        ".github/**",
+        ".husky/**",
+        ".vscode/**",
+        "custom-typings/**",
+        "models/**",
+        "docs/**"
+    ],
+    "ignoreBinaries": ["schema-codegen"]
+}

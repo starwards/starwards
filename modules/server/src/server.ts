@@ -34,6 +34,10 @@ export async function server(port: number, staticDir: string, manager: GameManag
 
     app.use('/', express.static(staticDir));
 
+    app.get('/health', (_, res) => {
+        res.json({ status: 'ok' });
+    });
+
     // add colyseus monitor
     const auth = basicAuth({ users: { admin: 'admin' }, challenge: true });
     app.use('/colyseus-monitor', auth, monitor());

@@ -3,12 +3,27 @@
     "tasks": [
         {
             "type": "npm",
-            "label": "build:core",
+            "label": "build core",
             "detail": "build core and watch for changes",
             "options": {
                 "cwd": "./modules/core"
             },
             "script": "build:watch",
+            "problemMatcher": ["$tsup-watch", "$tsup-tsc-watch"],
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never",
+                "group": "watchers"
+            }
+        },
+        {
+            "type": "npm",
+            "label": "build server",
+            "detail": "build server and watch for changes",
+            "options": {
+                "cwd": "./modules/server"
+            },
+            "script": "build_watch",
             "problemMatcher": ["$tsup-watch", "$tsup-tsc-watch"],
             "isBackground": true,
             "presentation": {

@@ -42,6 +42,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
         });
         root.renderer.resize(size(), size());
         container.getElement().append(root.view);
+        root.view.setAttribute('data-loaded', 'false');
         root.view.addEventListener('contextmenu', function (e) {
             e.preventDefault();
             return false;
@@ -88,5 +89,17 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
 
             root.stage.addChild(mask);
         }
+
+        root.ticker.addOnce(
+            () => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        root.view.setAttribute('data-loaded', 'true');
+                    });
+                });
+            },
+            null,
+            UPDATE_PRIORITY.LOW + 1,
+        );
     });
 }

@@ -1,10 +1,9 @@
 import { Destructors, DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget } from '@starwards/core';
-import { addListBlade, addTextBlade } from '../panel';
+import { addListBlade, addTextBlade, createPane } from '../panel';
 import { propertyStub, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { EmitterLoop } from '../loop';
-import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 import { getSpatialIndex } from '../radar/spatial-index';
 
@@ -23,7 +22,7 @@ export function dockingWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver):
 }
 export function drawDockingStatus(container: WidgetContainer, spaceDriver: SpaceDriver, shipDriver: ShipDriver) {
     const cleanup = new Destructors();
-    const pane = new Pane({ title: 'Docking', container: container.getElement().get(0) });
+    const pane = createPane({ title: 'Docking', container: container.getElement().get(0) });
     cleanup.add(() => pane.dispose());
     container.on('destroy', cleanup.destroy);
     addTextBlade(pane, readProp(shipDriver, '/docking/targetId'), { label: 'Current Target' }, cleanup.add);
