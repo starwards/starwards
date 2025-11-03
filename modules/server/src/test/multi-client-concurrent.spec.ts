@@ -12,7 +12,6 @@ describe('multi-client state synchronization', () => {
         driver.serverDriver.gameManager.state.speed = 0;
     });
 
-
     it('last write wins when clients modify same property', async () => {
         const client1 = driver.createClient('client1');
         const client2 = driver.createClient('client2');
