@@ -26,7 +26,7 @@ jobs:
             - run: npm run build
 
     Test-Units:
-        runs-on: ubuntu-latest-4-core
+        runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
             - name: Set up Node.js
@@ -55,7 +55,7 @@ jobs:
                   path: test-results/junit.xml
 
     Test-E2e:
-        runs-on: ubuntu-latest-4-core
+        runs-on: ubuntu-latest
         container:
             image: mcr.microsoft.com/playwright:v1.42.1-jammy
             options: --user 1001
