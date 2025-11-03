@@ -27,7 +27,7 @@ export function makeDriver() {
     afterEach(async () => {
         await gameManager?.stopGame();
         await serverInfo?.close();
-        await sockets?.waitForNoSockets(10000); // Increase timeout for multi-client tests
+        await sockets?.waitForNoSockets(10_000); // Increase timeout for multi-client tests
     });
 
     return {
@@ -88,6 +88,7 @@ export function makeSocketsControls(netServer: Server) {
     const sockets: Socket[] = [];
     const onSocketsChange = new EventEmitter();
     const onConnection = (socket: Socket): void => {
+        if (sockets.includes(socket)) return;
         sockets.push(socket);
         socket.once('close', () => {
             sockets.splice(sockets.indexOf(socket), 1);
