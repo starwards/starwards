@@ -162,7 +162,7 @@ export class TestClient {
             (r): r is Room => r !== null,
         );
 
-        await Promise.all(rooms.map((room) => room.leave(true)));
+        await Promise.all(rooms.map((room) => room.connection.isOpen && room.leave(true)));
 
         this.adminRoom = null;
         this.spaceRoom = null;
