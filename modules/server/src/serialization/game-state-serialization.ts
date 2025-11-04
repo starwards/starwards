@@ -7,7 +7,7 @@ const do_gzip = promisify(gzip);
 const do_unzip = promisify(unzip);
 
 export async function schemaToString(fragment: Schema) {
-    const zipped = await do_gzip(Buffer.from(fragment.encodeAll()));
+    const zipped = await do_gzip(Buffer.from(fragment.encodeAll()) as Uint8Array);
     return zipped.toString('base64');
 }
 type Constructor<T extends Schema> = new (...args: never[]) => T;
@@ -17,12 +17,12 @@ export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, ser
 }
 
 export async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
-    const unzipped = await do_unzip(Buffer.from(serialized, 'base64'));
+    const unzipped = await do_unzip(Buffer.from(serialized, 'base64') as Uint8Array);
     obj.decode([...unzipped]);
     return obj;
 }
 
 export async function getUnzipped(zipped: string) {
-    const unzipped = await do_unzip(Buffer.from(zipped, 'base64'));
+    const unzipped = await do_unzip(Buffer.from(zipped, 'base64') as Uint8Array);
     return unzipped.toString('base64');
 }

@@ -36,18 +36,18 @@
         "build:watch": "tsup-node --watch"
     },
     "dependencies": {
-        "@colyseus/schema": "^2.0.30",
+        "@colyseus/schema": "^2.0.37",
         "colyseus-events": "^3.0.0",
-        "colyseus.js": "^0.15.18",
-        "detect-collisions": "^9.5.3",
+        "colyseus.js": "^0.15.28",
+        "detect-collisions": "^9.27.6",
         "eventemitter2": "^6.4.9",
         "eventemitter3": "^5.0.1",
         "json-ptr": "^3.1.1",
         "normal-distribution": "^1.1.1",
         "reflect-metadata": "^0.2.2",
-        "ts-essentials": "^9.4.1",
-        "tslib": "^2.6.2",
-        "ws": "^8.16.0",
-        "xstate": "^5.9.1"
+        "ts-essentials": "^9.4.2",
+        "tslib": "^2.8.1",
+        "ws": "^8.18.3",
+        "xstate": "^5.24.0"
     }
 }
