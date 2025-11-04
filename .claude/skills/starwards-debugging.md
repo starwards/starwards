@@ -1,6 +1,13 @@
 ---
 name: starwards-debugging
-description: Systematic debugging for Starwards - four-phase framework with Colyseus state inspection, Tweakpane debugging, multiplayer sync issues, and monorepo-specific troubleshooting
+description: Systematic debugging for Starwards - four-phase framework (root cause investigation, pattern analysis, hypothesis testing, implementation) with Colyseus state inspection, Tweakpane debugging, multiplayer sync issues, and monorepo-specific troubleshooting
+version: 2025-11-04
+related_skills:
+  - starwards-tdd (write test for bug before fixing)
+  - starwards-verification (verify fix with full test suite)
+  - starwards-monorepo (debug build dependencies)
+  - starwards-colyseus (debug state sync issues)
+  - using-superpowers (announce skill usage)
 ---
 
 # Systematic Debugging for Starwards

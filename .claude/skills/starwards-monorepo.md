@@ -1,6 +1,12 @@
 ---
 name: starwards-monorepo
-description: npm workspace monorepo workflow for Starwards - build order, module dependencies, watch mode, testing across modules, and avoiding common monorepo pitfalls
+description: npm workspace monorepo workflow for Starwards - build order, module dependencies, watch mode, testing across modules, and avoiding common monorepo pitfalls; core builds first always
+version: 2025-11-04
+related_skills:
+  - starwards-tdd (test patterns for each module)
+  - starwards-debugging (debug cross-module issues)
+  - starwards-verification (commands verify all modules)
+  - using-superpowers (announce skill usage)
 ---
 
 # Starwards Monorepo Workflow

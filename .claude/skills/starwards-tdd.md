@@ -1,6 +1,13 @@
 ---
 name: starwards-tdd
-description: TDD for Starwards - write tests first for Jest unit tests, Playwright E2E tests, and Colyseus state sync; includes patterns for @gameField decorators, Tweakpane UI, and multiplayer scenarios
+description: Test-driven development for Starwards - write the test first, watch it fail, write minimal code to pass; includes Jest unit tests, Playwright E2E tests, Colyseus state sync, @gameField decorators, Tweakpane UI, and multiplayer scenarios
+version: 2025-11-04
+related_skills:
+  - starwards-debugging (when tests fail unexpectedly)
+  - starwards-verification (verify all tests pass before completion)
+  - starwards-monorepo (understand build workflow)
+  - starwards-colyseus (test state sync patterns)
+  - using-superpowers (announce skill usage)
 ---
 
 # Test-Driven Development for Starwards
@@ -34,7 +41,17 @@ Write the test first. Watch it fail. Write minimal code to pass.
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
-Write code before the test? Delete it. Start over. No exceptions.
+Write code before the test? Delete it. Start over.
+
+**No exceptions:**
+- Don't keep it as "reference"
+- Don't "adapt" it while writing tests
+- Don't look at it
+- Delete means delete
+
+Implement fresh from tests. Period.
+
+**Violating the letter of the rules is violating the spirit of the rules.**
 
 ## Starwards Test Types
 
@@ -467,10 +484,35 @@ npm test -- --watch
 - **verification-before-completion** - Run full test suite before claiming done
 - **starwards-monorepo** - Understand workspace test organization
 
+## Common Rationalizations - STOP
+
+| Excuse | Reality |
+|--------|---------|
+| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
+| "I'll test after" | Tests passing immediately prove nothing. |
+| "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
+| "Already manually tested" | Ad-hoc ≠ systematic. No record, can't re-run. |
+| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
+| "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
+| "Need to explore first" | Fine. Throw away exploration, start with TDD. |
+| "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
+| "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
+| "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
+
 ## Red Flags - STOP and Start Over
 
 - Code before test
-- Test passes immediately
+- Test after implementation
+- Test passes immediately (didn't watch it fail)
+- Can't explain why test failed
+- Tests added "later"
+- Rationalizing "just this once"
+- "I already manually tested it"
+- "Tests after achieve the same purpose"
+- "It's about spirit not ritual"
+- "Keep as reference" or "adapt existing code"
+- "Already spent X hours, deleting is wasteful"
+- "TDD is dogmatic, I'm being pragmatic"
 - Skipping Playwright tests for UI changes
 - Not using ShipTestHarness for multiplayer tests
 - Mocking Colyseus state sync instead of testing it

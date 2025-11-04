@@ -1,6 +1,12 @@
 ---
 name: starwards-verification
-description: Evidence-based completion verification for Starwards - run actual npm test commands, check E2E snapshots, verify TypeScript types, and confirm build success before claiming work is complete
+description: Evidence-based completion verification for Starwards - run actual npm test commands, check E2E snapshots, verify TypeScript types, and confirm build success before claiming work is complete; evidence before assertions always
+version: 2025-11-04
+related_skills:
+  - starwards-tdd (verification patterns for TDD)
+  - starwards-debugging (verify fix worked)
+  - starwards-monorepo (understand test commands)
+  - using-superpowers (announce skill usage)
 ---
 
 # Verification Before Completion - Starwards

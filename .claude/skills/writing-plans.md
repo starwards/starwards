@@ -1,6 +1,11 @@
 ---
 name: writing-plans
-description: Use when design is complete and you need detailed implementation tasks for engineers with zero codebase context - creates comprehensive guides with exact file paths, code examples, and verification steps
+description: Use when design is complete and you need detailed implementation tasks for engineers with zero codebase context - creates comprehensive guides with exact file paths, code examples, and verification steps; task granularity 2-5 minutes per step
+version: 2025-11-04
+related_skills:
+  - executing-plans (execute the plan you create)
+  - starwards-tdd (each task should follow TDD)
+  - using-superpowers (announce skill usage)
 ---
 
 # Writing Implementation Plans

@@ -1,6 +1,12 @@
 ---
 name: starwards-colyseus
-description: Colyseus multiplayer patterns for Starwards - @gameField decorators, state sync, JSON Pointer commands, room architecture, and avoiding common Colyseus pitfalls
+description: Colyseus multiplayer patterns for Starwards - @gameField decorators, state sync, JSON Pointer commands, room architecture, and avoiding common Colyseus pitfalls; state is source of truth, server authoritative
+version: 2025-11-04
+related_skills:
+  - starwards-tdd (test state sync with harnesses)
+  - starwards-debugging (debug sync issues)
+  - starwards-verification (verify multiplayer scenarios)
+  - using-superpowers (announce skill usage)
 ---
 
 # Colyseus Multiplayer Patterns for Starwards

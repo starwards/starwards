@@ -1,6 +1,12 @@
 ---
 name: executing-plans
-description: Structured approach for implementing architect-provided plans through controlled batch execution with review checkpoints - execute in batches, verify each step, stop on blockers
+description: Structured approach for implementing architect-provided plans through controlled batch execution with review checkpoints - execute in batches (default 3 tasks), verify each step, stop on blockers; don't force through blockers
+version: 2025-11-04
+related_skills:
+  - writing-plans (creates the plans you execute)
+  - starwards-tdd (use TDD for each task)
+  - starwards-verification (verify batch completion)
+  - using-superpowers (announce skill usage)
 ---
 
 # Executing Implementation Plans
