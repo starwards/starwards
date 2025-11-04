@@ -173,9 +173,13 @@ export class ConnectionManager {
 
     getErrorMessage() {
         if (!this.stateConnected) {
-            const e = this.statusService.getSnapshot().context.lastGameError;
+            let e = this.statusService.getSnapshot().context.lastGameError;
             if (!e) {
                 return null;
+            }
+            // Handle AggregateError by extracting the first underlying error
+            if (e instanceof AggregateError && e.errors.length > 0) {
+                e = e.errors[0];
             }
             if (isCoded(e) && e.code in ErrorCode) {
                 return ErrorCode[e.code];
