@@ -185,7 +185,19 @@ export class ConnectionManager {
                 return ErrorCode[e.code];
             }
             if (e instanceof Error || isErrorLike(e)) {
-                return `err: ${e.message}` + (isCoded(e) ? ` code ${e.code}` : '');
+                let message = e.message;
+                let codeAppendix = '';
+
+                if (isCoded(e)) {
+                    if (message) {
+                        codeAppendix = ` code ${e.code}`;
+                    } else {
+                        // If message is empty but error has a code, use the code as the message
+                        message = e.code;
+                    }
+                }
+
+                return `err: ${message}${codeAppendix}`;
             }
             return `err: ${JSON.stringify(e)}`;
         }
