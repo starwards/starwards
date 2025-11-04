@@ -193,7 +193,7 @@ export class ConnectionManager {
                         codeAppendix = ` code ${e.code}`;
                     } else {
                         // If message is empty but error has a code, use the code as the message
-                        message = e.code;
+                        message = String(e.code);
                     }
                 }
 
