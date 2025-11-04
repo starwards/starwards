@@ -60,11 +60,14 @@ abstract class AbsTestMetrics {
             limitPercision(2 * this.iterationDistance + this.percisionErrorsBoundery),
         );
     }
-    get sqrtErrorMargin() {
+    get stabilizationErrorMargin() {
+        // For stabilization, account for control loop oscillations
+        // The helm assist uses 2-iteration prediction, so error can be 2x the iteration distance
+        const controlLoopError = 2 * this.iterationDistance;
         return Math.max(
             1,
-            limitPercision(Math.sqrt(this.iterationDistance) + this.percisionErrorsBoundery),
-            limitPercision(Math.sqrt(this.distance * 0.05)),
+            limitPercision(controlLoopError + this.percisionErrorsBoundery),
+            limitPercision(this.distance * 0.01),
         );
     }
 }

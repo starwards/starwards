@@ -115,7 +115,7 @@ describe('helm assist', function () {
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     expect(harness.shipObj.velocity.x, 'velocity after stabling').to.be.closeTo(
                         0,
-                        metrics.sqrtErrorMargin,
+                        metrics.stabilizationErrorMargin,
                     );
                 }),
             );
@@ -154,7 +154,7 @@ describe('helm assist', function () {
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.velocity), 'velocity after stabling').to.be.closeTo(
                             0,
-                            metrics.sqrtErrorMargin,
+                            metrics.stabilizationErrorMargin,
                         );
                     },
                 ),
@@ -189,7 +189,7 @@ describe('helm assist', function () {
                     harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                     expect(harness.shipObj.position.x, 'position after stabling').to.be.closeTo(
                         0,
-                        metrics.sqrtErrorMargin,
+                        metrics.stabilizationErrorMargin,
                     );
                 }),
             );
@@ -221,7 +221,7 @@ describe('helm assist', function () {
                         harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
                         expect(XY.lengthOf(harness.shipObj.position), 'position after stabling').to.be.closeTo(
                             0,
-                            metrics.sqrtErrorMargin,
+                            metrics.stabilizationErrorMargin,
                         );
                     },
                 ),
