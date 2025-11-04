@@ -188,12 +188,16 @@ export class ConnectionManager {
                 let message = e.message;
                 let codeAppendix = '';
 
-                if (isCoded(e)) {
+                // Check for error code (can be number for Colyseus errors or string for system errors)
+                const hasCode = isCoded(e) || (typeof (e as any).code === 'string' && (e as any).code);
+
+                if (hasCode) {
+                    const code = String((e as any).code);
                     if (message) {
-                        codeAppendix = ` code ${e.code}`;
+                        codeAppendix = ` code ${code}`;
                     } else {
                         // If message is empty but error has a code, use the code as the message
-                        message = String(e.code);
+                        message = code;
                     }
                 }
 
