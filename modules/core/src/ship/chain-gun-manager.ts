@@ -79,7 +79,7 @@ export class ChainGunManager implements Updateable {
                     baseRange = capToRange(
                         this.chainGun.design.minShellRange,
                         this.chainGun.design.maxShellRange,
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                         XY.lengthOf(XY.difference(this.shipManager.weaponsTarget!.position, this.state.position)),
                     );
                     break;

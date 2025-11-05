@@ -151,7 +151,6 @@ export class PropertyPanel implements Panel {
 
         guiController.on('change', (ev) => {
             try {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const val = JSON.parse(ev.value) as PresetObject;
                 if (typeof val === 'object' && val) {
                     this.pane.importPreset(val);

@@ -105,7 +105,7 @@ export class TestClient {
                 if (!ship) return false;
 
                 // @ts-ignore dynamic property access
-                // eslint-disable-next-line
+
                 const value = propertyPath.split('.').reduce((obj, key) => obj?.[key], ship as unknown);
                 if (value === undefined || value === null) return false;
 
@@ -138,7 +138,7 @@ export class TestClient {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 const sys = (state as any)[subsystem];
                 if (!sys) return false;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 const value = sys[property];
                 if (value === undefined || value === null) return false;
                 return Math.abs((value as number) - expectedValue) <= tolerance;
@@ -162,7 +162,7 @@ export class TestClient {
             (r): r is Room => r !== null,
         );
 
-        await Promise.all(rooms.map((room) => room.connection.isOpen && room.leave(true)));
+        await Promise.all(rooms.filter((room) => room.connection.isOpen).map((room) => room.leave(true)));
 
         this.adminRoom = null;
         this.spaceRoom = null;

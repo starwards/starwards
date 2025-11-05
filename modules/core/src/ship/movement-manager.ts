@@ -223,7 +223,7 @@ export class MovementManager implements Updateable {
                     rotationCommand = rotateToTarget(
                         deltaSeconds,
                         this.state,
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                         this.shipManager.weaponsTarget.position,
                         this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset,
                     );
@@ -294,7 +294,7 @@ export class MovementManager implements Updateable {
                     if (this.shipManager.weaponsTarget) {
                         const velocity = XY.add(
                             XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
-                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                             this.state.globalToLocal(this.shipManager.weaponsTarget.velocity),
                         );
                         maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);

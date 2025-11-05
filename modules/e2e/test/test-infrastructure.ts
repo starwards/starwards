@@ -34,7 +34,7 @@ export async function cleanupPageState(page: Page): Promise<void> {
         await page
             .evaluate(() => {
                 // In browser context, setTimeout returns a number
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
                 const highestId = setTimeout(() => {}, 0) as unknown as number;
                 for (let i = 0; i < highestId; i++) {
                     clearTimeout(i);

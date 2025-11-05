@@ -28,7 +28,7 @@ export class EnergyManager implements EnergySource, Updateable {
                 if (!this.epm.has(system)) {
                     this.epm.set(system, new EpmEntry());
                 }
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                 const entry = this.epm.get(system)!;
                 entry.total = entry.total + value * SECONDS_IN_MINUTE;
             }
