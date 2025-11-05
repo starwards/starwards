@@ -1,12 +1,13 @@
 ---
 name: starwards-workflow
 description: Master index for Starwards development workflow - shows when to use each skill, workflow diagram, and how skills integrate together
-version: 2025-11-04
+version: 2025-11-05
 author: Claude (based on Starwards project analysis)
 related_skills:
   - using-superpowers
   - starwards-tdd
   - starwards-debugging
+  - starwards-ci-debugging
   - starwards-verification
   - starwards-monorepo
   - starwards-colyseus
@@ -109,6 +110,7 @@ This is the **master index** for all Starwards Claude skills. Use this to unders
 | **executing-plans** | Following a plan | Batch execution with checkpoints |
 | **starwards-tdd** | Implementing ANY feature/fix | Write test first, RED-GREEN-REFACTOR |
 | **starwards-debugging** | Encountering bugs/failures | 4-phase systematic root cause analysis |
+| **starwards-ci-debugging** | GitHub Actions CI failures | Install gh CLI, download logs, analyze errors |
 | **starwards-verification** | Before claiming "done" | Run full test suite, verify evidence |
 | **starwards-monorepo** | Build issues, workspace setup | Understand module dependencies, build order |
 | **starwards-colyseus** | State sync issues, multiplayer | @gameField patterns, room architecture |

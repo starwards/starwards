@@ -1,12 +1,13 @@
 ---
 name: starwards-debugging
 description: Systematic debugging for Starwards - four-phase framework (root cause investigation, pattern analysis, hypothesis testing, implementation) with Colyseus state inspection, Tweakpane debugging, multiplayer sync issues, and monorepo-specific troubleshooting
-version: 2025-11-04
+version: 2025-11-05
 related_skills:
   - starwards-tdd (write test for bug before fixing)
   - starwards-verification (verify fix with full test suite)
   - starwards-monorepo (debug build dependencies)
   - starwards-colyseus (debug state sync issues)
+  - starwards-ci-debugging (debug GitHub Actions failures)
   - using-superpowers (announce skill usage)
 ---
 
@@ -444,8 +445,9 @@ Use prefixes: `[CLIENT]`, `[SERVER]`, `[MANAGER]`, `[WIDGET]`
 ## Integration with Other Skills
 
 - **starwards-tdd** - Write failing test for bug before fixing
-- **verification-before-completion** - Verify fix with full test suite
+- **starwards-verification** - Verify fix with full test suite
 - **starwards-monorepo** - Understand build dependencies
+- **starwards-ci-debugging** - Debug GitHub Actions failures when tests pass locally but fail in CI
 
 ## Quick Debugging Checklist
 
