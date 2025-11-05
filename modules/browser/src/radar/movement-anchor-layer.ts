@@ -73,7 +73,7 @@ export class MovementAnchorLayer {
             this.anchors.clear();
             for (const anchorPosition of this.anchorPositions()) {
                 this.anchors.lineStyle(this.style.width, this.style.color, this.style.alpha);
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                 this.anchors.drawStar!(anchorPosition.x, anchorPosition.y, 3, 1, 0);
             }
             this.shouldRender = false;

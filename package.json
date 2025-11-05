@@ -15,7 +15,7 @@
         "clean": "rimraf ./modules/browser/dist ./modules/browser/dist ./modules/core/cjs ./modules/server/cjs",
         "postbuild": "node scripts/post-build.js",
         "pretty-quick": "pretty-quick --staged --pattern \"./modules/*/src/**/*.{ts,tsx,json}\"",
-        "prettify": "prettier --ignore-path .eslintignore \"./modules/*/src/**/*.{ts,tsx,json}\" -w",
+        "prettify": "prettier \"./modules/*/src/**/*.{ts,tsx,json}\" -w",
         "build:browser": "npm --prefix ./modules/browser run build",
         "build:core": "npm --prefix ./modules/core run build",
         "build:unity": "npm --prefix ./modules/core run build:unity",
@@ -25,7 +25,7 @@
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "xstate-typegen": "xstate typegen \"./modules/core/src/**/*.ts?(x)\"",
-        "prettier": "prettier --ignore-path .eslintignore -c **/*.{js,ts,jsx,tsx}",
+        "prettier": "prettier -c **/*.{js,ts,jsx,tsx}",
         "test": "jest",
         "snapshots:ci": "docker-compose -f ./modules/e2e/docker-compose.yml up",
         "test:e2e": "playwright test",
@@ -40,7 +40,7 @@
     },
     "lint-staged": {
         "./modules/*/{src,test}/**/*.{ts,tsx,json}": [
-            "prettier --ignore-path .eslintignore -cw **/*.{js,ts} && eslint . --fix"
+            "prettier -cw **/*.{js,ts} && eslint . --fix"
         ]
     },
     "devDependencies": {

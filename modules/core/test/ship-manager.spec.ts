@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
     Asteroid,
     EPSILON,
@@ -78,6 +77,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         //@ts-ignore : access private property
                         shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
                     expect(brokenInsideExplosion).to.equal(brokenTotal);
+                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                     expect(shipMgr.state.chainGun!.broken).to.be.false;
                     expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
                     expect(shipMgr.state.chainGun!.rateOfFireFactor).to.equal(1);

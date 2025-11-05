@@ -10,7 +10,7 @@ const descendantMetadataKey = Symbol('range:descendantMetadata');
 
 // notice: `Schema` can be replaced with `Object` if we want to have ranges in non-schema classes. Currently not a use-case.
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type Constructor = { readonly prototype: Schema } & Function; // https://stackoverflow.com/a/38642922
 
 type SchemaRanges = {

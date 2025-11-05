@@ -194,7 +194,6 @@ export class Driver {
     async getShipDriver(shipId: string): Promise<ShipDriver> {
         await this.connectionManager.waitForConnected();
         if (this.shipDrivers.has(shipId)) {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             return this.shipDrivers.get(shipId)!;
         }
         const shipDriver = this.makeShipDriver(shipId);

@@ -1,12 +1,12 @@
+import globals from 'globals';
 import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
-import prettierConfig from 'eslint-config-prettier';
 import noOnlyTests from 'eslint-plugin-no-only-tests';
+import prettierConfig from 'eslint-config-prettier';
 import prettierPlugin from 'eslint-plugin-prettier';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
-import globals from 'globals';
+import tseslint from '@typescript-eslint/eslint-plugin';
+import tsparser from '@typescript-eslint/parser';
 
 export default [
     // Global ignores
@@ -104,6 +104,7 @@ export default [
             ...tseslint.configs.recommended.rules,
             ...tseslint.configs['recommended-type-checked'].rules,
             'no-shadow': 'off',
+            'no-redeclare': 'off',
             'sort-imports': 'error',
             'no-only-tests/no-only-tests': 'error',
             'no-console': 'error',
@@ -113,6 +114,15 @@ export default [
             'prettier/prettier': 'error',
             '@typescript-eslint/ban-ts-comment': ['error', { 'ts-ignore': 'allow-with-description' }],
             '@typescript-eslint/no-shadow': 'error',
+            '@typescript-eslint/no-redeclare': 'off', // Allow same name for types and values
+            '@typescript-eslint/no-unused-expressions': [
+                'error',
+                {
+                    allowShortCircuit: true, // Allow a && b()
+                    allowTernary: true, // Allow a ? b() : c()
+                    allowTaggedTemplates: true,
+                },
+            ],
             '@typescript-eslint/explicit-module-boundary-types': 'off',
             '@typescript-eslint/no-use-before-define': 'off',
             '@typescript-eslint/no-unused-vars': 'off',
@@ -138,6 +148,8 @@ export default [
             '**/*.test.{ts,tsx,js,jsx}',
             '**/test/**/*.{ts,tsx,js,jsx}',
             '**/src/test/**/*.{ts,tsx,js,jsx}',
+            '**/*-driver.ts',
+            '**/test-*.ts',
         ],
         languageOptions: {
             globals: {
