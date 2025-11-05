@@ -83,6 +83,9 @@ export type ConnectionStateEvent = '*' | StateName | `exit:${StateName}`;
 function isErrorLike(e: unknown): e is { message: string; stack?: string } {
     return typeof (e as Error)?.message === 'string';
 }
+function hasStringCode(e: unknown): e is { code: string } {
+    return typeof (e as { code?: unknown })?.code === 'string' && !!(e as { code?: string }).code;
+}
 function isEqual(v1: StateValue, v2: StateValue) {
     if (typeof v1 === 'object' && typeof v2 === 'object') {
         return v1.error === v2.error;
@@ -189,15 +192,20 @@ export class ConnectionManager {
                 let codeAppendix = '';
 
                 // Check for error code (can be number for Colyseus errors or string for system errors)
-                const hasCode = isCoded(e) || (typeof (e as any).code === 'string' && (e as any).code);
-
-                if (hasCode) {
-                    const code = String((e as any).code);
+                if (isCoded(e)) {
+                    const code = String(e.code);
                     if (message) {
                         codeAppendix = ` code ${code}`;
                     } else {
                         // If message is empty but error has a code, use the code as the message
                         message = code;
+                    }
+                } else if (hasStringCode(e)) {
+                    if (message) {
+                        codeAppendix = ` code ${e.code}`;
+                    } else {
+                        // If message is empty but error has a code, use the code as the message
+                        message = e.code;
                     }
                 }
 
