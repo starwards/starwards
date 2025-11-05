@@ -63,7 +63,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
             const angle = angleStart + plateSize - plateMarginRadians;
             const draw = () => {
                 const health =
-                    shipDriver.state.armor.armorPlates[plateIdx].health / shipDriver.state.armor.design.plateMaxHealth;
+                    shipDriver.state.armor.armorPlates[plateIdx]!.health / shipDriver.state.armor.design.plateMaxHealth;
                 sprite.tint = rgb2hex([1 - health, health, 0]);
                 sprite.height = size();
                 sprite.width = size();

@@ -43,7 +43,7 @@ describe('defectible', () => {
     it('getSystems() gets all defectible properties', () => {
         const target = new Target();
         target.property = 1;
-        target.array.at(0).property = 2;
+        target.array.at(0)!.property = 2;
         const m = getSystems(target).flatMap((s) => s.defectibles);
         expect(m).to.include.deep.members([
             { ...DEFECTIBLE, systemPointer: '', field: 'property', value: 1 },
