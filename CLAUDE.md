@@ -30,6 +30,12 @@ ship.x                     # ❌ Wrong
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) - Dev setup
 - [`docs/testing/README.md`](docs/testing/README.md) - Testing guide
 
+## Custom Commands
+
+- `/design-clarify` - Transform vague requirements into complete design specs via interactive Q&A
+  - See: [`.claude/commands/README.md`](.claude/commands/README.md)
+  - Guide: [`docs/guides/DESIGN_CLARIFICATION_GUIDE.md`](docs/guides/DESIGN_CLARIFICATION_GUIDE.md)
+
 ## Project
 - **Stack**: Colyseus multiplayer, PixiJS graphics, React UI, XState, TypeScript
 - **Monorepo**: `modules/` folder with npm workspaces
