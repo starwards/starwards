@@ -2,7 +2,7 @@
 
 GitHub search API for code, issues, PRs, repositories, and users.
 
-**Note:** All commands assume `GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"` alias is set.
+**Note:** All commands assume `$GH` alias is set. Use system gh if available, otherwise /tmp installation.
 
 ## Search Code
 

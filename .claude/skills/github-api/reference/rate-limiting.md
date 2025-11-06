@@ -2,7 +2,7 @@
 
 Understanding and managing GitHub API rate limits.
 
-**Note:** All commands assume `GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"` alias is set.
+**Note:** All commands assume `$GH` alias is set. Use system gh if available, otherwise /tmp installation.
 
 ## Check Rate Limit Status
 
@@ -185,7 +185,11 @@ GitHub also enforces secondary limits:
 ```bash
 #!/bin/bash
 
-GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+if command -v gh &> /dev/null; then
+  GH="gh"
+else
+  GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+fi
 
 # Function to check rate limit
 check_rate_limit() {

@@ -2,10 +2,18 @@
 
 Real-world use cases and workflows using GitHub CLI in Claude Code environment.
 
-**Setup:** All examples assume:
+**Setup:** All examples assume gh is available via `$GH` alias. Set up once and test access:
 ```bash
-GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
-REPO="starwards/starwards"  # Change to your repo
+
+if command -v gh &> /dev/null; then
+  GH="gh"
+elif [ -f "/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh" ]; then
+  GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+fi
+
+$GH pr list --repo starwards/starwards --limit 3
+
+REPO="starwards/starwards"
 ```
 
 ## Example 1: Check PR Status and Download Failed Logs
@@ -286,7 +294,13 @@ fi
 #!/bin/bash
 set -e
 
-GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+if command -v gh &> /dev/null; then
+  GH="gh"
+else
+  GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+fi
+$GH pr list --repo starwards/starwards --limit 3
+
 REPO="starwards/starwards"
 PR_NUMBER=1826
 
@@ -344,7 +358,11 @@ echo "4. Commit and push"
 ```bash
 #!/bin/bash
 
-GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+if command -v gh &> /dev/null; then
+  GH="gh"
+else
+  GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"
+fi
 REPO="starwards/starwards"
 REPORT="/tmp/weekly-report.md"
 

@@ -2,7 +2,7 @@
 
 Strategies for handling paginated API responses.
 
-**Note:** All commands assume `GH="/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh"` alias is set.
+**Note:** All commands assume `$GH` alias is set. Use system gh if available, otherwise /tmp installation.
 
 ## Auto-Pagination
 
