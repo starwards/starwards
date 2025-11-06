@@ -21,7 +21,33 @@ PR status/reviews, workflow runs/logs, issues, repository info, Actions data, ar
 
 ## Quick Setup
 
-Check for gh and set alias:
+### Option 1: Use Prepared Scripts (Recommended)
+
+Pre-built scripts in `scripts/` directory can be "always allowed" for faster execution:
+
+```bash
+# Setup gh environment (sets $GH variable)
+source ./.claude/skills/github-api/scripts/setup.sh
+
+# Then use the scripts:
+./.claude/skills/github-api/scripts/pr-status.sh 1826 starwards/starwards
+./.claude/skills/github-api/scripts/workflow-debug.sh 1826 starwards/starwards
+```
+
+**Available scripts:**
+- `setup.sh` - Detect gh and configure environment
+- `pr-status.sh <PR> <REPO>` - PR status and checks
+- `pr-reviews.sh <PR> <REPO>` - Review history and comments
+- `workflow-debug.sh <PR> <REPO> [DIR]` - Full CI debugging workflow
+- `workflow-failures.sh <REPO> [LIMIT]` - Recent failed runs
+- `download-logs.sh <RUN_ID> <REPO> [DIR]` - Download workflow logs
+- `issue-list.sh <REPO> [--filters]` - List and filter issues
+
+**Always-allow setup:** Users can approve all scripts once using Claude Code's "always allow" feature for this skill's scripts directory.
+
+### Option 2: Manual Setup
+
+Check for gh and set alias manually:
 
 ```bash
 if command -v gh &> /dev/null; then
@@ -95,12 +121,14 @@ Detailed guides in skill directory:
 
 ## Best Practices
 
-1. Always check for existing gh before installing (system-wide, then /tmp)
-2. Binary persists in /tmp for entire session if installed there
-3. Use `GH` alias variable in scripts
-4. Parse with `--json` and `--jq` for programmatic access
-5. Download files to /tmp to avoid permissions issues
-6. Test with small queries before bulk operations
+1. **Prefer prepared scripts** - Use scripts in `scripts/` directory for common tasks
+2. **Always-allow scripts** - Configure "always allow" for skill scripts directory for faster execution
+3. Always check for existing gh before installing (system-wide, then /tmp)
+4. Binary persists in /tmp for entire session if installed there
+5. Use `GH` alias variable in scripts
+6. Parse with `--json` and `--jq` for programmatic access
+7. Download files to /tmp to avoid permissions issues
+8. Test with small queries before bulk operations
 
 ## Related Skills
 

@@ -2,9 +2,25 @@
 
 Real-world use cases and workflows using GitHub CLI in Claude Code environment.
 
-**Setup:** All examples assume gh is available via `$GH` alias. Set up once and test access:
-```bash
+## Quick Start with Prepared Scripts
 
+**Recommended approach:** Use pre-built scripts that can be "always allowed" for faster execution.
+
+```bash
+# Setup gh (sets $GH environment variable)
+source ./.claude/skills/github-api/scripts/setup.sh
+
+# Common operations - these scripts can be "always allowed"
+./.claude/skills/github-api/scripts/pr-status.sh 1826 starwards/starwards
+./.claude/skills/github-api/scripts/workflow-debug.sh 1826 starwards/starwards
+./.claude/skills/github-api/scripts/workflow-failures.sh starwards/starwards 10
+./.claude/skills/github-api/scripts/issue-list.sh starwards/starwards --label bug --state open
+```
+
+## Manual Setup (Alternative)
+
+All examples below can also use manual `$GH` alias setup:
+```bash
 if command -v gh &> /dev/null; then
   GH="gh"
 elif [ -f "/tmp/gh-install/gh_2.62.0_linux_amd64/bin/gh" ]; then
@@ -19,6 +35,15 @@ REPO="starwards/starwards"
 ## Example 1: Check PR Status and Download Failed Logs
 
 **Scenario:** A PR has failing checks. Get status, identify failed jobs, and download logs for analysis.
+
+### Using Prepared Script (Recommended)
+
+```bash
+# One command does it all!
+./.claude/skills/github-api/scripts/workflow-debug.sh 1826 starwards/starwards
+```
+
+### Manual Approach
 
 ```bash
 # Get PR number (if you have PR URL)
@@ -54,6 +79,19 @@ grep "Timeout" /tmp/2_Test-E2e.txt
 ## Example 2: Find All Open Bugs Assigned to You
 
 **Scenario:** Get a list of all bugs assigned to you across the repository.
+
+### Using Prepared Script (Recommended)
+
+```bash
+# Get your username first
+USERNAME=$($GH api user --jq '.login')
+
+# List bugs using script
+./.claude/skills/github-api/scripts/issue-list.sh starwards/starwards \
+  --assignee $USERNAME --label bug --state open
+```
+
+### Manual Approach
 
 ```bash
 # Get your username
@@ -289,6 +327,23 @@ fi
 ## Example 10: Comprehensive CI Debug Workflow
 
 **Scenario:** Complete workflow from detecting failure to analyzing root cause.
+
+### Using Prepared Script (Recommended)
+
+```bash
+# One command handles the entire debug workflow!
+./.claude/skills/github-api/scripts/workflow-debug.sh 1826 starwards/starwards /tmp/ci-debug
+```
+
+The script automatically:
+1. Shows PR status
+2. Lists check results
+3. Identifies failed jobs
+4. Downloads logs
+5. Analyzes common failure patterns (TypeScript, ESLint, tests, E2E, browser)
+6. Provides summary and next steps
+
+### Manual Approach
 
 ```bash
 #!/bin/bash
