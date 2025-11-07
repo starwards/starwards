@@ -1,4 +1,4 @@
-# Milestone 1: Design Session Questions
+# Milestone 3: Design Session Questions
 
 **Purpose:** Consolidated list of all design questions to be addressed in design sessions
 **Generated:** 2025-11-06

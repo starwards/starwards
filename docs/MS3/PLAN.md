@@ -1,4 +1,4 @@
-# Milestone 1: Mission in the Fringe Features - Implementation Plan
+# Milestone 3: Mission in the Fringe Features - Implementation Plan
 
 **Generated:** 2025-11-06
 **Status:** 35 closed / 27 open issues (57% complete)
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document outlines a 6-phase implementation plan to complete Milestone 1. The plan prioritizes unblocking dependencies and delivering LARP-critical ship stations (Navigator, Signals, Relay) while managing technical debt and complexity.
+This document outlines a 6-phase implementation plan to complete Milestone 3. The plan prioritizes unblocking dependencies and delivering LARP-critical ship stations (Navigator, Signals, Relay) while managing technical debt and complexity.
 
 **Timeline Estimate:** 8-10 weeks total
 **Critical Path:** Scan Levels → Signals Jobs → Signals Station
