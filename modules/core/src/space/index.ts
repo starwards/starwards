@@ -26,6 +26,7 @@ export * from './vec2';
 export * from './sectors';
 export * from './space-state';
 export * from './faction';
+export * from './scan-level';
 export * from './space-commands';
 
 export const spaceCommands = _spaceCommands;

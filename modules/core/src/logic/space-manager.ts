@@ -1,4 +1,4 @@
-import { Asteroid, Faction, Spaceship, Waypoint } from '../space';
+import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
@@ -610,6 +610,46 @@ export class SpaceManager implements Updateable {
         this.collisions.update();
         // reset toUpdateCollisions
         this.toUpdateCollisions.clear();
+    }
+
+    // Scan Level Management Methods
+    /**
+     * Set scan level for target (called by job completion)
+     */
+    public setScanLevel(targetId: string, faction: string, level: ScanLevel): void {
+        const [target] = this.getObjectPtr(targetId);
+        if (target) {
+            target.scanLevels.set(faction, level);
+        }
+    }
+
+    /**
+     * Get scan level for target (used by radar widgets)
+     * Returns ScanLevel.UFO (0) if not set
+     */
+    public getScanLevel(targetId: string, faction: string): ScanLevel {
+        const [target] = this.getObjectPtr(targetId);
+        if (target) {
+            const level = target.scanLevels.get(faction);
+            return level !== undefined ? level : ScanLevel.UFO;
+        }
+        return ScanLevel.UFO;
+    }
+
+    /**
+     * Check if scan job can proceed (target in range, valid level)
+     */
+    public canScan(scannerId: string, targetId: string): boolean {
+        const [scanner] = this.getObjectPtr(scannerId);
+        const [target] = this.getObjectPtr(targetId);
+
+        if (!scanner || !target) {
+            return false;
+        }
+
+        // Check if target is within scanner's radar range
+        const distance = XY.lengthOf(XY.difference(scanner.position, target.position));
+        return distance <= scanner.radarRange;
     }
 }
 
