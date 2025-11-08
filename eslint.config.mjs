@@ -11,7 +11,7 @@ import tsparser from '@typescript-eslint/parser';
 export default [
     // Global ignores
     {
-        ignores: ['node_modules/**', 'dist/**', 'cjs/**', '**/*.typegen.ts'],
+        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts'],
     },
     // ESLint config file - disable sort-imports
     {

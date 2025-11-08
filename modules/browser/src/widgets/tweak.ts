@@ -66,7 +66,8 @@ const singleSelectionDetails = async (
     });
 
     // Add scan level control for each faction
-    for (let factionId = 0; factionId < Faction.FACTION_COUNT; factionId++) {
+    const factionCount = Faction.FACTION_COUNT as number;
+    for (let factionId = 0; factionId < factionCount; factionId++) {
         const factionName = Faction[factionId];
         const scanLevelProp = readWriteProp<number>(
             spaceDriver,
