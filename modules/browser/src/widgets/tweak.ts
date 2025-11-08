@@ -5,7 +5,9 @@ import {
     Destructor,
     Destructors,
     Driver,
+    Faction,
     IdleStrategy,
+    ScanLevel,
     ShipDriver,
     SpaceDriver,
     SpaceObject,
@@ -53,6 +55,44 @@ const singleSelectionDetails = async (
 ) => {
     guiFolder.addInput(subject, 'id', { disabled: true });
     addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
+
+    // Scan Levels folder
+    const scanLevelsFolder = guiFolder.addFolder({
+        title: 'Scan Levels',
+        expanded: false,
+    });
+    cleanup(() => {
+        scanLevelsFolder.dispose();
+    });
+
+    // Add scan level control for each faction
+    const factionCount = Faction.FACTION_COUNT as number;
+    for (let factionId = 0; factionId < factionCount; factionId++) {
+        const factionName = Faction[factionId];
+        const scanLevelProp = readWriteProp<number>(
+            spaceDriver,
+            `/${subject.type}/${subject.id}/scanLevels/${factionId}`,
+        );
+
+        // Create options for scan level dropdown
+        const scanLevelOptions = [
+            { value: ScanLevel.UFO, text: 'UFO' },
+            { value: ScanLevel.BASIC, text: 'BASIC' },
+            { value: ScanLevel.ADVANCED, text: 'ADVANCED' },
+        ];
+
+        // Add list blade for this faction's scan level
+        addListBlade(
+            scanLevelsFolder,
+            scanLevelProp,
+            {
+                label: factionName,
+                options: scanLevelOptions,
+            },
+            cleanup,
+        );
+    }
+
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
 
