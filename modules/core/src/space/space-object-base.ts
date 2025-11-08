@@ -1,5 +1,5 @@
-import { Faction } from './faction';
 import { MapSchema, Schema } from '@colyseus/schema';
+import { Faction } from './faction';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';

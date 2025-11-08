@@ -247,6 +247,7 @@ describe('SpaceManager', () => {
             sim.withObjects(scanner, target);
             sim.spaceMgr.forceFlushEntities();
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.true;
         });
 
@@ -264,6 +265,7 @@ describe('SpaceManager', () => {
             sim.withObjects(scanner, target);
             sim.spaceMgr.forceFlushEntities();
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.false;
         });
     });
