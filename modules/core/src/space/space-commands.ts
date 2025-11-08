@@ -1,5 +1,5 @@
 import { BotOrder, ShipModel, SpaceManager, SpaceObjectBase, XY } from '..';
-import { Faction, SpaceState } from '.';
+import { Faction, ScanLevel, SpaceState } from '.';
 
 export type BulkMoveArg = {
     ids: Array<SpaceObjectBase['id']>;
@@ -108,5 +108,20 @@ export const createWaypointOrder = {
     cmdName: 'createWaypointOrder',
     setValue: (state: SpaceState, value: CreateWaypointOrderArg) => {
         state.createWaypointCommands.push(value);
+    },
+};
+
+export type SetScanLevelArg = {
+    targetId: string;
+    faction: Faction;
+    level: ScanLevel;
+};
+export const setScanLevel = {
+    cmdName: 'setScanLevel',
+    setValue: (state: SpaceState, value: SetScanLevelArg) => {
+        const target = state.get(value.targetId);
+        if (target && !target.destroyed) {
+            target.scanLevels[value.faction] = value.level;
+        }
     },
 };
