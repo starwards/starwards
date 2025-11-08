@@ -269,5 +269,20 @@ describe('SpaceManager', () => {
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.false;
         });
+
+        it('should return at least BASIC for same-faction targets', () => {
+            const sim = new SpaceSimulator(10);
+            const target = new Spaceship();
+            target.id = 'target-ship';
+            target.faction = Faction.Gravitas;
+            sim.withObjects(target);
+            sim.spaceMgr.forceFlushEntities();
+
+            // Same faction should get at least BASIC, even without scanning
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+
+            // Different faction should get UFO
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
+        });
     });
 });

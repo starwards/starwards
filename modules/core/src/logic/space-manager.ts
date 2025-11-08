@@ -618,19 +618,32 @@ export class SpaceManager implements Updateable {
      */
     public setScanLevel(targetId: string, faction: Faction, level: ScanLevel): void {
         const [target] = this.getObjectPtr(targetId);
-        if (target) {
-            target.scanLevels.set(String(faction), level);
+        const factionIndex = Number(faction);
+        if (target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+            target.scanLevels[factionIndex] = level;
         }
     }
 
     /**
      * Get scan level for target (used by radar widgets)
-     * Returns ScanLevel.UFO (0) if not set
+     * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
      */
     public getScanLevel(targetId: string, faction: Faction): ScanLevel {
         const [target] = this.getObjectPtr(targetId);
-        if (target) {
-            return target.scanLevels.get(String(faction)) || ScanLevel.UFO;
+        if (!target) {
+            return ScanLevel.UFO;
+        }
+
+        const factionIndex = Number(faction);
+
+        // Objects from same faction have at least BASIC scan level
+        if (target.faction === faction && faction !== Faction.NONE) {
+            return Math.max(target.scanLevels[factionIndex] || ScanLevel.UFO, ScanLevel.BASIC);
+        }
+
+        // Otherwise return stored scan level or UFO
+        if (factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+            return target.scanLevels[factionIndex] || ScanLevel.UFO;
         }
         return ScanLevel.UFO;
     }
