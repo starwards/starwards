@@ -1,7 +1,9 @@
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
-import { Faction, Vec2 } from '../space';
 import { ShipModel } from '../configurations';
+import { gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
+import { Faction, Vec2 } from '../space';
+import { tweakable } from '../tweakable';
 
 import { Armor } from './armor';
 import { ArraySchema, Schema } from '@colyseus/schema';
@@ -18,8 +20,6 @@ import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-import { gameField } from '../game-field';
-import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {
     NONE,
