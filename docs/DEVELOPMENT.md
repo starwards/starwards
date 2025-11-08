@@ -202,6 +202,20 @@ docker-compose down                    # Stop
 
 **Check:** `node --version && npm --version`
 
+## Development Methodology
+
+### Lean Approach
+**MVP per milestone:** Achieve minimal viable product, then advance. Avoid tunnel vision on single features.
+
+### Milestone Selection Criteria
+1. **Primary mechanic** - Repeated player activity
+2. **Team grasp** - Solid understanding of desired feel
+3. **Independent** - Not dependent on undesigned mechanisms
+4. **Foundation** - Enables other feature derivations
+5. **Packageable** - Complete testable experience
+
+**Example:** Dogfight milestone drove steering, maneuvering, aiming, ballistics - branching later to complex combat, larger ships, GM tools.
+
 ## Path Aliases
 
 `@starwards/*` → `modules/*/src` or `modules/*/cjs`
