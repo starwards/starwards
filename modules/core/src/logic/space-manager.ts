@@ -636,16 +636,18 @@ export class SpaceManager implements Updateable {
 
         const factionIndex = Number(faction);
 
+        // Get stored scan level or default to UFO
+        const storedLevel =
+            factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)
+                ? target.scanLevels[factionIndex] || ScanLevel.UFO
+                : ScanLevel.UFO;
+
         // Objects from same faction have at least BASIC scan level
         if (target.faction === faction && faction !== Faction.NONE) {
-            return Math.max(target.scanLevels[factionIndex] || ScanLevel.UFO, ScanLevel.BASIC);
+            return Math.max(storedLevel, ScanLevel.BASIC);
         }
 
-        // Otherwise return stored scan level or UFO
-        if (factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
-            return target.scanLevels[factionIndex] || ScanLevel.UFO;
-        }
-        return ScanLevel.UFO;
+        return storedLevel;
     }
 
     /**
