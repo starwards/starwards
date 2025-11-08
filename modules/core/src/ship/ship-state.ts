@@ -1,9 +1,10 @@
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
-import { Spaceship, Vec2 } from '../space';
+import { Faction, Vec2 } from '../space';
+import { ShipModel } from '../configurations';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
-import { ArraySchema } from '@colyseus/schema';
+import { ArraySchema, Schema } from '@colyseus/schema';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
@@ -49,7 +50,60 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') systemKillRatio = 0;
 }
 @rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
-export class ShipState extends Spaceship {
+export class ShipState extends Schema {
+    // Fields synced from SpaceObjectBase
+    @gameField('string')
+    public id = '';
+
+    @gameField(Vec2)
+    public position: Vec2 = new Vec2(0, 0);
+
+    @gameField(Vec2)
+    public velocity: Vec2 = new Vec2(0, 0);
+
+    @tweakable('number')
+    @range([0, 360])
+    @gameField('float32')
+    public angle = 0;
+
+    @tweakable({ type: 'number' })
+    @gameField('float32')
+    public turnSpeed = 0;
+
+    @tweakable({ type: 'number', number: { min: 0.05 } })
+    @gameField('float32')
+    public radius = 0.05;
+
+    @gameField('boolean')
+    public destroyed = false;
+
+    @tweakable('boolean')
+    @gameField('boolean')
+    public freeze = false;
+
+    @tweakable('boolean')
+    @gameField('boolean')
+    public expendable = true;
+
+    @gameField(['uint8'])
+    public scanLevels = new ArraySchema<number>();
+
+    // Fields from Spaceship
+    @gameField('string')
+    public readonly type = 'Spaceship';
+
+    @gameField('int8')
+    @tweakable({ type: 'enum', enum: Faction })
+    public faction: Faction = Faction.NONE;
+
+    @gameField('float32')
+    public radarRange = 0;
+
+    @gameField('string')
+    @tweakable('string')
+    public model: ShipModel | null = null;
+
+    // ShipState-specific fields
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
@@ -198,5 +252,18 @@ export class ShipState extends Spaceship {
                 );
         }
         return [];
+    }
+
+    // Methods from SpaceObjectBase
+    globalToLocal(global: XY) {
+        return XY.rotate(global, -this.angle);
+    }
+
+    localToGlobal(local: XY) {
+        return XY.rotate(local, this.angle);
+    }
+
+    get directionAxis() {
+        return XY.rotate(XY.one, this.angle - 90);
     }
 }
