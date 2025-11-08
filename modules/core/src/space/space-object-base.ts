@@ -1,5 +1,6 @@
+import { ArraySchema, Schema } from '@colyseus/schema';
 import { Faction } from './faction';
-import { Schema } from '@colyseus/schema';
+import { ScanLevel } from './scan-level';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
@@ -47,6 +48,10 @@ export abstract class SpaceObjectBase extends Schema {
 
     @gameField('string')
     public id = '';
+
+    @gameField(['uint8'])
+    public scanLevels = new ArraySchema<number>(...(Array(Faction.FACTION_COUNT).fill(ScanLevel.UFO) as number[])); // Indexed by Faction enum
+
     @gameField(Vec2)
     public position: Vec2 = new Vec2(0, 0);
 

@@ -2,8 +2,10 @@ import {
     Armor,
     Asteroid,
     Explosion,
+    Faction,
     Projectile,
     REAR_ARC,
+    ScanLevel,
     ShipDie,
     ShipManagerNpc,
     ShipManagerPc,
@@ -180,4 +182,107 @@ describe('SpaceManager', () => {
             });
         },
     );
+
+    describe('Scan Level Management', () => {
+        it('should set and get scan level for faction', () => {
+            const sim = new SpaceSimulator(10);
+            const target = new Spaceship();
+            target.id = 'target-ship';
+            sim.withObjects(target);
+            sim.spaceMgr.forceFlushEntities();
+
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.BASIC);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+
+        it('should keep scan levels independent per faction', () => {
+            const sim = new SpaceSimulator(10);
+            const target = new Spaceship();
+            target.id = 'target-ship';
+            sim.withObjects(target);
+            sim.spaceMgr.forceFlushEntities();
+
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.ADVANCED);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Raiders, ScanLevel.UFO);
+
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
+        });
+
+        it('should return UFO level for unset faction', () => {
+            const sim = new SpaceSimulator(10);
+            const target = new Spaceship();
+            target.id = 'target-ship';
+            sim.withObjects(target);
+            sim.spaceMgr.forceFlushEntities();
+
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.UFO);
+        });
+
+        it('should persist scan levels (no decay)', () => {
+            const sim = new SpaceSimulator(10);
+            const target = new Spaceship();
+            target.id = 'target-ship';
+            sim.withObjects(target);
+            sim.spaceMgr.forceFlushEntities();
+
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.ADVANCED);
+
+            // Simulate time passing (10 minutes)
+            sim.simulateUntilTime(600);
+
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+        });
+
+        it('should allow scan if target in radar range', () => {
+            const sim = new SpaceSimulator(10);
+            const scanner = new Spaceship();
+            scanner.id = 'scanner';
+            scanner.radarRange = 5000;
+            scanner.position = Vec2.make({ x: 0, y: 0 });
+
+            const target = new Spaceship();
+            target.id = 'target';
+            target.position = Vec2.make({ x: 3000, y: 0 });
+
+            sim.withObjects(scanner, target);
+            sim.spaceMgr.forceFlushEntities();
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.true;
+        });
+
+        it('should block scan if target out of range', () => {
+            const sim = new SpaceSimulator(10);
+            const scanner = new Spaceship();
+            scanner.id = 'scanner';
+            scanner.radarRange = 5000;
+            scanner.position = Vec2.make({ x: 0, y: 0 });
+
+            const target = new Spaceship();
+            target.id = 'target';
+            target.position = Vec2.make({ x: 8000, y: 0 });
+
+            sim.withObjects(scanner, target);
+            sim.spaceMgr.forceFlushEntities();
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.false;
+        });
+
+        it('should return at least BASIC for same-faction targets', () => {
+            const sim = new SpaceSimulator(10);
+            const target = new Spaceship();
+            target.id = 'target-ship';
+            target.faction = Faction.Gravitas;
+            sim.withObjects(target);
+            sim.spaceMgr.forceFlushEntities();
+
+            // Same faction should get at least BASIC, even without scanning
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+
+            // Different faction should get UFO
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
+        });
+    });
 });

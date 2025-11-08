@@ -1,4 +1,4 @@
-import { Asteroid, Faction, Spaceship, Waypoint } from '../space';
+import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
@@ -610,6 +610,77 @@ export class SpaceManager implements Updateable {
         this.collisions.update();
         // reset toUpdateCollisions
         this.toUpdateCollisions.clear();
+    }
+
+    // Scan Level Management Methods
+    /**
+     * Set scan level for target (called by job completion)
+     */
+    public setScanLevel(targetId: string, faction: Faction, level: ScanLevel): void {
+        const [target] = this.getObjectPtr(targetId);
+        const factionIndex = Number(faction);
+        if (target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+            target.scanLevels[factionIndex] = level;
+        }
+    }
+
+    /**
+     * Get scan level for target (used by radar widgets)
+     * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
+     */
+    public getScanLevel(targetId: string, faction: Faction): ScanLevel {
+        const [target] = this.getObjectPtr(targetId);
+        if (!target) {
+            return ScanLevel.UFO;
+        }
+
+        const factionIndex = Number(faction);
+
+        // Get stored scan level or default to UFO
+        const storedLevel =
+            factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)
+                ? target.scanLevels[factionIndex] || ScanLevel.UFO
+                : ScanLevel.UFO;
+
+        // Objects from same faction have at least BASIC scan level
+        if (target.faction === faction && faction !== Faction.NONE) {
+            return Math.max(storedLevel, ScanLevel.BASIC);
+        }
+
+        return storedLevel;
+    }
+
+    /**
+     * Check if scan job can proceed (target in range and line-of-sight)
+     */
+    public canScan(scannerId: string, targetId: string): boolean {
+        const [scanner] = this.getObjectPtr(scannerId);
+        const [target] = this.getObjectPtr(targetId);
+
+        if (!scanner || !target) {
+            return false;
+        }
+
+        // Check if target is within scanner's radar range
+        const distance = XY.lengthOf(XY.difference(scanner.position, target.position));
+        if (distance > scanner.radarRange) {
+            return false;
+        }
+
+        // Check line-of-sight via field-of-view
+        const scannerData = this.stateToExtraData.get(scanner);
+        if (!scannerData) {
+            return false;
+        }
+
+        // Check if target is visible in scanner's FOV
+        for (const visibleArc of scannerData.fov.view) {
+            if (visibleArc.object === target) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
