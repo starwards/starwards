@@ -16,6 +16,10 @@
 
 
 
+# Background
+
+Starwards emerged from years of extending EmptyEpsilon for space LARPs (2016-2021). After extensive modifications and a productive fork, we hit fundamental limitations - EmptyEpsilon was designed for short sessions, not the lengthy LARP events we run. We decided to build Starwards from scratch as a platform designed specifically for LARP needs.
+
 # What is this?
 
 Starwards is a space and starship simulator designed specifically for LARPs (Live Action Role-Playing games). Derived from the "Starship Bridge Simulator" genre, Starwards is designed to support long games where the players interact with the ship's system throughout the ship, not just in the bridge.

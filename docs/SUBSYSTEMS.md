@@ -114,4 +114,18 @@ if (armor.isBroken(hitAngle)) {
 }
 ```
 
+## Damage Philosophy
+
+**Malfunction Over Destruction:** Ships don't explode from damage. Systems malfunction, creating handicaps that players must diagnose and mitigate.
+
+- **Soft Problems:** Increase chance of future malfunctions without immediate performance impact
+- **Hard Problems:** Directly hinder system performance (e.g., broken thruster causes drift)
+
+**Armor Uniqueness:** Only repairable at shipyards (major LARP event opportunity). Absorbs orders of magnitude more damage than internal systems.
+
+**Thruster Damage Protocol:** When thruster fails, ship experiences asymmetric thrust. Solution:
+1. Switch to Direct mode (manual control)
+2. Rotate 90° to align working thrusters
+3. Return to Velocity mode to counter drift
+
 **Related:** [PHYSICS.md](PHYSICS.md) | [API_REFERENCE.md](API_REFERENCE.md) | [PATTERNS.md](PATTERNS.md)

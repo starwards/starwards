@@ -99,6 +99,29 @@ for (const obj of spaceObjects) {
 }
 ```
 
+## Weapon Design
+
+### Three Engagement Circles
+
+Weapons are designed for specific effectiveness ranges:
+
+1. **Close Range (CIWS):** Chaingun with airburst rounds
+   - High rate of fire, projectile velocity over accuracy
+   - Airburst detonates at set range for area denial
+   - Perfect for fighters/torpedoes, ineffective vs armored ships
+
+2. **Intermediate Range:** Railguns (planned)
+   - Charge time prevents close use
+   - Dodgeable at long range due to travel time
+   - Optimal for mid-range engagements
+
+3. **Long Range:** Self-propelled torpedoes
+   - Homing capability: 720°/s rotation
+   - 60-second flight time
+   - Proximity detonation at 100m
+
+**Chaingun Selection:** External chain-powered for blowback-free operation, variable motor speed controls rate of fire, misfires don't jam (round ejects, new round loads).
+
 ## Damage System
 
 ### Damage Application

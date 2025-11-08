@@ -24,6 +24,7 @@ ship.x                     # ❌ Wrong
 ```
 
 ## Docs
+- [`docs/DESIGN_PHILOSOPHY.md`](docs/DESIGN_PHILOSOPHY.md) - Core design principles, LARP needs
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - System design
 - [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Endpoints & events
 - [`docs/TECHNICAL_REFERENCE.md`](docs/TECHNICAL_REFERENCE.md) - @gameField, JSON Pointer, Input Config

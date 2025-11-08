@@ -45,6 +45,8 @@ core/src/
 | SpaceRoom | 1 | Space simulation | space |
 | ShipRoom | 1/ship | Individual ship control | shipId |
 
+**Design Rationale:** SpaceRoom handles shared physics/combat while ShipRoom manages individual ship systems, allowing players to join only their ship's room for reduced bandwidth and targeted state updates.
+
 ## Data Flow
 
 **Client Action → Server:**
@@ -142,5 +144,9 @@ ShipState (per ship, separate room)
 - Single server instance (no horizontal scaling)
 - Memory-bound by ship count
 - One SpaceRoom, multiple ShipRooms
+
+## Scope Decisions
+
+**3D Rendering Removed (PR #1659, March 2024):** Deleted all 3D modules to focus on 2D gameplay productivity. Full commitment to PixiJS-only rendering.
 
 **Related:** [API_REFERENCE.md](API_REFERENCE.md) | [PATTERNS.md](PATTERNS.md) | [DEVELOPMENT.md](DEVELOPMENT.md)
