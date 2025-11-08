@@ -2,6 +2,7 @@ import {
     Armor,
     Asteroid,
     Explosion,
+    Faction,
     Projectile,
     REAR_ARC,
     ScanLevel,
@@ -190,8 +191,8 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, 'UCS', ScanLevel.BASIC);
-            expect(sim.spaceMgr.getScanLevel(target.id, 'UCS')).to.equal(ScanLevel.BASIC);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.BASIC);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
         it('should keep scan levels independent per faction', () => {
@@ -201,11 +202,11 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, 'UCS', ScanLevel.ADVANCED);
-            sim.spaceMgr.setScanLevel(target.id, 'Federation', ScanLevel.UFO);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.ADVANCED);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Raiders, ScanLevel.UFO);
 
-            expect(sim.spaceMgr.getScanLevel(target.id, 'UCS')).to.equal(ScanLevel.ADVANCED);
-            expect(sim.spaceMgr.getScanLevel(target.id, 'Federation')).to.equal(ScanLevel.UFO);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
         });
 
         it('should return UFO level for unset faction', () => {
@@ -215,7 +216,7 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            expect(sim.spaceMgr.getScanLevel(target.id, 'UCS')).to.equal(ScanLevel.UFO);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.UFO);
         });
 
         it('should persist scan levels (no decay)', () => {
@@ -225,12 +226,12 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, 'UCS', ScanLevel.ADVANCED);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.ADVANCED);
 
             // Simulate time passing (10 minutes)
             sim.simulateUntilTime(600);
 
-            expect(sim.spaceMgr.getScanLevel(target.id, 'UCS')).to.equal(ScanLevel.ADVANCED);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
         });
 
         it('should allow scan if target in radar range', () => {

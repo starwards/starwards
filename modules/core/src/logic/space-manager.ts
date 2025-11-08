@@ -616,10 +616,10 @@ export class SpaceManager implements Updateable {
     /**
      * Set scan level for target (called by job completion)
      */
-    public setScanLevel(targetId: string, faction: string, level: ScanLevel): void {
+    public setScanLevel(targetId: string, faction: Faction, level: ScanLevel): void {
         const [target] = this.getObjectPtr(targetId);
         if (target) {
-            target.scanLevels.set(faction, level);
+            target.scanLevels.set(String(faction), level);
         }
     }
 
@@ -627,17 +627,16 @@ export class SpaceManager implements Updateable {
      * Get scan level for target (used by radar widgets)
      * Returns ScanLevel.UFO (0) if not set
      */
-    public getScanLevel(targetId: string, faction: string): ScanLevel {
+    public getScanLevel(targetId: string, faction: Faction): ScanLevel {
         const [target] = this.getObjectPtr(targetId);
         if (target) {
-            const level = target.scanLevels.get(faction);
-            return level !== undefined ? level : ScanLevel.UFO;
+            return target.scanLevels.get(String(faction)) || ScanLevel.UFO;
         }
         return ScanLevel.UFO;
     }
 
     /**
-     * Check if scan job can proceed (target in range, valid level)
+     * Check if scan job can proceed (target in range and line-of-sight)
      */
     public canScan(scannerId: string, targetId: string): boolean {
         const [scanner] = this.getObjectPtr(scannerId);
@@ -649,7 +648,24 @@ export class SpaceManager implements Updateable {
 
         // Check if target is within scanner's radar range
         const distance = XY.lengthOf(XY.difference(scanner.position, target.position));
-        return distance <= scanner.radarRange;
+        if (distance > scanner.radarRange) {
+            return false;
+        }
+
+        // Check line-of-sight via field-of-view
+        const scannerData = this.stateToExtraData.get(scanner);
+        if (!scannerData) {
+            return false;
+        }
+
+        // Check if target is visible in scanner's FOV
+        for (const visibleArc of scannerData.fov.view) {
+            if (visibleArc.object === target) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
