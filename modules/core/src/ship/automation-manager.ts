@@ -1,3 +1,4 @@
+/* eslint-disable sort-imports */
 import { IterationData, Updateable } from '../updateable';
 import {
     ManeuveringCommand,
@@ -20,10 +21,11 @@ import { Order, ShipState } from './ship-state';
 import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
 
+import { switchToAvailableAmmo } from './chain-gun-manager';
 import { DockingMode } from './docking';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
-import { switchToAvailableAmmo } from './chain-gun-manager';
+/* eslint-enable sort-imports */
 
 export class AutomationManager implements Updateable {
     constructor(

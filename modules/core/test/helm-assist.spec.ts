@@ -78,7 +78,7 @@ describe('helm assist', function () {
                     harness.shipObj.turnSpeed = turnSpeed;
                     harness.initGraph({
                         rotation: () => harness.shipState.rotation,
-                        turnSpeed: () => harness.shipState.turnSpeed,
+                        turnSpeed: () => harness.shipState.spaceObject.turnSpeed,
                     });
                     harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
                         const rotation = rotationFromTargetTurnSpeed(time, harness.shipState, 0);
