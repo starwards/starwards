@@ -189,14 +189,14 @@ export class MovementManager implements Updateable {
 
     private changeVelocity(speedToChange: XY) {
         this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
+        this.state.spaceObject.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceObject.velocity.y = this.spaceObject.velocity.y;
     }
 
     private setVelocity(newSpeed: XY) {
         this.spaceManager.setVelocity(this.spaceObject.id, newSpeed);
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
+        this.state.spaceObject.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceObject.velocity.y = this.spaceObject.velocity.y;
     }
 
     private isWarpActive() {
@@ -259,7 +259,7 @@ export class MovementManager implements Updateable {
                 speedToChange += enginePower * this.state.maneuvering.efficiency;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
-            this.state.turnSpeed = this.spaceObject.turnSpeed;
+            this.state.spaceObject.turnSpeed = this.spaceObject.turnSpeed;
         }
     }
 

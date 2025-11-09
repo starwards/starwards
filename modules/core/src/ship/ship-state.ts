@@ -161,29 +161,6 @@ export class ShipState extends Schema {
     get speed() {
         return XY.lengthOf(this.spaceObject.velocity);
     }
-
-    // Craft interface implementation - delegates to spaceObject for helm/navigation functions
-    get turnSpeed() {
-        return this.spaceObject.turnSpeed;
-    }
-    set turnSpeed(value: number) {
-        this.spaceObject.turnSpeed = value;
-    }
-    get angle() {
-        return this.spaceObject.angle;
-    }
-    set angle(value: number) {
-        this.spaceObject.angle = value;
-    }
-    get velocity() {
-        return this.spaceObject.velocity;
-    }
-    get position() {
-        return this.spaceObject.position;
-    }
-    globalToLocal(global: XY): XY {
-        return this.spaceObject.globalToLocal(global);
-    }
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {
             if (toDegreesDelta(direction) === toDegreesDelta(thruster.angle)) {
