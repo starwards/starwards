@@ -270,16 +270,8 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected syncShipProperties() {
-        // only sync data that should be exposed to room clients
-        this.state.position.x = this.spaceObject.position.x;
-        this.state.position.y = this.spaceObject.position.y;
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
-        this.state.turnSpeed = this.spaceObject.turnSpeed;
-        this.state.angle = this.spaceObject.angle;
-        this.state.faction = this.spaceObject.faction;
-        this.state.radius = this.spaceObject.radius;
-        this.state.radarRange = this.spaceObject.radarRange;
+        // Sync space object to state using .assign() to preserve UI reactivity
+        this.state.spaceship.assign(this.spaceObject as Spaceship);
     }
 
     protected updateAmmo() {

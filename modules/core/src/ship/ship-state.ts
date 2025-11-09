@@ -1,9 +1,6 @@
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
-import { ShipModel } from '../configurations';
-import { gameField } from '../game-field';
+import { Spaceship, Vec2 } from '../space';
 import { range, rangeSchema } from '../range';
-import { Faction, Vec2 } from '../space';
-import { tweakable } from '../tweakable';
 
 import { Armor } from './armor';
 import { ArraySchema, Schema } from '@colyseus/schema';
@@ -20,6 +17,8 @@ import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
+import { gameField } from '../game-field';
+import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {
     NONE,
@@ -49,61 +48,17 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') totalCoolant = 0;
     @gameField('float32') systemKillRatio = 0;
 }
-@rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
+@rangeSchema({
+    '/turnSpeed': [-90, 90],
+    '/angle': [0, 360],
+    '/spaceship/turnSpeed': [-90, 90],
+    '/spaceship/angle': [0, 360],
+})
 export class ShipState extends Schema {
-    // Fields synced from SpaceObjectBase
-    @gameField('string')
-    public id = '';
+    // Composition: space object as a property (updated via .assign() every game loop)
+    @gameField(Spaceship)
+    spaceship = new Spaceship();
 
-    @gameField(Vec2)
-    public position: Vec2 = new Vec2(0, 0);
-
-    @gameField(Vec2)
-    public velocity: Vec2 = new Vec2(0, 0);
-
-    @tweakable('number')
-    @range([0, 360])
-    @gameField('float32')
-    public angle = 0;
-
-    @tweakable({ type: 'number' })
-    @gameField('float32')
-    public turnSpeed = 0;
-
-    @tweakable({ type: 'number', number: { min: 0.05 } })
-    @gameField('float32')
-    public radius = 0.05;
-
-    @gameField('boolean')
-    public destroyed = false;
-
-    @tweakable('boolean')
-    @gameField('boolean')
-    public freeze = false;
-
-    @tweakable('boolean')
-    @gameField('boolean')
-    public expendable = true;
-
-    @gameField(['uint8'])
-    public scanLevels = new ArraySchema<number>();
-
-    // Fields from Spaceship
-    @gameField('string')
-    public readonly type = 'Spaceship';
-
-    @gameField('int8')
-    @tweakable({ type: 'enum', enum: Faction })
-    public faction: Faction = Faction.NONE;
-
-    @gameField('float32')
-    public radarRange = 0;
-
-    @gameField('string')
-    @tweakable('string')
-    public model: ShipModel | null = null;
-
-    // ShipState-specific fields
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
@@ -254,16 +209,99 @@ export class ShipState extends Schema {
         return [];
     }
 
-    // Methods from SpaceObjectBase
+    // Convenience accessors for common properties (delegate to spaceship)
+    get id() {
+        return this.spaceship.id;
+    }
+    set id(value: string) {
+        this.spaceship.id = value;
+    }
+
+    get position() {
+        return this.spaceship.position;
+    }
+
+    get velocity() {
+        return this.spaceship.velocity;
+    }
+
+    get angle() {
+        return this.spaceship.angle;
+    }
+    set angle(value: number) {
+        this.spaceship.angle = value;
+    }
+
+    get turnSpeed() {
+        return this.spaceship.turnSpeed;
+    }
+    set turnSpeed(value: number) {
+        this.spaceship.turnSpeed = value;
+    }
+
+    get radius() {
+        return this.spaceship.radius;
+    }
+    set radius(value: number) {
+        this.spaceship.radius = value;
+    }
+
+    get faction() {
+        return this.spaceship.faction;
+    }
+    set faction(value) {
+        this.spaceship.faction = value;
+    }
+
+    get radarRange() {
+        return this.spaceship.radarRange;
+    }
+    set radarRange(value: number) {
+        this.spaceship.radarRange = value;
+    }
+
+    get model() {
+        return this.spaceship.model;
+    }
+    set model(value) {
+        this.spaceship.model = value;
+    }
+
+    get destroyed() {
+        return this.spaceship.destroyed;
+    }
+    set destroyed(value: boolean) {
+        this.spaceship.destroyed = value;
+    }
+
+    get freeze() {
+        return this.spaceship.freeze;
+    }
+    set freeze(value: boolean) {
+        this.spaceship.freeze = value;
+    }
+
+    get expendable() {
+        return this.spaceship.expendable;
+    }
+    set expendable(value: boolean) {
+        this.spaceship.expendable = value;
+    }
+
+    get scanLevels() {
+        return this.spaceship.scanLevels;
+    }
+
+    // Delegate methods to spaceship
     globalToLocal(global: XY) {
-        return XY.rotate(global, -this.angle);
+        return this.spaceship.globalToLocal(global);
     }
 
     localToGlobal(local: XY) {
-        return XY.rotate(local, this.angle);
+        return this.spaceship.localToGlobal(local);
     }
 
     get directionAxis() {
-        return XY.rotate(XY.one, this.angle - 90);
+        return this.spaceship.directionAxis;
     }
 }
