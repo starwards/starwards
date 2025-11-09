@@ -1,5 +1,6 @@
 import {
     ChainGun,
+    Craft,
     Docking,
     Faction,
     Radar,
@@ -10,6 +11,7 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
+    XY,
     capToRange,
     lerp,
     projectileModels,
@@ -25,6 +27,7 @@ import { DockingManager } from './docking-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
+import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
@@ -105,6 +108,20 @@ export abstract class ShipManager implements Updateable {
                 new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.internalProxy),
             );
         }
+    }
+
+    // Craft facade for helm assist functions
+    public get craft(): Craft {
+        const spaceObj = this.spaceObject;
+        return {
+            rotationCapacity: this.state.rotationCapacity,
+            turnSpeed: spaceObj.turnSpeed,
+            angle: spaceObj.angle,
+            velocity: { x: spaceObj.velocity.x, y: spaceObj.velocity.y },
+            position: { x: spaceObj.position.x, y: spaceObj.position.y },
+            globalToLocal: (global: XY) => spaceObj.globalToLocal(global),
+            velocityCapacity: (direction: ShipDirection) => this.state.velocityCapacity(direction),
+        };
     }
 
     public cancelAllTasks() {

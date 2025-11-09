@@ -5,11 +5,11 @@ import { ShipState } from '../ship';
 import { XY } from './xy';
 
 export type Craft = {
-    rotationCapacity: number;
-    turnSpeed: number;
-    angle: number;
-    velocity: XY;
-    position: XY;
+    readonly rotationCapacity: number;
+    readonly turnSpeed: number;
+    readonly angle: number;
+    readonly velocity: XY;
+    readonly position: XY;
     globalToLocal(global: XY): XY;
     velocityCapacity(direction: ShipDirection): number;
 };
