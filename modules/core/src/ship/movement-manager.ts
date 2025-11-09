@@ -121,7 +121,7 @@ export class MovementManager implements Updateable {
     }
 
     private checkJam() {
-        const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
+        const queryArea = new Circle(XY.clone(this.state.spaceObject.position), this.state.warp.design.maxProximity);
         const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
             .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
             .firstOr(null);
@@ -134,7 +134,7 @@ export class MovementManager implements Updateable {
             if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
                 // increase warp level
                 if (this.state.warp.currentLevel == 0) {
-                    const currentSpeed = XY.lengthOf(this.state.velocity);
+                    const currentSpeed = XY.lengthOf(this.state.spaceObject.velocity);
                     if (currentSpeed) {
                         // penalty damage for existing velocity
                         this.damageManager.damageAllSystems({
