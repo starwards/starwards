@@ -45,11 +45,11 @@ describe('helm assist', function () {
                         harness.shipState.smartPilot.design.maxTurnSpeed,
                     );
                     harness.initGraph({
-                        angle: () => toDegreesDelta(harness.shipState.angle),
-                        turnSpeed: () => harness.shipState.turnSpeed,
+                        angle: () => toDegreesDelta(harness.shipState.spaceObject.angle),
+                        turnSpeed: () => harness.shipState.spaceObject.turnSpeed,
                     });
                     const iteration = (time: number, p?: GraphPointInput) => {
-                        const rotation = rotateToTarget(time, harness.shipState, target, 0);
+                        const rotation = rotateToTarget(time, harness.shipMgr.craft, target, 0);
                         p?.addtoLine('rotation', rotation);
                         harness.shipMgr.state.smartPilot.rotation = rotation;
                     };
@@ -102,7 +102,7 @@ describe('helm assist', function () {
                         harness.shipState.velocityCapacity(ShipDirection.FWD),
                     );
                     harness.initGraph({
-                        velocity: () => harness.shipState.velocity.x,
+                        velocity: () => harness.shipState.spaceObject.velocity.x,
                     });
                     const iteration = (time: number, p?: GraphPointInput) => {
                         const maneuvering = matchGlobalSpeed(time, harness.shipState, XY.zero);
@@ -137,8 +137,8 @@ describe('helm assist', function () {
                             Math.min(...ShipDirections.map((d) => harness.shipState.velocityCapacity(d))),
                         );
                         harness.initGraph({
-                            velocityX: () => harness.shipState.velocity.x,
-                            velocityY: () => harness.shipState.velocity.y,
+                            velocityX: () => harness.shipState.spaceObject.velocity.x,
+                            velocityY: () => harness.shipState.spaceObject.velocity.y,
                             velocity: () => XY.lengthOf(harness.shipObj.velocity),
                         });
                         const iteration = (time: number, p?: GraphPointInput) => {
@@ -175,11 +175,11 @@ describe('helm assist', function () {
                         harness.shipState.maxSpeed,
                     );
                     harness.initGraph({
-                        position: () => harness.shipState.position.x,
-                        velocity: () => harness.shipState.velocity.x,
+                        position: () => harness.shipState.spaceObject.position.x,
+                        velocity: () => harness.shipState.spaceObject.velocity.x,
                     });
                     const iteration = (time: number, p?: GraphPointInput) => {
-                        const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
+                        const maneuvering = moveToTarget(time, harness.shipMgr.craft, XY.zero);
                         p?.addtoLine('boost', maneuvering.boost);
                         harness.shipMgr.state.smartPilot.maneuvering.x = maneuvering.boost;
                     };
@@ -212,7 +212,7 @@ describe('helm assist', function () {
                             harness.shipState.maxSpeed,
                         );
                         const iteration = (time: number) => {
-                            const maneuvering = moveToTarget(time, harness.shipState, XY.zero);
+                            const maneuvering = moveToTarget(time, harness.shipMgr.craft, XY.zero);
                             harness.shipMgr.state.smartPilot.maneuvering.x = maneuvering.boost;
                             harness.shipMgr.state.smartPilot.maneuvering.y = maneuvering.strafe;
                         };
