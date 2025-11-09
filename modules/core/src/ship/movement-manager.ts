@@ -176,7 +176,7 @@ export class MovementManager implements Updateable {
                 this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.speedPerLevel;
             const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
-                this.state.angle,
+                this.state.spaceObject.angle,
             );
             // penalty damage for existing velocity (in case of warp system malfunction)
             this.damageManager.damageAllSystems({
@@ -327,7 +327,7 @@ export class MovementManager implements Updateable {
                 const actionFactor = thruster.effectiveness * thruster.availableCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(
                     (mvEffect + abEffect) * actionFactor,
-                    thruster.angle + thruster.angleError + this.state.angle,
+                    thruster.angle + thruster.angleError + this.state.spaceObject.angle,
                 );
             }),
         );
@@ -341,7 +341,7 @@ export class MovementManager implements Updateable {
             thruster.afterBurnerActive = 0;
             thruster.active = 0;
             if (thruster.effectiveness) {
-                const globalAngle = thruster.angle + this.state.angle;
+                const globalAngle = thruster.angle + this.state.spaceObject.angle;
                 const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
                 const axisCapacity = thruster.design.capacity * thruster.effectiveness * deltaSeconds;
                 if (
