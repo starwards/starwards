@@ -295,7 +295,7 @@ export class MovementManager implements Updateable {
                         const velocity = XY.add(
                             XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
 
-                            this.state.globalToLocal(this.shipManager.weaponsTarget.velocity),
+                            this.state.spaceObject.globalToLocal(this.shipManager.weaponsTarget.velocity),
                         );
                         maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
                     } else {

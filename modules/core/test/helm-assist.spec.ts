@@ -130,7 +130,7 @@ describe('helm assist', function () {
                         const harness = new ShipTestHarness();
                         harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                         harness.shipObj.angle = angle;
-                        harness.shipObj.velocity = Vec2.make(from);
+                        harness.shipObj.velocity.setValue(from);
                         const metrics = new SpeedTestMetrics(
                             20,
                             XY.lengthOf(from),
@@ -204,7 +204,7 @@ describe('helm assist', function () {
                         const harness = new ShipTestHarness();
                         harness.shipState.afterBurner = harness.shipState.afterBurnerCommand = afterBurner;
                         harness.shipObj.angle = angle;
-                        harness.shipObj.position = Vec2.make(from);
+                        harness.shipObj.position.setValue(from);
                         const metrics = new MovementTestMetrics(
                             20,
                             XY.lengthOf(from),

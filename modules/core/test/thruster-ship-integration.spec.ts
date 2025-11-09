@@ -21,7 +21,7 @@ describe('thrusters-ship integration', function () {
                             thruster.design.capacity = customCapacity;
                         }
                         const startVelocity = harness.shipState.maxSpeed;
-                        harness.shipObj.velocity = Vec2.make(XY.rotate({ x: -startVelocity, y: 0 }, direction));
+                        harness.shipObj.velocity.setValue(XY.rotate({ x: -startVelocity, y: 0 }, direction));
                         const thrusterCapacity = harness.shipState.velocityCapacity(direction);
                         harness.shipMgr.state.smartPilot.maneuvering.x = maneuveringCommand.boost;
                         harness.shipMgr.state.smartPilot.maneuvering.y = maneuveringCommand.strafe;
