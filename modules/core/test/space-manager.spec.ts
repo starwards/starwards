@@ -132,7 +132,7 @@ describe('SpaceManager', () => {
                 const ship = new Spaceship();
                 ship.id = 'ship';
                 const shipMgr = sim.withShip(ship, new ShipDie(0), shipManagerCtor);
-                shipMgr.state.velocity = ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
+                ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
                 shipMgr.state.chainGun!.design.maxShellRange = 10_000;
                 shipMgr.state.chainGun!.shellRange = 1;
                 shipMgr.state.chainGun!.loading = 1;
