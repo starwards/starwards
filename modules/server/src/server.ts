@@ -102,6 +102,21 @@ export async function server(port: number, staticDir: string, manager: GameManag
         }),
     );
 
+    app.post(
+        '/convert-ship-type',
+        asyncHandler(async (req, res) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            const { shipId, isPlayerShip } = req.body;
+            if (typeof shipId === 'string' && typeof isPlayerShip === 'boolean') {
+                await manager.convertShipType(shipId, isPlayerShip);
+                res.send();
+            } else {
+                console.error(`Invalid parameters: shipId="${String(shipId)}", isPlayerShip="${String(isPlayerShip)}"`);
+                res.sendStatus(HTTP_BAD_REQUEST_STATUS);
+            }
+        }),
+    );
+
     app.use((err: TypeError, _req: Request, res: Response, next: NextFunction) => {
         if (res.headersSent) {
             return next(err);

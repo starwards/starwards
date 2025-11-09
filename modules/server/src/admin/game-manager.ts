@@ -182,10 +182,11 @@ export class GameManager {
     }
 
     private async waitForAllShipRoomsInit() {
-        const expectedShipCount = this.shipManagers.size;
+        // Only player ships have rooms, so we wait for playerShipIds count to match shipIds count
+        const expectedPlayerShipCount = this.state.playerShipIds.length;
         await waitFor(
             () => {
-                if (expectedShipCount > this.state.shipIds.length) {
+                if (expectedPlayerShipCount > this.state.shipIds.length) {
                     throw new Error('Waiting for ship rooms to initialize');
                 }
             },
@@ -204,25 +205,34 @@ export class GameManager {
         const shipManager = new managerCtor(spaceObject, shipState, this.spaceManager, die, this.shipManagers); // create a manager to manage the ship
         this.shipManagers.set(id, shipManager);
         this.dice.push(die);
-        const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-            await this.waitForRoom({ roomId: id, name: 'ship' });
-            this.state.shipIds.push(id);
-            if (isPlayerShip) {
+
+        // Only create rooms for player ships
+        if (isPlayerShip) {
+            const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
+                await this.waitForRoom({ roomId: id, name: 'ship' });
+                this.state.shipIds.push(id);
                 this.state.playerShipIds.push(id);
-            }
-        });
-        this.shipCleanups.set(id, async () => {
-            await createRoomPromise;
-            if (this.shipCleanups.delete(id)) {
-                if (isPlayerShip) {
+            });
+            this.shipCleanups.set(id, async () => {
+                await createRoomPromise;
+                if (this.shipCleanups.delete(id)) {
                     this.state.playerShipIds.deleteAt(this.state.playerShipIds.indexOf(id));
+                    this.state.shipIds.deleteAt(this.state.shipIds.indexOf(id));
+                    void matchMaker.getRoomById(id).disconnect();
+                    this.dice.splice(this.dice.indexOf(die), 1);
+                    this.shipManagers.delete(id);
                 }
-                this.state.shipIds.deleteAt(this.state.shipIds.indexOf(id));
-                void matchMaker.getRoomById(id).disconnect();
-                this.dice.splice(this.dice.indexOf(die), 1);
-                this.shipManagers.delete(id);
-            }
-        });
+            });
+        } else {
+            // NPC ships don't have rooms, just cleanup the manager
+            this.shipCleanups.set(id, () => {
+                if (this.shipCleanups.delete(id)) {
+                    this.dice.splice(this.dice.indexOf(die), 1);
+                    this.shipManagers.delete(id);
+                }
+            });
+        }
+
         return shipManager;
     }
 
@@ -237,5 +247,43 @@ export class GameManager {
             10000,
             50,
         );
+    }
+
+    /**
+     * Converts a ship between player and NPC types.
+     * Player ships have ShipRooms, NPC ships do not.
+     * This closes the existing room (if player ship) and recreates the manager with the correct type.
+     */
+    public async convertShipType(shipId: string, isPlayerShip: boolean) {
+        const shipManager = this.shipManagers.get(shipId);
+        if (!shipManager) {
+            throw new Error(`Ship ${shipId} not found`);
+        }
+
+        // Check if conversion is needed
+        const currentIsPlayerShip = this.state.playerShipIds.includes(shipId);
+        if (currentIsPlayerShip === isPlayerShip) {
+            // No conversion needed
+            return;
+        }
+
+        // Get the current ship state and space object from space manager
+        const shipState = shipManager.state;
+        const spaceObject = this.spaceManager.state.getShip(shipId);
+        if (!spaceObject) {
+            throw new Error(`Ship ${shipId} not found in space manager`);
+        }
+
+        // Update the state's isPlayerShip property
+        shipState.isPlayerShip = isPlayerShip;
+
+        // Clean up the existing ship manager (and room if it was a player ship)
+        const cleanup = this.shipCleanups.get(shipId);
+        if (cleanup) {
+            await cleanup();
+        }
+
+        // Recreate the ship manager (with room only if player ship)
+        this.initShipManagerAndRoom(spaceObject, shipState, isPlayerShip);
     }
 }

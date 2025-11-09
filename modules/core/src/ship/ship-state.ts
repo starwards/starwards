@@ -54,6 +54,7 @@ export class ShipState extends Spaceship {
     design = new ShipPropertiesDesignState();
 
     @gameField('boolean')
+    @tweakable('boolean')
     isPlayerShip = true;
 
     @gameField('int8')
