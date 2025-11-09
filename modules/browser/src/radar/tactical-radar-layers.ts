@@ -20,8 +20,8 @@ export function azimuthCircle(root: CameraView, shipState: ShipState, rangeInMet
     const layer = new SpriteLayer(
         root,
         { tint: 0xaaffaa },
-        () => shipState.position,
-        () => degToRad * -shipState.angle,
+        () => shipState.spaceObject.position,
+        () => degToRad * -shipState.spaceObject.angle,
         () => root.metersToPixles(rangeInMeters()),
     );
     stage.addChild(layer.renderRoot);
@@ -64,15 +64,19 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
 
 export function speedLines(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {
     const stage = new Container();
-    const targetLineLayer = new LineLayer(root, () => [shipState.position, shipTarget.getSingle()?.position], {
-        width: 2,
-        color: selectionColor,
-        alpha: 0.5,
-    });
+    const targetLineLayer = new LineLayer(
+        root,
+        () => [shipState.spaceObject.position, shipTarget.getSingle()?.position],
+        {
+            width: 2,
+            color: selectionColor,
+            alpha: 0.5,
+        },
+    );
     root.addLayer(targetLineLayer.renderRoot);
     const speedLineLayer = new LineLayer(
         root,
-        () => [shipState.position, XY.add(shipState.position, shipState.velocity)],
+        () => [shipState.spaceObject.position, XY.add(shipState.spaceObject.position, shipState.spaceObject.velocity)],
         {
             width: 2,
             color: 0x26fd9a,
@@ -84,8 +88,12 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
         () => {
             const target = shipTarget.getSingle();
             return [
-                shipState.position,
-                target && XY.add(shipState.position, XY.difference(shipState.velocity, target.velocity)),
+                shipState.spaceObject.position,
+                target &&
+                    XY.add(
+                        shipState.spaceObject.position,
+                        XY.difference(shipState.spaceObject.velocity, target.velocity),
+                    ),
             ];
         },
         {

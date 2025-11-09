@@ -50,13 +50,11 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
 @rangeSchema({
     '/turnSpeed': [-90, 90],
     '/angle': [0, 360],
-    '/spaceship/turnSpeed': [-90, 90],
-    '/spaceship/angle': [0, 360],
 })
 export class ShipState extends Schema {
     // Composition: space object as a property (updated via .assign() every game loop)
     @gameField(Spaceship)
-    spaceship = new Spaceship();
+    spaceObject = new Spaceship();
 
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
@@ -157,11 +155,34 @@ export class ShipState extends Schema {
 
     @range([0, 360])
     get velocityAngle() {
-        return XY.angleOf(this.velocity);
+        return XY.angleOf(this.spaceObject.velocity);
     }
     @range((t: ShipState) => [0, t.maxMaxSpeed])
     get speed() {
-        return XY.lengthOf(this.velocity);
+        return XY.lengthOf(this.spaceObject.velocity);
+    }
+
+    // Craft interface implementation - delegates to spaceObject for helm/navigation functions
+    get turnSpeed() {
+        return this.spaceObject.turnSpeed;
+    }
+    set turnSpeed(value: number) {
+        this.spaceObject.turnSpeed = value;
+    }
+    get angle() {
+        return this.spaceObject.angle;
+    }
+    set angle(value: number) {
+        this.spaceObject.angle = value;
+    }
+    get velocity() {
+        return this.spaceObject.velocity;
+    }
+    get position() {
+        return this.spaceObject.position;
+    }
+    globalToLocal(global: XY): XY {
+        return this.spaceObject.globalToLocal(global);
     }
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {
@@ -206,101 +227,5 @@ export class ShipState extends Schema {
                 );
         }
         return [];
-    }
-
-    // Convenience accessors for common properties (delegate to spaceship)
-    get id() {
-        return this.spaceship.id;
-    }
-    set id(value: string) {
-        this.spaceship.id = value;
-    }
-
-    get position() {
-        return this.spaceship.position;
-    }
-
-    get velocity() {
-        return this.spaceship.velocity;
-    }
-
-    get angle() {
-        return this.spaceship.angle;
-    }
-    set angle(value: number) {
-        this.spaceship.angle = value;
-    }
-
-    get turnSpeed() {
-        return this.spaceship.turnSpeed;
-    }
-    set turnSpeed(value: number) {
-        this.spaceship.turnSpeed = value;
-    }
-
-    get radius() {
-        return this.spaceship.radius;
-    }
-    set radius(value: number) {
-        this.spaceship.radius = value;
-    }
-
-    get faction() {
-        return this.spaceship.faction;
-    }
-    set faction(value) {
-        this.spaceship.faction = value;
-    }
-
-    get radarRange() {
-        return this.spaceship.radarRange;
-    }
-    set radarRange(value: number) {
-        this.spaceship.radarRange = value;
-    }
-
-    get model() {
-        return this.spaceship.model;
-    }
-    set model(value) {
-        this.spaceship.model = value;
-    }
-
-    get destroyed() {
-        return this.spaceship.destroyed;
-    }
-    set destroyed(value: boolean) {
-        this.spaceship.destroyed = value;
-    }
-
-    get freeze() {
-        return this.spaceship.freeze;
-    }
-    set freeze(value: boolean) {
-        this.spaceship.freeze = value;
-    }
-
-    get expendable() {
-        return this.spaceship.expendable;
-    }
-    set expendable(value: boolean) {
-        this.spaceship.expendable = value;
-    }
-
-    get scanLevels() {
-        return this.spaceship.scanLevels;
-    }
-
-    // Delegate methods to spaceship
-    globalToLocal(global: XY) {
-        return this.spaceship.globalToLocal(global);
-    }
-
-    localToGlobal(local: XY) {
-        return this.spaceship.localToGlobal(local);
-    }
-
-    get directionAxis() {
-        return this.spaceship.directionAxis;
     }
 }

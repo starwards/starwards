@@ -43,7 +43,7 @@ export async function ShipDriver(shipRoom: GameRoom<'ship'>) {
     }
     return {
         events,
-        id: shipRoom.state.id,
+        id: shipRoom.state.spaceObject.id,
         get state() {
             return shipRoom.state;
         },

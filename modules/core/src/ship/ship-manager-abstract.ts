@@ -166,11 +166,11 @@ export abstract class ShipManager implements Updateable {
         const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
-        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id);
+        let result = new Iterator(iterable).filter((v) => v.id !== this.state.spaceObject.id);
         if (this.state.weaponsTarget.enemyOnly) {
-            result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.faction);
+            result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.spaceObject.faction);
         }
-        const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.faction);
+        const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.spaceObject.faction);
         return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
     }
 
@@ -204,7 +204,7 @@ export abstract class ShipManager implements Updateable {
         ) {
             this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange(totalSeconds));
         }
-        this.state.radarRange = this.spaceObject.radarRange;
+        this.state.spaceObject.radarRange = this.spaceObject.radarRange;
     }
 
     private calcRadarRange(totalSeconds: number) {
@@ -243,7 +243,7 @@ export abstract class ShipManager implements Updateable {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
             for (const shipManager of this.ships.values()) {
-                if (shipManager.state.weaponsTarget.targetId === this.state.id) {
+                if (shipManager.state.weaponsTarget.targetId === this.state.spaceObject.id) {
                     if (shipManager.state.chainGun?.isFiring) {
                         status = TargetedStatus.FIRED_UPON;
                         break; // no need to look further
@@ -271,7 +271,7 @@ export abstract class ShipManager implements Updateable {
 
     protected syncShipProperties() {
         // Sync space object to state using .assign() to preserve UI reactivity
-        this.state.spaceship.assign(this.spaceObject as Spaceship);
+        this.state.spaceObject.assign(this.spaceObject as Spaceship);
     }
 
     protected updateAmmo() {

@@ -82,7 +82,7 @@ export class AutomationManager implements Updateable {
     private goto(id: IterationData) {
         const destination = this.state.orderPosition;
         this.state.currentTask = `Go to ${destination.x},${destination.y}`;
-        const trackRange: RTuple2 = [0, this.state.radius];
+        const trackRange: RTuple2 = [0, this.state.spaceObject.radius];
         if (XY.equals(this.state.position, destination, trackRange[1]) && XY.isZero(this.state.velocity)) {
             return true;
         }
@@ -142,11 +142,11 @@ export class AutomationManager implements Updateable {
         this.state.currentTask = `Dock at  ${dockingTargetId}`;
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        const diff = XY.difference(dockingTarget.position, this.state.position);
-        const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
+        const diff = XY.difference(dockingTarget.position, this.state.spaceObject.position);
+        const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.spaceObject.radius;
         if (!isInRange(0.75, 0.25, distance / this.state.docking.maxDockedDistance)) {
             const targetPos = XY.add(
-                this.state.position,
+                this.state.spaceObject.position,
                 XY.byLengthAndDirection(distance - this.state.docking.maxDockedDistance / 2, XY.angleOf(diff)),
             );
             const maneuvering = moveToTarget(deltaSecondsAvg, this.state, targetPos);
@@ -158,7 +158,7 @@ export class AutomationManager implements Updateable {
             this.state.smartPilot.maneuvering.y = maneuvering.strafe;
         }
         const angleRange = this.state.docking.design.width / 2;
-        const angleDiff = XY.angleOf(diff) - this.state.angle - this.state.docking.design.angle;
+        const angleDiff = XY.angleOf(diff) - this.state.spaceObject.angle - this.state.docking.design.angle;
         if (!isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff))) {
             const offset = -this.state.docking.design.angle;
             const rotation = rotateToTarget(deltaSecondsAvg, this.state, dockingTarget.position, offset);
@@ -176,7 +176,7 @@ export class AutomationManager implements Updateable {
     }
 
     private getAndApplyOrder() {
-        const order = this.spaceManager.resolveObjectOrder(this.state.id);
+        const order = this.spaceManager.resolveObjectOrder(this.state.spaceObject.id);
         if (order) {
             if (order.type === 'none') {
                 this.state.order = Order.NONE;
@@ -221,10 +221,10 @@ export class AutomationManager implements Updateable {
                 return true;
             }
             if (this.state.docking.mode === DockingMode.DOCKING) {
-                this.spaceManager.detach(this.state.id);
+                this.spaceManager.detach(this.state.spaceObject.id);
                 return this.dock(dockingTargetId, dockingTarget, id.deltaSecondsAvg);
             } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
-                this.spaceManager.detach(this.state.id);
+                this.spaceManager.detach(this.state.spaceObject.id);
                 return this.undock(dockingTargetId, dockingTarget, id.deltaSecondsAvg);
             }
             return true;

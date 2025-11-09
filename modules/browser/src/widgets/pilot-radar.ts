@@ -62,7 +62,10 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
     allElements.addChild(contentElements);
     contentElements.mask = contentMask;
 
-    const rangeFilter = new RadarRangeFilter(spaceDriver, (o: SpaceObject) => o.faction === shipDriver.state.faction);
+    const rangeFilter = new RadarRangeFilter(
+        spaceDriver,
+        (o: SpaceObject) => o.faction === shipDriver.state.spaceObject.faction,
+    );
     const fovGraphics = new Graphics();
     contentElements.addChild(fovGraphics);
 

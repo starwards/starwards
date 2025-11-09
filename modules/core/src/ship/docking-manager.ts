@@ -39,20 +39,20 @@ export class DockingManager {
         if (this.state.docking.targetId && this.state.docking.mode !== DockingMode.DOCKED) {
             this.state.docking.targetId = '';
             this.state.docking.mode = DockingMode.UNDOCKED;
-            this.spaceManager.detach(this.state.id);
+            this.spaceManager.detach(this.state.spaceObject.id);
         }
     }
 
     private calcDockingMode() {
         if (this.state.docking.targetId) {
             const [dockingTarget] = this.spaceManager.getObjectPtr(this.state.docking.targetId);
-            if (!dockingTarget || this.state.docking.targetId === this.state.id) {
+            if (!dockingTarget || this.state.docking.targetId === this.state.spaceObject.id) {
                 this.clearDocking();
             } else if (this.state.docking.mode === DockingMode.UNDOCKED) {
-                this.spaceManager.detach(this.state.id);
+                this.spaceManager.detach(this.state.spaceObject.id);
             } else {
-                const diff = XY.difference(dockingTarget.position, this.state.position);
-                const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
+                const diff = XY.difference(dockingTarget.position, this.state.spaceObject.position);
+                const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.spaceObject.radius;
                 if (distance > this.state.docking.maxDockingDistance) {
                     this.clearDocking();
                 } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
@@ -62,18 +62,18 @@ export class DockingManager {
                 } else {
                     // DOCKED or DOCKING
                     const angleRange = this.state.docking.design.width / 2;
-                    const angleDiff = XY.angleOf(diff) - this.state.angle - this.state.docking.design.angle;
+                    const angleDiff = XY.angleOf(diff) - this.state.spaceObject.angle - this.state.docking.design.angle;
                     const isDockedPosition =
                         distance <= this.state.docking.maxDockedDistance &&
                         isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff));
                     if (this.state.docking.mode === DockingMode.DOCKED) {
-                        this.spaceManager.attach(this.state.id, this.state.docking.targetId);
+                        this.spaceManager.attach(this.state.spaceObject.id, this.state.docking.targetId);
                         if (!isDockedPosition) {
                             this.damageManager.damageDocking(this.state.docking);
                             this.state.docking.mode = DockingMode.DOCKING;
                         }
                     } else if (this.state.docking.mode === DockingMode.DOCKING) {
-                        this.spaceManager.detach(this.state.id);
+                        this.spaceManager.detach(this.state.spaceObject.id);
                         if (isDockedPosition) {
                             this.state.docking.mode = DockingMode.DOCKED;
                         }

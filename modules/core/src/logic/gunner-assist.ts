@@ -44,9 +44,9 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
 export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject) {
     const maxIterations = 20;
     const maxSeconds = 100;
-    const fireAngle = ship.angle + chainGun.angle;
+    const fireAngle = ship.spaceObject.angle + chainGun.angle;
     const fireVelocity = Math.max(
-        XY.lengthOf(XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle))),
+        XY.lengthOf(XY.add(ship.spaceObject.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle))),
         1,
     );
     let time = 0;
@@ -54,7 +54,7 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
     // this loop refines the time it will take for a bullet to reach the target
     // and from that it estimates when the target will be at the time of impact
     for (let i = 0; i < maxIterations; i++) {
-        const distance = Math.max(XY.lengthOf(XY.difference(predictedPosition, ship.position)), 1);
+        const distance = Math.max(XY.lengthOf(XY.difference(predictedPosition, ship.spaceObject.position)), 1);
         if (!isFinite(distance) || !Number.isSafeInteger(Math.trunc(distance))) {
             break;
         }
@@ -73,7 +73,7 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
 
 export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPosition: XY) {
     // calc projection of position delta on axis from ship to target
-    const direction = ship.directionAxis;
+    const direction = ship.spaceObject.directionAxis;
     const posDelta = XY.difference(predictedPosition, target.position);
     const posDeltaOnDirection = XY.projection(posDelta, direction);
     return XY.div(posDeltaOnDirection, direction);
@@ -98,19 +98,25 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
 }
 
 export function calcShellSecondsToLive(ship: ShipState, chainGun: ChainGun, distance: number) {
-    const fireAngle = ship.angle + chainGun.angle;
-    const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle));
+    const fireAngle = ship.spaceObject.angle + chainGun.angle;
+    const fireVelocity = XY.add(
+        ship.spaceObject.velocity,
+        XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle),
+    );
     return distance / XY.lengthOf(fireVelocity);
 }
 
 export function getShellAimVelocityCompensation(ship: ShipState, chainGun: ChainGun): XY {
-    return XY.negate(XY.scale(ship.velocity, chainGun.shellSecondsToLive));
+    return XY.negate(XY.scale(ship.spaceObject.velocity, chainGun.shellSecondsToLive));
 }
 
 export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): XY {
-    const fireAngle = ship.angle + chainGun.angle;
-    const fireSource = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, fireAngle));
-    const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle));
+    const fireAngle = ship.spaceObject.angle + chainGun.angle;
+    const fireSource = XY.add(ship.spaceObject.position, XY.rotate({ x: ship.spaceObject.radius, y: 0 }, fireAngle));
+    const fireVelocity = XY.add(
+        ship.spaceObject.velocity,
+        XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle),
+    );
     const fireTime = chainGun.shellSecondsToLive;
     return XY.add(fireSource, XY.scale(fireVelocity, fireTime));
 }

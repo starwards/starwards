@@ -75,7 +75,7 @@ export class Thruster extends SystemState {
         return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.design.maxAngleError;
     }
     getGlobalAngle(parent: ShipState): number {
-        return this.angle + parent.angle;
+        return this.angle + parent.spaceObject.angle;
     }
     getVelocityCapacity(parent: ShipState): number {
         return this.effectiveness * (this.design.capacity + parent.afterBurner * this.design.afterBurnerCapacity);

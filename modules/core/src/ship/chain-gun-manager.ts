@@ -80,7 +80,9 @@ export class ChainGunManager implements Updateable {
                         this.chainGun.design.minShellRange,
                         this.chainGun.design.maxShellRange,
 
-                        XY.lengthOf(XY.difference(this.shipManager.weaponsTarget!.position, this.state.position)),
+                        XY.lengthOf(
+                            XY.difference(this.shipManager.weaponsTarget!.position, this.state.spaceObject.position),
+                        ),
                     );
                     break;
                 default:

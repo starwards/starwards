@@ -61,7 +61,10 @@ export function drawTacticalRadar(
     }
     drawMask();
     container.on('resize', drawMask);
-    const rangeFilter = new RadarRangeFilter(spaceDriver, (o: SpaceObject) => o.faction === shipDriver.state.faction);
+    const rangeFilter = new RadarRangeFilter(
+        spaceDriver,
+        (o: SpaceObject) => o.faction === shipDriver.state.spaceObject.faction,
+    );
     const fovGraphics = new Graphics();
     fovGraphics.mask = circleMask;
     root.stage.addChild(fovGraphics);
