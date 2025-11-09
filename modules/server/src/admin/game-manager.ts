@@ -238,4 +238,38 @@ export class GameManager {
             50,
         );
     }
+
+    /**
+     * Converts a ship between player and NPC types by recreating the ship room with the correct manager type.
+     * This closes the existing room and creates a new one with the appropriate ShipManager (Pc or Npc).
+     */
+    public async convertShipType(shipId: string, isPlayerShip: boolean) {
+        const shipManager = this.shipManagers.get(shipId);
+        if (!shipManager) {
+            throw new Error(`Ship ${shipId} not found`);
+        }
+
+        // Check if conversion is needed
+        const currentIsPlayerShip = this.state.playerShipIds.includes(shipId);
+        if (currentIsPlayerShip === isPlayerShip) {
+            // No conversion needed
+            return;
+        }
+
+        // Get the current ship state and space object from space manager
+        const shipState = shipManager.state;
+        const spaceObject = this.spaceManager.state.getShip(shipId);
+        if (!spaceObject) {
+            throw new Error(`Ship ${shipId} not found in space manager`);
+        }
+
+        // Clean up the existing ship room
+        const cleanup = this.shipCleanups.get(shipId);
+        if (cleanup) {
+            await cleanup();
+        }
+
+        // Recreate the ship manager and room with the new type
+        this.initShipManagerAndRoom(spaceObject, shipState, isPlayerShip);
+    }
 }
