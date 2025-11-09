@@ -1,9 +1,8 @@
+import { ArraySchema, Schema } from '@colyseus/schema';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { Spaceship, Vec2 } from '../space';
 import { range, rangeSchema } from '../range';
-
 import { Armor } from './armor';
-import { ArraySchema, Schema } from '@colyseus/schema';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
