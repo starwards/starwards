@@ -108,7 +108,7 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         const speed = XY.lengthOf(this.spaceObject.velocity);
         if (speed > this.state.maxSpeed) {
             this.state.smartPilot.maneuvering.setValue(
-                XY.normalize(this.state.globalToLocal(XY.negate(this.spaceObject.velocity))),
+                XY.normalize(this.state.spaceObject.globalToLocal(XY.negate(this.spaceObject.velocity))),
             );
         }
         const moveDirections = vector2ShipDirections(this.state.smartPilot.maneuvering);
@@ -116,13 +116,13 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
             x: this.state.smartPilot.maneuvering.x * this.state.velocityCapacity(moveDirections.x) * deltaSeconds,
             y: this.state.smartPilot.maneuvering.y * this.state.velocityCapacity(moveDirections.y) * deltaSeconds,
         };
-        this.changeVelocity(this.state.localToGlobal(localVelocity));
+        this.changeVelocity(this.state.spaceObject.localToGlobal(localVelocity));
     }
 
     private changeVelocity(speedToChange: XY) {
         this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
+        this.state.spaceObject.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceObject.velocity.y = this.spaceObject.velocity.y;
     }
 
     update(id: IterationData) {
@@ -133,7 +133,7 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         if (this.state.smartPilot.rotation) {
             const speedToChange = this.state.smartPilot.rotation * this.state.rotationCapacity * deltaSeconds;
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
-            this.state.turnSpeed = this.spaceObject.turnSpeed;
+            this.state.spaceObject.turnSpeed = this.spaceObject.turnSpeed;
         }
     }
 }

@@ -61,14 +61,14 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 () => radarVisibleBg,
                 rangeRangeDrawFunctions,
                 undefined,
-                (s: SpaceObject) => s.faction === shipDriver.state.faction,
+                (s: SpaceObject) => s.faction === shipDriver.state.spaceObject.faction,
             );
             root.addLayer(radarRangeLayer.renderRoot);
             const grid = new GridLayer(root);
             root.addLayer(grid.renderRoot);
             const rangeFilter = new RadarRangeFilter(
                 spaceDriver,
-                (o: SpaceObject) => o.faction === shipDriver.state.faction,
+                (o: SpaceObject) => o.faction === shipDriver.state.spaceObject.faction,
             );
             root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.UTILITY);
             const blipLayer = new ObjectsLayer(
@@ -77,7 +77,7 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 64,
                 (s: SpaceObject) => {
                     if (s.faction === Faction.NONE) return yellow;
-                    if (s.faction === shipDriver.state.faction) return blue;
+                    if (s.faction === shipDriver.state.spaceObject.faction) return blue;
                     return red;
                 },
                 dradisDrawFunctions,

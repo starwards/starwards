@@ -7,14 +7,17 @@ import { XY } from './xy';
 const MIN_RADIUS_DOCKING_TARGET = 1;
 
 export function getClosestDockingTarget(ship: ShipState, spatial: SpatialIndex) {
-    const queryArea = new Circle(XY.clone(ship.position), ship.docking.design.maxDockingDistance + ship.radius);
+    const queryArea = new Circle(
+        XY.clone(ship.spaceObject.position),
+        ship.docking.design.maxDockingDistance + ship.spaceObject.radius,
+    );
     const res =
         [
             ...new Iterator(spatial.selectPotentials(queryArea))
-                .filter((o) => ship.id !== o.id && o.isCorporal && o.radius > MIN_RADIUS_DOCKING_TARGET)
+                .filter((o) => ship.spaceObject.id !== o.id && o.isCorporal && o.radius > MIN_RADIUS_DOCKING_TARGET)
                 .map<[string, number]>((o) => {
-                    const diff = XY.difference(o.position, ship.position);
-                    const distance = XY.lengthOf(diff) - o.radius - ship.radius;
+                    const diff = XY.difference(o.position, ship.spaceObject.position);
+                    const distance = XY.lengthOf(diff) - o.radius - ship.spaceObject.radius;
                     return [o.id, distance];
                 })
                 .filter(([_, distance]) => distance < ship.docking.design.maxDockingDistance),

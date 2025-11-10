@@ -3,7 +3,6 @@ import {
     Iterator,
     MAX_SAFE_FLOAT,
     ShipManagerPc,
-    ShipState,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
@@ -293,14 +292,13 @@ export class ShipTestHarness {
         if (!this.historyEnabled) return;
 
         const ships = Array.from(this.spaceMgr.state.getAll('Spaceship')).map((ship) => {
-            const shipState = ship as ShipState;
             return {
                 id: ship.id,
                 x: ship.position.x,
                 y: ship.position.y,
                 rotation: ship.angle,
                 velocity: { x: ship.velocity.x, y: ship.velocity.y },
-                armor: shipState.armor.numberOfHealthyPlates,
+                armor: this.shipMgr.state.armor.numberOfHealthyPlates,
             };
         });
 

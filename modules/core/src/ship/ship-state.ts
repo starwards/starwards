@@ -1,9 +1,8 @@
+import { ArraySchema, Schema } from '@colyseus/schema';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { Spaceship, Vec2 } from '../space';
 import { range, rangeSchema } from '../range';
-
 import { Armor } from './armor';
-import { ArraySchema } from '@colyseus/schema';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
@@ -48,8 +47,15 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') totalCoolant = 0;
     @gameField('float32') systemKillRatio = 0;
 }
-@rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
-export class ShipState extends Spaceship {
+@rangeSchema({
+    '/spaceObject/turnSpeed': [-90, 90],
+    '/spaceObject/angle': [0, 360],
+})
+export class ShipState extends Schema {
+    // Composition: space object as a property (updated via .assign() every game loop)
+    @gameField(Spaceship)
+    spaceObject = new Spaceship();
+
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
@@ -149,11 +155,11 @@ export class ShipState extends Spaceship {
 
     @range([0, 360])
     get velocityAngle() {
-        return XY.angleOf(this.velocity);
+        return XY.angleOf(this.spaceObject.velocity);
     }
     @range((t: ShipState) => [0, t.maxMaxSpeed])
     get speed() {
-        return XY.lengthOf(this.velocity);
+        return XY.lengthOf(this.spaceObject.velocity);
     }
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {

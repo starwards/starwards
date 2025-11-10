@@ -14,6 +14,7 @@ import {
 import { SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
+import { Craft } from '../logic/helm-assist';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { Iterator } from '../logic/iteration';
@@ -22,6 +23,7 @@ import { SmartPilotMode } from './smart-pilot';
 
 type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
+    readonly craft: Craft;
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
 };
@@ -121,7 +123,7 @@ export class MovementManager implements Updateable {
     }
 
     private checkJam() {
-        const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
+        const queryArea = new Circle(XY.clone(this.state.spaceObject.position), this.state.warp.design.maxProximity);
         const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
             .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
             .firstOr(null);
@@ -134,7 +136,7 @@ export class MovementManager implements Updateable {
             if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
                 // increase warp level
                 if (this.state.warp.currentLevel == 0) {
-                    const currentSpeed = XY.lengthOf(this.state.velocity);
+                    const currentSpeed = XY.lengthOf(this.state.spaceObject.velocity);
                     if (currentSpeed) {
                         // penalty damage for existing velocity
                         this.damageManager.damageAllSystems({
@@ -176,7 +178,7 @@ export class MovementManager implements Updateable {
                 this.state.warp.currentLevel * this.state.warp.effectiveness * this.state.warp.design.speedPerLevel;
             const newVelocity = XY.byLengthAndDirection(
                 this.state.warp.currentLevel * this.state.warp.design.speedPerLevel,
-                this.state.angle,
+                this.state.spaceObject.angle,
             );
             // penalty damage for existing velocity (in case of warp system malfunction)
             this.damageManager.damageAllSystems({
@@ -189,14 +191,14 @@ export class MovementManager implements Updateable {
 
     private changeVelocity(speedToChange: XY) {
         this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
+        this.state.spaceObject.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceObject.velocity.y = this.spaceObject.velocity.y;
     }
 
     private setVelocity(newSpeed: XY) {
         this.spaceManager.setVelocity(this.spaceObject.id, newSpeed);
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
+        this.state.spaceObject.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceObject.velocity.y = this.spaceObject.velocity.y;
     }
 
     private isWarpActive() {
@@ -222,8 +224,7 @@ export class MovementManager implements Updateable {
                     );
                     rotationCommand = rotateToTarget(
                         deltaSeconds,
-                        this.state,
-
+                        this.shipManager.craft,
                         this.shipManager.weaponsTarget.position,
                         this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset,
                     );
@@ -259,7 +260,7 @@ export class MovementManager implements Updateable {
                 speedToChange += enginePower * this.state.maneuvering.efficiency;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
-            this.state.turnSpeed = this.spaceObject.turnSpeed;
+            this.state.spaceObject.turnSpeed = this.spaceObject.turnSpeed;
         }
     }
 
@@ -295,7 +296,7 @@ export class MovementManager implements Updateable {
                         const velocity = XY.add(
                             XY.scale(this.state.smartPilot.maneuvering, this.state.maxSpeed),
 
-                            this.state.globalToLocal(this.shipManager.weaponsTarget.velocity),
+                            this.state.spaceObject.globalToLocal(this.shipManager.weaponsTarget.velocity),
                         );
                         maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
                     } else {
@@ -327,7 +328,7 @@ export class MovementManager implements Updateable {
                 const actionFactor = thruster.effectiveness * thruster.availableCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(
                     (mvEffect + abEffect) * actionFactor,
-                    thruster.angle + thruster.angleError + this.state.angle,
+                    thruster.angle + thruster.angleError + this.state.spaceObject.angle,
                 );
             }),
         );
@@ -341,7 +342,7 @@ export class MovementManager implements Updateable {
             thruster.afterBurnerActive = 0;
             thruster.active = 0;
             if (thruster.effectiveness) {
-                const globalAngle = thruster.angle + this.state.angle;
+                const globalAngle = thruster.angle + this.state.spaceObject.angle;
                 const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
                 const axisCapacity = thruster.design.capacity * thruster.effectiveness * deltaSeconds;
                 if (

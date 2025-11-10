@@ -54,7 +54,7 @@ function makeArmor(design: ArmorDesign): Armor {
 
 function makeShip(id: string, design: ShipPropertiesDesign) {
     const state = new ShipState();
-    state.id = id;
+    state.spaceObject.id = id;
     state.design.assign(design);
     return state;
 }

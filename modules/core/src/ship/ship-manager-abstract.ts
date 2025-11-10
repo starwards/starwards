@@ -1,5 +1,6 @@
 import {
     ChainGun,
+    Craft,
     Docking,
     Faction,
     Radar,
@@ -10,6 +11,7 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
+    XY,
     capToRange,
     lerp,
     projectileModels,
@@ -25,6 +27,7 @@ import { DockingManager } from './docking-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
+import { ShipDirection } from './ship-direction';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
@@ -107,6 +110,20 @@ export abstract class ShipManager implements Updateable {
         }
     }
 
+    // Craft facade for helm assist functions
+    public get craft(): Craft {
+        const spaceObj = this.spaceObject;
+        return {
+            rotationCapacity: this.state.rotationCapacity,
+            turnSpeed: spaceObj.turnSpeed,
+            angle: spaceObj.angle,
+            velocity: { x: spaceObj.velocity.x, y: spaceObj.velocity.y },
+            position: { x: spaceObj.position.x, y: spaceObj.position.y },
+            globalToLocal: (global: XY) => spaceObj.globalToLocal(global),
+            velocityCapacity: (direction: ShipDirection) => this.state.velocityCapacity(direction),
+        };
+    }
+
     public cancelAllTasks() {
         this.dockingManager.cancelTask();
         this.automationManager.cancelTask();
@@ -166,11 +183,11 @@ export abstract class ShipManager implements Updateable {
         const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
-        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id);
+        let result = new Iterator(iterable).filter((v) => v.id !== this.state.spaceObject.id);
         if (this.state.weaponsTarget.enemyOnly) {
-            result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.faction);
+            result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.spaceObject.faction);
         }
-        const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.faction);
+        const visibleObjects = this.spaceManager.getFactionVisibleObjects(this.state.spaceObject.faction);
         return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
     }
 
@@ -204,7 +221,7 @@ export abstract class ShipManager implements Updateable {
         ) {
             this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange(totalSeconds));
         }
-        this.state.radarRange = this.spaceObject.radarRange;
+        this.state.spaceObject.radarRange = this.spaceObject.radarRange;
     }
 
     private calcRadarRange(totalSeconds: number) {
@@ -243,7 +260,7 @@ export abstract class ShipManager implements Updateable {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
             for (const shipManager of this.ships.values()) {
-                if (shipManager.state.weaponsTarget.targetId === this.state.id) {
+                if (shipManager.state.weaponsTarget.targetId === this.state.spaceObject.id) {
                     if (shipManager.state.chainGun?.isFiring) {
                         status = TargetedStatus.FIRED_UPON;
                         break; // no need to look further
@@ -270,16 +287,8 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected syncShipProperties() {
-        // only sync data that should be exposed to room clients
-        this.state.position.x = this.spaceObject.position.x;
-        this.state.position.y = this.spaceObject.position.y;
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
-        this.state.turnSpeed = this.spaceObject.turnSpeed;
-        this.state.angle = this.spaceObject.angle;
-        this.state.faction = this.spaceObject.faction;
-        this.state.radius = this.spaceObject.radius;
-        this.state.radarRange = this.spaceObject.radarRange;
+        // Sync space object to state using .assign() to preserve UI reactivity
+        this.state.spaceObject.assign(this.spaceObject as Spaceship);
     }
 
     protected updateAmmo() {

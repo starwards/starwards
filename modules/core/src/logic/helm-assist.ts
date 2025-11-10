@@ -5,26 +5,30 @@ import { ShipState } from '../ship';
 import { XY } from './xy';
 
 export type Craft = {
-    rotationCapacity: number;
-    turnSpeed: number;
-    angle: number;
-    velocity: XY;
-    position: XY;
+    readonly rotationCapacity: number;
+    readonly turnSpeed: number;
+    readonly angle: number;
+    readonly velocity: XY;
+    readonly position: XY;
     globalToLocal(global: XY): XY;
     velocityCapacity(direction: ShipDirection): number;
 };
 export type ManeuveringCommand = { strafe: number; boost: number };
 
 export function rotationFromTargetTurnSpeed(deltaSeconds: number, ship: ShipState, targetTurnSpeed: number) {
-    return accelerateToSpeed(deltaSeconds, ship.maneuvering.design.rotationCapacity, targetTurnSpeed - ship.turnSpeed);
+    return accelerateToSpeed(
+        deltaSeconds,
+        ship.maneuvering.design.rotationCapacity,
+        targetTurnSpeed - ship.spaceObject.turnSpeed,
+    );
 }
 
 export function matchGlobalSpeed(deltaSeconds: number, ship: ShipState, globalVelocity: XY): ManeuveringCommand {
-    return matchLocalSpeed(deltaSeconds, ship, ship.globalToLocal(globalVelocity));
+    return matchLocalSpeed(deltaSeconds, ship, ship.spaceObject.globalToLocal(globalVelocity));
 }
 
 export function matchLocalSpeed(deltaSeconds: number, ship: ShipState, localVelocity: XY): ManeuveringCommand {
-    const relTargetSpeed = XY.difference(localVelocity, ship.globalToLocal(ship.velocity));
+    const relTargetSpeed = XY.difference(localVelocity, ship.spaceObject.globalToLocal(ship.spaceObject.velocity));
     const velocityDirection = vector2ShipDirections(relTargetSpeed);
     return {
         strafe: accelerateToSpeed(deltaSeconds, ship.velocityCapacity(velocityDirection.y), relTargetSpeed.y),

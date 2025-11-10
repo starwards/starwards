@@ -1,3 +1,4 @@
+/* eslint-disable sort-imports */
 import { IterationData, Updateable } from '../updateable';
 import {
     ManeuveringCommand,
@@ -17,13 +18,14 @@ import {
     toDegreesDelta,
 } from '../logic';
 import { Order, ShipState } from './ship-state';
+import { SpaceObject } from '../space';
+import { assertUnreachable } from '../utils';
 
+import { switchToAvailableAmmo } from './chain-gun-manager';
 import { DockingMode } from './docking';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
-import { SpaceObject } from '../space';
-import { assertUnreachable } from '../utils';
-import { switchToAvailableAmmo } from './chain-gun-manager';
+/* eslint-enable sort-imports */
 
 export class AutomationManager implements Updateable {
     constructor(
@@ -58,32 +60,39 @@ export class AutomationManager implements Updateable {
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
     ) {
-        const ship = this.state;
-        const shipToTarget = XY.difference(targetPosition, ship.position);
+        const shipToTarget = XY.difference(targetPosition, this.state.spaceObject.position);
         const distanceToTarget = XY.lengthOf(shipToTarget);
         let maneuvering: ManeuveringCommand;
         if (isInRange(trackRange[0], trackRange[1], distanceToTarget)) {
-            maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, targetVelocity);
+            maneuvering = matchGlobalSpeed(deltaSecondsAvg, this.state, targetVelocity);
         } else {
-            maneuvering = moveToTarget(deltaSecondsAvg, ship, targetPosition);
+            maneuvering = moveToTarget(deltaSecondsAvg, this.shipManager.craft, targetPosition);
             if (distanceToTarget < trackRange[0]) {
                 maneuvering.boost = -maneuvering.boost;
                 maneuvering.strafe = -maneuvering.strafe;
             }
         }
-        const rotation = rotateToTarget(deltaSecondsAvg, ship, XY.add(targetPosition, rotationCompensation), 0);
+        const rotation = rotateToTarget(
+            deltaSecondsAvg,
+            this.shipManager.craft,
+            XY.add(targetPosition, rotationCompensation),
+            0,
+        );
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        ship.smartPilot.maneuvering.x = maneuvering.boost;
-        ship.smartPilot.maneuvering.y = maneuvering.strafe;
-        ship.smartPilot.rotation = rotation;
+        this.state.smartPilot.maneuvering.x = maneuvering.boost;
+        this.state.smartPilot.maneuvering.y = maneuvering.strafe;
+        this.state.smartPilot.rotation = rotation;
     }
 
     private goto(id: IterationData) {
         const destination = this.state.orderPosition;
         this.state.currentTask = `Go to ${destination.x},${destination.y}`;
-        const trackRange: RTuple2 = [0, this.state.radius];
-        if (XY.equals(this.state.position, destination, trackRange[1]) && XY.isZero(this.state.velocity)) {
+        const trackRange: RTuple2 = [0, this.state.spaceObject.radius];
+        if (
+            XY.equals(this.state.spaceObject.position, destination, trackRange[1]) &&
+            XY.isZero(this.state.spaceObject.velocity)
+        ) {
             return true;
         }
         this.positionNearTarget(XY.zero, destination, XY.zero, trackRange, id);
@@ -123,16 +132,16 @@ export class AutomationManager implements Updateable {
     private undock(dockingTargetId: string, dockingTarget: SpaceObject, deltaSecondsAvg: number) {
         const UndockingOvershootFactor = 1.2;
         this.state.currentTask = `Undock from  ${dockingTargetId}`;
-        const diff = XY.difference(dockingTarget.position, this.state.position);
+        const diff = XY.difference(dockingTarget.position, this.state.spaceObject.position);
         const destination = XY.add(
-            this.state.position,
+            this.state.spaceObject.position,
             XY.byLengthAndDirection(
                 this.state.docking.design.undockingTargetDistance * UndockingOvershootFactor,
                 180 + XY.angleOf(diff),
             ),
         );
-        const rotation = rotateToTarget(deltaSecondsAvg, this.state, destination, 0);
-        const maneuvering = moveToTarget(deltaSecondsAvg, this.state, destination);
+        const rotation = rotateToTarget(deltaSecondsAvg, this.shipManager.craft, destination, 0);
+        const maneuvering = moveToTarget(deltaSecondsAvg, this.shipManager.craft, destination);
         this.state.smartPilot.maneuvering.x = maneuvering.boost;
         this.state.smartPilot.maneuvering.y = maneuvering.strafe;
         this.state.smartPilot.rotation = rotation;
@@ -142,14 +151,14 @@ export class AutomationManager implements Updateable {
         this.state.currentTask = `Dock at  ${dockingTargetId}`;
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        const diff = XY.difference(dockingTarget.position, this.state.position);
-        const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.radius;
+        const diff = XY.difference(dockingTarget.position, this.state.spaceObject.position);
+        const distance = XY.lengthOf(diff) - dockingTarget.radius - this.state.spaceObject.radius;
         if (!isInRange(0.75, 0.25, distance / this.state.docking.maxDockedDistance)) {
             const targetPos = XY.add(
-                this.state.position,
+                this.state.spaceObject.position,
                 XY.byLengthAndDirection(distance - this.state.docking.maxDockedDistance / 2, XY.angleOf(diff)),
             );
-            const maneuvering = moveToTarget(deltaSecondsAvg, this.state, targetPos);
+            const maneuvering = moveToTarget(deltaSecondsAvg, this.shipManager.craft, targetPos);
             this.state.smartPilot.maneuvering.x = maneuvering.boost;
             this.state.smartPilot.maneuvering.y = maneuvering.strafe;
         } else {
@@ -158,10 +167,10 @@ export class AutomationManager implements Updateable {
             this.state.smartPilot.maneuvering.y = maneuvering.strafe;
         }
         const angleRange = this.state.docking.design.width / 2;
-        const angleDiff = XY.angleOf(diff) - this.state.angle - this.state.docking.design.angle;
+        const angleDiff = XY.angleOf(diff) - this.state.spaceObject.angle - this.state.docking.design.angle;
         if (!isInRange(-angleRange, angleRange, toDegreesDelta(angleDiff))) {
             const offset = -this.state.docking.design.angle;
-            const rotation = rotateToTarget(deltaSecondsAvg, this.state, dockingTarget.position, offset);
+            const rotation = rotateToTarget(deltaSecondsAvg, this.shipManager.craft, dockingTarget.position, offset);
             this.state.smartPilot.rotation = rotation;
         }
     }
@@ -176,7 +185,7 @@ export class AutomationManager implements Updateable {
     }
 
     private getAndApplyOrder() {
-        const order = this.spaceManager.resolveObjectOrder(this.state.id);
+        const order = this.spaceManager.resolveObjectOrder(this.state.spaceObject.id);
         if (order) {
             if (order.type === 'none') {
                 this.state.order = Order.NONE;
@@ -221,10 +230,10 @@ export class AutomationManager implements Updateable {
                 return true;
             }
             if (this.state.docking.mode === DockingMode.DOCKING) {
-                this.spaceManager.detach(this.state.id);
+                this.spaceManager.detach(this.state.spaceObject.id);
                 return this.dock(dockingTargetId, dockingTarget, id.deltaSecondsAvg);
             } else if (this.state.docking.mode === DockingMode.UNDOCKING) {
-                this.spaceManager.detach(this.state.id);
+                this.spaceManager.detach(this.state.spaceObject.id);
                 return this.undock(dockingTargetId, dockingTarget, id.deltaSecondsAvg);
             }
             return true;
