@@ -48,8 +48,8 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') systemKillRatio = 0;
 }
 @rangeSchema({
-    '/turnSpeed': [-90, 90],
-    '/angle': [0, 360],
+    '/spaceObject/turnSpeed': [-90, 90],
+    '/spaceObject/angle': [0, 360],
 })
 export class ShipState extends Schema {
     // Composition: space object as a property (updated via .assign() every game loop)
