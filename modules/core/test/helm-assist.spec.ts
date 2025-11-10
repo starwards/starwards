@@ -2,7 +2,6 @@ import { MovementTestMetrics, ShipTestHarness, SpeedTestMetrics, TimedTestMetric
 import {
     ShipDirection,
     ShipDirections,
-    Vec2,
     XY,
     limitPercision,
     matchGlobalSpeed,

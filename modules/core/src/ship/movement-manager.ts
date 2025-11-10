@@ -14,6 +14,7 @@ import {
 import { SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
+import { Craft } from '../logic/helm-assist';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { Iterator } from '../logic/iteration';
@@ -22,6 +23,7 @@ import { SmartPilotMode } from './smart-pilot';
 
 type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
+    readonly craft: Craft;
     setSmartPilotManeuveringMode(value: SmartPilotMode): void;
     setSmartPilotRotationMode(value: SmartPilotMode): void;
 };
@@ -222,8 +224,7 @@ export class MovementManager implements Updateable {
                     );
                     rotationCommand = rotateToTarget(
                         deltaSeconds,
-                        this.state,
-
+                        this.shipManager.craft,
                         this.shipManager.weaponsTarget.position,
                         this.state.smartPilot.rotationTargetOffset * this.state.smartPilot.design.maxTargetAimOffset,
                     );

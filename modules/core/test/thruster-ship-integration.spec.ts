@@ -1,5 +1,5 @@
 import { EPSILON, limitPercisionHard, toPositiveDegreesDelta } from '../src/logic/formulas';
-import { ManeuveringCommand, Vec2, XY } from '../src';
+import { ManeuveringCommand, XY } from '../src';
 import { ShipTestHarness, TimedTestMetrics } from './ship-test-harness';
 
 import { ShipDirection } from '../src/ship/ship-direction';
