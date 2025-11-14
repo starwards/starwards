@@ -36,9 +36,9 @@
         "build:watch": "tsup-node --watch"
     },
     "dependencies": {
-        "@colyseus/schema": "^2.0.37",
-        "colyseus-events": "^3.0.0",
-        "colyseus.js": "^0.15.28",
+        "@colyseus/schema": "^3.0.68",
+        "colyseus-events": "^4.0.2",
+        "colyseus.js": "^0.16.22",
         "detect-collisions": "^9.27.6",
         "eventemitter2": "^6.4.9",
         "eventemitter3": "^5.0.1",

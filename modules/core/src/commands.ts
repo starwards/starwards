@@ -1,7 +1,7 @@
 import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, isJsonPointer, printError, tryGetRange } from '.';
 import { Primitive, isPrimitive } from 'colyseus-events';
 
-import { Schema } from '@colyseus/schema';
+import { MapSchema, Schema } from '@colyseus/schema';
 
 export interface StateCommand<T, S extends Schema, P> {
     cmdName: string;
@@ -87,6 +87,46 @@ export function isSetValueCommand(val: unknown): val is SetValueCommand {
     return (val as { value: unknown })?.value !== undefined;
 }
 
+/**
+ * Set a value using JSON pointer path, handling MapSchema correctly
+ */
+function setByPointer(root: Schema, path: readonly (string | number)[], value: unknown): void {
+    if (path.length === 0) {
+        throw new Error('Cannot set root object');
+    }
+    
+    let current: unknown = root;
+    
+    // Traverse all path segments except the last one
+    for (let i = 0; i < path.length - 1; i++) {
+        const segment = path[i];
+        
+        if (current instanceof MapSchema) {
+            // MapSchema requires .get() method
+            current = current.get(String(segment));
+        } else if (current instanceof Object) {
+            // Regular object property access
+            current = (current as Record<string | number, unknown>)[segment];
+        } else {
+            throw new Error(`Cannot traverse path at segment ${String(segment)}`);
+        }
+        
+        if (current === undefined) {
+            throw new Error(`Path segment ${String(segment)} not found`);
+        }
+    }
+    
+    // Set the final property
+    const finalSegment = path[path.length - 1];
+    if (current instanceof MapSchema) {
+        throw new Error('Cannot set property on MapSchema - target should be an object in the map');
+    } else if (current instanceof Object) {
+        (current as Record<string | number, unknown>)[finalSegment] = value;
+    } else {
+        throw new Error(`Cannot set property ${String(finalSegment)} on non-object`);
+    }
+}
+
 export function handleJsonPointerCommand(message: unknown, type: string | number, root: Schema) {
     if (isSetValueCommand(message)) {
         let { value } = message;
@@ -99,7 +139,7 @@ export function handleJsonPointerCommand(message: unknown, type: string | number
                         value = capToRange(range[0], range[1], value);
                     }
                 }
-                pointer.set(root, value);
+                setByPointer(root, pointer.path, value);
                 return true;
             } catch (e) {
                 // eslint-disable-next-line no-console

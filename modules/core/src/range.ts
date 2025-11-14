@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { JsonPointer } from 'json-ptr';
 import { RTuple2 } from './logic/formulas';
-import { Schema } from '@colyseus/schema';
+import { MapSchema, Schema } from '@colyseus/schema';
 import { getJsonPointer } from './json-ptr';
 
 const propertyMetadataKey = Symbol('range:propertyMetadata');
@@ -87,8 +87,36 @@ export function getRange(root: Schema, pointer: JsonPointer): RTuple2 {
     return r;
 }
 
+/**
+ * Get the parent object by traversing the path, handling MapSchema correctly
+ */
+function getParent(root: Schema, path: readonly (string | number)[]): unknown {
+    let current: unknown = root;
+    
+    // Traverse all path segments except the last one (which is the property we're looking for)
+    for (let i = 0; i < path.length - 1; i++) {
+        const segment = path[i];
+        
+        if (current instanceof MapSchema) {
+            // MapSchema requires .get() method
+            current = current.get(String(segment));
+        } else if (current instanceof Object) {
+            // Regular object property access
+            current = (current as Record<string | number, unknown>)[segment];
+        } else {
+            return undefined;
+        }
+        
+        if (current === undefined) {
+            return undefined;
+        }
+    }
+    
+    return current;
+}
+
 export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | RTuple2 {
-    const target = pointer.path.length === 1 ? root : pointer.parent(root); // pending bug fix https://github.com/flitbit/json-ptr/pull/56
+    const target = pointer.path.length === 1 ? root : getParent(root, pointer.path);
     const propertyName = pointer.path.at(-1);
     if (!(target instanceof Object) || typeof propertyName !== 'string') {
         throw new Error(
