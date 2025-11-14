@@ -91,7 +91,7 @@
         "jest-junit": "^16.0.0",
         "lint-staged": "^16.2.6",
         "ncp": "^2.0.0",
-        "node-red": "^3.1.15",
+        "node-red": "^4.1.1",
         "node-red-node-test-helper": "^0.3.5",
         "pkg": "^5.8.1",
         "playwright": "^1.56.1",
