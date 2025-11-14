@@ -13,25 +13,25 @@ import { stringToSchema } from '../serialization/game-state-serialization';
  */
 function deepApproxEqual(a: any, b: any, tolerance = 1e-6): boolean {
     if (a === b) return true;
-    
+
     if (typeof a === 'number' && typeof b === 'number') {
         if (isNaN(a) && isNaN(b)) return true;
         if (!isFinite(a) || !isFinite(b)) return a === b;
         return Math.abs(a - b) <= tolerance;
     }
-    
+
     if (Array.isArray(a) && Array.isArray(b)) {
         if (a.length !== b.length) return false;
         return a.every((val, idx) => deepApproxEqual(val, b[idx], tolerance));
     }
-    
+
     if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
         const keysA = Object.keys(a);
         const keysB = Object.keys(b);
         if (keysA.length !== keysB.length) return false;
-        return keysA.every(key => keysB.includes(key) && deepApproxEqual(a[key], b[key], tolerance));
+        return keysA.every((key) => keysB.includes(key) && deepApproxEqual(a[key], b[key], tolerance));
     }
-    
+
     return false;
 }
 
@@ -100,11 +100,11 @@ export function makeDriver() {
             const data = await stringToSchema(SavedGame, savedGame);
 
             expect(data.mapName).toEqual(this.map?.name);
-            
+
             const expectedSpace = this.spaceManager.state.toJSON();
             const actualSpace = data.fragment.space.toJSON();
             expect(deepApproxEqual(actualSpace, expectedSpace)).toBe(true);
-            
+
             const expectedShips = [...this.shipManagers].map(([k, v]) => [k, v.state.toJSON()]);
             const actualShips = [...data.fragment.ship].map(([k, v]) => [k, v.toJSON()]);
             expect(deepApproxEqual(actualShips, expectedShips)).toBe(true);

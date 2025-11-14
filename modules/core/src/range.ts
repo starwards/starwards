@@ -92,11 +92,11 @@ export function getRange(root: Schema, pointer: JsonPointer): RTuple2 {
  */
 function getParent(root: Schema, path: readonly (string | number)[]): unknown {
     let current: unknown = root;
-    
+
     // Traverse all path segments except the last one (which is the property we're looking for)
     for (let i = 0; i < path.length - 1; i++) {
         const segment = path[i];
-        
+
         if (current instanceof MapSchema) {
             // MapSchema requires .get() method
             current = current.get(String(segment));
@@ -106,12 +106,12 @@ function getParent(root: Schema, path: readonly (string | number)[]): unknown {
         } else {
             return undefined;
         }
-        
+
         if (current === undefined) {
             return undefined;
         }
     }
-    
+
     return current;
 }
 

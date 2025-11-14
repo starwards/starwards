@@ -15,7 +15,7 @@ export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyo
     const constructor = (state as any).constructor;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const metadata = constructor[Symbol.metadata];
-    
+
     if (metadata) {
         const fields: string[] = [];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -30,7 +30,7 @@ export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyo
         }
         return fields as Exclude<keyof T, keyof Schema>[];
     }
-    
+
     // Fallback for v2 or if metadata is not available
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const definition = constructor._definition as any;
@@ -39,7 +39,7 @@ export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyo
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
         return Object.values(definition.fieldsByIndex);
     }
-    
+
     return [];
 }
 

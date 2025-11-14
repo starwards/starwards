@@ -94,13 +94,13 @@ function setByPointer(root: Schema, path: readonly (string | number)[], value: u
     if (path.length === 0) {
         throw new Error('Cannot set root object');
     }
-    
+
     let current: unknown = root;
-    
+
     // Traverse all path segments except the last one
     for (let i = 0; i < path.length - 1; i++) {
         const segment = path[i];
-        
+
         if (current instanceof MapSchema) {
             // MapSchema requires .get() method
             current = current.get(String(segment));
@@ -110,12 +110,12 @@ function setByPointer(root: Schema, path: readonly (string | number)[], value: u
         } else {
             throw new Error(`Cannot traverse path at segment ${String(segment)}`);
         }
-        
+
         if (current === undefined) {
             throw new Error(`Path segment ${String(segment)} not found`);
         }
     }
-    
+
     // Set the final property
     const finalSegment = path[path.length - 1];
     if (current instanceof MapSchema) {
