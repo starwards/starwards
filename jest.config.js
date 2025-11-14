@@ -15,7 +15,21 @@ const baseConfig = {
                 },
             },
         ],
+        '^.+\\.m?js$': [
+            '@jgoz/jest-esbuild',
+            {
+                sourcemap: true,
+                esbuild: {
+                    platform: 'node',
+                    target: 'node20',
+                    format: 'cjs',
+                },
+            },
+        ],
     },
+    transformIgnorePatterns: [
+        'node_modules/(?!(chai)/)',
+    ],
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
