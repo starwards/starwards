@@ -21,7 +21,7 @@
         "@colyseus/monitor": "^0.16.7",
         "@colyseus/ws-transport": "^0.16.5",
         "colyseus": "^0.16.5",
-        "express": "^4.21.2",
+        "express": "^5.1.0",
         "express-async-handler": "^1.2.0",
         "express-basic-auth": "^1.2.1"
     }

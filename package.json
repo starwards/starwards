@@ -45,12 +45,14 @@
     },
     "devDependencies": {
         "@colyseus/loadtest": "^0.16.1",
+        "@colyseus/redis-driver": "^0.16.1",
+        "@colyseus/redis-presence": "^0.16.4",
         "@jgoz/jest-esbuild": "^1.0.10",
         "@playwright/test": "^1.56.1",
         "@rollup/plugin-sucrase": "^5.0.2",
         "@types/chai": "^5.2.3",
         "@types/d3-selection": "^3.0.11",
-        "@types/express": "^4.17.25",
+        "@types/express": "^5.0.0",
         "@types/jest": "^30.0.0",
         "@types/jquery": "^3.5.33",
         "@types/node": "^20.19.24",
@@ -100,12 +102,13 @@
         "supertest": "^7.1.4",
         "ts-node": "^10.9.2",
         "tsconfig-paths-webpack-plugin": "^4.2.0",
+        "tslib": "^2.8.1",
         "tsup": "^8.5.0",
         "typescript": "^5.9.3",
         "webpack": "^5.102.1",
-        "webpack-cli": "^5.1.4",
+        "webpack-cli": "^6.0.1",
         "webpack-dev-server": "^5.2.2",
-        "webpack-merge": "^5.10.0"
+        "webpack-merge": "^6.0.1"
     },
     "dependencies": {
         "@colyseus/core": "^0.16.22"
