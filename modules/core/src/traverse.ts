@@ -10,8 +10,37 @@ export function* getColyseusPrimitivesJsonPointers(state: Colyseus) {
 }
 
 export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyof Schema>[] {
-    // @ts-ignore: access _definition to get fields list
-    return Object.values(state._definition.fieldsByIndex);
+    // v3 API: Symbol.metadata on constructor
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const constructor = (state as any).constructor;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const metadata = constructor[Symbol.metadata];
+
+    if (metadata) {
+        const fields: string[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        for (const index in metadata) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+            const field = metadata[index];
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (field && field.name && !field.deprecated) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+                fields.push(field.name);
+            }
+        }
+        return fields as Exclude<keyof T, keyof Schema>[];
+    }
+
+    // Fallback for v2 or if metadata is not available
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const definition = constructor._definition as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (definition?.fieldsByIndex) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+        return Object.values(definition.fieldsByIndex);
+    }
+
+    return [];
 }
 
 export function* allColyseusProperties(

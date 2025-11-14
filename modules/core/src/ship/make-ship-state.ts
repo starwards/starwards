@@ -127,13 +127,13 @@ export function makeShipState(id: string, design: ShipDesign) {
     const state = makeShip(id, design.properties);
     state.thrusters = new ArraySchema();
     for (const [index, [angleConfig, thrusterConfig]] of design.thrusters.entries()) {
-        state.thrusters.setAt(index, makeThruster(thrusterConfig, angleConfig, index));
+        state.thrusters[index] = makeThruster(thrusterConfig, angleConfig, index);
     }
     if (design.chainGun) {
         state.chainGun = makeChainGun(design.chainGun);
     }
     for (const [index, [angleConfig, tubeConfig]] of design.tubes.entries()) {
-        state.tubes.setAt(index, makeTube(tubeConfig, angleConfig, index));
+        state.tubes[index] = makeTube(tubeConfig, angleConfig, index);
     }
     state.smartPilot = makeSmartPilot(design.smartPilot);
 

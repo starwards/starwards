@@ -1,6 +1,7 @@
-import { GameRoom, RoomEventEmitter } from '..';
-
+import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
+import { Room } from 'colyseus.js';
+import { RoomEventEmitter } from '..';
 import { wireEvents } from 'colyseus-events';
 
 const requestInfo = {
@@ -15,9 +16,15 @@ const emitter2Options = {
     delimiter: '/',
     maxListeners: 0,
 };
-export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
+export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminState>) => {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
-    wireEvents(adminRoom.state, events);
+    // Wait for first state sync before wiring events to ensure refIds are initialized
+    await new Promise<void>((resolve) => {
+        adminRoom.onStateChange.once(() => {
+            wireEvents(adminRoom, events);
+            resolve();
+        });
+    });
     return {
         events,
         get state() {

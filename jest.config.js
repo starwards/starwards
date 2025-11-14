@@ -1,21 +1,24 @@
-const fs = require('fs');
-
 const baseConfig = {
     testPathIgnorePatterns: ['/node_modules/', '/cjs/', '/dist/'],
     testEnvironment: 'node',
     transform: {
         '^.+\\.tsx?$': [
-            '@jgoz/jest-esbuild',
+            'ts-jest',
             {
-                sourcemap: true,
-                esbuild: {
-                    platform: 'node',
-                    target: 'node20',
-                    tsconfigRaw: fs.readFileSync('./tsconfig.json', 'utf8'),
-                },
+                tsconfig: './tsconfig.json',
+                isolatedModules: true,
+                useESM: false,
+            },
+        ],
+        '^.+\\.m?js$': [
+            'ts-jest',
+            {
+                isolatedModules: true,
+                useESM: false,
             },
         ],
     },
+    transformIgnorePatterns: ['node_modules/(?!(chai)/)'],
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
