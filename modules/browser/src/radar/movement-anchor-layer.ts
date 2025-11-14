@@ -1,5 +1,3 @@
-import '@pixi/graphics-extras';
-
 import { Container, DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
@@ -22,9 +20,6 @@ export class MovementAnchorLayer {
         private spacing: number,
         private range: number,
     ) {
-        if (!this.anchors.drawStar) {
-            throw new Error('looks like @pixi/graphics-extras is not loaded correctly');
-        }
         this.parent.events.on('screenChanged', () => {
             this.shouldRender = true;
         });
@@ -72,9 +67,9 @@ export class MovementAnchorLayer {
         if (this.shouldRender) {
             this.anchors.clear();
             for (const anchorPosition of this.anchorPositions()) {
-                this.anchors.lineStyle(this.style.width, this.style.color, this.style.alpha);
-
-                this.anchors.drawStar!(anchorPosition.x, anchorPosition.y, 3, 1, 0);
+                this.anchors
+                    .star(anchorPosition.x, anchorPosition.y, 3, 1, 0)
+                    .stroke({ width: this.style.width, color: this.style.color, alpha: this.style.alpha });
             }
             this.shouldRender = false;
         }
