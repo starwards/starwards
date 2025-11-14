@@ -5,8 +5,8 @@
     "private": true,
     "license": "SEE LICENSE IN LICENSE.md",
     "engines": {
-        "node": ">= 20.19.5",
-        "npm": ">= 10.2.4"
+        "node": ">= 22.11.0",
+        "npm": ">= 10.9.0"
     },
     "workspaces": [
         "modules/*"
@@ -55,7 +55,7 @@
         "@types/express": "^5.0.0",
         "@types/jest": "^30.0.0",
         "@types/jquery": "^3.5.33",
-        "@types/node": "^20.19.24",
+        "@types/node": "^22.10.5",
         "@types/node-red": "^1.3.5",
         "@types/node-red-node-test-helper": "^0.3.5",
         "@types/pluralize": "^0.0.33",
