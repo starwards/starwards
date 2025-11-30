@@ -1,16 +1,16 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 
 const jsonPtrRegexp = /^(\/(([^/~])|(~[01]))*)*$/g;
-
+export type JsonStringPointer = string;
 const cache = new Map<string, JsonPointer>();
 
-export function isJsonPointer(ptr: unknown): ptr is string {
+export function isJsonPointer(ptr: unknown): ptr is JsonStringPointer {
     jsonPtrRegexp.lastIndex = 0; // reset regexp state
     return typeof ptr === 'string' && jsonPtrRegexp.test(ptr);
 }
 
 export function getJsonPointer(ptr: unknown) {
-    const existing = cache.get(ptr as string);
+    const existing = cache.get(ptr as JsonStringPointer);
     if (existing) {
         return existing;
     }
