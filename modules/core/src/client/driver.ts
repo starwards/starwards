@@ -17,7 +17,7 @@ export class Driver {
     private connectionManager = new ConnectionManager(() => {
         this.adminDriver = this.joinRoom('admin', schemaClasses.admin)
             .then(this.hookAdminRoomLifecycle)
-            .then(async (room) => await AdminDriver(this.httpEndpoint)(room));
+            .then(AdminDriver(this.httpEndpoint));
         return this.adminDriver;
     });
     public get connectionStatus(): EventEmitter<{ [k in ConnectionStateEvent]: void }> {
@@ -221,7 +221,7 @@ export class Driver {
         try {
             this.spaceDriver = this.joinRoom('space', schemaClasses.space)
                 .then(this.hookRoomLifecycle)
-                .then(async (room) => await SpaceDriver(room));
+                .then(SpaceDriver);
             return await this.spaceDriver;
         } catch (e) {
             const error = new Error('failed making space driver', { cause: e });

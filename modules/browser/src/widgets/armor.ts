@@ -1,12 +1,18 @@
-import { Application, Graphics, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
+import { Application, Assets, Graphics, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, degToRad } from '@starwards/core';
 
-import { Assets } from '@pixi/assets';
 import { DashboardWidget } from './dashboard';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 import { radarVisibleBg } from '../colors';
-import { rgb2hex } from '@pixi/utils';
+
+// Helper to convert RGB (0-1 range) to hex color
+const rgb2hex = (rgb: number[]) => {
+    const r = Math.round(rgb[0] * 255);
+    const g = Math.round(rgb[1] * 255);
+    const b = Math.round(rgb[2] * 255);
+    return (r << 16) | (g << 8) | b;
+};
 
 WebFont.load({
     custom: {
@@ -32,18 +38,19 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
 export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriver, minWidth = 0) {
     // dd
     const size = () => Math.max(Math.min(container.width, container.height), minWidth);
-    void Assets.load('images/dragonfly-armor.svg').then((_texture: Texture) => {
+    void Assets.load('images/dragonfly-armor.svg').then(async (_texture: Texture) => {
         const texture = Texture.from('images/dragonfly-armor.svg'); // SVG bug https://github.com/pixijs/pixijs/issues/8694#issuecomment-1320702841
         // initialization. extracted from CameraView
-        const root = new Application<HTMLCanvasElement>({ backgroundColor: radarVisibleBg });
-        root.view.setAttribute('data-id', 'Armor');
+        const root = new Application();
+        await root.init({ backgroundColor: radarVisibleBg });
+        root.canvas.setAttribute('data-id', 'Armor');
         container.on('resize', () => {
             root.renderer.resize(size(), size());
         });
         root.renderer.resize(size(), size());
-        container.getElement().append(root.view);
-        root.view.setAttribute('data-loaded', 'false');
-        root.view.addEventListener('contextmenu', function (e) {
+        container.getElement().append(root.canvas);
+        root.canvas.setAttribute('data-loaded', 'false');
+        root.canvas.addEventListener('contextmenu', function (e) {
             e.preventDefault();
             return false;
         });
@@ -63,7 +70,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
             const angle = angleStart + plateSize - plateMarginRadians;
             const draw = () => {
                 const health =
-                    shipDriver.state.armor.armorPlates[plateIdx]!.health / shipDriver.state.armor.design.plateMaxHealth;
+                    shipDriver.state.armor.armorPlates[plateIdx].health / shipDriver.state.armor.design.plateMaxHealth;
                 sprite.tint = rgb2hex([1 - health, health, 0]);
                 sprite.height = size();
                 sprite.width = size();
@@ -76,13 +83,12 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
 
                 // Redraw mask
                 mask.clear();
-                mask.lineStyle(2, 0xff0000, 1);
-                mask.beginFill(0xff0000, 1);
                 mask.moveTo(0, 0);
                 mask.lineTo(x1, y1);
                 mask.arc(0, 0, Math.hypot(radius, radius), angleStart, angle, false);
                 mask.lineTo(0, 0);
-                mask.endFill();
+                mask.fill({ color: 0xff0000, alpha: 1 });
+                mask.stroke({ color: 0xff0000, width: 2, alpha: 1 });
             };
 
             root.ticker.add(draw, null, UPDATE_PRIORITY.LOW);
@@ -94,7 +100,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
             () => {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        root.view.setAttribute('data-loaded', 'true');
+                        root.canvas.setAttribute('data-loaded', 'true');
                     });
                 });
             },

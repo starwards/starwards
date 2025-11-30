@@ -11,7 +11,7 @@ import { stringToSchema } from '../serialization/game-state-serialization';
 /**
  * Deep comparison with approximate equality for numbers to handle float32 precision loss
  */
-function deepApproxEqual(a: any, b: any, tolerance = 1e-6): boolean {
+function deepApproxEqual(a: unknown, b: unknown, tolerance = 1e-6): boolean {
     if (a === b) return true;
 
     if (typeof a === 'number' && typeof b === 'number') {
@@ -26,9 +26,11 @@ function deepApproxEqual(a: any, b: any, tolerance = 1e-6): boolean {
     }
 
     if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
-        const keysA = Object.keys(a);
-        const keysB = Object.keys(b);
+        const keysA = Object.keys(a) as (keyof typeof a)[];
+
+        const keysB = Object.keys(b) as (keyof typeof a)[];
         if (keysA.length !== keysB.length) return false;
+
         return keysA.every((key) => keysB.includes(key) && deepApproxEqual(a[key], b[key], tolerance));
     }
 

@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
+import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/core';
@@ -40,7 +40,7 @@ export class MovementAnchorLayer {
         this.shouldRender = true;
     }
 
-    get renderRoot(): DisplayObject {
+    get renderRoot(): Container {
         return this.stage;
     }
 

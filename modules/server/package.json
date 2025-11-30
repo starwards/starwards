@@ -17,10 +17,9 @@
         "test": "jest"
     },
     "dependencies": {
-        "@colyseus/core": "^0.16.22",
+        "@colyseus/core": "^0.16.23",
         "@colyseus/monitor": "^0.16.7",
         "@colyseus/ws-transport": "^0.16.5",
-        "colyseus": "^0.16.5",
         "express": "^5.1.0",
         "express-async-handler": "^1.2.0",
         "express-basic-auth": "^1.2.1"

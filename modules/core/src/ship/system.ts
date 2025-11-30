@@ -1,17 +1,31 @@
+/* eslint-disable sort-imports */
 import 'reflect-metadata';
 
-import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { Schema } from '@colyseus/schema';
+
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { allColyseusProperties } from '../traverse';
 import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
+/* eslint-enable sort-imports */
 
 const defectiblePropertyMetadataKey = Symbol('defectible:propertyMetadata');
 
 export abstract class DesignState extends Schema {
     keys() {
-        return Object.keys(this.$changes.indexes);
+        // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
+        /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
+        const metadata = (this.constructor as any)[Symbol.metadata];
+        const keys: string[] = [];
+        for (const index in metadata) {
+            const field = metadata[index] as any;
+            if (!field.deprecated && field.name) {
+                keys.push(field.name);
+            }
+        }
+        /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
+        return keys;
     }
 }
 

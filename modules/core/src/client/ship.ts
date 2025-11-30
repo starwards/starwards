@@ -1,9 +1,9 @@
-import { RoomEventEmitter, getSystems, sendJsonCmd } from '..';
-import { ShipState } from '../ship';
 import { Primitive, wireEvents } from 'colyseus-events';
+import { RoomEventEmitter, getSystems, sendJsonCmd } from '..';
 
-import { Room } from 'colyseus.js';
 import EventEmitter2 from 'eventemitter2';
+import { Room } from 'colyseus.js';
+import { ShipState } from '../ship';
 import { waitForEvents } from '../async-utils';
 
 export type ShipDriver = Awaited<ReturnType<typeof ShipDriver>>;
@@ -20,7 +20,11 @@ export async function ShipDriver(shipRoom: Room<ShipState>) {
     events.on('/armor/armorPlates/*/health', (e) => {
         events.emit(`/armor/numberOfHealthyPlates`, e);
     });
-    // Wait for first state sync before wiring events to ensure refIds are initialized
+    // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state
+    // We must wait for the first state sync before calling wireEvents because:
+    // 1. The room's state may not be fully initialized immediately after connection
+    // 2. Reference IDs (refIds) need to be set up for proper object tracking
+    // 3. wireEvents needs access to the full state tree to set up listeners
     await new Promise<void>((resolve) => {
         shipRoom.onStateChange.once(() => {
             wireEvents(shipRoom, events);

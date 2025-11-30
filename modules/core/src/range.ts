@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 
-import { JsonPointer } from 'json-ptr';
-import { RTuple2 } from './logic/formulas';
+import { JsonPointer, getJsonPointer } from './json-ptr';
 import { MapSchema, Schema } from '@colyseus/schema';
-import { getJsonPointer } from './json-ptr';
+
+import { RTuple2 } from './logic/formulas';
 
 const propertyMetadataKey = Symbol('range:propertyMetadata');
 const descendantMetadataKey = Symbol('range:descendantMetadata');
@@ -88,7 +88,16 @@ export function getRange(root: Schema, pointer: JsonPointer): RTuple2 {
 }
 
 /**
- * Get the parent object by traversing the path, handling MapSchema correctly
+ * Get the parent object by traversing the path, handling MapSchema correctly.
+ *
+ * IMPORTANT: This is a custom implementation instead of using json-ptr library's pointer.parent()
+ * because @colyseus/schema v3 changed MapSchema to require explicit .get() method calls.
+ * The json-ptr library uses direct property access (obj[key]), which doesn't work with
+ * MapSchema v3's API. This custom traversal correctly handles both MapSchema and regular objects.
+ *
+ * @param root - The root Schema object
+ * @param path - Array of path segments (e.g., ['Spaceship', 'ship1', 'speed'])
+ * @returns The parent object containing the final property, or undefined if not found
  */
 function getParent(root: Schema, path: readonly (string | number)[]): unknown {
     let current: unknown = root;

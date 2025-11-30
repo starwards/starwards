@@ -40,7 +40,10 @@ test('tactical radar view', async ({ page }) => {
 
 test('GM view', async ({ page }) => {
     await gameDriver.gameManager.startGame(test_map_1);
-    gameDriver.gameManager.spaceManager.changeShipRadarRange(test_map_1.testShipId, 3_000);
+    // Configure radar to match expected snapshot (3000 range)
+    const ship = gameDriver.getShip(test_map_1.testShipId);
+    ship.state.radar.power = 1;
+    ship.state.radar.design.range = 3000;
     await page.goto(`/gm.html`);
     const radar = new RadarDriver(page.locator('[data-id="GM Radar"]'));
     await radar.setZoom(0.1);

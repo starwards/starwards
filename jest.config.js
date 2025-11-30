@@ -6,14 +6,12 @@ const baseConfig = {
             'ts-jest',
             {
                 tsconfig: './tsconfig.json',
-                isolatedModules: true,
                 useESM: false,
             },
         ],
         '^.+\\.m?js$': [
             'ts-jest',
             {
-                isolatedModules: true,
                 useESM: false,
             },
         ],

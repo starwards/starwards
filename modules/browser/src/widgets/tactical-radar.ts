@@ -31,14 +31,14 @@ export function tacticalRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDr
         type: 'component',
         component: class {
             constructor(container: WidgetContainer, p: Props) {
-                drawTacticalRadar(spaceDriver, shipDriver, container, p);
+                void drawTacticalRadar(spaceDriver, shipDriver, container, p);
             }
         },
         defaultProps: { range: 5000 },
     };
 }
 
-export function drawTacticalRadar(
+export async function drawTacticalRadar(
     spaceDriver: SpaceDriver,
     shipDriver: ShipDriver,
     container: WidgetContainer,
@@ -46,21 +46,25 @@ export function drawTacticalRadar(
 ) {
     const camera = new Camera();
     camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
-    const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
-    root.view.setAttribute('data-id', 'Tactical Radar');
+    const root = new CameraView(camera);
+
+    await root.initialize({ backgroundColor: radarFogOfWar }, container);
     root.setSquare();
+    root.canvas.setAttribute('data-id', 'Tactical Radar');
+
     const circleMask = new Graphics();
     root.stage.addChild(circleMask);
 
     function drawMask() {
         circleMask.clear();
-        circleMask.lineStyle(2, 0xff0000, 1);
-        circleMask.beginFill(0xff0000, 1);
-        circleMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor);
-        circleMask.endFill();
+        circleMask
+            .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor)
+            .fill({ color: 0xff0000, alpha: 1 })
+            .stroke({ width: 2, color: 0xff0000, alpha: 1 });
     }
     drawMask();
     container.on('resize', drawMask);
+
     const rangeFilter = new RadarRangeFilter(spaceDriver, (o: SpaceObject) => o.faction === shipDriver.state.faction);
     const fovGraphics = new Graphics();
     fovGraphics.mask = circleMask;
@@ -70,11 +74,9 @@ export function drawTacticalRadar(
         () => {
             rangeFilter.update();
             fovGraphics.clear();
-            fovGraphics.lineStyle(0);
             for (const fov of rangeFilter.fieldsOfView()) {
-                fovGraphics.beginFill(radarVisibleBg, 1);
                 fov.draw(root, fovGraphics);
-                fovGraphics.endFill();
+                fovGraphics.fill({ color: radarVisibleBg, alpha: 1 });
             }
         },
         null,

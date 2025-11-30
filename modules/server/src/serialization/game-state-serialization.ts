@@ -1,6 +1,6 @@
+import { Decoder, Encoder, Schema } from '@colyseus/schema';
 import { gzip, unzip } from 'node:zlib';
 
-import { Schema, Encoder, Decoder } from '@colyseus/schema';
 import { promisify } from 'node:util';
 
 const do_gzip = promisify(gzip);

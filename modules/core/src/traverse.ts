@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { ArraySchema, CollectionSchema, MapSchema, Schema, SetSchema } from '@colyseus/schema';
 import { Colyseus, Container, isPrimitive } from 'colyseus-events';
 
@@ -13,18 +14,15 @@ export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyo
     // v3 API: Symbol.metadata on constructor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const constructor = (state as any).constructor;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+
     const metadata = constructor[Symbol.metadata];
 
     if (metadata) {
         const fields: string[] = [];
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         for (const index in metadata) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             const field = metadata[index];
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             if (field && field.name && !field.deprecated) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 fields.push(field.name);
             }
         }
@@ -32,11 +30,10 @@ export function getFieldsList<T extends Schema>(state: T): Exclude<keyof T, keyo
     }
 
     // Fallback for v2 or if metadata is not available
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const definition = constructor._definition as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const definition = constructor._definition;
+
     if (definition?.fieldsByIndex) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return Object.values(definition.fieldsByIndex);
     }
 

@@ -1,4 +1,4 @@
-import { DisplayObject, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
+import { Container, Sprite, Texture, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/core';
@@ -43,7 +43,7 @@ export class SpriteLayer {
     set texture(texture: Texture) {
         this.sprite.texture = texture;
     }
-    get renderRoot(): DisplayObject {
+    get renderRoot(): Container {
         return this.sprite;
     }
 }

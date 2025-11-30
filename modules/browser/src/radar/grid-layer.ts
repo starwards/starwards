@@ -1,4 +1,4 @@
-import { Container, DisplayObject, Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { XY, getSectorName, sectorSize } from '@starwards/core';
 
 import { CameraView } from './camera-view';
@@ -19,7 +19,7 @@ export class GridLayer {
         this.drawSectorGrid();
     }
 
-    get renderRoot(): DisplayObject {
+    get renderRoot(): Container {
         return this.stage;
     }
 
@@ -41,8 +41,10 @@ export class GridLayer {
             if (magnitude) {
                 const screen = this.parent.worldToScreen({ x: 0, y: world }).y;
                 horizontals.push({ world, screen, magnitude });
-                this.gridLines.lineStyle(2, magnitude.color, 0.5);
-                this.gridLines.moveTo(0, screen).lineTo(this.parent.renderer.width, screen);
+                this.gridLines
+                    .moveTo(0, screen)
+                    .lineTo(this.parent.renderer.width, screen)
+                    .stroke({ width: 2, color: magnitude.color, alpha: 0.5 });
             }
         }
         const gridlineVertLeft = topLeft.x - (topLeft.x % minGridCellSize);
@@ -52,8 +54,10 @@ export class GridLayer {
             if (magnitude) {
                 const screen = this.parent.worldToScreen({ x: world, y: 0 }).x;
                 verticals.push({ world, screen, magnitude });
-                this.gridLines.lineStyle(2, magnitude.color, 0.5);
-                this.gridLines.moveTo(screen, 0).lineTo(screen, this.parent.renderer.height);
+                this.gridLines
+                    .moveTo(screen, 0)
+                    .lineTo(screen, this.parent.renderer.height)
+                    .stroke({ width: 2, color: magnitude.color, alpha: 0.5 });
             }
         }
         const textsIterator = this.sectorNames[Symbol.iterator]();

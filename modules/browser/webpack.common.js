@@ -84,5 +84,10 @@ module.exports = {
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'],
         plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.json') })],
+        alias: {
+            // Ensure only one copy of React is used to avoid hook errors
+            react: path.resolve(__dirname, '../../node_modules/react'),
+            'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
+        },
     },
 };

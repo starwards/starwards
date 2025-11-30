@@ -53,7 +53,13 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
             void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
                 camera.followSpaceObject(tracked, spaceDriver.events),
             );
-            const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
+            const root = new CameraView(camera);
+            void this.init(root, container);
+        }
+
+        private async init(root: CameraView, container: Container) {
+            await root.initialize({ backgroundColor: radarFogOfWar }, container);
+
             const radarRangeLayer = new ObjectsLayer(
                 root,
                 spaceDriver,

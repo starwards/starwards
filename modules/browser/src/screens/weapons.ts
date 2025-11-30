@@ -45,7 +45,7 @@ async function initScreen(driver: Driver, shipId: string) {
     const container = wrapRootWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
+    await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
     wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),

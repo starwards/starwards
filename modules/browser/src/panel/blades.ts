@@ -1,19 +1,17 @@
 import {
     BladeApi,
     FolderApi,
-    InputParams,
-    ListApi,
+    ListBladeApi,
     ListBladeParams,
     Pane,
-    SliderApi,
     SliderBladeParams,
-    TextApi,
     TextBladeParams,
 } from 'tweakpane';
 import { BladeController, ButtonParams, NumberMonitorParams, View } from '@tweakpane/core';
 import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
+import { RowApi } from 'tweakpane-table';
 
 export type NumericModel = {
     getValue: () => number | undefined;
@@ -120,7 +118,7 @@ export function addSliderBlade(
     params: Partial<SliderBladeParams>,
     cleanup: (d: Destructor) => void,
 ) {
-    const blade = guiFolder.addBlade(configSliderBlade(params, model.range, model.getValue)) as SliderApi;
+    const blade = guiFolder.addBlade(configSliderBlade(params, model.range, model.getValue)) as BladeGuiApi<number>;
     wireBlade(blade, model, cleanup);
     return blade;
 }
@@ -133,7 +131,7 @@ export function addTextBlade<T>(
 ) {
     const blade = guiFolder.addBlade(
         configTextBlade(params as Partial<TextBladeParams<unknown>>, model.getValue),
-    ) as TextApi<T>;
+    ) as BladeGuiApi<T>;
     wireBlade(blade, model, cleanup);
     return blade;
 }
@@ -158,7 +156,7 @@ export function addListBlade<T>(
     params: Partial<ListBladeParams<T>>,
     cleanup: (d: Destructor) => void,
 ) {
-    const blade = guiFolder.addBlade(configListBlade<T>(params, model.getValue)) as ListApi<T>;
+    const blade = guiFolder.addBlade(configListBlade<T>(params, model.getValue)) as ListBladeApi<T>;
     wireBlade(blade, model, cleanup);
     return blade;
 }
@@ -190,10 +188,10 @@ export function addButton(
 export function addGraph(
     guiFolder: FolderApi,
     model: NumericModel,
-    params: { label: string } & NumberMonitorParams,
+    params: { label: string } & Partial<NumberMonitorParams>,
     cleanup: (d: Destructor) => void,
 ) {
-    const graph = guiFolder.addMonitor(
+    const graph = guiFolder.addBinding(
         {
             get value() {
                 return model.getValue();
@@ -202,6 +200,7 @@ export function addGraph(
         'value',
         {
             ...params,
+            readonly: true,
             view: 'graph',
             min: model.range[0],
             max: model.range[1],
@@ -212,7 +211,7 @@ export function addGraph(
     });
 }
 
-export type InputBladeParams = { label: string } & Partial<InputParams>;
+export type InputBladeParams = { label: string } & Record<string, unknown>;
 
 export function addInputBlade<T>(
     guiFolder: FolderApi,
@@ -226,7 +225,7 @@ export function addInputBlade<T>(
     if (value !== undefined) {
         viewModel[label] = value;
     }
-    const input = guiFolder.addInput(viewModel, label, params);
+    const input = guiFolder.addBinding(viewModel, label, params);
     // Add data attributes for E2E testing after input is created
     if (value !== undefined) {
         tagValueData(input, value);
@@ -256,4 +255,34 @@ function tagValueData(input: { readonly element: HTMLElement }, value: unknown) 
             inputElement.dataset.value = String(value);
         }
     }
+}
+
+/**
+ * Add a text cell to a table row (tweakpane-table v0.4+)
+ */
+export function addTextCellToRow<T>(
+    row: RowApi,
+    model: Model<T>,
+    params: Partial<TextBladeParams<T>>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(
+        configTextBlade(params as Partial<TextBladeParams<unknown>>, model.getValue),
+    ) as BladeGuiApi<T>;
+    wireBlade(blade, model, cleanup);
+    return blade;
+}
+
+/**
+ * Add a slider cell to a table row (tweakpane-table v0.4+)
+ */
+export function addSliderCellToRow(
+    row: RowApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(configSliderBlade(params, model.range, model.getValue)) as BladeGuiApi<number>;
+    wireBlade(blade, model, cleanup);
+    return blade;
 }

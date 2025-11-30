@@ -1,3 +1,4 @@
+import { Assets, Container, Texture } from 'pixi.js';
 import {
     ChainGun,
     ShipState,
@@ -6,9 +7,7 @@ import {
     getShellExplosionLocation,
     getTargetLocationAtShellExplosion,
 } from '@starwards/core';
-import { Container, Texture } from 'pixi.js';
 
-import { Assets } from '@pixi/assets';
 import { CameraView } from './camera-view';
 import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';

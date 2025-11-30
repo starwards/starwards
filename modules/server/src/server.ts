@@ -3,7 +3,7 @@ import * as http from 'http';
 import * as maps from './maps';
 
 import { NextFunction, Request, Response } from 'express';
-import { Server, matchMaker } from 'colyseus';
+import { Server, matchMaker } from '@colyseus/core';
 import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
 
 import { AddressInfo } from 'node:net';

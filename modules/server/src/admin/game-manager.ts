@@ -18,9 +18,9 @@ import {
     shipConfigurations,
     waitFor,
 } from '@starwards/core';
-import { IRoomListingData, matchMaker } from 'colyseus';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { matchMaker } from '@colyseus/core';
 
 type ShipManager = ShipManagerPc | ShipManagerNpc;
 export class GameManager {
@@ -215,10 +215,12 @@ export class GameManager {
             await createRoomPromise;
             if (this.shipCleanups.delete(id)) {
                 if (isPlayerShip) {
-                    this.state.playerShipIds.deleteAt(this.state.playerShipIds.indexOf(id));
+                    this.state.playerShipIds.splice(this.state.playerShipIds.indexOf(id), 1);
                 }
-                this.state.shipIds.deleteAt(this.state.shipIds.indexOf(id));
-                void matchMaker.getRoomById(id).disconnect();
+                this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
+                const room = await matchMaker.getRoomById(id);
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                void room.disconnect();
                 this.dice.splice(this.dice.indexOf(die), 1);
                 this.shipManagers.delete(id);
             }
@@ -226,7 +228,8 @@ export class GameManager {
         return shipManager;
     }
 
-    private async waitForRoom(conditions: Partial<IRoomListingData>) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private async waitForRoom(conditions: Record<string, any>) {
         await waitFor(
             async () => {
                 const roomRes = await matchMaker.query(conditions);

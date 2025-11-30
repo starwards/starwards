@@ -1,8 +1,7 @@
+import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { Asteroid, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
-import { Container, Graphics, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { selectionColor, white } from '../../colors';
 
-import { Assets } from '@pixi/assets';
 import { CameraView } from '../camera-view';
 
 export interface BlipData {
@@ -29,7 +28,7 @@ function renderText(y: number, value: string[], color: number) {
         }),
     );
     result.y = y;
-    result.x = -result.getLocalBounds(new Rectangle()).width / 2;
+    result.x = -result.getLocalBounds().width / 2;
     return result;
 }
 
@@ -86,10 +85,11 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
     redraw(spaceObject: Spaceship, { parent, isSelected, color, alpha }: BlipData): void {
         this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
         this.text.text = `ID: ${spaceObject.id}`;
-        this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
+        this.text.x = -this.text.getLocalBounds().width / 2;
         this.collisionOutline.clear();
-        this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
-        this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
+        this.collisionOutline
+            .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+            .stroke({ width: 1, color: 0x4ce73c, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
@@ -115,8 +115,9 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
     }
     redraw(spaceObject: Asteroid, { parent, isSelected, color, alpha }: BlipData): void {
         this.collisionOutline.clear();
-        this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
-        this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
+        this.collisionOutline
+            .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+            .stroke({ width: 1, color: 0x4ce73c, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
@@ -138,8 +139,7 @@ class CircleRenderer implements BlipRenderer<SpaceObject> {
     redraw(spaceObject: SpaceObject, { parent, isSelected, blipSize, color, alpha }: BlipData): void {
         const radius = Math.max(parent.metersToPixles(spaceObject.radius), 1);
         this.shellCircle.clear();
-        this.shellCircle.beginFill(color, alpha);
-        this.shellCircle.drawCircle(0, 0, radius);
+        this.shellCircle.circle(0, 0, radius).fill({ color, alpha });
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;
@@ -168,10 +168,11 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
         this.fighterSprite.height = blipSize;
         this.fighterSprite.width = blipSize;
         this.text.text = `ID: ${spaceObject.id}`;
-        this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
+        this.text.x = -this.text.getLocalBounds().width / 2;
         this.collisionOutline.clear();
-        this.collisionOutline.lineStyle(1, 0x4ce73c, 0.5);
-        this.collisionOutline.drawCircle(0, 0, parent.metersToPixles(spaceObject.radius));
+        this.collisionOutline
+            .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+            .stroke({ width: 1, color: 0x4ce73c, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;
@@ -198,7 +199,7 @@ class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
         this.iconSprite.width = blipSize;
         this.text.alpha = alpha;
         this.text.text = `${spaceObject.title}`;
-        this.text.x = -this.text.getLocalBounds(new Rectangle()).width / 2;
+        this.text.x = -this.text.getLocalBounds().width / 2;
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;
@@ -213,8 +214,7 @@ class RadarRangeRenderer implements BlipRenderer<SpaceObject> {
         this.range.clear();
         if (spaceObject.radarRange) {
             const radius = parent.metersToPixles(spaceObject.radarRange);
-            this.range.beginFill(color, alpha);
-            this.range.drawCircle(0, 0, radius);
+            this.range.circle(0, 0, radius).fill({ color, alpha });
         }
     }
 }

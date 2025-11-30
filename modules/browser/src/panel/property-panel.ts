@@ -1,11 +1,10 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
 import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
-import { FolderApi, InputBindingApi, InputParams } from 'tweakpane';
+import { FolderApi, InputBindingApi } from 'tweakpane';
 import { Model, NumericModel, createPane } from './blades';
 
 import { EmitterLoop } from '../loop';
-import { PresetObject } from 'tweakpane/dist/types/blade/root/api/preset';
 import { WidgetContainer } from '../container';
 
 /*
@@ -45,14 +44,14 @@ export class PropertyPanel implements Panel {
         viewModel: ViewModel,
         name: string,
         getValue: () => T | undefined,
-        params: InputParams,
+        params: Record<string, unknown>,
     ) {
         const value = getValue();
         // Set initial value before addInput so Tweakpane can infer controller type
         if (value !== undefined) {
             viewModel[name] = value;
         }
-        const guiController: InputBindingApi<unknown, T> = guiFolder.addInput(viewModel, name, params);
+        const guiController = guiFolder.addBinding(viewModel, name, params) as InputBindingApi<unknown, T>;
         if (value !== undefined) {
             let lastGetValue = value;
             this.viewLoop.onLoop(() => {
@@ -82,7 +81,7 @@ export class PropertyPanel implements Panel {
 
     private contextAddProperty(guiFolder: FolderApi, viewModel: ViewModel, name: string, property: NumericModel) {
         const { getValue, range, setValue } = property;
-        const options: InputParams = { min: range[0], max: range[1] };
+        const options: Record<string, unknown> = { min: range[0], max: range[1] };
         if (range[1] === 1) {
             options.step = 0.01;
         }
@@ -143,7 +142,7 @@ export class PropertyPanel implements Panel {
             // lineCount: 6,
         };
         const getValue = () => {
-            const preset = this.pane.exportPreset();
+            const preset = this.pane.exportState();
             delete preset[presetKey];
             return JSON.stringify(preset, null, 2);
         };
@@ -151,9 +150,9 @@ export class PropertyPanel implements Panel {
 
         guiController.on('change', (ev) => {
             try {
-                const val = JSON.parse(ev.value) as PresetObject;
+                const val = JSON.parse(ev.value) as Record<string, unknown>;
                 if (typeof val === 'object' && val) {
-                    this.pane.importPreset(val);
+                    this.pane.importState(val);
                 }
             } catch (e) {
                 void 0; // do nothing

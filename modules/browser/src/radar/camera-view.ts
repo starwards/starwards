@@ -1,4 +1,4 @@
-import { Application, DisplayObject, IApplicationOptions } from 'pixi.js';
+import { Application, ApplicationOptions, Container } from 'pixi.js';
 
 import $ from 'jquery';
 import { Camera } from './camera';
@@ -7,23 +7,22 @@ import { WidgetContainer } from '../container';
 import { XY } from '@starwards/core';
 import { toCss } from '../colors';
 
-export class CameraView extends Application<HTMLCanvasElement> {
+export class CameraView extends Application {
     public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
     private square = false;
 
     /**
-     * @param pixiOptions options for the pixi application
      * @param camera a point in the world that the radar is watching, and a zoom level
      */
-    constructor(
-        pixiOptions: Partial<IApplicationOptions>,
-        public camera: Camera,
-        container: WidgetContainer,
-    ) {
-        super(pixiOptions);
+    constructor(public camera: Camera) {
+        super();
+    }
+
+    public async initialize(pixiOptions: Partial<ApplicationOptions>, container: WidgetContainer) {
+        await super.init(pixiOptions);
         this.ticker.maxFPS = 30; // if no limit, then GPU and CPU start heating up and FPS reach ~250
-        camera.events.on('view', () => this.events.emit('screenChanged'));
-        camera.events.on('angle', () => this.events.emit('angleChanged'));
+        this.camera.events.on('view', () => this.events.emit('screenChanged'));
+        this.camera.events.on('angle', () => this.events.emit('angleChanged'));
         container.on('resize', () => {
             this.resizeView(container.width, container.height);
         });
@@ -31,9 +30,9 @@ export class CameraView extends Application<HTMLCanvasElement> {
         if (pixiOptions.backgroundColor) {
             container.getElement().css('background-color', toCss(pixiOptions.backgroundColor));
         }
-        container.getElement().append(this.view);
-        $(this.view).css({ margin: 'auto', display: 'block' });
-        this.view.addEventListener('contextmenu', function (e) {
+        container.getElement().append(this.canvas);
+        $(this.canvas).css({ margin: 'auto', display: 'block' });
+        this.canvas.addEventListener('contextmenu', function (e) {
             e.preventDefault();
             return false;
         });
@@ -60,7 +59,7 @@ export class CameraView extends Application<HTMLCanvasElement> {
         this.events.emit('screenChanged');
     }
 
-    public addLayer(child: DisplayObject) {
+    public addLayer(child: Container) {
         this.stage.addChild(child);
     }
 
