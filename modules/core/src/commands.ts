@@ -1,6 +1,7 @@
-import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, isJsonPointer, printError, tryGetRange } from '.';
 import { Primitive, isPrimitive } from 'colyseus-events';
+
+import { Schema } from '@colyseus/schema';
 
 export interface StateCommand<T, S extends Schema, P> {
     cmdName: string;
@@ -86,66 +87,6 @@ export function isSetValueCommand(val: unknown): val is SetValueCommand {
     return (val as { value: unknown })?.value !== undefined;
 }
 
-/**
- * Set a value using JSON pointer path, handling @colyseus/schema v3 correctly.
- *
- * IMPORTANT: This is a custom implementation instead of using json-ptr library's pointer.set()
- * because @colyseus/schema v3 changed its collection APIs to not support direct property access.
- * The json-ptr library uses direct property access (obj[key]), which doesn't work with MapSchema and ArraySchema.
- *
- * @param root - The root Schema object
- * @param path - Array of path segments (e.g., ['Spaceship', 'ship1', 'speed'])
- * @param value - The value to set
- */
-function setByPointer(root: Schema, path: readonly (string | number)[], value: unknown): void {
-    if (path.length === 0) {
-        throw new Error('Cannot set root object');
-    }
-
-    let current: unknown = root;
-
-    // Traverse all path segments except the last one
-    for (let i = 0; i < path.length - 1; i++) {
-        const segment = path[i];
-
-        if (current instanceof MapSchema) {
-            // MapSchema requires .get() method
-            current = current.get(String(segment));
-        } else if (current instanceof ArraySchema) {
-            // ArraySchema uses numeric index access via bracket notation
-            const index = typeof segment === 'number' ? segment : parseInt(String(segment), 10);
-            if (isNaN(index)) {
-                throw new Error(`Invalid array index: ${String(segment)}`);
-            }
-            current = (current as unknown as unknown[])[index];
-        } else if (current instanceof Object) {
-            // Regular object property access
-            current = (current as Record<string | number, unknown>)[segment];
-        } else {
-            throw new Error(`Cannot traverse path at segment ${String(segment)}`);
-        }
-
-        if (current === undefined) {
-            throw new Error(`Path segment ${String(segment)} not found`);
-        }
-    }
-
-    // Set the final property
-    const finalSegment = path[path.length - 1];
-    if (current instanceof MapSchema) {
-        throw new Error('Cannot set property on MapSchema - target should be an object in the map');
-    } else if (current instanceof ArraySchema) {
-        throw new Error('Cannot set property on ArraySchema - target should be an element in the array');
-    } else if (current instanceof Schema) {
-        // For Schema objects, use Reflect.set to ensure we go through the setter
-        Reflect.set(current, finalSegment, value);
-    } else if (current instanceof Object) {
-        (current as Record<string | number, unknown>)[finalSegment] = value;
-    } else {
-        throw new Error(`Cannot set property ${String(finalSegment)} on non-object`);
-    }
-}
-
 export function handleJsonPointerCommand(message: unknown, type: string | number, root: Schema) {
     if (isSetValueCommand(message)) {
         let { value } = message;
@@ -158,7 +99,7 @@ export function handleJsonPointerCommand(message: unknown, type: string | number
                         value = capToRange(range[0], range[1], value);
                     }
                 }
-                setByPointer(root, pointer.path, value);
+                pointer.set(root, value);
                 return true;
             } catch (e) {
                 // eslint-disable-next-line no-console
