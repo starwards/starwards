@@ -72,8 +72,19 @@ test.describe('Pilot Screen', () => {
 
     test('displays energy level', async ({ page }) => {
         const ship = gameDriver.getShip(shipId);
+        const maxEnergy = ship.state.reactor.design.maxEnergy;
 
-        await waitForPropertyFloatValue(page, 'energy', ship.state.reactor.energy, undefined, 10);
+        // Wait for energy to display any reasonable value (avoids race condition with volatile server value)
+        await waitForPropertyValue(
+            page,
+            'energy',
+            (v) => {
+                const e = parseFloat(v);
+                return !isNaN(e) && e > ship.state.reactor.energy * 0.9 && e <= ship.state.reactor.energy * 1.1;
+            },
+            undefined,
+            5000,
+        );
         expect(parseFloat(await getPropertyValue(page, 'energy'))).toBeGreaterThan(0);
     });
 

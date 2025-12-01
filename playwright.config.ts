@@ -2,16 +2,16 @@ import { PlaywrightTestConfig, devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
     forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
+    retries: process.env.CI ? 1 : 0,
     reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'playwright-results.xml' }]] : 'list',
     testMatch: 'modules/e2e/**/*.spec.ts',
     // Optimize timeouts for faster test execution
     // Increase timeouts in CI for weak machines
-    timeout: process.env.CI ? 30_000 : 20_000,
+    timeout: process.env.CI ? 40_000 : 20_000,
     // Enable parallel execution across test files
     // Each worker runs tests from different files with its own server instance
     // Within a file, tests run serially to respect single-game-per-server constraint
-    workers: 4,
+    workers: '100%',
     fullyParallel: false, // Tests within same file run serially (shared server per file)
     use: {
         trace: 'on-first-retry',

@@ -16,7 +16,7 @@ test('start and stop a game', async ({ page }) => {
     expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
     // Use .first() to handle potential duplicate elements
     await page.locator('[data-id="stop game"]').first().click({ delay: 200 });
-    await newGame.waitFor({ state: 'visible' });
+    await newGame.first().waitFor({ state: 'visible' });
     expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
 });
 
@@ -28,7 +28,8 @@ test('armor view', async ({ page }) => {
     await radarCanvas.waitFor({ state: 'visible' });
     await radarCanvas.waitFor({ state: 'attached' });
     await expect(radarCanvas).toHaveAttribute('data-loaded', 'true', { timeout: 5000 });
-    expect(await radarCanvas.screenshot({ timeout: 10000 })).toMatchSnapshot();
+    await page.waitForTimeout(100); // Let first frame render
+    expect(await radarCanvas.screenshot({ timeout: 10000, animations: 'allow' })).toMatchSnapshot();
 });
 
 test('tactical radar view', async ({ page }) => {
