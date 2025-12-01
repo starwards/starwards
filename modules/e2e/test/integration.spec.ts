@@ -24,12 +24,12 @@ test('armor view', async ({ page }) => {
     await gameDriver.gameManager.startGame(test_map_1);
     await page.goto(`${gameDriver.baseURL}/ship.html?ship=${test_map_1.testShipId}`);
     await page.locator('[data-id="menu-armor"]').dragTo(page.locator('#layoutContainer'));
-    const radarCanvas = page.locator('[data-id="Armor"]');
-    await radarCanvas.waitFor({ state: 'visible' });
-    await radarCanvas.waitFor({ state: 'attached' });
-    await expect(radarCanvas).toHaveAttribute('data-loaded', 'true', { timeout: 5000 });
+    const canvas = page.locator('[data-id="Armor"]');
+    await canvas.waitFor({ state: 'visible' });
+    await canvas.waitFor({ state: 'attached' });
+    await expect(canvas).toHaveAttribute('data-loaded', 'true', { timeout: 5000 });
     await page.waitForTimeout(100); // Let first frame render
-    expect(await radarCanvas.screenshot({ timeout: 10000, animations: 'allow' })).toMatchSnapshot();
+    expect(await canvas.screenshot({ animations: 'allow' })).toMatchSnapshot();
 });
 
 test('tactical radar view', async ({ page }) => {
