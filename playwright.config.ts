@@ -8,11 +8,11 @@ const config: PlaywrightTestConfig = {
     // Optimize timeouts for faster test execution
     // Increase timeouts in CI for weak machines
     timeout: process.env.CI ? 30_000 : 20_000,
-    // Enable parallel execution across test files (not within files due to server constraint)
-    // Each worker runs tests from different files in parallel
+    // Enable parallel execution across test files
+    // Each worker runs tests from different files with its own server instance
     // Within a file, tests run serially to respect single-game-per-server constraint
-    workers: 1,
-    fullyParallel: false, // Tests within same file run serially (server limitation)
+    workers: 4,
+    fullyParallel: false, // Tests within same file run serially (shared server per file)
     use: {
         trace: 'on-first-retry',
         baseURL: `http://localhost:3000`,
@@ -27,12 +27,8 @@ const config: PlaywrightTestConfig = {
     expect: {
         timeout: process.env.CI ? 10_000 : 5_000,
     },
-    webServer: {
-        command: 'npm run browser',
-        url: 'http://localhost:3000/',
-        timeout: 2 * 60 * 1000,
-        reuseExistingServer: !process.env.CI,
-    },
+    // webServer removed - each test file starts its own server via driver.ts
+    // This enables parallel execution with per-worker ports
     projects: [
         {
             name: 'chromium',

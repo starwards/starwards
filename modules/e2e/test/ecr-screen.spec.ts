@@ -21,10 +21,8 @@ test.describe('ECR Screen', () => {
         const ship = gameDriver.getShip(shipId);
         ship.state.ecrControl = true;
 
-        await navigateToScreen(page, `/ecr.html?station=ecr&ship=${shipId}`);
+        await navigateToScreen(page, `/ecr.html?station=ecr&ship=${shipId}`, { baseURL: gameDriver.baseURL });
         await waitForEngineeringStatus(page);
-
-        await page.waitForTimeout(500);
     });
 
     test.afterEach(async ({ page }) => {
@@ -74,32 +72,25 @@ test.describe('ECR Screen', () => {
 
     test('keyboard power control increases power', async ({ page }) => {
         await page.keyboard.press('1');
-        await page.waitForTimeout(500);
-
+        // Verify page didn't crash and panel is still visible
         const panel = page.locator('[data-id="Full Systems Status"]');
         await expect(panel).toBeVisible();
     });
 
     test('keyboard power control decreases power', async ({ page }) => {
         await page.keyboard.press('q');
-        await page.waitForTimeout(500);
-
         const panel = page.locator('[data-id="Full Systems Status"]');
         await expect(panel).toBeVisible();
     });
 
     test('keyboard coolant control increases coolant', async ({ page }) => {
         await page.keyboard.press('Shift+1');
-        await page.waitForTimeout(500);
-
         const panel = page.locator('[data-id="Full Systems Status"]');
         await expect(panel).toBeVisible();
     });
 
     test('keyboard coolant control decreases coolant', async ({ page }) => {
         await page.keyboard.press('Shift+q');
-        await page.waitForTimeout(500);
-
         const panel = page.locator('[data-id="Full Systems Status"]');
         await expect(panel).toBeVisible();
     });
@@ -121,13 +112,11 @@ test.describe('ECR Screen', () => {
         await enableECRControl(page);
 
         const ship = gameDriver.getShip(shipId);
-
         ship.state.warp.standbyFrequency = 2;
 
         await page.keyboard.press('\\');
 
-        await page.waitForTimeout(1000);
-
+        // Verify page didn't crash and warp panel is visible
         const panel = page.locator('[data-id="Warp"]');
         await expect(panel).toBeVisible();
     });

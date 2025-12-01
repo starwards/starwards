@@ -16,7 +16,7 @@ test.describe('Pilot Screen', () => {
         setupPageErrorHandlers(page);
 
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/pilot.html?ship=${shipId}`);
+        await navigateToScreen(page, `/pilot.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
         await waitForPilotRadar(page);
     });
 

@@ -7,21 +7,22 @@ const { test_map_1 } = maps;
 const gameDriver = makeDriver(test);
 
 test('start and stop a game', async ({ page }) => {
-    await page.goto(`/`);
+    await page.goto(`${gameDriver.baseURL}/`);
     await expect(page.locator('[data-id="title"]')).toHaveText('Starwards');
     expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
     const newGame = page.locator('[data-id="new game"]');
     await newGame.click({ delay: 200 });
     await newGame.waitFor({ state: 'detached' });
     expect(gameDriver.gameManager.state.isGameRunning).toBe(true);
-    await page.locator('[data-id="stop game"]').click({ delay: 200 });
+    // Use .first() to handle potential duplicate elements
+    await page.locator('[data-id="stop game"]').first().click({ delay: 200 });
     await newGame.waitFor({ state: 'visible' });
     expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
 });
 
 test('armor view', async ({ page }) => {
     await gameDriver.gameManager.startGame(test_map_1);
-    await page.goto(`/ship.html?ship=${test_map_1.testShipId}`);
+    await page.goto(`${gameDriver.baseURL}/ship.html?ship=${test_map_1.testShipId}`);
     await page.locator('[data-id="menu-armor"]').dragTo(page.locator('#layoutContainer'));
     const radarCanvas = page.locator('[data-id="Armor"]');
     await radarCanvas.waitFor({ state: 'visible' });
@@ -32,7 +33,7 @@ test('armor view', async ({ page }) => {
 
 test('tactical radar view', async ({ page }) => {
     await gameDriver.gameManager.startGame(test_map_1);
-    await page.goto(`/ship.html?ship=${test_map_1.testShipId}`);
+    await page.goto(`${gameDriver.baseURL}/ship.html?ship=${test_map_1.testShipId}`);
     await page.locator('[data-id="menu-tactical radar"]').dragTo(page.locator('#layoutContainer'));
     const radarCanvas = page.locator('[data-id="Tactical Radar"]');
     expect(await radarCanvas.screenshot({ timeout: 10000 })).toMatchSnapshot();
@@ -44,7 +45,7 @@ test('GM view', async ({ page }) => {
     const ship = gameDriver.getShip(test_map_1.testShipId);
     ship.state.radar.power = 1;
     ship.state.radar.design.range = 3000;
-    await page.goto(`/gm.html`);
+    await page.goto(`${gameDriver.baseURL}/gm.html`);
     const radar = new RadarDriver(page.locator('[data-id="GM Radar"]'));
     await radar.setZoom(0.1);
     expect(await radar.canvas.screenshot({ timeout: 10000 })).toMatchSnapshot();

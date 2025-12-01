@@ -15,7 +15,7 @@ test.describe('Weapons Screen', () => {
         // Set up error handlers for fail-fast behavior
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
-        await navigateToScreen(page, `/weapons.html?ship=${shipId}`);
+        await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
 
         try {
             await waitForTacticalRadar(page);

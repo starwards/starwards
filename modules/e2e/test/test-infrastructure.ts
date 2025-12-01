@@ -58,12 +58,13 @@ export async function cleanupPageState(page: Page): Promise<void> {
 export async function navigateToScreen(
     page: Page,
     screenPath: string,
-    options: { timeout?: number } = {},
+    options: { timeout?: number; baseURL?: string } = {},
 ): Promise<void> {
     const timeout = options.timeout ?? 5000;
+    const url = options.baseURL ? `${options.baseURL}${screenPath}` : screenPath;
 
     try {
-        await page.goto(screenPath, {
+        await page.goto(url, {
             timeout,
             waitUntil: 'domcontentloaded',
         });
