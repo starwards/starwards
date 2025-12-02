@@ -108,7 +108,7 @@ jobs:
             - name: Start webpack dev server
               run: npm --prefix modules/browser start &
             - name: Wait for servers
-              run: npx wait-on http://localhost:8080 http://localhost:3000/gallery.html --timeout 60000
+              run: npx wait-on http://localhost:3000/images/starwards-logo.webp http://localhost:3000/gallery.html --timeout 60000
             - name: Run visual tests
               run: npx playwright test modules/e2e/test/visual/gallery.spec.ts --project=chromium
             - name: Upload snapshot diffs
