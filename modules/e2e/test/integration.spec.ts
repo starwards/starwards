@@ -8,7 +8,7 @@ test('start and stop a game', async ({ page }) => {
     await page.goto(`${gameDriver.baseURL}/`);
     await expect(page.locator('[data-id="title"]')).toHaveText('Starwards');
     expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
-    const newGame = page.locator('[data-id="new game"]');
+    const newGame = page.locator('[data-id="new game"]').first();
     await newGame.click({ delay: 200 });
     await newGame.waitFor({ state: 'detached' });
     expect(gameDriver.gameManager.state.isGameRunning).toBe(true);

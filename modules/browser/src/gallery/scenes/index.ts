@@ -8,13 +8,26 @@ export interface Scene {
     teardown?: () => void;
 }
 
+import { ammoScenes } from './ammo';
 import { armorScenes } from './armor';
+import { engineeringStatusScenes } from './engineering-status';
 import { gmRadarScenes } from './gm-radar';
+import { pilotScenes } from './pilot';
 import { tacticalRadarScenes } from './tactical-radar';
+import { targetingScenes } from './targeting';
+import { tubesStatusScenes } from './tubes-status';
+import { warpScenes } from './warp';
+
 export const scenes: Record<string, Scene> = {
-    ...tacticalRadarScenes,
+    ...ammoScenes,
     ...armorScenes,
+    ...engineeringStatusScenes,
     ...gmRadarScenes,
+    ...pilotScenes,
+    ...tacticalRadarScenes,
+    ...targetingScenes,
+    ...tubesStatusScenes,
+    ...warpScenes,
 };
 
 export const sceneNames = Object.keys(scenes);
