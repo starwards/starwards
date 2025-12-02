@@ -109,8 +109,8 @@ jobs:
               run: npm --prefix modules/browser start &
             - name: Wait for servers
               run: npx wait-on http://localhost:3000/images/starwards-logo.webp http://localhost:3000/gallery.html --timeout 60000
-            - name: Run visual tests
-              run: npx playwright test modules/e2e/test/visual/gallery.spec.ts --project=chromium
+            - name: Run visual tests (headed with xvfb for WebGL)
+              run: xvfb-run npx playwright test modules/e2e/test/visual/gallery.spec.ts --project=chromium-headed
             - name: Upload snapshot diffs
               uses: actions/upload-artifact@v4
               if: failure()

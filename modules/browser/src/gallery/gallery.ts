@@ -1,5 +1,6 @@
 import { Scene, scenes } from './scenes';
 
+import { Application } from 'pixi.js';
 import { ListBladeApi } from 'tweakpane';
 import { createPane } from '../panel';
 
@@ -7,6 +8,7 @@ declare global {
     interface Window {
         __PIXI_READY__: boolean;
         __PIXI_SCENE__: Scene | null;
+        __PIXI_APP__: Application | null;
     }
 }
 
@@ -64,6 +66,7 @@ function showError(message: string) {
 async function loadScene() {
     window.__PIXI_READY__ = false;
     window.__PIXI_SCENE__ = null;
+    window.__PIXI_APP__ = null;
 
     buildSceneSelector();
 
@@ -82,14 +85,30 @@ async function loadScene() {
     }
 
     try {
-        await scene.setup(container);
+        const app = await scene.setup(container);
         window.__PIXI_SCENE__ = scene;
+        if (app) {
+            window.__PIXI_APP__ = app;
+        }
 
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                window.__PIXI_READY__ = true;
-            });
-        });
+        // Wait for PixiJS to render frames, then stop ticker for stable screenshots
+        // preserveDrawingBuffer=true keeps canvas content after ticker stops
+        if (window.__PIXI_APP__) {
+            let frameCount = 0;
+            const waitForRender = () => {
+                frameCount++;
+                if (frameCount >= 10) {
+                    window.__PIXI_APP__!.ticker.remove(waitForRender);
+                    window.__PIXI_APP__!.ticker.stop();
+                    // Force final render to ensure canvas has content
+                    window.__PIXI_APP__!.render();
+                    window.__PIXI_READY__ = true;
+                }
+            };
+            window.__PIXI_APP__.ticker.add(waitForRender);
+        } else {
+            window.__PIXI_READY__ = true;
+        }
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         showError(`Failed to load scene "${currentSceneName}": ${message}`);

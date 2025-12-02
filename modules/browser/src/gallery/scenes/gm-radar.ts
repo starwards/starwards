@@ -1,10 +1,3 @@
-/**
- * GM Radar Scenes
- *
- * Visual test scenes for the GM (Game Master) radar widget.
- * GM radar shows all objects with faction colors and grid overlay.
- */
-
 import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, dragonflySF22, makeShipState } from '@starwards/core';
 import { blue, radarVisibleBg, red, yellow } from '../../colors';
@@ -82,6 +75,8 @@ export const gmRadarScenes: Record<string, Scene> = {
 
             const grid = new GridLayer(root);
             root.addLayer(grid.renderRoot);
+
+            return root;
         },
     },
 
@@ -115,6 +110,8 @@ export const gmRadarScenes: Record<string, Scene> = {
                 tacticalDrawFunctions,
             );
             root.addLayer(blipLayer.renderRoot);
+
+            return root;
         },
     },
 
@@ -173,6 +170,8 @@ export const gmRadarScenes: Record<string, Scene> = {
                 tacticalDrawWaypoints,
             );
             root.addLayer(waypointsLayer.renderRoot);
+
+            return root;
         },
     },
 };

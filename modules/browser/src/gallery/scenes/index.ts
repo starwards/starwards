@@ -1,7 +1,10 @@
+import { Application } from 'pixi.js';
+
 export interface Scene {
     name: string;
     description: string;
-    setup: (container: HTMLElement) => Promise<void> | void;
+    /** Setup returns Application for ticker control */
+    setup: (container: HTMLElement) => Promise<Application | void> | Application | void;
     teardown?: () => void;
 }
 

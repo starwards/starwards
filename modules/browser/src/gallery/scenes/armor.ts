@@ -17,84 +17,84 @@ export const armorScenes: Record<string, Scene> = {
     'armor-full-health': {
         name: 'armor-full-health',
         description: 'Armor display with all plates at 100% health (all green)',
-        setup(container: HTMLElement) {
+        async setup(container: HTMLElement) {
             const healthFactors = new Array<number>(12).fill(1.0);
             const ship = createShipWithArmor('player', healthFactors);
 
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
         },
     },
 
     'armor-light-damage': {
         name: 'armor-light-damage',
         description: 'Armor display with light damage (mostly green, some yellow)',
-        setup(container: HTMLElement) {
+        async setup(container: HTMLElement) {
             const healthFactors = [1.0, 0.8, 1.0, 0.9, 0.8, 1.0, 1.0, 0.85, 1.0, 0.9, 0.8, 1.0];
             const ship = createShipWithArmor('player', healthFactors);
 
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
         },
     },
 
     'armor-moderate-damage': {
         name: 'armor-moderate-damage',
         description: 'Armor display with moderate damage (mix of green, yellow, orange)',
-        setup(container: HTMLElement) {
+        async setup(container: HTMLElement) {
             const healthFactors = [0.9, 0.5, 0.7, 0.4, 0.8, 0.6, 0.9, 0.3, 0.7, 0.5, 0.8, 0.6];
             const ship = createShipWithArmor('player', healthFactors);
 
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
         },
     },
 
     'armor-heavy-damage': {
         name: 'armor-heavy-damage',
         description: 'Armor display with heavy damage (mostly orange/red)',
-        setup(container: HTMLElement) {
+        async setup(container: HTMLElement) {
             const healthFactors = [0.3, 0.1, 0.2, 0.15, 0.4, 0.05, 0.25, 0.1, 0.3, 0.2, 0.1, 0.35];
             const ship = createShipWithArmor('player', healthFactors);
 
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
         },
     },
 
     'armor-critical': {
         name: 'armor-critical',
         description: 'Armor display with critical damage (mostly destroyed plates)',
-        setup(container: HTMLElement) {
+        async setup(container: HTMLElement) {
             const healthFactors = [0.0, 0.05, 0.0, 0.1, 0.0, 0.02, 0.0, 0.08, 0.0, 0.03, 0.0, 0.0];
             const ship = createShipWithArmor('player', healthFactors);
 
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
         },
     },
 
     'armor-sector-damage': {
         name: 'armor-sector-damage',
         description: 'Armor display with concentrated damage on one side (front damaged)',
-        setup(container: HTMLElement) {
+        async setup(container: HTMLElement) {
             const healthFactors = [0.1, 0.2, 0.15, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 0.95, 0.9, 0.3];
             const ship = createShipWithArmor('player', healthFactors);
 
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
         },
     },
 };

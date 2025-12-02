@@ -11,15 +11,12 @@ export class CameraView extends Application {
     public events = new EventEmitter<'screenChanged' | 'angleChanged'>();
     private square = false;
 
-    /**
-     * @param camera a point in the world that the radar is watching, and a zoom level
-     */
     constructor(public camera: Camera) {
         super();
     }
 
     public async initialize(pixiOptions: Partial<ApplicationOptions>, container: WidgetContainer) {
-        await super.init(pixiOptions);
+        await super.init({ ...pixiOptions, preserveDrawingBuffer: true });
         this.ticker.maxFPS = 30; // if no limit, then GPU and CPU start heating up and FPS reach ~250
         this.camera.events.on('view', () => this.events.emit('screenChanged'));
         this.camera.events.on('angle', () => this.events.emit('angleChanged'));

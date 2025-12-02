@@ -29,7 +29,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
                 range: RANGE,
             });
         },
@@ -47,7 +47,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
                 range: RANGE,
             });
         },
@@ -61,7 +61,6 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             playerShip.velocity.x = 100;
             playerShip.velocity.y = 0;
 
-            // Create other objects using mock factories
             const enemyShip = createMockShip({
                 id: 'enemy-1',
                 position: { x: 2000, y: 1500 },
@@ -105,7 +104,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             ]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
                 range: RANGE,
             });
         },

@@ -32,7 +32,20 @@ const config: PlaywrightTestConfig = {
     projects: [
         {
             name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
+            use: {
+                ...devices['Desktop Chrome'],
+            },
+        },
+        {
+            name: 'chromium-headed',
+            use: {
+                ...devices['Desktop Chrome'],
+                // Headed mode for WebGL visual tests
+                headless: false,
+                launchOptions: {
+                    args: ['--disable-gpu-vsync'],
+                },
+            },
         },
     ],
 };

@@ -120,4 +120,6 @@ export async function drawTacticalRadar(
     void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
         camera.followSpaceObject(tracked, spaceDriver.events, true),
     );
+
+    return root;
 }

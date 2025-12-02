@@ -6,7 +6,6 @@ import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 import { radarVisibleBg } from '../colors';
 
-// Helper to convert RGB (0-1 range) to hex color
 const rgb2hex = (rgb: number[]) => {
     const r = Math.round(rgb[0] * 255);
     const g = Math.round(rgb[1] * 255);
@@ -24,7 +23,7 @@ const plateMarginRadians = 3 * degToRad;
 export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
     class ArmorComponent {
         constructor(container: WidgetContainer) {
-            drawArmorStatus(container, shipDriver);
+            void drawArmorStatus(container, shipDriver);
         }
     }
     return {
@@ -35,14 +34,18 @@ export function armorWidget(shipDriver: ShipDriver): DashboardWidget {
     };
 }
 
-export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriver, minWidth = 0) {
-    // dd
+export async function drawArmorStatus(
+    container: WidgetContainer,
+    shipDriver: ShipDriver,
+    minWidth = 0,
+): Promise<Application> {
     const size = () => Math.max(Math.min(container.width, container.height), minWidth);
-    void Assets.load('images/dragonfly-armor.svg').then(async (_texture: Texture) => {
+    await Assets.load('images/dragonfly-armor.svg');
+    {
         const texture = Texture.from('images/dragonfly-armor.svg'); // SVG bug https://github.com/pixijs/pixijs/issues/8694#issuecomment-1320702841
         // initialization. extracted from CameraView
         const root = new Application();
-        await root.init({ backgroundColor: radarVisibleBg });
+        await root.init({ backgroundColor: radarVisibleBg, preserveDrawingBuffer: true });
         root.canvas.setAttribute('data-id', 'Armor');
         container.on('resize', () => {
             root.renderer.resize(size(), size());
@@ -107,5 +110,7 @@ export function drawArmorStatus(container: WidgetContainer, shipDriver: ShipDriv
             null,
             UPDATE_PRIORITY.LOW + 1,
         );
-    });
+
+        return root;
+    }
 }
