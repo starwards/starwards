@@ -1,4 +1,4 @@
-import { Container, DisplayObject, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
+import { Container, FederatedPointerEvent, Graphics, Rectangle } from 'pixi.js';
 import { CreateTemplate, InteractiveLayerCommands } from './interactive-layer-commands';
 import {
     Iterator,
@@ -75,7 +75,7 @@ export class InteractiveLayer {
         this.stage.on('pointerup', this.onPointerup);
     }
 
-    get renderRoot(): DisplayObject {
+    get renderRoot(): Container {
         return this.stage;
     }
 
@@ -285,10 +285,10 @@ export class InteractiveLayer {
         const min = XY.min(from, to);
         const absDifference = XY.absDifference(from, to);
         const graphics = new Graphics();
-        graphics.lineStyle(1, selectionColor, 1);
-        graphics.beginFill(selectionColor, 0.2);
-        graphics.drawRect(min.x, min.y, absDifference.x, absDifference.y);
-        graphics.endFill();
+        graphics
+            .rect(min.x, min.y, absDifference.x, absDifference.y)
+            .fill({ color: selectionColor, alpha: 0.2 })
+            .stroke({ width: 1, color: selectionColor, alpha: 1 });
         return graphics;
     }
 }

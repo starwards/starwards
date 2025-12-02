@@ -11,6 +11,7 @@ module.exports = {
         ecr: [path.resolve(__dirname, 'src', 'screens', 'ecr.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
         input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
+        gallery: [path.resolve(__dirname, 'src', 'gallery', 'gallery.ts')],
     },
     module: {
         rules: [
@@ -80,9 +81,19 @@ module.exports = {
             template: path.resolve(__dirname, 'templates', 'input.html'),
             chunks: ['input'],
         }),
+        new HtmlWebpackPlugin({
+            filename: 'gallery.html',
+            template: path.resolve(__dirname, 'templates', 'gallery.html'),
+            chunks: ['gallery'],
+        }),
     ],
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'],
         plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.json') })],
+        alias: {
+            // Ensure only one copy of React is used to avoid hook errors
+            react: path.resolve(__dirname, '../../node_modules/react'),
+            'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
+        },
     },
 };

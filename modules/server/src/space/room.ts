@@ -8,7 +8,7 @@ import {
     spaceCommands,
 } from '@starwards/core';
 
-import { Room } from 'colyseus';
+import { Room } from '@colyseus/core';
 
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';

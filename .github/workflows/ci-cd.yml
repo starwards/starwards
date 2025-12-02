@@ -71,6 +71,7 @@ jobs:
             - run: npm ci
             - run: npm run build:core
             - run: npm run build:server
+            - run: npm --prefix modules/browser run build
             - run: npm run test:e2e
             - name: Store test results
               uses: actions/upload-artifact@v4
@@ -81,6 +82,33 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: test-results
+                  path: test-results
+                  if-no-files-found: ignore
+
+    Test-Visual:
+        runs-on: ubuntu-latest
+        container:
+            image: mcr.microsoft.com/playwright:v1.56.1-jammy
+            options: --user 1001
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: node --version
+            - run: npm --version
+            - run: env
+            - run: npm ci
+            - run: npm run build:core
+            - run: npm run build:server
+            - run: npm --prefix modules/browser run build
+            - run: xvfb-run npm run test:widgets
+            - name: Upload snapshot diffs
+              uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: visual-test-diffs
                   path: test-results
                   if-no-files-found: ignore
 

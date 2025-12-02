@@ -1,11 +1,9 @@
-import * as TweakpaneTablePlugin from 'tweakpane-table';
-
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
-import { Model, addTextBlade, createPane } from '../panel';
+import { Model, addTextCellToRow, createPane } from '../panel';
+import { RowApi, plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { aggregate, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { RowApi } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 import { defectReadProp } from '../react/hooks';
 
@@ -99,13 +97,13 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
     }
 }
 function addStatusBlade<T extends string | number>(
-    standardRowApi: TweakpaneTablePlugin.RowApi,
+    standardRowApi: RowApi,
     prop: Model<T>,
     format: (p: T) => string,
     panelCleanup: Destructors,
     hackedStatusColor: Record<T, 'OK' | 'WARN' | 'ERROR'>,
 ) {
-    const blade = addTextBlade(standardRowApi.getPane(), prop, { format, width: `${cellWidth}px` }, panelCleanup.add);
+    const blade = addTextCellToRow(standardRowApi, prop, { format, width: `${cellWidth}px` }, panelCleanup.add);
     blade.element.classList.add('heat', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
     const applyTheme = () => (blade.element.dataset.status = hackedStatusColor[prop.getValue()]); // this will change tweakpane theme for this folder, see tweakpane.css
     panelCleanup.add(prop.onChange(applyTheme));

@@ -13,13 +13,6 @@ export default [
     {
         ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts'],
     },
-    // ESLint config file - disable sort-imports
-    {
-        files: ['eslint.config.mjs'],
-        rules: {
-            'sort-imports': 'off',
-        },
-    },
     // Base config for all files
     {
         files: ['**/*.{js,jsx,mjs,cjs}'],

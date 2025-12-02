@@ -21,12 +21,17 @@ async function expectServerHealthy(port: number) {
 export function makeDriver(t: typeof test) {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
-    // const workerIndex = parseInt(process.env.TEST_WORKER_INDEX || '0');
-    const port = 8080; //+ workerIndex;
+    let port = 8080;
 
-    t.beforeAll(async () => {
+    // eslint-disable-next-line no-empty-pattern
+    t.beforeAll(async ({}, workerInfo) => {
+        // Each worker gets a unique port for parallel execution
+        port = 8080 + workerInfo.parallelIndex;
         gameManager = new GameManager();
-        serverInfo = await server(port, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
+        // Serve browser build from modules/browser/dist, static assets from static/
+        const browserDistPath = path.resolve(__dirname, '..', '..', 'browser', 'dist');
+        const staticAssetsPath = path.resolve(__dirname, '..', '..', '..', 'static');
+        serverInfo = await server(port, [browserDistPath, staticAssetsPath], gameManager);
     });
     t.afterAll(async () => {
         await serverInfo?.close();
@@ -58,6 +63,9 @@ export function makeDriver(t: typeof test) {
         },
         get port(): number {
             return port;
+        },
+        get baseURL(): string {
+            return `http://localhost:${port}`;
         },
         getShip(id: string) {
             const ship = this.gameManager.scriptApi.getShip(id);

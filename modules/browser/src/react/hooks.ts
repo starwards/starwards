@@ -51,7 +51,7 @@ export function useLoop(callback: () => unknown, intervalMs: number, deps: Depen
         const loop = new TaskLoop(callback, intervalMs);
         loop.start();
         return loop.stop;
-        // eslint-disable-next-line react-hooks/exhaustive-deps, @typescript-eslint/no-unsafe-assignment
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [intervalMs, ...deps]);
 }
 

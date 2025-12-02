@@ -1,6 +1,7 @@
-import { GameRoom, RoomEventEmitter } from '..';
-
+import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
+import { Room } from 'colyseus.js';
+import { RoomEventEmitter } from '..';
 import { wireEvents } from 'colyseus-events';
 
 const requestInfo = {
@@ -15,9 +16,19 @@ const emitter2Options = {
     delimiter: '/',
     maxListeners: 0,
 };
-export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) => {
+export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminState>) => {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
-    wireEvents(adminRoom.state, events);
+    // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state
+    // We must wait for the first state sync before calling wireEvents because:
+    // 1. The room's state may not be fully initialized immediately after connection
+    // 2. Reference IDs (refIds) need to be set up for proper object tracking
+    // 3. wireEvents needs access to the full state tree to set up listeners
+    await new Promise<void>((resolve) => {
+        adminRoom.onStateChange.once(() => {
+            wireEvents(adminRoom, events);
+            resolve();
+        });
+    });
     return {
         events,
         get state() {
@@ -38,4 +49,4 @@ export const AdminDriver = (endpoint: string) => (adminRoom: GameRoom<'admin'>) 
     };
 };
 
-export type AdminDriver = ReturnType<ReturnType<typeof AdminDriver>>;
+export type AdminDriver = Awaited<ReturnType<ReturnType<typeof AdminDriver>>>;

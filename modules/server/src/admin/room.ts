@@ -1,6 +1,6 @@
 import { AdminState } from '@starwards/core';
 import { GameManager } from './game-manager';
-import { Room } from 'colyseus';
+import { Room } from '@colyseus/core';
 
 export class AdminRoom extends Room<AdminState> {
     public static id = 'admin';

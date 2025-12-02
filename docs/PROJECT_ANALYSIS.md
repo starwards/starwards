@@ -530,7 +530,7 @@ npm run pkg            # Create native executables
 **UI:**
 - `react` ^17.0.2
 - `react-dom` ^17.0.2
-- `@arwes/core` 1.0.0-alpha.19
+- `@arwes-amir/core` 1.0.0-alpha.19
 - `golden-layout` ^1.5.9
 - `tweakpane` ^3.1.10
 

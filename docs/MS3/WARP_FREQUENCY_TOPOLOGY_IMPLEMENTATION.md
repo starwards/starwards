@@ -532,7 +532,7 @@ export class WarpRouteOptimizer {
 
 ```typescript
 // modules/server/src/rooms/SpaceRoom.ts
-import { Room, Client } from 'colyseus';
+import { Room, Client } from '@colyseus/core';
 import { SpaceState } from '@starwards/core';
 import { WarpTopologyManager, WarpRouteOptimizer } from '../topology';
 

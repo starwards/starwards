@@ -53,7 +53,7 @@ const singleSelectionDetails = async (
     guiFolder: FolderApi,
     cleanup: (d: Destructor) => void,
 ) => {
-    guiFolder.addInput(subject, 'id', { disabled: true });
+    guiFolder.addBinding(subject, 'id', { readonly: true });
     addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
 
     // Scan Levels folder

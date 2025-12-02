@@ -1,19 +1,17 @@
-import * as TweakpaneTablePlugin from 'tweakpane-table';
-
 import {
     BladeGuiApi,
-    addSliderBlade,
-    addTextBlade,
+    addSliderCellToRow,
+    addTextCellToRow,
     configSliderBlade,
     configTextBlade,
     createPane,
     wireBlade,
 } from '../panel';
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
+import { RowApi, plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { RowApi } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 import { defectReadProp } from '../react/hooks';
 
@@ -70,39 +68,39 @@ export function drawFullSystemsStatus(
             label: system.state.name,
         }) as RowApi;
 
-        const statusCell = addTextBlade(standardRowApi.getPane(), prop, { width: '60px' }, panelCleanup.add);
+        const statusCell = addTextCellToRow(standardRowApi, prop, { width: '60px' }, panelCleanup.add);
         statusCell.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
         const applyThemeByStatus = () => (statusCell.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
         const detachApplyThemeByStatus = abstractOnChange(statusChangeProps, system.getStatus, applyThemeByStatus);
         panelCleanup.add(detachApplyThemeByStatus);
 
         applyThemeByStatus();
-        addTextBlade(
-            standardRowApi.getPane(),
+        addTextCellToRow(
+            standardRowApi,
             readProp<number>(shipDriver, `${system.pointer}/power`),
             { format: (p: PowerLevel) => PowerLevel[p], width: '60px' },
             panelCleanup.add,
         );
-        addTextBlade(
-            standardRowApi.getPane(),
+        addTextCellToRow(
+            standardRowApi,
             readProp<number>(shipDriver, `${system.pointer}/energyPerMinute`),
             { format: (epm: number) => `${Math.round(epm)}`, width: '60px' },
             panelCleanup.add,
         );
-        addTextBlade(
-            standardRowApi.getPane(),
+        addTextCellToRow(
+            standardRowApi,
             readProp<number>(shipDriver, `${system.pointer}/heat`),
             { format: (heat: number) => `${Math.round(heat)}`, width: '60px' },
             panelCleanup.add,
         );
-        addSliderBlade(
-            standardRowApi.getPane(),
+        addSliderCellToRow(
+            standardRowApi,
             readNumberProp(shipDriver, `${system.pointer}/coolantFactor`),
             { format: (c: number) => `${Math.round(c * 100)}%`, width: '120px' },
             panelCleanup.add,
         );
-        addTextBlade(
-            standardRowApi.getPane(),
+        addTextCellToRow(
+            standardRowApi,
             readProp<number>(shipDriver, `${system.pointer}/hacked`),
             { format: (p: HackLevel) => HackLevel[p], width: '60px' },
             panelCleanup.add,
@@ -111,16 +109,14 @@ export function drawFullSystemsStatus(
         const defectiblesRowApi = pane.addBlade({ view: 'tableRow', label: '', cells: [] }) as RowApi;
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);
-            defectiblesRowApi
-                .getPane()
-                .addBlade({ ...configTextBlade({}, () => d.name), width: `${defectibleWidth}px` });
-            const valueBlade = defectiblesRowApi.getPane().addBlade({
+            defectiblesRowApi.addCell({ ...configTextBlade({}, () => d.name), width: `${defectibleWidth}px` });
+            const valueBlade = defectiblesRowApi.addCell({
                 ...configSliderBlade({}, defectibleProp.range, defectibleProp.getValue),
                 width: `${defectibleWidth}px`,
             }) as unknown as BladeGuiApi<number>;
             wireBlade(valueBlade, defectibleProp, panelCleanup.add);
         }
-        pane.addSeparator();
+        pane.addBlade({ view: 'separator' });
     }
     container.getElement().find('.tp-lblv_v').css('min-width', 'fit-content');
     container.getElement().find('.tp-lblv_l').css('min-width', `${systemNameWidth}px`);

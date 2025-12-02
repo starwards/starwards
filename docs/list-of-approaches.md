@@ -475,7 +475,7 @@
     - WebGL acceleration
 
 75. **Arwes Sci-fi UI**
-    - [`@arwes/core`](modules/browser/package.json:16) component library
+    - [`@arwes-amir/core`](modules/browser/package.json:16) component library
     - Consistent futuristic theme
     - Animation support
     - Sound effects integration

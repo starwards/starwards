@@ -44,7 +44,7 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
             panelCleanup.add,
         );
         if (tube.index < shipDriver.state.tubes.length - 1) {
-            pane.addSeparator();
+            pane.addBlade({ view: 'separator' });
         }
     }
 }
