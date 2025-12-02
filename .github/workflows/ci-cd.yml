@@ -104,7 +104,7 @@ jobs:
             - run: npm run build:server
             - run: npm --prefix modules/browser run build
             - name: Start backend server
-              run: node -r ts-node/register/transpile-only ./modules/server/src/dev.ts &
+              run: npm --prefix modules/server start &
             - name: Start webpack dev server
               run: npm --prefix modules/browser start &
             - name: Wait for servers
