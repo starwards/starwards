@@ -72,9 +72,6 @@ test.describe('Pilot Screen', () => {
 
     test('displays energy level', async ({ page }) => {
         const ship = gameDriver.getShip(shipId);
-        const maxEnergy = ship.state.reactor.design.maxEnergy;
-
-        // Wait for energy to display any reasonable value (avoids race condition with volatile server value)
         await waitForPropertyValue(
             page,
             'energy',
