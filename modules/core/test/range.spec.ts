@@ -1,6 +1,5 @@
 import { getRange, range, rangeSchema } from '../src/range';
-
-import { JsonPointer } from 'json-ptr';
+import { JsonPointer } from '../src/json-ptr';
 import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
 import { gameField } from '../src/game-field';

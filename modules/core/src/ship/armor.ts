@@ -58,7 +58,7 @@ export class Armor extends Schema {
         const count = this.numberOfPlatesInRange(localAngleHitRange);
         for (let i = 0; i < count; i++) {
             const plateIdx = (i + firstPlateIdx) % this.armorPlates.length;
-            yield [plateIdx, this.armorPlates[plateIdx]!];
+            yield [plateIdx, this.armorPlates[plateIdx]];
         }
     }
 }

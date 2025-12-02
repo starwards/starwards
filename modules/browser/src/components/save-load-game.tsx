@@ -1,4 +1,4 @@
-import { Blockquote, FrameCorners, Text } from '@arwes/core';
+import { Blockquote, FrameCorners, Text } from './arwes-compat';
 import { FileRejection, useDropzone } from 'react-dropzone';
 import React, { useCallback, useState } from 'react';
 
@@ -55,15 +55,13 @@ export function LoadGame({ adminDriver }: Props) {
     return (
         <div {...getRootProps()}>
             {errors.length ? (
-                <Blockquote animator={{ activate: true }} palette="error">
+                <Blockquote>
                     {errors.map((e, i) => (
                         <Text key={i}>{e}</Text>
                     ))}
                 </Blockquote>
             ) : null}
-            {/* 
-// @ts-ignore : old arwes */}
-            <FrameCorners animator={{ activate: true }} palette={isDragActive ? 'success' : ''} hover>
+            <FrameCorners palette={isDragActive ? 'success' : 'primary'}>
                 <div style={{ width: 400, height: 100 }}>
                     <input {...getInputProps()} />
                     <h2>Load Game</h2>

@@ -967,7 +967,8 @@ blade.element.dataset.status = 'OK' | 'WARN' | 'ERROR';
 ```typescript
 const camera = new Camera();
 camera.bindRange(container, sizeFactor, { range: 5000 });
-const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
+const root = new CameraView(camera);
+await root.initialize({ backgroundColor: radarFogOfWar }, container);
 ```
 
 #### Layers

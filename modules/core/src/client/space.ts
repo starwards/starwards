@@ -1,11 +1,12 @@
 import { Add, Event, Primitive, Remove, Replace, wireEvents } from 'colyseus-events';
-import { EventEmitter, GameRoom, RoomEventEmitter } from '..';
+import { EventEmitter, RoomEventEmitter } from '..';
 import { StateCommand, sendJsonCmd } from '../commands';
 
 import EventEmitter2 from 'eventemitter2';
+import { Room } from 'colyseus.js';
 import { SpaceState } from '../space';
 
-export type SpaceDriver = ReturnType<typeof SpaceDriver>;
+export type SpaceDriver = Awaited<ReturnType<typeof SpaceDriver>>;
 export type SpaceEventEmitter = RoomEventEmitter &
     EventEmitter<{
         $add: Add;
@@ -18,7 +19,7 @@ const emitter2Options = {
     delimiter: '/',
     maxListeners: 0,
 };
-export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
+export async function SpaceDriver(spaceRoom: Room<SpaceState>) {
     const events = new EventEmitter2(emitter2Options) as SpaceEventEmitter;
     // wire objects lifecycle events
     events.on('/*', (e: Event) => {
@@ -29,7 +30,17 @@ export function SpaceDriver(spaceRoom: GameRoom<'space'>) {
             events.emit(`$remove`, Remove(e.path.slice(0, e.path.lastIndexOf('/'))));
         }
     });
-    wireEvents(spaceRoom.state, events);
+    // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state
+    // We must wait for the first state sync before calling wireEvents because:
+    // 1. The room's state may not be fully initialized immediately after connection
+    // 2. Reference IDs (refIds) need to be set up for proper object tracking
+    // 3. wireEvents needs access to the full state tree to set up listeners
+    await new Promise<void>((resolve) => {
+        spaceRoom.onStateChange.once(() => {
+            wireEvents(spaceRoom, events);
+            resolve();
+        });
+    });
     const spaceDriver = {
         events,
         get state(): SpaceState {

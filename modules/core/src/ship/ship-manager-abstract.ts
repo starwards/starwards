@@ -195,14 +195,18 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected updateRadarRange({ totalSeconds, deltaSeconds }: IterationData) {
-        const range = this.calcRadarRange(totalSeconds);
         if (
             this.internalProxy.trySpendEnergy(
-                range * (this.state.radar.design.energyCost / 1000) * deltaSeconds,
+                this.state.radar.design.range *
+                    this.state.radar.effectiveness *
+                    (this.state.radar.design.energyCost / 1000) *
+                    deltaSeconds,
                 this.state.radar,
             )
         ) {
             this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange(totalSeconds));
+        } else {
+            this.spaceManager.changeShipRadarRange(this.spaceObject.id, 0);
         }
         this.state.radarRange = this.spaceObject.radarRange;
     }

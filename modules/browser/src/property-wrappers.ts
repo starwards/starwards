@@ -1,6 +1,5 @@
-import { Destructors, RoomEventEmitter, getJsonPointer, getRange } from '@starwards/core';
+import { Destructors, type JsonStringPointer, RoomEventEmitter, getJsonPointer, getRange } from '@starwards/core';
 
-import { JsonStringPointer } from 'json-ptr';
 import { Primitive } from 'colyseus-events';
 import { Schema } from '@colyseus/schema';
 

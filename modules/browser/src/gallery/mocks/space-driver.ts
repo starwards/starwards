@@ -1,0 +1,109 @@
+import { Asteroid, SpaceObject, Spaceship, Waypoint, XY } from '@starwards/core';
+
+import EventEmitter2 from 'eventemitter2';
+
+export interface MockSpaceState {
+    objects: Map<string, SpaceObject>;
+    get(id: string): SpaceObject | undefined;
+    getShip(id: string): Spaceship | undefined;
+    getAll<T extends SpaceObject>(type: string): Iterable<T>;
+    [Symbol.iterator](): IterableIterator<SpaceObject>;
+}
+
+export interface MockSpaceDriver {
+    events: EventEmitter2;
+    state: MockSpaceState;
+    command: () => void;
+}
+
+export function createMockShip(
+    overrides: Partial<{
+        id: string;
+        position: XY;
+        angle: number;
+        faction: number;
+        velocity: XY;
+        turnSpeed: number;
+    }> = {},
+): Spaceship {
+    const ship = new Spaceship();
+    ship.id = overrides.id ?? `ship-${Math.random().toString(36).substr(2, 9)}`;
+    if (overrides.position) {
+        ship.position.x = overrides.position.x;
+        ship.position.y = overrides.position.y;
+    }
+    ship.angle = overrides.angle ?? 0;
+    ship.faction = overrides.faction ?? 0;
+    if (overrides.velocity) {
+        ship.velocity.x = overrides.velocity.x;
+        ship.velocity.y = overrides.velocity.y;
+    }
+    ship.turnSpeed = overrides.turnSpeed ?? 0;
+    return ship;
+}
+
+export function createMockAsteroid(
+    overrides: Partial<{
+        id: string;
+        position: XY;
+        radius: number;
+    }> = {},
+): Asteroid {
+    const asteroid = new Asteroid();
+    asteroid.id = overrides.id ?? `asteroid-${Math.random().toString(36).substr(2, 9)}`;
+    if (overrides.position) {
+        asteroid.position.x = overrides.position.x;
+        asteroid.position.y = overrides.position.y;
+    }
+    asteroid.radius = overrides.radius ?? 50;
+    return asteroid;
+}
+
+export function createMockWaypoint(
+    overrides: Partial<{
+        id: string;
+        position: XY;
+    }> = {},
+): Waypoint {
+    const waypoint = new Waypoint();
+    waypoint.id = overrides.id ?? `waypoint-${Math.random().toString(36).substr(2, 9)}`;
+    if (overrides.position) {
+        waypoint.position.x = overrides.position.x;
+        waypoint.position.y = overrides.position.y;
+    }
+    return waypoint;
+}
+
+export function createMockSpaceDriver(objects: SpaceObject[] = []): MockSpaceDriver {
+    const objectMap = new Map<string, SpaceObject>();
+    for (const obj of objects) {
+        objectMap.set(obj.id, obj);
+    }
+
+    const state: MockSpaceState = {
+        objects: objectMap,
+        get(id: string) {
+            return objectMap.get(id);
+        },
+        getShip(id: string) {
+            const obj = objectMap.get(id);
+            return obj && Spaceship.isInstance(obj) ? obj : undefined;
+        },
+        *getAll<T extends SpaceObject>(type: string): Iterable<T> {
+            for (const obj of objectMap.values()) {
+                if (obj.type === type) {
+                    yield obj as T;
+                }
+            }
+        },
+        *[Symbol.iterator]() {
+            yield* objectMap.values();
+        },
+    };
+
+    return {
+        events: new EventEmitter2({ wildcard: true, delimiter: '/', maxListeners: 0 }),
+        state: state as unknown as MockSpaceState,
+        command: () => {},
+    };
+}

@@ -43,27 +43,31 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
         constructor(container: WidgetContainer, p: Props) {
             const camera = new Camera();
             camera.bindRange(container, sizeFactor - sizeFactorGrace, p);
-            const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
+            const root = new CameraView(camera);
+            void this.init(root, container, p, camera);
+        }
+
+        private async init(root: CameraView, container: WidgetContainer, p: Props, camera: Camera) {
+            await root.initialize({ backgroundColor: radarFogOfWar }, container);
             root.setSquare();
+
             const rangeFilter = new RadarRangeFilter(
                 spaceDriver,
                 (o: SpaceObject) => o.faction === shipDriver.state.faction,
             );
+            const fovGraphics = new Graphics();
             root.ticker.add(
                 () => {
                     rangeFilter.update();
                     fovGraphics.clear();
-                    fovGraphics.lineStyle(0);
                     for (const fov of rangeFilter.fieldsOfView()) {
-                        fovGraphics.beginFill(radarVisibleBg, 1);
                         fov.draw(root, fovGraphics);
-                        fovGraphics.endFill();
+                        fovGraphics.fill({ color: radarVisibleBg, alpha: 1 });
                     }
                 },
                 null,
                 UPDATE_PRIORITY.LOW,
             );
-            const fovGraphics = new Graphics();
             root.stage.addChild(fovGraphics);
             const range = new RangeIndicators(root, p.range / 5);
             range.setSizeFactor(sizeFactor);

@@ -1,8 +1,8 @@
-import { ArwesThemeProvider, StylesBaseline, Text } from '@arwes/core';
+import { ArwesThemeProvider, StylesBaseline, Text } from '../components/arwes-compat';
 import React, { Component, useEffect, useRef } from 'react';
 import { defectReadProp, useProperties } from '../react/hooks';
 
-import { BleepsProvider } from '@arwes/sounds';
+import { BleepsProvider } from '../components/arwes-compat';
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
 import WebFont from 'webfontloader';
@@ -57,7 +57,7 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
     }
     return (
         <>
-            <Text animator={{ duration, activate: broken }}>
+            <Text>
                 --------------------------
                 <br />
                 <b>{name} :</b> {status}
@@ -74,7 +74,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
     return (
         <>
             <>
-                <Text animator={{ duration, activate: true }}>
+                <Text>
                     <h1>Damage Report</h1>
                 </Text>
                 <br />

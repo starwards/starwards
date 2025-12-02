@@ -35,7 +35,7 @@ export function createWidget(createContainer: InteractiveLayerCommands): Dashboa
                 type: 'Asteroid',
                 radius: { min: 1, max: Asteroid.maxSize },
             };
-            makeAsteroidFolder.addInput(createAsteroidTemplate, 'radius', {
+            makeAsteroidFolder.addBinding(createAsteroidTemplate, 'radius', {
                 ...createAsteroidTemplate.radius,
                 step: 1,
             });
@@ -54,16 +54,16 @@ export function createWidget(createContainer: InteractiveLayerCommands): Dashboa
                 shipModel: 'dragonfly-SF22',
                 faction: Faction.NONE,
             };
-            makeShipFolder.addInput(createShipTemplate, 'faction', {
+            makeShipFolder.addBinding(createShipTemplate, 'faction', {
                 options: Object.values(Faction)
                     .filter<number>((k): k is number => typeof k === 'number')
                     .filter((k) => !String(Faction[k]).endsWith('_COUNT'))
                     .map((value) => ({ value, text: String(Faction[value]) })),
             });
-            makeShipFolder.addInput(createShipTemplate, 'shipModel', {
+            makeShipFolder.addBinding(createShipTemplate, 'shipModel', {
                 options: shipModels.map((sm) => ({ text: sm, value: sm })),
             });
-            makeShipFolder.addInput(createShipTemplate, 'isPlayerShip');
+            makeShipFolder.addBinding(createShipTemplate, 'isPlayerShip');
             makeShipFolder
                 .addButton({ title: 'Create Ship' })
                 .on('click', () => createContainer.createByTemplate(createShipTemplate));
@@ -77,7 +77,7 @@ export function createWidget(createContainer: InteractiveLayerCommands): Dashboa
                 type: 'Explosion',
                 damageFactor: { min: 1, max: 1_000 },
             };
-            makeExplosionFolder.addInput(createExplosionTemplate, 'damageFactor', {
+            makeExplosionFolder.addBinding(createExplosionTemplate, 'damageFactor', {
                 ...createExplosionTemplate.damageFactor,
                 step: 1,
             });

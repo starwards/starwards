@@ -1,11 +1,11 @@
 // import { Arwes, Button, Heading, SoundsProvider, ThemeProvider, createSounds, createTheme } from 'arwes';
-import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '@arwes/core';
+import { ArwesThemeProvider, Blockquote, StylesBaseline, Text } from '../components/arwes-compat';
 import React, { Component } from 'react';
 import { ReadProperty, defectReadProp, useProperties, useProperty } from '../react/hooks';
 import { ShipDriver, System } from '@starwards/core';
 import { readNumberProp, readProp } from '../property-wrappers';
 
-import { BleepsProvider } from '@arwes/sounds';
+import { BleepsProvider } from '../components/arwes-compat';
 import { DashboardWidget } from './dashboard';
 import WebFont from 'webfontloader';
 
@@ -24,7 +24,6 @@ const bleepsSettings = {
     object: { player: 'object' },
     type: { player: 'type' },
 };
-type Palette = 'primary' | 'secondary' | 'success' | 'error';
 type MetricProps = {
     property: ReadProperty<number>;
     metricName: string;
@@ -32,26 +31,19 @@ type MetricProps = {
     error: number;
 };
 
-function Metric({ property, metricName, warn, error }: MetricProps) {
+function Metric({ property, metricName }: MetricProps) {
     const propertyValue = useProperty(property);
     if (propertyValue === undefined) {
         return null;
     }
-    const palette: Palette = propertyValue > warn ? 'success' : propertyValue > error ? 'secondary' : 'error';
     return (
-        <Blockquote palette={palette} animator={{ animate: false }}>
+        <Blockquote>
             <Text>
                 {metricName} : {String(Math.round(propertyValue)).padStart(4, '0')}
             </Text>
         </Blockquote>
     );
 }
-
-const statusPallete = {
-    DISABLED: 'error',
-    DAMAGED: 'secondary',
-    OK: 'success',
-} as const;
 
 function SystemMonitor({ driver, system }: { driver: ShipDriver; system: System }) {
     // wire hooks for all properties that might change system status
@@ -60,9 +52,8 @@ function SystemMonitor({ driver, system }: { driver: ShipDriver; system: System 
 
     // use API to calculate status instead of logic replication
     const status = system.getStatus();
-    const palette: Palette = statusPallete[status];
     return (
-        <Blockquote palette={palette} animator={{ animate: false }}>
+        <Blockquote>
             <Text>
                 {system.state.name} : {status}
             </Text>

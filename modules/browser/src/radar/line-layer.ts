@@ -1,10 +1,10 @@
-import { DisplayObject, Graphics, UPDATE_PRIORITY } from 'pixi.js';
+import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 
 import { CameraView } from './camera-view';
 import { XY } from '@starwards/core';
 
-// extract line style argument from lineStyle method
-type Linestyle = Parameters<Graphics['lineStyle']>[0];
+// Line style for PixiJS v8
+type Linestyle = { width: number; color: number; alpha?: number };
 
 export class LineLayer {
     private readonly graphics = new Graphics();
@@ -16,15 +16,15 @@ export class LineLayer {
                 if (from && to) {
                     const fromScreen = parent.worldToScreen(from);
                     const toScreen = parent.worldToScreen(to);
-                    this.graphics.lineStyle(style);
                     this.graphics.moveTo(fromScreen.x, fromScreen.y).lineTo(toScreen.x, toScreen.y);
+                    this.graphics.stroke(style);
                 }
             },
             null,
             UPDATE_PRIORITY.LOW,
         );
     }
-    get renderRoot(): DisplayObject {
+    get renderRoot(): Container {
         return this.graphics;
     }
 }
