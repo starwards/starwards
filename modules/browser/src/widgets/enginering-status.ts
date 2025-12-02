@@ -1,10 +1,9 @@
-import * as TweakpaneTablePlugin from 'tweakpane-table';
-
 import { Destructors, ShipDriver } from '@starwards/core';
 import { addGraph, addTextBlade, createPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
+import { plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 
 export function engineeringStatusWidget(shipDriver: ShipDriver): DashboardWidget {

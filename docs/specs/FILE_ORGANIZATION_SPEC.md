@@ -487,7 +487,7 @@ import { ShipRoom } from '@starwards/server';  // No!
 ```typescript
 // ✅ CAN import
 import { SpaceManager } from '@starwards/core';
-import { Room } from 'colyseus';
+import { Room } from '@colyseus/core';
 
 // ❌ CANNOT import
 import { Dashboard } from '@starwards/browser';  // No!

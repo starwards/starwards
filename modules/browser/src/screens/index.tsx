@@ -1,7 +1,8 @@
 import { Driver } from '@starwards/core';
 import { Lobby } from '../components/lobby';
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 const driver = new Driver(window.location).connect();
-ReactDOM.render(<Lobby driver={driver} />, document.querySelector('#wrapper'));
+const root = createRoot(document.querySelector('#wrapper')!);
+root.render(<Lobby driver={driver} />);

@@ -47,7 +47,7 @@ async function initScreen(driver: Driver, shipId: string) {
     const container = wrapRootWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    drawPilotRadar(spaceDriver, shipDriver, container);
+    await drawPilotRadar(spaceDriver, shipDriver, container);
     wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
@@ -62,9 +62,9 @@ async function initScreen(driver: Driver, shipId: string) {
         ),
     );
     drawPilotStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
-    drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
     drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
     drawDockingStatus(container.subContainer(VPos.BOTTOM, HPos.RIGHT), spaceDriver, shipDriver);
+    await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
 }
 
 function wireInput(shipDriver: ShipDriver) {

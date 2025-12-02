@@ -62,8 +62,8 @@ async function initScreen(driver: Driver, shipId: string) {
 
     drawEngineeringStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
-    drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
     drawFullSystemsStatus(container.subContainer(VPos.MIDDLE, HPos.MIDDLE), shipDriver, shipDriver.systems);
+    await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
 }
 
 function wireInput(shipDriver: ShipDriver) {

@@ -32,14 +32,14 @@ export function pilotRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDrive
         type: 'component',
         component: class {
             constructor(container: WidgetContainer, _p: Props) {
-                drawPilotRadar(spaceDriver, shipDriver, container);
+                void drawPilotRadar(spaceDriver, shipDriver, container);
             }
         },
         defaultProps: { range: 5000 },
     };
 }
 
-export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
+export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
     const warpLevelProp = readProp<number>(shipDriver, '/warp/currentLevel');
     const isWarpProp = aggregate([warpLevelProp], () => {
         const warpLevel = warpLevelProp.getValue();
@@ -47,8 +47,10 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
     });
     const camera = new Camera();
     const p = { range: isWarpProp.getValue() ? 100_000 : 5_000 };
-    const root = new CameraView({ backgroundColor: radarFogOfWar }, camera, container);
-    root.view.setAttribute('data-id', 'Pilot Radar');
+    const root = new CameraView(camera);
+
+    await root.initialize({ backgroundColor: radarFogOfWar }, container);
+    root.canvas.setAttribute('data-id', 'Pilot Radar');
 
     const overallMask = new Graphics();
     root.stage.addChild(overallMask);
@@ -70,11 +72,9 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
         () => {
             rangeFilter.update();
             fovGraphics.clear();
-            fovGraphics.lineStyle(0);
             for (const fov of rangeFilter.fieldsOfView()) {
-                fovGraphics.beginFill(radarVisibleBg, 1);
                 fov.draw(root, fovGraphics);
-                fovGraphics.endFill();
+                fovGraphics.fill({ color: radarVisibleBg, alpha: 1 });
             }
         },
         null,
@@ -141,31 +141,34 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
 
     function onRadarShapeChange() {
         overallMask.clear();
-        overallMask.lineStyle(2, 0xff0000, 1);
-        overallMask.beginFill(0xff0000, 1);
         contentMask.clear();
-        contentMask.lineStyle(2, 0xff0000, 1);
-        contentMask.beginFill(0xff0000, 1);
         if (isWarpProp.getValue()) {
             // cone shape
             const radius = root.renderer.height;
             const arcAngle = calcArcAngle(root.renderer.width, radius);
             const coneCorner = { x: root.renderer.width / 2, y: radius };
-            overallMask.moveTo(...XY.tuple(coneCorner));
-            overallMask.arc(
-                ...XY.tuple(coneCorner),
-                radius,
-                degToRad * (-90 - arcAngle / 2),
-                degToRad * (-90 + arcAngle / 2),
-            );
+            overallMask
+                .moveTo(...XY.tuple(coneCorner))
+                .arc(...XY.tuple(coneCorner), radius, degToRad * (-90 - arcAngle / 2), degToRad * (-90 + arcAngle / 2))
+                .fill({ color: 0xff0000, alpha: 1 })
+                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
             camera.setRange(((sizeFactor - sizeFactorGrace) * container.height) / 2, p.range);
             allElements.x = -root.renderer.width / 2;
             allElements.scale = { x: 2, y: 2 };
-            contentMask.drawCircle(...XY.tuple(coneCorner), radius * sizeFactor);
+            contentMask
+                .circle(...XY.tuple(coneCorner), radius * sizeFactor)
+                .fill({ color: 0xff0000, alpha: 1 })
+                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
         } else {
             // circle shape
-            overallMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius);
-            contentMask.drawCircle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor);
+            overallMask
+                .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius)
+                .fill({ color: 0xff0000, alpha: 1 })
+                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
+            contentMask
+                .circle(root.renderer.width / 2, root.renderer.height / 2, root.radius * sizeFactor)
+                .fill({ color: 0xff0000, alpha: 1 })
+                .stroke({ width: 2, color: 0xff0000, alpha: 1 });
             allElements.x = 0;
             allElements.scale = { x: 1, y: 1 };
             camera.setRange(
@@ -173,8 +176,6 @@ export function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver,
                 p.range,
             );
         }
-        overallMask.endFill();
-        contentMask.endFill();
     }
     function onRangeChange() {
         p.range = isWarpProp.getValue() ? 100_000 : 5_000;

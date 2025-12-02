@@ -3,7 +3,7 @@ import * as http from 'http';
 import * as maps from './maps';
 
 import { NextFunction, Request, Response } from 'express';
-import { Server, matchMaker } from 'colyseus';
+import { Server, matchMaker } from '@colyseus/core';
 import { schemaToString, stringToSchema } from './serialization/game-state-serialization';
 
 import { AddressInfo } from 'node:net';
@@ -22,7 +22,7 @@ const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
 
 export const HTTP_CONFLICT_STATUS = 409;
 const HTTP_BAD_REQUEST_STATUS = 400;
-export async function server(port: number, staticDir: string, manager: GameManager) {
+export async function server(port: number, staticDirs: string | string[], manager: GameManager) {
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
@@ -32,7 +32,11 @@ export async function server(port: number, staticDir: string, manager: GameManag
     gameServer.define('admin', AdminRoom);
     gameServer.define('ship', ShipRoom).enableRealtimeListing();
 
-    app.use('/', express.static(staticDir));
+    // Serve static files from one or more directories
+    const dirs = Array.isArray(staticDirs) ? staticDirs : [staticDirs];
+    for (const dir of dirs) {
+        app.use('/', express.static(dir));
+    }
 
     app.get('/health', (_, res) => {
         res.json({ status: 'ok' });

@@ -1,5 +1,5 @@
+import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { Destructors, Driver, Faction, Projectile, SpaceObject, TypeFilter } from '@starwards/core';
-import { Graphics, UPDATE_PRIORITY, filters } from 'pixi.js';
 import { addEnumListBlade, createPane } from '../panel';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
@@ -52,19 +52,21 @@ export class GmWidgets {
                     e.preventDefault();
                     camera.changeZoom(-(e.originalEvent as WheelEvent).deltaY);
                 });
-                const root = new CameraView({ backgroundColor: radarVisibleBg }, camera, container);
-                root.view.setAttribute('data-id', 'GM Radar');
-                root.view.setAttribute('data-zoom', `${camera.zoom}`);
-                root.events.on('screenChanged', () => root.view.setAttribute('data-zoom', `${camera.zoom}`));
+                const root = new CameraView(camera);
+
+                void this.init(root, container);
+            }
+
+            // the async part of initializing
+            private async init(root: CameraView, container: Container) {
+                await root.initialize({ backgroundColor: radarVisibleBg }, container);
+                root.canvas.setAttribute('data-id', 'GM Radar');
+                root.canvas.setAttribute('data-zoom', `${root.camera.zoom}`);
+                root.events.on('screenChanged', () => root.canvas.setAttribute('data-zoom', `${root.camera.zoom}`));
 
                 const grid = new GridLayer(root);
                 root.addLayer(grid.renderRoot);
 
-                void this.init(root);
-            }
-
-            // the async part of initializing
-            private async init(root: CameraView) {
                 const [spaceDriver] = await Promise.all([driver.getSpaceDriver()]);
                 // const fps = new FpsCounter(root);
                 const interactiveLayer = new InteractiveLayer(
@@ -98,18 +100,16 @@ export class GmWidgets {
                 root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
                 for (let faction = 0; faction < (Faction.FACTION_COUNT as number); faction++) {
                     const fovGraphics = new Graphics();
-                    fovGraphics.filters = [new filters.AlphaFilter(0.1)];
+                    fovGraphics.filters = [new AlphaFilter({ alpha: 0.1 })];
                     root.addLayer(fovGraphics);
 
                     root.ticker.add(
                         () => {
                             fovGraphics.clear();
-                            fovGraphics.lineStyle(0);
                             for (const fov of rangeFilter.fieldsOfView()) {
                                 if ((fov.object.faction as number) === faction) {
-                                    fovGraphics.beginFill(getFactionColor(faction), 1);
                                     fov.draw(root, fovGraphics);
-                                    fovGraphics.endFill();
+                                    fovGraphics.fill({ color: getFactionColor(faction), alpha: 1 });
                                 }
                             }
                         },

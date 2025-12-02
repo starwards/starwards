@@ -1,9 +1,9 @@
-import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from '@arwes/core';
+import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
 import { useAdminDriver, useCanStartGame, useIsGameRunning, usePlayerShips } from '../react/hooks';
 
-import { AnimatorGeneralProvider } from '@arwes/animation';
-import { BleepsProvider } from '@arwes/sounds';
+import { AnimatorGeneralProvider } from './arwes-compat';
+import { BleepsProvider } from './arwes-compat';
 import { Driver } from '@starwards/core';
 import React from 'react';
 import WebFont from 'webfontloader';
@@ -171,7 +171,7 @@ export const Lobby = (p: Props) => {
                                 Input
                             </Button>
                             <Button
-                                key="input"
+                                key="colyseus-monitor"
                                 palette="secondary"
                                 onClick={() => window.location.assign('colyseus-monitor')}
                             >

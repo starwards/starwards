@@ -25,7 +25,7 @@
 | react | ^17.0.2 | Stable, Arwes compatible (v18 needs testing) |
 | react-dom | ^17.0.2 | Matches React version |
 | golden-layout | ^1.5.9 | **PINNED** (v2.x complete rewrite, incompatible) |
-| @arwes/core | 1.0.0-alpha.19 | **ALPHA** (only version w/ React support) |
+| @arwes-amir/core | 1.0.0-alpha.19 | **ALPHA** (only version w/ React support) |
 
 ## Development
 
@@ -57,7 +57,7 @@
 | @colyseus/schema | 2.1.x | Deprecations introduced | Monitoring |
 | pixi.js | 8.x | Breaking renderer API | Monitoring |
 | golden-layout | 2.x | Complete rewrite, incompatible | **NO UPGRADE** |
-| @arwes/core | alpha | API may change before 1.0 | Monitoring |
+| @arwes-amir/core | alpha | API may change before 1.0 | Monitoring |
 
 ## Upgrade Checklist
 
