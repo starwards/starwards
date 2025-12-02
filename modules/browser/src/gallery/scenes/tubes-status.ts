@@ -9,7 +9,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
     'tubes-status-empty': {
         name: 'tubes-status-empty',
         description: 'Tubes status panel with no ammo loaded',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'None';
@@ -28,7 +28,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
     'tubes-status-loaded': {
         name: 'tubes-status-loaded',
         description: 'Tubes status panel with ammo loaded and ready to fire',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'CannonShell';
@@ -47,7 +47,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
     'tubes-status-loading': {
         name: 'tubes-status-loading',
         description: 'Tubes status panel with loading in progress',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             let loadingProgress = 0.2;
             for (const tube of ship.tubes.values()) {

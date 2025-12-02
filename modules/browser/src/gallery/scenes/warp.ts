@@ -9,7 +9,7 @@ export const warpScenes: Record<string, Scene> = {
     'warp-idle': {
         name: 'warp-idle',
         description: 'Warp panel in idle state (level 0, not jammed)',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.warp.currentLevel = 0;
             ship.warp.desiredLevel = 0;
@@ -28,7 +28,7 @@ export const warpScenes: Record<string, Scene> = {
     'warp-jammed': {
         name: 'warp-jammed',
         description: 'Warp panel showing proximity jammed state',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.warp.currentLevel = 0;
             ship.warp.desiredLevel = 2;
@@ -47,7 +47,7 @@ export const warpScenes: Record<string, Scene> = {
     'warp-calibrating': {
         name: 'warp-calibrating',
         description: 'Warp panel showing frequency calibration in progress',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.warp.currentLevel = 0;
             ship.warp.desiredLevel = 0;
@@ -66,7 +66,7 @@ export const warpScenes: Record<string, Scene> = {
     'warp-active': {
         name: 'warp-active',
         description: 'Warp panel with active warp (level > 0)',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.warp.currentLevel = 3;
             ship.warp.desiredLevel = 3;

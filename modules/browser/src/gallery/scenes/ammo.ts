@@ -9,7 +9,7 @@ export const ammoScenes: Record<string, Scene> = {
     'ammo-full': {
         name: 'ammo-full',
         description: 'Ammunition panel with full ammo',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             // Magazine is initialized with full ammo by makeShipState
 
@@ -23,7 +23,7 @@ export const ammoScenes: Record<string, Scene> = {
     'ammo-low': {
         name: 'ammo-low',
         description: 'Ammunition panel with low ammo',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.magazine.count_CannonShell = Math.round(ship.magazine.max_CannonShell * 0.2);
             ship.magazine.count_BlastCannonShell = Math.round(ship.magazine.max_BlastCannonShell * 0.1);
@@ -39,7 +39,7 @@ export const ammoScenes: Record<string, Scene> = {
     'ammo-empty': {
         name: 'ammo-empty',
         description: 'Ammunition panel with no ammo',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.magazine.count_CannonShell = 0;
             ship.magazine.count_BlastCannonShell = 0;

@@ -9,7 +9,7 @@ export const targetingScenes: Record<string, Scene> = {
     'targeting-no-target': {
         name: 'targeting-no-target',
         description: 'Targeting panel with no target selected',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.weaponsTarget.targetId = '';
             ship.weaponsTarget.shipOnly = false;
@@ -26,7 +26,7 @@ export const targetingScenes: Record<string, Scene> = {
     'targeting-ship-target': {
         name: 'targeting-ship-target',
         description: 'Targeting panel with a ship targeted',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.weaponsTarget.targetId = 'enemy-ship-001';
             ship.weaponsTarget.shipOnly = true;
@@ -43,7 +43,7 @@ export const targetingScenes: Record<string, Scene> = {
     'targeting-filters-active': {
         name: 'targeting-filters-active',
         description: 'Targeting panel with all filters active',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.weaponsTarget.targetId = '';
             ship.weaponsTarget.shipOnly = true;

@@ -9,7 +9,7 @@ export const pilotScenes: Record<string, Scene> = {
     'pilot-dashboard-stationary': {
         name: 'pilot-dashboard-stationary',
         description: 'Pilot dashboard with ship at rest',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             // ShipState extends Spaceship, so we can set velocity directly
             ship.velocity.x = 0;
@@ -32,7 +32,7 @@ export const pilotScenes: Record<string, Scene> = {
     'pilot-dashboard-moving': {
         name: 'pilot-dashboard-moving',
         description: 'Pilot dashboard with ship in motion',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.velocity.x = 100;
             ship.velocity.y = 50;
@@ -56,7 +56,7 @@ export const pilotScenes: Record<string, Scene> = {
     'pilot-dashboard-target-mode': {
         name: 'pilot-dashboard-target-mode',
         description: 'Pilot dashboard with TARGET mode active',
-        async setup(container: HTMLElement) {
+        setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             ship.velocity.x = 200;
             ship.velocity.y = 0;
