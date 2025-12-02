@@ -11,6 +11,7 @@ module.exports = {
         ecr: [path.resolve(__dirname, 'src', 'screens', 'ecr.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
         input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
+        gallery: [path.resolve(__dirname, 'src', 'gallery', 'gallery.ts')],
     },
     module: {
         rules: [
@@ -79,6 +80,11 @@ module.exports = {
             filename: 'input.html',
             template: path.resolve(__dirname, 'templates', 'input.html'),
             chunks: ['input'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'gallery.html',
+            template: path.resolve(__dirname, 'templates', 'gallery.html'),
+            chunks: ['gallery'],
         }),
     ],
     resolve: {

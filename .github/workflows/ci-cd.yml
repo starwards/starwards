@@ -85,6 +85,39 @@ jobs:
                   path: test-results
                   if-no-files-found: ignore
 
+    Test-Visual:
+        runs-on: ubuntu-latest
+        container:
+            image: mcr.microsoft.com/playwright:v1.56.1-jammy
+            options: --user 1001
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  lfs: true
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: npm ci
+            - run: npm run build:core
+            - run: npm run build:server
+            - run: npm --prefix modules/browser run build
+            - name: Start backend server
+              run: node -r ts-node/register/transpile-only ./modules/server/src/dev.ts &
+            - name: Start webpack dev server
+              run: npm --prefix modules/browser start &
+            - name: Wait for servers
+              run: npx wait-on http://localhost:8080 http://localhost:3000/gallery.html --timeout 60000
+            - name: Run visual tests
+              run: npx playwright test modules/e2e/test/visual/gallery.spec.ts --project=chromium
+            - name: Upload snapshot diffs
+              uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: visual-test-diffs
+                  path: test-results
+                  if-no-files-found: ignore
+
     Build:
         runs-on: ubuntu-latest
         steps:
