@@ -8,10 +8,10 @@ const config: PlaywrightTestConfig = {
     // Optimize timeouts for faster test execution
     // Increase timeouts in CI for weak machines
     timeout: process.env.CI ? 40_000 : 20_000,
-    // Enable parallel execution across test files
+    // Limit parallel execution to reduce resource contention in CI
     // Each worker runs tests from different files with its own server instance
     // Within a file, tests run serially to respect single-game-per-server constraint
-    workers: '100%',
+    workers: process.env.CI ? 2 : '100%',
     fullyParallel: false, // Tests within same file run serially (shared server per file)
     use: {
         trace: 'on-first-retry',

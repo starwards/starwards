@@ -29,7 +29,7 @@ test('armor view', async ({ page }) => {
     await canvas.waitFor({ state: 'attached' });
     await expect(canvas).toHaveAttribute('data-loaded', 'true', { timeout: 5000 });
     await page.waitForTimeout(100); // Let first frame render
-    expect(await canvas.screenshot({ animations: 'allow' })).toMatchSnapshot();
+    expect(await canvas.screenshot({ animations: 'disabled', timeout: 10000 })).toMatchSnapshot();
 });
 
 test('tactical radar view', async ({ page }) => {
@@ -37,7 +37,9 @@ test('tactical radar view', async ({ page }) => {
     await page.goto(`${gameDriver.baseURL}/ship.html?ship=${test_map_1.testShipId}`);
     await page.locator('[data-id="menu-tactical radar"]').dragTo(page.locator('#layoutContainer'));
     const radarCanvas = page.locator('[data-id="Tactical Radar"]');
-    expect(await radarCanvas.screenshot({ timeout: 10000 })).toMatchSnapshot();
+    await radarCanvas.waitFor({ state: 'visible' });
+    await page.waitForTimeout(100); // Let first frame render
+    expect(await radarCanvas.screenshot({ animations: 'disabled', timeout: 10000 })).toMatchSnapshot();
 });
 
 test('GM view', async ({ page }) => {
