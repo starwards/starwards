@@ -5,13 +5,12 @@ status: open
 labels: [UI, screen widget]
 created: 2022-10-15
 updated: 2022-10-19
-assignee:
+assignee: 
+milestone: Mission in the Fringe Features
+blocked-by: []
 refs: []
 ---
 
-## Problem
-Based on tactical radar.
-
-## Features
-- Has zoom, and displays zoom level
-- Highlights station's target
+based on tactical radar
+has zoom, and displays zoom level.
+highlights station's target

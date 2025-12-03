@@ -6,12 +6,11 @@ labels: [new ship mechanic]
 created: 2022-10-15
 updated: 2023-03-12
 assignee: amir-arad
+milestone: Mission in the Fringe Features
+blocked-by: []
 refs: []
 ---
 
-## Problem
-Each ship system should have a hacked level (0-2), which affects the system's performance.
-
-## Tasks
-- [x] implement in all existing systems
-- [x] add to Systems status
+each ship system should have a hacked level (0-2), which affects the system's performance. 
+implement in all existing systems
+ - [x] add to Systems status

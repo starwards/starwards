@@ -5,17 +5,16 @@ status: closed
 labels: [core game logic, UI, new ship mechanic]
 created: 2022-10-15
 updated: 2025-11-08
-assignee:
+assignee: 
+milestone: Mission in the Fringe Features
+blocked-by: []
 refs: []
 ---
 
-## Problem
-Make each space object have a scan level for each faction (managed by space manager).
+ - [ ] make each space object have a scan level for each faction (managed by space manager)
+    3 levels: 
+     - Lvl0: UFO: physics (distance, heading, rel.speed)
+     - Lvl1: basic: Faction, model
+     - Lvl2: advanced: armor status, damage reports, list of systems
 
-## Scan Levels
-- **Lvl0 (UFO)**: physics (distance, heading, rel.speed)
-- **Lvl1 (basic)**: Faction, model
-- **Lvl2 (advanced)**: armor status, damage reports, list of systems
-
-## Tasks
-- [ ] make all existing player radars display Lvl0 objects as unknown
+ -  [ ] make all existing player radars display Lvl0 objects as unknown

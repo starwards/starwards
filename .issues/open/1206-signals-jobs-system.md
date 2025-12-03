@@ -5,14 +5,17 @@ status: open
 labels: [core game logic, new ship system]
 created: 2022-10-15
 updated: 2025-11-08
-assignee:
-refs: [#1205]
+assignee: 
+milestone: Mission in the Fringe Features
+blocked-by: [#1205]
+refs: []
 ---
 
-## Problem
-Add collection of jobs per ship with target and action specifications.
+ - [ ] add collection of jobs per ship. each job specifies a target and an action to execute. 
+ - [ ] jobs will be automatically completed in the order they are created, one at a time. 
+ - [ ] malfunctions in this system will 
+ - increate chance for job to fail.
+ - increase time that each job takes
+ - decrease max number of pending jobs
 
-## Details
-- Jobs execute sequentially in creation order
-- Malfunctions affect job success probability, execution duration, and maximum pending job capacity
-- Hacking limited to scan level 2 targets (blocked by #1205)
+ - [ ] hacking is only possible for target that is in scan level 2 (blocked by #1205 )

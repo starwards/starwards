@@ -5,12 +5,29 @@ status: open
 labels: [UI, new ship station, blocked]
 created: 2022-10-15
 updated: 2025-11-08
-assignee:
-refs: [#1204, #1205, #1206, #1207]
+assignee: 
+milestone: Mission in the Fringe Features
+blocked-by: [#1204, #1205, #1206]
+refs: [#1207]
 ---
 
-## Problem
-Implement signals station with target state management, widgets for radar and target info, and hotkeys for zoom, targeting, scanning, and hacking operations.
+ - [ ] has signals target state (in client only)
 
-## Notes
-Several items are blocked by related PRs/issues (#1204, #1205, #1206, #1207).
+widgets:
+ - [ ] long range radar ( blocked by #1204 )
+ - [ ] target info (blocked by #1205 )
+    - Lvl0: physics (distance, heading, rel.speed)
+    - Lvl1: Faction, model
+    - Lvl2: armor status, damage reports, list of systems
+ - [ ] list of all signals jobs ( blocked by #1206 )
+
+hotkeys: 
+ - [ ] zoom in/out
+ - [ ] targeting: 
+     - next / prev target
+     - toggle filters: unknown only (blocked by #1205 ), enemy only.
+ - [ ] initiate scan on selected target (blocked by #1206 and #1205 )
+ - [ ] initiate hack on selected target (per system) (blocked by #1206 and #1207 )
+ - [ ] clear all jobs
+ 
+     
