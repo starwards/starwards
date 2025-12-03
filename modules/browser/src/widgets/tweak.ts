@@ -96,8 +96,8 @@ const singleSelectionDetails = async (
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
 
-        const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
-        addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
+        const isPlayerShipProp = readWriteProp(shipDriver, `/isPlayerShip`);
+        addInputBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship' }, cleanup);
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
