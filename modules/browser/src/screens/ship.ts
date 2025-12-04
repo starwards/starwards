@@ -14,6 +14,7 @@ import { dockingWidget } from '../widgets/docking';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gunWidget } from '../widgets/gun';
+import { longRangeRadarWidget } from '../widgets/long-range-radar';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
@@ -62,6 +63,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, 'radar');
     dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, 'tactical radar');
     dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, 'pilot radar');
+    dashboard.registerWidget(longRangeRadarWidget(spaceDriver, shipDriver), {}, 'long range radar');
     dashboard.registerWidget(pilotWidget(shipDriver), {}, 'helm');
     dashboard.registerWidget(gunWidget(shipDriver), {}, 'gun');
     dashboard.registerWidget(designStateWidget(shipDriver), { shipDriver }, 'design state');
