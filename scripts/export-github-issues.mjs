@@ -276,7 +276,6 @@ async function exportIssues() {
 
     // Write issue files
     console.log('\n=== Writing Issue Files ===');
-    let maxId = 0;
     let openCount = 0;
     let closedCount = 0;
 
@@ -289,10 +288,6 @@ async function exportIssues() {
 
         const content = generateIssueMarkdown(issue);
         await fs.writeFile(filepath, content);
-
-        if (issue.number > maxId) {
-            maxId = issue.number;
-        }
 
         if (isOpen) {
             openCount++;
@@ -315,11 +310,6 @@ async function exportIssues() {
         await fs.writeFile(filepath, content);
     }
     console.log(`Wrote ${milestones.length} milestone files`);
-
-    // Write NEXT_ID
-    const nextId = maxId + 1;
-    await fs.writeFile(path.join(ISSUES_DIR, 'NEXT_ID'), `${nextId}\n`);
-    console.log(`\nNEXT_ID set to ${nextId}`);
 
     // Summary
     console.log('\n=== Export Complete ===');
