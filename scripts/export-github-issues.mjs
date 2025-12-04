@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 /**
  * Export GitHub issues and milestones to local markdown files
  * Uses GitHub CLI (gh) for API access
@@ -6,22 +7,22 @@
  * Usage: node scripts/export-github-issues.mjs [--repo owner/repo]
  */
 
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
 const ISSUES_DIR = path.join(ROOT_DIR, '.issues');
 
 // Parse command line args
-const args = process.argv.slice(2);
+const process_args = process.argv.slice(2);
 let repo = 'starwards/starwards';
 
-for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--repo' && args[i + 1]) {
-        repo = args[++i];
+for (let i = 0; i < process_args.length; i++) {
+    if (process_args[i] === '--repo' && process_args[i + 1]) {
+        repo = process_args[++i];
     }
 }
 
@@ -47,12 +48,12 @@ console.log(`Using gh: ${GH}`);
 /**
  * Execute gh command and return parsed JSON
  */
-function gh(args) {
-    const cmd = `${GH} ${args}`;
+function gh(gh_args) {
+    const cmd = `${GH} ${gh_args}`;
     try {
         const result = execSync(cmd, {
             encoding: 'utf-8',
-            maxBuffer: 50 * 1024 * 1024 // 50MB buffer for large results
+            maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large results
         });
         return result;
     } catch (err) {
@@ -68,8 +69,16 @@ function fetchAllIssues() {
     console.log('Fetching all issues (this may take a while)...');
 
     const fields = [
-        'number', 'title', 'state', 'labels', 'createdAt', 'updatedAt',
-        'assignees', 'body', 'milestone', 'author'
+        'number',
+        'title',
+        'state',
+        'labels',
+        'createdAt',
+        'updatedAt',
+        'assignees',
+        'body',
+        'milestone',
+        'author',
     ].join(',');
 
     const result = gh(`issue list --repo ${repo} --state all --limit 10000 --json ${fields}`);
@@ -99,10 +108,7 @@ function parseBlockedBy(body) {
     // - blocked by #123
     // - (blocked by #123)
     // - Blocked by #123
-    const patterns = [
-        /blocked\s+by\s+#(\d+)/gi,
-        /\(blocked\s+by\s+#(\d+)\)/gi,
-    ];
+    const patterns = [/blocked\s+by\s+#(\d+)/gi, /\(blocked\s+by\s+#(\d+)\)/gi];
 
     for (const pattern of patterns) {
         let match;
@@ -156,7 +162,7 @@ function formatDate(dateString) {
  */
 function formatLabels(labels) {
     if (!labels || labels.length === 0) return '[]';
-    const labelNames = labels.map(l => typeof l === 'string' ? l : l.name);
+    const labelNames = labels.map((l) => (typeof l === 'string' ? l : l.name));
     return `[${labelNames.join(', ')}]`;
 }
 
@@ -165,7 +171,7 @@ function formatLabels(labels) {
  */
 function formatRefs(refs) {
     if (!refs || refs.length === 0) return '[]';
-    return `[${refs.map(r => `#${r}`).join(', ')}]`;
+    return `[${refs.map((r) => `#${r}`).join(', ')}]`;
 }
 
 /**
@@ -183,7 +189,7 @@ function escapeTitle(title) {
  */
 function generateIssueMarkdown(issue) {
     const blockedBy = parseBlockedBy(issue.body);
-    const refs = parseRefs(issue.body).filter(r => !blockedBy.includes(r) && r !== issue.number);
+    const refs = parseRefs(issue.body).filter((r) => !blockedBy.includes(r) && r !== issue.number);
 
     const assignee = issue.assignees?.[0]?.login || '';
     const milestoneName = issue.milestone?.title || '';
@@ -214,9 +220,9 @@ refs: ${formatRefs(refs)}
  * Generate markdown content for a milestone
  */
 function generateMilestoneMarkdown(milestone, issues) {
-    const milestoneIssues = issues.filter(i => i.milestone?.title === milestone.title);
-    const openIssues = milestoneIssues.filter(i => i.state === 'OPEN');
-    const closedIssues = milestoneIssues.filter(i => i.state === 'CLOSED');
+    const milestoneIssues = issues.filter((i) => i.milestone?.title === milestone.title);
+    const openIssues = milestoneIssues.filter((i) => i.state === 'OPEN');
+    const closedIssues = milestoneIssues.filter((i) => i.state === 'CLOSED');
 
     let content = `# ${milestone.title}
 
@@ -231,7 +237,7 @@ ${milestone.description || ''}
 `;
 
     for (const issue of openIssues.sort((a, b) => a.number - b.number)) {
-        const labels = issue.labels?.map(l => l.name).join(', ') || '';
+        const labels = issue.labels?.map((l) => l.name).join(', ') || '';
         content += `- #${issue.number} - ${issue.title}${labels ? ` [${labels}]` : ''}\n`;
     }
 
@@ -321,7 +327,7 @@ async function exportIssues() {
 }
 
 // Run
-exportIssues().catch(err => {
+exportIssues().catch((err) => {
     console.error('Export failed:', err);
     process.exit(1);
 });
