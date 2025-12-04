@@ -141,6 +141,14 @@ export class ShipState extends Spaceship {
     @tweakable('boolean')
     ecrControl = false;
 
+    /**
+     * Hull damage state - 2-state flag (ok/damaged) for IoT alerts/lights control.
+     * Controlled manually by GM in tweak panel. No game logic impact.
+     */
+    @gameField('boolean')
+    @tweakable('boolean')
+    hullDamaged = false;
+
     // server only, used for commands
     @range([0, 1])
     public afterBurnerCommand = 0;
