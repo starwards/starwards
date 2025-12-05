@@ -1,5 +1,6 @@
-import EventEmitter from 'eventemitter3';
 import { SpaceDriver, Waypoint } from '@starwards/core';
+
+import EventEmitter from 'eventemitter3';
 
 export type WaypointLayersStoreEvents = 'visibilityChanged' | 'activeLayerChanged' | 'changed';
 

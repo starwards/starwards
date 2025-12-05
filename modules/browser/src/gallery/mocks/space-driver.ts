@@ -63,6 +63,10 @@ export function createMockWaypoint(
     overrides: Partial<{
         id: string;
         position: XY;
+        collection: string;
+        owner: string | null;
+        title: string;
+        color: number;
     }> = {},
 ): Waypoint {
     const waypoint = new Waypoint();
@@ -70,6 +74,18 @@ export function createMockWaypoint(
     if (overrides.position) {
         waypoint.position.x = overrides.position.x;
         waypoint.position.y = overrides.position.y;
+    }
+    if (overrides.collection !== undefined) {
+        waypoint.collection = overrides.collection;
+    }
+    if (overrides.owner !== undefined) {
+        waypoint.owner = overrides.owner;
+    }
+    if (overrides.title !== undefined) {
+        waypoint.title = overrides.title;
+    }
+    if (overrides.color !== undefined) {
+        waypoint.color = overrides.color;
     }
     return waypoint;
 }

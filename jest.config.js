@@ -42,5 +42,10 @@ module.exports = {
             displayName: 'node-red',
             testRegex: 'modules/node-red/.*\\.spec\\.ts$',
         },
+        {
+            ...baseConfig,
+            displayName: 'browser',
+            testRegex: 'modules/browser/.*\\.spec\\.ts$',
+        },
     ],
 };

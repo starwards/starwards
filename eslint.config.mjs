@@ -149,5 +149,9 @@ export default [
                 ...globals.jest,
             },
         },
+        rules: {
+            // Allow chai assertions like expect().to.be.true
+            '@typescript-eslint/no-unused-expressions': 'off',
+        },
     },
 ];
