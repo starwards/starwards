@@ -1,4 +1,5 @@
 /* use https://cocopon.github.io/tweakpane/theming/ */
+/* Status colors should match modules/browser/src/colors.ts status.* values */
 
 :root {
     --tp-base-background-color: hsla(230, 7%, 17%, 1);
