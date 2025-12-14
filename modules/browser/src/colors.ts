@@ -2,28 +2,29 @@ import { Color, ColorSource } from 'pixi.js';
 
 // ============================================================================
 // Core Colors (PixiJS hex format)
+// Matches Industrial Sci-Fi design system (docs/reference/color-design-system.html)
 // ============================================================================
 export const white = 0xffffff;
 export const red = 0xd53434;
 export const blue = 0x404fc9;
 export const yellow = 0xe2b640;
 export const green = 0x34d534;
-export const selectionColor = 0x26dafd;
+export const selectionColor = 0x00ffff; // Pure cyan
 
-export const radarVisibleBg = 0x0f0f0f;
-export const radarFogOfWar = 0x303030;
-export const gridColors = [0xcccccc, 0xcccccc, 0x6666ff, 0xf4fa77, 0x55ff55, 0xff3333];
+export const radarVisibleBg = 0x0a0a0a; // --bg-primary
+export const radarFogOfWar = 0x1a1a1a; // --bg-tertiary
+export const gridColors = [0x00ffff, 0x00cccc, 0x009999, 0x006666, 0x003333, 0xff6600]; // Cyan scale + orange
 
 // ============================================================================
 // Radar-Specific Colors
 // ============================================================================
 export const radar = {
-    speedLine: 0x26fd9a,
-    targetSpeedLine: 0x26cbcb,
-    collisionOutline: 0x4ce73c,
-    azimuthTint: 0xaaffaa,
-    shellTint: 0xffaaaa,
-    deflectionTint: 0xaaaaff,
+    speedLine: 0x00ffff, // Pure cyan
+    targetSpeedLine: 0x00cccc, // Dimmer cyan
+    collisionOutline: 0x4ce73c, // Green (danger indicator)
+    azimuthTint: 0x00ffff, // Pure cyan
+    shellTint: 0xff6600, // Orange (secondary)
+    deflectionTint: 0x00aaff, // Cyan-blue
 };
 
 // ============================================================================
@@ -36,22 +37,23 @@ export const status = {
 };
 
 // ============================================================================
-// HSL Palette (Primary Cyan Theme - Arwes Compatible)
+// HSL Palette (Industrial Sci-Fi Theme - Pure Cyan/Orange)
+// Matches docs/reference/color-design-system.html
 // ============================================================================
 // Lightness scale: index 0 = lightest (97%), index 12 = darkest (4%)
 const lightnessScale = [97, 90, 74, 53, 44, 37, 30, 26, 21, 15, 10, 7, 4];
 
 export const hsl = {
     primary: {
-        /** Main saturation (~69%) */
-        main: (index: number): string => `hsl(180, 69%, ${lightnessScale[index] ?? 26}%)`,
-        /** High saturation (~90%) for hover/active states */
-        high: (index: number): string => `hsl(180, 90%, ${lightnessScale[index] ?? 26}%)`,
+        /** Pure cyan at full saturation (#00ffff at 50% lightness) */
+        main: (index: number): string => `hsl(180, 100%, ${lightnessScale[index] ?? 26}%)`,
+        /** Slightly brighter for hover/active states */
+        high: (index: number): string => `hsl(180, 100%, ${Math.min((lightnessScale[index] ?? 26) + 10, 97)}%)`,
     },
-    secondary: 'hsl(60, 70%, 48%)', // Yellow/gold
+    secondary: 'hsl(24, 100%, 50%)', // Orange #ff6600
     success: 'hsl(120, 50%, 40%)',
     error: 'hsl(10, 50%, 48%)',
-    background: 'hsl(180, 20%, 4%)',
+    background: 'hsl(0, 0%, 4%)', // Grayscale #0a0a0a
 };
 
 // Legacy palette mapping for existing code compatibility

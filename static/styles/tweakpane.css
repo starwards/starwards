@@ -1,28 +1,40 @@
 /* use https://cocopon.github.io/tweakpane/theming/ */
+/* Industrial Sci-Fi cyan theme - matches docs/reference/color-design-system.html */
 /* Status colors should match modules/browser/src/colors.ts status.* values */
 
 :root {
-    --tp-base-background-color: hsla(230, 7%, 17%, 1);
-    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.2);
-    --tp-button-background-color: hsla(230, 7%, 70%, 1);
-    --tp-button-background-color-active: hsla(230, 7%, 85%, 1);
-    --tp-button-background-color-focus: hsla(230, 7%, 80%, 1);
-    --tp-button-background-color-hover: hsla(230, 7%, 75%, 1);
-    --tp-button-foreground-color: hsla(230, 7%, 17%, 1);
-    --tp-container-background-color: hsla(230, 7%, 75%, 0.1);
-    --tp-container-background-color-active: hsla(230, 7%, 75%, 0.25);
-    --tp-container-background-color-focus: hsla(230, 7%, 75%, 0.2);
-    --tp-container-background-color-hover: hsla(230, 7%, 75%, 0.15);
-    --tp-container-foreground-color: hsla(230, 7%, 75%, 1);
-    --tp-groove-foreground-color: hsla(230, 7%, 75%, 0.1);
-    --tp-input-background-color: hsla(230, 7%, 75%, 0.1);
-    --tp-input-background-color-active: hsla(230, 7%, 75%, 0.25);
-    --tp-input-background-color-focus: hsla(230, 7%, 75%, 0.2);
-    --tp-input-background-color-hover: hsla(230, 7%, 75%, 0.15);
-    --tp-input-foreground-color: hsla(230, 7%, 75%, 1);
-    --tp-label-foreground-color: hsla(230, 7%, 75%, 0.7);
-    --tp-monitor-background-color: hsla(230, 7%, 0%, 0.2);
-    --tp-monitor-foreground-color: hsla(230, 7%, 75%, 0.7);
+    /* Base: dark with slight cyan tint */
+    --tp-base-background-color: hsla(180, 10%, 8%, 1);
+    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
+
+    /* Buttons: cyan tinted */
+    --tp-button-background-color: hsla(180, 50%, 70%, 1);
+    --tp-button-background-color-active: hsla(180, 60%, 85%, 1);
+    --tp-button-background-color-focus: hsla(180, 55%, 80%, 1);
+    --tp-button-background-color-hover: hsla(180, 55%, 75%, 1);
+    --tp-button-foreground-color: hsla(180, 10%, 8%, 1);
+
+    /* Containers: cyan accent background */
+    --tp-container-background-color: hsla(180, 100%, 50%, 0.08);
+    --tp-container-background-color-active: hsla(180, 100%, 50%, 0.2);
+    --tp-container-background-color-focus: hsla(180, 100%, 50%, 0.15);
+    --tp-container-background-color-hover: hsla(180, 100%, 50%, 0.12);
+    --tp-container-foreground-color: hsla(180, 50%, 70%, 1);
+
+    /* Groove */
+    --tp-groove-foreground-color: hsla(180, 100%, 50%, 0.15);
+
+    /* Inputs: darker cyan tinted */
+    --tp-input-background-color: hsla(180, 100%, 50%, 0.08);
+    --tp-input-background-color-active: hsla(180, 100%, 50%, 0.2);
+    --tp-input-background-color-focus: hsla(180, 100%, 50%, 0.15);
+    --tp-input-background-color-hover: hsla(180, 100%, 50%, 0.12);
+    --tp-input-foreground-color: hsla(180, 70%, 70%, 1);
+
+    /* Labels/monitors: dimmer cyan */
+    --tp-label-foreground-color: hsla(180, 40%, 50%, 1);
+    --tp-monitor-background-color: hsla(180, 20%, 5%, 1);
+    --tp-monitor-foreground-color: hsla(180, 40%, 50%, 1);
 
     /* the following variables are not officially supported by tweakpane themes: */
     --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
