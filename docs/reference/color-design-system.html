@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Sci-Fi Design System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700;900&family=Electrolize&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Backgrounds - Grayscale only */
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            
+            /* Cyan Primary - Used for most UI */
+            --cyan-100: #00ffff;
+            --cyan-80: rgba(0, 255, 255, 0.8);
+            --cyan-60: rgba(0, 255, 255, 0.6);
+            --cyan-40: rgba(0, 255, 255, 0.4);
+            --cyan-20: rgba(0, 255, 255, 0.2);
+            --cyan-10: rgba(0, 255, 255, 0.1);
+            --cyan-5: rgba(0, 255, 255, 0.05);
+            
+            /* Orange Secondary - Used sparingly for emphasis */
+            --orange-100: #ff6600;
+            --orange-80: rgba(255, 102, 0, 0.8);
+            --orange-60: rgba(255, 102, 0, 0.6);
+            --orange-40: rgba(255, 102, 0, 0.4);
+            --orange-20: rgba(255, 102, 0, 0.2);
+            --orange-10: rgba(255, 102, 0, 0.1);
+            
+            /* Grayscale for text */
+            --gray-100: #ffffff;
+            --gray-80: rgba(255, 255, 255, 0.8);
+            --gray-60: rgba(255, 255, 255, 0.6);
+            --gray-40: rgba(255, 255, 255, 0.4);
+            --gray-20: rgba(255, 255, 255, 0.2);
+            
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            --space-3xl: 64px;
+            
+            /* Typography */
+            --font-display: 'Electrolize', sans-serif;
+            --font-body: 'Titillium Web', sans-serif;
+            
+            --text-xs: 11px;
+            --text-sm: 13px;
+            --text-base: 15px;
+            --text-lg: 18px;
+            --text-xl: 21px;
+            --text-2xl: 26px;
+            --text-3xl: 32px;
+            --text-4xl: 42px;
+            --text-5xl: 56px;
+            
+            /* Line widths */
+            --line-thin: 1px;
+            --line-base: 2px;
+            --line-thick: 3px;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #eeeeee;
+            --bg-tertiary: #e0e0e0;
+            
+            --cyan-100: #00aacc;
+            --cyan-80: rgba(0, 170, 204, 0.8);
+            --cyan-60: rgba(0, 170, 204, 0.6);
+            --cyan-40: rgba(0, 170, 204, 0.4);
+            --cyan-20: rgba(0, 170, 204, 0.2);
+            --cyan-10: rgba(0, 170, 204, 0.1);
+            --cyan-5: rgba(0, 170, 204, 0.05);
+            
+            --orange-100: #cc5500;
+            --orange-80: rgba(204, 85, 0, 0.8);
+            --orange-60: rgba(204, 85, 0, 0.6);
+            --orange-40: rgba(204, 85, 0, 0.4);
+            --orange-20: rgba(204, 85, 0, 0.2);
+            --orange-10: rgba(204, 85, 0, 0.1);
+            
+            --gray-100: #000000;
+            --gray-80: rgba(0, 0, 0, 0.8);
+            --gray-60: rgba(0, 0, 0, 0.6);
+            --gray-40: rgba(0, 0, 0, 0.4);
+            --gray-20: rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--gray-80);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Background pattern - grayscale only */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--gray-20) 1px, transparent 1px),
+                linear-gradient(90deg, var(--gray-20) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-2xl);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: var(--space-3xl);
+            padding-bottom: var(--space-xl);
+            border-bottom: var(--line-base) solid var(--cyan-40);
+            clip-path: polygon(
+                0 0,
+                calc(100% - 30px) 0,
+                100% 30px,
+                100% 100%,
+                0 100%
+            );
+            position: relative;
+        }
+
+        .header h1 {
+            font-family: var(--font-display);
+            font-size: var(--text-5xl);
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--cyan-100);
+            margin-bottom: var(--space-sm);
+        }
+
+        .header p {
+            font-size: var(--text-base);
+            color: var(--gray-60);
+            font-weight: 300;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: var(--space-lg);
+            right: var(--space-lg);
+            z-index: 1000;
+            display: flex;
+            gap: 0;
+            background: transparent;
+        }
+
+        .theme-btn {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+            color: var(--gray-60);
+            padding: var(--space-sm) var(--space-lg);
+            cursor: pointer;
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            transition: all 200ms;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+
+        .theme-btn:first-child {
+            border-right: none;
+        }
+
+        .theme-btn.active {
+            background: var(--cyan-5);
+            color: var(--cyan-100);
+            border-color: var(--cyan-100);
+        }
+
+        .theme-btn:hover:not(.active) {
+            border-color: var(--cyan-80);
+            color: var(--cyan-80);
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: var(--space-3xl);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: var(--text-3xl);
+            font-weight: 400;
+            margin-bottom: var(--space-xl);
+            color: var(--cyan-100);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            position: relative;
+            padding-left: var(--space-lg);
+        }
+
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--line-thick);
+            background: var(--cyan-100);
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: var(--space-md);
+            height: var(--space-md);
+            transform: translateY(-50%);
+            border: var(--line-base) solid var(--orange-100);
+            background: transparent;
+        }
+
+        .subsection-title {
+            font-family: var(--font-display);
+            font-size: var(--text-lg);
+            font-weight: 400;
+            margin-bottom: var(--space-md);
+            margin-top: var(--space-xl);
+            color: var(--gray-100);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Color palette */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-md);
+        }
+
+        .color-card {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+            clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+            overflow: hidden;
+            transition: border-color 200ms;
+            cursor: pointer;
+        }
+
+        .color-card:hover {
+            border-color: var(--cyan-100);
+        }
+
+        .color-swatch {
+            height: 100px;
+        }
+
+        .color-info {
+            padding: var(--space-md);
+            background: var(--bg-secondary);
+        }
+
+        .color-name {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            font-weight: 400;
+            color: var(--gray-100);
+            margin-bottom: var(--space-xs);
+        }
+
+        .color-value {
+            font-family: var(--font-body);
+            font-size: var(--text-xs);
+            color: var(--gray-60);
+        }
+
+        /* Typography samples */
+        .type-sample {
+            margin-bottom: var(--space-xl);
+            padding: var(--space-xl);
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-20);
+            border-left: var(--line-thick) solid var(--cyan-100);
+        }
+
+        /* Buttons */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--space-md);
+        }
+
+        .btn {
+            padding: var(--space-md) var(--space-xl);
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-100);
+            color: var(--cyan-100);
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 200ms;
+            clip-path: polygon(
+                8px 0,
+                100% 0,
+                100% calc(100% - 8px),
+                calc(100% - 8px) 100%,
+                0 100%,
+                0 8px
+            );
+            position: relative;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--cyan-5);
+            opacity: 0;
+            transition: opacity 200ms;
+        }
+
+        .btn:hover::before {
+            opacity: 1;
+        }
+
+        .btn-primary {
+            border-color: var(--cyan-100);
+            color: var(--cyan-100);
+        }
+
+        .btn-primary:hover {
+            background: var(--cyan-10);
+        }
+
+        .btn-secondary {
+            border-color: var(--orange-100);
+            color: var(--orange-100);
+        }
+
+        .btn-secondary:hover {
+            background: var(--orange-10);
+        }
+
+        .btn-outline {
+            border-color: var(--cyan-60);
+            color: var(--gray-80);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--cyan-100);
+            color: var(--cyan-100);
+        }
+
+        .btn-ghost {
+            border: none;
+            color: var(--gray-60);
+            clip-path: none;
+        }
+
+        .btn-ghost:hover {
+            color: var(--cyan-100);
+        }
+
+        .btn-sm {
+            padding: var(--space-sm) var(--space-md);
+            font-size: var(--text-sm);
+        }
+
+        .btn-lg {
+            padding: var(--space-lg) var(--space-2xl);
+            font-size: var(--text-lg);
+        }
+
+        /* Cards */
+        .card {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+            padding: var(--space-xl);
+            transition: border-color 200ms;
+            clip-path: polygon(
+                0 0,
+                calc(100% - 20px) 0,
+                100% 20px,
+                100% 100%,
+                20px 100%,
+                0 calc(100% - 20px)
+            );
+        }
+
+        .card:hover {
+            border-color: var(--cyan-100);
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            font-weight: 400;
+            color: var(--cyan-100);
+            margin-bottom: var(--space-md);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-content {
+            color: var(--gray-60);
+            line-height: 1.7;
+        }
+
+        .card-stat {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-60);
+            padding: var(--space-xl);
+            text-align: center;
+            clip-path: polygon(
+                12px 0,
+                100% 0,
+                100% calc(100% - 12px),
+                calc(100% - 12px) 100%,
+                0 100%,
+                0 12px
+            );
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: var(--text-4xl);
+            font-weight: 700;
+            color: var(--cyan-100);
+            display: block;
+            margin-bottom: var(--space-xs);
+        }
+
+        .stat-label {
+            font-size: var(--text-sm);
+            color: var(--gray-60);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        /* HUD Components */
+        .hud-panel {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-100);
+            padding: var(--space-xl);
+            position: relative;
+            clip-path: polygon(
+                0 8px,
+                8px 0,
+                100% 0,
+                100% calc(100% - 8px),
+                calc(100% - 8px) 100%,
+                0 100%
+            );
+        }
+
+        .hud-panel::before,
+        .hud-panel::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: var(--line-base) solid var(--orange-100);
+        }
+
+        .hud-panel::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .hud-panel::after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .hud-title {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            color: var(--cyan-100);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: var(--space-lg);
+            border-bottom: var(--line-thin) solid var(--cyan-40);
+            padding-bottom: var(--space-sm);
+        }
+
+        .progress-bar {
+            height: 20px;
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-60);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--cyan-20);
+            border-right: var(--line-base) solid var(--cyan-100);
+            position: relative;
+            transition: width 400ms linear;
+        }
+
+        .health-bar {
+            display: flex;
+            gap: var(--space-xs);
+            margin-top: var(--space-md);
+        }
+
+        .health-segment {
+            flex: 1;
+            height: 24px;
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+        }
+
+        .health-segment.filled {
+            background: var(--cyan-10);
+            border-color: var(--cyan-100);
+        }
+
+        .health-segment.warning {
+            background: var(--orange-10);
+            border-color: var(--orange-100);
+        }
+
+        .health-segment.critical {
+            background: var(--orange-20);
+            border-color: var(--orange-100);
+            animation: critical-blink 1s linear infinite;
+        }
+
+        @keyframes critical-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Menu */
+        .menu {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+        }
+
+        .menu-item {
+            padding: var(--space-md) var(--space-lg);
+            color: var(--gray-60);
+            cursor: pointer;
+            transition: all 200ms;
+            border-bottom: var(--line-thin) solid var(--cyan-20);
+            position: relative;
+        }
+
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            background: var(--cyan-100);
+            transition: width 200ms;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            color: var(--cyan-100);
+            background: var(--cyan-5);
+        }
+
+        .menu-item:hover::before,
+        .menu-item.active::before {
+            width: var(--line-thick);
+        }
+
+        .menu-icon {
+            display: inline-block;
+            width: 24px;
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            color: var(--cyan-80);
+            margin-right: var(--space-md);
+        }
+
+        /* Input fields */
+        .input-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .input-label {
+            font-family: var(--font-display);
+            font-size: var(--text-sm);
+            color: var(--gray-60);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: var(--space-sm);
+            display: block;
+        }
+
+        .input {
+            width: 100%;
+            padding: var(--space-md) var(--space-lg);
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+            color: var(--gray-100);
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            transition: border-color 200ms;
+            clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--cyan-100);
+            background: var(--cyan-5);
+        }
+
+        .input::placeholder {
+            color: var(--gray-40);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: var(--space-xs) var(--space-md);
+            background: transparent;
+            border: var(--line-thin) solid var(--cyan-80);
+            font-family: var(--font-display);
+            font-size: var(--text-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+        }
+
+        .badge-primary {
+            color: var(--cyan-100);
+            border-color: var(--cyan-100);
+        }
+
+        .badge-secondary {
+            color: var(--orange-100);
+            border-color: var(--orange-100);
+        }
+
+        .badge-success {
+            color: var(--cyan-100);
+            border-color: var(--cyan-100);
+            background: var(--cyan-5);
+        }
+
+        /* Grid system */
+        .grid {
+            display: grid;
+            gap: var(--space-lg);
+        }
+
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+        @media (max-width: 1024px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: var(--text-3xl);
+            }
+            .container {
+                padding: var(--space-lg);
+            }
+        }
+
+        /* Demo panel */
+        .demo-panel {
+            background: transparent;
+            border: var(--line-base) solid var(--cyan-40);
+            padding: var(--space-xl);
+            margin-top: var(--space-lg);
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+            flex-wrap: wrap;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: var(--space-xl);
+            right: var(--space-xl);
+            background: var(--bg-secondary);
+            border: var(--line-base) solid var(--cyan-100);
+            padding: var(--space-lg);
+            z-index: 2000;
+            min-width: 300px;
+            transform: translateX(400px);
+            transition: transform 300ms;
+            clip-path: polygon(
+                0 8px,
+                8px 0,
+                100% 0,
+                100% calc(100% - 8px),
+                calc(100% - 8px) 100%,
+                0 100%
+            );
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-title {
+            font-family: var(--font-display);
+            font-size: var(--text-base);
+            color: var(--cyan-100);
+            margin-bottom: var(--space-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .notification-body {
+            color: var(--gray-60);
+            font-size: var(--text-sm);
+        }
+
+        /* Polygonal decorative elements */
+        .polygon-corner {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+        }
+
+        .poly-tl {
+            top: -1px;
+            left: -1px;
+            border-width: 12px 12px 0 0;
+            border-color: var(--cyan-100) transparent transparent transparent;
+        }
+
+        .poly-br {
+            bottom: -1px;
+            right: -1px;
+            border-width: 0 0 12px 12px;
+            border-color: transparent transparent var(--orange-100) transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle">
+        <button class="theme-btn active" data-theme="dark">DARK</button>
+        <button class="theme-btn" data-theme="light">LIGHT</button>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>INDUSTRIAL SCI-FI DESIGN SYSTEM</h1>
+            <p>Flat, angular, minimal color - embracing virtual flatness with outlined polygons</p>
+        </header>
+
+        <!-- Color Palette -->
+        <section class="section">
+            <h2 class="section-title">Color Palette</h2>
+            
+            <h3 class="subsection-title">Cyan Primary Scale</h3>
+            <div class="color-grid">
+                <div class="color-card" onclick="copyColor('--cyan-100')">
+                    <div class="color-swatch" style="background: var(--cyan-100);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan 100%</div>
+                        <div class="color-value">--cyan-100</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--cyan-80')">
+                    <div class="color-swatch" style="background: var(--cyan-80);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan 80%</div>
+                        <div class="color-value">--cyan-80</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--cyan-60')">
+                    <div class="color-swatch" style="background: var(--cyan-60);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan 60%</div>
+                        <div class="color-value">--cyan-60</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--cyan-40')">
+                    <div class="color-swatch" style="background: var(--cyan-40);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan 40%</div>
+                        <div class="color-value">--cyan-40</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--cyan-20')">
+                    <div class="color-swatch" style="background: var(--cyan-20);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan 20%</div>
+                        <div class="color-value">--cyan-20</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--cyan-10')">
+                    <div class="color-swatch" style="background: var(--cyan-10);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Cyan 10%</div>
+                        <div class="color-value">--cyan-10</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="subsection-title">Orange Emphasis Scale</h3>
+            <div class="color-grid">
+                <div class="color-card" onclick="copyColor('--orange-100')">
+                    <div class="color-swatch" style="background: var(--orange-100);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Orange 100%</div>
+                        <div class="color-value">--orange-100</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--orange-80')">
+                    <div class="color-swatch" style="background: var(--orange-80);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Orange 80%</div>
+                        <div class="color-value">--orange-80</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--orange-60')">
+                    <div class="color-swatch" style="background: var(--orange-60);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Orange 60%</div>
+                        <div class="color-value">--orange-60</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--orange-40')">
+                    <div class="color-swatch" style="background: var(--orange-40);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Orange 40%</div>
+                        <div class="color-value">--orange-40</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--orange-20')">
+                    <div class="color-swatch" style="background: var(--orange-20);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Orange 20%</div>
+                        <div class="color-value">--orange-20</div>
+                    </div>
+                </div>
+                <div class="color-card" onclick="copyColor('--orange-10')">
+                    <div class="color-swatch" style="background: var(--orange-10);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Orange 10%</div>
+                        <div class="color-value">--orange-10</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="subsection-title">Grayscale (Backgrounds & Text Only)</h3>
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-swatch" style="background: var(--bg-primary);"></div>
+                    <div class="color-info">
+                        <div class="color-name">BG Primary</div>
+                        <div class="color-value">--bg-primary</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="background: var(--gray-100);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Gray 100%</div>
+                        <div class="color-value">--gray-100</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="background: var(--gray-80);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Gray 80%</div>
+                        <div class="color-value">--gray-80</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-swatch" style="background: var(--gray-60);"></div>
+                    <div class="color-info">
+                        <div class="color-name">Gray 60%</div>
+                        <div class="color-value">--gray-60</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography -->
+        <section class="section">
+            <h2 class="section-title">Typography</h2>
+            
+            <div class="type-sample">
+                <div style="font-family: var(--font-display); font-size: var(--text-5xl); color: var(--cyan-100); margin-bottom: var(--space-sm);">
+                    ELECTROLIZE
+                </div>
+                <div style="color: var(--gray-60); font-size: var(--text-base); margin-bottom: var(--space-md);">
+                    Display font for headings, titles, HUD elements, technical text
+                </div>
+                <div style="font-family: var(--font-display); color: var(--gray-60); font-size: var(--text-base);">
+                    ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>
+                    abcdefghijklmnopqrstuvwxyz<br>
+                    0123456789
+                </div>
+            </div>
+
+            <div class="type-sample">
+                <div style="font-family: var(--font-body); font-size: var(--text-4xl); color: var(--cyan-100); margin-bottom: var(--space-sm);">
+                    Titillium Web
+                </div>
+                <div style="color: var(--gray-60); font-size: var(--text-base); margin-bottom: var(--space-md);">
+                    Body font for paragraphs, UI text, descriptions, content
+                </div>
+                <div style="color: var(--gray-60); font-size: var(--text-base);">
+                    ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>
+                    abcdefghijklmnopqrstuvwxyz<br>
+                    0123456789
+                </div>
+            </div>
+
+            <h3 class="subsection-title">Type Scale</h3>
+            <div style="border: var(--line-base) solid var(--cyan-20); padding: var(--space-xl);">
+                <div style="font-size: var(--text-5xl); color: var(--cyan-100); margin-bottom: var(--space-md);">5XL - 56px</div>
+                <div style="font-size: var(--text-4xl); color: var(--cyan-100); margin-bottom: var(--space-md);">4XL - 42px</div>
+                <div style="font-size: var(--text-3xl); color: var(--gray-100); margin-bottom: var(--space-md);">3XL - 32px</div>
+                <div style="font-size: var(--text-2xl); color: var(--gray-80); margin-bottom: var(--space-md);">2XL - 26px</div>
+                <div style="font-size: var(--text-xl); color: var(--gray-80); margin-bottom: var(--space-md);">XL - 21px</div>
+                <div style="font-size: var(--text-lg); color: var(--gray-60); margin-bottom: var(--space-md);">LG - 18px</div>
+                <div style="font-size: var(--text-base); color: var(--gray-60); margin-bottom: var(--space-md);">Base - 15px</div>
+                <div style="font-size: var(--text-sm); color: var(--gray-60); margin-bottom: var(--space-md);">SM - 13px</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-60);">XS - 11px</div>
+            </div>
+        </section>
+
+        <!-- Spacing -->
+        <section class="section">
+            <h2 class="section-title">Spacing System</h2>
+            <div class="grid grid-2">
+                <div style="border: var(--line-base) solid var(--cyan-20); padding: var(--space-xl);">
+                    <div style="margin-bottom: var(--space-md); color: var(--gray-80);"><strong>XS:</strong> 4px</div>
+                    <div style="margin-bottom: var(--space-md); color: var(--gray-80);"><strong>SM:</strong> 8px</div>
+                    <div style="margin-bottom: var(--space-md); color: var(--gray-80);"><strong>MD:</strong> 16px</div>
+                    <div style="margin-bottom: var(--space-md); color: var(--gray-80);"><strong>LG:</strong> 24px</div>
+                    <div style="margin-bottom: var(--space-md); color: var(--gray-80);"><strong>XL:</strong> 32px</div>
+                    <div style="margin-bottom: var(--space-md); color: var(--gray-80);"><strong>2XL:</strong> 48px</div>
+                    <div style="color: var(--gray-80);"><strong>3XL:</strong> 64px</div>
+                </div>
+                <div style="border: var(--line-base) solid var(--cyan-20); padding: var(--space-xl); display: flex; flex-direction: column; gap: var(--space-sm); align-items: flex-start;">
+                    <div style="height: 4px; width: 4px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                    <div style="height: 8px; width: 8px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                    <div style="height: 16px; width: 16px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                    <div style="height: 24px; width: 24px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                    <div style="height: 32px; width: 32px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                    <div style="height: 48px; width: 48px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                    <div style="height: 64px; width: 64px; background: var(--cyan-100); border: var(--line-thin) solid var(--cyan-100);"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Buttons -->
+        <section class="section">
+            <h2 class="section-title">Buttons</h2>
+            
+            <h3 class="subsection-title">Button Variants</h3>
+            <div class="button-grid">
+                <button class="btn btn-primary">PRIMARY</button>
+                <button class="btn btn-secondary">SECONDARY</button>
+                <button class="btn btn-outline">OUTLINE</button>
+                <button class="btn btn-ghost">GHOST</button>
+            </div>
+
+            <h3 class="subsection-title">Button Sizes</h3>
+            <div style="display: flex; gap: var(--space-md); align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm">SMALL</button>
+                <button class="btn btn-primary">DEFAULT</button>
+                <button class="btn btn-primary btn-lg">LARGE</button>
+            </div>
+        </section>
+
+        <!-- Cards -->
+        <section class="section">
+            <h2 class="section-title">Cards</h2>
+            
+            <div class="grid grid-3">
+                <div class="card">
+                    <h3 class="card-title">OUTLINED CARD</h3>
+                    <div class="card-content">
+                        Flat card with angular clipped corners. No depth effects, pure outlined polygon aesthetic with transparent background.
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title">MINIMAL DESIGN</h3>
+                    <div class="card-content">
+                        Industrial sci-fi style with straight lines and minimal color. Large surfaces remain transparent.
+                    </div>
+                </div>
+                
+                <div class="card-stat">
+                    <span class="stat-value">1337</span>
+                    <span class="stat-label">ACTIVE UNITS</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- HUD Components -->
+        <section class="section">
+            <h2 class="section-title">HUD Components</h2>
+            
+            <div class="grid grid-2">
+                <div class="hud-panel">
+                    <div class="hud-title">SYSTEM STATUS</div>
+                    <div style="margin-bottom: var(--space-lg);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm); font-family: var(--font-display); font-size: var(--text-sm);">
+                            <span style="color: var(--gray-60);">ENERGY</span>
+                            <span style="color: var(--cyan-100);">75%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm); font-family: var(--font-display); font-size: var(--text-sm);">
+                            <span style="color: var(--gray-60);">SHIELDS</span>
+                            <span style="color: var(--cyan-100);">92%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 92%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hud-panel">
+                    <div class="hud-title">HEALTH MONITOR</div>
+                    <div class="health-bar">
+                        <div class="health-segment filled"></div>
+                        <div class="health-segment filled"></div>
+                        <div class="health-segment filled"></div>
+                        <div class="health-segment warning"></div>
+                        <div class="health-segment"></div>
+                    </div>
+                    <div style="margin-top: var(--space-md); font-family: var(--font-display); font-size: var(--text-sm); color: var(--gray-60); text-align: center;">
+                        80 / 100 UNITS
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Menu -->
+        <section class="section">
+            <h2 class="section-title">Menu Components</h2>
+            
+            <div class="grid grid-2">
+                <div class="menu">
+                    <div class="menu-item active">
+                        <span class="menu-icon">01</span>
+                        <span>DASHBOARD</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">02</span>
+                        <span>INVENTORY</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">03</span>
+                        <span>CHARACTER</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">04</span>
+                        <span>ABILITIES</span>
+                    </div>
+                    <div class="menu-item">
+                        <span class="menu-icon">05</span>
+                        <span>SETTINGS</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="input-group">
+                        <label class="input-label">Username</label>
+                        <input type="text" class="input" placeholder="ENTER USERNAME">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Access Code</label>
+                        <input type="password" class="input" placeholder="ENTER CODE">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;">CONNECT</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Badges -->
+        <section class="section">
+            <h2 class="section-title">Badges</h2>
+            
+            <div style="display: flex; gap: var(--space-md); flex-wrap: wrap;">
+                <span class="badge badge-primary">LEVEL 45</span>
+                <span class="badge badge-secondary">ELITE</span>
+                <span class="badge badge-success">ONLINE</span>
+                <span class="badge badge-primary">VIP</span>
+                <span class="badge badge-secondary">ADMIN</span>
+            </div>
+        </section>
+
+        <!-- Interactive Demo -->
+        <section class="section">
+            <h2 class="section-title">Interactive Demo</h2>
+            
+            <div class="demo-panel">
+                <h3 class="subsection-title">Test Components</h3>
+                <div class="demo-controls">
+                    <button class="btn btn-primary" onclick="showNotification()">NOTIFY</button>
+                    <button class="btn btn-secondary" onclick="animateProgress()">PROGRESS</button>
+                    <button class="btn btn-outline" onclick="updateHealth()">HEALTH</button>
+                </div>
+
+                <div class="grid grid-2" style="margin-top: var(--space-xl);">
+                    <div class="hud-panel">
+                        <div class="hud-title">PROGRESS TEST</div>
+                        <div id="demo-progress">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: var(--space-sm); font-family: var(--font-display); font-size: var(--text-sm);">
+                                <span style="color: var(--gray-60);">STATUS</span>
+                                <span style="color: var(--cyan-100);" id="progress-text">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="hud-panel">
+                        <div class="hud-title">HEALTH TEST</div>
+                        <div class="health-bar" id="demo-health">
+                            <div class="health-segment filled"></div>
+                            <div class="health-segment filled"></div>
+                            <div class="health-segment filled"></div>
+                            <div class="health-segment filled"></div>
+                            <div class="health-segment filled"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="notification" id="notification">
+        <div class="notification-title">SYSTEM ALERT</div>
+        <div class="notification-body">Action executed successfully</div>
+    </div>
+
+    <script>
+        // Theme toggle
+        const themeButtons = document.querySelectorAll('.theme-btn');
+        const html = document.documentElement;
+
+        themeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.theme;
+                html.setAttribute('data-theme', theme);
+                
+                themeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Copy color
+        function copyColor(colorVar) {
+            const computedStyle = getComputedStyle(document.documentElement);
+            const colorValue = computedStyle.getPropertyValue(colorVar).trim();
+            
+            navigator.clipboard.writeText(colorValue).then(() => {
+                showNotification(`Copied: ${colorValue}`);
+            });
+        }
+
+        // Show notification
+        function showNotification(message = 'Action executed successfully') {
+            const notification = document.getElementById('notification');
+            const body = notification.querySelector('.notification-body');
+            body.textContent = message;
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Animate progress
+        function animateProgress() {
+            const fill = document.getElementById('progress-fill');
+            const text = document.getElementById('progress-text');
+            let progress = 0;
+            
+            const interval = setInterval(() => {
+                progress += 2;
+                fill.style.width = progress + '%';
+                text.textContent = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        fill.style.width = '0%';
+                        text.textContent = '0%';
+                    }, 1000);
+                }
+            }, 30);
+        }
+
+        // Update health
+        function updateHealth() {
+            const healthBar = document.getElementById('demo-health');
+            const segments = healthBar.querySelectorAll('.health-segment');
+            
+            segments.forEach(segment => {
+                segment.classList.remove('filled', 'warning', 'critical');
+            });
+            
+            const healthLevel = Math.floor(Math.random() * 5) + 1;
+            
+            for (let i = 0; i < healthLevel; i++) {
+                if (healthLevel <= 2) {
+                    segments[i].classList.add('critical');
+                } else if (healthLevel <= 3) {
+                    segments[i].classList.add('warning');
+                } else {
+                    segments[i].classList.add('filled');
+                }
+            }
+        }
+
+        // Menu interaction
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>
