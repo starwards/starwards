@@ -96,8 +96,18 @@ const singleSelectionDetails = async (
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
 
-        const isPlayerShipProp = readWriteProp(shipDriver, `/isPlayerShip`);
-        addInputBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship' }, cleanup);
+        const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
+        addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
+
+        // Add button to convert ship type
+        const currentIsPlayerShip = shipDriver.state.isPlayerShip;
+        const buttonLabel = currentIsPlayerShip ? 'Convert to NPC' : 'Convert to Player Ship';
+        guiFolder.addButton({ title: buttonLabel }).on('click', () => {
+            spaceDriver.command(spaceCommands.convertShipType, {
+                shipId: subject.id,
+                isPlayerShip: !currentIsPlayerShip,
+            });
+        });
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);

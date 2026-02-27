@@ -81,6 +81,56 @@ When converting between player/NPC types:
 
 ---
 
+## Post-Implementation Fix
+
+After initial implementation, identified that toggling `isPlayerShip` in GUI didn't trigger room conversion.
+
+### Root Cause
+**JSON Pointer command updates property but doesn't call `convertShipType()`.**
+
+When the user toggles the checkbox in the tweak panel:
+1. `readWriteProp` sends a JSON Pointer command
+2. `handleJsonPointerCommand` updates `shipState.isPlayerShip` directly
+3. ❌ But `convertShipType()` method never gets called
+4. ❌ Room doesn't get recreated with correct manager type
+
+### Solution: Custom Game Command Pattern
+
+Implemented following Starwards architectural patterns where typed commands flow through SpaceRoom:
+
+1. **Removed `@tweakable` decorator** - property is now read-only
+2. **Added action button** instead of checkbox in tweak panel
+3. **Button sends `convertShipType` command** through SpaceRoom
+4. **Command processed in GameManager.update() loop**
+5. **Triggers proper room recreation** via `convertShipType()` method
+
+### Implementation Files Changed
+
+- `modules/core/src/ship/ship-state.ts` - Removed `@tweakable` decorator
+- `modules/core/src/space/space-commands.ts` - Added `convertShipType` command
+- `modules/core/src/space/space-state.ts` - Added `convertShipTypeCommands` queue
+- `modules/server/src/admin/game-manager.ts` - Process command in update loop
+- `modules/browser/src/widgets/tweak.ts` - Reverted to read-only + added button
+
+### Why This Approach
+
+**Follows Starwards patterns:**
+- Typed commands go through SpaceRoom (not ShipRoom)
+- Commands queued in state, processed in update loop
+- Matches existing patterns (bulkMove, bulkDeleteOrder, createSpaceshipOrder)
+
+**Clean separation:**
+- State property is read-only (source of truth)
+- Action is explicit (button click)
+- Command triggers proper lifecycle management
+
+**No REST API needed:**
+- Uses existing Colyseus infrastructure
+- Proper multiplayer sync
+- Follows game architecture
+
+---
+
 ## Test Coverage Verification
 
 ### How to Verify NPCs Work Without Rooms

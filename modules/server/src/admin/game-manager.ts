@@ -75,6 +75,10 @@ export class GameManager {
                 this.addShip(ship, cmd.isPlayerShip);
             }
             this.spaceManager.state.createSpaceshipCommands = [];
+            for (const cmd of this.spaceManager.state.convertShipTypeCommands) {
+                void this.convertShipType(cmd.shipId, cmd.isPlayerShip);
+            }
+            this.spaceManager.state.convertShipTypeCommands = [];
         }
     }
 
