@@ -137,7 +137,13 @@ export const Button: React.FC<ButtonProps> = ({
                 `}</style>
 
                 <Animator>
-                    <FrameOctagon elementRef={frameRef} strokeWidth={2} squareSize={10} styled={false} animated={false} />
+                    <FrameOctagon
+                        elementRef={frameRef}
+                        strokeWidth={2}
+                        squareSize={10}
+                        styled={false}
+                        animated={false}
+                    />
                 </Animator>
 
                 <Animator>
