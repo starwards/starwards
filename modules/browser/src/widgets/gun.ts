@@ -13,8 +13,13 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
         pane.dispose();
     });
     container.on('destroy', panelCleanup.destroy);
-    addTextBlade(pane, readProp(shipDriver, '/chainGun/projectile'), { label: 'ammo to use' }, panelCleanup.add);
-    addTextBlade(pane, readProp(shipDriver, '/chainGun/loadedProjectile'), { label: 'ammo loaded' }, panelCleanup.add);
+    addTextBlade(pane, readProp(shipDriver, '/chainGun/projectile'), { label: 'projectile' }, panelCleanup.add);
+    addTextBlade(
+        pane,
+        readProp(shipDriver, '/chainGun/loadedProjectile'),
+        { label: 'loaded projectile' },
+        panelCleanup.add,
+    );
     addSliderBlade(
         pane,
         readNumberProp(shipDriver, '/chainGun/loading'),
