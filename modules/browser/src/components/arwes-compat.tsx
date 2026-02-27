@@ -115,28 +115,30 @@ export const Button: React.FC<ButtonProps> = ({
                 }}
             >
                 <style>{`
-                    .arwes-button--${colorKey} .arwes-react-frames-framesvg [data-name=bg] {
-                        fill: ${withAlpha(theme.colors.primary.main(7), 0.25)};
-                        stroke: ${withAlpha(theme.colors.primary.main(7), 0.5)};
+                    .arwes-button--${colorKey} .arwes-frames-frame [data-name=bg] {
+                        fill: ${withAlpha(theme.colors.primary.main(9), 0.4)};
+                        stroke: ${theme.colors.primary.main(5)};
                         stroke-width: 1;
                         transition: all 0.2s ease-out;
                     }
-                    .arwes-button--${colorKey} .arwes-react-frames-framesvg [data-name=line] {
-                        stroke: ${theme.colors.primary.main(7)};
+                    .arwes-button--${colorKey} .arwes-frames-frame [data-name=line] {
+                        stroke: ${theme.colors.primary.main(5)};
                         fill: none;
                         stroke-width: 2;
                         transition: all 0.2s ease-out;
                     }
-                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-react-frames-framesvg [data-name=line] {
+                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-frames-frame [data-name=line] {
                         stroke: ${theme.colors.primary.high(2)};
                         filter: drop-shadow(0 0 4px ${theme.colors.primary.main(3)});
                     }
-                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-react-frames-framesvg [data-name=bg] {
-                        fill: ${withAlpha(theme.colors.primary.main(7), 0.35)};
+                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-frames-frame [data-name=bg] {
+                        fill: ${withAlpha(theme.colors.primary.main(7), 0.5)};
                     }
                 `}</style>
 
-                <FrameOctagon elementRef={frameRef} strokeWidth={2} squareSize={10} styled={false} animated={false} />
+                <Animator>
+                    <FrameOctagon elementRef={frameRef} strokeWidth={2} squareSize={10} styled={false} animated={false} />
+                </Animator>
 
                 <Animator>
                     <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
@@ -191,13 +193,15 @@ export const Card: React.FC<CardProps> = ({ children, title, image, options, sty
                 }}
             >
                 {/* Frame - Matching exact Arwes Next Card.tsx */}
-                <FrameNefrex
-                    elementRef={frameRef}
-                    className="arwes-card-frame"
-                    strokeWidth={4}
-                    styled={false}
-                    animated={false}
-                />
+                <Animator>
+                    <FrameNefrex
+                        elementRef={frameRef}
+                        className="arwes-card-frame"
+                        strokeWidth={4}
+                        styled={false}
+                        animated={false}
+                    />
+                </Animator>
 
                 {/* SVG Style Overrides - Matching Card.module.css */}
                 <style>{`
@@ -211,17 +215,17 @@ export const Card: React.FC<CardProps> = ({ children, title, image, options, sty
                     .arwes-card:hover .arwes-card-frame {
                         opacity: 1;
                     }
-                    .arwes-card .arwes-react-frames-framesvg [data-name=bg] {
+                    .arwes-card .arwes-frames-frame [data-name=bg] {
                         fill: ${withAlpha(theme.colors.primary.main(7), 0.25)};
                         stroke: ${withAlpha(theme.colors.primary.main(7), 0.5)};
                         stroke-width: 1;
                     }
-                    .arwes-card .arwes-react-frames-framesvg [data-name=line] {
+                    .arwes-card .arwes-frames-frame [data-name=line] {
                         stroke: ${theme.colors.primary.main(7)};
                         fill: none;
                         stroke-width: 4;
                     }
-                    .arwes-card:hover .arwes-react-frames-framesvg [data-name=line] {
+                    .arwes-card:hover .arwes-frames-frame [data-name=line] {
                         stroke: ${theme.colors.primary.high(2)};
                         filter: drop-shadow(0 0 6px ${theme.colors.primary.main(3)});
                     }
@@ -400,11 +404,11 @@ export const FrameCorners: React.FC<FrameCornersProps> = ({ children, palette = 
             }}
         >
             <style>{`
-                .arwes-frame-corners--${palette} .arwes-react-frames-framesvg [data-name=line] {
+                .arwes-frame-corners--${palette} .arwes-frames-frame [data-name=line] {
                     stroke: ${color};
                     fill: none;
                 }
-                .arwes-frame-corners--${palette} .arwes-react-frames-framesvg [data-name=bg] {
+                .arwes-frame-corners--${palette} .arwes-frames-frame [data-name=bg] {
                     fill: transparent;
                 }
             `}</style>
