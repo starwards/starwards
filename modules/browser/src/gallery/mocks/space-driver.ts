@@ -1,4 +1,4 @@
-import { Asteroid, SpaceObject, Spaceship, Waypoint, XY } from '@starwards/core';
+import { Asteroid, Projectile, SpaceObject, Spaceship, Waypoint, XY } from '@starwards/core';
 
 import EventEmitter2 from 'eventemitter2';
 
@@ -72,6 +72,22 @@ export function createMockWaypoint(
         waypoint.position.y = overrides.position.y;
     }
     return waypoint;
+}
+
+export function createMockProjectile(
+    overrides: Partial<{
+        id: string;
+        position: XY;
+    }> = {},
+): Projectile {
+    const projectile = new Projectile();
+    projectile.id = overrides.id ?? `shell-${Math.random().toString(36).substr(2, 9)}`;
+    if (overrides.position) {
+        projectile.position.x = overrides.position.x;
+        projectile.position.y = overrides.position.y;
+    }
+    projectile.radius = 1;
+    return projectile;
 }
 
 export function createMockSpaceDriver(objects: SpaceObject[] = []): MockSpaceDriver {

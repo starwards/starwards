@@ -1,7 +1,7 @@
 import { Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
 import { azimuthCircle, crosshairs, speedLines } from '../radar/tactical-radar-layers';
-import { green, radarFogOfWar, radarVisibleBg } from '../colors';
+import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import { Camera } from '../radar/camera';
@@ -108,7 +108,7 @@ export async function drawTacticalRadar(
         root,
         spaceDriver,
         32,
-        () => green,
+        (s) => (s.type === 'Projectile' ? radar.shellTint : green),
         tacticalDrawFunctions,
         shipTarget,
         rangeFilter.isInRange,
