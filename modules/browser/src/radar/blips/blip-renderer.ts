@@ -137,7 +137,7 @@ class CircleRenderer implements BlipRenderer<SpaceObject> {
         stage.addChild(this.selectionSprite);
     }
     redraw(spaceObject: SpaceObject, { parent, isSelected, blipSize, color, alpha }: BlipData): void {
-        const radius = Math.max(parent.metersToPixles(spaceObject.radius), 1);
+        const radius = Math.max(parent.metersToPixles(spaceObject.radius), 2);
         this.shellCircle.clear();
         this.shellCircle.circle(0, 0, radius).fill({ color, alpha });
         this.selectionSprite.visible = isSelected;
