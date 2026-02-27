@@ -1,4 +1,10 @@
-import { createMockAsteroid, createMockShip, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
+import {
+    createMockAsteroid,
+    createMockProjectile,
+    createMockShip,
+    createMockSpaceDriver,
+    createMockWaypoint,
+} from '../mocks/space-driver';
 import { dragonflySF22, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
@@ -102,6 +108,34 @@ export const tacticalRadarScenes: Record<string, Scene> = {
                 asteroid2,
                 waypoint,
             ]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+                range: RANGE,
+            });
+        },
+    },
+
+    'tactical-radar-with-shells': {
+        name: 'tactical-radar-with-shells',
+        description: 'Tactical radar with cannon shells visible as orange dots',
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 45);
+            playerShip.velocity.x = 50;
+
+            const shell1 = createMockProjectile({ id: 'shell-1', position: { x: 800, y: 200 } });
+            const shell2 = createMockProjectile({ id: 'shell-2', position: { x: 1200, y: -300 } });
+            const shell3 = createMockProjectile({ id: 'shell-3', position: { x: 400, y: 600 } });
+
+            const enemyShip = createMockShip({
+                id: 'enemy-1',
+                position: { x: 2000, y: 1500 },
+                angle: 180,
+                faction: 1,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip, enemyShip, shell1, shell2, shell3]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
             return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {

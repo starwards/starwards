@@ -32,6 +32,7 @@ const scenes = [
     'tactical-radar-empty',
     'tactical-radar-single-ship',
     'tactical-radar-multiple-objects',
+    'tactical-radar-with-shells',
     // Targeting
     'targeting-no-target',
     'targeting-ship-target',

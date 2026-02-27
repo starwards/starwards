@@ -12,7 +12,12 @@ import { SpaceObject } from '../space';
 import { SpatialIndex } from './space-manager';
 import { XY } from './xy';
 
-const MIN_RADIUS_RADAR_BLOCK = 1;
+/**
+ * Radar detection threshold factor. Minimum detectable radius = factor × √distance.
+ * Based on radar equation: RCS ∝ radius², signal ∝ 1/distance⁴.
+ * With 0.025: shells (r=1) detectable to ~1600m, asteroids (r=50+) always visible.
+ */
+const MIN_RADAR_DETECT_FACTOR = 0.025;
 
 type VisibleObject = {
     object: SpaceObject | null;
@@ -86,10 +91,13 @@ export class FieldOfView {
         if (this.object.radarRange > EPSILON) {
             const queryArea = new Circle(XY.clone(this.object.position), this.object.radarRange + EPSILON);
             for (const object of this.objects.selectPotentials(queryArea)) {
-                if (this.object !== object && object.isCorporal && object.radius > MIN_RADIUS_RADAR_BLOCK) {
+                if (this.object !== object && object.isCorporal) {
                     const posDiff = XY.difference(object.position, this.object.position);
                     const distance = XY.lengthOf(posDiff);
-                    if (distance <= this.object.radarRange + object.radius) {
+                    if (
+                        object.radius > MIN_RADAR_DETECT_FACTOR * Math.sqrt(distance) &&
+                        distance <= this.object.radarRange + object.radius
+                    ) {
                         const arcAngle = calcArcAngle(object.radius * 2, distance);
                         const centerAngle = XY.angleOf(posDiff);
                         // in radar range
