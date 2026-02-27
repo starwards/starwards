@@ -1,4 +1,4 @@
-import { Asteroid, FieldOfView, Projectile, SpatialIndex, Spaceship, Vec2 } from '../src';
+import { Asteroid, FieldOfView, Projectile, Spaceship, SpatialIndex, Vec2 } from '../src';
 
 import { expect } from 'chai';
 
