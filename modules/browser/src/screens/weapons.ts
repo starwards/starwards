@@ -8,6 +8,7 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
+import { drawGunStatus } from '../widgets/gun';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
@@ -61,6 +62,7 @@ async function initScreen(driver: Driver, shipId: string) {
     drawTubesStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
     drawTargetingStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
+    drawGunStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver);
 }
 
 function wireInput(shipDriver: ShipDriver) {
@@ -75,5 +77,9 @@ function wireInput(shipDriver: ShipDriver) {
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x');
     input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c');
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v');
+
+    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/isFiring'), 'f');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/chainGun/loadAmmo'), 'g');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/changeProjectileCommand'), 'b');
     input.init();
 }

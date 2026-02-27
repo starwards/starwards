@@ -25,6 +25,7 @@ test.describe('Weapons Screen', () => {
         await expect(page.locator('[data-id="Tubes Status"]')).toBeVisible();
         await expect(page.locator('[data-id="Targeting"]')).toBeVisible();
         await expect(page.locator('[data-id="Ammunition"]')).toBeVisible();
+        await expect(page.locator('[data-id="Chain Gun"]')).toBeVisible();
 
         // Note: targetId sync test removed - setting state directly doesn't trigger UI sync
         // Verify ammo to use syncs

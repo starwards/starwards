@@ -8,17 +8,17 @@ import {
     getTargetLocationAtShellExplosion,
 } from '@starwards/core';
 
+import { radar, selectionColor } from '../colors';
 import { CameraView } from './camera-view';
 import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
-import { selectionColor } from '../colors';
 
 export function azimuthCircle(root: CameraView, shipState: ShipState, rangeInMeters: () => number) {
     const stage = new Container();
     const layer = new SpriteLayer(
         root,
-        { tint: 0xaaffaa },
+        { tint: radar.azimuthTint },
         () => shipState.position,
         () => degToRad * -shipState.angle,
         () => root.metersToPixles(rangeInMeters()),
@@ -35,7 +35,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
     const stage = new Container();
     const shellCrosshairLayer = new SpriteLayer(
         root,
-        { tint: 0xffaaaa },
+        { tint: radar.shellTint },
         () => getShellExplosionLocation(shipState, chainGun),
         () => 0,
         () => 32,
@@ -46,7 +46,7 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
     });
     const deflectionCrosshairLayer = new SpriteLayer(
         root,
-        { tint: 0xaaaaff },
+        { tint: radar.deflectionTint },
         () => {
             const target = shipTarget.getSingle();
             return target && getTargetLocationAtShellExplosion(chainGun, target);
@@ -74,7 +74,7 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
         () => [shipState.position, XY.add(shipState.position, shipState.velocity)],
         {
             width: 2,
-            color: 0x26fd9a,
+            color: radar.speedLine,
             alpha: 0.5,
         },
     );
@@ -89,7 +89,7 @@ export function speedLines(root: CameraView, shipState: ShipState, shipTarget: S
         },
         {
             width: 2,
-            color: 0x26cbcb,
+            color: radar.targetSpeedLine,
             alpha: 0.5,
         },
     );

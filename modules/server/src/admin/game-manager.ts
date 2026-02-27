@@ -219,6 +219,7 @@ export class GameManager {
                     this.state.playerShipIds.splice(this.state.playerShipIds.indexOf(id), 1);
                     this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
                     const room = await matchMaker.getRoomById(id);
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                     void room.disconnect();
                     this.dice.splice(this.dice.indexOf(die), 1);
                     this.shipManagers.delete(id);

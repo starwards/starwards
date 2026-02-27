@@ -1,8 +1,8 @@
 /**
  * Arwes Compatibility Layer
  *
- * Wraps @arwes/react (1.0.0-next) primitives to provide alpha.19 API compatibility.
- * Uses best practices from official Arwes documentation.
+ * Wraps @arwes/react (1.0.0-next) primitives to provide alpha.19 API compatibility
+ * with visual style matching Arwes Next Documentation exactly.
  */
 
 import {
@@ -13,14 +13,33 @@ import {
     FrameCorners as ArwesFrameCorners,
     Text as ArwesText,
     BleepsOnAnimator,
+    FrameNefrex,
+    FrameOctagon,
+    Illuminator,
     fade,
+    styleFrameClipOctagon,
     useBleeps,
+    useFrameAssembler,
 } from '@arwes/react';
 import { type CSSObject, Global } from '@emotion/react';
-import type { CSSProperties, ReactNode } from 'react';
-import React from 'react';
+import React, { type CSSProperties, type ReactNode, useRef } from 'react';
 
-// Baseline styles for Arwes theme
+// eslint-disable-next-line sort-imports -- type imports sorted after values
+import { hsl, paletteColors, type PaletteType, withAlpha } from '../colors';
+
+// ============================================================================
+// Theme - Using centralized colors from colors.ts
+// ============================================================================
+
+const theme = {
+    colors: {
+        background: hsl.background,
+        primary: hsl.primary,
+    },
+    space: (index: number) => `${index * 0.25}rem`,
+    spacen: (index: number) => index * 4,
+};
+
 const stylesBaseline: Record<string, CSSObject> = {
     '*, *::before, *::after': {
         boxSizing: 'border-box',
@@ -28,22 +47,12 @@ const stylesBaseline: Record<string, CSSObject> = {
     body: {
         margin: 0,
         padding: 0,
-        backgroundColor: '#000',
-        color: 'rgba(126, 252, 246, 0.8)',
+        backgroundColor: theme.colors.background,
+        color: theme.colors.primary.main(3),
         fontFamily: '"Titillium Web", sans-serif',
+        scrollbarColor: `${theme.colors.primary.main(7)} ${theme.colors.background}`,
     },
 };
-
-// Color palette matching alpha.19 API
-const paletteColors = {
-    primary: 'rgb(126, 252, 246)',
-    secondary: 'rgb(180, 144, 252)',
-    success: 'rgb(33, 128, 141)',
-    error: 'rgb(192, 21, 47)',
-    control: 'rgb(126, 252, 246)',
-};
-
-type PaletteType = keyof typeof paletteColors;
 
 // ============================================================================
 // Button Component
@@ -55,7 +64,7 @@ interface ButtonProps {
     palette?: PaletteType;
     disabled?: boolean;
     active?: boolean;
-    layer?: PaletteType; // Alias for palette
+    layer?: PaletteType;
     style?: CSSProperties;
 }
 
@@ -71,11 +80,12 @@ export const Button: React.FC<ButtonProps> = ({
     const bleeps = useBleeps();
     const colorKey = layer || palette;
     const color = paletteColors[colorKey];
+    const frameRef = useRef<SVGSVGElement>(null);
+    useFrameAssembler(frameRef);
 
     return (
         <Animator merge combine manager="stagger">
             <BleepsOnAnimator transitions={{ entering: 'intro' }} continuous />
-
             <Animated
                 as="button"
                 className={`arwes-button arwes-button--${colorKey}`}
@@ -83,14 +93,17 @@ export const Button: React.FC<ButtonProps> = ({
                 data-active={active}
                 style={{
                     position: 'relative',
-                    padding: '12px 24px',
+                    padding: '10px 24px',
                     background: 'transparent',
                     border: 'none',
                     cursor: disabled ? 'not-allowed' : 'pointer',
                     opacity: disabled ? 0.5 : 1,
-                    color: 'inherit',
+                    color: active ? '#fff' : color,
                     fontFamily: 'inherit',
-                    fontSize: 'inherit',
+                    fontSize: '0.875rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    transition: 'all 0.2s ease-out',
                     ...style,
                 }}
                 animated={disabled ? [] : [fade()]}
@@ -102,23 +115,39 @@ export const Button: React.FC<ButtonProps> = ({
                 }}
             >
                 <style>{`
-                    .arwes-button--${colorKey} .arwes-react-frames-framesvg [data-name=line] {
-                        color: ${color};
+                    .arwes-button--${colorKey} .arwes-frames-frame [data-name=bg] {
+                        fill: ${withAlpha(theme.colors.primary.main(9), 0.4)};
+                        stroke: ${theme.colors.primary.main(5)};
+                        stroke-width: 1;
+                        transition: all 0.2s ease-out;
                     }
-                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-react-frames-framesvg [data-name=bg] {
-                        color: ${color}33;
+                    .arwes-button--${colorKey} .arwes-frames-frame [data-name=line] {
+                        stroke: ${theme.colors.primary.main(5)};
+                        fill: none;
+                        stroke-width: 2;
+                        transition: all 0.2s ease-out;
                     }
-                    .arwes-button--${colorKey}[data-active=true] .arwes-react-frames-framesvg [data-name=bg] {
-                        color: ${color}66;
+                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-frames-frame [data-name=line] {
+                        stroke: ${theme.colors.primary.high(2)};
+                        filter: drop-shadow(0 0 4px ${theme.colors.primary.main(3)});
+                    }
+                    .arwes-button--${colorKey}:hover:not(:disabled) .arwes-frames-frame [data-name=bg] {
+                        fill: ${withAlpha(theme.colors.primary.main(7), 0.5)};
                     }
                 `}</style>
 
                 <Animator>
-                    <ArwesFrameCorners strokeWidth={2} />
+                    <FrameOctagon
+                        elementRef={frameRef}
+                        strokeWidth={2}
+                        squareSize={10}
+                        styled={false}
+                        animated={false}
+                    />
                 </Animator>
 
                 <Animator>
-                    <ArwesText as="span">{children}</ArwesText>
+                    <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
                 </Animator>
             </Animated>
         </Animator>
@@ -126,7 +155,7 @@ export const Button: React.FC<ButtonProps> = ({
 };
 
 // ============================================================================
-// Card Component
+// Card Component - Matching Arwes Next Documentation Exactly
 // ============================================================================
 
 interface CardProps {
@@ -140,19 +169,24 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, title, image, options, style, hover = false }) => {
     const bleeps = useBleeps();
+    const frameRef = useRef<SVGSVGElement>(null);
+    useFrameAssembler(frameRef);
+
+    const w = 400;
 
     return (
         <Animator merge combine manager="stagger">
             <BleepsOnAnimator transitions={{ entering: 'intro' }} continuous />
 
             <Animated
-                className="arwes-card"
+                as="article"
+                className="arwes-card group"
                 style={{
                     position: 'relative',
-                    display: 'inline-block',
-                    maxWidth: '400px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    maxWidth: `${w}px`,
                     margin: '16px',
-                    padding: '20px',
                     textAlign: 'left',
                     cursor: hover ? 'pointer' : 'default',
                     ...style,
@@ -164,64 +198,190 @@ export const Card: React.FC<CardProps> = ({ children, title, image, options, sty
                     }
                 }}
             >
+                {/* Frame - Matching exact Arwes Next Card.tsx */}
+                <Animator>
+                    <FrameNefrex
+                        elementRef={frameRef}
+                        className="arwes-card-frame"
+                        strokeWidth={4}
+                        styled={false}
+                        animated={false}
+                    />
+                </Animator>
+
+                {/* SVG Style Overrides - Matching Card.module.css */}
                 <style>{`
-                    .arwes-card .arwes-react-frames-framesvg [data-name=bg] {
-                        color: rgba(33, 128, 141, 0.1);
+                    .arwes-card .arwes-card-frame {
+                        position: absolute;
+                        inset: 0;
+                        z-index: 0;
+                        opacity: 0.7;
+                        transition: all 0.2s ease-out;
                     }
-                    .arwes-card .arwes-react-frames-framesvg [data-name=line] {
-                        color: rgb(33, 128, 141);
+                    .arwes-card:hover .arwes-card-frame {
+                        opacity: 1;
                     }
-                    .arwes-card:hover .arwes-react-frames-framesvg [data-name=bg] {
-                        color: rgba(33, 128, 141, ${hover ? '0.2' : '0.1'});
+                    .arwes-card .arwes-frames-frame [data-name=bg] {
+                        fill: ${withAlpha(theme.colors.primary.main(7), 0.25)};
+                        stroke: ${withAlpha(theme.colors.primary.main(7), 0.5)};
+                        stroke-width: 1;
+                    }
+                    .arwes-card .arwes-frames-frame [data-name=line] {
+                        stroke: ${theme.colors.primary.main(7)};
+                        fill: none;
+                        stroke-width: 4;
+                    }
+                    .arwes-card:hover .arwes-frames-frame [data-name=line] {
+                        stroke: ${theme.colors.primary.high(2)};
+                        filter: drop-shadow(0 0 6px ${theme.colors.primary.main(3)});
                     }
                 `}</style>
 
-                <Animator>
-                    <ArwesFrameCorners strokeWidth={2} />
-                </Animator>
+                {/* Markers - Matching Card.tsx */}
+                <Animated
+                    className="arwes-card-markers"
+                    style={{
+                        fontFamily: 'monospace',
+                        fontSize: '12px',
+                        lineHeight: 1,
+                        color: withAlpha(theme.colors.primary.main(3), 0.2),
+                    }}
+                >
+                    <div style={{ position: 'absolute', right: 8, top: 8 }}>⎯ 0x1010</div>
+                    <div style={{ position: 'absolute', left: 8, bottom: 8 }}>0x1010 ⎯</div>
+                </Animated>
 
-                {image && (
-                    <Animator>
-                        <Animated
-                            as="img"
-                            src={image.src}
-                            animated={[fade()]}
-                            style={{
-                                width: '100%',
-                                height: 'auto',
-                                marginBottom: '16px',
-                                display: 'block',
-                            }}
-                        />
-                    </Animator>
-                )}
+                {/* Illuminator Effect */}
+                <Illuminator
+                    color={withAlpha(theme.colors.primary.main(7), 0.1)}
+                    size={theme.spacen(100)}
+                    style={{
+                        position: 'absolute',
+                        inset: 2,
+                        width: 'calc(100% - 4px)',
+                        height: 'calc(100% - 4px)',
+                        clipPath: styleFrameClipOctagon({
+                            leftBottom: false,
+                            rightTop: false,
+                            squareSize: theme.space(4),
+                        }),
+                        pointerEvents: 'none',
+                    }}
+                />
 
-                {title && (
-                    <Animator>
-                        <ArwesText as="h2" style={{ margin: '0 0 12px 0' }}>
-                            {title}
-                        </ArwesText>
-                    </Animator>
-                )}
+                {/* Content Container */}
+                <div
+                    style={{
+                        position: 'relative',
+                        zIndex: 1,
+                        padding: '24px 32px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                    }}
+                >
+                    {image && (
+                        <Animator>
+                            <Animated
+                                as="img"
+                                src={image.src}
+                                animated={[fade()]}
+                                style={{
+                                    width: '100%',
+                                    height: 'auto',
+                                    display: 'block',
+                                    border: `1px solid ${theme.colors.primary.main(7)}`,
+                                    opacity: 0.9,
+                                }}
+                            />
+                        </Animator>
+                    )}
 
-                <Animator>
-                    <ArwesText as="div">{children}</ArwesText>
-                </Animator>
+                    {title && (
+                        <Animator>
+                            <ArwesText
+                                as="h2"
+                                className="arwes-card-title"
+                                style={{
+                                    position: 'relative',
+                                    margin: 0,
+                                    fontSize: '1.25rem',
+                                    color: theme.colors.primary.main(3),
+                                    transition: 'all 0.2s ease-out',
+                                }}
+                            >
+                                {/* Hover indicator bar */}
+                                <div
+                                    className="arwes-card-title-bar"
+                                    style={{
+                                        position: 'absolute',
+                                        left: 0,
+                                        top: '0.25rem',
+                                        bottom: '0.25rem',
+                                        width: '4px',
+                                        backgroundColor: 'currentcolor',
+                                        transition: 'all 0.2s ease-out',
+                                        transformOrigin: 'left',
+                                        transform: 'scaleX(0)',
+                                    }}
+                                />
+                                <span
+                                    className="arwes-card-title-text"
+                                    style={{
+                                        display: 'block',
+                                        transition: 'all 0.2s ease-out',
+                                    }}
+                                >
+                                    {title}
+                                </span>
+                            </ArwesText>
+                            <style>{`
+                                .arwes-card:hover .arwes-card-title {
+                                    color: ${theme.colors.primary.high(2)};
+                                }
+                                .arwes-card:hover .arwes-card-title-bar {
+                                    transform: scaleX(1);
+                                }
+                                .arwes-card:hover .arwes-card-title-text {
+                                    transform: translateX(16px);
+                                }
+                            `}</style>
+                        </Animator>
+                    )}
 
-                {options && (
                     <Animator>
                         <div
                             style={{
-                                marginTop: '16px',
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                gap: '8px',
+                                color: theme.colors.primary.main(5),
+                                lineHeight: 1.6,
+                                transition: 'all 0.2s ease-out',
                             }}
                         >
-                            {options}
+                            {children}
                         </div>
+                        <style>{`
+                            .arwes-card:hover > div > div:last-child > div {
+                                color: ${theme.colors.primary.high(4)};
+                            }
+                        `}</style>
                     </Animator>
-                )}
+
+                    {options && (
+                        <Animator>
+                            <div
+                                style={{
+                                    paddingTop: '16px',
+                                    borderTop: `1px solid ${theme.colors.primary.main(7)}`,
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
+                                    gap: '8px',
+                                }}
+                            >
+                                {options}
+                            </div>
+                        </Animator>
+                    )}
+                </div>
             </Animated>
         </Animator>
     );
@@ -250,16 +410,17 @@ export const FrameCorners: React.FC<FrameCornersProps> = ({ children, palette = 
             }}
         >
             <style>{`
-                .arwes-frame-corners--${palette} .arwes-react-frames-framesvg [data-name=line] {
-                    color: ${color};
+                .arwes-frame-corners--${palette} .arwes-frames-frame [data-name=line] {
+                    stroke: ${color};
+                    fill: none;
                 }
-                .arwes-frame-corners--${palette} .arwes-react-frames-framesvg [data-name=bg] {
-                    color: transparent;
+                .arwes-frame-corners--${palette} .arwes-frames-frame [data-name=bg] {
+                    fill: transparent;
                 }
             `}</style>
 
             <Animator>
-                <ArwesFrameCorners strokeWidth={2} />
+                <ArwesFrameCorners strokeWidth={2} styled={false} />
             </Animator>
 
             {children}
@@ -286,7 +447,8 @@ export const Blockquote: React.FC<BlockquoteProps> = ({ children, style }) => {
                     position: 'relative',
                     margin: '16px 0',
                     padding: '16px 16px 16px 24px',
-                    borderLeft: '4px solid rgb(33, 128, 141)',
+                    borderLeft: `4px solid ${theme.colors.primary.main(3)}`,
+                    background: withAlpha(theme.colors.primary.main(10), 0.5),
                     fontStyle: 'italic',
                     ...style,
                 }}
@@ -360,7 +522,6 @@ interface AnimatorGeneralProviderProps {
 }
 
 export const AnimatorGeneralProvider: React.FC<AnimatorGeneralProviderProps> = ({ children, animator }) => {
-    // Convert milliseconds to seconds for new API
     const duration = animator?.duration
         ? {
               enter: (animator.duration.enter ?? 200) / 1000,
@@ -408,12 +569,10 @@ export const BleepsProvider: React.FC<BleepsProviderProps> = ({
     playersSettings,
     bleepsSettings,
 }) => {
-    // Convert old API to new API
     const masterVolume = audioSettings?.common?.volume ?? 0.25;
 
     const bleeps: Record<string, { sources: Array<{ src: string; type: string }> }> = {};
 
-    // Map players and bleeps
     if (playersSettings && bleepsSettings) {
         Object.entries(bleepsSettings).forEach(([bleepName, bleepConfig]) => {
             const playerName = bleepConfig.player;

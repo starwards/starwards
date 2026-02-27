@@ -1,0 +1,35 @@
+// Starwards dev layout: 2x2 grid with core-watch, server, browser, tests
+// Usage: npm run dev (inside Zellij) or zellij action new-tab --layout .zellij/dev.kdl
+
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="https://github.com/ishefi/zellaude/releases/latest/download/zellaude.wasm"
+        }
+        children
+        pane size=1 borderless=true {
+            plugin location="status-bar"
+        }
+    }
+
+    tab name="starwards-dev" cwd="/data/Workspace/helios/starwards" {
+        pane split_direction="vertical" {
+            pane split_direction="horizontal" {
+                pane name="core-watch" cwd="modules/core" command="npm" {
+                    args "run" "build:watch"
+                }
+                pane name="server" command="bash" {
+                    args "scripts/wait-for-core.sh"
+                }
+            }
+            pane split_direction="horizontal" {
+                pane name="browser" cwd="modules/browser" command="npm" {
+                    args "start"
+                }
+                pane name="tests" command="npm" focus=true {
+                    args "test" "--" "--watchAll"
+                }
+            }
+        }
+    }
+}

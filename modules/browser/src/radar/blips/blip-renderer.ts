@@ -1,6 +1,6 @@
 import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
 import { Asteroid, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
-import { selectionColor, white } from '../../colors';
+import { radar, selectionColor, white } from '../../colors';
 
 import { CameraView } from '../camera-view';
 
@@ -89,7 +89,7 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
         this.collisionOutline.clear();
         this.collisionOutline
             .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: 0x4ce73c, alpha: 0.5 });
+            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
@@ -117,7 +117,7 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
         this.collisionOutline.clear();
         this.collisionOutline
             .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: 0x4ce73c, alpha: 0.5 });
+            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
@@ -172,7 +172,7 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
         this.collisionOutline.clear();
         this.collisionOutline
             .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: 0x4ce73c, alpha: 0.5 });
+            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;
