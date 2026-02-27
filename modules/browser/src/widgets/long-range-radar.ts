@@ -1,4 +1,3 @@
-import { Container as GLContainer } from 'golden-layout';
 import { Graphics, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
 import { green, radarFogOfWar, radarVisibleBg, white } from '../colors';
@@ -8,6 +7,8 @@ import $ from 'jquery';
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
 import { DashboardWidget } from './dashboard';
+import EventEmitter from 'eventemitter3';
+import { Container as GLContainer } from 'golden-layout';
 import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
@@ -30,49 +31,38 @@ const sizeFactorGrace = 0.005;
 const ZOOM_PRESETS = [5_000, 10_000, 25_000, 50_000, 100_000, 250_000];
 const DEFAULT_RANGE = 50_000;
 
-export function makeRadarHeaders(container: GLContainer, _: unknown): Array<JQuery<HTMLElement>> {
-    const zoomIn = $('<i data-id="zoom_in" class="lm_controls tiny material-icons">zoom_in</i>');
-    const zoomOut = $('<i data-id="zoom_out" class="lm_controls tiny material-icons">zoom_out</i>');
-    zoomIn.mousedown(() => {
-        const zoomInterval = setInterval(() => {
-            container.emit('zoomIn');
-        }, 100);
-        $(document).mouseup(() => clearInterval(zoomInterval));
-    });
-    zoomOut.mousedown(() => {
-        const zoomInterval = setInterval(() => {
-            container.emit('zoomOut');
-        }, 100);
-        $(document).mouseup(() => clearInterval(zoomInterval));
-    });
-    return [zoomIn, zoomOut];
-}
+type ZoomEvent = 'zoomIn' | 'zoomOut';
 
 type Props = { range: number };
 
-/**
- * Long Range Radar Widget
- *
- * Based on tactical radar with:
- * - Zoom controls (mouse wheel and header buttons)
- * - Zoom level display (range in meters)
- * - Station target highlighting via SelectionContainer
- */
 export function longRangeRadarWidget(
     spaceDriver: SpaceDriver,
     shipDriver: ShipDriver,
     stationTarget?: SelectionContainer,
 ): DashboardWidget<Props> {
+    const zoomEvents = new EventEmitter<ZoomEvent>();
     return {
         name: 'long range radar',
         type: 'component',
         component: class {
             constructor(container: WidgetContainer, p: Props) {
-                void drawLongRangeRadar(spaceDriver, shipDriver, container, p, stationTarget);
+                void drawLongRangeRadar(spaceDriver, shipDriver, container, p, zoomEvents, stationTarget);
             }
         },
         defaultProps: { range: DEFAULT_RANGE },
-        makeHeaders: makeRadarHeaders,
+        makeHeaders(_container: GLContainer, _state: unknown): Array<JQuery<HTMLElement>> {
+            const zoomIn = $('<i data-id="zoom_in" class="lm_controls tiny material-icons">zoom_in</i>');
+            const zoomOut = $('<i data-id="zoom_out" class="lm_controls tiny material-icons">zoom_out</i>');
+            zoomIn.mousedown(() => {
+                const zoomInterval = setInterval(() => zoomEvents.emit('zoomIn'), 100);
+                $(document).mouseup(() => clearInterval(zoomInterval));
+            });
+            zoomOut.mousedown(() => {
+                const zoomInterval = setInterval(() => zoomEvents.emit('zoomOut'), 100);
+                $(document).mouseup(() => clearInterval(zoomInterval));
+            });
+            return [zoomIn, zoomOut];
+        },
     };
 }
 
@@ -81,27 +71,30 @@ export async function drawLongRangeRadar(
     shipDriver: ShipDriver,
     container: WidgetContainer,
     p: Props,
+    zoomEvents?: EventEmitter<ZoomEvent>,
     stationTarget?: SelectionContainer,
 ) {
     const state = { range: p.range };
     const camera = new Camera();
     const root = new CameraView(camera);
 
-    // Bind zoom from container events (header buttons)
-    container.on('zoomIn', () => {
-        const currentIdx = findClosestRangeIndex(state.range);
-        if (currentIdx > 0) {
-            state.range = ZOOM_PRESETS[currentIdx - 1];
-            updateRange();
-        }
-    });
-    container.on('zoomOut', () => {
-        const currentIdx = findClosestRangeIndex(state.range);
-        if (currentIdx < ZOOM_PRESETS.length - 1) {
-            state.range = ZOOM_PRESETS[currentIdx + 1];
-            updateRange();
-        }
-    });
+    // Bind zoom from header button events
+    if (zoomEvents) {
+        zoomEvents.on('zoomIn', () => {
+            const currentIdx = findClosestRangeIndex(state.range);
+            if (currentIdx > 0) {
+                state.range = ZOOM_PRESETS[currentIdx - 1];
+                updateRange();
+            }
+        });
+        zoomEvents.on('zoomOut', () => {
+            const currentIdx = findClosestRangeIndex(state.range);
+            if (currentIdx < ZOOM_PRESETS.length - 1) {
+                state.range = ZOOM_PRESETS[currentIdx + 1];
+                updateRange();
+            }
+        });
+    }
 
     // Mouse wheel zoom
     container.getElement().bind('wheel', (e) => {
@@ -206,7 +199,10 @@ export async function drawLongRangeRadar(
     container.on('resize', updateZoomTextPosition);
 
     function updateRange() {
-        camera.setRange(((sizeFactor - sizeFactorGrace) * Math.min(container.width, container.height)) / 2, state.range);
+        camera.setRange(
+            ((sizeFactor - sizeFactorGrace) * Math.min(container.width, container.height)) / 2,
+            state.range,
+        );
         background.setSpacing(state.range / 5);
         background.setRange(state.range);
         range.setStepSize(state.range / 5);
