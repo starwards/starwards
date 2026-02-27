@@ -1,8 +1,33 @@
+import { Destructors, ShipDriver } from '@starwards/core';
+import { addInputBlade, addSliderBlade, addTextBlade, createPane } from '../panel/blades';
+import { readNumberProp, readProp } from '../property-wrappers';
+
 import { DashboardWidget } from './dashboard';
 import { PropertyPanel } from '../panel';
-import { ShipDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
-import { readNumberProp } from '../property-wrappers';
+
+export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver) {
+    const panelCleanup = new Destructors();
+    const pane = createPane({ title: 'Chain Gun', container: container.getElement().get(0) });
+    panelCleanup.add(() => {
+        pane.dispose();
+    });
+    container.on('destroy', panelCleanup.destroy);
+    addTextBlade(pane, readProp(shipDriver, '/chainGun/projectile'), { label: 'projectile' }, panelCleanup.add);
+    addTextBlade(
+        pane,
+        readProp(shipDriver, '/chainGun/loadedProjectile'),
+        { label: 'loaded projectile' },
+        panelCleanup.add,
+    );
+    addSliderBlade(
+        pane,
+        readNumberProp(shipDriver, '/chainGun/loading'),
+        { label: 'loading', disabled: true },
+        panelCleanup.add,
+    );
+    addInputBlade(pane, readProp(shipDriver, '/chainGun/loadAmmo'), { label: 'auto load' }, panelCleanup.add);
+}
 
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
     class GunComponent {
