@@ -12,6 +12,7 @@
         "modules/*"
     ],
     "scripts": {
+        "dev": "bash scripts/dev.sh",
         "clean": "rimraf ./modules/browser/dist ./modules/browser/dist ./modules/core/cjs ./modules/server/cjs",
         "postbuild": "node scripts/post-build.js",
         "pretty-quick": "pretty-quick --staged --pattern \"./modules/*/src/**/*.{ts,tsx,json}\"",
