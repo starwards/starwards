@@ -158,12 +158,20 @@ export class Driver {
      * infinite iterator
      */
     async *getUniqueShipIds() {
-        const ships = new Set<string>();
+        const yieldedInThisTurn = new Set<string>();
         while (!this.connectionManager.isDestroyed) {
-            for (const shipId of await this.getCurrentShipIds()) {
-                if (!ships.has(shipId)) {
-                    ships.add(shipId);
+            const currentShips = await this.getCurrentShipIds();
+            for (const shipId of currentShips) {
+                if (!yieldedInThisTurn.has(shipId)) {
+                    yieldedInThisTurn.add(shipId);
                     yield shipId;
+                }
+            }
+            // Remove entries for ships that are no longer active, so they can be re-yielded
+            const activeShipIds = new Set(currentShips);
+            for (const shipId of yieldedInThisTurn) {
+                if (!activeShipIds.has(shipId)) {
+                    yieldedInThisTurn.delete(shipId);
                 }
             }
             await sleep(500);
@@ -205,6 +213,9 @@ export class Driver {
         try {
             await this.waitForShip(shipId);
             const room = await this.joinRoom(shipId, schemaClasses.ship).then(this.hookRoomLifecycle);
+            room.onLeave(() => {
+                this.shipDrivers.delete(shipId);
+            });
             return await ShipDriver(room);
         } catch (e) {
             const error = new Error('failed making ship driver', { cause: e });

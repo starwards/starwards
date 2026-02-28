@@ -6,6 +6,56 @@ import supertest from 'supertest';
 describe('server-API', () => {
     const gameDriver = makeDriver();
 
+    it('convert player ship to NPC', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        await gameDriver.gameManager.convertShipType(shipId, false);
+        expect(gameDriver.gameManager.state.playerShipIds).not.toContain(shipId);
+    });
+
+    it('convert NPC ship back to player', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        // Player → NPC
+        await gameDriver.gameManager.convertShipType(shipId, false);
+        expect(gameDriver.gameManager.state.playerShipIds).not.toContain(shipId);
+        expect(gameDriver.gameManager.state.shipIds).toContain(shipId);
+        // NPC → Player
+        await gameDriver.gameManager.convertShipType(shipId, true);
+        expect(gameDriver.gameManager.state.playerShipIds).toContain(shipId);
+        expect(gameDriver.gameManager.state.shipIds).toContain(shipId);
+    });
+
+    it('round-trip conversion produces no NaN in ship state after tick', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+
+        // Player → NPC → Player
+        await gameDriver.gameManager.convertShipType(shipId, false);
+        await gameDriver.gameManager.convertShipType(shipId, true);
+
+        // Run a game tick
+        gameDriver.gameManager.update(1 / 20);
+
+        // Check converted ship state for NaN
+        const ship = gameDriver.getShip(shipId);
+        expect(ship.state.boost).not.toBeNaN();
+        expect(ship.state.strafe).not.toBeNaN();
+    });
+
+    it('duplicate convert commands are idempotent', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        // Concurrent conversions — guard prevents race
+        await Promise.all([
+            gameDriver.gameManager.convertShipType(shipId, false),
+            gameDriver.gameManager.convertShipType(shipId, false),
+        ]);
+        expect(gameDriver.gameManager.state.playerShipIds).not.toContain(shipId);
+        // shipIds should have exactly one entry for this ship
+        expect(gameDriver.gameManager.state.shipIds.filter((id: string) => id === shipId)).toHaveLength(1);
+    });
+
     it('start and stop a game (using gameManager API directly)', async () => {
         expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);

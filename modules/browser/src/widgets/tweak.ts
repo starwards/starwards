@@ -94,86 +94,97 @@ const singleSelectionDetails = async (
     }
 
     if (Spaceship.isInstance(subject)) {
-        const shipDriver = await driver.getShipDriver(subject.id);
+        const adminDriver = await driver.getAdminDriver();
+        const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 
-        const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
+        // isPlayerShip display — computed from admin state, no ShipDriver needed
+        const isPlayerShipProp = {
+            getValue: () => isPlayerShip,
+            onChange: ((_cb: () => unknown) => () => undefined) as OnChange,
+        };
         addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
 
-        // Add button to convert ship type
-        const currentIsPlayerShip = shipDriver.state.isPlayerShip;
-        const buttonLabel = currentIsPlayerShip ? 'Convert to NPC' : 'Convert to Player Ship';
+        // Convert button — always visible for all spaceships
+        const buttonLabel = isPlayerShip ? 'Convert to NPC' : 'Convert to Player Ship';
         guiFolder.addButton({ title: buttonLabel }).on('click', () => {
             spaceDriver.command(spaceCommands.convertShipType, {
                 shipId: subject.id,
-                isPlayerShip: !currentIsPlayerShip,
+                isPlayerShip: !isPlayerShip,
             });
         });
 
-        const currentTaskProp = readProp(shipDriver, `/currentTask`);
-        addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
+        // Ship-driver details — only for player ships (NPC ships have no ShipRoom)
+        if (isPlayerShip) {
+            const shipDriver = await driver.getShipDriver(subject.id);
 
-        const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
-        addListBlade(
-            guiFolder,
-            idleStrategyProp,
-            {
-                label: 'Idle strategy',
-                options: Object.values(IdleStrategy)
-                    .filter<number>((k): k is number => typeof k === 'number')
-                    .map((value) => ({ value, text: String(IdleStrategy[value]) })),
-            },
-            cleanup,
-        );
+            const currentTaskProp = readProp(shipDriver, `/currentTask`);
+            addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
 
-        const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
-        addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
+            const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
+            addListBlade(
+                guiFolder,
+                idleStrategyProp,
+                {
+                    label: 'Idle strategy',
+                    options: Object.values(IdleStrategy)
+                        .filter<number>((k): k is number => typeof k === 'number')
+                        .map((value) => ({ value, text: String(IdleStrategy[value]) })),
+                },
+                cleanup,
+            );
 
-        const armorFolder = guiFolder.addFolder({
-            title: `Armor`,
-            expanded: false,
-        });
-        cleanup(() => {
-            armorFolder.dispose();
-        });
-        addTextBlade(
-            armorFolder,
-            readProp(shipDriver, `/armor/numberOfPlates`),
-            {
-                label: 'Plates',
-                disabled: true,
-            },
-            cleanup,
-        );
-        addTextBlade(
-            armorFolder,
-            readProp(shipDriver, `/armor/numberOfHealthyPlates`),
-            {
-                label: 'Healthy Plates',
-                disabled: true,
-            },
-            cleanup,
-        );
-        addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
-        for (const system of shipDriver.systems) {
-            const systemFolder = guiFolder.addFolder({
-                title: system.state.name,
+            const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
+            addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
+
+            const armorFolder = guiFolder.addFolder({
+                title: `Armor`,
                 expanded: false,
             });
-            cleanup(() => systemFolder.dispose());
-            const defectibleProps: { onChange: OnChange }[] = [readProp(shipDriver, `${system.pointer}/broken`)];
-            for (const defectible of system.defectibles) {
-                const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
-                defectibleProps.push(prop);
-                addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
+            cleanup(() => {
+                armorFolder.dispose();
+            });
+            addTextBlade(
+                armorFolder,
+                readProp(shipDriver, `/armor/numberOfPlates`),
+                {
+                    label: 'Plates',
+                    disabled: true,
+                },
+                cleanup,
+            );
+            addTextBlade(
+                armorFolder,
+                readProp(shipDriver, `/armor/numberOfHealthyPlates`),
+                {
+                    label: 'Healthy Plates',
+                    disabled: true,
+                },
+                cleanup,
+            );
+            addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
+            for (const system of shipDriver.systems) {
+                const systemFolder = guiFolder.addFolder({
+                    title: system.state.name,
+                    expanded: false,
+                });
+                cleanup(() => systemFolder.dispose());
+                const defectibleProps: { onChange: OnChange }[] = [
+                    readProp(shipDriver, `${system.pointer}/broken`),
+                ];
+                for (const defectible of system.defectibles) {
+                    const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
+                    defectibleProps.push(prop);
+                    addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
+                }
+                systemFolder.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
+                const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
+                cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
+                applyThemeByStatus();
+                addTweakables(shipDriver, systemFolder, system.pointer, cleanup);
+                addDesignFolder(shipDriver, systemFolder, system.pointer, cleanup);
             }
-            systemFolder.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
-            const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
-            cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
-            applyThemeByStatus();
-            addTweakables(shipDriver, systemFolder, system.pointer, cleanup);
-            addDesignFolder(shipDriver, systemFolder, system.pointer, cleanup);
+            addDesignFolder(shipDriver, guiFolder, ``, cleanup);
         }
-        addDesignFolder(shipDriver, guiFolder, ``, cleanup);
     }
 };
 
@@ -274,12 +285,22 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
 
         // the async part of initializing
         private async init() {
-            const [spaceDriver, _adminDriver] = await Promise.all([driver.getSpaceDriver(), driver.getAdminDriver()]);
+            const [spaceDriver, adminDriver] = await Promise.all([driver.getSpaceDriver(), driver.getAdminDriver()]);
             this.spaceDriver = spaceDriver;
             this.panelCleanup.add(() => {
                 selectionContainer.events.removeListener('changed', this.handleSelectionChange);
             });
             selectionContainer.events.addListener('changed', this.handleSelectionChange);
+
+            // Rebuild panel when playerShipIds changes (after convertShipType)
+            const onPlayerShipChange = () => {
+                this.handleSelectionChange();
+            };
+            adminDriver.events.on('/playerShipIds', onPlayerShipChange);
+            this.panelCleanup.add(() => {
+                adminDriver.events.off('/playerShipIds', onPlayerShipChange);
+            });
+
             this.handleSelectionChange();
         }
 

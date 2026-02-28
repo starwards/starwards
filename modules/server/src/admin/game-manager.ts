@@ -26,6 +26,7 @@ type ShipManager = ShipManagerPc | ShipManagerNpc;
 export class GameManager {
     public state = new AdminState();
     private shipCleanups = new Map<string, () => unknown>();
+    private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
     private dice: Updateable[] = [];
     public spaceManager = new SpaceManager();
@@ -98,6 +99,7 @@ export class GameManager {
             }
             this.dice = [];
             this.shipCleanups.clear();
+            this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
         }
     }
@@ -222,9 +224,7 @@ export class GameManager {
                 if (this.shipCleanups.delete(id)) {
                     this.state.playerShipIds.splice(this.state.playerShipIds.indexOf(id), 1);
                     this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
-                    const room = await matchMaker.getRoomById(id);
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                    void room.disconnect();
+                    await matchMaker.remoteRoomCall(id, 'disconnect', []);
                     this.dice.splice(this.dice.indexOf(die), 1);
                     this.shipManagers.delete(id);
                 }
@@ -262,35 +262,68 @@ export class GameManager {
      * This closes the existing room (if player ship) and recreates the manager with the correct type.
      */
     public async convertShipType(shipId: string, isPlayerShip: boolean) {
-        const shipManager = this.shipManagers.get(shipId);
-        if (!shipManager) {
-            throw new Error(`Ship ${shipId} not found`);
+        if (this.convertingShips.has(shipId)) return;
+        this.convertingShips.add(shipId);
+        try {
+            const shipManager = this.shipManagers.get(shipId);
+            if (!shipManager) {
+                throw new Error(`Ship ${shipId} not found`);
+            }
+
+            // Check if conversion is needed
+            const currentIsPlayerShip = this.state.playerShipIds.includes(shipId);
+            if (currentIsPlayerShip === isPlayerShip) {
+                // No conversion needed
+                return;
+            }
+
+            // Get the current ship state and space object from space manager
+            const shipState = shipManager.state;
+            const spaceObject = this.spaceManager.state.getShip(shipId);
+            if (!spaceObject) {
+                throw new Error(`Ship ${shipId} not found in space manager`);
+            }
+
+            // Update the state's isPlayerShip property
+            shipState.isPlayerShip = isPlayerShip;
+
+            // Clean up the existing ship manager (and room if it was a player ship)
+            const cleanup = this.shipCleanups.get(shipId);
+            if (cleanup) {
+                await cleanup();
+            }
+
+            // Fix shipIds bookkeeping before re-init:
+            // Player cleanup removes from shipIds; NPC cleanup does not.
+            // initShipManagerAndRoom adds to shipIds only for player ships (async).
+            // To prevent duplicates or gaps, normalize: remove from shipIds if present.
+            const shipIdsIdx = this.state.shipIds.indexOf(shipId);
+            if (shipIdsIdx !== -1) {
+                this.state.shipIds.splice(shipIdsIdx, 1);
+            }
+
+            // Recreate the ship manager (with room only if player ship)
+            const freshShipState = shipState.clone();
+            this.initShipManagerAndRoom(spaceObject, freshShipState, isPlayerShip);
+
+            if (isPlayerShip) {
+                // Player path: initShipManagerAndRoom adds to shipIds/playerShipIds async.
+                // Wait for room creation to complete so state is consistent on return.
+                await waitFor(
+                    () => {
+                        if (!this.state.shipIds.includes(shipId)) {
+                            throw new Error('Waiting for ship room to initialize');
+                        }
+                    },
+                    10000,
+                    50,
+                );
+            } else {
+                // NPC path: initShipManagerAndRoom doesn't add to shipIds. Re-add.
+                this.state.shipIds.push(shipId);
+            }
+        } finally {
+            this.convertingShips.delete(shipId);
         }
-
-        // Check if conversion is needed
-        const currentIsPlayerShip = this.state.playerShipIds.includes(shipId);
-        if (currentIsPlayerShip === isPlayerShip) {
-            // No conversion needed
-            return;
-        }
-
-        // Get the current ship state and space object from space manager
-        const shipState = shipManager.state;
-        const spaceObject = this.spaceManager.state.getShip(shipId);
-        if (!spaceObject) {
-            throw new Error(`Ship ${shipId} not found in space manager`);
-        }
-
-        // Update the state's isPlayerShip property
-        shipState.isPlayerShip = isPlayerShip;
-
-        // Clean up the existing ship manager (and room if it was a player ship)
-        const cleanup = this.shipCleanups.get(shipId);
-        if (cleanup) {
-            await cleanup();
-        }
-
-        // Recreate the ship manager (with room only if player ship)
-        this.initShipManagerAndRoom(spaceObject, shipState, isPlayerShip);
     }
 }
