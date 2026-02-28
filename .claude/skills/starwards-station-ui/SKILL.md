@@ -1,3 +1,15 @@
+---
+name: starwards-station-ui
+description: Build and modify station screens (weapons, pilot, ecr, etc.) for Starwards - two layout systems (fixed grid vs golden-layout), widget draw patterns, input wiring, color system, JSON Pointer subsystem access, and design constraints for information asymmetry
+version: 2025-12-03
+related_skills:
+  - starwards-pixijs (PixiJS rendering in stations)
+  - starwards-colyseus (state sync for ship drivers)
+  - arwes-react (lobby UI only, NOT stations)
+  - starwards-tdd (test station widgets)
+  - starwards-verification (verify build and types)
+---
+
 # Skill: starwards-station-ui
 
 Build and modify station screens (weapons, pilot, ecr, etc.) for Starwards.

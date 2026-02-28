@@ -20,6 +20,11 @@ cd modules/core && npm run build:watch     # Terminal 1: Core watch
 cd modules/browser && npm start             # Terminal 2: Frontend (localhost:3000)
 node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 3: Backend (localhost:8080)
 
+# UI Gallery (no server needed, just browser dev server)
+# http://localhost:3000/gallery.html
+# Scenes: ammo, armor, engineering-status, gm-radar, pilot, tactical-radar, targeting, tubes-status, warp
+# Direct link: http://localhost:3000/gallery.html?scene=tactical-radar
+
 # Verification suite
 npm run test:types         # TypeScript check
 npm run test:format        # ESLint + Prettier
@@ -52,6 +57,7 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 | `starwards-monorepo` | Build fails, import errors |
 | `starwards-colyseus` | State not syncing, @gameField issues |
 | `starwards-ci-debugging` | GitHub Actions CI failures |
+| `starwards-station-ui` | Station screen layout, widgets, input wiring, color system |
 
 ## Custom Commands
 
@@ -63,6 +69,7 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 - **Monorepo**: `modules/` folder with npm workspaces
 - **Modules**: browser, core, server, node-red, e2e
 - **Build order**: core → (server, browser, node-red in parallel)
+- **Scenarios**: Defined in `modules/server/src/maps.ts`
 
 ## Architecture
 
@@ -82,6 +89,14 @@ SpaceState → ShipState → Subsystems → Client sync via Colyseus
 
 ### State Synchronization
 SpaceObject (in SpaceRoom) is source of truth. ShipRoom.state is a read-only mirror synced every tick via `syncShipProperties()`. Modify `spaceObject` for position/velocity/angle, modify `ship.state` for subsystem properties.
+
+### Layout Systems
+Two systems — don't mix:
+- **Fixed stations** (weapons.ts, pilot.ts, ecr.ts): `wrapRootWidgetContainer` + `subContainer()`
+- **Customizable screens** (gm.ts, ship.ts): `Dashboard` (golden-layout wrapper)
+
+### Color System
+Import from `modules/browser/src/colors.ts`. Primary=cyan, Secondary=orange. ARWES components are lobby-only, not used in station screens.
 
 ## Critical Patterns
 
@@ -115,6 +130,9 @@ power = 1.0;
 | Multiple same labels | `getPropertyValue(page, 'label', 'PanelTitle')` to scope |
 | State not persisting | Modify `spaceObject`, not `ship.state` (see sync pattern) |
 | Port in use | `lsof -ti:2567 \| xargs kill -9` |
+
+## CI Rules
+All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scripts.
 
 ## Extension Points
 1. **New Objects**: Extend `SpaceObjectBase`

@@ -1,3 +1,13 @@
+---
+name: react-version-migration
+description: React version migration guide for Starwards - compatibility matrices, step-by-step upgrade/downgrade between React 17/18/19, Arwes compatibility layer patterns, XState version mapping, and common migration pitfalls
+version: 2025-12-03
+related_skills:
+  - arwes-react (Arwes framework details)
+  - starwards-verification (verify after migration)
+  - starwards-monorepo (build order during migration)
+---
+
 # React Version Migration Expert
 
 Expert guide for migrating Starwards between React 17, 18, and 19.
