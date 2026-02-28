@@ -5,6 +5,7 @@ import {
     GameStatus,
     ShipApi,
     ShipDie,
+    ShipManager,
     ShipManagerNpc,
     ShipManagerPc,
     ShipState,
@@ -21,8 +22,6 @@ import {
 
 import { SavedGame } from '../serialization/game-state-protocol';
 import { matchMaker } from '@colyseus/core';
-
-type ShipManager = ShipManagerPc | ShipManagerNpc;
 export class GameManager {
     public state = new AdminState();
     private shipCleanups = new Map<string, () => unknown>();
@@ -188,11 +187,11 @@ export class GameManager {
     }
 
     private async waitForAllShipRoomsInit() {
-        // Only player ships have rooms, so we wait for playerShipIds count to match shipIds count
-        const expectedPlayerShipCount = this.state.playerShipIds.length;
+        // All ships (PC and NPC) have rooms now, wait for all managers to appear in shipIds
+        const expectedShipCount = this.shipManagers.size;
         await waitFor(
             () => {
-                if (expectedPlayerShipCount > this.state.shipIds.length) {
+                if (expectedShipCount > this.state.shipIds.length) {
                     throw new Error('Waiting for ship rooms to initialize');
                 }
             },
@@ -212,32 +211,26 @@ export class GameManager {
         this.shipManagers.set(id, shipManager);
         this.dice.push(die);
 
-        // Only create rooms for player ships
-        if (isPlayerShip) {
-            const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-                await this.waitForRoom({ roomId: id, name: 'ship' });
-                this.state.shipIds.push(id);
+        // All ships get rooms (PC and NPC alike)
+        const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
+            await this.waitForRoom({ roomId: id, name: 'ship' });
+            this.state.shipIds.push(id);
+            if (isPlayerShip) {
                 this.state.playerShipIds.push(id);
-            });
-            this.shipCleanups.set(id, async () => {
-                await createRoomPromise;
-                if (this.shipCleanups.delete(id)) {
+            }
+        });
+        this.shipCleanups.set(id, async () => {
+            await createRoomPromise;
+            if (this.shipCleanups.delete(id)) {
+                if (isPlayerShip) {
                     this.state.playerShipIds.splice(this.state.playerShipIds.indexOf(id), 1);
-                    this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
-                    await matchMaker.remoteRoomCall(id, 'disconnect', []);
-                    this.dice.splice(this.dice.indexOf(die), 1);
-                    this.shipManagers.delete(id);
                 }
-            });
-        } else {
-            // NPC ships don't have rooms, just cleanup the manager
-            this.shipCleanups.set(id, () => {
-                if (this.shipCleanups.delete(id)) {
-                    this.dice.splice(this.dice.indexOf(die), 1);
-                    this.shipManagers.delete(id);
-                }
-            });
-        }
+                this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
+                await matchMaker.remoteRoomCall(id, 'disconnect', []);
+                this.dice.splice(this.dice.indexOf(die), 1);
+                this.shipManagers.delete(id);
+            }
+        });
 
         return shipManager;
     }
@@ -258,8 +251,8 @@ export class GameManager {
 
     /**
      * Converts a ship between player and NPC types.
-     * Player ships have ShipRooms, NPC ships do not.
-     * This closes the existing room (if player ship) and recreates the manager with the correct type.
+     * Both types have ShipRooms. This closes the existing room and
+     * recreates the manager with the correct type (ShipManagerPc or ShipManagerNpc).
      */
     public async convertShipType(shipId: string, isPlayerShip: boolean) {
         if (this.convertingShips.has(shipId)) return;
@@ -294,9 +287,8 @@ export class GameManager {
             }
 
             // Fix shipIds bookkeeping before re-init:
-            // Player cleanup removes from shipIds; NPC cleanup does not.
-            // initShipManagerAndRoom adds to shipIds only for player ships (async).
-            // To prevent duplicates or gaps, normalize: remove from shipIds if present.
+            // Cleanup removes from shipIds; initShipManagerAndRoom re-adds async.
+            // Normalize: remove from shipIds if still present.
             const shipIdsIdx = this.state.shipIds.indexOf(shipId);
             if (shipIdsIdx !== -1) {
                 this.state.shipIds.splice(shipIdsIdx, 1);
@@ -306,22 +298,17 @@ export class GameManager {
             const freshShipState = shipState.clone();
             this.initShipManagerAndRoom(spaceObject, freshShipState, isPlayerShip);
 
-            if (isPlayerShip) {
-                // Player path: initShipManagerAndRoom adds to shipIds/playerShipIds async.
-                // Wait for room creation to complete so state is consistent on return.
-                await waitFor(
-                    () => {
-                        if (!this.state.shipIds.includes(shipId)) {
-                            throw new Error('Waiting for ship room to initialize');
-                        }
-                    },
-                    10000,
-                    50,
-                );
-            } else {
-                // NPC path: initShipManagerAndRoom doesn't add to shipIds. Re-add.
-                this.state.shipIds.push(shipId);
-            }
+            // Both paths: initShipManagerAndRoom adds to shipIds (and playerShipIds if PC) async.
+            // Wait for room creation to complete so state is consistent on return.
+            await waitFor(
+                () => {
+                    if (!this.state.shipIds.includes(shipId)) {
+                        throw new Error('Waiting for ship room to initialize');
+                    }
+                },
+                10000,
+                50,
+            );
         } finally {
             this.convertingShips.delete(shipId);
         }

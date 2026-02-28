@@ -113,78 +113,76 @@ const singleSelectionDetails = async (
             });
         });
 
-        // Ship-driver details — only for player ships (NPC ships have no ShipRoom)
-        if (isPlayerShip) {
-            const shipDriver = await driver.getShipDriver(subject.id);
+        // Ship-driver details — available for all ships (PC and NPC) since all have ShipRooms
+        const shipDriver = await driver.getShipDriver(subject.id);
 
-            const currentTaskProp = readProp(shipDriver, `/currentTask`);
-            addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
+        const currentTaskProp = readProp(shipDriver, `/currentTask`);
+        addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
 
-            const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
-            addListBlade(
-                guiFolder,
-                idleStrategyProp,
-                {
-                    label: 'Idle strategy',
-                    options: Object.values(IdleStrategy)
-                        .filter<number>((k): k is number => typeof k === 'number')
-                        .map((value) => ({ value, text: String(IdleStrategy[value]) })),
-                },
-                cleanup,
-            );
+        const idleStrategyProp = readWriteProp(shipDriver, `/idleStrategy`);
+        addListBlade(
+            guiFolder,
+            idleStrategyProp,
+            {
+                label: 'Idle strategy',
+                options: Object.values(IdleStrategy)
+                    .filter<number>((k): k is number => typeof k === 'number')
+                    .map((value) => ({ value, text: String(IdleStrategy[value]) })),
+            },
+            cleanup,
+        );
 
-            const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
-            addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
+        const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
+        addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
 
-            const armorFolder = guiFolder.addFolder({
-                title: `Armor`,
+        const armorFolder = guiFolder.addFolder({
+            title: `Armor`,
+            expanded: false,
+        });
+        cleanup(() => {
+            armorFolder.dispose();
+        });
+        addTextBlade(
+            armorFolder,
+            readProp(shipDriver, `/armor/numberOfPlates`),
+            {
+                label: 'Plates',
+                disabled: true,
+            },
+            cleanup,
+        );
+        addTextBlade(
+            armorFolder,
+            readProp(shipDriver, `/armor/numberOfHealthyPlates`),
+            {
+                label: 'Healthy Plates',
+                disabled: true,
+            },
+            cleanup,
+        );
+        addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
+        for (const system of shipDriver.systems) {
+            const systemFolder = guiFolder.addFolder({
+                title: system.state.name,
                 expanded: false,
             });
-            cleanup(() => {
-                armorFolder.dispose();
-            });
-            addTextBlade(
-                armorFolder,
-                readProp(shipDriver, `/armor/numberOfPlates`),
-                {
-                    label: 'Plates',
-                    disabled: true,
-                },
-                cleanup,
-            );
-            addTextBlade(
-                armorFolder,
-                readProp(shipDriver, `/armor/numberOfHealthyPlates`),
-                {
-                    label: 'Healthy Plates',
-                    disabled: true,
-                },
-                cleanup,
-            );
-            addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
-            for (const system of shipDriver.systems) {
-                const systemFolder = guiFolder.addFolder({
-                    title: system.state.name,
-                    expanded: false,
-                });
-                cleanup(() => systemFolder.dispose());
-                const defectibleProps: { onChange: OnChange }[] = [
-                    readProp(shipDriver, `${system.pointer}/broken`),
-                ];
-                for (const defectible of system.defectibles) {
-                    const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
-                    defectibleProps.push(prop);
-                    addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
-                }
-                systemFolder.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
-                const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
-                cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
-                applyThemeByStatus();
-                addTweakables(shipDriver, systemFolder, system.pointer, cleanup);
-                addDesignFolder(shipDriver, systemFolder, system.pointer, cleanup);
+            cleanup(() => systemFolder.dispose());
+            const defectibleProps: { onChange: OnChange }[] = [
+                readProp(shipDriver, `${system.pointer}/broken`),
+            ];
+            for (const defectible of system.defectibles) {
+                const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
+                defectibleProps.push(prop);
+                addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
             }
-            addDesignFolder(shipDriver, guiFolder, ``, cleanup);
+            systemFolder.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
+            const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
+            cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));
+            applyThemeByStatus();
+            addTweakables(shipDriver, systemFolder, system.pointer, cleanup);
+            addDesignFolder(shipDriver, systemFolder, system.pointer, cleanup);
         }
+        addDesignFolder(shipDriver, guiFolder, ``, cleanup);
     }
 };
 
