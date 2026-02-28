@@ -5,6 +5,11 @@ description: >
   SVG styling, bleeps, and effects. Use this skill whenever modifying Arwes components, debugging
   invisible frames, styling frame SVGs, or adding new sci-fi UI elements. Also use when you see
   imports from @arwes/react or the arwes-compat.tsx compatibility layer.
+version: 2026-02-28
+related_skills:
+  - react-version-migration (React/Arwes version compatibility)
+  - starwards-station-ui (station screens use PixiJS/Tweakpane, NOT Arwes)
+  - starwards-debugging (debug invisible frames, rendering issues)
 ---
 
 # Arwes React (1.0.0-next) — Working Guide
