@@ -29,10 +29,11 @@ export function drawTargetInfo(
 
     let pane = createPane({ title: 'Target', container: container.getElement().get(0) });
     let updateInterval: ReturnType<typeof setInterval> | null = null;
-    const bladeCleanup = new Destructors();
+    let bladeCleanup = new Destructors();
 
     function rebuildPane() {
         bladeCleanup.destroy();
+        bladeCleanup = new Destructors();
         if (updateInterval) {
             clearInterval(updateInterval);
             updateInterval = null;
