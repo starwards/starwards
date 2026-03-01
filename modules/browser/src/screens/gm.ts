@@ -15,6 +15,7 @@ import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
+import { longRangeRadarWidget } from '../widgets/long-range-radar';
 import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
@@ -126,6 +127,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
             dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
             dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, shipId + ' docking');
+            dashboard.registerWidget(longRangeRadarWidget(spaceDriver, shipDriver), {}, shipId + ' long range radar');
             dashboard.setup();
         }
     },
