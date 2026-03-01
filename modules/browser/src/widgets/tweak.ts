@@ -97,14 +97,12 @@ const singleSelectionDetails = async (
         const adminDriver = await driver.getAdminDriver();
         const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 
-        // isPlayerShip display — computed from admin state, no ShipDriver needed
         const isPlayerShipProp = {
             getValue: () => isPlayerShip,
             onChange: ((_cb: () => unknown) => () => undefined) as OnChange,
         };
         addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
 
-        // Convert button — always visible for all spaceships
         const buttonLabel = isPlayerShip ? 'Convert to NPC' : 'Convert to Player Ship';
         guiFolder.addButton({ title: buttonLabel }).on('click', () => {
             spaceDriver.command(spaceCommands.convertShipType, {
@@ -113,7 +111,6 @@ const singleSelectionDetails = async (
             });
         });
 
-        // Ship-driver details — available for all ships (PC and NPC) since all have ShipRooms
         const shipDriver = await driver.getShipDriver(subject.id);
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
@@ -167,9 +164,7 @@ const singleSelectionDetails = async (
                 expanded: false,
             });
             cleanup(() => systemFolder.dispose());
-            const defectibleProps: { onChange: OnChange }[] = [
-                readProp(shipDriver, `${system.pointer}/broken`),
-            ];
+            const defectibleProps: { onChange: OnChange }[] = [readProp(shipDriver, `${system.pointer}/broken`)];
             for (const defectible of system.defectibles) {
                 const prop = readWriteNumberProp(shipDriver, `${system.pointer}/${defectible.field}`);
                 defectibleProps.push(prop);
@@ -290,7 +285,6 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             });
             selectionContainer.events.addListener('changed', this.handleSelectionChange);
 
-            // Rebuild panel when playerShipIds changes (after convertShipType)
             const onPlayerShipChange = () => {
                 this.handleSelectionChange();
             };
