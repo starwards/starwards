@@ -16,6 +16,46 @@ type AxisListener = { axis: GamepadAxisConfig; range: RTuple2; setValue: (v: num
 type ButtonListener = { button: GamepadButtonConfig; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 type KeyListener = { key: string; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 
+export type InputDescription = {
+    input: string;
+    label: string;
+    inputType: 'keyboard' | 'gamepad-button' | 'gamepad-axis';
+};
+
+const gamepadButtonNames: Record<number, string> = {
+    0: 'A',
+    1: 'B',
+    2: 'X',
+    3: 'Y',
+    4: 'LB',
+    5: 'RB',
+    6: 'LT',
+    7: 'RT',
+    8: 'Back',
+    9: 'Start',
+    10: 'LS',
+    11: 'RS',
+    12: 'DPad Up',
+    13: 'DPad Down',
+    14: 'DPad Left',
+    15: 'DPad Right',
+};
+
+const gamepadAxisNames: Record<number, string> = {
+    0: 'Left Stick X',
+    1: 'Left Stick Y',
+    2: 'Right Stick X',
+    3: 'Right Stick Y',
+};
+
+function gamepadButtonName(buttonIndex: number): string {
+    return gamepadButtonNames[buttonIndex] ?? `Button ${buttonIndex}`;
+}
+
+function gamepadAxisName(axisIndex: number): string {
+    return gamepadAxisNames[axisIndex] ?? `Axis ${axisIndex}`;
+}
+
 // equiv. to lerp([-1, 1], range, axisValue)
 function lerpAxisToRange(range: RTuple2, axisValue: number) {
     const t = (axisValue + 1) / 2;
@@ -43,6 +83,7 @@ export class InputManager {
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
     private keys: KeyListener[] = [];
+    private descriptions: InputDescription[] = [];
     private loop = new EmitterLoop(1000 / 10);
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
         for (const listener of this.buttons) {
@@ -103,7 +144,11 @@ export class InputManager {
         }
     }
 
-    addRangeAction(property: RangeAction, range: RangeConfig | undefined) {
+    getInputDescriptions(): InputDescription[] {
+        return [...this.descriptions];
+    }
+
+    addRangeAction(property: RangeAction, range: RangeConfig | undefined, label?: string) {
         if (range) {
             const { axis, buttons, offsetKeys } = range;
             if (buttons || offsetKeys || axis?.velocity) {
@@ -114,12 +159,32 @@ export class InputManager {
                     if (isGamepadButtonsRangeConfig(buttons)) {
                         this.buttons.push({ button: buttons.up, onClick: callbacks.upOffset(buttons.step) });
                         this.buttons.push({ button: buttons.down, onClick: callbacks.downOffset(buttons.step) });
+                        if (label) {
+                            this.descriptions.push({
+                                input: `${gamepadButtonName(buttons.up.buttonIndex)} / ${gamepadButtonName(buttons.down.buttonIndex)}`,
+                                label,
+                                inputType: 'gamepad-button',
+                            });
+                        }
+                    } else if (label) {
+                        this.descriptions.push({
+                            input: gamepadButtonName(buttons.center.buttonIndex),
+                            label,
+                            inputType: 'gamepad-button',
+                        });
                     }
                 }
                 if (offsetKeys) {
                     this.keys.push({ key: offsetKeys.center, onClick: callbacks.centerOffset });
                     this.keys.push({ key: offsetKeys.up, onClick: callbacks.upOffset(offsetKeys.step) });
                     this.keys.push({ key: offsetKeys.down, onClick: callbacks.downOffset(offsetKeys.step) });
+                    if (label) {
+                        this.descriptions.push({
+                            input: `${offsetKeys.up.toUpperCase()} / ${offsetKeys.down.toUpperCase()}`,
+                            label,
+                            inputType: 'keyboard',
+                        });
+                    }
                 }
                 if (axis) {
                     if (axis.velocity) {
@@ -131,39 +196,80 @@ export class InputManager {
                     } else {
                         this.axes.push({ axis, range: property.range, setValue: callbacks.axis });
                     }
+                    if (label) {
+                        this.descriptions.push({
+                            input: gamepadAxisName(axis.axisIndex),
+                            label,
+                            inputType: 'gamepad-axis',
+                        });
+                    }
                 }
             } else if (axis) {
                 this.axes.push({ axis, ...property });
+                if (label) {
+                    this.descriptions.push({
+                        input: gamepadAxisName(axis.axisIndex),
+                        label,
+                        inputType: 'gamepad-axis',
+                    });
+                }
             }
         }
     }
 
-    addMomentaryClickAction(property: TriggerAction, config: GamepadButtonConfig | string | undefined) {
+    addMomentaryClickAction(property: TriggerAction, config: GamepadButtonConfig | string | undefined, label?: string) {
         const { setValue } = property;
         if (typeof config === 'object') {
             this.buttons.push({ button: config, setValue });
+            if (label) {
+                this.descriptions.push({
+                    input: gamepadButtonName(config.buttonIndex),
+                    label,
+                    inputType: 'gamepad-button',
+                });
+            }
         } else if (typeof config === 'string') {
             this.keys.push({ key: config, setValue });
+            if (label) {
+                this.descriptions.push({ input: config.toUpperCase(), label, inputType: 'keyboard' });
+            }
         }
     }
 
-    addToggleClickAction(property: ToggleAction, config: GamepadButtonConfig | string | undefined) {
+    addToggleClickAction(property: ToggleAction, config: GamepadButtonConfig | string | undefined, label?: string) {
         const onClick = () => property.setValue(!property.getValue());
-        this.addClickAction(onClick, config);
+        this.addClickAction(onClick, config, label);
     }
 
-    addClickAction(onClick: () => unknown, config: GamepadButtonConfig | string | undefined) {
+    addClickAction(onClick: () => unknown, config: GamepadButtonConfig | string | undefined, label?: string) {
         if (typeof config === 'object') {
             this.buttons.push({ button: config, onClick });
+            if (label) {
+                this.descriptions.push({
+                    input: gamepadButtonName(config.buttonIndex),
+                    label,
+                    inputType: 'gamepad-button',
+                });
+            }
         } else if (typeof config === 'string') {
             this.keys.push({ key: config, onClick });
+            if (label) {
+                this.descriptions.push({ input: config.toUpperCase(), label, inputType: 'keyboard' });
+            }
         }
     }
 
-    addStepsAction(property: StepAction, key: KeysStepsConfig | undefined) {
+    addStepsAction(property: StepAction, key: KeysStepsConfig | undefined, label?: string) {
         if (key) {
             this.keys.push({ key: key.up, onClick: () => void property.setValue(key.step) });
             this.keys.push({ key: key.down, onClick: () => void property.setValue(-key.step) });
+            if (label) {
+                this.descriptions.push({
+                    input: `${key.up.toUpperCase()} / ${key.down.toUpperCase()}`,
+                    label,
+                    inputType: 'keyboard',
+                });
+            }
         }
     }
 }

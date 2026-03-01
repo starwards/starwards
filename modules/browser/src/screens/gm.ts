@@ -20,6 +20,7 @@ import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetRadarWidget } from '../widgets/target-radar';
@@ -83,6 +84,7 @@ void driver.waitForGame().then(
                     }),
             },
             gmInputConfig.rotate,
+            'Rotate Selection',
         );
         input.addMomentaryClickAction(
             {
@@ -93,6 +95,7 @@ void driver.waitForGame().then(
                     }),
             },
             gmInputConfig.toggleFreeze,
+            'Toggle Freeze',
         );
         input.addMomentaryClickAction(
             {
@@ -103,9 +106,11 @@ void driver.waitForGame().then(
                     }),
             },
             gmInputConfig.delete,
+            'Delete Selection',
         );
 
         input.init();
+        setupHotkeyHelp(input);
 
         for await (const shipId of driver.getUniqueShipIds()) {
             const shipDriver = await driver.getShipDriver(shipId);

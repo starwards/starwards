@@ -13,6 +13,7 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawWarpStatus } from '../widgets/warp';
+import { setupHotkeyHelp } from '../input/hotkey-help';
 
 ElementQueries.listen();
 
@@ -66,6 +67,14 @@ async function initScreen(driver: Driver, shipId: string) {
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
 }
 
+function systemLabel(pointer: string): string {
+    const parts = pointer.split('/').filter(Boolean);
+    return parts
+        .map((p) => p.replace(/([a-z])([A-Z])/g, '$1 $2'))
+        .join(' ')
+        .replace(/^\w/, (c) => c.toUpperCase());
+}
+
 function wireInput(shipDriver: ShipDriver) {
     const controlledInput = new InputManager();
     const keyPairs: [string, string][] = [
@@ -90,17 +99,27 @@ function wireInput(shipDriver: ShipDriver) {
         ['l', '.'],
     ];
     for (const [system, keys] of new Iterator(shipDriver.systems).tuples(keyPairs)) {
-        controlledInput.addRangeAction(readWriteNumberProp(shipDriver, `${system.pointer}/power`), {
-            offsetKeys: new KeysRangeConfig(keys[0], keys[1], '', PowerLevelStep),
-        });
-        controlledInput.addRangeAction(readWriteNumberProp(shipDriver, `${system.pointer}/coolantFactor`), {
-            offsetKeys: new KeysRangeConfig('shift+' + keys[0], 'shift+' + keys[1], '', 0.1),
-        });
+        const name = systemLabel(system.pointer);
+        controlledInput.addRangeAction(
+            readWriteNumberProp(shipDriver, `${system.pointer}/power`),
+            { offsetKeys: new KeysRangeConfig(keys[0], keys[1], '', PowerLevelStep) },
+            `${name} Power`,
+        );
+        controlledInput.addRangeAction(
+            readWriteNumberProp(shipDriver, `${system.pointer}/coolantFactor`),
+            { offsetKeys: new KeysRangeConfig('shift+' + keys[0], 'shift+' + keys[1], '', 0.1) },
+            `${name} Coolant`,
+        );
     }
 
+    const inputManagers: InputManager[] = [controlledInput];
     if (isEcr) {
         const ecrControlInput = new InputManager();
-        ecrControlInput.addToggleClickAction(readWriteProp<boolean>(shipDriver, `/ecrControl`), '`');
+        ecrControlInput.addToggleClickAction(
+            readWriteProp<boolean>(shipDriver, `/ecrControl`),
+            '`',
+            'Toggle ECR Control',
+        );
         ecrControlInput.addRangeAction(
             {
                 ...readWriteProp<number>(shipDriver, `/warp/standbyFrequency`),
@@ -109,10 +128,17 @@ function wireInput(shipDriver: ShipDriver) {
             {
                 offsetKeys: new KeysRangeConfig(']', '[', '', 1),
             },
+            'Warp Frequency',
         );
-        ecrControlInput.addMomentaryClickAction(writeProp(shipDriver, `/warp/changeFrequencyCommand`), '\\');
+        ecrControlInput.addMomentaryClickAction(
+            writeProp(shipDriver, `/warp/changeFrequencyCommand`),
+            '\\',
+            'Change Frequency',
+        );
         ecrControlInput.init();
+        inputManagers.push(ecrControlInput);
     }
+    setupHotkeyHelp(...inputManagers);
     const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
     const updateControl = () => (ecrControl.getValue() === isEcr ? controlledInput.init() : controlledInput.destroy());
     ecrControl.onChange(updateControl);
