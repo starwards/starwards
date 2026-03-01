@@ -52,7 +52,9 @@ export function drawTargetInfo(
     const bearingProp = propertyStub('—');
     addTextBlade(pane, bearingProp, { label: 'Bearing', format: (v: string) => v }, cleanup.add);
 
-    function updateTarget() {
+    const loop = new EmitterLoop(200);
+    cleanup.add(() => loop.stop());
+    loop.onLoop(() => {
         const target = stationTarget.getSingle();
         if (!target) {
             typeProp.setValue('—');
@@ -63,17 +65,6 @@ export function drawTargetInfo(
         }
         typeProp.setValue(target.type);
         factionProp.setValue(Faction[target.faction] || 'Unknown');
-    }
-
-    updateTarget();
-    stationTarget.events.on('changed', updateTarget);
-    cleanup.add(() => stationTarget.events.off('changed', updateTarget));
-
-    const loop = new EmitterLoop(200);
-    cleanup.add(() => loop.stop());
-    loop.onLoop(() => {
-        const target = stationTarget.getSingle();
-        if (!target) return;
         const ownShip = spaceDriver.state.getShip(shipDriver.id);
         if (!ownShip) return;
         const diff = XY.difference(target.position, ownShip.position);
