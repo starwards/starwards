@@ -9,6 +9,7 @@ module.exports = {
         weapons: [path.resolve(__dirname, 'src', 'screens', 'weapons.ts')],
         pilot: [path.resolve(__dirname, 'src', 'screens', 'pilot.ts')],
         ecr: [path.resolve(__dirname, 'src', 'screens', 'ecr.ts')],
+        signals: [path.resolve(__dirname, 'src', 'screens', 'signals.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
         input: [path.resolve(__dirname, 'src', 'screens', 'input.ts')],
         gallery: [path.resolve(__dirname, 'src', 'gallery', 'gallery.ts')],
@@ -65,6 +66,11 @@ module.exports = {
             filename: 'ecr.html',
             template: path.resolve(__dirname, 'templates', 'station.html'),
             chunks: ['ecr'],
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'signals.html',
+            template: path.resolve(__dirname, 'templates', 'station.html'),
+            chunks: ['signals'],
         }),
         new HtmlWebpackPlugin({
             filename: 'gm.html',
