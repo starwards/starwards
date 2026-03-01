@@ -94,10 +94,24 @@ const singleSelectionDetails = async (
     }
 
     if (Spaceship.isInstance(subject)) {
-        const shipDriver = await driver.getShipDriver(subject.id);
+        const adminDriver = await driver.getAdminDriver();
+        const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 
-        const isPlayerShipProp = readProp(shipDriver, `/isPlayerShip`);
+        const isPlayerShipProp = {
+            getValue: () => isPlayerShip,
+            onChange: ((_cb: () => unknown) => () => undefined) as OnChange,
+        };
         addTextBlade(guiFolder, isPlayerShipProp, { label: 'is Player ship', disabled: true }, cleanup);
+
+        const buttonLabel = isPlayerShip ? 'Convert to NPC' : 'Convert to Player Ship';
+        guiFolder.addButton({ title: buttonLabel }).on('click', () => {
+            spaceDriver.command(spaceCommands.convertShipType, {
+                shipId: subject.id,
+                isPlayerShip: !isPlayerShip,
+            });
+        });
+
+        const shipDriver = await driver.getShipDriver(subject.id);
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
@@ -264,12 +278,21 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
 
         // the async part of initializing
         private async init() {
-            const [spaceDriver, _adminDriver] = await Promise.all([driver.getSpaceDriver(), driver.getAdminDriver()]);
+            const [spaceDriver, adminDriver] = await Promise.all([driver.getSpaceDriver(), driver.getAdminDriver()]);
             this.spaceDriver = spaceDriver;
             this.panelCleanup.add(() => {
                 selectionContainer.events.removeListener('changed', this.handleSelectionChange);
             });
             selectionContainer.events.addListener('changed', this.handleSelectionChange);
+
+            const onPlayerShipChange = () => {
+                this.handleSelectionChange();
+            };
+            adminDriver.events.on('/playerShipIds', onPlayerShipChange);
+            this.panelCleanup.add(() => {
+                adminDriver.events.off('/playerShipIds', onPlayerShipChange);
+            });
+
             this.handleSelectionChange();
         }
 

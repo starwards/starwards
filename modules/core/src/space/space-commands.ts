@@ -125,3 +125,14 @@ export const setScanLevel = {
         }
     },
 };
+
+export type ConvertShipTypeArg = {
+    shipId: string;
+    isPlayerShip: boolean;
+};
+export const convertShipType = {
+    cmdName: 'convertShipType',
+    setValue: (state: SpaceState, value: ConvertShipTypeArg) => {
+        state.convertShipTypeCommands.push(value);
+    },
+};

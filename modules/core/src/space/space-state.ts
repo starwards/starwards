@@ -1,6 +1,7 @@
 import {
     BulkBotOrderArg,
     BulkMoveArg,
+    ConvertShipTypeArg,
     CreateAsteroidOrderArg,
     CreateExplosionOrderArg,
     CreateSpaceshipOrderArg,
@@ -46,6 +47,7 @@ export class SpaceState extends Schema {
     // commands handled by game manager:
     public createSpaceshipCommands = Array.of<CreateSpaceshipOrderArg>();
     public destroySpaceshipCommands = Array.of<string>();
+    public convertShipTypeCommands = Array.of<ConvertShipTypeArg>();
 
     public get(id: string): SpaceObject | undefined {
         return (

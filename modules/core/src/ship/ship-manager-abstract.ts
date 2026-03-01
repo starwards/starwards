@@ -49,6 +49,11 @@ export function resetShipState(state: ShipState) {
     }
     state.smartPilot.offsetFactor = 0;
     state.magazine.count_CannonShell = state.magazine.max_CannonShell;
+    // Reset non-@gameField command properties that Schema.clone() does not copy.
+    // Without this, cloned states have these as undefined, causing NaN propagation.
+    state.afterBurnerCommand = 0;
+    state.rotationModeCommand = false;
+    state.maneuveringModeCommand = false;
 }
 
 function resetThruster(thruster: Thruster) {

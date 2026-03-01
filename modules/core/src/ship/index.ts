@@ -8,6 +8,7 @@ export * from './ship-areas';
 export * from './ship-die';
 export * from './ship-direction';
 export * from './ship-manager';
+export * from './ship-manager-abstract';
 export * from './ship-state';
 export * from './smart-pilot';
 export * from './system';
