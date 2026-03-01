@@ -78,36 +78,36 @@ export async function drawLongRangeRadar(
     const camera = new Camera();
     const root = new CameraView(camera);
 
-    // Bind zoom from header button events
-    if (zoomEvents) {
-        zoomEvents.on('zoomIn', () => {
-            const currentIdx = findClosestRangeIndex(state.range);
-            if (currentIdx > 0) {
-                state.range = ZOOM_PRESETS[currentIdx - 1];
-                updateRange();
-            }
-        });
-        zoomEvents.on('zoomOut', () => {
-            const currentIdx = findClosestRangeIndex(state.range);
-            if (currentIdx < ZOOM_PRESETS.length - 1) {
-                state.range = ZOOM_PRESETS[currentIdx + 1];
-                updateRange();
-            }
-        });
+    // Shared zoom step: direction > 0 zooms out, < 0 zooms in
+    function stepZoom(direction: number) {
+        const currentIdx = findClosestRangeIndex(state.range);
+        if (direction > 0 && currentIdx < ZOOM_PRESETS.length - 1) {
+            state.range = ZOOM_PRESETS[currentIdx + 1];
+        } else if (direction < 0 && currentIdx > 0) {
+            state.range = ZOOM_PRESETS[currentIdx - 1];
+        } else {
+            return;
+        }
+        updateRange();
     }
 
-    // Mouse wheel zoom
+    // Header button zoom
+    if (zoomEvents) {
+        zoomEvents.on('zoomIn', () => stepZoom(-1));
+        zoomEvents.on('zoomOut', () => stepZoom(1));
+    }
+
+    // Mouse wheel zoom — cooldown prevents rapid jumping
+    const ZOOM_COOLDOWN_MS = 200;
+    let lastZoomTime = 0;
+
     container.getElement().bind('wheel', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        const delta = (e.originalEvent as WheelEvent).deltaY;
-        const currentIdx = findClosestRangeIndex(state.range);
-        if (delta > 0 && currentIdx < ZOOM_PRESETS.length - 1) {
-            state.range = ZOOM_PRESETS[currentIdx + 1];
-        } else if (delta < 0 && currentIdx > 0) {
-            state.range = ZOOM_PRESETS[currentIdx - 1];
-        }
-        updateRange();
+        const now = Date.now();
+        if (now - lastZoomTime < ZOOM_COOLDOWN_MS) return;
+        lastZoomTime = now;
+        stepZoom((e.originalEvent as WheelEvent).deltaY);
     });
 
     await root.initialize({ backgroundColor: radarFogOfWar }, container);

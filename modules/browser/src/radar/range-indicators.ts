@@ -60,7 +60,7 @@ export class RangeIndicators {
                 .circle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, radius)
                 .stroke({ width: 2, color: white, alpha: 0.1 });
             const text = textsIterator.next().value;
-            text.text = circleSize.toString() + 'M';
+            text.text = Math.round(circleSize).toString() + 'M';
             text.style.fill = white;
             text.alpha = 0.1;
             text.x = this.parent.renderer.width / 2 - text.width / 2;
