@@ -1,21 +1,31 @@
 import { Destructors, Faction, ShipDriver, SpaceDriver, XY } from '@starwards/core';
 import { addTextBlade, createPane } from '../panel';
 
+import { DashboardWidget } from './dashboard';
+import { EmitterLoop } from '../loop';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 import { propertyStub } from '../property-wrappers';
+import { trackTargetObject } from '../ship-logic';
 
 function formatDistance(meters: number): string {
     if (meters >= 1000) {
-        return `${(meters / 1000).toFixed(1)}km`;
+        return `${(meters / 1000).toFixed(0)}km`;
     }
     return `${Math.round(meters)}m`;
 }
 
 function formatBearing(degrees: number): string {
-    // Normalize to 0-360
-    const normalized = ((degrees % 360) + 360) % 360;
-    return `${normalized.toFixed(1)}°`;
+    return `${degrees.toFixed(1)}°`;
+}
+
+export function targetInfoWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget {
+    class TargetInfoComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            drawTargetInfo(container, spaceDriver, shipDriver, trackTargetObject(spaceDriver, shipDriver));
+        }
+    }
+    return { name: 'target info', type: 'component', component: TargetInfoComponent, defaultProps: {} };
 }
 
 export function drawTargetInfo(
@@ -27,67 +37,49 @@ export function drawTargetInfo(
     const cleanup = new Destructors();
     container.on('destroy', cleanup.destroy);
 
-    let pane = createPane({ title: 'Target', container: container.getElement().get(0) });
-    let updateInterval: ReturnType<typeof setInterval> | null = null;
-    let bladeCleanup = new Destructors();
+    const pane = createPane({ title: 'Target', container: container.getElement().get(0) });
+    cleanup.add(() => pane.dispose());
 
-    function rebuildPane() {
-        bladeCleanup.destroy();
-        bladeCleanup = new Destructors();
-        if (updateInterval) {
-            clearInterval(updateInterval);
-            updateInterval = null;
-        }
-        pane.dispose();
-        pane = createPane({ title: 'Target', container: container.getElement().get(0) });
+    const typeProp = propertyStub('—');
+    addTextBlade(pane, typeProp, { label: 'Type' }, cleanup.add);
 
+    const factionProp = propertyStub('—');
+    addTextBlade(pane, factionProp, { label: 'Faction' }, cleanup.add);
+
+    const distanceProp = propertyStub('—');
+    addTextBlade(pane, distanceProp, { label: 'Distance', format: (v: string) => v }, cleanup.add);
+
+    const bearingProp = propertyStub('—');
+    addTextBlade(pane, bearingProp, { label: 'Bearing', format: (v: string) => v }, cleanup.add);
+
+    function updateTarget() {
         const target = stationTarget.getSingle();
         if (!target) {
-            const noTargetProp = propertyStub('No target selected');
-            addTextBlade(pane, noTargetProp, { label: 'Status' }, bladeCleanup.add);
+            typeProp.setValue('—');
+            factionProp.setValue('—');
+            distanceProp.setValue('—');
+            bearingProp.setValue('—');
             return;
         }
-
-        const ownShip = spaceDriver.state.getShip(shipDriver.id);
-
-        const typeProp = propertyStub(target.type);
-        addTextBlade(pane, typeProp, { label: 'Type' }, bladeCleanup.add);
-
-        const factionProp = propertyStub(Faction[target.faction] || 'Unknown');
-        addTextBlade(pane, factionProp, { label: 'Faction' }, bladeCleanup.add);
-
-        const distanceProp = propertyStub('—');
-        addTextBlade(pane, distanceProp, { label: 'Distance', format: (v: string) => v }, bladeCleanup.add);
-
-        const bearingProp = propertyStub('—');
-        addTextBlade(pane, bearingProp, { label: 'Bearing', format: (v: string) => v }, bladeCleanup.add);
-
-        function updateComputedFields() {
-            if (!ownShip) return;
-            const diff = XY.difference(target!.position, ownShip.position);
-            const dist = XY.lengthOf(diff);
-            const angle = XY.angleOf(diff);
-            distanceProp.setValue(formatDistance(dist));
-            bearingProp.setValue(formatBearing(angle));
-        }
-
-        updateComputedFields();
-        updateInterval = setInterval(updateComputedFields, 200);
+        typeProp.setValue(target.type);
+        factionProp.setValue(Faction[target.faction] || 'Unknown');
     }
 
-    rebuildPane();
-    cleanup.add(
-        (() => {
-            const handler = () => rebuildPane();
-            stationTarget.events.on('changed', handler);
-            return () => stationTarget.events.off('changed', handler);
-        })(),
-    );
-    cleanup.add(() => {
-        bladeCleanup.destroy();
-        if (updateInterval) {
-            clearInterval(updateInterval);
-        }
-        pane.dispose();
+    updateTarget();
+    const handler = () => updateTarget();
+    stationTarget.events.on('changed', handler);
+    cleanup.add(() => stationTarget.events.off('changed', handler));
+
+    const loop = new EmitterLoop(200);
+    cleanup.add(() => loop.stop());
+    loop.onLoop(() => {
+        const target = stationTarget.getSingle();
+        if (!target) return;
+        const ownShip = spaceDriver.state.getShip(shipDriver.id);
+        if (!ownShip) return;
+        const diff = XY.difference(target.position, ownShip.position);
+        distanceProp.setValue(formatDistance(XY.lengthOf(diff)));
+        bearingProp.setValue(formatBearing(XY.angleOf(diff)));
     });
+    loop.start();
 }

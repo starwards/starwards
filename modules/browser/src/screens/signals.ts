@@ -6,6 +6,7 @@ import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
+import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSystemsStatus } from '../widgets/system-status';
@@ -87,21 +88,14 @@ function wireInput(
         stationTarget.set([targets[currentIndex]]);
     }
 
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                cycleTarget(-1);
-            } else {
-                cycleTarget(1);
-            }
-        } else if (e.key === 'Escape') {
-            stationTarget.clear();
-            currentIndex = -1;
-        } else if (e.key === '=' || e.key === '+') {
-            zoomEvents.emit('zoomIn');
-        } else if (e.key === '-') {
-            zoomEvents.emit('zoomOut');
-        }
-    });
+    const input = new InputManager();
+    input.addClickAction(() => cycleTarget(1), ']');
+    input.addClickAction(() => cycleTarget(-1), '[');
+    input.addClickAction(() => {
+        stationTarget.clear();
+        currentIndex = -1;
+    }, "'");
+    input.addClickAction(() => zoomEvents.emit('zoomIn'), '=');
+    input.addClickAction(() => zoomEvents.emit('zoomOut'), '-');
+    input.init();
 }
