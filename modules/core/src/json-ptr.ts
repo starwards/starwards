@@ -160,7 +160,12 @@ export class JsonPointer {
         if (current instanceof MapSchema) {
             throw new Error('Cannot set property on MapSchema - target should be an object in the map');
         } else if (current instanceof ArraySchema) {
-            throw new Error('Cannot set property on ArraySchema - target should be an element in the array');
+            const index = typeof finalSegment === 'number' ? finalSegment : parseInt(String(finalSegment), 10);
+            if (isNaN(index)) {
+                throw new Error(`Invalid array index: ${String(finalSegment)}`);
+            }
+            previousValue = (current as unknown as unknown[])[index];
+            (current as unknown as unknown[])[index] = value;
         } else if (current instanceof Schema) {
             previousValue = Reflect.get(current, finalSegment);
             // Use Reflect.set to ensure we go through the setter

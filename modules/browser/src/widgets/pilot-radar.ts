@@ -107,6 +107,9 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         tacticalDrawFunctions,
         shipTarget,
         rangeFilter.isInRange,
+        undefined,
+        undefined,
+        shipDriver.state.faction,
     );
     contentElements.addChild(blipLayer.renderRoot);
     const waypointsInRange = new ObjectsLayer(

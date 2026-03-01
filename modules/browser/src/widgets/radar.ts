@@ -89,6 +89,9 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
                 dradisDrawFunctions,
                 new SelectionContainer().init(spaceDriver),
                 rangeFilter.isInRange,
+                undefined,
+                undefined,
+                shipDriver.state.faction,
             );
             root.addLayer(blipLayer.renderRoot);
         }

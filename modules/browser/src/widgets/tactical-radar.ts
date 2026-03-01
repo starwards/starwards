@@ -112,6 +112,9 @@ export async function drawTacticalRadar(
         tacticalDrawFunctions,
         shipTarget,
         rangeFilter.isInRange,
+        undefined,
+        undefined,
+        shipDriver.state.faction,
     );
 
     blipLayer.renderRoot.mask = circleMask;

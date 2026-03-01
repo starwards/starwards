@@ -173,6 +173,9 @@ export async function drawLongRangeRadar(
         tacticalDrawFunctions,
         targetContainer,
         rangeFilter.isInRange,
+        undefined,
+        undefined,
+        shipDriver.state.faction,
     );
 
     blipLayer.renderRoot.mask = circleMask;

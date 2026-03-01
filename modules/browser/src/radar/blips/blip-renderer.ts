@@ -1,5 +1,5 @@
 import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { Asteroid, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
+import { Asteroid, ScanLevel, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
 import { radar, selectionColor, white } from '../../colors';
 
 import { CameraView } from '../camera-view';
@@ -11,6 +11,7 @@ export interface BlipData {
     stage: Container;
     parent: CameraView;
     blipSize: number;
+    scanLevel: ScanLevel;
 }
 
 export interface BlipRenderer<T extends SpaceObject> {
@@ -82,19 +83,25 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
         stage.addChild(this.selectionSprite);
     }
 
-    redraw(spaceObject: Spaceship, { parent, isSelected, color, alpha }: BlipData): void {
-        this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-        this.text.text = `ID: ${spaceObject.id}`;
-        this.text.x = -this.text.getLocalBounds().width / 2;
+    redraw(spaceObject: Spaceship, { parent, isSelected, color, alpha, scanLevel }: BlipData): void {
+        const identified = scanLevel >= ScanLevel.BASIC;
+        this.fighterSprite.visible = identified;
+        this.directionSprite.visible = identified;
+        this.text.visible = identified;
+        if (identified) {
+            this.directionSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
+            this.text.text = `ID: ${spaceObject.id}`;
+            this.text.x = -this.text.getLocalBounds().width / 2;
+            this.fighterSprite.tint = color;
+            this.fighterSprite.alpha = alpha;
+        }
         this.collisionOutline.clear();
         this.collisionOutline
             .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
+            .stroke({ width: 1, color: identified ? radar.collisionOutline : color, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
-        this.fighterSprite.tint = color;
-        this.fighterSprite.alpha = alpha;
     }
 }
 class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
@@ -161,18 +168,23 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
         stage.addChild(this.selectionSprite);
     }
 
-    redraw(spaceObject: Spaceship, { parent, isSelected, blipSize, color, alpha }: BlipData): void {
-        this.fighterSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
-        this.fighterSprite.tint = color;
-        this.fighterSprite.alpha = alpha;
-        this.fighterSprite.height = blipSize;
-        this.fighterSprite.width = blipSize;
-        this.text.text = `ID: ${spaceObject.id}`;
-        this.text.x = -this.text.getLocalBounds().width / 2;
+    redraw(spaceObject: Spaceship, { parent, isSelected, blipSize, color, alpha, scanLevel }: BlipData): void {
+        const identified = scanLevel >= ScanLevel.BASIC;
+        this.fighterSprite.visible = identified;
+        this.text.visible = identified;
+        if (identified) {
+            this.fighterSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
+            this.fighterSprite.tint = color;
+            this.fighterSprite.alpha = alpha;
+            this.fighterSprite.height = blipSize;
+            this.fighterSprite.width = blipSize;
+            this.text.text = `ID: ${spaceObject.id}`;
+            this.text.x = -this.text.getLocalBounds().width / 2;
+        }
         this.collisionOutline.clear();
         this.collisionOutline
             .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
+            .stroke({ width: 1, color: identified ? radar.collisionOutline : color, alpha: 0.5 });
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;

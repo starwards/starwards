@@ -1,10 +1,10 @@
 import { BlipData, BlipRenderer } from './blip-renderer';
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
-import { SpaceDriver, SpaceObject, SpaceObjects, XY } from '@starwards/core';
+import { Faction, ScanLevel, SpaceDriver, SpaceObject, SpaceObjects, XY } from '@starwards/core';
 
 import { CameraView } from '../camera-view';
 import { TrackObjects } from '../track-objects';
-import { white } from '../../colors';
+import { radar, white } from '../../colors';
 
 type RenderFunctions<K extends keyof SpaceObjects> = {
     [T in K]: {
@@ -19,16 +19,33 @@ type Blip<K extends keyof SpaceObjects> = readonly [BlipRenderer<SpaceObjects[K]
 export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
     private stage = new Container();
 
+    private getScanLevel(o: SpaceObject): ScanLevel {
+        if (this.playerFaction === undefined) {
+            return ScanLevel.ADVANCED;
+        }
+        const factionIndex = Number(this.playerFaction);
+        const rawLevel =
+            factionIndex >= 0 && factionIndex < o.scanLevels.length
+                ? (o.scanLevels[factionIndex] as ScanLevel | undefined) ?? ScanLevel.UFO
+                : ScanLevel.UFO;
+        // Same-faction objects are always at least BASIC
+        if (o.faction === this.playerFaction && this.playerFaction !== Faction.NONE) {
+            return Math.max(rawLevel, ScanLevel.BASIC) as ScanLevel;
+        }
+        return rawLevel;
+    }
+
     private createBlip = (spaceObject: SpaceObjects[K]): Blip<K> => {
         const stage = new Container();
         const renderer = new this.drawFunctions[spaceObject.type as K](stage, this.blipSize);
-        const data = {
+        const data: BlipData = {
             isSelected: false,
             color: white,
             stage,
             parent: this.parent,
             blipSize: this.blipSize,
             alpha: 1,
+            scanLevel: ScanLevel.ADVANCED,
         };
         this.updateBlip(spaceObject, [renderer, data]);
         this.stage.addChild(data.stage);
@@ -46,7 +63,9 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
             g.stage.y - g.stage.height < this.parent.renderer.height;
         if (shouldRedraw) {
             g.isSelected = Boolean(this.selectedItems?.has(o));
-            g.color = this.getColor(o);
+            g.scanLevel = this.getScanLevel(o);
+            const identifiedColor = this.getColor(o);
+            g.color = g.scanLevel >= ScanLevel.BASIC ? identifiedColor : radar.unknownTint;
             g.alpha = this.getAlpha(o);
             r.redraw(o, g);
         }
@@ -77,6 +96,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
         private readonly filter?: Filter<K>,
         private readonly position: Positioning<K> = (o: SpaceObjects[K]) => this.parent.worldToScreen(o.position),
         private readonly getAlpha: (s: SpaceObjects[K]) => number = () => 1,
+        private readonly playerFaction?: Faction,
     ) {
         parent.ticker.add(this.blips.update, UPDATE_PRIORITY.LOW);
     }

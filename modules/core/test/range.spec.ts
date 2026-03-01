@@ -1,6 +1,6 @@
-import { getRange, range, rangeSchema } from '../src/range';
+import { getRange, range, rangeSchema, tryGetRange } from '../src/range';
 import { JsonPointer } from '../src/json-ptr';
-import { Schema } from '@colyseus/schema';
+import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { expect } from 'chai';
 import { gameField } from '../src/game-field';
 
@@ -67,5 +67,46 @@ describe('range', () => {
 
         const r = getRange(new Target(), JsonPointer.create('/property'));
         expect(r).to.eql(RANGE);
+    });
+});
+
+describe('ArraySchema JSON pointer support', () => {
+    class Inner extends Schema {
+        @gameField(['uint8'])
+        levels = new ArraySchema<number>(0, 0);
+    }
+
+    class Root extends Schema {
+        @gameField({ map: Inner })
+        items = new MapSchema<Inner>();
+    }
+
+    function makeRoot() {
+        const root = new Root();
+        const inner = new Inner();
+        root.items.set('obj1', inner);
+        return root;
+    }
+
+    it('tryGetRange does not throw for ArraySchema element path', () => {
+        const root = makeRoot();
+        const pointer = JsonPointer.create('/items/obj1/levels/0');
+        // Should return undefined (no range metadata on array elements), not throw
+        const result = tryGetRange(root, pointer);
+        expect(result).to.be.undefined;
+    });
+
+    it('JsonPointer.set can set values on ArraySchema elements', () => {
+        const root = makeRoot();
+        const pointer = JsonPointer.create('/items/obj1/levels/0');
+        pointer.set(root, 1);
+        expect(root.items.get('obj1')!.levels[0]).to.equal(1);
+    });
+
+    it('JsonPointer.get can read values from ArraySchema elements', () => {
+        const root = makeRoot();
+        root.items.get('obj1')!.levels[0] = 2;
+        const pointer = JsonPointer.create('/items/obj1/levels/0');
+        expect(pointer.get(root)).to.equal(2);
     });
 });
