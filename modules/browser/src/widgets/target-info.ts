@@ -66,9 +66,8 @@ export function drawTargetInfo(
     }
 
     updateTarget();
-    const handler = () => updateTarget();
-    stationTarget.events.on('changed', handler);
-    cleanup.add(() => stationTarget.events.off('changed', handler));
+    stationTarget.events.on('changed', updateTarget);
+    cleanup.add(() => stationTarget.events.off('changed', updateTarget));
 
     const loop = new EmitterLoop(200);
     cleanup.add(() => loop.stop());
