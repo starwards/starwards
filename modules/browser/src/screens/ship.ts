@@ -21,6 +21,7 @@ import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
+import { targetInfoWidget } from '../widgets/target-info';
 import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
@@ -79,6 +80,7 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(targetingWidget(shipDriver), {}, 'targeting');
     dashboard.registerWidget(warpWidget(shipDriver), {}, 'warp');
     dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, 'docking');
+    dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver), {}, 'target info');
     dashboard.setup();
     wireSinglePilotInput(shipDriver);
 }

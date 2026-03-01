@@ -122,6 +122,13 @@ function ShipOptions({ shipId }: { shipId: string }) {
                     >
                         Bridge Engineer
                     </Button>
+                    <Button
+                        key={`signals-${shipId}`}
+                        palette="primary"
+                        onClick={() => window.location.assign(`signals.html?ship=${shipId}`)}
+                    >
+                        Signals
+                    </Button>
                 </>
             }
             style={{ maxWidth: 400, display: 'inline-block', padding: '10px' }}
