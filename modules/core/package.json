@@ -41,7 +41,7 @@
         "colyseus.js": "^0.16.22",
         "detect-collisions": "^10.10.2025",
         "eventemitter2": "^6.4.9",
-        "eventemitter3": "^5.0.1",
+        "eventemitter3": "^5.0.4",
         "normal-distribution": "^1.1.1",
         "reflect-metadata": "^0.2.2",
         "ts-essentials": "^10.1.1",
