@@ -47,7 +47,7 @@
         ]
     },
     "devDependencies": {
-        "@colyseus/loadtest": "^0.16.1",
+        "@colyseus/loadtest": "^0.17.8",
         "@playwright/test": "^1.56.1",
         "@rollup/plugin-sucrase": "^5.0.2",
         "@types/chai": "^5.2.3",
