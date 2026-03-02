@@ -31,7 +31,7 @@
         "pixi.js": "^8.14.0",
         "pluralize": "^8.0.0",
         "react": "^18.3.0",
-        "react-dom": "^18.3.0",
+        "react-dom": "^19.2.4",
         "react-dropzone": "^14.3.8",
         "tweakpane": "^4.0.5",
         "tweakpane-table": "^0.4.1",
