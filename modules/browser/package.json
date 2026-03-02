@@ -19,7 +19,7 @@
         "@tweakpane/core": "^2.0.5",
         "@tweakpane/plugin-camerakit": "^0.3.0",
         "@tweakpane/plugin-essentials": "^0.2.1",
-        "@xstate/react": "^6.0.0",
+        "@xstate/react": "^6.1.0",
         "css-element-queries": "^1.2.3",
         "d3": "^7.9.0",
         "eventemitter3": "^5.0.1",
