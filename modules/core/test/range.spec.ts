@@ -8,8 +8,8 @@ const RANGE = [-1, 1] as const;
 describe('range', () => {
     it('@range([number, number]) for defining literal range to property', () => {
         class Target extends Schema {
-            @gameField('float32')
             @range(RANGE)
+            @gameField('float32')
             property = 0;
         }
 
@@ -31,8 +31,8 @@ describe('range', () => {
 
     it('@range((this) => [number, number]) for defining dynamic range to property', () => {
         class Target extends Schema {
-            @gameField('float32')
             @range((t: Target) => t.range)
+            @gameField('float32')
             property = 0;
 
             range = RANGE;
@@ -48,8 +48,8 @@ describe('range', () => {
             property = 0;
         }
         class Target extends Schema {
-            @gameField(ModelWithNoRange)
             @range({ '/property': RANGE })
+            @gameField(ModelWithNoRange)
             inner = new ModelWithNoRange();
         }
 

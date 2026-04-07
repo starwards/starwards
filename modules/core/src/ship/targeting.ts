@@ -15,20 +15,20 @@ export class TargetingDesignState extends DesignState implements TargetingDesign
 }
 
 export class Targeting extends Schema {
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public targetId: string | null = null;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     public shipOnly = false;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     public enemyOnly = false;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     public shortRangeOnly = false;
 
     @gameField(TargetingDesignState)

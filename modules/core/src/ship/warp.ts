@@ -47,32 +47,32 @@ export class Warp extends SystemState {
     @gameField(WarpDesignState)
     design = new WarpDesignState();
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'velocity' })
+    @gameField('float32')
     velocityFactor = 1;
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 0, name: 'damage' })
+    @gameField('float32')
     damageFactor = 0;
 
-    @gameField('float32')
     @range([0, MAX_WARP_LVL])
     @tweakable('number')
+    @gameField('float32')
     currentLevel = 0;
 
-    @gameField('uint8')
     @range([0, MAX_WARP_LVL])
     @tweakable('number')
+    @gameField('uint8')
     desiredLevel = 0;
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: WarpFrequency })
+    @gameField('int8')
     currentFrequency = WarpFrequency.W770HZ;
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: WarpFrequency })
+    @gameField('int8')
     standbyFrequency = WarpFrequency.W770HZ;
 
     @range([0, 1])

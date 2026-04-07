@@ -35,25 +35,25 @@ export class Magazine extends SystemState {
     @gameField(MagazineDesignState)
     design = new MagazineDesignState();
 
-    @gameField('uint16')
     @range((t: Magazine) => [0, t.max_CannonShell])
     @tweakable('number')
+    @gameField('uint16')
     count_CannonShell = 0;
 
-    @gameField('uint16')
     @range((t: Magazine) => [0, t.max_BlastCannonShell])
     @tweakable('number')
+    @gameField('uint16')
     count_BlastCannonShell = 0;
 
-    @gameField('uint16')
     @range((t: Magazine) => [0, t.max_Missile])
     @tweakable('number')
+    @gameField('uint16')
     count_Missile = 0;
 
     @commandable
-    @gameField('float32')
     @defectible({ normal: 1, name: 'capacity' })
     @range([0, 1])
+    @gameField('float32')
     capacity = 1;
 
     get broken() {

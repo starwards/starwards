@@ -56,16 +56,16 @@ export class ShipState extends Spaceship {
     @gameField('boolean')
     isPlayerShip = true;
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: IdleStrategy })
+    @gameField('int8')
     idleStrategy = IdleStrategy.PLAY_DEAD;
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: Order })
+    @gameField('int8')
     order = Order.NONE;
 
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     orderTargetId: string | null = null;
 
     @gameField(Vec2)
@@ -110,43 +110,43 @@ export class ShipState extends Spaceship {
     @gameField(Maneuvering)
     maneuvering!: Maneuvering;
 
-    @gameField('float32')
     @range([-1, 1])
+    @gameField('float32')
     rotation = 0;
 
-    @gameField('float32')
     @range([-1, 1])
+    @gameField('float32')
     boost = 0;
 
-    @gameField('float32')
     @range([-1, 1])
+    @gameField('float32')
     strafe = 0;
 
-    @gameField('float32')
     @range([0, 1])
+    @gameField('float32')
     antiDrift = 0;
 
-    @gameField('float32')
     @range([0, 1])
+    @gameField('float32')
     breaks = 0;
 
-    @gameField('float32')
     @range([0, 1])
+    @gameField('float32')
     afterBurner = 0;
 
     @gameField('int8')
     targeted = TargetedStatus.NONE;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     ecrControl = false;
 
     /**
      * Hull damage state - 2-state flag (ok/damaged) for IoT alerts/lights control.
      * Controlled manually by GM in tweak panel. No game logic impact.
      */
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     hullDamaged = false;
 
     // server only, used for commands

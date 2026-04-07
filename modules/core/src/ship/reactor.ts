@@ -31,14 +31,14 @@ export class Reactor extends SystemState {
     @gameField(ReactorDesignState)
     design = new ReactorDesignState();
 
-    @gameField('number')
     @range((t: Reactor) => [0, t.design.maxEnergy])
     @tweakable('number')
+    @gameField('number')
     energy = 1000;
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'effeciency' })
+    @gameField('float32')
     effeciencyFactor = 1;
 
     get energyPerSecond(): number {

@@ -24,6 +24,7 @@ jobs:
             - run: npm run test:types
             - run: npm run test:format
             - run: npm run build
+            - run: npm run depcheck
 
     Test-Units:
         runs-on: ubuntu-latest
@@ -115,6 +116,29 @@ jobs:
               with:
                   name: visual-test-diffs
                   path: test-results
+                  if-no-files-found: ignore
+
+    coverage-core:
+        # Coverage gate scoped to modules/core only. Started at a low
+        # threshold so it passes against current main; ratchet up by +5pp
+        # every release until we hit ~70%. See PR5 for backfill plan.
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+            - run: npm ci
+            - run: npm run test:coverage:core
+              env:
+                  STARWARDS_STRICT_CMD: '1'
+            - name: Upload coverage report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage-core
+                  path: coverage-core
                   if-no-files-found: ignore
 
     Build:
