@@ -1,8 +1,44 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 
+import { isCommandable } from './game-field';
+
 const jsonPtrRegexp = /^(\/(([^/~])|(~[01]))*)*$/g;
 export type JsonStringPointer = string;
 const cache = new Map<string, JsonPointer>();
+
+/**
+ * Returns true when the running process should reject (throw on)
+ * non-`@commandable` writes through the JSON Pointer setter.
+ *
+ * Phase A (current): warn-only by default; CI sets `STARWARDS_STRICT_CMD=1`
+ * so any forgotten `@commandable` fails the build, while a deployed
+ * server keeps booting in warn mode for one release window.
+ *
+ * Phase B (follow-up PR): drop the env-var branch and throw
+ * unconditionally.
+ */
+function isStrictCommandableMode(): boolean {
+    // Read from globalThis to avoid pulling @types/node into core, which is
+    // designed to be runtime-agnostic. In the browser, `process` is undefined
+    // and the function returns false (warn-only mode).
+    const proc = (globalThis as { process?: { env?: { STARWARDS_STRICT_CMD?: string } } }).process;
+    return !!proc && !!proc.env && proc.env.STARWARDS_STRICT_CMD === '1';
+}
+
+const warnedCommandable = new Set<string>();
+function warnNonCommandable(ctorName: string, field: string): void {
+    const key = `${ctorName}.${field}`;
+    if (warnedCommandable.has(key)) {
+        return;
+    }
+    warnedCommandable.add(key);
+    // eslint-disable-next-line no-console
+    console.warn(
+        `[starwards] JSON Pointer write to non-@commandable field ${key}. ` +
+            `In a future release this will throw. Mark the field with @commandable ` +
+            `(see modules/core/src/game-field.ts) or audit the call site.`,
+    );
+}
 
 export function isJsonPointer(ptr: unknown): ptr is JsonStringPointer {
     jsonPtrRegexp.lastIndex = 0; // reset regexp state
@@ -162,6 +198,20 @@ export class JsonPointer {
         } else if (current instanceof ArraySchema) {
             throw new Error('Cannot set property on ArraySchema - target should be an element in the array');
         } else if (current instanceof Schema) {
+            // Whitelist guard: only `@commandable` fields may be written
+            // remotely. See `commandable` in game-field.ts. The intent is
+            // that arbitrary `@gameField`s are sync-only (server -> client)
+            // and not part of the client -> server command surface.
+            if (!isCommandable(current, finalSegment)) {
+                const ctorName = current.constructor?.name ?? 'Schema';
+                if (isStrictCommandableMode()) {
+                    throw new Error(
+                        `Refusing to write non-@commandable field ${ctorName}.${String(finalSegment)} ` +
+                            `via JSON Pointer ${this.pointer}.`,
+                    );
+                }
+                warnNonCommandable(ctorName, String(finalSegment));
+            }
             previousValue = Reflect.get(current, finalSegment);
             // Use Reflect.set to ensure we go through the setter
             Reflect.set(current, finalSegment, value);

@@ -5,7 +5,7 @@ import { Schema } from '@colyseus/schema';
 
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { allColyseusProperties } from '../traverse';
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 /* eslint-enable sort-imports */
@@ -71,6 +71,7 @@ export abstract class SystemState extends Schema {
 
     @range([0, 1])
     @tweakable({ type: 'enum', enum: PowerLevel })
+    @commandable
     @gameField('float32')
     public power = PowerLevel.MAX;
 

@@ -41,6 +41,9 @@ jobs:
               env:
                   JEST_JUNIT_OUTPUT_DIR: ./test-results
                   JEST_JUNIT_OUTPUT_NAME: junit.xml
+                  # Reject any JSON Pointer write to a non-@commandable field.
+                  # See modules/core/src/json-ptr.ts and docs/json-ptr.md.
+                  STARWARDS_STRICT_CMD: '1'
             - name: Publish Test Report
               uses: mikepenz/action-junit-report@v4
               if: always()
@@ -73,6 +76,8 @@ jobs:
             - run: npm run build:server
             - run: npm --prefix modules/browser run build
             - run: npm run test:e2e
+              env:
+                  STARWARDS_STRICT_CMD: '1'
             - name: Store test results
               uses: actions/upload-artifact@v4
               with:

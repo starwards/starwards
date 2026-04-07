@@ -1,6 +1,6 @@
 import { DesignState, SystemState, defectible } from './system';
 
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -50,6 +50,7 @@ export class Magazine extends SystemState {
     @tweakable('number')
     count_Missile = 0;
 
+    @commandable
     @gameField('float32')
     @defectible({ normal: 1, name: 'capacity' })
     @range([0, 1])
