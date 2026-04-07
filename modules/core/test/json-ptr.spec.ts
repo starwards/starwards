@@ -12,7 +12,7 @@ import { expect } from 'chai';
 
 describe('JsonPointer @commandable whitelist', () => {
     class WriteableThing extends Schema {
-        @commandable
+        @commandable()
         @gameField('float32')
         allowed = 0;
 
@@ -21,7 +21,7 @@ describe('JsonPointer @commandable whitelist', () => {
     }
 
     class Subclass extends WriteableThing {
-        @commandable
+        @commandable()
         @gameField('float32')
         subOnly = 0;
     }
@@ -142,7 +142,7 @@ describe('JsonPointer pointer plumbing', () => {
 
     it('set throws on root pointer', () => {
         class T extends Schema {
-            @commandable
+            @commandable()
             @gameField('float32')
             x = 0;
         }

@@ -9,7 +9,7 @@ on the wire, but the actual write target (a `@gameField` somewhere on a
 
 ## The `@commandable` decorator
 
-A property must be explicitly marked `@commandable` for the JSON Pointer
+A property must be explicitly marked `@commandable()` for the JSON Pointer
 setter to write to it:
 
 ```ts
@@ -18,11 +18,16 @@ import { commandable, gameField } from '../game-field';
 class Reactor extends SystemState {
     @range([0, 1])
     @tweakable({ type: 'enum', enum: PowerLevel })
-    @commandable
+    @commandable()
     @gameField('float32')
     public power = PowerLevel.MAX;
 }
 ```
+
+The decorator must be invoked with parentheses (`@commandable()`, not
+`@commandable`). The Colyseus Unity codegen tool only understands
+CallExpression decorators on `@gameField` properties; a bare-identifier
+decorator crashes its parser.
 
 A bare `@gameField` is still synced **server → client** (read-only from
 the client's point of view). Only `@commandable` fields participate in

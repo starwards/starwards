@@ -80,7 +80,7 @@ export abstract class SpaceObjectBase extends Schema {
      */
     @tweakable('number')
     @range([0, 360])
-    @commandable
+    @commandable()
     @gameField('float32')
     public angle = 0;
 

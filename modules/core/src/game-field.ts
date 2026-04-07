@@ -24,27 +24,34 @@ type SchemaCtor = (new (...args: unknown[]) => Schema) & {
  *
  *     @range([0, 1])
  *     @tweakable('number')
- *     @commandable
+ *     @commandable()
  *     @gameField('float32')
  *     power = 1.0;
  *
- * A `@gameField` without `@commandable` is still synced to clients but
+ * A `@gameField` without `@commandable()` is still synced to clients but
  * the JSON Pointer setter will reject any client write to it. This makes
  * the remote-write surface explicit and grep-able.
+ *
+ * Note: this decorator is implemented as a factory (`@commandable()` with
+ * parentheses) on purpose. `@colyseus/schema`'s schema-codegen tool only
+ * understands CallExpression decorators when scanning property decorators,
+ * so a bare `@commandable` would crash the Unity codegen build step.
  */
-export const commandable: PropertyDecorator = (target: object, field: string | symbol) => {
-    if (typeof field !== 'string') {
-        return;
-    }
-    const ctor = (target as { constructor: SchemaCtor }).constructor;
-    // Use hasOwnProperty so subclasses get their own Set instead of
-    // mutating a parent class's Set in place.
-    if (!Object.prototype.hasOwnProperty.call(ctor, COMMANDABLE_FIELDS)) {
-        const inherited = ctor[COMMANDABLE_FIELDS];
-        ctor[COMMANDABLE_FIELDS] = new Set<string>(inherited ?? []);
-    }
-    ctor[COMMANDABLE_FIELDS]!.add(field);
-};
+export function commandable(): PropertyDecorator {
+    return (target: object, field: string | symbol) => {
+        if (typeof field !== 'string') {
+            return;
+        }
+        const ctor = (target as { constructor: SchemaCtor }).constructor;
+        // Use hasOwnProperty so subclasses get their own Set instead of
+        // mutating a parent class's Set in place.
+        if (!Object.prototype.hasOwnProperty.call(ctor, COMMANDABLE_FIELDS)) {
+            const inherited = ctor[COMMANDABLE_FIELDS];
+            ctor[COMMANDABLE_FIELDS] = new Set<string>(inherited ?? []);
+        }
+        ctor[COMMANDABLE_FIELDS]!.add(field);
+    };
+}
 
 /**
  * Returns true if `field` is marked `@commandable` on the runtime class of

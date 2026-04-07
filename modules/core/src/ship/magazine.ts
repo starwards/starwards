@@ -50,7 +50,7 @@ export class Magazine extends SystemState {
     @gameField('uint16')
     count_Missile = 0;
 
-    @commandable
+    @commandable()
     @defectible({ normal: 1, name: 'capacity' })
     @range([0, 1])
     @gameField('float32')

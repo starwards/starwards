@@ -71,7 +71,7 @@ export abstract class SystemState extends Schema {
 
     @range([0, 1])
     @tweakable({ type: 'enum', enum: PowerLevel })
-    @commandable
+    @commandable()
     @gameField('float32')
     public power = PowerLevel.MAX;
 

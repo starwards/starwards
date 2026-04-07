@@ -5,6 +5,12 @@ import { expect } from 'chai';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
+// Build a single IterationData tick. ShipManagerAbstract.update takes
+// `IterationData`, not a raw delta number.
+function tick(totalSeconds: number, deltaSeconds = 1 / 60) {
+    return { deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds };
+}
+
 // Lock in the source-of-truth invariant: writes to ship.state.{position,
 // velocity, angle, turnSpeed} are silently overwritten on the next tick by
 // syncShipProperties. The corresponding ESLint rule
@@ -30,7 +36,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
     it('overwrites direct ship.state.angle writes from the SpaceObject every tick', () => {
         const { shipMgr, shipObj } = makeManager();
         shipObj.angle = 42;
-        shipMgr.update(1 / 60);
+        shipMgr.update(tick(1 / 60));
         expect(shipMgr.state.angle).to.be.closeTo(42, 1);
 
         // Now violate the invariant by writing directly into ship.state.
@@ -39,7 +45,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         (shipMgr.state as unknown as Record<string, number>)['angle'] = 999;
 
         // The next tick should snap angle back from the SpaceObject.
-        shipMgr.update(1 / 60);
+        shipMgr.update(tick(1 / 60));
         expect(shipMgr.state.angle).to.be.closeTo(shipObj.angle, 1);
         expect(shipMgr.state.angle).to.not.equal(999);
     });
@@ -48,7 +54,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         const { shipMgr, shipObj } = makeManager();
         shipObj.position.x = 100;
         shipObj.position.y = 200;
-        shipMgr.update(1 / 60);
+        shipMgr.update(tick(1 / 60));
         expect(shipMgr.state.position.x).to.be.closeTo(100, 1);
         expect(shipMgr.state.position.y).to.be.closeTo(200, 1);
 
@@ -56,7 +62,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         shipMgr.state.position.x = -50;
         shipMgr.state.position.y = -75;
 
-        shipMgr.update(1 / 60);
+        shipMgr.update(tick(1 / 60));
         expect(shipMgr.state.position.x).to.be.closeTo(shipObj.position.x, 1);
         expect(shipMgr.state.position.y).to.be.closeTo(shipObj.position.y, 1);
     });
@@ -65,7 +71,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         const { shipMgr, shipObj } = makeManager();
         shipObj.radius = 123;
         shipObj.radarRange = 456;
-        shipMgr.update(1 / 60);
+        shipMgr.update(tick(1 / 60));
         expect(shipMgr.state.radius).to.equal(123);
         expect(shipMgr.state.radarRange).to.equal(456);
     });
