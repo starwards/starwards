@@ -30,9 +30,12 @@ State sync invariants:
 
 Remote command surface:
 
-- [ ] Any property a client must remotely write is marked `@commandable`.
-      I understand non-`@commandable` `@gameField`s are intentionally
-      rejected by the JSON Pointer setter. See `docs/json-ptr.md`.
+- [ ] Any property a client must remotely write is either marked
+      `@commandable()`, annotated `@tweakable` (GM tweak panel), or on a
+      `DesignState` subclass (GM design-state panel). I understand that
+      bare `@gameField`s outside those three categories are intentionally
+      rejected by the JSON Pointer setter. See
+      `docs/json-ptr.md` "GM direct-control surface".
 
 Public API:
 

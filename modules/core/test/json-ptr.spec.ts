@@ -1,8 +1,10 @@
 import { JsonPointer, getJsonPointer, isJsonPointer } from '../src/json-ptr';
 import { commandable, gameField } from '../src/game-field';
 
+import { DesignState } from '../src/ship/system';
 import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
+import { tweakable } from '../src/tweakable';
 
 // These tests lock in the @commandable whitelist behavior introduced in PR2.
 // They are intentionally framework-light: pure Schema instances, no Colyseus
@@ -95,6 +97,99 @@ describe('JsonPointer @commandable whitelist', () => {
             }
             expect(t.forbidden).to.equal(11);
         });
+    });
+});
+
+// These tests cover the "GM direct-control surface" arm of the whitelist.
+// The GM tweak panel (`modules/browser/src/widgets/tweak.ts`) and
+// design-state panel (`modules/browser/src/widgets/design-state.ts`) wire
+// @tweakable fields and DesignState subclass fields directly to JSON
+// Pointer writes. The whitelist admits those categories implicitly so the
+// GM panels keep working without annotating ~50 tweakables with
+// @commandable() one by one. See docs/json-ptr.md "GM direct-control
+// surface" section.
+describe('JsonPointer GM direct-control surface', () => {
+    class GmSurface extends Schema {
+        @tweakable('number')
+        @gameField('float32')
+        tweakOnly = 0;
+
+        @gameField('float32')
+        bareGameField = 0;
+    }
+
+    class GmSurfaceChild extends GmSurface {
+        // Inherits `tweakOnly` from the parent class.
+    }
+
+    class MyDesignState extends DesignState {
+        @gameField('float32')
+        param = 0;
+
+        @gameField('float32')
+        other = 0;
+    }
+
+    // A regression guard for the static-marker detection: a sibling class
+    // that does NOT extend DesignState but coincidentally has the same
+    // static property name set on the instance must NOT be treated as a
+    // DesignState.
+    class Imposter extends Schema {
+        static readonly isStarwardsDesignState = false; // explicitly NOT the marker
+        @gameField('float32')
+        bareField = 0;
+    }
+
+    const previousStrict = process.env.STARWARDS_STRICT_CMD;
+    beforeAll(() => {
+        process.env.STARWARDS_STRICT_CMD = '1';
+    });
+    afterAll(() => {
+        if (previousStrict === undefined) {
+            delete process.env.STARWARDS_STRICT_CMD;
+        } else {
+            process.env.STARWARDS_STRICT_CMD = previousStrict;
+        }
+    });
+
+    it('accepts writes to @tweakable fields even without @commandable()', () => {
+        const t = new GmSurface();
+        JsonPointer.create('/tweakOnly').set(t, 5);
+        expect(t.tweakOnly).to.equal(5);
+    });
+
+    it('still rejects bare @gameField properties (regression guard)', () => {
+        const t = new GmSurface();
+        expect(() => JsonPointer.create('/bareGameField').set(t, 9)).to.throw(/non-@commandable/);
+        expect(t.bareGameField).to.equal(0);
+    });
+
+    it('inherits @tweakable through a Schema subclass chain', () => {
+        const t = new GmSurfaceChild();
+        JsonPointer.create('/tweakOnly').set(t, 3);
+        expect(t.tweakOnly).to.equal(3);
+    });
+
+    it('accepts writes to any field on a DesignState subclass', () => {
+        const t = new MyDesignState();
+        JsonPointer.create('/param').set(t, 7);
+        JsonPointer.create('/other').set(t, 11);
+        expect(t.param).to.equal(7);
+        expect(t.other).to.equal(11);
+    });
+
+    it('detects DesignState via the static marker on the constructor', () => {
+        const t = new MyDesignState();
+        // The check looks at the runtime constructor; the marker is
+        // inherited through `extends` so any concrete DesignState subclass
+        // carries it automatically.
+        expect((t.constructor as { isStarwardsDesignState?: boolean }).isStarwardsDesignState).to.equal(true);
+    });
+
+    it('does NOT treat a non-DesignState sibling as a DesignState', () => {
+        const t = new Imposter();
+        expect(() => JsonPointer.create('/bareField').set(t, 2)).to.throw(/non-@commandable/);
+        expect(t.bareField).to.equal(0);
     });
 });
 

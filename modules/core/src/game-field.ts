@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 import { DefinitionType, Schema, type } from '@colyseus/schema';
 
+import { hasTweakableMetadata } from './tweakable';
+
 /**
  * Marker symbol used to record the set of fields a Schema subclass exposes
  * to the JSON Pointer command surface. The set is stored on the
@@ -54,15 +56,68 @@ export function commandable(): PropertyDecorator {
 }
 
 /**
- * Returns true if `field` is marked `@commandable` on the runtime class of
- * `instance` (or any superclass thereof). Walks the prototype chain so that
- * subclasses inherit parent allowlists.
+ * Detects whether `instance` is a `DesignState` subclass *without* importing
+ * the `DesignState` class itself. We rely on the `isStarwardsDesignState`
+ * static marker stamped onto `ship/system.ts:DesignState`. JavaScript
+ * inherits class statics through `extends`, so every concrete
+ * `FooDesignState` carries the marker for free.
+ *
+ * The indirection exists to avoid a dependency cycle: `range.ts` already
+ * imports from `json-ptr.ts`, and `ship/system.ts` imports `../range` and
+ * `../game-field`, so any direct `game-field → ship/system` edge would
+ * close the loop through `range.ts`.
+ */
+function isDesignStateInstance(instance: object): boolean {
+    const ctor = (instance as { constructor?: { isStarwardsDesignState?: boolean } }).constructor;
+    return ctor?.isStarwardsDesignState === true;
+}
+
+/**
+ * Returns true if `field` may be written via the JSON Pointer command
+ * surface (`JsonPointer.set` / `handleJsonPointerCommand`). Three
+ * independent categories qualify:
+ *
+ *   1. `@commandable()` — explicit player command surface. Grep-able catalog
+ *      of intentional remote writes.
+ *   2. `@tweakable` metadata — the GM tweak panel (`modules/browser/src/
+ *      widgets/tweak.ts`) wires every `@tweakable` field to a write handle,
+ *      so every `@tweakable` field is implicitly part of the command
+ *      surface.
+ *   3. `DesignState` subclasses — the GM design-state panel
+ *      (`modules/browser/src/widgets/design-state.ts`) walks every field of
+ *      any `DesignState` instance dynamically, so every such field is
+ *      implicitly writable.
+ *
+ * Limitation: today's `ShipRoom` has no connection-level GM/player
+ * distinction, so this predicate cannot gate writes per-client. A
+ * malicious *player* client can still invoke anything in categories 2 or 3.
+ * That gap is tracked as Phase C in docs/maintainers.md. The value of the
+ * whitelist in the current architecture is accidental-exposure protection:
+ * a contributor who adds a bare `@gameField` for sync purposes does NOT
+ * get a wire-write handle for free.
+ *
+ * See `docs/json-ptr.md`.
  */
 export function isCommandable(instance: object, field: string | number | symbol): boolean {
     if (instance === null || typeof instance !== 'object') {
         return false;
     }
+
+    // Clause 3: DesignState subclass — the GM design-state panel needs
+    // every field on any such instance to be writable.
+    if (isDesignStateInstance(instance)) {
+        return true;
+    }
+
     const fieldStr = String(field);
+
+    // Clause 2: @tweakable metadata — the GM tweak panel enumerates these.
+    if (hasTweakableMetadata(instance, fieldStr)) {
+        return true;
+    }
+
+    // Clause 1: @commandable() — explicit player command surface. Walk the
+    // prototype chain so subclasses inherit parent allowlists.
     let proto = Object.getPrototypeOf(instance) as object | null;
     while (proto && proto !== Object.prototype) {
         const ctor = proto.constructor as SchemaCtor | undefined;

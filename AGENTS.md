@@ -26,11 +26,17 @@ intentionally short so it stays in sync; the real content lives in
   `ship.state.position/velocity/angle` are silently overwritten by
   `syncShipProperties` every tick. This is enforced by an ESLint rule.
 - **`@gameField` is the innermost decorator.** Order is `@range →
-  @tweakable → @commandable → @gameField` (top to bottom). Reordering
+@tweakable → @commandable → @gameField` (top to bottom). Reordering
   silently breaks Colyseus type setup. Enforced by an ESLint rule.
-- **Remote-writable properties must be `@commandable`.** A bare `@gameField`
-  is broadcast to clients but rejected by the JSON Pointer setter. See
-  `modules/core/src/game-field.ts` and `docs/json-ptr.md`.
+- **Remote-writable properties must be `@commandable()`** (for player
+  command surface), `@tweakable` (which is implicitly commandable because
+  the GM tweak panel writes it), or on a `DesignState` subclass (which is
+  implicitly commandable because the GM design-state panel writes every
+  field). A bare `@gameField` that is none of these is broadcast to
+  clients but rejected by the JSON Pointer setter. See
+  `modules/core/src/game-field.ts` and `docs/json-ptr.md` — the
+  "GM direct-control surface" section explains the three admission
+  clauses.
 - **Do not add exports to `modules/core/src/index.public.ts`** without
   explicit reviewer approval. Internal symbols live in `index.internal.ts`
   and are reached via `@starwards/core/internal` (see
