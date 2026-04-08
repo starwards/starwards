@@ -1,44 +1,10 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 
-import { isCommandable } from './game-field';
+import { isCommandable, isCommandableFromAncestor } from './game-field';
 
 const jsonPtrRegexp = /^(\/(([^/~])|(~[01]))*)*$/g;
 export type JsonStringPointer = string;
 const cache = new Map<string, JsonPointer>();
-
-/**
- * Returns true when the running process should reject (throw on)
- * non-`@commandable` writes through the JSON Pointer setter.
- *
- * Phase A (current): warn-only by default; CI sets `STARWARDS_STRICT_CMD=1`
- * so any forgotten `@commandable` fails the build, while a deployed
- * server keeps booting in warn mode for one release window.
- *
- * Phase B (follow-up PR): drop the env-var branch and throw
- * unconditionally.
- */
-function isStrictCommandableMode(): boolean {
-    // Read from globalThis to avoid pulling @types/node into core, which is
-    // designed to be runtime-agnostic. In the browser, `process` is undefined
-    // and the function returns false (warn-only mode).
-    const proc = (globalThis as { process?: { env?: { STARWARDS_STRICT_CMD?: string } } }).process;
-    return !!proc && !!proc.env && proc.env.STARWARDS_STRICT_CMD === '1';
-}
-
-const warnedCommandable = new Set<string>();
-function warnNonCommandable(ctorName: string, field: string): void {
-    const key = `${ctorName}.${field}`;
-    if (warnedCommandable.has(key)) {
-        return;
-    }
-    warnedCommandable.add(key);
-    // eslint-disable-next-line no-console
-    console.warn(
-        `[starwards] JSON Pointer write to non-@commandable field ${key}. ` +
-            `In a future release this will throw. Mark the field with @commandable ` +
-            `(see modules/core/src/game-field.ts) or audit the call site.`,
-    );
-}
 
 export function isJsonPointer(ptr: unknown): ptr is JsonStringPointer {
     jsonPtrRegexp.lastIndex = 0; // reset regexp state
@@ -155,10 +121,14 @@ export class JsonPointer {
             throw new Error('Cannot set root object');
         }
 
+        // Track each Schema ancestor as we traverse so the commandable
+        // ancestor walk can check descendant-admission metadata on them.
+        const ancestors: unknown[] = [];
         let current: unknown = target;
 
         // Traverse all path segments except the last one
         for (let i = 0; i < this.path.length - 1; i++) {
+            ancestors.push(current); // capture before step — ancestors[i] has property this.path[i]
             const segment = this.path[i];
 
             if (current instanceof MapSchema) {
@@ -198,19 +168,31 @@ export class JsonPointer {
         } else if (current instanceof ArraySchema) {
             throw new Error('Cannot set property on ArraySchema - target should be an element in the array');
         } else if (current instanceof Schema) {
-            // Whitelist guard: only `@commandable` fields may be written
-            // remotely. See `commandable` in game-field.ts. The intent is
-            // that arbitrary `@gameField`s are sync-only (server -> client)
-            // and not part of the client -> server command surface.
+            // Whitelist guard: only admitted fields may be written remotely.
+            // Admission is checked in three ways (see isCommandable in game-field.ts):
+            //   1. @commandable() — explicit player command surface
+            //   2. @tweakable — GM tweak panel
+            //   3. DesignState subclass — GM design-state panel
+            // Plus a fourth path: @commandable({ '/x': true }) on an ancestor
+            // property admits writes to a specific descendant sub-pointer.
             if (!isCommandable(current, finalSegment)) {
-                const ctorName = current.constructor?.name ?? 'Schema';
-                if (isStrictCommandableMode()) {
+                // Walk ancestors for descendant-path admission.
+                let admitted = false;
+                for (let i = ancestors.length - 1; !admitted && i >= 0; i--) {
+                    const ancestor = ancestors[i];
+                    const propertyKey = this.path[i];
+                    if (ancestor instanceof Schema && typeof propertyKey === 'string') {
+                        const descendantPath = ['', ...this.path.slice(i + 1)].join('/');
+                        admitted = isCommandableFromAncestor(ancestor, propertyKey, descendantPath);
+                    }
+                }
+                if (!admitted) {
+                    const ctorName = current.constructor?.name ?? 'Schema';
                     throw new Error(
                         `Refusing to write non-@commandable field ${ctorName}.${String(finalSegment)} ` +
                             `via JSON Pointer ${this.pointer}.`,
                     );
                 }
-                warnNonCommandable(ctorName, String(finalSegment));
             }
             previousValue = Reflect.get(current, finalSegment);
             // Use Reflect.set to ensure we go through the setter

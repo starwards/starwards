@@ -64,42 +64,23 @@ now, maintainers must enforce manually and respect the label.)
 the GitHub org and add maintainers to it. Until then, replace the team
 with explicit `@username` entries so reviews are actually requested.
 
-## Phase C — connection-level GM/player split (queued)
+## Non-goal: malicious-player isolation
 
-The `@commandable()` whitelist introduced in PR #1869 admits three
-categories of wire-writable fields:
+The `@commandable()` whitelist is **accidental-exposure protection**, not
+adversarial-player containment.
 
-1. `@commandable()` — explicit player command surface.
-2. `@tweakable` metadata — GM tweak panel writes.
-3. `DesignState` subclass fields — GM design-state panel writes.
+Today's `ShipRoom` (`modules/server/src/ship/room.ts`) has no
+connection-level GM-vs-player identity: GM and players join the same room
+and send through the same `onMessage('*')` handler. The whitelist's
+GM-side admissions (`@tweakable` + `DesignState`) are therefore reachable
+from any client — a determined attacker can abuse the GM tweak surface
+from a player seat.
 
-Categories 2 and 3 exist because the GM tweak and design-state panels
-are the game-running tooling and need direct control over state during
-a live session. Today's `ShipRoom`
-(`modules/server/src/ship/room.ts`) has **no** connection-level
-GM-vs-player identity: GM and players join the same room and send
-through the same `onMessage('*')` handler, so the whitelist's GM
-admissions are equally reachable from a malicious player client.
-
-Phase C closes that gap:
-
-1. **`ShipRoom.onAuth(client, options)`** — accept a session token or
-   query parameter identifying the client as `gm` or `player`. Persist
-   on `client.userData`.
-2. **Role-aware `handleJsonPointerCommand`** — when the message comes
-   from a `player` client, run the current full-strength `isCommandable`
-   check; when it comes from a `gm` client, bypass the whitelist
-   entirely. Either implement by passing the role through the
-   `onMessage('*')` callback (Colyseus gives the client identity
-   there), or by moving GM writes to a distinct message type that only
-   GM connections handle.
-3. **Client-side plumbing** — thread the role through the lobby React
-   client (`modules/browser/src/components/lobby.tsx`) and each
-   station's `joinOrCreate` call in `modules/core/src/client/`.
-4. **Server-side enforcement** — reject `player` connections that
-   attempt to claim `gm` without the correct session token.
-
-Phase C is intentionally **out of scope for PR #1869** because the
-scope crosses server, client, and lobby auth, and because landing it
-incorrectly (e.g., making a player silently effective as a GM) is
-worse than the current warn-only posture. Track as a separate PR.
+This is an **accepted limitation** of the current architecture. The value
+of the whitelist is that a contributor who adds a bare `@gameField` for
+sync purposes does NOT get an accidental wire-write handle for free.
+Closing the adversarial gap would require a connection-level role split
+(`ShipRoom.onAuth`, distinct message channels, or session tokens) — a
+scope that touches server, lobby, and every station screen. Starwards is
+a LARP prop used among trusted players; that cost is not justified by the
+threat model.

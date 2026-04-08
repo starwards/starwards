@@ -30,12 +30,12 @@ State sync invariants:
 
 Remote command surface:
 
-- [ ] Any property a client must remotely write is either marked
-      `@commandable()`, annotated `@tweakable` (GM tweak panel), or on a
-      `DesignState` subclass (GM design-state panel). I understand that
-      bare `@gameField`s outside those three categories are intentionally
-      rejected by the JSON Pointer setter. See
-      `docs/json-ptr.md` "GM direct-control surface".
+- [ ] Any property a client must remotely write satisfies one of four
+      admission clauses: `@commandable()` (leaf), `@commandable({ '/x': true })`
+      on a parent property (nested Schema descendant), `@tweakable` (GM tweak
+      panel), or `DesignState` subclass (GM design-state panel). Bare
+      `@gameField`s outside those clauses are **always rejected** (no
+      warn-only mode). See `docs/json-ptr.md`.
 
 Public API:
 

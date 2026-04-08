@@ -1,7 +1,7 @@
 import { DesignState, SystemState, defectible } from './system';
 
 import { EPSILON } from '../logic';
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -54,6 +54,7 @@ export class Docking extends SystemState {
     rangesFactor = 1;
 
     // server only, used for commands
+    @commandable()
     public toggleCommand = false;
 
     get maxDockingDistance() {

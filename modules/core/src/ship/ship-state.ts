@@ -17,7 +17,7 @@ import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {
@@ -123,10 +123,12 @@ export class ShipState extends Spaceship {
     strafe = 0;
 
     @range([0, 1])
+    @commandable()
     @gameField('float32')
     antiDrift = 0;
 
     @range([0, 1])
+    @commandable()
     @gameField('float32')
     breaks = 0;
 
@@ -150,9 +152,12 @@ export class ShipState extends Spaceship {
     hullDamaged = false;
 
     // server only, used for commands
+    @commandable()
     @range([0, 1])
     public afterBurnerCommand = 0;
+    @commandable()
     public rotationModeCommand = false;
+    @commandable()
     public maneuveringModeCommand = false;
 
     @range([0, 360])

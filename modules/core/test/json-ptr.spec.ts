@@ -1,16 +1,14 @@
 import { JsonPointer, getJsonPointer, isJsonPointer } from '../src/json-ptr';
-import { commandable, gameField } from '../src/game-field';
+import { CommandablePaths, commandable, commandableSchema, gameField, isCommandableFromAncestor } from '../src/game-field';
 
 import { DesignState } from '../src/ship/system';
 import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
 import { tweakable } from '../src/tweakable';
 
-// These tests lock in the @commandable whitelist behavior introduced in PR2.
+// These tests lock in the @commandable whitelist behavior.
 // They are intentionally framework-light: pure Schema instances, no Colyseus
-// rooms, no game state. This makes the failure mode (someone removed the
-// whitelist or moved Reflect.set out from under the isCommandable guard)
-// crystal clear in the diff.
+// rooms, no game state. Strict mode is always active — there is no warn-only path.
 
 describe('JsonPointer @commandable whitelist', () => {
     class WriteableThing extends Schema {
@@ -28,75 +26,34 @@ describe('JsonPointer @commandable whitelist', () => {
         subOnly = 0;
     }
 
-    describe('strict mode', () => {
-        const previousStrict = process.env.STARWARDS_STRICT_CMD;
-        beforeAll(() => {
-            process.env.STARWARDS_STRICT_CMD = '1';
-        });
-        afterAll(() => {
-            if (previousStrict === undefined) {
-                delete process.env.STARWARDS_STRICT_CMD;
-            } else {
-                process.env.STARWARDS_STRICT_CMD = previousStrict;
-            }
-        });
-
-        it('allows writes to @commandable fields', () => {
-            const t = new WriteableThing();
-            JsonPointer.create('/allowed').set(t, 7);
-            expect(t.allowed).to.equal(7);
-        });
-
-        it('throws on writes to bare @gameField properties', () => {
-            const t = new WriteableThing();
-            expect(() => JsonPointer.create('/forbidden').set(t, 7)).to.throw(/non-@commandable/);
-            expect(t.forbidden).to.equal(0);
-        });
-
-        it('inherits @commandable allowlist from parent class', () => {
-            const t = new Subclass();
-            JsonPointer.create('/allowed').set(t, 3);
-            JsonPointer.create('/subOnly').set(t, 4);
-            expect(t.allowed).to.equal(3);
-            expect(t.subOnly).to.equal(4);
-        });
-
-        it('still rejects parent forbidden field on a subclass', () => {
-            const t = new Subclass();
-            expect(() => JsonPointer.create('/forbidden').set(t, 9)).to.throw(/non-@commandable/);
-        });
-
-        it('subclass @commandable additions do NOT leak to parent class', () => {
-            const parent = new WriteableThing();
-            // `subOnly` only exists on Subclass; on a parent instance it isn't
-            // even a property, so we just confirm the parent's forbidden set
-            // didn't grow.
-            expect(() => JsonPointer.create('/forbidden').set(parent, 1)).to.throw();
-        });
+    it('allows writes to @commandable fields', () => {
+        const t = new WriteableThing();
+        JsonPointer.create('/allowed').set(t, 7);
+        expect(t.allowed).to.equal(7);
     });
 
-    describe('warn-only mode (STARWARDS_STRICT_CMD unset)', () => {
-        const previousStrict = process.env.STARWARDS_STRICT_CMD;
-        beforeAll(() => {
-            delete process.env.STARWARDS_STRICT_CMD;
-        });
-        afterAll(() => {
-            if (previousStrict !== undefined) {
-                process.env.STARWARDS_STRICT_CMD = previousStrict;
-            }
-        });
+    it('throws on writes to bare @gameField properties', () => {
+        const t = new WriteableThing();
+        expect(() => JsonPointer.create('/forbidden').set(t, 7)).to.throw(/non-@commandable/);
+        expect(t.forbidden).to.equal(0);
+    });
 
-        it('writes to non-@commandable still go through (warn only)', () => {
-            const t = new WriteableThing();
-            // Suppress the console.warn for this case so the test runner output stays clean.
-            const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-            try {
-                JsonPointer.create('/forbidden').set(t, 11);
-            } finally {
-                warnSpy.mockRestore();
-            }
-            expect(t.forbidden).to.equal(11);
-        });
+    it('inherits @commandable allowlist from parent class', () => {
+        const t = new Subclass();
+        JsonPointer.create('/allowed').set(t, 3);
+        JsonPointer.create('/subOnly').set(t, 4);
+        expect(t.allowed).to.equal(3);
+        expect(t.subOnly).to.equal(4);
+    });
+
+    it('still rejects parent forbidden field on a subclass', () => {
+        const t = new Subclass();
+        expect(() => JsonPointer.create('/forbidden').set(t, 9)).to.throw(/non-@commandable/);
+    });
+
+    it('subclass @commandable additions do NOT leak to parent class', () => {
+        const parent = new WriteableThing();
+        expect(() => JsonPointer.create('/forbidden').set(parent, 1)).to.throw();
     });
 });
 
@@ -104,10 +61,8 @@ describe('JsonPointer @commandable whitelist', () => {
 // The GM tweak panel (`modules/browser/src/widgets/tweak.ts`) and
 // design-state panel (`modules/browser/src/widgets/design-state.ts`) wire
 // @tweakable fields and DesignState subclass fields directly to JSON
-// Pointer writes. The whitelist admits those categories implicitly so the
-// GM panels keep working without annotating ~50 tweakables with
-// @commandable() one by one. See docs/json-ptr.md "GM direct-control
-// surface" section.
+// Pointer writes. The whitelist admits those categories implicitly.
+// See docs/json-ptr.md "GM direct-control surface" section.
 describe('JsonPointer GM direct-control surface', () => {
     class GmSurface extends Schema {
         @tweakable('number')
@@ -130,27 +85,14 @@ describe('JsonPointer GM direct-control surface', () => {
         other = 0;
     }
 
-    // A regression guard for the static-marker detection: a sibling class
-    // that does NOT extend DesignState but coincidentally has the same
-    // static property name set on the instance must NOT be treated as a
-    // DesignState.
+    // Regression guard: a sibling class that does NOT extend DesignState but
+    // coincidentally has `isStarwardsDesignState = false` must NOT be treated
+    // as a DesignState.
     class Imposter extends Schema {
-        static readonly isStarwardsDesignState = false; // explicitly NOT the marker
+        static readonly isStarwardsDesignState = false;
         @gameField('float32')
         bareField = 0;
     }
-
-    const previousStrict = process.env.STARWARDS_STRICT_CMD;
-    beforeAll(() => {
-        process.env.STARWARDS_STRICT_CMD = '1';
-    });
-    afterAll(() => {
-        if (previousStrict === undefined) {
-            delete process.env.STARWARDS_STRICT_CMD;
-        } else {
-            process.env.STARWARDS_STRICT_CMD = previousStrict;
-        }
-    });
 
     it('accepts writes to @tweakable fields even without @commandable()', () => {
         const t = new GmSurface();
@@ -180,9 +122,6 @@ describe('JsonPointer GM direct-control surface', () => {
 
     it('detects DesignState via the static marker on the constructor', () => {
         const t = new MyDesignState();
-        // The check looks at the runtime constructor; the marker is
-        // inherited through `extends` so any concrete DesignState subclass
-        // carries it automatically.
         expect((t.constructor as { isStarwardsDesignState?: boolean }).isStarwardsDesignState).to.equal(true);
     });
 
@@ -190,6 +129,102 @@ describe('JsonPointer GM direct-control surface', () => {
         const t = new Imposter();
         expect(() => JsonPointer.create('/bareField').set(t, 2)).to.throw(/non-@commandable/);
         expect(t.bareField).to.equal(0);
+    });
+});
+
+// These tests cover @commandable(descendants) and @commandableSchema —
+// the ancestor-walking admission pattern for nested Schema types.
+// Mirrors the @range / @rangeSchema mechanism in range.ts.
+describe('JsonPointer descendant admission (ancestor walk)', () => {
+    // A simple nested Schema (like Vec2).
+    class Point extends Schema {
+        @gameField('float32')
+        x = 0;
+
+        @gameField('float32')
+        y = 0;
+
+        @gameField('float32')
+        z = 0; // intentionally NOT admitted
+    }
+
+    // Container with property-level descendant admission.
+    class Container extends Schema {
+        @commandable({ '/x': true, '/y': true })
+        @gameField(Point)
+        pos: Point = new Point();
+
+        @gameField(Point)
+        otherPos: Point = new Point(); // no commandable annotation
+    }
+
+    // Container using class-level @commandableSchema.
+    @commandableSchema({ '/namedPos/x': true, '/namedPos/y': true })
+    class ClassLevelContainer extends Schema {
+        @gameField(Point)
+        namedPos: Point = new Point();
+    }
+
+    // Root → Container → Point traversal.
+    class Root extends Schema {
+        @commandable()
+        @gameField('float32')
+        topLevel = 0;
+
+        @gameField(Container)
+        nested: Container = new Container();
+    }
+
+    it('property-level @commandable({}) admits writes to named sub-paths', () => {
+        const c = new Container();
+        JsonPointer.create('/pos/x').set(c, 3);
+        JsonPointer.create('/pos/y').set(c, 4);
+        expect(c.pos.x).to.be.closeTo(3, 0.01);
+        expect(c.pos.y).to.be.closeTo(4, 0.01);
+    });
+
+    it('property-level @commandable({}) does NOT admit unlisted sub-paths', () => {
+        const c = new Container();
+        expect(() => JsonPointer.create('/pos/z').set(c, 5)).to.throw(/non-@commandable/);
+        expect(c.pos.z).to.equal(0);
+    });
+
+    it('a property with no descendant annotation still rejects sub-path writes', () => {
+        const c = new Container();
+        expect(() => JsonPointer.create('/otherPos/x').set(c, 1)).to.throw(/non-@commandable/);
+    });
+
+    it('@commandableSchema class-level admits writes through named descendant path', () => {
+        const clc = new ClassLevelContainer();
+        JsonPointer.create('/namedPos/x').set(clc, 7);
+        JsonPointer.create('/namedPos/y').set(clc, 8);
+        expect(clc.namedPos.x).to.be.closeTo(7, 0.01);
+        expect(clc.namedPos.y).to.be.closeTo(8, 0.01);
+    });
+
+    it('@commandableSchema does NOT admit paths not listed', () => {
+        const clc = new ClassLevelContainer();
+        expect(() => JsonPointer.create('/namedPos/z').set(clc, 9)).to.throw(/non-@commandable/);
+    });
+
+    it('ancestor walk succeeds through a two-level path (root → nested → pos → x)', () => {
+        const r = new Root();
+        // /nested/pos/x: Container has @commandable({ '/x':true }) on pos
+        JsonPointer.create('/nested/pos/x').set(r, 2);
+        expect(r.nested.pos.x).to.be.closeTo(2, 0.01);
+    });
+
+    it('isCommandableFromAncestor reflects the stored metadata', () => {
+        const c = new Container();
+        const paths = { '/x': true, '/y': true } as CommandablePaths;
+        // The metadata is on the prototype, but Reflect.getMetadata walks
+        // the chain, so isCommandableFromAncestor should find it on an instance.
+        expect(isCommandableFromAncestor(c, 'pos', '/x')).to.equal(true);
+        expect(isCommandableFromAncestor(c, 'pos', '/y')).to.equal(true);
+        expect(isCommandableFromAncestor(c, 'pos', '/z')).to.equal(false);
+        // A property with no annotation at all returns false.
+        expect(isCommandableFromAncestor(c, 'otherPos', '/x')).to.equal(false);
+        void paths;
     });
 });
 

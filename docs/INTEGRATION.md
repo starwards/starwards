@@ -95,10 +95,17 @@ node-red
 **Configuration:**
 - Config: Select starwards-config node
 
+**⚠️ Whitelist:** Node-RED writes go through the same JSON Pointer
+admission check as browser clients. Only `@commandable`, `@tweakable`,
+or `DesignState` fields may be written. Writes to unannotated fields
+throw and are logged by `ShipRoom`. See `docs/json-ptr.md` for the full
+admission rules. When in doubt, check whether the target field carries
+`@tweakable` (most GM-facing fields do).
+
 **Input:**
 ```javascript
 {
-    topic: "/reactor/power",   // JSON Pointer path
+    topic: "/reactor/power",   // JSON Pointer path (must be admitted)
     payload: 0.5               // New value
 }
 ```

@@ -1,7 +1,7 @@
 import { DesignState, SystemState, defectible } from './system';
 
 import { Vec2 } from '../space';
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -51,13 +51,16 @@ export class SmartPilot extends SystemState {
     maneuveringMode = SmartPilotMode.DIRECT;
 
     @range([-1, 1])
+    @commandable()
     @gameField('float32')
     rotation = 0;
 
     @range([-1, 1])
+    @commandable()
     @gameField('float32')
     rotationTargetOffset = 0;
 
+    @commandable({ '/x': true, '/y': true })
     @range({ '/x': [-1, 1], '/y': [-1, 1] })
     @gameField(Vec2)
     maneuvering: Vec2 = new Vec2(0, 0);

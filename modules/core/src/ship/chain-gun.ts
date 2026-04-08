@@ -2,7 +2,7 @@ import { DesignState, SystemState, defectible } from './system';
 import { ProjectileModel, projectileModels } from '../space/projectile';
 
 import { SmartPilotMode } from './smart-pilot';
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
@@ -81,6 +81,7 @@ export class ChainGun extends SystemState {
     shellSecondsToLive = 0;
 
     @range([-1, 1])
+    @commandable()
     @gameField('float32')
     shellRange = 0; // just used for command, not for firing
 
@@ -115,6 +116,7 @@ export class ChainGun extends SystemState {
     design = new ChaingunDesignState();
 
     // server only, used for commands
+    @commandable()
     public changeProjectileCommand = false;
 
     get broken(): boolean {

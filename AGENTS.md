@@ -28,15 +28,18 @@ intentionally short so it stays in sync; the real content lives in
 - **`@gameField` is the innermost decorator.** Order is `@range →
 @tweakable → @commandable → @gameField` (top to bottom). Reordering
   silently breaks Colyseus type setup. Enforced by an ESLint rule.
-- **Remote-writable properties must be `@commandable()`** (for player
-  command surface), `@tweakable` (which is implicitly commandable because
-  the GM tweak panel writes it), or on a `DesignState` subclass (which is
-  implicitly commandable because the GM design-state panel writes every
-  field). A bare `@gameField` that is none of these is broadcast to
-  clients but rejected by the JSON Pointer setter. See
-  `modules/core/src/game-field.ts` and `docs/json-ptr.md` — the
-  "GM direct-control surface" section explains the three admission
-  clauses.
+- **Remote-writable properties must satisfy one of four admission clauses**
+  (see `docs/json-ptr.md`):
+  1. `@commandable()` — explicit player command surface.
+  2. `@commandable({ '/x': true, '/y': true })` on a parent property — admits
+     specific sub-pointers on a nested Schema type (e.g., Vec2 components).
+     Use `@commandableSchema({ '/prop/x': true })` at the class level for the
+     same effect. Both mirror the `@range` / `@rangeSchema` pattern.
+  3. `@tweakable` — implicitly commandable; the GM tweak panel writes it.
+  4. `DesignState` subclass — all fields implicitly commandable; the GM
+     design-state panel writes every field.
+  A bare `@gameField` that satisfies none of these is broadcast to clients
+  but **rejected** (throws) by the JSON Pointer setter.
 - **Do not add exports to `modules/core/src/index.public.ts`** without
   explicit reviewer approval. Internal symbols live in `index.internal.ts`
   and are reached via `@starwards/core/internal` (see
