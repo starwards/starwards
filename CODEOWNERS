@@ -1,0 +1,27 @@
+# CODEOWNERS — require maintainer review on load-bearing invariants.
+#
+# Lines later in the file take precedence. Add maintainer GitHub usernames
+# (or teams) after each pattern. Until usernames are filled in, GitHub
+# treats these patterns as unowned, so the @starwards/maintainers team
+# placeholder is used so branch protection rules can be wired up first
+# and the team membership filled in afterward.
+
+# Default fallback — anything not otherwise matched.
+*                                                @starwards/maintainers
+
+# Critical kernels (highest blast radius).
+/modules/core/src/json-ptr.ts                    @starwards/maintainers
+/modules/core/src/game-field.ts                  @starwards/maintainers
+/modules/core/src/ship/ship-manager-abstract.ts  @starwards/maintainers
+/modules/core/src/space/space-manager.ts         @starwards/maintainers
+/modules/server/src/ship/room.ts                 @starwards/maintainers
+
+# Build / CI / lint / docs / agent guidance.
+/.github/                                        @starwards/maintainers
+/eslint.config.mjs                               @starwards/maintainers
+/.dependency-cruiser.cjs                         @starwards/maintainers
+/CLAUDE.md                                       @starwards/maintainers
+/AGENTS.md                                       @starwards/maintainers
+/CODEOWNERS                                      @starwards/maintainers
+/docs/                                           @starwards/maintainers
+/.claude/skills/                                 @starwards/maintainers

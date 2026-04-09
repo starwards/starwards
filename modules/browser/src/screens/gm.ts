@@ -23,6 +23,7 @@ import { radarWidget } from '../widgets/radar';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
+import { targetInfoWidget } from '../widgets/target-info';
 import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
@@ -132,6 +133,7 @@ void driver.waitForGame().then(
             dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
             dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
             dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, shipId + ' docking');
+            dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver), {}, shipId + ' target info');
             dashboard.registerWidget(longRangeRadarWidget(spaceDriver, shipDriver), {}, shipId + ' long range radar');
             dashboard.setup();
         }

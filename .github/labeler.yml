@@ -1,0 +1,55 @@
+# Auto-label PRs based on touched paths so reviewers can triage quickly.
+# Consumed by .github/workflows/labeler.yml (actions/labeler@v5).
+
+'area:core':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'modules/core/**'
+
+'area:server':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'modules/server/**'
+
+'area:browser':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'modules/browser/**'
+
+'area:node-red':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'modules/node-red/**'
+
+'area:e2e':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'modules/e2e/**'
+
+'area:ci':
+    - changed-files:
+          - any-glob-to-any-file:
+                - '.github/**'
+                - 'eslint.config.mjs'
+                - '.dependency-cruiser.cjs'
+
+'area:docs':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'docs/**'
+                - 'CLAUDE.md'
+                - 'AGENTS.md'
+                - 'README.md'
+                - '.claude/skills/**'
+
+# Hotspot files: load-bearing invariants. Touching any of these
+# automatically applies risk:hotspot, which (per docs/maintainers.md)
+# requires an extra reviewer in branch protection settings.
+'risk:hotspot':
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'modules/core/src/json-ptr.ts'
+                - 'modules/core/src/game-field.ts'
+                - 'modules/core/src/ship/ship-manager-abstract.ts'
+                - 'modules/core/src/space/space-manager.ts'
+                - 'modules/server/src/ship/room.ts'

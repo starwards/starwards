@@ -1,7 +1,7 @@
 import { DesignState, SystemState, defectible } from './system';
+import { commandable, gameField } from '../game-field';
 
 import { EPSILON } from '../logic';
-import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -40,20 +40,21 @@ export class Docking extends SystemState {
     @gameField(DockingDesignState)
     design = new DockingDesignState();
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: DockingMode })
+    @gameField('int8')
     mode: DockingMode = DockingMode.UNDOCKED;
 
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public targetId = '';
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'range' })
+    @gameField('float32')
     rangesFactor = 1;
 
     // server only, used for commands
+    @commandable()
     public toggleCommand = false;
 
     get maxDockingDistance() {

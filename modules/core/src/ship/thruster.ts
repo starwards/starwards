@@ -44,31 +44,31 @@ export class Thruster extends SystemState {
     /**
      * the measure of current engine activity
      */
-    @gameField('float32')
     @range([0, 1])
+    @gameField('float32')
     active = 0;
     /**
      * the measure of current afterburner activity
      */
-    @gameField('float32')
     @range([0, 1])
+    @gameField('float32')
     afterBurnerActive = 0;
 
     /*
      *The direction of the thruster in relation to the ship. (in degrees, 0 is front)
      */
-    @gameField('float32')
     @range(shipDirectionRange)
+    @gameField('float32')
     angle = 0.0;
 
-    @gameField('float32')
     @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
     @defectible({ normal: 0, name: 'offset' })
+    @gameField('float32')
     angleError = 0.0;
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'capacity' })
+    @gameField('float32')
     availableCapacity = 1.0;
 
     get broken(): boolean {

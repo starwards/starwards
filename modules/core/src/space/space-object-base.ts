@@ -1,10 +1,11 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
+import { commandable, gameField } from '../game-field';
+
 import { Faction } from './faction';
 import { ScanLevel } from './scan-level';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
-import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -79,6 +80,7 @@ export abstract class SpaceObjectBase extends Schema {
      */
     @tweakable('number')
     @range([0, 360])
+    @commandable()
     @gameField('float32')
     public angle = 0;
 

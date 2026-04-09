@@ -5,7 +5,7 @@ import { Schema } from '@colyseus/schema';
 
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { allColyseusProperties } from '../traverse';
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 /* eslint-enable sort-imports */
@@ -13,6 +13,21 @@ import { tweakable } from '../tweakable';
 const defectiblePropertyMetadataKey = Symbol('defectible:propertyMetadata');
 
 export abstract class DesignState extends Schema {
+    /**
+     * Static marker consumed by `isCommandable` in `modules/core/src/game-field.ts`.
+     * JavaScript class statics are inherited through `extends`, so every
+     * concrete DesignState subclass (`ReactorDesignState`, `ChaingunDesignState`,
+     * …) carries this marker for free, and the GM design-state panel can
+     * write any field on any subclass through the JSON Pointer surface.
+     *
+     * This is a static marker (not an import of `DesignState` into
+     * `game-field.ts`) to avoid a dependency cycle: `range.ts` imports from
+     * `json-ptr.ts`, and `ship/system.ts` imports from `../range` and
+     * `../game-field`, so any `json-ptr → ship/system` or
+     * `game-field → ship/system` edge would close a cycle.
+     */
+    static readonly isStarwardsDesignState = true;
+
     keys() {
         // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
         /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
@@ -71,6 +86,7 @@ export abstract class SystemState extends Schema {
 
     @range([0, 1])
     @tweakable({ type: 'enum', enum: PowerLevel })
+    @commandable()
     @gameField('float32')
     public power = PowerLevel.MAX;
 

@@ -1,5 +1,7 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 
+import { isCommandable, isCommandableFromAncestor } from './game-field';
+
 const jsonPtrRegexp = /^(\/(([^/~])|(~[01]))*)*$/g;
 export type JsonStringPointer = string;
 const cache = new Map<string, JsonPointer>();
@@ -119,10 +121,14 @@ export class JsonPointer {
             throw new Error('Cannot set root object');
         }
 
+        // Track each Schema ancestor as we traverse so the commandable
+        // ancestor walk can check descendant-admission metadata on them.
+        const ancestors: unknown[] = [];
         let current: unknown = target;
 
         // Traverse all path segments except the last one
         for (let i = 0; i < this.path.length - 1; i++) {
+            ancestors.push(current); // capture before step — ancestors[i] has property this.path[i]
             const segment = this.path[i];
 
             if (current instanceof MapSchema) {
@@ -162,6 +168,32 @@ export class JsonPointer {
         } else if (current instanceof ArraySchema) {
             throw new Error('Cannot set property on ArraySchema - target should be an element in the array');
         } else if (current instanceof Schema) {
+            // Whitelist guard: only admitted fields may be written remotely.
+            // Admission is checked in three ways (see isCommandable in game-field.ts):
+            //   1. @commandable() — explicit player command surface
+            //   2. @tweakable — GM tweak panel
+            //   3. DesignState subclass — GM design-state panel
+            // Plus a fourth path: @commandable({ '/x': true }) on an ancestor
+            // property admits writes to a specific descendant sub-pointer.
+            if (!isCommandable(current, finalSegment)) {
+                // Walk ancestors for descendant-path admission.
+                let admitted = false;
+                for (let i = ancestors.length - 1; !admitted && i >= 0; i--) {
+                    const ancestor = ancestors[i];
+                    const propertyKey = this.path[i];
+                    if (ancestor instanceof Schema && typeof propertyKey === 'string') {
+                        const descendantPath = ['', ...this.path.slice(i + 1)].join('/');
+                        admitted = isCommandableFromAncestor(ancestor, propertyKey, descendantPath);
+                    }
+                }
+                if (!admitted) {
+                    const ctorName = current.constructor?.name ?? 'Schema';
+                    throw new Error(
+                        `Refusing to write non-@commandable field ${ctorName}.${String(finalSegment)} ` +
+                            `via JSON Pointer ${this.pointer}.`,
+                    );
+                }
+            }
             previousValue = Reflect.get(current, finalSegment);
             // Use Reflect.set to ensure we go through the setter
             Reflect.set(current, finalSegment, value);

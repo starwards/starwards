@@ -1,6 +1,7 @@
+import { commandable, gameField } from '../game-field';
+
 import { DesignState } from './system';
 import { Schema } from '@colyseus/schema';
-import { gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
 export type TargetingDesign = {
@@ -15,28 +16,31 @@ export class TargetingDesignState extends DesignState implements TargetingDesign
 }
 
 export class Targeting extends Schema {
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public targetId: string | null = null;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     public shipOnly = false;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     public enemyOnly = false;
 
-    @gameField('boolean')
     @tweakable('boolean')
+    @gameField('boolean')
     public shortRangeOnly = false;
 
     @gameField(TargetingDesignState)
     design = new TargetingDesignState();
 
     // server only, used for commands
+    @commandable()
     public nextTargetCommand = false;
+    @commandable()
     public prevTargetCommand = false;
+    @commandable()
     public clearTargetCommand = false;
 
     get range() {
