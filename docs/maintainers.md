@@ -64,6 +64,41 @@ now, maintainers must enforce manually and respect the label.)
 the GitHub org and add maintainers to it. Until then, replace the team
 with explicit `@username` entries so reviews are actually requested.
 
+## Follow-up work
+
+These items are independent of each other and can be tackled in any order.
+
+### 1. `modules/core` public/internal barrel split
+
+`modules/core/src/index.ts` re-exports everything — any consumer can
+import internal classes and break on refactors. The goal is to trim
+`index.ts` to externally-needed symbols only and move the rest to
+`index.internal.ts` (the file and the `exports` field in `package.json`
+already exist). `modules/server` and `modules/node-red` would import
+internals from `@starwards/core/internal`; `modules/browser` stays on
+`@starwards/core` (enforced by the dependency-cruiser rule
+`no-core-internal-from-browser`).
+
+### 2. Core kernel test backfill
+
+The highest-risk source files have thin or no dedicated test coverage:
+
+| File                       | LOC  | Tests today | What to cover                                                                                                       |
+| -------------------------- | ---- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `ship-manager-abstract.ts` | 281+ | 0 dedicated | `syncShipProperties` source-of-truth invariant; command-field reset (afterBurnerCommand, rotationModeCommand, etc.) |
+| `space-manager.ts`         | 695  | 4           | `setPosition`/`updateAABB` ordering; MapSchema delete semantics; object lifecycle add/remove                        |
+| `movement-manager.ts`      | 431  | 0 dedicated | Thrust vectors, brake, afterburner, dock alignment — pure math kernel                                               |
+| `chain-gun-manager.ts`     | 200  | 0 dedicated | Ammo decrement, cooldown, jam, reload state machine                                                                 |
+
+E2E gaps: `gm-screen.spec.ts` (GM station round-trip), `multi-client-sync.spec.ts` (two clients on same ship, one writes `@commandable` property, the other observes).
+
+### 3. Coverage ratchet
+
+The `coverage-core` CI job starts at 55% lines / 55% functions / 45%
+branches. After the test backfill above lands, bump the thresholds by
++5 points per release until diminishing returns. The thresholds live in
+`.github/workflows/ci-cd.yml` under the `coverage-core` job.
+
 ## Non-goal: malicious-player isolation
 
 The `@commandable()` whitelist is **accidental-exposure protection**, not
