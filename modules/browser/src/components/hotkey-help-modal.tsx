@@ -23,9 +23,7 @@ const overlayStyle: React.CSSProperties = {
 const panelStyle: React.CSSProperties = {
     position: 'relative',
     minWidth: '360px',
-    maxWidth: '600px',
-    maxHeight: '80vh',
-    overflowY: 'auto',
+    maxWidth: '90vw',
     padding: '32px',
     border: `1px solid ${hsl.primary.main(5)}`,
     backgroundColor: withAlpha(hsl.primary.main(10), 0.3),
@@ -106,6 +104,40 @@ export const HotkeyHelpModal: React.FC<HotkeyHelpModalProps> = ({ descriptions, 
     const gamepadAxes = descriptions.filter((d) => d.inputType === 'gamepad-axis');
     const hasGamepad = gamepadButtons.length > 0 || gamepadAxes.length > 0;
 
+    const renderRows = (items: InputDescription[], keyPrefix: string) =>
+        items.map((d, i) => (
+            <div key={`${keyPrefix}-${i}`} style={rowStyle}>
+                <span style={badgeStyle}>{d.input}</span>
+                <span style={labelStyle}>{d.label}</span>
+            </div>
+        ));
+
+    const keyboardSection = keyboard.length > 0 && (
+        <div>
+            {hasGamepad && <div style={sectionTitleStyle}>KEYBOARD</div>}
+            <div style={keyboard.length > 14 && !hasGamepad ? { columns: 2, columnGap: '32px' } : undefined}>
+                {renderRows(keyboard, 'kb')}
+            </div>
+        </div>
+    );
+
+    const gamepadSection = hasGamepad && (
+        <div>
+            {gamepadButtons.length > 0 && (
+                <>
+                    <div style={sectionTitleStyle}>GAMEPAD BUTTONS</div>
+                    {renderRows(gamepadButtons, 'gb')}
+                </>
+            )}
+            {gamepadAxes.length > 0 && (
+                <>
+                    <div style={sectionTitleStyle}>GAMEPAD AXES</div>
+                    {renderRows(gamepadAxes, 'ga')}
+                </>
+            )}
+        </div>
+    );
+
     return (
         <div style={overlayStyle} onClick={onClose}>
             <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
@@ -117,41 +149,10 @@ export const HotkeyHelpModal: React.FC<HotkeyHelpModalProps> = ({ descriptions, 
 
                 <h2 style={titleStyle}>CONTROLS</h2>
 
-                {keyboard.length > 0 && (
-                    <>
-                        {hasGamepad && <div style={sectionTitleStyle}>KEYBOARD</div>}
-                        {keyboard.map((d, i) => (
-                            <div key={`kb-${i}`} style={rowStyle}>
-                                <span style={badgeStyle}>{d.input}</span>
-                                <span style={labelStyle}>{d.label}</span>
-                            </div>
-                        ))}
-                    </>
-                )}
-
-                {gamepadButtons.length > 0 && (
-                    <>
-                        <div style={sectionTitleStyle}>GAMEPAD BUTTONS</div>
-                        {gamepadButtons.map((d, i) => (
-                            <div key={`gb-${i}`} style={rowStyle}>
-                                <span style={badgeStyle}>{d.input}</span>
-                                <span style={labelStyle}>{d.label}</span>
-                            </div>
-                        ))}
-                    </>
-                )}
-
-                {gamepadAxes.length > 0 && (
-                    <>
-                        <div style={sectionTitleStyle}>GAMEPAD AXES</div>
-                        {gamepadAxes.map((d, i) => (
-                            <div key={`ga-${i}`} style={rowStyle}>
-                                <span style={badgeStyle}>{d.input}</span>
-                                <span style={labelStyle}>{d.label}</span>
-                            </div>
-                        ))}
-                    </>
-                )}
+                <div style={hasGamepad ? { display: 'flex', gap: '40px', alignItems: 'flex-start' } : undefined}>
+                    {keyboardSection}
+                    {gamepadSection}
+                </div>
 
                 <div style={footerStyle}>PRESS SPACE TO CLOSE</div>
             </div>
