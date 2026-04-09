@@ -6,7 +6,7 @@ import {
     isJsonPointer,
     isSetValueCommand,
     spaceCommands,
-} from '@starwards/core';
+} from '@starwards/core/internal';
 
 import { Room } from '@colyseus/core';
 

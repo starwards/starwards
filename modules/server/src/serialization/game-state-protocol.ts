@@ -1,5 +1,5 @@
 import { MapSchema, Schema } from '@colyseus/schema';
-import { ShipState, SpaceState, gameField } from '@starwards/core';
+import { ShipState, SpaceState, gameField } from '@starwards/core/internal';
 
 /**
  * this class is designed to serialize and de-serialize game state

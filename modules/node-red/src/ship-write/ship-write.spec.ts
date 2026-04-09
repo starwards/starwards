@@ -5,7 +5,7 @@ import { ShipWriteNode } from './ship-write';
 import helper from 'node-red-node-test-helper';
 import { makeDriver } from '@starwards/server/src/test/driver';
 import { maps } from '@starwards/server';
-import { waitFor } from '@starwards/core';
+import { waitFor } from '@starwards/core/internal';
 
 const { test_map_1 } = maps;
 

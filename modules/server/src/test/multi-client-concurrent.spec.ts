@@ -1,4 +1,4 @@
-import { PowerLevel, sleep } from '@starwards/core';
+import { PowerLevel, sleep } from '@starwards/core/internal';
 
 import { makeMultiClientDriver } from './multi-client-driver';
 import supertest from 'supertest';

@@ -1,4 +1,4 @@
-import { AdminState } from '@starwards/core';
+import { AdminState } from '@starwards/core/internal';
 import { GameManager } from './game-manager';
 import { Room } from '@colyseus/core';
 

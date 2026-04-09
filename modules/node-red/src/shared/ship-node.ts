@@ -1,4 +1,4 @@
-import { ClientStatus, Destructors, ShipDriver, Status, StatusInfo } from '@starwards/core';
+import { ClientStatus, Destructors, ShipDriver, Status, StatusInfo } from '@starwards/core/internal';
 import { Node, NodeAPI, NodeDef, NodeMessage, NodeMessageInFlow } from 'node-red';
 
 import { StarwardsConfigNode } from '../starwards-config/starwards-config';

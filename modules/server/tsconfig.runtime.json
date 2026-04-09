@@ -4,7 +4,10 @@
         "module": "commonjs",
         "outDir": "cjs",
         "experimentalDecorators": true,
-        "paths": { "@starwards/core": ["../core/cjs"] }
+        "paths": {
+            "@starwards/core": ["../core/cjs"],
+            "@starwards/core/internal": ["modules/core/cjs/index.internal"]
+        }
     },
     "exclude": ["node_modules", "src/**/*.spec.ts"]
 }

@@ -11,12 +11,12 @@
         "colyseus"
     ],
     "version": "0.5.1",
-    "main": "cjs/index.js",
-    "types": "cjs/index.d.ts",
+    "main": "cjs/index.public.js",
+    "types": "cjs/index.public.d.ts",
     "exports": {
         ".": {
-            "types": "./cjs/index.d.ts",
-            "default": "./cjs/index.js"
+            "types": "./cjs/index.public.d.ts",
+            "default": "./cjs/index.public.js"
         },
         "./internal": {
             "types": "./cjs/index.internal.d.ts",

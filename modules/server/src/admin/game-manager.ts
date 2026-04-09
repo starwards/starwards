@@ -18,7 +18,7 @@ import {
     makeShipState,
     shipConfigurations,
     waitFor,
-} from '@starwards/core';
+} from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
 import { matchMaker } from '@colyseus/core';
