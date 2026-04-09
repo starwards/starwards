@@ -19,12 +19,12 @@ export class ArmorDesignState extends DesignState implements ArmorDesign {
 }
 
 export class ArmorPlate extends Schema {
-    @gameField('float32')
     @range((t: ArmorPlate) => [0, t.maxHealth])
+    @gameField('float32')
     health!: number;
 
-    @gameField('float32')
     @range([0, MAX_SAFE_FLOAT])
+    @gameField('float32')
     maxHealth!: number;
 }
 

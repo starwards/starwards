@@ -71,12 +71,12 @@ export class Projectile extends SpaceObjectBase implements Craft {
     public health = 10;
     public _explosion?: Explosion;
 
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public targetId: string | null = null;
 
-    @gameField('string')
     @tweakable({ type: 'string enum', enum: projectileModels })
+    @gameField('string')
     public model: ProjectileModel = 'CannonShell';
 
     constructor(model?: ProjectileModel) {

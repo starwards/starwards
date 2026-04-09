@@ -39,9 +39,9 @@ export class Radar extends SystemState {
     /**
      * percent of the time in which the range is malfunctionRange
      */
-    @gameField('float32')
     @defectible({ normal: 0, name: 'range fluctuation' })
     @range((t: Radar) => [0, 1 - t.design.rangeEaseFactor * 2])
+    @gameField('float32')
     malfunctionRangeFactor = 0;
 
     get broken() {

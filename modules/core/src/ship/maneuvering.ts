@@ -32,14 +32,14 @@ export class Maneuvering extends SystemState {
     @gameField(ManeuveringDesignState)
     design = new ManeuveringDesignState();
 
-    @gameField('number')
     @range((t: Maneuvering) => [0, t.design.maxAfterBurnerFuel])
     @tweakable('number')
+    @gameField('number')
     afterBurnerFuel = 0;
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'efficiency' })
+    @gameField('float32')
     efficiency = 1;
 
     get broken() {

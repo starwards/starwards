@@ -1,8 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
 import { ProjectileModel, projectileModels } from '../space/projectile';
+import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
-import { gameField } from '../game-field';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
@@ -60,8 +60,8 @@ export class ChainGun extends SystemState {
     /*!
      *The direction of the gun in relation to the ship. (in degrees, 0 is front)
      */
-    @gameField('float32')
     @range(shipDirectionRange)
+    @gameField('float32')
     angle = 0;
 
     @tweakable('boolean')
@@ -72,49 +72,51 @@ export class ChainGun extends SystemState {
     @gameField('boolean')
     loadAmmo = true;
 
-    @gameField('float32')
     @range([0, 1])
+    @gameField('float32')
     loading = 0;
 
-    @gameField('float32')
     @range((t: ChainGun) => [t.design.minShellSecondsToLive, t.design.maxShellSecondsToLive])
+    @gameField('float32')
     shellSecondsToLive = 0;
 
-    @gameField('float32')
     @range([-1, 1])
+    @commandable()
+    @gameField('float32')
     shellRange = 0; // just used for command, not for firing
 
     @gameField('int8')
     shellRangeMode!: SmartPilotMode;
 
-    @gameField('float32')
     @defectible({ normal: 0, name: 'offset' })
     @range([-90, 90])
+    @gameField('float32')
     angleOffset = 0;
 
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
+    @gameField('float32')
     rateOfFireFactor = 1;
 
-    @gameField('string')
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
         enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
     }))
+    @gameField('string')
     projectile: SelectedProjectileModel = 'None';
 
-    @gameField('string')
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
         enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
     }))
+    @gameField('string')
     loadedProjectile: SelectedProjectileModel = 'None';
 
     @gameField(ChaingunDesignState)
     design = new ChaingunDesignState();
 
     // server only, used for commands
+    @commandable()
     public changeProjectileCommand = false;
 
     get broken(): boolean {

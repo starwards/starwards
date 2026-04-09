@@ -16,25 +16,25 @@ export class Waypoint extends SpaceObjectBase {
     public readonly isCorporal = false;
     public freeze = true;
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: Faction })
+    @gameField('int8')
     public faction: Faction = Faction.NONE;
 
-    @gameField('string')
     @tweakable('shipId')
+    @gameField('string')
     public owner: string | null = null;
 
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public collection = '';
 
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public title = '';
 
-    @gameField('uint32')
     @tweakable('number')
     @range([0x000000, 0xffffff])
+    @gameField('uint32')
     public color = 0xffffff;
 
     init(id: string, position: Vec2): this {

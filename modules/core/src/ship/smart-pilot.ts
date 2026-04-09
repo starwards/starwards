@@ -1,7 +1,7 @@
 import { DesignState, SystemState, defectible } from './system';
+import { commandable, gameField } from '../game-field';
 
 import { Vec2 } from '../space';
-import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -42,32 +42,35 @@ export class SmartPilot extends SystemState {
     @gameField(SmartPilotDesignState)
     design = new SmartPilotDesignState();
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: SmartPilotMode })
+    @gameField('int8')
     rotationMode = SmartPilotMode.DIRECT;
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: SmartPilotMode })
+    @gameField('int8')
     maneuveringMode = SmartPilotMode.DIRECT;
 
-    @gameField('float32')
     @range([-1, 1])
+    @commandable()
+    @gameField('float32')
     rotation = 0;
 
-    @gameField('float32')
     @range([-1, 1])
+    @commandable()
+    @gameField('float32')
     rotationTargetOffset = 0;
 
-    @gameField(Vec2)
+    @commandable({ '/x': true, '/y': true })
     @range({ '/x': [-1, 1], '/y': [-1, 1] })
+    @gameField(Vec2)
     maneuvering: Vec2 = new Vec2(0, 0);
 
     /**
      * factor of error vector when active
      */
-    @gameField('float32')
     @range([0, 1])
     @defectible({ normal: 0, name: 'offset' })
+    @gameField('float32')
     offsetFactor = 0;
 
     get broken(): boolean {

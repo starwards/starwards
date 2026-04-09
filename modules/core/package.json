@@ -13,6 +13,17 @@
     "version": "0.5.1",
     "main": "cjs/index.js",
     "types": "cjs/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./cjs/index.d.ts",
+            "default": "./cjs/index.js"
+        },
+        "./internal": {
+            "types": "./cjs/index.internal.d.ts",
+            "default": "./cjs/index.internal.js"
+        },
+        "./package.json": "./package.json"
+    },
     "repository": "git@github.com:starwards/starwards.git",
     "author": "amir-arad <greenshade@gmail.com>",
     "publishConfig": {

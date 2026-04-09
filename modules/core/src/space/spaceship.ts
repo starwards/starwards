@@ -14,15 +14,15 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('string')
     public readonly type = 'Spaceship';
 
-    @gameField('int8')
     @tweakable({ type: 'enum', enum: Faction })
+    @gameField('int8')
     public faction: Faction = Faction.NONE;
 
     @gameField('float32')
     public radarRange = 0;
 
-    @gameField('string')
     @tweakable('string')
+    @gameField('string')
     public model: ShipModel | null = null;
 
     constructor() {
