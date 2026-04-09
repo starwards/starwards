@@ -2,7 +2,7 @@ import * as path from 'path';
 
 import { GameManager, server } from '@starwards/server';
 import { Locator, Page, expect, test } from '@playwright/test';
-import { ShipApi, limitPercision } from '@starwards/core/internal';
+import { ShipApi, limitPercision } from '@starwards/core';
 
 async function expectServerHealthy(port: number) {
     const controller = new AbortController();
