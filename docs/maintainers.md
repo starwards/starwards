@@ -90,11 +90,10 @@ E2E gaps: `gm-screen.spec.ts` (GM station round-trip), `multi-client-sync.spec.t
 
 ### 3. Coverage ratchet
 
-The `coverage-core` CI job starts at 40% lines / 40% functions / 30%
-branches / 40% statements. After the test backfill above lands, bump
-the thresholds by +5 points per release until diminishing returns. The
-thresholds live in the `test:coverage:core` script in the root
-`package.json`.
+The `coverage-core` CI job is currently at 69% lines / 58% functions /
+51% branches / 69% statements. Bump the thresholds by +5 points per
+release until diminishing returns. The thresholds live in the
+`test:coverage:core` script in the root `package.json`.
 
 ## Non-goal: malicious-player isolation
 

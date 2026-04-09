@@ -35,7 +35,7 @@
         "test:format": "npm run prettier && npm run lint",
         "test:types": "tsc --noEmit --skipLibCheck",
         "depcheck": "depcruise --config .dependency-cruiser.cjs modules",
-        "test:coverage:core": "jest --testPathPatterns=modules/core --coverage --coverageDirectory=coverage-core --collectCoverageFrom='modules/core/src/**/*.ts' --coverageThreshold='{\"./modules/core/src/\":{\"lines\":40,\"functions\":40,\"branches\":30,\"statements\":40}}'",
+        "test:coverage:core": "jest --testPathPatterns=modules/core --coverage --coverageDirectory=coverage-core --collectCoverageFrom='modules/core/src/**/*.ts' --coverageThreshold='{\"./modules/core/src/\":{\"lines\":69,\"functions\":58,\"branches\":51,\"statements\":69}}'",
         "start": "npm --cwd ./dist run start",
         "browser": "npm --prefix ./modules/browser run start",
         "node-red": "bash ./scripts/dev-node-red.sh",
