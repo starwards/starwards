@@ -1,4 +1,14 @@
-import { Asteroid, Faction, GameApi, GameMap, Spaceship, Vec2, Waypoint, makeId, sectorSize } from '@starwards/core/internal';
+import {
+    Asteroid,
+    Faction,
+    GameApi,
+    GameMap,
+    Spaceship,
+    Vec2,
+    Waypoint,
+    makeId,
+    sectorSize,
+} from '@starwards/core/internal';
 import { newAsteroid, newShip } from './admin/map-helper';
 
 export const two_vs_one: GameMap = {
