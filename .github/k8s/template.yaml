@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: starwards-${RELEASE}
+  namespace: starwards
+  labels:
+    app: starwards
+    release: ${RELEASE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: starwards
+      release: ${RELEASE}
+  template:
+    metadata:
+      labels:
+        app: starwards
+        release: ${RELEASE}
+    spec:
+      containers:
+        - name: starwards
+          image: ${IMAGE}
+          ports:
+            - containerPort: 80
+          env:
+            - name: PORT
+              value: "80"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: starwards-${RELEASE}
+  namespace: starwards
+  labels:
+    app: starwards
+    release: ${RELEASE}
+spec:
+  selector:
+    app: starwards
+    release: ${RELEASE}
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: starwards-${RELEASE}
+  namespace: starwards
+  labels:
+    app: starwards
+    release: ${RELEASE}
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`${HOST}`)
+      kind: Rule
+      services:
+        - name: starwards-${RELEASE}
+          port: 80
+  tls:
+    secretName: wildcard-starwards-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: starwards-${RELEASE}-redirect
+  namespace: starwards
+  labels:
+    app: starwards
+    release: ${RELEASE}
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`${HOST}`)
+      kind: Rule
+      middlewares:
+        - name: redirect-https
+      services:
+        - name: starwards-${RELEASE}
+          port: 80

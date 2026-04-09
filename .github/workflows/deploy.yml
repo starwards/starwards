@@ -1,0 +1,131 @@
+name: Deploy Preview
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: deploy-${{ github.event.pull_request.number || 'master' }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/${{ github.repository }}
+  BASE_DOMAIN: dev.starwards.space
+
+jobs:
+  build-push:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      release: ${{ steps.meta.outputs.release }}
+      host: ${{ steps.meta.outputs.host }}
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            RELEASE="pr-${{ github.event.pull_request.number }}"
+          else
+            RELEASE="master"
+          fi
+          echo "release=${RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "host=${RELEASE}.${BASE_DOMAIN}" >> "$GITHUB_OUTPUT"
+          echo "image=${IMAGE}:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ env.IMAGE }}:${{ steps.meta.outputs.release }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-push
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTH_KEY }}
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Deploy to cluster
+        env:
+          RELEASE: ${{ needs.build-push.outputs.release }}
+          HOST: ${{ needs.build-push.outputs.host }}
+          IMAGE: ${{ needs.build-push.outputs.image }}
+        run: |
+          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          envsubst < .github/k8s/template.yaml | kubectl apply -f -
+          kubectl -n starwards rollout status deployment/starwards-${RELEASE} --timeout=180s
+
+      - name: Comment preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request.number;
+            const url = `https://pr-${pr}.${{ env.BASE_DOMAIN }}`;
+            const body = `🎮 Preview deployed: ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo, issue_number: pr
+            });
+            const existing = comments.find(c => c.body.includes('Preview deployed:'));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo, comment_id: existing.id, body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: pr, body
+              });
+            }
+
+  teardown:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTH_KEY }}
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Delete preview environment
+        run: |
+          echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl -n starwards delete deployment,svc,ingressroute \
+            -l app=starwards,release=pr-${{ github.event.pull_request.number }} \
+            --ignore-not-found
