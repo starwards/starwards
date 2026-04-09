@@ -1,6 +1,7 @@
+import { commandable, gameField } from '../game-field';
+
 import { DesignState } from './system';
 import { Schema } from '@colyseus/schema';
-import { commandable, gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
 export type TargetingDesign = {

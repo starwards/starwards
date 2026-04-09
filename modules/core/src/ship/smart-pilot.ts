@@ -1,7 +1,7 @@
 import { DesignState, SystemState, defectible } from './system';
+import { commandable, gameField } from '../game-field';
 
 import { Vec2 } from '../space';
-import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 

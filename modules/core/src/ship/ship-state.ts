@@ -1,5 +1,6 @@
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { Spaceship, Vec2 } from '../space';
+import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
@@ -17,7 +18,6 @@ import { Targeting } from './targeting';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-import { commandable, gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
 export enum TargetedStatus {

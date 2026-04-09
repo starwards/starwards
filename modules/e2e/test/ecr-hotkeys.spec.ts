@@ -57,12 +57,13 @@ test.describe('ECR hotkeys', () => {
     // so there's room to decrease.
     test('[ key: warp standbyFrequency decreases', async ({ page }) => {
         // Preposition at a value where there's room to decrease.
+        // standbyFrequency is a WarpFrequency enum; use Number() to compare.
         gameDriver.getShip(shipId).state.warp.standbyFrequency = 2;
         await page.waitForTimeout(100);
         await page.keyboard.press('[');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => ship.state.warp.standbyFrequency < 2,
+            (ship) => Number(ship.state.warp.standbyFrequency) < 2,
             3000,
         );
     });

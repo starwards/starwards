@@ -1,4 +1,3 @@
-import { JsonPointer, getJsonPointer, isJsonPointer } from '../src/json-ptr';
 import {
     CommandablePaths,
     commandable,
@@ -6,6 +5,7 @@ import {
     gameField,
     isCommandableFromAncestor,
 } from '../src/game-field';
+import { JsonPointer, getJsonPointer, isJsonPointer } from '../src/json-ptr';
 
 import { DesignState } from '../src/ship/system';
 import { Schema } from '@colyseus/schema';

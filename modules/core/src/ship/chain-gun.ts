@@ -1,8 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
 import { ProjectileModel, projectileModels } from '../space/projectile';
+import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
-import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
