@@ -7,18 +7,14 @@ rules → master**.
 
 ## Required status checks
 
-After PR1 lands, require:
+The following checks are required on `master`:
 
-- `Test-Static`
+- `Test-Static` (includes `depcheck` — no separate job needed)
 - `Test-Units`
 - `Test-E2e`
 - `Test-Visual`
 - `pr-template-check`
-
-After PR3 lands, additionally require:
-
 - `coverage-core`
-- `Test-Static` already runs `depcheck` (no separate job needed)
 
 Set "Require branches to be up to date before merging" so the checks
 have actually run on the merge commit's tree, not on stale parents.
@@ -94,10 +90,11 @@ E2E gaps: `gm-screen.spec.ts` (GM station round-trip), `multi-client-sync.spec.t
 
 ### 3. Coverage ratchet
 
-The `coverage-core` CI job starts at 55% lines / 55% functions / 45%
-branches. After the test backfill above lands, bump the thresholds by
-+5 points per release until diminishing returns. The thresholds live in
-`.github/workflows/ci-cd.yml` under the `coverage-core` job.
+The `coverage-core` CI job starts at 40% lines / 40% functions / 30%
+branches / 40% statements. After the test backfill above lands, bump
+the thresholds by +5 points per release until diminishing returns. The
+thresholds live in the `test:coverage:core` script in the root
+`package.json`.
 
 ## Non-goal: malicious-player isolation
 
