@@ -19,6 +19,7 @@ import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
 import { targetInfoWidget } from '../widgets/target-info';
@@ -82,7 +83,8 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, 'docking');
     dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver), {}, 'target info');
     dashboard.setup();
-    wireSinglePilotInput(shipDriver);
+    const input = wireSinglePilotInput(shipDriver);
+    setupHotkeyHelp(input);
 }
 
 function makeDashboard(shipId: string, layout: string | null): Dashboard {

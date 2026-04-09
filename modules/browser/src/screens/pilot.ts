@@ -14,6 +14,7 @@ import { drawPilotRadar } from '../widgets/pilot-radar';
 import { drawPilotStats } from '../widgets/pilot';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
+import { setupHotkeyHelp } from '../input/hotkey-help';
 
 ElementQueries.listen();
 
@@ -70,32 +71,63 @@ async function initScreen(driver: Driver, shipId: string) {
 function wireInput(shipDriver: ShipDriver) {
     const input = new InputManager();
 
-    input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/rotation'), {
-        axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
-        offsetKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
-    });
-    input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/y'), {
-        axis: new GamepadAxisConfig(0, 2, [-0.1, 0.1]),
-        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
-    });
-    input.addRangeAction(readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/x'), {
-        axis: new GamepadAxisConfig(0, 3, [-0.1, 0.1], true),
-        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
-    });
+    input.addRangeAction(
+        readWriteNumberProp(shipDriver, '/smartPilot/rotation'),
+        {
+            axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
+            offsetKeys: new KeysRangeConfig('e', 'q', 'e+q,q+e', 0.05),
+        },
+        'Rotation',
+    );
+    input.addRangeAction(
+        readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/y'),
+        {
+            axis: new GamepadAxisConfig(0, 2, [-0.1, 0.1]),
+            offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 0.05),
+        },
+        'Strafe',
+    );
+    input.addRangeAction(
+        readWriteNumberProp(shipDriver, '/smartPilot/maneuvering/x'),
+        {
+            axis: new GamepadAxisConfig(0, 3, [-0.1, 0.1], true),
+            offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
+        },
+        'Boost',
+    );
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/smartPilot/rotationTargetOffset')),
         new GamepadButtonConfig(0, 14),
+        'Reset Rotation Offset',
     );
-    input.addMomentaryClickAction(writeProp(shipDriver, '/rotationModeCommand'), new GamepadButtonConfig(0, 10));
-    input.addMomentaryClickAction(writeProp(shipDriver, '/maneuveringModeCommand'), new GamepadButtonConfig(0, 11));
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/rotationModeCommand'),
+        new GamepadButtonConfig(0, 10),
+        'Rotation Mode',
+    );
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/maneuveringModeCommand'),
+        new GamepadButtonConfig(0, 11),
+        'Maneuvering Mode',
+    );
     input.addMomentaryClickAction(
         numberAction(writeProp(shipDriver, '/afterBurnerCommand')),
         new GamepadButtonConfig(0, 6),
+        'After Burner',
     );
-    input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/antiDrift')), new GamepadButtonConfig(0, 7));
-    input.addMomentaryClickAction(numberAction(writeProp(shipDriver, '/breaks')), new GamepadButtonConfig(0, 5));
-    input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), 'r');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), 'f');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), 'z');
+    input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/antiDrift')),
+        new GamepadButtonConfig(0, 7),
+        'Anti Drift',
+    );
+    input.addMomentaryClickAction(
+        numberAction(writeProp(shipDriver, '/breaks')),
+        new GamepadButtonConfig(0, 5),
+        'Breaks',
+    );
+    input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelUpCommand'), 'r', 'Warp Up');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), 'f', 'Warp Down');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), 'z', 'Toggle Dock');
     input.init();
+    setupHotkeyHelp(input);
 }

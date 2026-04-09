@@ -13,6 +13,7 @@ import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
 import { drawTubesStatus } from '../widgets/tubes-status';
+import { setupHotkeyHelp } from '../input/hotkey-help';
 
 ElementQueries.listen();
 
@@ -67,19 +68,20 @@ async function initScreen(driver: Driver, shipId: string) {
 
 function wireInput(shipDriver: ShipDriver) {
     const input = new InputManager();
-    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), ']');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/prevTargetCommand'), '[');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/clearTargetCommand'), "'");
-    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shipOnly'), 'p');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/enemyOnly'), 'o');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), ']', 'Next Target');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/prevTargetCommand'), '[', 'Prev Target');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/clearTargetCommand'), "'", 'Clear Target');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shipOnly'), 'p', 'Ships Only');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/enemyOnly'), 'o', 'Enemy Only');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i', 'Short Range Only');
 
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x', 'Fire Tube');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v', 'Change Tube Ammo');
 
-    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/isFiring'), 'f');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/chainGun/loadAmmo'), 'g');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/changeProjectileCommand'), 'b');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/isFiring'), 'f', 'Fire Chain Gun');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/chainGun/loadAmmo'), 'g', 'Load Chain Gun');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/changeProjectileCommand'), 'b', 'Change Gun Ammo');
     input.init();
+    setupHotkeyHelp(input);
 }
