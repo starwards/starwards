@@ -1,0 +1,104 @@
+import { MockDie, makeIterationsData } from './ship-test-harness';
+import { ShipManagerPc, SmartPilotMode, SpaceManager, Spaceship, XY, makeShipState, shipConfigurations } from '../src';
+
+import { expect } from 'chai';
+
+const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+
+describe('MovementManager', () => {
+    let spaceMgr: SpaceManager;
+    let shipObj: Spaceship;
+    let die: MockDie;
+    let shipMgr: ShipManagerPc;
+
+    beforeEach(() => {
+        spaceMgr = new SpaceManager();
+        shipObj = new Spaceship();
+        shipObj.id = '1';
+        die = new MockDie();
+        shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+        die.expectedRoll = 1;
+        spaceMgr.insert(shipObj);
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it('boost changes velocity in forward direction', () => {
+        // In DIRECT mode, smartPilot.maneuvering.x is the boost input
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        // Ship at angle 0 should accelerate in the +x direction
+        expect(shipObj.velocity.x).to.be.greaterThan(0);
+        expect(XY.lengthOf(shipObj.velocity)).to.be.greaterThan(0);
+    });
+
+    it('strafe changes velocity perpendicular to heading', () => {
+        // In DIRECT mode, smartPilot.maneuvering.y is the strafe input
+        shipMgr.state.smartPilot.maneuvering.y = 1;
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        // Ship at angle 0: strafe should push in the +y direction (perpendicular)
+        expect(shipObj.velocity.y).to.not.equal(0);
+        expect(XY.lengthOf(shipObj.velocity)).to.be.greaterThan(0);
+    });
+
+    it('ship decelerates when braking', () => {
+        // Give the ship some initial velocity by boosting first
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        const initialSpeed = XY.lengthOf(shipObj.velocity);
+        expect(initialSpeed).to.be.greaterThan(0);
+
+        // Switch to VELOCITY mode with zero target velocity to engage braking
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+        shipMgr.state.smartPilot.maneuvering.x = 0;
+        shipMgr.state.smartPilot.maneuvering.y = 0;
+
+        for (const id of makeIterationsData(3, 60)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        const finalSpeed = XY.lengthOf(shipObj.velocity);
+        expect(finalSpeed).to.be.lessThan(initialSpeed);
+    });
+
+    it('afterburner consumes fuel', () => {
+        // Enable afterburner and boost
+        shipMgr.state.afterBurnerCommand = 1;
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+
+        // Record initial fuel (set to max by resetShipState)
+        const initialFuel = shipMgr.state.maneuvering.afterBurnerFuel;
+        expect(initialFuel).to.be.greaterThan(0);
+
+        // Disable afterburner recharging so net fuel only goes down
+        shipMgr.state.maneuvering.design.afterBurnerCharge = 0;
+
+        for (const id of makeIterationsData(2, 40)) {
+            // Drain reactor energy each tick so recharging cannot occur
+            shipMgr.state.reactor.energy = 0;
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        const finalFuel = shipMgr.state.maneuvering.afterBurnerFuel;
+        expect(finalFuel).to.be.lessThan(initialFuel);
+    });
+});

@@ -1,4 +1,4 @@
-import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/core';
+import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/core/internal';
 
 import { Room } from '@colyseus/core';
 

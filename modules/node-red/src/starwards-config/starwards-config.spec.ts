@@ -1,4 +1,4 @@
-import { Driver, GameStatus, waitFor } from '@starwards/core';
+import { Driver, GameStatus, waitFor } from '@starwards/core/internal';
 import { Flows, getNode, initNodes } from '../test-driver';
 
 import { StarwardsConfigNode } from './starwards-config';

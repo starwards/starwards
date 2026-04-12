@@ -1,4 +1,4 @@
-import { Asteroid, Faction, ShipModel, Spaceship, Vec2, makeId, sectorSize } from '@starwards/core';
+import { Asteroid, Faction, ShipModel, Spaceship, Vec2, makeId, sectorSize } from '@starwards/core/internal';
 
 const speedMax = 50;
 

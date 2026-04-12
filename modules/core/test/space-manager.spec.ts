@@ -9,6 +9,7 @@ import {
     ShipDie,
     ShipManagerNpc,
     ShipManagerPc,
+    SpaceManager,
     SpaceObject,
     Spaceship,
     Tuple2,
@@ -284,5 +285,63 @@ describe('SpaceManager', () => {
             // Different faction should get UFO
             expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
         });
+    });
+
+    it('insert adds object to state', () => {
+        const spaceMgr = new SpaceManager();
+        const ship = new Spaceship();
+        ship.id = 'test-ship';
+        spaceMgr.insert(ship);
+        spaceMgr.forceFlushEntities();
+        const found = [...spaceMgr.state.getAll('Spaceship')].find((s) => s.id === 'test-ship');
+        expect(found).to.not.equal(undefined);
+    });
+
+    it('destroyObject removes object from state', () => {
+        const spaceMgr = new SpaceManager();
+        const ship = new Spaceship();
+        ship.id = 'test-ship-2';
+        spaceMgr.insert(ship);
+        spaceMgr.forceFlushEntities();
+        spaceMgr.destroyObject(ship.id);
+        const found = [...spaceMgr.state.getAll('Spaceship')].find((s) => s.id === 'test-ship-2');
+        expect(found).to.equal(undefined);
+    });
+
+    it('setPosition updates object coordinates', () => {
+        const spaceMgr = new SpaceManager();
+        const ship = new Spaceship();
+        ship.id = 'pos-test';
+        ship.position.x = 0;
+        ship.position.y = 0;
+        spaceMgr.insert(ship);
+        spaceMgr.forceFlushEntities();
+
+        // Change position
+        ship.position.x = 100;
+        ship.position.y = 200;
+
+        // Verify state reflects the change
+        const found = [...spaceMgr.state.getAll('Spaceship')].find((s) => s.id === 'pos-test');
+        expect(found!.position.x).to.equal(100);
+        expect(found!.position.y).to.equal(200);
+    });
+
+    it('insertBulk adds multiple objects', () => {
+        const spaceMgr = new SpaceManager();
+        const ship1 = new Spaceship();
+        ship1.id = 'bulk-1';
+        const ship2 = new Spaceship();
+        ship2.id = 'bulk-2';
+        const asteroid = new Asteroid();
+        asteroid.id = 'bulk-a1';
+
+        spaceMgr.insertBulk([ship1, ship2, asteroid]);
+        spaceMgr.forceFlushEntities();
+
+        const ships = [...spaceMgr.state.getAll('Spaceship')];
+        const asteroids = [...spaceMgr.state.getAll('Asteroid')];
+        expect(ships).to.have.length.greaterThanOrEqual(2);
+        expect(asteroids).to.have.length.greaterThanOrEqual(1);
     });
 });

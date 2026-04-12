@@ -1,4 +1,4 @@
-import { AdminState, ShipState, SpaceState, schemaClasses, sleep } from '@starwards/core';
+import { AdminState, ShipState, SpaceState, schemaClasses, sleep } from '@starwards/core/internal';
 import { Client, Room } from 'colyseus.js';
 
 import { makeDriver } from './driver';

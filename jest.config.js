@@ -20,6 +20,7 @@ const baseConfig = {
     modulePathIgnorePatterns: ['<rootDir>/dist'],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
     moduleNameMapper: {
+        '^@starwards/core/internal$': '<rootDir>/modules/core/src/index.internal',
         '^@starwards/([a-zA-Z0-9$_-]+)$': '<rootDir>/modules/$1/src',
         '^@starwards/([a-zA-Z0-9$_-]+)/(.*)$': '<rootDir>/modules/$1/$2',
     },

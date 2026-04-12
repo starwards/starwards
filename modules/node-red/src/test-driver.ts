@@ -7,7 +7,7 @@ import starwardsConfigNode, { StarwardsConfigOptions } from './starwards-config/
 import { ShipOptions } from './shared/ship-node';
 import { SinonSpy } from 'sinon';
 import shipNodeDummy from './shared/ship-node-dummy';
-import { waitFor } from '@starwards/core';
+import { waitFor } from '@starwards/core/internal';
 
 type SpiedNode = {
     trace: SinonSpy;
