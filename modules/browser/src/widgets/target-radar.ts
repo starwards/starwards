@@ -84,6 +84,9 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
                 tacticalDrawFunctions,
                 shipTarget,
                 rangeFilter.isInRange,
+                undefined,
+                undefined,
+                shipDriver.state.faction,
             );
             root.addLayer(blipLayer.renderRoot);
             trackObject(camera, spaceDriver.events, shipTarget);

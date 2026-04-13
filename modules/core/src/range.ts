@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
+import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { JsonPointer, getJsonPointer } from './json-ptr';
-import { MapSchema, Schema } from '@colyseus/schema';
 
 import { RTuple2 } from './logic/formulas';
 
@@ -109,6 +109,12 @@ function getParent(root: Schema, path: readonly (string | number)[]): unknown {
         if (current instanceof MapSchema) {
             // MapSchema requires .get() method
             current = current.get(String(segment));
+        } else if (current instanceof ArraySchema) {
+            const index = typeof segment === 'number' ? segment : parseInt(String(segment), 10);
+            if (isNaN(index)) {
+                return undefined;
+            }
+            current = (current as unknown as unknown[])[index];
         } else if (current instanceof Object) {
             // Regular object property access
             current = (current as Record<string | number, unknown>)[segment];
@@ -127,12 +133,16 @@ function getParent(root: Schema, path: readonly (string | number)[]): unknown {
 export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | RTuple2 {
     const target = pointer.path.length === 1 ? root : getParent(root, pointer.path);
     const propertyName = pointer.path.at(-1);
-    if (!(target instanceof Object) || typeof propertyName !== 'string') {
+    if (!(target instanceof Object) || (typeof propertyName !== 'string' && typeof propertyName !== 'number')) {
         throw new Error(
             `pointer ${pointer.pointer} does not point at a legal location: target=${JSON.stringify(
                 target,
             )}, propertyName=${JSON.stringify(propertyName)}`,
         );
+    }
+    // ArraySchema elements have no range metadata
+    if (target instanceof ArraySchema || typeof propertyName !== 'string') {
+        return undefined;
     }
     if (!(target instanceof Schema)) {
         return undefined;

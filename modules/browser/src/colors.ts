@@ -25,6 +25,7 @@ export const radar = {
     azimuthTint: 0x00ffff, // Pure cyan
     shellTint: 0xff6600, // Orange (secondary)
     deflectionTint: 0x00aaff, // Cyan-blue
+    unknownTint: 0x666666, // Dim gray for UFO/unscanned objects
 };
 
 // ============================================================================
