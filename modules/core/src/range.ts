@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 
-import { JsonPointer, getJsonPointer } from './json-ptr';
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
+import { JsonPointer, getJsonPointer } from './json-ptr';
 
 import { RTuple2 } from './logic/formulas';
 

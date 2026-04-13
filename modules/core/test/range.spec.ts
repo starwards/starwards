@@ -1,6 +1,6 @@
+import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { getRange, range, rangeSchema, tryGetRange } from '../src/range';
 import { JsonPointer } from '../src/json-ptr';
-import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import { expect } from 'chai';
 import { gameField } from '../src/game-field';
 
@@ -93,7 +93,7 @@ describe('ArraySchema JSON pointer support', () => {
         const pointer = JsonPointer.create('/items/obj1/levels/0');
         // Should return undefined (no range metadata on array elements), not throw
         const result = tryGetRange(root, pointer);
-        expect(result).to.be.undefined;
+        expect(result).to.equal(undefined);
     });
 
     it('JsonPointer.set can set values on ArraySchema elements', () => {

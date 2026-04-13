@@ -2,9 +2,9 @@ import { BlipData, BlipRenderer } from './blip-renderer';
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, ScanLevel, SpaceDriver, SpaceObject, SpaceObjects, XY } from '@starwards/core';
 
+import { radar, white } from '../../colors';
 import { CameraView } from '../camera-view';
 import { TrackObjects } from '../track-objects';
-import { radar, white } from '../../colors';
 
 type RenderFunctions<K extends keyof SpaceObjects> = {
     [T in K]: {
@@ -26,7 +26,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
         const factionIndex = Number(this.playerFaction);
         const rawLevel =
             factionIndex >= 0 && factionIndex < o.scanLevels.length
-                ? (o.scanLevels[factionIndex] as ScanLevel | undefined) ?? ScanLevel.UFO
+                ? ((o.scanLevels[factionIndex] as ScanLevel | undefined) ?? ScanLevel.UFO)
                 : ScanLevel.UFO;
         // Same-faction objects are always at least BASIC
         if (o.faction === this.playerFaction && this.playerFaction !== Faction.NONE) {
