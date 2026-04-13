@@ -293,7 +293,7 @@ export class ShipTestHarness {
         if (!this.historyEnabled) return;
 
         const ships = Array.from(this.spaceMgr.state.getAll('Spaceship')).map((ship) => {
-            const shipState = ship as ShipState;
+            const shipState = ship as unknown as ShipState;
             return {
                 id: ship.id,
                 x: ship.position.x,

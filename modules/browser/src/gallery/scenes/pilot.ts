@@ -11,11 +11,10 @@ export const pilotScenes: Record<string, Scene> = {
         description: 'Pilot dashboard with ship at rest',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            // ShipState extends Spaceship, so we can set velocity directly
-            ship.velocity.x = 0;
-            ship.velocity.y = 0;
-            ship.angle = 0;
-            ship.turnSpeed = 0;
+            ship.spaceship.velocity.x = 0;
+            ship.spaceship.velocity.y = 0;
+            ship.spaceship.angle = 0;
+            ship.spaceship.turnSpeed = 0;
             ship.smartPilot.rotationMode = SmartPilotMode.DIRECT;
             ship.smartPilot.maneuveringMode = SmartPilotMode.DIRECT;
             ship.smartPilot.rotation = 0;
@@ -34,10 +33,10 @@ export const pilotScenes: Record<string, Scene> = {
         description: 'Pilot dashboard with ship in motion',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            ship.velocity.x = 100;
-            ship.velocity.y = 50;
-            ship.angle = 45;
-            ship.turnSpeed = 15;
+            ship.spaceship.velocity.x = 100;
+            ship.spaceship.velocity.y = 50;
+            ship.spaceship.angle = 45;
+            ship.spaceship.turnSpeed = 15;
             ship.smartPilot.rotationMode = SmartPilotMode.VELOCITY;
             ship.smartPilot.maneuveringMode = SmartPilotMode.VELOCITY;
             ship.smartPilot.rotation = 0.5;
@@ -58,10 +57,10 @@ export const pilotScenes: Record<string, Scene> = {
         description: 'Pilot dashboard with TARGET mode active',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            ship.velocity.x = 200;
-            ship.velocity.y = 0;
-            ship.angle = 90;
-            ship.turnSpeed = 0;
+            ship.spaceship.velocity.x = 200;
+            ship.spaceship.velocity.y = 0;
+            ship.spaceship.angle = 90;
+            ship.spaceship.turnSpeed = 0;
             ship.smartPilot.rotationMode = SmartPilotMode.TARGET;
             ship.smartPilot.maneuveringMode = SmartPilotMode.TARGET;
             ship.smartPilot.rotation = 0;

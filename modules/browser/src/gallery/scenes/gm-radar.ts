@@ -51,11 +51,11 @@ function addFovRendering(root: CameraView, mockSpaceDriver: ReturnType<typeof cr
 
 function createFactionShip(id: string, x: number, y: number, faction: Faction, angle = 0) {
     const state = makeShipState(id, dragonflySF22);
-    state.position.x = x;
-    state.position.y = y;
-    state.angle = angle;
-    state.faction = faction;
-    state.radarRange = 5000;
+    state.spaceship.position.x = x;
+    state.spaceship.position.y = y;
+    state.spaceship.angle = angle;
+    state.spaceship.faction = faction;
+    state.spaceship.radarRange = 5000;
     state.radar.power = 1;
     return state;
 }
@@ -89,7 +89,11 @@ export const gmRadarScenes: Record<string, Scene> = {
             const neutralShip = createFactionShip('neutral-1', -2500, 1500, Faction.NONE, 45);
 
             const mockContainer = createMockContainer(container);
-            const mockSpaceDriver = createMockSpaceDriver([gravitasShip, raidersShip, neutralShip]);
+            const mockSpaceDriver = createMockSpaceDriver([
+                gravitasShip.spaceship,
+                raidersShip.spaceship,
+                neutralShip.spaceship,
+            ]);
 
             const camera = new Camera();
             camera.setZoom(ZOOM);
@@ -139,7 +143,13 @@ export const gmRadarScenes: Record<string, Scene> = {
             });
 
             const mockContainer = createMockContainer(container);
-            const mockSpaceDriver = createMockSpaceDriver([gravitasShip, raidersShip, asteroid1, asteroid2, waypoint]);
+            const mockSpaceDriver = createMockSpaceDriver([
+                gravitasShip.spaceship,
+                raidersShip.spaceship,
+                asteroid1,
+                asteroid2,
+                waypoint,
+            ]);
 
             const camera = new Camera();
             camera.setZoom(ZOOM);

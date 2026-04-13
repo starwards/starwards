@@ -28,9 +28,9 @@ export function drawPilotStats(container: WidgetContainer, shipDriver: ShipDrive
     panel.addProperty('energy', readNumberProp(shipDriver, `/reactor/energy`));
     panel.addProperty('afterBurnerFuel', readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`));
 
-    panel.addProperty('heading', readNumberProp(shipDriver, `/angle`));
+    panel.addProperty('heading', readNumberProp(shipDriver, `/spaceship/angle`));
     panel.addProperty('speed', readNumberProp(shipDriver, `/speed`));
-    panel.addProperty('turn speed', readNumberProp(shipDriver, `/turnSpeed`));
+    panel.addProperty('turn speed', readNumberProp(shipDriver, `/spaceship/turnSpeed`));
 
     panel.addText('rotationMode', { getValue: () => SmartPilotMode[shipDriver.state.smartPilot.rotationMode] });
     panel.addProperty('rotationCommand', readNumberProp(shipDriver, `/smartPilot/rotation`));
