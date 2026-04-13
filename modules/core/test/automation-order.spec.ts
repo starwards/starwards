@@ -60,6 +60,7 @@ describe('automation order on player ships', () => {
         runOneTick(shipMgr, spaceMgr);
 
         expect(shipMgr.state.order).to.equal(Order.NONE);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(shipMgr.state.orderTargetId).to.be.null;
     });
 
@@ -154,6 +155,7 @@ describe('resetShipState clears orders', () => {
         resetShipState(state);
 
         expect(state.order).to.equal(Order.NONE);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(state.orderTargetId).to.be.null;
         expect(state.orderPosition.x).to.equal(0);
         expect(state.orderPosition.y).to.equal(0);
