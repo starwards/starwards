@@ -103,6 +103,19 @@ export const dragonflyManeuvering = {
     damage50: 20,
 };
 
+export const dragonflySignals = {
+    damage50: 20,
+    maxJobs: 9,
+    maxTrackedTargets: 3,
+    scanBaseDuration: 20,
+    scanAdvancedFactor: 2,
+    hackBaseDuration: 45,
+    hackEffectDuration: 150,
+    hackCooldown: 60,
+    scanBaseSuccessRate: 0.8,
+    hackBaseSuccessRate: 0.6,
+};
+
 export const dragonflySF22: ShipDesign = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
@@ -124,4 +137,5 @@ export const dragonflySF22: ShipDesign = {
     warp: dragonflyWarp,
     docking: dragonflyDocking,
     maneuvering: dragonflyManeuvering,
+    signals: dragonflySignals,
 };

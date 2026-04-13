@@ -13,6 +13,7 @@ import { Maneuvering } from './maneuvering';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipDirection } from './ship-direction';
+import { Signals } from './signals';
 import { SmartPilot } from './smart-pilot';
 import { Targeting } from './targeting';
 import { Thruster } from './thruster';
@@ -110,6 +111,9 @@ export class ShipState extends Spaceship {
     @gameField(Maneuvering)
     maneuvering!: Maneuvering;
 
+    @gameField(Signals)
+    signals!: Signals;
+
     @range([-1, 1])
     @gameField('float32')
     rotation = 0;
@@ -202,9 +206,15 @@ export class ShipState extends Spaceship {
     systemsByAreas(area: ShipArea) {
         switch (area) {
             case ShipArea.front:
-                return [this.chainGun, this.radar, this.smartPilot, this.magazine, this.warp, this.docking].filter(
-                    notNull,
-                );
+                return [
+                    this.chainGun,
+                    this.radar,
+                    this.smartPilot,
+                    this.magazine,
+                    this.warp,
+                    this.docking,
+                    this.signals,
+                ].filter(notNull);
             case ShipArea.rear:
                 return [this.reactor, this.maneuvering, ...this.thrusters.values(), ...this.tubes.values()].filter(
                     notNull,
