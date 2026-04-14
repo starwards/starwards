@@ -88,7 +88,7 @@ export class DamageManager {
         }
         const dist = new NormalDistribution(system.design.damage50, system.design.damage50 / 2);
         const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
-        if (this.die.getRoll(damageObject.id + 'damageSystem') < normalizedDamageProbability) {
+        if (this.die.getRoll('damageSystem:' + damageObject.id) < normalizedDamageProbability) {
             if (Thruster.isInstance(system)) {
                 this.damageThruster(system, damageObject.id);
             } else if (ChainGun.isInstance(system)) {
@@ -119,7 +119,7 @@ export class DamageManager {
     }
 
     private damageManeuvering(maneuvering: Maneuvering, damageId: string) {
-        if (this.die.getSuccess('damageManeuvering' + damageId, 0.5)) {
+        if (this.die.getSuccess('damageManeuvering:' + damageId, 0.5)) {
             maneuvering.efficiency -= 0.05;
         } else {
             maneuvering.afterBurnerFuel *= 0.9;
@@ -127,7 +127,7 @@ export class DamageManager {
     }
 
     private damageWarp(warp: Warp, damageId: string) {
-        if (this.die.getSuccess('damageWarp' + damageId, 0.5)) {
+        if (this.die.getSuccess('damageWarp:' + damageId, 0.5)) {
             warp.damageFactor += 0.05;
         } else {
             warp.velocityFactor *= 0.9;
@@ -135,9 +135,9 @@ export class DamageManager {
     }
 
     private damageMagazine(magazine: Magazine, damageId: string) {
-        if (this.die.getSuccess('damageMagazine' + damageId, 0.5)) {
+        if (this.die.getSuccess('damageMagazine:' + damageId, 0.5)) {
             // todo convert to a defectible property that accumulates damage
-            const idx = this.die.getRollInRange('magazineostAmmo' + damageId, 0, projectileModels.length);
+            const idx = this.die.getRollInRange('magazineLostAmmo:' + damageId, 0, projectileModels.length);
             const projectileKey = projectileModels[idx];
             magazine[`count_${projectileKey}`] = Math.round(
                 magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor),
@@ -148,7 +148,7 @@ export class DamageManager {
     }
 
     private damageReactor(reactor: Reactor, damageId: string) {
-        if (this.die.getSuccess('damageReactor' + damageId, 0.5)) {
+        if (this.die.getSuccess('damageReactor:' + damageId, 0.5)) {
             // todo convert to a defectible property that accumulates damage
             reactor.energy *= 0.9;
         } else {
@@ -165,23 +165,23 @@ export class DamageManager {
     }
 
     private damageThruster(thruster: Thruster, damageId: string) {
-        if (this.die.getSuccess('damageThruster' + damageId, 0.5)) {
+        if (this.die.getSuccess('damageThruster:' + damageId, 0.5)) {
             thruster.angleError +=
-                limitPercision(this.die.getRollInRange('thrusterAngleOffset' + damageId, 1, 3)) *
-                (this.die.getSuccess('thrusterAngleSign' + damageId, 0.5) ? 1 : -1);
+                limitPercision(this.die.getRollInRange('thrusterAngleOffset:' + damageId, 1, 3)) *
+                (this.die.getSuccess('thrusterAngleSign:' + damageId, 0.5) ? 1 : -1);
             thruster.angleError = capToRange(-180, 180, thruster.angleError);
         } else {
             thruster.availableCapacity -= limitPercision(
-                this.die.getRollInRange('availableCapacity' + damageId, 0.01, 0.1),
+                this.die.getRollInRange('availableCapacity:' + damageId, 0.01, 0.1),
             );
         }
     }
 
     private damageChainGun(chainGun: ChainGun, damageId: string) {
-        if (this.die.getSuccess('damageChaingun' + damageId, 0.5)) {
+        if (this.die.getSuccess('damageChaingun:' + damageId, 0.5)) {
             chainGun.angleOffset +=
-                limitPercision(this.die.getRollInRange('chainGunAngleOffset' + damageId, 1, 2)) *
-                (this.die.getSuccess('chainGunAngleSign' + damageId, 0.5) ? 1 : -1);
+                limitPercision(this.die.getRollInRange('chainGunAngleOffset:' + damageId, 1, 2)) *
+                (this.die.getSuccess('chainGunAngleSign:' + damageId, 0.5) ? 1 : -1);
         } else {
             chainGun.rateOfFireFactor *= 0.9;
         }

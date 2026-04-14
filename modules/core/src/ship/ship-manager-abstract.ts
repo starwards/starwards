@@ -72,6 +72,8 @@ export type Die = {
     getRoll: (id: string) => number;
     getSuccess: (id: string, successProbability: number) => boolean;
     getRollInRange: (id: string, min: number, max: number) => number;
+    getDrift: (id: string, frequencyHz?: number) => number;
+    getDriftInRange: (id: string, min: number, max: number, frequencyHz?: number) => number;
 };
 
 export interface EnergySource {
@@ -224,7 +226,7 @@ export abstract class ShipManager implements Updateable {
 
     private calcRadarRange(totalSeconds: number) {
         if (this.state.radar.malfunctionRangeFactor && this.state.radar.effectiveness) {
-            const frequency = this.die.getRollInRange('updateRadarRangeFrequency', 0.2, 1);
+            const frequency = this.die.getDriftInRange('updateRadarRangeFrequency', 0.2, 1, 0.15);
             const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
             const factorEaseRange = [
                 this.state.radar.malfunctionRangeFactor,

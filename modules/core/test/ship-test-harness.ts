@@ -19,6 +19,13 @@ import { ShipDie } from '../src/ship/ship-die';
 
 export class MockDie {
     private _expectedRoll = 0;
+    private _expectedDrift: ((id: string, t: number) => number) | null = null;
+    private _gameTime = 0;
+
+    public update({ deltaSeconds }: IterationData) {
+        this._gameTime += deltaSeconds;
+    }
+
     public getRoll(_: string, __?: number, ___?: number): number {
         return this._expectedRoll;
     }
@@ -34,8 +41,24 @@ export class MockDie {
         return min;
     }
 
+    public getDrift(id: string, _frequencyHz?: number): number {
+        return this._expectedDrift ? this._expectedDrift(id, this._gameTime) : this._expectedRoll;
+    }
+
+    public getDriftInRange(id: string, min: number, max: number, _frequencyHz?: number): number {
+        const v = this.getDrift(id);
+        if (v >= min && v < max) {
+            return v;
+        }
+        return v * (max - min) + min;
+    }
+
     set expectedRoll(roll: number) {
         this._expectedRoll = roll;
+    }
+
+    set expectedDrift(fn: ((id: string, t: number) => number) | null) {
+        this._expectedDrift = fn;
     }
 }
 abstract class AbsTestMetrics {
@@ -161,7 +184,7 @@ export class ShipTestHarness {
         this.shipObj,
         makeShipState(this.shipObj.id, dragonflyConfig),
         this.spaceMgr,
-        new ShipDie(3),
+        new ShipDie(0),
     );
     private graphBuilder: PlotlyGraphBuilder | null = null;
     private stateHistory: StateSnapshot[] = [];

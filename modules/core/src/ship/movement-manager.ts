@@ -279,7 +279,10 @@ export class MovementManager implements Updateable {
                 this.state.smartPilot.maneuveringMode === SmartPilotMode.DIRECT
                     ? 0
                     : this.state.smartPilot.offsetFactor;
-            const error = XY.byLengthAndDirection(offsetFactor, this.die.getRollInRange('smartPilotOffset', -180, 180));
+            const error = XY.byLengthAndDirection(
+                offsetFactor,
+                this.die.getDriftInRange('smartPilotOffset', -180, 180, 0.3),
+            );
 
             let maneuveringCommand: ManeuveringCommand | undefined = undefined;
             switch (this.state.smartPilot.maneuveringMode) {

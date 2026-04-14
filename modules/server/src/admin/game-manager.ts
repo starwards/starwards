@@ -12,7 +12,6 @@ import {
     SpaceManager,
     SpaceObject,
     Spaceship,
-    Updateable,
     Vec2,
     makeId,
     makeShipState,
@@ -27,7 +26,7 @@ export class GameManager {
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
-    private dice: Updateable[] = [];
+    private die = new ShipDie();
     public spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     private deltaSecondsAvg = 1 / 20;
@@ -59,9 +58,7 @@ export class GameManager {
                 totalSeconds: this.totalSeconds,
             };
             this.map?.update?.(adjustedDeltaSeconds);
-            for (const die of this.dice) {
-                die.update(iterationData);
-            }
+            this.die.update(iterationData);
             for (const shipManager of this.shipManagers.values()) {
                 shipManager.update(iterationData);
             }
@@ -96,7 +93,7 @@ export class GameManager {
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
-            this.dice = [];
+            this.die = new ShipDie();
             this.shipCleanups.clear();
             this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
@@ -205,11 +202,9 @@ export class GameManager {
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean): ShipManager;
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean) {
         const id = spaceObject.id;
-        const die = new ShipDie(3);
         const managerCtor = isPlayerShip ? ShipManagerPc : ShipManagerNpc;
-        const shipManager = new managerCtor(spaceObject, shipState, this.spaceManager, die, this.shipManagers); // create a manager to manage the ship
+        const shipManager = new managerCtor(spaceObject, shipState, this.spaceManager, this.die, this.shipManagers); // create a manager to manage the ship
         this.shipManagers.set(id, shipManager);
-        this.dice.push(die);
 
         // All ships get rooms (PC and NPC alike)
         const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
@@ -227,7 +222,6 @@ export class GameManager {
                 }
                 this.state.shipIds.splice(this.state.shipIds.indexOf(id), 1);
                 await matchMaker.remoteRoomCall(id, 'disconnect', []);
-                this.dice.splice(this.dice.indexOf(die), 1);
                 this.shipManagers.delete(id);
             }
         });
