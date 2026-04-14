@@ -3,6 +3,7 @@ import { Body, Circle, System } from 'detect-collisions';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
     FieldOfView,
+    Tuple2,
     circlesIntersection,
     limitPercision,
     moveToTarget,
@@ -21,7 +22,7 @@ const ZERO_VELOCITY_THRESHOLD = 0;
 export type Damage = {
     id: string;
     amount: number;
-    damageSurfaceArc: [number, number];
+    damageSurfaceArc: Tuple2;
     damageDurationSeconds: number;
 };
 
@@ -558,7 +559,7 @@ export class SpaceManager implements Updateable {
                 subject.globalToLocal(XY.difference(damageBoundries[0], subject.position)),
                 subject.globalToLocal(XY.difference(damageBoundries[1], subject.position)),
             ];
-            const shipLocalDamageAngles: [number, number] = [
+            const shipLocalDamageAngles: Tuple2 = [
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
             ];

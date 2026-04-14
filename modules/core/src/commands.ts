@@ -1,4 +1,14 @@
-import { GameRoom, RoomName, Stateful, capToRange, getJsonPointer, isJsonPointer, printError, tryGetRange } from '.';
+import {
+    GameRoom,
+    RoomName,
+    Stateful,
+    Tuple2,
+    capToRange,
+    getJsonPointer,
+    isJsonPointer,
+    printError,
+    tryGetRange,
+} from '.';
 import { Primitive, isPrimitive } from 'colyseus-events';
 
 import { Schema } from '@colyseus/schema';
@@ -55,7 +65,7 @@ type NumericStatePropertyCommand = {
     cmdName: string;
     setValue(state: Schema, value: number, path: unknown): unknown;
     getValue(state: Schema, path: unknown): number;
-    range: [number, number] | ((state: Schema, path: unknown) => [number, number]);
+    range: Tuple2 | ((state: Schema, path: unknown) => Tuple2);
 };
 
 function setNumericProperty<S extends Schema, P>(
