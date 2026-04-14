@@ -5,6 +5,7 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export type RadarDesign = {
+    name: string;
     damage50: number;
     range: number;
     /**
@@ -19,6 +20,7 @@ export type RadarDesign = {
 };
 
 export class RadarDesignState extends DesignState implements RadarDesign {
+    @gameField('string') name = '';
     @gameField('float32') damage50 = 0;
     @gameField('float32') range = 0;
     @gameField('float32') energyCost = 0;

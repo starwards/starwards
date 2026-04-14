@@ -5,6 +5,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type WarpDesign = {
+    name: string;
     damage50: number;
     maxProximity: number;
     chargeTime: number;
@@ -26,6 +27,7 @@ export enum WarpFrequency {
     WARP_FREQUENCY_COUNT,
 }
 export class WarpDesignState extends DesignState implements WarpDesign {
+    @gameField('string') name = '';
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxProximity = 0;
     @gameField('float32') chargeTime = 0;

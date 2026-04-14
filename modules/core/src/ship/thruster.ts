@@ -8,6 +8,7 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export type ThrusterDesign = {
+    name: string;
     maxAngleError: number;
     capacity: number;
     energyCost: number;
@@ -16,6 +17,7 @@ export type ThrusterDesign = {
 };
 
 export class ThrusterDesignState extends DesignState implements ThrusterDesign {
+    @gameField('string') name = '';
     @gameField('float32') maxAngleError = 0;
     @gameField('float32') capacity = 0;
     @gameField('float32') energyCost = 0;

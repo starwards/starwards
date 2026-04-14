@@ -7,12 +7,14 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export type ArmorDesign = {
+    name: string;
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
 };
 
 export class ArmorDesignState extends DesignState implements ArmorDesign {
+    @gameField('string') name = '';
     @gameField('float32') numberOfPlates = 0;
     @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;

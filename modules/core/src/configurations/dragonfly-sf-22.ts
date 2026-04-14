@@ -1,11 +1,13 @@
 import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
+    name: 'Dragonfly Armor',
     numberOfPlates: 12,
     healRate: 3,
     plateMaxHealth: 1500,
 };
 export const dragonflyThruster = {
+    name: 'Dragonfly Thruster',
     maxAngleError: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -13,6 +15,7 @@ export const dragonflyThruster = {
     damage50: 15,
 };
 export const dragonflyRadar = {
+    name: 'Dragonfly Radar',
     damage50: 20,
     range: 10_000,
     energyCost: 0.05,
@@ -20,6 +23,7 @@ export const dragonflyRadar = {
     malfunctionRange: 5_000,
 };
 export const dragonflyChaingun = {
+    name: 'Dragonfly Chain Gun',
     bulletsPerSecond: 20,
     bulletSpeed: 1000,
     bulletDegreesDeviation: 1,
@@ -32,6 +36,7 @@ export const dragonflyChaingun = {
     energyCost: 1,
 };
 export const dragonflyReactor = {
+    name: 'Dragonfly Reactor',
     energyPerSecond: 5,
     maxEnergy: 1000,
     energyHeatEPMThreshold: 20,
@@ -39,10 +44,12 @@ export const dragonflyReactor = {
     damage50: 20,
 };
 export const dragonflyProperties = {
+    name: 'Dragonfly SF-22',
     totalCoolant: 10,
     systemKillRatio: 0.5,
 };
 export const dragonflyMagazine = {
+    name: 'Dragonfly Magazine',
     max_CannonShell: 3600,
     max_BlastCannonShell: 2000,
     max_Missile: 20,
@@ -51,6 +58,7 @@ export const dragonflyMagazine = {
     capacityDamageFactor: 0.1,
 };
 export const dragonflySmartPilot = {
+    name: 'Dragonfly Smart Pilot',
     maxTargetAimOffset: 30,
     aimOffsetSpeed: 15,
     maxTurnSpeed: 90,
@@ -60,6 +68,7 @@ export const dragonflySmartPilot = {
     maxSpeedFromAfterBurner: 300,
 };
 export const dragonflyTube = {
+    name: 'Dragonfly Missile Tube',
     damage50: 20,
     bulletsPerSecond: 1,
     bulletSpeed: 1000,
@@ -72,10 +81,12 @@ export const dragonflyTube = {
     use_Missile: true,
 };
 export const dragonflyTargeting = {
+    name: 'Dragonfly Targeting',
     maxRange: 5_000,
     shortRange: 3_000,
 };
 export const dragonflyWarp = {
+    name: 'Dragonfly Warp',
     damage50: 20,
     maxProximity: 10_000,
     chargeTime: 10,
@@ -87,6 +98,7 @@ export const dragonflyWarp = {
     secondsToChangeFrequency: 10,
 };
 export const dragonflyDocking = {
+    name: 'Dragonfly Docking',
     damage50: 20,
     maxDockingDistance: 1_000,
     maxDockedDistance: 20,
@@ -95,6 +107,7 @@ export const dragonflyDocking = {
     width: 45,
 };
 export const dragonflyManeuvering = {
+    name: 'Dragonfly Maneuvering',
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
     maxAfterBurnerFuel: 5000,

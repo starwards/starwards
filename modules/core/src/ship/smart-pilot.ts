@@ -6,6 +6,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type SmartPilotDesign = {
+    name: string;
     maxTargetAimOffset: number;
     aimOffsetSpeed: number;
     maxTurnSpeed: number;
@@ -22,6 +23,7 @@ export enum SmartPilotMode {
 }
 
 export class SmartPilotDesignState extends DesignState implements SmartPilotDesign {
+    @gameField('string') name = '';
     @gameField('float32') maxTargetAimOffset = 0;
     @gameField('float32') aimOffsetSpeed = 0;
     @gameField('float32') maxTurnSpeed = 0;

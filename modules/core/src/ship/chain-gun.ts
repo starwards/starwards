@@ -11,6 +11,7 @@ export type SelectedProjectileModel = 'None' | ProjectileModel;
 
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 export type ChaingunDesign = {
+    name: string;
     bulletsPerSecond: number;
     bulletSpeed: number;
     bulletDegreesDeviation: number;
@@ -25,6 +26,7 @@ export type ChaingunDesign = {
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
+    @gameField('string') name = '';
     @gameField('float32') bulletsPerSecond = 0;
     @gameField('float32') bulletSpeed = 0;
     @gameField('float32') bulletDegreesDeviation = 0;

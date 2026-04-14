@@ -40,11 +40,13 @@ export enum Order {
 }
 
 export type ShipPropertiesDesign = {
+    name: string;
     totalCoolant: number;
     systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
 };
 
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
+    @gameField('string') name = '';
     @gameField('float32') totalCoolant = 0;
     @gameField('float32') systemKillRatio = 0;
 }

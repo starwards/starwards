@@ -13,6 +13,7 @@ export enum DockingMode {
 }
 
 export type DockingDesign = {
+    name: string;
     damage50: number;
     maxDockingDistance: number;
     maxDockedDistance: number;
@@ -22,6 +23,7 @@ export type DockingDesign = {
 };
 
 export class DockingDesignState extends DesignState implements DockingDesign {
+    @gameField('string') name = '';
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxDockingDistance = 0;
     @gameField('float32') maxDockedDistance = 0;

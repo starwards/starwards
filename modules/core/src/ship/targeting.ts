@@ -5,10 +5,13 @@ import { Schema } from '@colyseus/schema';
 import { tweakable } from '../tweakable';
 
 export type TargetingDesign = {
+    name: string;
     maxRange: number;
     shortRange: number;
 };
 export class TargetingDesignState extends DesignState implements TargetingDesign {
+    @gameField('string')
+    name = '';
     @gameField('uint32')
     maxRange = 0;
     @gameField('uint32')

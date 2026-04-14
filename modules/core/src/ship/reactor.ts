@@ -5,6 +5,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type ReactorDesign = {
+    name: string;
     energyPerSecond: number;
     maxEnergy: number;
     energyHeatEPMThreshold: number;
@@ -13,6 +14,7 @@ export type ReactorDesign = {
 };
 
 export class ReactorDesignState extends DesignState implements ReactorDesign {
+    @gameField('string') name = '';
     @gameField('float32') energyPerSecond = 0;
     @gameField('float32') maxEnergy = 0;
     @gameField('float32') energyHeatEPMThreshold = 0;

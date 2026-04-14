@@ -5,6 +5,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type ManeuveringDesign = {
+    name: string;
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxAfterBurnerFuel: number;
@@ -14,6 +15,7 @@ export type ManeuveringDesign = {
 };
 
 export class ManeuveringDesignState extends DesignState implements ManeuveringDesign {
+    @gameField('string') name = '';
     @gameField('float32') rotationCapacity = 0;
     @gameField('float32') rotationEnergyCost = 0;
     @gameField('float32') maxAfterBurnerFuel = 0;

@@ -7,6 +7,7 @@ import { tweakable } from '../tweakable';
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 
 export type MagazineDesign = {
+    name: string;
     damage50: number;
     max_CannonShell: number;
     max_BlastCannonShell: number;
@@ -16,6 +17,7 @@ export type MagazineDesign = {
 };
 
 export class MagazineDesignState extends DesignState implements MagazineDesign {
+    @gameField('string') name = '';
     @gameField('float32') damage50 = 0;
     @gameField('uint16') max_CannonShell = 0;
     @gameField('uint16') max_BlastCannonShell = 0;

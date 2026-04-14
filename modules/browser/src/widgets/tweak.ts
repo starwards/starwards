@@ -240,14 +240,16 @@ function addDesignFolder(
     pointer: string,
     cleanup: (d: Destructor) => void,
 ) {
+    const state = readProp<DesignState>(shipDriver, `${pointer}/design`).getValue();
+    const designName = (state as DesignState & { name?: string })?.name;
     const designFolder = guiFolder.addFolder({
-        title: 'design',
+        title: designName ? `design: ${designName}` : 'design',
         expanded: false,
     });
     cleanup(() => designFolder.dispose());
-    const state = readProp<DesignState>(shipDriver, `${pointer}/design`).getValue();
     if (!state) return;
     for (const designParam of state.keys()) {
+        if (designParam === 'name') continue;
         const prop = readWriteProp<number>(shipDriver, `${pointer}/design/${designParam}`);
         addCameraRingBlade(designFolder, prop, { label: designParam }, cleanup);
     }
