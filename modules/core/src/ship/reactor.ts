@@ -5,6 +5,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type ReactorDesign = {
+    modelName?: string;
     energyPerSecond: number;
     maxEnergy: number;
     energyHeatEPMThreshold: number;

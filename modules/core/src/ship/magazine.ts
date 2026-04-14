@@ -7,6 +7,7 @@ import { tweakable } from '../tweakable';
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 
 export type MagazineDesign = {
+    modelName?: string;
     damage50: number;
     max_CannonShell: number;
     max_BlastCannonShell: number;

@@ -7,6 +7,7 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export type ArmorDesign = {
+    modelName?: string;
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;

@@ -6,6 +6,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type SmartPilotDesign = {
+    modelName?: string;
     maxTargetAimOffset: number;
     aimOffsetSpeed: number;
     maxTurnSpeed: number;

@@ -9,12 +9,16 @@ import { WidgetContainer } from '../container';
 
 function addDesignStateToPanel(panel: Panel, shipDriver: ShipDriver, pointerStr: string) {
     const p = readProp<DesignState>(shipDriver, pointerStr);
-    const fields = new Set(p.getValue()?.keys());
+    // modelName is a string field (see DesignState in core), whereas
+    // `addConfig` here wires up numeric sliders. Exclude it from this
+    // legacy panel — the tweak widget shows it in the system header.
+    const fields = new Set([...(p.getValue()?.keys() ?? [])].filter((k) => k !== 'modelName'));
     for (const constName of fields) {
         panel.addConfig(constName, readWriteProp(shipDriver, pointerStr + '/' + constName));
     }
     p.onChange(() => {
         for (const constName of p.getValue()?.keys() || []) {
+            if (constName === 'modelName') continue;
             if (!fields.has(constName)) {
                 fields.add(constName);
                 panel.addConfig(constName, readWriteProp(shipDriver, pointerStr + '/' + constName));

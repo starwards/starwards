@@ -5,6 +5,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type WarpDesign = {
+    modelName?: string;
     damage50: number;
     maxProximity: number;
     chargeTime: number;

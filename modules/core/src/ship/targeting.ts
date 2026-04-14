@@ -5,6 +5,7 @@ import { Schema } from '@colyseus/schema';
 import { tweakable } from '../tweakable';
 
 export type TargetingDesign = {
+    modelName?: string;
     maxRange: number;
     shortRange: number;
 };

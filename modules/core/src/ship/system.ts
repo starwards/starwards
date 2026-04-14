@@ -28,6 +28,14 @@ export abstract class DesignState extends Schema {
      */
     static readonly isStarwardsDesignState = true;
 
+    /**
+     * Model name for this system instance, configured per ship design
+     * (see `modules/core/src/configurations/`). Displayed in the GM
+     * tweak panel so players / GM can tell which specific make/model of a
+     * system is installed on a ship. Empty string means "not named".
+     */
+    @gameField('string') modelName = '';
+
     keys() {
         // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
         /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
