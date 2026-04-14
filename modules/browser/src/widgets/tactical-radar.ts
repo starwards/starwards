@@ -1,5 +1,5 @@
 import { Graphics, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
+import { Projectile, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
 import { azimuthCircle, crosshairs, speedLines } from '../radar/tactical-radar-layers';
 import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
@@ -104,14 +104,20 @@ export async function drawTacticalRadar(
         root.addLayer(crosshairs(root, shipDriver.state, shipDriver.state.chainGun, shipTarget));
     }
     root.addLayer(speedLines(root, shipDriver.state, shipTarget));
+    // The weapons officer needs visual feedback of the shells they fire, even
+    // when the shells fly beyond normal radar-detection range. Shells owned by
+    // this ship bypass the range filter and are always shown in shell color.
+    const isOwnShell = (o: SpaceObject): o is Projectile => Projectile.isInstance(o) && o.shipId === shipDriver.id;
+    const includeInRadar = (o: SpaceObject) => rangeFilter.isInRange(o) || isOwnShell(o);
+    const getBlipColor = (s: SpaceObject) => (s.type === 'Projectile' || isOwnShell(s) ? radar.shellTint : green);
     const blipLayer = new ObjectsLayer(
         root,
         spaceDriver,
         32,
-        (s) => (s.type === 'Projectile' ? radar.shellTint : green),
+        getBlipColor,
         tacticalDrawFunctions,
         shipTarget,
-        rangeFilter.isInRange,
+        includeInRadar,
         undefined,
         undefined,
         shipDriver.state.faction,

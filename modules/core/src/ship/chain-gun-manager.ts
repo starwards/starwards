@@ -1,5 +1,6 @@
+import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, projectileModels } from '../space';
 import { IterationData, Updateable } from '../updateable';
-import { Projectile, SpaceObject, Spaceship, projectileModels } from '../space';
+
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
 
@@ -188,6 +189,14 @@ export class ChainGunManager implements Updateable {
                 ),
             );
             projectile.init(uniqueId('shell'), shellPosition);
+            projectile.shipId = this.spaceObject.id;
+            // Mark shells as advanced-scanned for the firing ship's faction so
+            // the weapons officer sees them with a distinct blip colour instead
+            // of the UFO/unknown tint.
+            const firingFactionIndex = Number(this.spaceObject.faction);
+            if (firingFactionIndex !== Number(Faction.NONE) && firingFactionIndex < projectile.scanLevels.length) {
+                projectile.scanLevels[firingFactionIndex] = ScanLevel.ADVANCED;
+            }
             if (projectile.design.homing) {
                 projectile.targetId = this.state.weaponsTarget.targetId;
                 projectile.secondsToLive = projectile.design.homing.secondsToLive;

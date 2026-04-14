@@ -71,6 +71,13 @@ export class Projectile extends SpaceObjectBase implements Craft {
     public health = 10;
     public _explosion?: Explosion;
 
+    /**
+     * Id of the ship that fired this projectile. Empty string for projectiles
+     * not fired from a ship (e.g. test fixtures, GM-spawned).
+     */
+    @gameField('string')
+    public shipId = '';
+
     @tweakable('string')
     @gameField('string')
     public targetId: string | null = null;
