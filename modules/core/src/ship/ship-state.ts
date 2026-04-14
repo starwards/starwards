@@ -51,7 +51,7 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
 @rangeSchema({ '/spaceship/turnSpeed': [-90, 90], '/spaceship/angle': [0, 360] })
 export class ShipState extends Schema {
     /**
-     * Composed space object — a mirror of the authoritative Spaceship in SpaceState,
+     * Composed space object - a mirror of the authoritative Spaceship in SpaceState,
      * updated every game tick by syncShipProperties(). This is NOT the source of truth
      * for physics properties; modify the SpaceObject in SpaceManager instead.
      */
