@@ -10,6 +10,7 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
+    XY,
     capToRange,
     lerp,
     projectileModels,
@@ -271,6 +272,12 @@ export abstract class ShipManager implements Updateable {
             this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
+            } else {
+                const distance = XY.lengthOf(XY.difference(this.spaceObject.position, this.weaponsTarget.position));
+                if (distance > this.spaceObject.radarRange) {
+                    this.weaponsTarget = null;
+                    this.state.weaponsTarget.targetId = null;
+                }
             }
         } else {
             this.weaponsTarget = null;
