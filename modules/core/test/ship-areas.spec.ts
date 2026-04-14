@@ -1,4 +1,4 @@
-import { EPSILON, FRONT_ARC, REAR_ARC, ShipArea, shipAreasInRange, toPositiveDegreesDelta } from '../src';
+import { EPSILON, FRONT_ARC, REAR_ARC, ShipArea, Tuple2, shipAreasInRange, toPositiveDegreesDelta } from '../src';
 import { float, range } from './properties';
 
 import { expect } from 'chai';
@@ -10,14 +10,14 @@ const REAR_ARC_TEST = [REAR_ARC[0] + EPSILON, toPositiveDegreesDelta(REAR_ARC[1]
 describe('shipAreasInRange', () => {
     it('detects front-only range', () =>
         fc.assert(
-            fc.property(range(...FRONT_ARC_TEST), (arc: [number, number]) => {
+            fc.property(range(...FRONT_ARC_TEST), (arc: Tuple2) => {
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front]);
             }),
         ));
     it('detects rear-only range', () =>
         fc.assert(
-            fc.property(range(...REAR_ARC_TEST), (arc: [number, number]) => {
+            fc.property(range(...REAR_ARC_TEST), (arc: Tuple2) => {
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.rear]);
             }),
@@ -40,7 +40,7 @@ describe('shipAreasInRange', () => {
         ));
     it('detects combined range from front to front', () =>
         fc.assert(
-            fc.property(range(...FRONT_ARC_TEST), ([to, from]: [number, number]) => {
+            fc.property(range(...FRONT_ARC_TEST), ([to, from]: Tuple2) => {
                 const arc = [from, to] as const; // reverse order
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front, ShipArea.rear]);
@@ -48,7 +48,7 @@ describe('shipAreasInRange', () => {
         ));
     it('detects combined range from rear to rear', () =>
         fc.assert(
-            fc.property(range(...REAR_ARC_TEST), ([to, from]: [number, number]) => {
+            fc.property(range(...REAR_ARC_TEST), ([to, from]: Tuple2) => {
                 const arc = [from, to] as const; // reverse order
                 const areas = [...shipAreasInRange(arc)];
                 expect(areas).to.deep.equal([ShipArea.front, ShipArea.rear]);

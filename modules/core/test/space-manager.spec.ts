@@ -5,6 +5,7 @@ import {
     Faction,
     Projectile,
     REAR_ARC,
+    RTuple2,
     ScanLevel,
     ShipDie,
     ShipManagerNpc,
@@ -12,7 +13,6 @@ import {
     SpaceManager,
     SpaceObject,
     Spaceship,
-    Tuple2,
     Vec2,
     XY,
     calcShellSecondsToLive,
@@ -35,7 +35,7 @@ function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number)
     return { velocity, position };
 }
 
-function* getHitPlatesArch(armor: Armor, range: Tuple2) {
+function* getHitPlatesArch(armor: Armor, range: RTuple2) {
     const degreesPerPlate = armor.degreesPerPlate;
     for (const [i, plate] of armor.platesInRange(range)) {
         if (plate.health < armor.design.plateMaxHealth) {
