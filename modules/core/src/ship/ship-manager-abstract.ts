@@ -47,6 +47,7 @@ export function resetShipState(state: ShipState) {
     for (const thruster of state.thrusters) {
         resetThruster(thruster);
     }
+    state.radar.malfunctionRangeFactor = 0;
     state.smartPilot.offsetFactor = 0;
     state.magazine.count_CannonShell = state.magazine.max_CannonShell;
     // Reset non-@gameField command properties that Schema.clone() does not copy.
