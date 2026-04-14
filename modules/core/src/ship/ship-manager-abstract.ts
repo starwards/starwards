@@ -2,6 +2,7 @@ import {
     ChainGun,
     Docking,
     Faction,
+    Order,
     Radar,
     Reactor,
     ShipState,
@@ -54,6 +55,11 @@ export function resetShipState(state: ShipState) {
     state.afterBurnerCommand = 0;
     state.rotationModeCommand = false;
     state.maneuveringModeCommand = false;
+    // Clear automation orders (prevents stale orders after NPC→PC conversion)
+    state.order = Order.NONE;
+    state.orderTargetId = null;
+    state.orderPosition.x = 0;
+    state.orderPosition.y = 0;
 }
 
 function resetThruster(thruster: Thruster) {

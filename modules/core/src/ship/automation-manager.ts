@@ -51,6 +51,12 @@ export class AutomationManager implements Updateable {
         }
     }
 
+    private clearOrder() {
+        this.shipManager.state.order = Order.NONE;
+        this.shipManager.state.orderTargetId = null;
+        this.shipManager.state.orderPosition.setValue(XY.zero);
+    }
+
     private positionNearTarget(
         targetVelocity: XY,
         targetPosition: XY,
@@ -172,12 +178,17 @@ export class AutomationManager implements Updateable {
         }
         if (this.chooseAndRunTask(id)) {
             this.shipManager.cancelAllTasks();
+            this.clearOrder();
         }
     }
 
     private getAndApplyOrder() {
         const order = this.spaceManager.resolveObjectOrder(this.state.id);
         if (order) {
+            // Player ships ignore GM orders - players control their own ships
+            if (this.state.isPlayerShip) {
+                return false;
+            }
             if (order.type === 'none') {
                 this.state.order = Order.NONE;
             } else if (order.type === 'move') {
@@ -198,6 +209,13 @@ export class AutomationManager implements Updateable {
     }
 
     private chooseAndRunTask(id: IterationData) {
+        // Clear stale orders on player ships (e.g., carried over from NPC→PC conversion)
+        if (this.state.isPlayerShip && this.state.order !== Order.NONE) {
+            this.state.order = Order.NONE;
+            this.state.orderTargetId = null;
+            this.state.orderPosition.setValue(XY.zero);
+            return false;
+        }
         if (this.state.order === Order.NONE) {
             return this.runAutoPilotRoutines(id);
         } else if (this.state.order === Order.MOVE) {
