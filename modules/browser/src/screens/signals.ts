@@ -11,6 +11,7 @@ import { SelectionContainer } from '../radar/selection-container';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
+import { setupHotkeyHelp } from '../input/hotkey-help';
 
 ElementQueries.listen();
 
@@ -89,13 +90,18 @@ function wireInput(
     }
 
     const input = new InputManager();
-    input.addClickAction(() => cycleTarget(1), ']');
-    input.addClickAction(() => cycleTarget(-1), '[');
-    input.addClickAction(() => {
-        stationTarget.clear();
-        currentIndex = -1;
-    }, "'");
-    input.addClickAction(() => zoomEvents.emit('zoomIn'), '=');
-    input.addClickAction(() => zoomEvents.emit('zoomOut'), '-');
+    input.addClickAction(() => cycleTarget(1), ']', 'Next Target');
+    input.addClickAction(() => cycleTarget(-1), '[', 'Prev Target');
+    input.addClickAction(
+        () => {
+            stationTarget.clear();
+            currentIndex = -1;
+        },
+        "'",
+        'Clear Target',
+    );
+    input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
+    input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
     input.init();
+    setupHotkeyHelp(input);
 }
