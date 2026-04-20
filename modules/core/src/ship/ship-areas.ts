@@ -1,4 +1,4 @@
-import { EPSILON, RTuple2, archIntersection } from '../logic/formulas';
+import { EPSILON, RTuple2, Tuple2, archIntersection } from '../logic/formulas';
 
 export enum ShipArea {
     front,
