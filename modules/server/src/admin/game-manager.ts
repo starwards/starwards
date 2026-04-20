@@ -86,18 +86,21 @@ export class GameManager {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING) {
             this.state.gameStatus = GameStatus.STOPPING;
-            this.state.playerShipIds.splice(0);
-            this.state.shipIds.splice(0);
-            const shipRooms = await matchMaker.query({ name: 'ship' });
-            for (const shipRoom of shipRooms) {
-                await matchMaker.remoteRoomCall(shipRoom.roomId, 'disconnect', []);
-            }
+            // Use registered ship cleanup functions which await pending
+            // room creation before disconnecting, preventing race conditions
+            // where matchMaker.query() could miss rooms still being created.
+            const cleanups = [...this.shipCleanups.values()];
+            await Promise.allSettled(cleanups.map((cleanup) => cleanup()));
             const spaceRooms = await matchMaker.query({ name: 'space' });
             for (const spaceRoom of spaceRooms) {
                 await matchMaker.remoteRoomCall(spaceRoom.roomId, 'disconnect', []);
             }
+            // Clear all remaining state
+            this.state.playerShipIds.splice(0);
+            this.state.shipIds.splice(0);
             this.dice = [];
             this.shipCleanups.clear();
+            this.shipManagers.clear();
             this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
         }
