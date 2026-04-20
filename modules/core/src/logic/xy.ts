@@ -1,4 +1,4 @@
-import { degToRad, equasionOfMotion as eom, limitPercision, safeDiv, toDegreesDelta } from './formulas';
+import { Tuple2, degToRad, equasionOfMotion as eom, limitPercision, safeDiv, toDegreesDelta } from './formulas';
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace XY {
@@ -17,7 +17,7 @@ export namespace XY {
             y: vector.y,
         };
     }
-    export function tuple({ x, y }: XY): [number, number] {
+    export function tuple({ x, y }: XY): Tuple2 {
         return [x, y];
     }
     export function sum(...vectors: XY[]): XY {

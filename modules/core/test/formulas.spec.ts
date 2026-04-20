@@ -1,6 +1,7 @@
 import {
     EPSILON,
     RTuple2,
+    Tuple2,
     archIntersection,
     equasionOfMotion,
     lerp,
@@ -104,22 +105,20 @@ describe('formulas', () => {
         });
     });
     describe('lerp', () => {
-        const lerpProperty = (
-            predicate: (fromRange: [number, number], toRange: [number, number], fromValue: number) => boolean | void,
-        ) =>
-            fc.property(orderedTuple3(), orderedTuple2(), (from: [number, number, number], to: [number, number]) => {
+        const lerpProperty = (predicate: (fromRange: Tuple2, toRange: Tuple2, fromValue: number) => boolean | void) =>
+            fc.property(orderedTuple3(), orderedTuple2(), (from: [number, number, number], to: Tuple2) => {
                 predicate([from[0], from[2]], to, from[1]);
             });
         it('witin range', () => {
             fc.assert(
-                lerpProperty((fromRange: [number, number], toRange: [number, number], fromValue: number) => {
+                lerpProperty((fromRange: Tuple2, toRange: Tuple2, fromValue: number) => {
                     expect(lerp(fromRange, toRange, fromValue)).to.be.within(...toRange);
                 }),
             );
         });
         it('symettric and reversible', () => {
             fc.assert(
-                lerpProperty((fromRange: [number, number], toRange: [number, number], fromValue: number) => {
+                lerpProperty((fromRange: Tuple2, toRange: Tuple2, fromValue: number) => {
                     const toValue = lerp(fromRange, toRange, fromValue);
                     const grace = (fromRange[1] - fromRange[0]) * (toRange[1] - toRange[0]) * 0.0001;
                     expect(lerp(toRange, fromRange, toValue)).to.be.closeTo(fromValue, Math.abs(grace));
@@ -175,7 +174,7 @@ describe('formulas', () => {
             fc.assert(
                 fc.property(
                     differentSignTuple2().filter((t) => t[0] !== 0 && t[1] !== 0),
-                    ([v0, a]: [number, number]) => {
+                    ([v0, a]: Tuple2) => {
                         const timeToStop = whenWillItStop(v0, a);
                         const iterationTime = timeToStop / ITERATIONS;
                         let v = v0;
@@ -191,7 +190,7 @@ describe('formulas', () => {
             fc.assert(
                 fc.property(
                     differentSignTuple2().filter((t) => t[0] !== 0 && t[1] !== 0),
-                    ([v0, a]: [number, number]) => {
+                    ([v0, a]: Tuple2) => {
                         expect(whenWillItStop(v0, -a)).to.eql(Infinity);
                     },
                 ),

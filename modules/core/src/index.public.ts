@@ -37,7 +37,7 @@ export {
     lerp,
     literal2Range,
 } from './logic';
-export type { RTuple2 } from './logic';
+export type { RTuple2, Tuple2 } from './logic';
 
 // --- range ---
 export { getRange } from './range';

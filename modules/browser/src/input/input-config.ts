@@ -1,8 +1,10 @@
+import type { Tuple2 } from '@starwards/core';
+
 export class GamepadAxisConfig {
     constructor(
         public gamepadIndex: number,
         public axisIndex: number,
-        public deadzone?: [number, number],
+        public deadzone?: Tuple2,
         public inverted?: boolean,
         public velocity?: number,
     ) {}
