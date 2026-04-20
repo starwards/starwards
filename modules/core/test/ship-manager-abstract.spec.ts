@@ -122,6 +122,16 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         expect(state.maneuvering.afterBurnerFuel).to.equal(state.maneuvering.design.maxAfterBurnerFuel);
     });
 
+    it('resetShipState resets radar malfunctionRangeFactor', () => {
+        const state = makeShipState('test', dragonflyConfig);
+
+        state.radar.malfunctionRangeFactor = 0.5;
+
+        resetShipState(state);
+
+        expect(state.radar.malfunctionRangeFactor).to.equal(0);
+    });
+
     it('resetShipState restores magazine count', () => {
         const state = makeShipState('test', dragonflyConfig);
 
