@@ -54,6 +54,27 @@ describe('thrusters-ship integration', function () {
                 }),
             );
         });
+
+        it(`(FWD only) scales with partial availableCapacity`, () => {
+            const direction = ShipDirection.FWD;
+            fc.assert(
+                fc.property(float(0, 0.5), float(0.1, 0.9), (afterBurner: number, partialCapacity: number) => {
+                    const fullHarness = new ShipTestHarness();
+                    fullHarness.shipState.afterBurner = fullHarness.shipState.afterBurnerCommand = afterBurner;
+                    const fullCapacity = fullHarness.shipState.velocityCapacity(direction);
+
+                    const partialHarness = new ShipTestHarness();
+                    partialHarness.shipState.afterBurner = partialHarness.shipState.afterBurnerCommand = afterBurner;
+                    for (const thruster of partialHarness.shipState.angleThrusters(direction)) {
+                        thruster.availableCapacity = partialCapacity;
+                    }
+                    expect(
+                        partialHarness.shipState.velocityCapacity(direction),
+                        'partial capacity scales linearly',
+                    ).to.be.closeTo(fullCapacity * partialCapacity, EPSILON);
+                }),
+            );
+        });
     });
 
     it(`(FWD only) broken thruster does not work`, () => {
