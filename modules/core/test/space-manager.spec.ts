@@ -397,6 +397,66 @@ describe('SpaceManager', () => {
                 expect(orderB!.targetId).to.equal('enemy-1');
             }
         });
+
+        it('multi-ship command with some invalid IDs still dispatches to valid ships', () => {
+            const spaceMgr = new SpaceManager();
+            const shipA = new Spaceship();
+            shipA.id = 'valid-a';
+            shipA.position = Vec2.make({ x: 100, y: 100 });
+            const shipB = new Spaceship();
+            shipB.id = 'valid-b';
+            shipB.position = Vec2.make({ x: 200, y: 100 });
+
+            spaceMgr.insertBulk([shipA, shipB]);
+            spaceMgr.forceFlushEntities();
+
+            // Include a non-existent ship ID alongside valid ones
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['valid-a', 'destroyed-ship', 'valid-b'],
+                order: { type: 'move', position: { x: 500, y: 500 } },
+            });
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const orderA = spaceMgr.resolveObjectOrder('valid-a');
+            const orderB = spaceMgr.resolveObjectOrder('valid-b');
+            const orderGhost = spaceMgr.resolveObjectOrder('destroyed-ship');
+
+            expect(orderA).to.not.equal(null);
+            expect(orderB).to.not.equal(null);
+            expect(orderGhost).to.equal(null);
+
+            if (orderA!.type === 'move' && orderB!.type === 'move') {
+                // Relative offset between A and B should be preserved (100 units apart on x)
+                expect(orderB!.position.x - orderA!.position.x).to.be.closeTo(100, 1);
+                expect(orderB!.position.y - orderA!.position.y).to.be.closeTo(0, 1);
+            }
+        });
+
+        it('multi-ship command with only one valid ship uses exact target position', () => {
+            const spaceMgr = new SpaceManager();
+            const ship = new Spaceship();
+            ship.id = 'sole-survivor';
+            ship.position = Vec2.make({ x: 100, y: 100 });
+
+            spaceMgr.insert(ship);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['sole-survivor', 'ghost-1', 'ghost-2'],
+                order: { type: 'move', position: { x: 500, y: 500 } },
+            });
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const order = spaceMgr.resolveObjectOrder('sole-survivor');
+            expect(order).to.not.equal(null);
+            expect(order!.type).to.equal('move');
+            if (order!.type === 'move') {
+                expect(order!.position.x).to.equal(500);
+                expect(order!.position.y).to.equal(500);
+            }
+        });
     });
 
     it('insert adds object to state', () => {

@@ -205,10 +205,10 @@ export class SpaceManager implements Updateable {
                 for (const id of cmd.ids) {
                     const [subject] = this.getObjectPtr(id);
                     if (subject && Spaceship.isInstance(subject)) {
-                        ships.push({ id, position: subject.position });
+                        ships.push({ id, position: XY.clone(subject.position) });
                     }
                 }
-                if (ships.length > 0) {
+                if (ships.length > 1) {
                     const center = XY.scale(XY.sum(...ships.map((s) => s.position)), 1 / ships.length);
                     for (const ship of ships) {
                         const offset = XY.difference(ship.position, center);
@@ -217,6 +217,8 @@ export class SpaceManager implements Updateable {
                             position: XY.add(cmd.order.position, offset),
                         });
                     }
+                } else if (ships.length === 1) {
+                    this.objectOrder.set(ships[0].id, cmd.order);
                 }
             } else {
                 for (const id of cmd.ids) {
