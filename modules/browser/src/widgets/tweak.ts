@@ -33,10 +33,10 @@ import { DashboardWidget } from './dashboard';
 import { FolderApi } from 'tweakpane';
 import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
-
-const { error: logError } = createLogger('tweak');
 import { WidgetContainer } from '../container';
 import pluralize from 'pluralize';
+
+const { error: logError } = createLogger('tweak');
 
 const selectionTitle = (selected: Iterable<SpaceObject>) => {
     const counts = {} as Record<SpaceObject['type'], number>;

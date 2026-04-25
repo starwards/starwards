@@ -13,6 +13,7 @@ import {
     SpaceObject,
     Spaceship,
     Vec2,
+    createLogger,
     makeId,
     makeShipState,
     shipConfigurations,
@@ -20,10 +21,10 @@ import {
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
-import { createLogger } from '@starwards/core/internal';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
+
 export class GameManager {
     public state = new AdminState();
     private shipCleanups = new Map<string, () => unknown>();

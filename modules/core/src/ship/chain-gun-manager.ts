@@ -52,7 +52,7 @@ export class ChainGunManager implements Updateable {
 
     public setShellRangeMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.shipManager.weaponsTarget) {
-            logError(`attempt to set chainGun.shellRangeMode to TARGET with no target`);
+            logError(new Error(`attempt to set chainGun.shellRangeMode to TARGET with no target`));
         } else {
             if (value !== this.chainGun.shellRangeMode) {
                 this.chainGun.shellRangeMode = value;

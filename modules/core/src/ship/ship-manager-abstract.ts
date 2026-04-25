@@ -132,7 +132,7 @@ export abstract class ShipManager implements Updateable {
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
-            logError(`attempt to set smartPilot.maneuveringMode to TARGET with no target`);
+            logError(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
         } else {
             if (value !== this.state.smartPilot.maneuveringMode) {
                 this.state.smartPilot.maneuveringMode = value;
@@ -144,7 +144,7 @@ export abstract class ShipManager implements Updateable {
 
     public setSmartPilotRotationMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
-            logError(`attempt to set smartPilot.rotationMode to TARGET with no target`);
+            logError(new Error(`attempt to set smartPilot.rotationMode to TARGET with no target`));
         } else {
             if (value !== this.state.smartPilot.rotationMode) {
                 this.state.smartPilot.rotationMode = value;
