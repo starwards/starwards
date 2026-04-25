@@ -4,21 +4,21 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export enum JobType {
-    SCAN = 'scan',
-    HACK = 'hack',
+    SCAN,
+    HACK,
 }
 
 export enum JobStatus {
-    QUEUED = 'queued',
-    IN_PROGRESS = 'in_progress',
+    QUEUED,
+    IN_PROGRESS,
 }
 
 export class SignalsJob extends Schema {
     @gameField('string')
     id = '';
 
-    @gameField('string')
-    jobType: string = JobType.SCAN;
+    @gameField('uint8')
+    jobType: JobType = JobType.SCAN;
 
     @gameField('string')
     targetId = '';
@@ -26,8 +26,8 @@ export class SignalsJob extends Schema {
     @gameField('string')
     hackSystemName = '';
 
-    @gameField('string')
-    status: string = JobStatus.QUEUED;
+    @gameField('uint8')
+    status: JobStatus = JobStatus.QUEUED;
 
     @range([0, 1])
     @gameField('float32')

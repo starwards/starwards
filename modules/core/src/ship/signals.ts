@@ -64,7 +64,7 @@ export class Signals extends SystemState {
 
     // Command properties (set by client via JSON pointer, consumed by manager on tick)
     @commandable()
-    public queueJobType = '';
+    public queueJobType: number = -1;
 
     @commandable()
     public queueJobTargetId = '';

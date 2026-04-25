@@ -96,7 +96,7 @@ export abstract class ShipManager implements Updateable {
     protected dockingManager: DockingManager;
     protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
-    protected signalsJobManager: SignalsJobManager;
+    public signalsJobManager: SignalsJobManager;
 
     constructor(
         public readonly spaceObject: DeepReadonly<Spaceship>,
