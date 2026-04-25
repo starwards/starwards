@@ -12,6 +12,9 @@ import {
 import { Primitive, isPrimitive } from 'colyseus-events';
 
 import { Schema } from '@colyseus/schema';
+import { createLogger } from './logger';
+
+const { error: logError } = createLogger('commands');
 
 export interface StateCommand<T, S extends Schema, P> {
     cmdName: string;
@@ -112,12 +115,10 @@ export function handleJsonPointerCommand(message: unknown, type: string | number
                 pointer.set(root, value);
                 return true;
             } catch (e) {
-                // eslint-disable-next-line no-console
-                console.error(`Error setting value ${String(value)} in ${type} : ${printError(e)}`);
+                logError(`Error setting value ${String(value)} in ${type} : ${printError(e)}`);
             }
         } else {
-            // eslint-disable-next-line no-console
-            console.error(`onMessage for type="${type}" not registered.`);
+            logError(`onMessage for type="${type}" not registered.`);
         }
     }
     return false;

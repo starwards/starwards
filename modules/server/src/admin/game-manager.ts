@@ -20,7 +20,10 @@ import {
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { createLogger } from '@starwards/core/internal';
 import { matchMaker } from '@colyseus/core';
+
+const { error: logError } = createLogger('game-manager');
 export class GameManager {
     public state = new AdminState();
     private shipCleanups = new Map<string, () => unknown>();
@@ -163,8 +166,7 @@ export class GameManager {
         if (shipCleanup) {
             shipCleanup();
         } else {
-            // eslint-disable-next-line no-console
-            console.error(`Attempted to clean up ship ${id}, but it does not exist.`);
+            logError(`Attempted to clean up ship ${id}, but it does not exist.`);
         }
     }
 

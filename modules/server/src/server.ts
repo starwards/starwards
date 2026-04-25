@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import * as http from 'http';
 import * as maps from './maps';
 
@@ -15,8 +14,11 @@ import { SpaceRoom } from './space/room';
 import { WebSocketTransport } from '@colyseus/ws-transport';
 import asyncHandler from 'express-async-handler';
 import basicAuth from 'express-basic-auth';
+import { createLogger } from '@starwards/core/internal';
 import express from 'express';
 import { monitor } from '@colyseus/monitor';
+
+const { error: logError } = createLogger('server:http');
 
 const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
 
@@ -65,7 +67,7 @@ export async function server(port: number, staticDirs: string | string[], manage
                 await manager.startGame(map);
                 res.send();
             } else {
-                console.error(`can't find map named "${String(mapName)}`);
+                logError(`can't find map named "${String(mapName)}`);
                 res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             }
         }),
@@ -78,7 +80,7 @@ export async function server(port: number, staticDirs: string | string[], manage
             if (gameState) {
                 res.send(await schemaToString(gameState));
             } else {
-                console.error(`can't save game when no game is running`);
+                logError(`can't save game when no game is running`);
                 res.sendStatus(HTTP_CONFLICT_STATUS);
             }
         }),
@@ -96,11 +98,11 @@ export async function server(port: number, staticDirs: string | string[], manage
                     await manager.loadGame(savedGameData, map);
                     res.send();
                 } else {
-                    console.error(`can't find map named "${savedGameData.mapName}`);
+                    logError(`can't find map named "${savedGameData.mapName}`);
                     res.sendStatus(HTTP_BAD_REQUEST_STATUS);
                 }
             } else {
-                console.error(`missing "data" field to load game`);
+                logError(`missing "data" field to load game`);
                 res.sendStatus(HTTP_BAD_REQUEST_STATUS);
             }
         }),

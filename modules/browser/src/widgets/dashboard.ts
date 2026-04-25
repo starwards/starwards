@@ -3,6 +3,9 @@ import React, { ComponentType } from 'react';
 
 import $ from 'jquery';
 import ReactDOM from 'react-dom';
+import { createLogger } from '@starwards/core';
+
+const { debug: logDebug } = createLogger('dashboard');
 
 type Obj = Record<string, unknown>;
 declare global {
@@ -75,8 +78,7 @@ export class Dashboard extends GoldenLayout {
                 this.registerWidgetMenuItem(widget.name, newItemConfig);
             }
         } catch (e) {
-            // eslint-disable-next-line no-console
-            console.log(e);
+            logDebug(e);
         }
     }
 

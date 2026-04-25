@@ -1,11 +1,13 @@
-/* eslint-disable no-console */
 import { createActor, setup } from 'xstate';
 
 import { ErrorCode } from 'colyseus.js';
 import EventEmitter from 'eventemitter3';
+import { createLogger } from '../logger';
 import { isCoded } from './errors';
 import { printError } from '../utils';
 import { raceEvents } from '../async-utils';
+
+const { debug: logDebug } = createLogger('connection');
 
 const statusMachine = setup({
     types: {} as {
@@ -141,7 +143,7 @@ export class ConnectionManager {
     };
     onConnectionError = (err: unknown) => {
         if (printError(err) !== printError(this.statusService.getSnapshot().context.lastGameError)) {
-            console.log(`connection error: ${printError(err)}`);
+            logDebug(`connection error: ${printError(err)}`);
         }
         if (!this.isDestroyed) {
             this.statusService.getSnapshot().context.lastGameError = err;

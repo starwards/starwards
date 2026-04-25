@@ -14,6 +14,7 @@ import {
     SpaceState,
     Spaceship,
     TypeFilter,
+    createLogger,
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
@@ -32,6 +33,8 @@ import { DashboardWidget } from './dashboard';
 import { FolderApi } from 'tweakpane';
 import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
+
+const { error: logError } = createLogger('tweak');
 import { WidgetContainer } from '../container';
 import pluralize from 'pluralize';
 
@@ -215,8 +218,7 @@ function addTweakables(
                 cleanup(shipsProp.onChange(updateOptions));
                 updateOptions();
             } else {
-                // eslint-disable-next-line no-console
-                console.error('shipId tweak property found outside of space state');
+                logError('shipId tweak property found outside of space state');
             }
         } else if (tweakable.config.type === 'number') {
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);

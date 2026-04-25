@@ -50,6 +50,7 @@
         "@colyseus/schema": "^3.0.68",
         "colyseus-events": "^4.1.0",
         "colyseus.js": "^0.16.22",
+        "debug": "4.4.1",
         "detect-collisions": "^10.10.2025",
         "eventemitter2": "^6.4.9",
         "eventemitter3": "^5.0.1",

@@ -1,6 +1,5 @@
 import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, projectileModels } from '../space';
 import { IterationData, Updateable } from '../updateable';
-
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
 
@@ -12,7 +11,10 @@ import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
+import { createLogger } from '../logger';
 import { uniqueId } from '../id';
+
+const { error: logError } = createLogger('chain-gun');
 
 export function resetChainGun(chainGun: ChainGun) {
     chainGun.angleOffset = 0;
@@ -50,8 +52,7 @@ export class ChainGunManager implements Updateable {
 
     public setShellRangeMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.shipManager.weaponsTarget) {
-            // eslint-disable-next-line no-console
-            console.error(new Error(`attempt to set chainGun.shellRangeMode to TARGET with no target`));
+            logError(`attempt to set chainGun.shellRangeMode to TARGET with no target`);
         } else {
             if (value !== this.chainGun.shellRangeMode) {
                 this.chainGun.shellRangeMode = value;

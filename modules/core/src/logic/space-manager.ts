@@ -15,6 +15,9 @@ import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
+import { createLogger } from '../logger';
+
+const { warn: logWarn, error: logError } = createLogger('space-manager');
 
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
@@ -114,8 +117,7 @@ export class SpaceManager implements Updateable {
     }
     public setVelocity(id: string, velocity: XY) {
         if (isNaN(velocity.x) || isNaN(velocity.y)) {
-            // eslint-disable-next-line no-console
-            console.warn(`trying to set "NaN" in velocity of ${id}`);
+            logWarn(`trying to set "NaN" in velocity of ${id}`);
             return;
         }
         const [subject] = this.getObjectPtr(id);
@@ -235,8 +237,7 @@ export class SpaceManager implements Updateable {
                         visibleArc.object && visibleObjects.add(visibleArc.object);
                     }
                 } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`object leak! ${object.id} has no extra data`);
+                    logError(`object leak! ${object.id} has no extra data`);
                 }
             }
         }
@@ -576,8 +577,7 @@ export class SpaceManager implements Updateable {
                 objectDamage.push(damage);
             }
         } else {
-            // eslint-disable-next-line no-console
-            console.error(
+            logError(
                 `unexpected undefined intersection with Spaceship.\n${collisionErrorMsg(object, subject, response)}`,
             );
         }
@@ -589,8 +589,7 @@ export class SpaceManager implements Updateable {
             if (data) {
                 data.fov.setDirty();
             } else {
-                // eslint-disable-next-line no-console
-                console.error(`object leak! ${object.id} has no extra data`);
+                logError(`object leak! ${object.id} has no extra data`);
             }
         }
     }
@@ -603,8 +602,7 @@ export class SpaceManager implements Updateable {
                     data.body.r = object.radius;
                     data.body.setPosition(object.position.x, object.position.y); // order matters! setPosition() internally calls updateAABB()
                 } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`object leak! ${object.id} has no extra data`);
+                    logError(`object leak! ${object.id} has no extra data`);
                 }
             }
         }
