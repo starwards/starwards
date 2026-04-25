@@ -5,6 +5,7 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export type RadarDesign = {
+    modelName?: string;
     damage50: number;
     range: number;
     /**

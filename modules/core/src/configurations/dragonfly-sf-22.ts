@@ -1,11 +1,13 @@
 import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
+    modelName: 'Aegis-12 Plated Armor',
     numberOfPlates: 12,
     healRate: 3,
     plateMaxHealth: 1500,
 };
 export const dragonflyThruster = {
+    modelName: 'RT-150 Vectored Thruster',
     maxAngleError: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -13,6 +15,7 @@ export const dragonflyThruster = {
     damage50: 15,
 };
 export const dragonflyRadar = {
+    modelName: 'Argus-10k Phased Radar',
     damage50: 20,
     range: 10_000,
     energyCost: 0.05,
@@ -20,6 +23,7 @@ export const dragonflyRadar = {
     malfunctionRange: 5_000,
 };
 export const dragonflyChaingun = {
+    modelName: 'Hailstorm 20RPS Chaingun',
     bulletsPerSecond: 20,
     bulletSpeed: 1000,
     bulletDegreesDeviation: 1,
@@ -32,6 +36,7 @@ export const dragonflyChaingun = {
     energyCost: 1,
 };
 export const dragonflyReactor = {
+    modelName: 'Helios-1000 Fusion Reactor',
     energyPerSecond: 5,
     maxEnergy: 1000,
     energyHeatEPMThreshold: 20,
@@ -39,10 +44,12 @@ export const dragonflyReactor = {
     damage50: 20,
 };
 export const dragonflyProperties = {
+    modelName: 'Dragonfly SF-22 Frame',
     totalCoolant: 10,
     systemKillRatio: 0.5,
 };
 export const dragonflyMagazine = {
+    modelName: 'Hornet Mk-II Magazine',
     max_CannonShell: 3600,
     max_BlastCannonShell: 2000,
     max_Missile: 20,
@@ -51,6 +58,7 @@ export const dragonflyMagazine = {
     capacityDamageFactor: 0.1,
 };
 export const dragonflySmartPilot = {
+    modelName: 'Nimbus-3 Smart Pilot',
     maxTargetAimOffset: 30,
     aimOffsetSpeed: 15,
     maxTurnSpeed: 90,
@@ -60,6 +68,7 @@ export const dragonflySmartPilot = {
     maxSpeedFromAfterBurner: 300,
 };
 export const dragonflyTube = {
+    modelName: 'Stinger Missile Tube',
     damage50: 20,
     bulletsPerSecond: 1,
     bulletSpeed: 1000,
@@ -72,10 +81,12 @@ export const dragonflyTube = {
     use_Missile: true,
 };
 export const dragonflyTargeting = {
+    modelName: 'Falcon Targeting Computer',
     maxRange: 5_000,
     shortRange: 3_000,
 };
 export const dragonflyWarp = {
+    modelName: 'Voyager-X Warp Drive',
     damage50: 20,
     maxProximity: 10_000,
     chargeTime: 10,
@@ -87,6 +98,7 @@ export const dragonflyWarp = {
     secondsToChangeFrequency: 10,
 };
 export const dragonflyDocking = {
+    modelName: 'Gripper-1 Docking Clamp',
     damage50: 20,
     maxDockingDistance: 1_000,
     maxDockedDistance: 20,
@@ -95,6 +107,7 @@ export const dragonflyDocking = {
     width: 45,
 };
 export const dragonflyManeuvering = {
+    modelName: 'Pivot-25 Maneuvering Suite',
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
     maxAfterBurnerFuel: 5000,

@@ -40,6 +40,7 @@ export enum Order {
 }
 
 export type ShipPropertiesDesign = {
+    modelName?: string;
     totalCoolant: number;
     systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
 };

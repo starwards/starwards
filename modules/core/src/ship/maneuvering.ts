@@ -5,6 +5,7 @@ import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type ManeuveringDesign = {
+    modelName?: string;
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxAfterBurnerFuel: number;

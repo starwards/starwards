@@ -11,6 +11,7 @@ export type SelectedProjectileModel = 'None' | ProjectileModel;
 
 // Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
 export type ChaingunDesign = {
+    modelName?: string;
     bulletsPerSecond: number;
     bulletSpeed: number;
     bulletDegreesDeviation: number;

@@ -141,4 +141,28 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
 
         expect(state.magazine.count_CannonShell).to.equal(state.magazine.max_CannonShell);
     });
+
+    it('ship systems carry the modelName configured in the ship design', () => {
+        const state = makeShipState('test', dragonflyConfig);
+
+        expect(state.design.modelName).to.equal(dragonflyConfig.properties.modelName);
+        expect(state.armor.design.modelName).to.equal(dragonflyConfig.armor.modelName);
+        expect(state.radar.design.modelName).to.equal(dragonflyConfig.radar.modelName);
+        expect(state.reactor.design.modelName).to.equal(dragonflyConfig.reactor.modelName);
+        expect(state.smartPilot.design.modelName).to.equal(dragonflyConfig.smartPilot.modelName);
+        expect(state.magazine.design.modelName).to.equal(dragonflyConfig.magazine.modelName);
+        expect(state.weaponsTarget.design.modelName).to.equal(dragonflyConfig.weaponsTarget.modelName);
+        expect(state.warp.design.modelName).to.equal(dragonflyConfig.warp.modelName);
+        expect(state.docking.design.modelName).to.equal(dragonflyConfig.docking.modelName);
+        expect(state.maneuvering.design.modelName).to.equal(dragonflyConfig.maneuvering.modelName);
+        if (state.chainGun) {
+            expect(state.chainGun.design.modelName).to.equal(dragonflyConfig.chainGun?.modelName);
+        }
+        for (const thruster of state.thrusters) {
+            expect(thruster.design.modelName).to.equal(dragonflyConfig.thrusters[thruster.index][1].modelName);
+        }
+        for (const tube of state.tubes) {
+            expect(tube.design.modelName).to.equal(dragonflyConfig.tubes[tube.index][1].modelName);
+        }
+    });
 });

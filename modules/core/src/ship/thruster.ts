@@ -8,6 +8,7 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 
 export type ThrusterDesign = {
+    modelName?: string;
     maxAngleError: number;
     capacity: number;
     energyCost: number;

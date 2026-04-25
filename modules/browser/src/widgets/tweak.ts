@@ -159,8 +159,9 @@ const singleSelectionDetails = async (
         );
         addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
         for (const system of shipDriver.systems) {
+            const modelName = system.state.design?.modelName;
             const systemFolder = guiFolder.addFolder({
-                title: system.state.name,
+                title: modelName ? `${system.state.name} — ${modelName}` : system.state.name,
                 expanded: false,
             });
             cleanup(() => systemFolder.dispose());
@@ -247,7 +248,15 @@ function addDesignFolder(
     cleanup(() => designFolder.dispose());
     const state = readProp<DesignState>(shipDriver, `${pointer}/design`).getValue();
     if (!state) return;
+    // Show the string modelName (if set) as a read-only text field at the top
+    // of the design folder.
+    if (state.modelName) {
+        const modelNameProp = readProp<string>(shipDriver, `${pointer}/design/modelName`);
+        addTextBlade(designFolder, modelNameProp, { label: 'modelName', disabled: true }, cleanup);
+    }
     for (const designParam of state.keys()) {
+        // modelName is a string, shown above instead of as a numeric slider.
+        if (designParam === 'modelName') continue;
         const prop = readWriteProp<number>(shipDriver, `${pointer}/design/${designParam}`);
         addCameraRingBlade(designFolder, prop, { label: designParam }, cleanup);
     }
