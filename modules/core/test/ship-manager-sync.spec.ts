@@ -33,38 +33,38 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         return { shipMgr, spaceMgr, shipObj };
     }
 
-    it('overwrites direct ship.state.angle writes from the SpaceObject every tick', () => {
+    it('overwrites direct ship.state.spaceship.angle writes from the SpaceObject every tick', () => {
         const { shipMgr, shipObj } = makeManager();
         shipObj.angle = 42;
         shipMgr.update(tick(1 / 60));
-        expect(shipMgr.state.angle).to.be.closeTo(42, 1);
+        expect(shipMgr.state.spaceship.angle).to.be.closeTo(42, 1);
 
-        // Now violate the invariant by writing directly into ship.state.
+        // Now violate the invariant by writing directly into ship.state.spaceship.
         // We use bracket notation to bypass the ESLint guard, simulating
         // a contributor who wired around it.
-        (shipMgr.state as unknown as Record<string, number>)['angle'] = 999;
+        (shipMgr.state.spaceship as unknown as Record<string, number>)['angle'] = 999;
 
         // The next tick should snap angle back from the SpaceObject.
         shipMgr.update(tick(1 / 60));
-        expect(shipMgr.state.angle).to.be.closeTo(shipObj.angle, 1);
-        expect(shipMgr.state.angle).to.not.equal(999);
+        expect(shipMgr.state.spaceship.angle).to.be.closeTo(shipObj.angle, 1);
+        expect(shipMgr.state.spaceship.angle).to.not.equal(999);
     });
 
-    it('overwrites direct ship.state.position writes from the SpaceObject every tick', () => {
+    it('overwrites direct ship.state.spaceship.position writes from the SpaceObject every tick', () => {
         const { shipMgr, shipObj } = makeManager();
         shipObj.position.x = 100;
         shipObj.position.y = 200;
         shipMgr.update(tick(1 / 60));
-        expect(shipMgr.state.position.x).to.be.closeTo(100, 1);
-        expect(shipMgr.state.position.y).to.be.closeTo(200, 1);
+        expect(shipMgr.state.spaceship.position.x).to.be.closeTo(100, 1);
+        expect(shipMgr.state.spaceship.position.y).to.be.closeTo(200, 1);
 
         // Direct write to mirror.
-        shipMgr.state.position.x = -50;
-        shipMgr.state.position.y = -75;
+        shipMgr.state.spaceship.position.x = -50;
+        shipMgr.state.spaceship.position.y = -75;
 
         shipMgr.update(tick(1 / 60));
-        expect(shipMgr.state.position.x).to.be.closeTo(shipObj.position.x, 1);
-        expect(shipMgr.state.position.y).to.be.closeTo(shipObj.position.y, 1);
+        expect(shipMgr.state.spaceship.position.x).to.be.closeTo(shipObj.position.x, 1);
+        expect(shipMgr.state.spaceship.position.y).to.be.closeTo(shipObj.position.y, 1);
     });
 
     it('mirrors faction, radius and radarRange from the SpaceObject', () => {
@@ -72,7 +72,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         shipObj.radius = 123;
         shipObj.radarRange = 456;
         shipMgr.update(tick(1 / 60));
-        expect(shipMgr.state.radius).to.equal(123);
-        expect(shipMgr.state.radarRange).to.equal(456);
+        expect(shipMgr.state.spaceship.radius).to.equal(123);
+        expect(shipMgr.state.spaceship.radarRange).to.equal(456);
     });
 });

@@ -221,7 +221,7 @@ export abstract class ShipManager implements Updateable {
         } else {
             this.spaceManager.changeShipRadarRange(this.spaceObject.id, 0);
         }
-        this.state.radarRange = this.spaceObject.radarRange;
+        this.state.spaceship.radarRange = this.spaceObject.radarRange;
     }
 
     private calcRadarRange(totalSeconds: number) {
@@ -293,16 +293,15 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected syncShipProperties() {
-        // only sync data that should be exposed to room clients
-        this.state.position.x = this.spaceObject.position.x;
-        this.state.position.y = this.spaceObject.position.y;
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
-        this.state.turnSpeed = this.spaceObject.turnSpeed;
-        this.state.angle = this.spaceObject.angle;
-        this.state.faction = this.spaceObject.faction;
-        this.state.radius = this.spaceObject.radius;
-        this.state.radarRange = this.spaceObject.radarRange;
+        this.state.spaceship.position.x = this.spaceObject.position.x;
+        this.state.spaceship.position.y = this.spaceObject.position.y;
+        this.state.spaceship.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceship.velocity.y = this.spaceObject.velocity.y;
+        this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;
+        this.state.spaceship.angle = this.spaceObject.angle;
+        this.state.spaceship.faction = this.spaceObject.faction;
+        this.state.spaceship.radius = this.spaceObject.radius;
+        this.state.spaceship.radarRange = this.spaceObject.radarRange;
     }
 
     protected updateAmmo() {

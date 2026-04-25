@@ -1,10 +1,10 @@
+import { ArraySchema, Schema } from '@colyseus/schema';
+import { Faction, Spaceship, Vec2 } from '../space';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
-import { Spaceship, Vec2 } from '../space';
 import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
 
 import { Armor } from './armor';
-import { ArraySchema } from '@colyseus/schema';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
@@ -48,8 +48,19 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') totalCoolant = 0;
     @gameField('float32') systemKillRatio = 0;
 }
-@rangeSchema({ '/turnSpeed': [-90, 90], '/angle': [0, 360] })
-export class ShipState extends Spaceship {
+@rangeSchema({ '/spaceship/turnSpeed': [-90, 90] })
+export class ShipState extends Schema {
+    /**
+     * Composed space object - a mirror of the authoritative Spaceship in SpaceState,
+     * updated every game tick by syncShipProperties(). This is NOT the source of truth
+     * for physics properties; modify the SpaceObject in SpaceManager instead.
+     */
+    @gameField(Spaceship)
+    spaceship: Spaceship = new Spaceship();
+
+    @gameField('string')
+    id = '';
+
     @gameField(ShipPropertiesDesignState)
     design = new ShipPropertiesDesignState();
 
@@ -160,13 +171,47 @@ export class ShipState extends Spaceship {
     @commandable()
     public maneuveringModeCommand = false;
 
+    // Read-only delegates to the composed spaceship. These satisfy the Craft
+    // interface used by helm-assist / gunner-assist without @gameField, so they
+    // don't create Colyseus serialization conflicts.
+    get position(): Vec2 {
+        return this.spaceship.position;
+    }
+    get velocity(): Vec2 {
+        return this.spaceship.velocity;
+    }
+    get angle(): number {
+        return this.spaceship.angle;
+    }
+    get turnSpeed(): number {
+        return this.spaceship.turnSpeed;
+    }
+    get faction(): Faction {
+        return this.spaceship.faction;
+    }
+    get radius(): number {
+        return this.spaceship.radius;
+    }
+    get radarRange(): number {
+        return this.spaceship.radarRange;
+    }
+    globalToLocal(global: XY) {
+        return this.spaceship.globalToLocal(global);
+    }
+    localToGlobal(local: XY) {
+        return this.spaceship.localToGlobal(local);
+    }
+    get directionAxis() {
+        return this.spaceship.directionAxis;
+    }
+
     @range([0, 360])
     get velocityAngle() {
-        return XY.angleOf(this.velocity);
+        return XY.angleOf(this.spaceship.velocity);
     }
     @range((t: ShipState) => [0, t.maxMaxSpeed])
     get speed() {
-        return XY.lengthOf(this.velocity);
+        return XY.lengthOf(this.spaceship.velocity);
     }
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {

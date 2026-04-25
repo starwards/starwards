@@ -43,8 +43,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('syncShipProperties overwrites direct state writes', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup();
 
-        // Direct write to ship state position - this should be overwritten
-        shipMgr.state.position.x = 999;
+        // Direct write to ship state spaceship position - this should be overwritten
+        shipMgr.state.spaceship.position.x = 999;
 
         // The space object position remains at 0
         expect(shipObj.position.x).to.equal(0);
@@ -52,8 +52,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         // After a tick, syncShipProperties should overwrite state from spaceObject
         runOneTick(shipMgr, spaceMgr);
 
-        expect(shipMgr.state.position.x).to.equal(shipObj.position.x);
-        expect(shipMgr.state.position.x).to.not.equal(999);
+        expect(shipMgr.state.spaceship.position.x).to.equal(shipObj.position.x);
+        expect(shipMgr.state.spaceship.position.x).to.not.equal(999);
     });
 
     it('syncShipProperties copies angle from spaceObject', () => {
@@ -63,7 +63,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
 
         runOneTick(shipMgr, spaceMgr);
 
-        expect(shipMgr.state.angle).to.be.closeTo(45, 1);
+        expect(shipMgr.state.spaceship.angle).to.be.closeTo(45, 1);
     });
 
     it('syncShipProperties copies all synced properties', () => {
@@ -78,12 +78,12 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
 
         runOneTick(shipMgr, spaceMgr);
 
-        expect(shipMgr.state.position.x).to.be.closeTo(shipObj.position.x, 1);
-        expect(shipMgr.state.position.y).to.be.closeTo(shipObj.position.y, 1);
-        expect(shipMgr.state.velocity.x).to.be.closeTo(shipObj.velocity.x, 1);
-        expect(shipMgr.state.velocity.y).to.be.closeTo(shipObj.velocity.y, 1);
-        expect(shipMgr.state.angle).to.be.closeTo(shipObj.angle, 1);
-        expect(shipMgr.state.faction).to.equal(shipObj.faction);
+        expect(shipMgr.state.spaceship.position.x).to.be.closeTo(shipObj.position.x, 1);
+        expect(shipMgr.state.spaceship.position.y).to.be.closeTo(shipObj.position.y, 1);
+        expect(shipMgr.state.spaceship.velocity.x).to.be.closeTo(shipObj.velocity.x, 1);
+        expect(shipMgr.state.spaceship.velocity.y).to.be.closeTo(shipObj.velocity.y, 1);
+        expect(shipMgr.state.spaceship.angle).to.be.closeTo(shipObj.angle, 1);
+        expect(shipMgr.state.spaceship.faction).to.equal(shipObj.faction);
     });
 
     it('resetShipState resets command fields', () => {

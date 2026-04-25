@@ -121,8 +121,9 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
 
     private changeVelocity(speedToChange: XY) {
         this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
-        this.state.velocity.x = this.spaceObject.velocity.x;
-        this.state.velocity.y = this.spaceObject.velocity.y;
+        // Immediate sync so code later in the same tick reads the updated velocity
+        this.state.spaceship.velocity.x = this.spaceObject.velocity.x;
+        this.state.spaceship.velocity.y = this.spaceObject.velocity.y;
     }
 
     update(id: IterationData) {
@@ -133,7 +134,8 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         if (this.state.smartPilot.rotation) {
             const speedToChange = this.state.smartPilot.rotation * this.state.rotationCapacity * deltaSeconds;
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
-            this.state.turnSpeed = this.spaceObject.turnSpeed;
+            // Immediate sync so code later in the same tick reads the updated turnSpeed
+            this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;
         }
     }
 }

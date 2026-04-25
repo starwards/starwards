@@ -16,7 +16,7 @@ import tsparser from '@typescript-eslint/parser';
 // these rules encode.
 // ---------------------------------------------------------------------------
 
-const BANNED_DIRECT_FIELDS = new Set(['position', 'velocity', 'angle', 'turnSpeed', 'health']);
+const BANNED_DIRECT_FIELDS = new Set(['position', 'velocity', 'angle', 'turnSpeed']);
 
 // Files allowed to write directly into `*.state.{banned}` because they ARE
 // the source-of-truth managers / sync layer. movement-manager owns the
@@ -39,14 +39,14 @@ const localPlugin = {
                 type: 'problem',
                 docs: {
                     description:
-                        'Disallow direct writes to *.state.{position,velocity,angle,turnSpeed,health}. ' +
+                        'Disallow direct writes to *.state.spaceship.{position,velocity,angle,turnSpeed}. ' +
                         'These are mirrored from the SpaceObject every tick by syncShipProperties; ' +
-                        'writes to ship.state.* are silently overwritten. Modify the SpaceObject instead.',
+                        'writes to ship.state.spaceship.* are silently overwritten. Modify the SpaceObject instead.',
                 },
                 schema: [],
                 messages: {
                     direct:
-                        'Do not write directly to `*.state.{{field}}`. ' +
+                        'Do not write directly to `*.state.spaceship.{{field}}`. ' +
                         'syncShipProperties overwrites it every tick. ' +
                         'Modify the SpaceObject in SpaceManager instead. ' +
                         'See `docs/PATTERNS.md` and the State Synchronization section of CLAUDE.md.',
@@ -60,7 +60,7 @@ const localPlugin = {
 
                 /**
                  * Walk a MemberExpression and return the chain
-                 * `[..., 'state', 'angle']` style array of property names,
+                 * `[..., 'state', 'spaceship', 'angle']` style array of property names,
                  * or null if any segment is computed.
                  */
                 function chain(node) {
@@ -79,13 +79,12 @@ const localPlugin = {
                     AssignmentExpression(node) {
                         if (node.left.type !== 'MemberExpression') return;
                         const props = chain(node.left);
-                        if (!props || props.length < 2) return;
+                        if (!props || props.length < 3) return;
 
-                        // Look for `.state.<banned>` or `.state.<banned>.x|.y`.
-                        // i.e. props contains 'state' followed by a banned field.
-                        for (let i = 0; i < props.length - 1; i++) {
-                            if (props[i] !== 'state') continue;
-                            const next = props[i + 1];
+                        // Look for `.state.spaceship.<banned>` or `.state.spaceship.<banned>.x|.y`.
+                        for (let i = 0; i < props.length - 2; i++) {
+                            if (props[i] !== 'state' || props[i + 1] !== 'spaceship') continue;
+                            const next = props[i + 2];
                             if (BANNED_DIRECT_FIELDS.has(next)) {
                                 context.report({
                                     node,
