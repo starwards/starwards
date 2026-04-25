@@ -75,7 +75,7 @@ export class SignalsJobManager implements Updateable {
         this.state.signals.queueJobTargetId = '';
         this.state.signals.queueJobHackSystemName = '';
 
-        if (jobType !== (JobType.SCAN as number) && jobType !== (JobType.HACK as number)) {
+        if (jobType !== JobType.SCAN && jobType !== JobType.HACK) {
             return;
         }
         if (!targetId) {
@@ -90,7 +90,7 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        if (jobType === (JobType.HACK as number)) {
+        if (jobType === JobType.HACK) {
             const scanLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
             if (scanLevel < ScanLevel.ADVANCED) {
                 return;
@@ -109,7 +109,7 @@ export class SignalsJobManager implements Updateable {
         job.id = makeId();
         job.jobType = jobType;
         job.targetId = targetId;
-        job.hackSystemName = jobType === (JobType.HACK as number) ? hackSystemName : '';
+        job.hackSystemName = jobType === JobType.HACK ? hackSystemName : '';
         job.status = JobStatus.QUEUED;
         job.progress = 0;
         job.duration = this.calculateJobDuration(jobType, targetId);
