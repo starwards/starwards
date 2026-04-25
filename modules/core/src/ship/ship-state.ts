@@ -48,7 +48,7 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') totalCoolant = 0;
     @gameField('float32') systemKillRatio = 0;
 }
-@rangeSchema({ '/spaceship/turnSpeed': [-90, 90], '/spaceship/angle': [0, 360] })
+@rangeSchema({ '/spaceship/turnSpeed': [-90, 90] })
 export class ShipState extends Schema {
     /**
      * Composed space object - a mirror of the authoritative Spaceship in SpaceState,

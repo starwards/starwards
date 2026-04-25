@@ -16,7 +16,7 @@ import tsparser from '@typescript-eslint/parser';
 // these rules encode.
 // ---------------------------------------------------------------------------
 
-const BANNED_DIRECT_FIELDS = new Set(['position', 'velocity', 'angle', 'turnSpeed', 'health']);
+const BANNED_DIRECT_FIELDS = new Set(['position', 'velocity', 'angle', 'turnSpeed']);
 
 // Files allowed to write directly into `*.state.{banned}` because they ARE
 // the source-of-truth managers / sync layer. movement-manager owns the

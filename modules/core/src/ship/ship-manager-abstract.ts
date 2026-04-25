@@ -279,9 +279,6 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected syncShipProperties() {
-        // Sync physics data from the authoritative SpaceObject to the composed
-        // spaceship mirror. Writes go through state.spaceship (not state directly)
-        // because the spaceship is now a composed property, not an inherited one.
         this.state.spaceship.position.x = this.spaceObject.position.x;
         this.state.spaceship.position.y = this.spaceObject.position.y;
         this.state.spaceship.velocity.x = this.spaceObject.velocity.x;

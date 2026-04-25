@@ -54,6 +54,9 @@ function makeArmor(design: ArmorDesign): Armor {
 
 function makeShip(id: string, design: ShipPropertiesDesign) {
     const state = new ShipState();
+    // Both state.id and state.spaceship.id must match: state.id is used for
+    // room identity and JSON Pointer lookups, spaceship.id is the Colyseus
+    // schema mirror synced to clients.
     state.id = id;
     state.spaceship.id = id;
     state.design.assign(design);

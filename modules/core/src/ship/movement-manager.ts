@@ -189,12 +189,14 @@ export class MovementManager implements Updateable {
 
     private changeVelocity(speedToChange: XY) {
         this.spaceManager.changeVelocity(this.spaceObject.id, speedToChange);
+        // Immediate sync so code later in the same tick reads the updated velocity
         this.state.spaceship.velocity.x = this.spaceObject.velocity.x;
         this.state.spaceship.velocity.y = this.spaceObject.velocity.y;
     }
 
     private setVelocity(newSpeed: XY) {
         this.spaceManager.setVelocity(this.spaceObject.id, newSpeed);
+        // Immediate sync so code later in the same tick reads the updated velocity
         this.state.spaceship.velocity.x = this.spaceObject.velocity.x;
         this.state.spaceship.velocity.y = this.spaceObject.velocity.y;
     }
@@ -259,6 +261,7 @@ export class MovementManager implements Updateable {
                 speedToChange += enginePower * this.state.maneuvering.efficiency;
             }
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
+            // Immediate sync so code later in the same tick reads the updated turnSpeed
             this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;
         }
     }
