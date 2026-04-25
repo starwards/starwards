@@ -78,6 +78,12 @@ export class Thruster extends SystemState {
         return this.angle + parent.angle;
     }
     getVelocityCapacity(parent: ShipState): number {
-        return this.effectiveness * (this.design.capacity + parent.afterBurner * this.design.afterBurnerCapacity);
+        const mvCapacity = this.design.capacity;
+        const abCapacity =
+            parent.afterBurner *
+            this.design.afterBurnerCapacity *
+            parent.maneuvering.effectiveness *
+            parent.maneuvering.efficiency;
+        return this.effectiveness * this.availableCapacity * (mvCapacity + abCapacity);
     }
 }

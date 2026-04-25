@@ -11,6 +11,7 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
+    XY,
     capToRange,
     lerp,
     projectileModels,
@@ -48,6 +49,7 @@ export function resetShipState(state: ShipState) {
     for (const thruster of state.thrusters) {
         resetThruster(thruster);
     }
+    state.radar.malfunctionRangeFactor = 0;
     state.smartPilot.offsetFactor = 0;
     state.magazine.count_CannonShell = state.magazine.max_CannonShell;
     // Reset non-@gameField command properties that Schema.clone() does not copy.
@@ -279,6 +281,12 @@ export abstract class ShipManager implements Updateable {
             this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
+            } else {
+                const distance = XY.lengthOf(XY.difference(this.spaceObject.position, this.weaponsTarget.position));
+                if (distance > this.spaceObject.radarRange) {
+                    this.weaponsTarget = null;
+                    this.state.weaponsTarget.targetId = null;
+                }
             }
         } else {
             this.weaponsTarget = null;
