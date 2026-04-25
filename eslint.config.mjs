@@ -39,7 +39,7 @@ const localPlugin = {
                 type: 'problem',
                 docs: {
                     description:
-                        'Disallow direct writes to *.state.spaceship.{position,velocity,angle,turnSpeed,health}. ' +
+                        'Disallow direct writes to *.state.spaceship.{position,velocity,angle,turnSpeed}. ' +
                         'These are mirrored from the SpaceObject every tick by syncShipProperties; ' +
                         'writes to ship.state.spaceship.* are silently overwritten. Modify the SpaceObject instead.',
                 },
