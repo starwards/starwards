@@ -30,6 +30,7 @@ export const CHECK_JAM_INTERVAL_SECONDS = 5;
 export class MovementManager implements Updateable {
     private lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
     private calibrationGoal = WarpFrequency.WARP_FREQUENCY_COUNT;
+    private warpDamageCounter = 0;
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         public state: ShipState,
@@ -138,7 +139,7 @@ export class MovementManager implements Updateable {
                     if (currentSpeed) {
                         // penalty damage for existing velocity
                         this.damageManager.damageAllSystems({
-                            id: 'warp_start',
+                            id: `warp_start:${this.spaceObject.id}:${this.warpDamageCounter++}`,
                             amount: this.state.warp.design.damagePerPhysicalSpeed * currentSpeed,
                         });
                     }
@@ -180,7 +181,7 @@ export class MovementManager implements Updateable {
             );
             // penalty damage for existing velocity (in case of warp system malfunction)
             this.damageManager.damageAllSystems({
-                id: 'warp_speed',
+                id: `warp_speed:${this.spaceObject.id}:${this.warpDamageCounter++}`,
                 amount: this.state.warp.damagePerWarpSpeedPerSecond * newSpeed * deltaSeconds,
             });
             this.setVelocity(newVelocity);
@@ -281,7 +282,7 @@ export class MovementManager implements Updateable {
                     : this.state.smartPilot.offsetFactor;
             const error = XY.byLengthAndDirection(
                 offsetFactor,
-                this.die.getDriftInRange('smartPilotOffset', -180, 180, 0.3),
+                this.die.getDriftInRange('smartPilotOffset:' + this.spaceObject.id, -180, 180, 0.3),
             );
 
             let maneuveringCommand: ManeuveringCommand | undefined = undefined;

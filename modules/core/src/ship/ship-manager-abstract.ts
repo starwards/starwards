@@ -228,7 +228,12 @@ export abstract class ShipManager implements Updateable {
 
     private calcRadarRange(totalSeconds: number) {
         if (this.state.radar.malfunctionRangeFactor && this.state.radar.effectiveness) {
-            const frequency = this.die.getDriftInRange('updateRadarRangeFrequency', 0.2, 1, 0.15);
+            const frequency = this.die.getDriftInRange(
+                'updateRadarRangeFrequency:' + this.spaceObject.id,
+                0.2,
+                1,
+                0.15,
+            );
             const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
             const factorEaseRange = [
                 this.state.radar.malfunctionRangeFactor,
