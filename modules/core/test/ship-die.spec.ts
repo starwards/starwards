@@ -1,0 +1,111 @@
+import { ShipDie } from '../src/ship/ship-die';
+import { expect } from 'chai';
+
+function tick(die: ShipDie, deltaSeconds: number) {
+    die.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
+}
+
+describe('ShipDie', () => {
+    describe('event rolls', () => {
+        it('same seed + same id ⇒ identical getRoll', () => {
+            const a = new ShipDie(42);
+            const b = new ShipDie(42);
+            expect(a.getRoll('event:123')).to.equal(b.getRoll('event:123'));
+            expect(a.getRoll('event:456')).to.equal(b.getRoll('event:456'));
+        });
+
+        it('different ids ⇒ different rolls (spot check)', () => {
+            const die = new ShipDie(1);
+            const samples = new Set<number>();
+            for (let i = 0; i < 16; i++) samples.add(die.getRoll(`event:${i}`));
+            expect(samples.size).to.be.greaterThan(12);
+        });
+
+        it('getRoll is stable across update() calls (regression for 3 s flip bug)', () => {
+            const die = new ShipDie(7);
+            const first = die.getRoll('damageSystem:abc');
+            for (let i = 0; i < 10; i++) {
+                tick(die, 1); // ten seconds — old bug: wiped every 3 s
+            }
+            expect(die.getRoll('damageSystem:abc')).to.equal(first);
+        });
+
+        it('getRollInRange maps into the requested range', () => {
+            const die = new ShipDie(99);
+            for (let i = 0; i < 100; i++) {
+                const v = die.getRollInRange(`k:${i}`, -5, 5);
+                expect(v).to.be.at.least(-5);
+                expect(v).to.be.lessThan(5);
+            }
+        });
+
+        it('different seeds ⇒ different rolls for the same id', () => {
+            const diffs = new Set<number>();
+            for (let s = 0; s < 8; s++) {
+                diffs.add(new ShipDie(s).getRoll('same-id'));
+            }
+            expect(diffs.size).to.be.greaterThan(6);
+        });
+
+        it('getSuccess honours the probability (statistically)', () => {
+            const die = new ShipDie(123);
+            let hits = 0;
+            for (let i = 0; i < 2000; i++) {
+                if (die.getSuccess(`p:${i}`, 0.3)) hits++;
+            }
+            // Expected ~600; allow generous slack.
+            expect(hits).to.be.within(450, 750);
+        });
+    });
+
+    describe('drift rolls', () => {
+        it('getDrift is continuous in game time', () => {
+            const die = new ShipDie(42);
+            let prev = die.getDrift('smartPilotOffset', 0.3);
+            let maxDelta = 0;
+            for (let i = 0; i < 120; i++) {
+                tick(die, 1 / 60);
+                const v = die.getDrift('smartPilotOffset', 0.3);
+                maxDelta = Math.max(maxDelta, Math.abs(v - prev));
+                prev = v;
+            }
+            // 60 Hz sampling at 0.3 Hz drift: step should be small.
+            expect(maxDelta).to.be.lessThan(0.05);
+        });
+
+        it('getDrift spans roughly [0,1) over a long window', () => {
+            const die = new ShipDie(42);
+            let lo = 1;
+            let hi = 0;
+            for (let i = 0; i < 600; i++) {
+                tick(die, 0.1);
+                const v = die.getDrift('radar', 0.5);
+                if (v < lo) lo = v;
+                if (v > hi) hi = v;
+            }
+            expect(lo).to.be.lessThan(0.2);
+            expect(hi).to.be.greaterThan(0.8);
+        });
+
+        it('two drift channels are not phase-locked', () => {
+            const die = new ShipDie(42);
+            let sumAbsDiff = 0;
+            for (let i = 0; i < 200; i++) {
+                tick(die, 1 / 30);
+                sumAbsDiff += Math.abs(die.getDrift('a', 0.3) - die.getDrift('b', 0.3));
+            }
+            // If channels were identical, this sum would be 0.
+            expect(sumAbsDiff).to.be.greaterThan(10);
+        });
+
+        it('getDriftInRange maps into the requested range', () => {
+            const die = new ShipDie(42);
+            for (let i = 0; i < 300; i++) {
+                tick(die, 1 / 60);
+                const v = die.getDriftInRange('smartPilotOffset', -180, 180, 0.3);
+                expect(v).to.be.at.least(-180);
+                expect(v).to.be.lessThan(180);
+            }
+        });
+    });
+});
