@@ -84,6 +84,7 @@ export class Signals extends SystemState {
     @commandable()
     public deactivateTrackTargetId = '';
 
+    // Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks
     get currentMaxJobs(): number {
         if (this.broken) {
             return 0;

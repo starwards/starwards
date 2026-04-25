@@ -34,6 +34,7 @@ function getSystemByName(state: ShipState, name: string): SystemState | null {
 }
 
 export class SignalsJobManager implements Updateable {
+    // Not persisted: lost on server restart (hacked systems stay COMPROMISED until manually reset)
     private incomingHacks: IncomingHack[] = [];
     private hackCooldowns: HackCooldown[] = [];
 
@@ -224,6 +225,7 @@ export class SignalsJobManager implements Updateable {
             job.jobType === JobType.SCAN
                 ? this.state.signals.design.scanBaseSuccessRate
                 : this.state.signals.design.hackBaseSuccessRate;
+        // effectiveness = power * hacked: if this ship's signals system is itself hacked, jobs succeed less
         const actualSuccessRate =
             baseSuccessRate * this.state.signals.jobSuccessFactor * this.state.signals.effectiveness;
         const success = this.die.getRoll('signalsJob_' + job.id) < actualSuccessRate;
