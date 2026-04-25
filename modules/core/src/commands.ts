@@ -1,8 +1,8 @@
 import {
     GameRoom,
+    RTuple2,
     RoomName,
     Stateful,
-    Tuple2,
     capToRange,
     getJsonPointer,
     isJsonPointer,
@@ -65,7 +65,7 @@ type NumericStatePropertyCommand = {
     cmdName: string;
     setValue(state: Schema, value: number, path: unknown): unknown;
     getValue(state: Schema, path: unknown): number;
-    range: Tuple2 | ((state: Schema, path: unknown) => Tuple2);
+    range: RTuple2 | ((state: Schema, path: unknown) => RTuple2);
 };
 
 function setNumericProperty<S extends Schema, P>(
