@@ -45,6 +45,7 @@ export class SignalsJobManager implements Updateable {
         private ships?: Map<string, ShipManagerRef>,
     ) {}
 
+    // Last-writer-wins: if two ships hack the same system, the latest expiry replaces the earlier one
     public registerIncomingHack(systemName: string, expiresAtSeconds: number): void {
         this.incomingHacks = this.incomingHacks.filter((h) => h.systemName !== systemName);
         this.incomingHacks.push({ systemName, expiresAtSeconds });
@@ -78,6 +79,7 @@ export class SignalsJobManager implements Updateable {
         if (jobType !== (JobType.SCAN as number) && jobType !== (JobType.HACK as number)) {
             return;
         }
+        const validJobType = jobType as JobType;
         if (!targetId) {
             return;
         }
@@ -90,8 +92,15 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        if (jobType === (JobType.HACK as number)) {
-            const scanLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
+        const scanLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
+
+        if (validJobType === JobType.SCAN) {
+            if (scanLevel >= ScanLevel.ADVANCED) {
+                return;
+            }
+        }
+
+        if (validJobType === JobType.HACK) {
             if (scanLevel < ScanLevel.ADVANCED) {
                 return;
             }
@@ -107,12 +116,12 @@ export class SignalsJobManager implements Updateable {
 
         const job = new SignalsJob();
         job.id = makeId();
-        job.jobType = jobType;
+        job.jobType = validJobType;
         job.targetId = targetId;
-        job.hackSystemName = jobType === (JobType.HACK as number) ? hackSystemName : '';
+        job.hackSystemName = validJobType === JobType.HACK ? hackSystemName : '';
         job.status = JobStatus.QUEUED;
         job.progress = 0;
-        job.duration = this.calculateJobDuration(jobType, targetId);
+        job.duration = this.calculateJobDuration(validJobType, targetId);
 
         this.state.signals.jobs.push(job);
 

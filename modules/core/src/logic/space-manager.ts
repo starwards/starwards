@@ -693,9 +693,10 @@ export class SpaceManager implements Updateable {
     }
 
     public clearTracksForScanner(scannerShipId: string): void {
+        const [scanner] = this.getObjectPtr(scannerShipId);
         this.trackedBy.delete(scannerShipId);
-        for (const [factionKey] of this.trackedByFaction) {
-            this.rebuildFactionTrack(factionKey);
+        if (scanner) {
+            this.rebuildFactionTrack(Number(scanner.faction));
         }
     }
 
