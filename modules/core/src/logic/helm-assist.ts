@@ -73,9 +73,11 @@ function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: 
 
     if (absVelocity < pinPointVelocity * 0.5) {
         const stopDistance = whereWillItStop(0, absVelocity, -capacity);
-        if (targetDistance < stopDistance * 2) {
-            const controlStrength = targetDistance / (stopDistance * 2);
-            return capToRange(-1, 1, controlStrength) * signRelTarget;
+        const controlDistance = Math.max(stopDistance * 2, pinPointDistance);
+        if (targetDistance < controlDistance) {
+            const positionControl = (targetDistance / controlDistance) * signRelTarget;
+            const velocityDamping = velocity / pinPointVelocity;
+            return capToRange(-1, 1, positionControl - velocityDamping);
         }
     }
 
