@@ -20,6 +20,8 @@ const scenes = [
     'engineering-status-bridge-control',
     'engineering-status-low-energy',
     'engineering-status-full-energy',
+    'engineering-status-hull-ok',
+    'engineering-status-hull-damaged',
     // GM Radar
     'gm-radar-empty',
     'gm-radar-ships',

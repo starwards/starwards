@@ -38,6 +38,14 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
         panelCleanup.add,
     );
 
+    const hullDamaged = readProp<boolean>(shipDriver, `/hullDamaged`);
+    addTextBlade(
+        pane,
+        hullDamaged,
+        { label: 'hull', format: (damaged) => (damaged ? 'DAMAGED' : 'OK') },
+        panelCleanup.add,
+    );
+
     const energy = readNumberProp(shipDriver, `/reactor/energy`);
     addGraph(pane, energy, { label: 'energy' }, panelCleanup.add);
 

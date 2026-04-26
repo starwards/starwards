@@ -142,6 +142,17 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         expect(state.magazine.count_CannonShell).to.equal(state.magazine.max_CannonShell);
     });
 
+    it('resetShipState clears hull damage', () => {
+        const state = makeShipState('test', dragonflyConfig);
+
+        state.hullDamaged = true;
+
+        resetShipState(state);
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(state.hullDamaged).to.be.false;
+    });
+
     it('ship systems carry the modelName configured in the ship design', () => {
         const state = makeShipState('test', dragonflyConfig);
 
