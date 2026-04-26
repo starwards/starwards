@@ -43,6 +43,31 @@ describe('core', () => {
         it('XY.negate of XY.zero returns XY.zero reference', () => {
             expect(XY.negate(XY.zero)).to.equal(XY.zero);
         });
+        it('XY.add returns XY.zero reference when result is zero', () => {
+            expect(XY.add({ x: 3, y: 4 }, { x: -3, y: -4 })).to.equal(XY.zero);
+        });
+        it('XY.sum returns XY.zero reference when result is zero', () => {
+            expect(XY.sum({ x: 1, y: 2 }, { x: -1, y: -2 })).to.equal(XY.zero);
+        });
+        it('XY.rotate of XY.zero returns XY.zero reference', () => {
+            expect(XY.rotate(XY.zero, 45)).to.equal(XY.zero);
+        });
+        it('XY.rotateRadians of XY.zero returns XY.zero reference', () => {
+            expect(XY.rotateRadians(XY.zero, 0.5)).to.equal(XY.zero);
+        });
+        it('XY.equasionOfMotion returns XY.zero reference when result is zero', () => {
+            expect(XY.equasionOfMotion(XY.zero, XY.zero, XY.zero, 1)).to.equal(XY.zero);
+        });
+        it('XY.min returns XY.zero reference when result is zero', () => {
+            expect(XY.min(XY.zero, { x: 1, y: 1 })).to.equal(XY.zero);
+        });
+        it('XY.max returns XY.zero reference when result is zero', () => {
+            expect(XY.max(XY.zero, { x: -1, y: -1 })).to.equal(XY.zero);
+        });
+        it('XY.absDifference returns XY.zero reference when vectors are equal', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.absDifference(v, v)).to.equal(XY.zero);
+        });
     });
     describe('XY value-equality shortcuts', () => {
         it('XY.add returns first vector when second is a fresh zero-valued object', () => {
