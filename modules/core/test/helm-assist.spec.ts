@@ -88,6 +88,24 @@ describe('helm assist', function () {
                 }),
             );
         });
+        it('regression #1434: counterexample [1.25] converges to 0', () => {
+            // Seed -1100181686 produced counterexample [1.25] where turnSpeed ended at -1.25
+            // (oscillation). Test both directions to guard against regression.
+            for (const turnSpeed of [1.25, -1.25]) {
+                const harness = new ShipTestHarness();
+                const metrics = new SpeedTestMetrics(
+                    iterationsPerSecond,
+                    Math.abs(turnSpeed),
+                    harness.shipState.maneuvering.design.rotationCapacity,
+                );
+                harness.shipObj.turnSpeed = turnSpeed;
+                harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
+                    const rotation = rotationFromTargetTurnSpeed(time, harness.shipState, 0);
+                    harness.shipMgr.state.smartPilot.rotation = rotation;
+                });
+                expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.errorMargin);
+            }
+        });
     });
     describe('matchGlobalSpeed', () => {
         it('(FWD only) reach target speed in good time from 0 speed', () => {
