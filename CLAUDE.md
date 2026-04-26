@@ -50,6 +50,7 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 | Skill | Trigger |
 |-------|---------|
+| `starwards-autonomous` | Running as autonomous agent on agent-ready issues |
 | `starwards-workflow` | Start of conversation - master index |
 | `starwards-tdd` | "Add X", "Implement Y", "Create Z" |
 | `starwards-debugging` | "Fix bug", "X is broken", "Not working" |
