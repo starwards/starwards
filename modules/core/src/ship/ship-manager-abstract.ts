@@ -62,6 +62,15 @@ export function resetShipState(state: ShipState) {
     state.orderTargetId = null;
     state.orderPosition.x = 0;
     state.orderPosition.y = 0;
+    state.currentTask = '';
+    // Clear smartPilot automation state so stale maneuvering/rotation
+    // from NPC automation doesn't carry into a freshly-converted PC ship.
+    state.smartPilot.maneuvering.x = 0;
+    state.smartPilot.maneuvering.y = 0;
+    state.smartPilot.rotation = 0;
+    state.smartPilot.rotationTargetOffset = 0;
+    state.smartPilot.maneuveringMode = SmartPilotMode.DIRECT;
+    state.smartPilot.rotationMode = SmartPilotMode.DIRECT;
 }
 
 function resetThruster(thruster: Thruster) {

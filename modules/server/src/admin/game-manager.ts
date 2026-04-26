@@ -273,6 +273,10 @@ export class GameManager {
                 throw new Error(`Ship ${shipId} not found in space manager`);
             }
 
+            // Cancel running automation before conversion so stale smartPilot
+            // maneuvering/rotation values don't persist through the async cleanup window.
+            shipManager.cancelAllTasks();
+
             // Update the state's isPlayerShip property
             shipState.isPlayerShip = isPlayerShip;
 
