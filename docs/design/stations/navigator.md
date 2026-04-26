@@ -1,5 +1,7 @@
 # Navigator Station
 
+> **See also:** [`docs/MS3/WARP_FREQUENCY_TOPOLOGY_DESIGN.md`](../../MS3/WARP_FREQUENCY_TOPOLOGY_DESIGN.md) and [`docs/MS3/WARP_FREQUENCY_TOPOLOGY_IMPLEMENTATION.md`](../../MS3/WARP_FREQUENCY_TOPOLOGY_IMPLEMENTATION.md) — detailed design and implementation specs for the warp frequency topology system underlying this station.
+
 **Status:** Designed (not yet implemented)
 **Crew role:** Navigator — plots routes through warp topology.
 **Blocked by:** Warp frequency topology mechanic

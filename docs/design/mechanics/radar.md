@@ -1,5 +1,7 @@
 # Radar & Scanning
 
+> **See also:** [`docs/MS3/SCAN_LEVELS_DESIGN.md`](../../MS3/SCAN_LEVELS_DESIGN.md) and [`docs/MS3/SIGNALS_JOBS_DESIGN.md`](../../MS3/SIGNALS_JOBS_DESIGN.md) — detailed technical specs for scan levels and the signals jobs system summarized below.
+
 ## Radar System (Partial)
 
 Multiple radar types serve different stations:

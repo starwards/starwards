@@ -1,5 +1,7 @@
 # Weapons Station
 
+> **See also:** [`docs/bridge-playtest/weapons.md`](../../bridge-playtest/weapons.md) — code-grounded gap analysis from the 2026-04-25 bridge playtest session.
+
 **Status:** Done
 **Crew role:** Weapons Officer — targets enemies and fires weapons.
 

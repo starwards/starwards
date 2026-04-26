@@ -1,5 +1,7 @@
 # Networking
 
+> **See also:** [`docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) — implementation-level detail on Colyseus rooms, state sync, and the room/driver pattern.
+
 **Status:** Done
 
 ## Architecture

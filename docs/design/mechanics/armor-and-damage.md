@@ -1,5 +1,7 @@
 # Armor, Damage & Ship Systems
 
+> **See also:** [`docs/PHYSICS.md`](../../PHYSICS.md) and [`docs/SUBSYSTEMS.md`](../../SUBSYSTEMS.md) — implementation-level detail on damage application, sectional armor geometry, and per-system effectiveness formulas.
+
 ## Core Philosophy: Malfunction Over Destruction
 
 Ships never auto-explode. Damage causes malfunctions that create gameplay. TPK is always a GM decision, not an algorithm. This is fundamental to LARP play — organizers need narrative control.

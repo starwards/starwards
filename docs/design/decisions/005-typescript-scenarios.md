@@ -1,5 +1,7 @@
 # Decision: TypeScript scenario files instead of visual editor or Lua
 
+> **See also:** [`docs/design/infrastructure/scenarios.md`](../infrastructure/scenarios.md) — implementation status, GameAPI surface, and example scenario file derived from this decision.
+
 **Date:** 2026-04
 **Status:** Accepted
 

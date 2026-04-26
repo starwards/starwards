@@ -1,5 +1,7 @@
 # Milestone 3: Mission in the Fringe Features - Implementation Plan
 
+> **See also:** [`docs/design/roadmap.md`](../design/roadmap.md) — the current strategic roadmap (2026-04). The strategic framing has shifted to **ship a 4-station bridge first, expand later** ([decision 004](../design/decisions/004-ship-early-expand-later.md)). This file retains the detailed 6-phase plan and per-issue analysis for the full vision and remains useful as engineering reference.
+
 **Generated:** 2025-11-06
 **Status:** 35 closed / 27 open issues (57% complete)
 **Goal:** Minimum features to run the Helios "Mission in the Fringe" LARP

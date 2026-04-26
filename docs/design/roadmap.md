@@ -1,5 +1,7 @@
 # Roadmap
 
+> **See also:** [`docs/MS3/PLAN.md`](../MS3/PLAN.md) — the detailed engineering breakdown that this roadmap supersedes in *strategic scope* (now 4-station ship-early per [decision 004](decisions/004-ship-early-expand-later.md)) but not in *phase detail*. PLAN.md retains task-level breakdowns and risk analysis for the full vision.
+
 ## Current Phase: Milestone 3 — LARP Event Ready
 
 **Goal:** Run a full Helios LARP event with Starwards replacing EmptyEpsilon.

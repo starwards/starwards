@@ -1,5 +1,7 @@
 # Movement
 
+> **See also:** [`docs/PHYSICS.md`](../../PHYSICS.md) and [`docs/SUBSYSTEMS.md`](../../SUBSYSTEMS.md) — implementation-level detail on collision physics, thrusters, and warp drive.
+
 ## Newtonian Flight (Done)
 
 Ships obey Newton's laws. No artificial drag — velocity is maintained indefinitely. Rotation is independent of movement direction (you can fly one way while facing another).

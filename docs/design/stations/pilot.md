@@ -1,5 +1,7 @@
 # Pilot Station
 
+> **See also:** [`docs/bridge-playtest/pilot.md`](../../bridge-playtest/pilot.md) — code-grounded gap analysis from the 2026-04-25 bridge playtest session (widgets actually mounted, input bindings, recent merged PRs, factually-verifiable gaps).
+
 **Status:** Done
 **Crew role:** Helmsman — flies the ship.
 

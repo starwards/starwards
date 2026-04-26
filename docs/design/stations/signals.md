@@ -1,5 +1,7 @@
 # Signals Station
 
+> **See also:** [`docs/bridge-playtest/signals.md`](../../bridge-playtest/signals.md) — what shipped vs the full #1208 spec. [`docs/bridge-playtest/signals-design.md`](../../bridge-playtest/signals-design.md) — user-stated design intent that **shifts away from the queued-jobs model summarized below** toward an active mini-game framing for scan and cyber-attack. [`docs/MS3/SIGNALS_JOBS_DESIGN.md`](../../MS3/SIGNALS_JOBS_DESIGN.md) — detailed technical spec for the original queued-jobs design.
+
 **Status:** Designed (not yet implemented)
 **Crew role:** Intelligence Officer — scans, hacks, and tracks targets.
 **Blocked by:** Scan levels mechanic, Signals jobs engine
