@@ -46,7 +46,8 @@ export class EnergyManager implements EnergySource, Updateable {
         this.state.reactor.energy = capToRange(
             0,
             this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds,
+            this.state.reactor.energy +
+                this.state.reactor.energyPerSecond * this.state.reactor.effectiveness * deltaSeconds,
         );
         for (const [system, entry] of this.epm.entries()) {
             system.energyPerMinute = system.energyPerMinute * (1 - deltaSeconds) + entry.total;
