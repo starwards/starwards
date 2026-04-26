@@ -177,6 +177,16 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
+        it('should reject scan job if target already at ADVANCED scan level', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+
+            queueJob(shipMgr, JobType.SCAN, 'target1');
+            tick(shipMgr, spaceMgr, 0.05, 0.05);
+
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+        });
+
         it('should reject hack job if target not at scan level 2', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
