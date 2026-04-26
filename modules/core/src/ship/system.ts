@@ -58,7 +58,7 @@ export const PowerLevelStep = 0.25;
 export enum PowerLevel {
     SHUTDOWN = 0,
     LOW = PowerLevelStep,
-    MID = PowerLevelStep * 2,
+    NORMAL = PowerLevelStep * 2,
     HIGH = PowerLevelStep * 3,
     MAX = 1,
 }
