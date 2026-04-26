@@ -288,6 +288,178 @@ describe('SpaceManager', () => {
         });
     });
 
+    describe('multi-ship move order preserves formation', () => {
+        it('assigns per-ship destination offsets from group center', () => {
+            const spaceMgr = new SpaceManager();
+            const shipA = new Spaceship();
+            shipA.id = 'ship-a';
+            shipA.position = Vec2.make({ x: 100, y: 100 });
+            const shipB = new Spaceship();
+            shipB.id = 'ship-b';
+            shipB.position = Vec2.make({ x: 200, y: 100 });
+            const shipC = new Spaceship();
+            shipC.id = 'ship-c';
+            shipC.position = Vec2.make({ x: 100, y: 200 });
+
+            spaceMgr.insertBulk([shipA, shipB, shipC]);
+            spaceMgr.forceFlushEntities();
+
+            // Issue a bulk move order to all 3 ships
+            const targetPosition = { x: 500, y: 500 };
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['ship-a', 'ship-b', 'ship-c'],
+                order: { type: 'move', position: targetPosition },
+            });
+
+            // Run one update tick to process the command
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            // Group center is (133.33, 133.33)
+            // Ship A offset: (-33.33, -33.33) → destination ≈ (466.67, 466.67)
+            // Ship B offset: (66.67, -33.33) → destination ≈ (566.67, 466.67)
+            // Ship C offset: (-33.33, 66.67) → destination ≈ (466.67, 566.67)
+            const orderA = spaceMgr.resolveObjectOrder('ship-a');
+            const orderB = spaceMgr.resolveObjectOrder('ship-b');
+            const orderC = spaceMgr.resolveObjectOrder('ship-c');
+
+            expect(orderA).to.not.equal(null);
+            expect(orderB).to.not.equal(null);
+            expect(orderC).to.not.equal(null);
+            expect(orderA!.type).to.equal('move');
+            expect(orderB!.type).to.equal('move');
+            expect(orderC!.type).to.equal('move');
+
+            if (orderA!.type === 'move' && orderB!.type === 'move' && orderC!.type === 'move') {
+                // Each ship should have a different destination
+                expect(orderA!.position.x).to.not.equal(orderB!.position.x);
+                expect(orderA!.position.y).to.not.equal(orderC!.position.y);
+
+                // Relative offsets should be preserved
+                const abDiffX = orderB!.position.x - orderA!.position.x;
+                const acDiffY = orderC!.position.y - orderA!.position.y;
+                expect(abDiffX).to.be.closeTo(100, 1); // Ship B was 100 units right of Ship A
+                expect(acDiffY).to.be.closeTo(100, 1); // Ship C was 100 units below Ship A
+            }
+        });
+
+        it('single-ship move order uses exact target position', () => {
+            const spaceMgr = new SpaceManager();
+            const ship = new Spaceship();
+            ship.id = 'solo-ship';
+            ship.position = Vec2.make({ x: 100, y: 100 });
+
+            spaceMgr.insert(ship);
+            spaceMgr.forceFlushEntities();
+
+            const targetPosition = { x: 500, y: 500 };
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['solo-ship'],
+                order: { type: 'move', position: targetPosition },
+            });
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const order = spaceMgr.resolveObjectOrder('solo-ship');
+            expect(order).to.not.equal(null);
+            expect(order!.type).to.equal('move');
+            if (order!.type === 'move') {
+                expect(order!.position.x).to.equal(500);
+                expect(order!.position.y).to.equal(500);
+            }
+        });
+
+        it('non-move orders are unaffected by formation logic', () => {
+            const spaceMgr = new SpaceManager();
+            const shipA = new Spaceship();
+            shipA.id = 'atk-a';
+            shipA.position = Vec2.make({ x: 100, y: 100 });
+            const shipB = new Spaceship();
+            shipB.id = 'atk-b';
+            shipB.position = Vec2.make({ x: 200, y: 200 });
+
+            spaceMgr.insertBulk([shipA, shipB]);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['atk-a', 'atk-b'],
+                order: { type: 'attack', targetId: 'enemy-1' },
+            });
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const orderA = spaceMgr.resolveObjectOrder('atk-a');
+            const orderB = spaceMgr.resolveObjectOrder('atk-b');
+            expect(orderA).to.not.equal(null);
+            expect(orderB).to.not.equal(null);
+            expect(orderA!.type).to.equal('attack');
+            expect(orderB!.type).to.equal('attack');
+            if (orderA!.type === 'attack' && orderB!.type === 'attack') {
+                expect(orderA!.targetId).to.equal('enemy-1');
+                expect(orderB!.targetId).to.equal('enemy-1');
+            }
+        });
+
+        it('multi-ship command with some invalid IDs still dispatches to valid ships', () => {
+            const spaceMgr = new SpaceManager();
+            const shipA = new Spaceship();
+            shipA.id = 'valid-a';
+            shipA.position = Vec2.make({ x: 100, y: 100 });
+            const shipB = new Spaceship();
+            shipB.id = 'valid-b';
+            shipB.position = Vec2.make({ x: 200, y: 100 });
+
+            spaceMgr.insertBulk([shipA, shipB]);
+            spaceMgr.forceFlushEntities();
+
+            // Include a non-existent ship ID alongside valid ones
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['valid-a', 'destroyed-ship', 'valid-b'],
+                order: { type: 'move', position: { x: 500, y: 500 } },
+            });
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const orderA = spaceMgr.resolveObjectOrder('valid-a');
+            const orderB = spaceMgr.resolveObjectOrder('valid-b');
+            const orderGhost = spaceMgr.resolveObjectOrder('destroyed-ship');
+
+            expect(orderA).to.not.equal(null);
+            expect(orderB).to.not.equal(null);
+            expect(orderGhost).to.equal(null);
+
+            if (orderA!.type === 'move' && orderB!.type === 'move') {
+                // Relative offset between A and B should be preserved (100 units apart on x)
+                expect(orderB!.position.x - orderA!.position.x).to.be.closeTo(100, 1);
+                expect(orderB!.position.y - orderA!.position.y).to.be.closeTo(0, 1);
+            }
+        });
+
+        it('multi-ship command with only one valid ship uses exact target position', () => {
+            const spaceMgr = new SpaceManager();
+            const ship = new Spaceship();
+            ship.id = 'sole-survivor';
+            ship.position = Vec2.make({ x: 100, y: 100 });
+
+            spaceMgr.insert(ship);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.state.botOrderCommands.push({
+                ids: ['sole-survivor', 'ghost-1', 'ghost-2'],
+                order: { type: 'move', position: { x: 500, y: 500 } },
+            });
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const order = spaceMgr.resolveObjectOrder('sole-survivor');
+            expect(order).to.not.equal(null);
+            expect(order!.type).to.equal('move');
+            if (order!.type === 'move') {
+                expect(order!.position.x).to.equal(500);
+                expect(order!.position.y).to.equal(500);
+            }
+        });
+    });
+
     it('insert adds object to state', () => {
         const spaceMgr = new SpaceManager();
         const ship = new Spaceship();

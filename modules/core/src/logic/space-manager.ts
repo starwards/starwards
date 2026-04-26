@@ -204,10 +204,33 @@ export class SpaceManager implements Updateable {
         this.state.moveCommands = [];
 
         for (const cmd of this.state.botOrderCommands) {
-            for (const id of cmd.ids) {
-                const [subject] = this.getObjectPtr(id);
-                if (subject && Spaceship.isInstance(subject)) {
-                    this.objectOrder.set(id, cmd.order);
+            if (cmd.order.type === 'move' && cmd.ids.length > 1) {
+                // For multi-ship move orders, preserve relative formation
+                const ships: Array<{ id: string; position: XY }> = [];
+                for (const id of cmd.ids) {
+                    const [subject] = this.getObjectPtr(id);
+                    if (subject && Spaceship.isInstance(subject)) {
+                        ships.push({ id, position: XY.clone(subject.position) });
+                    }
+                }
+                if (ships.length > 1) {
+                    const center = XY.scale(XY.sum(...ships.map((s) => s.position)), 1 / ships.length);
+                    for (const ship of ships) {
+                        const offset = XY.difference(ship.position, center);
+                        this.objectOrder.set(ship.id, {
+                            type: 'move',
+                            position: XY.add(cmd.order.position, offset),
+                        });
+                    }
+                } else if (ships.length === 1) {
+                    this.objectOrder.set(ships[0].id, cmd.order);
+                }
+            } else {
+                for (const id of cmd.ids) {
+                    const [subject] = this.getObjectPtr(id);
+                    if (subject && Spaceship.isInstance(subject)) {
+                        this.objectOrder.set(id, cmd.order);
+                    }
                 }
             }
         }
