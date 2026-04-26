@@ -1,4 +1,4 @@
-import { DesignState, SystemState, defectible, getSystems } from '../src/ship/system';
+import { DesignState, PowerLevel, SystemState, defectible, getSystems } from '../src/ship/system';
 
 import { ArraySchema } from '@colyseus/schema';
 import { expect } from 'chai';
@@ -38,6 +38,13 @@ class Target extends SystemState {
         return 3;
     }
 }
+
+describe('SystemState', () => {
+    it('defaults power to NORMAL, not MAX', () => {
+        const target = new Target();
+        expect(target.power).to.equal(PowerLevel.NORMAL);
+    });
+});
 
 describe('defectible', () => {
     it('getSystems() gets all defectible properties', () => {
