@@ -195,9 +195,13 @@ export class ShipTestHarness {
         this.shipObj.id = '1';
         this.spaceMgr.insert(this.shipObj);
         global.harness = this;
-        this.shipMgr.state.maneuvering.power = PowerLevel.MAX;
         this.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+        // Physics tests assume full-power systems; set explicitly since default is NORMAL
+        this.shipMgr.state.maneuvering.power = PowerLevel.MAX;
+        for (const thruster of this.shipMgr.state.thrusters) {
+            thruster.power = PowerLevel.MAX;
+        }
     }
 
     get shipState() {

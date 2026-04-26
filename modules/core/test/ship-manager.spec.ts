@@ -141,8 +141,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun!.rateOfFireFactor = 1;
                     shipMgr.state.chainGun!.power = PowerLevel.MAX;
+                    shipMgr.state.chainGun!.rateOfFireFactor = 1;
                     shipMgr.state.chainGun!.design.use_BlastCannonShell = false;
                     shipMgr.state.chainGun!.design.use_Missile = false;
                     shipMgr.state.chainGun!.design.use_CannonShell = true;
