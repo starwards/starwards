@@ -65,7 +65,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
             {
                 [PowerLevel.MAX]: 'OK',
                 [PowerLevel.HIGH]: 'OK',
-                [PowerLevel.NORMAL]: 'WARN',
+                [PowerLevel.NORMAL]: 'OK',
                 [PowerLevel.LOW]: 'WARN',
                 [PowerLevel.SHUTDOWN]: 'ERROR',
             },
