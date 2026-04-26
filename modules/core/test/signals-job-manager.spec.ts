@@ -1,6 +1,7 @@
 import {
     Faction,
     HackLevel,
+    PowerLevel,
     ScanLevel,
     ShipManagerPc,
     SmartPilotMode,
@@ -30,6 +31,7 @@ function createTestSetup() {
     spaceMgr.insert(shipObj);
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+    for (const s of shipMgr.state.systems()) s.power = PowerLevel.MAX;
 
     // Create a target ship within radar range
     const targetObj = new Spaceship();
