@@ -145,6 +145,10 @@ Node.js >= 22.11.0, npm >= 10.9.0
 
 ## Documentation
 
+**Product / PM:**
+- [`docs/design/README.md`](docs/design/README.md) - Product hub: vision, roadmap, station specs, decisions
+- [`docs/design/CLAUDE.md`](docs/design/CLAUDE.md) - Folder-scoped guide for the design KB
+
 **Core:**
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - System design, component relationships
 - [`docs/DESIGN_PHILOSOPHY.md`](docs/DESIGN_PHILOSOPHY.md) - Core principles, LARP needs

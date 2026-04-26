@@ -1,0 +1,14 @@
+# Game Mechanics
+
+Mechanics are the underlying systems that the game simulates. A mechanic like "armor" may be visible across multiple stations (weapons sees hit angles, engineering sees plate health, GM sees everything).
+
+| Mechanic | Status | Doc |
+|----------|--------|-----|
+| Newtonian flight & thrusters | Done | [Movement](movement.md) |
+| Warp drive & frequency topology | Partial/Designed | [Movement](movement.md) |
+| Armor, damage & malfunctions | Done | [Armor & Damage](armor-and-damage.md) |
+| Power, heat & coolant | Done | [Armor & Damage](armor-and-damage.md) |
+| Weapons (chaingun, torpedoes) | Done | [Armor & Damage](armor-and-damage.md) |
+| Scan levels & signals jobs | Designed | [Radar & Scanning](radar.md) |
+| Emissions & detection | Partial | [Emissions](emissions.md) |
+| Docking & cargo | Designed/Deferred | [Cargo & Docking](cargo-and-docking.md) |
