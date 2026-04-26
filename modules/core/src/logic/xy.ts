@@ -43,15 +43,18 @@ export namespace XY {
         };
     }
     export function difference(vector: XY, vector2: XY) {
-        return {
-            x: limitPercision(vector.x - vector2.x),
-            y: limitPercision(vector.y - vector2.y),
-        };
+        if (vector === vector2) return zero;
+        const x = limitPercision(vector.x - vector2.x);
+        const y = limitPercision(vector.y - vector2.y);
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function negate(vector: XY): XY {
+        if (vector === zero) return zero;
         return { x: -vector.x, y: -vector.y };
     }
     export function scale(vector: XY, scalar: number): XY {
+        if (scalar === 0 || vector === zero) return zero;
         return { x: limitPercision(scalar * vector.x), y: limitPercision(scalar * vector.y) };
     }
     export function min(vector: XY, vector2: XY): XY {

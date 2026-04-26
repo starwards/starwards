@@ -13,6 +13,37 @@ const assertRotation = (vec: XY) => (deg: number) =>
     );
 
 describe('core', () => {
+    describe('XY zero-constant optimization', () => {
+        it('XY.difference returns XY.zero reference when vectors are identical', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.difference(v, v)).to.equal(XY.zero);
+        });
+        it('XY.difference returns XY.zero reference when result is zero', () => {
+            const a = { x: 5, y: 7 };
+            const b = { x: 5, y: 7 };
+            expect(XY.difference(a, b)).to.equal(XY.zero);
+        });
+        it('XY.add returns XY.zero reference when both inputs are zero', () => {
+            expect(XY.add(XY.zero, XY.zero)).to.equal(XY.zero);
+        });
+        it('XY.add shortcut fires for XY.difference result (hot path)', () => {
+            const pos = { x: 10, y: 20 };
+            const offset = { x: 3, y: 4 };
+            // XY.difference(offset, offset) should return XY.zero by reference
+            // so XY.add shortcut should return pos unchanged
+            const result = XY.add(pos, XY.difference(offset, offset));
+            expect(result).to.equal(pos);
+        });
+        it('XY.scale by 0 returns XY.zero reference', () => {
+            expect(XY.scale({ x: 5, y: 3 }, 0)).to.equal(XY.zero);
+        });
+        it('XY.scale of XY.zero returns XY.zero reference', () => {
+            expect(XY.scale(XY.zero, 42)).to.equal(XY.zero);
+        });
+        it('XY.negate of XY.zero returns XY.zero reference', () => {
+            expect(XY.negate(XY.zero)).to.equal(XY.zero);
+        });
+    });
     describe('XY.byLengthAndDirection() ', () => {
         it('is correct angle and length', () =>
             fc.assert(
