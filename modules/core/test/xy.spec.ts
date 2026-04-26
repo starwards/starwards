@@ -44,6 +44,26 @@ describe('core', () => {
             expect(XY.negate(XY.zero)).to.equal(XY.zero);
         });
     });
+    describe('XY value-equality shortcuts', () => {
+        it('XY.add returns first vector when second is a fresh zero-valued object', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.add(v, { x: 0, y: 0 })).to.equal(v);
+        });
+        it('XY.add returns second vector when first is a fresh zero-valued object', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.add({ x: 0, y: 0 }, v)).to.equal(v);
+        });
+        it('XY.scale returns XY.zero reference when input is a fresh zero-valued vector', () => {
+            expect(XY.scale({ x: 0, y: 0 }, 5)).to.equal(XY.zero);
+        });
+        it('XY.scale returns same vector reference when scalar is 1', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.scale(v, 1)).to.equal(v);
+        });
+        it('XY.negate returns XY.zero reference when input is a fresh zero-valued vector', () => {
+            expect(XY.negate({ x: 0, y: 0 })).to.equal(XY.zero);
+        });
+    });
     describe('XY.byLengthAndDirection() ', () => {
         it('is correct angle and length', () =>
             fc.assert(

@@ -29,8 +29,8 @@ export namespace XY {
         };
     }
     export function add(vector: XY, vector2: XY): XY {
-        if (vector2 === zero) return vector;
-        if (vector === zero) return vector2;
+        if (vector2.x === 0 && vector2.y === 0) return vector;
+        if (vector.x === 0 && vector.y === 0) return vector2;
         return {
             x: limitPercision(vector.x + vector2.x),
             y: limitPercision(vector.y + vector2.y),
@@ -50,11 +50,12 @@ export namespace XY {
         return { x, y };
     }
     export function negate(vector: XY): XY {
-        if (vector === zero) return zero;
+        if (vector.x === 0 && vector.y === 0) return zero;
         return { x: -vector.x, y: -vector.y };
     }
     export function scale(vector: XY, scalar: number): XY {
-        if (scalar === 0 || vector === zero) return zero;
+        if (scalar === 0 || (vector.x === 0 && vector.y === 0)) return zero;
+        if (scalar === 1) return vector;
         return { x: limitPercision(scalar * vector.x), y: limitPercision(scalar * vector.y) };
     }
     export function min(vector: XY, vector2: XY): XY {
