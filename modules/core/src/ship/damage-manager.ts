@@ -23,6 +23,7 @@ import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipState } from './ship-state';
+import { Signals } from './signals';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
 
@@ -107,6 +108,8 @@ export class DamageManager {
                 this.damageDocking(system);
             } else if (Maneuvering.isInstance(system)) {
                 this.damageManeuvering(system, damageObject.id);
+            } else if (Signals.isInstance(system)) {
+                this.damageSignals(system, damageObject.id);
             }
         }
     }
@@ -116,6 +119,14 @@ export class DamageManager {
             return;
         }
         docking.rangesFactor -= 0.05;
+    }
+
+    private damageSignals(signals: Signals, damageId: string) {
+        if (this.die.getSuccess('damageSignals' + damageId, 0.5)) {
+            signals.jobSpeedFactor -= 0.05;
+        } else {
+            signals.jobSuccessFactor -= 0.05;
+        }
     }
 
     private damageManeuvering(maneuvering: Maneuvering, damageId: string) {

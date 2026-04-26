@@ -75,6 +75,8 @@ export class SpaceManager implements Updateable {
     private cleanupBodies: Body[] = [];
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
+    private trackedBy = new Map<string, Set<string>>();
+    private trackedByFaction = new Map<number, Set<string>>();
 
     public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
@@ -240,6 +242,15 @@ export class SpaceManager implements Updateable {
                 }
             }
         }
+        const factionTracked = this.trackedByFaction.get(Number(faction));
+        if (factionTracked) {
+            for (const targetId of factionTracked) {
+                const [target] = this.getObjectPtr(targetId);
+                if (target && !target.destroyed) {
+                    visibleObjects.add(target);
+                }
+            }
+        }
         return visibleObjects;
     }
 
@@ -330,6 +341,8 @@ export class SpaceManager implements Updateable {
                 this.collisions.remove(data.body);
                 this.attachments.delete(destroyed.id);
             }
+            this.clearTracksForScanner(destroyed.id);
+            this.clearTracksForTarget(destroyed.id);
         }
         for (const body of this.cleanupBodies) {
             this.collisions.remove(body);
@@ -651,8 +664,71 @@ export class SpaceManager implements Updateable {
         return storedLevel;
     }
 
+    public setTrack(scannerShipId: string, scannerFaction: Faction, targetId: string, active: boolean): void {
+        if (active) {
+            if (!this.trackedBy.has(scannerShipId)) {
+                this.trackedBy.set(scannerShipId, new Set());
+            }
+            this.trackedBy.get(scannerShipId)!.add(targetId);
+
+            const factionKey = Number(scannerFaction);
+            if (!this.trackedByFaction.has(factionKey)) {
+                this.trackedByFaction.set(factionKey, new Set());
+            }
+            this.trackedByFaction.get(factionKey)!.add(targetId);
+        } else {
+            const scannerTargets = this.trackedBy.get(scannerShipId);
+            if (scannerTargets) {
+                scannerTargets.delete(targetId);
+                if (scannerTargets.size === 0) {
+                    this.trackedBy.delete(scannerShipId);
+                }
+            }
+            this.rebuildFactionTrack(Number(scannerFaction));
+        }
+    }
+
+    public isTrackedByFaction(targetId: string, faction: Faction): boolean {
+        const factionTargets = this.trackedByFaction.get(Number(faction));
+        return !!factionTargets && factionTargets.has(targetId);
+    }
+
+    public clearTracksForScanner(scannerShipId: string): void {
+        const [scanner] = this.getObjectPtr(scannerShipId);
+        this.trackedBy.delete(scannerShipId);
+        if (scanner) {
+            this.rebuildFactionTrack(Number(scanner.faction));
+        }
+    }
+
+    public clearTracksForTarget(targetId: string): void {
+        for (const [, targets] of this.trackedBy) {
+            targets.delete(targetId);
+        }
+        for (const [, targets] of this.trackedByFaction) {
+            targets.delete(targetId);
+        }
+    }
+
+    private rebuildFactionTrack(factionKey: number): void {
+        const union = new Set<string>();
+        for (const [scannerId, targets] of this.trackedBy) {
+            const [scanner] = this.getObjectPtr(scannerId);
+            if (scanner && Number(scanner.faction) === factionKey) {
+                for (const t of targets) {
+                    union.add(t);
+                }
+            }
+        }
+        if (union.size > 0) {
+            this.trackedByFaction.set(factionKey, union);
+        } else {
+            this.trackedByFaction.delete(factionKey);
+        }
+    }
+
     /**
-     * Check if scan job can proceed (target in range and line-of-sight)
+     * Check if scan job can proceed (target in range and line-of-sight, or tracked)
      */
     public canScan(scannerId: string, targetId: string): boolean {
         const [scanner] = this.getObjectPtr(scannerId);
@@ -666,6 +742,11 @@ export class SpaceManager implements Updateable {
         const distance = XY.lengthOf(XY.difference(scanner.position, target.position));
         if (distance > scanner.radarRange) {
             return false;
+        }
+
+        // Tracked targets bypass LOS check (but range still enforced above)
+        if (this.isTrackedByFaction(targetId, scanner.faction)) {
+            return true;
         }
 
         // Check line-of-sight via field-of-view

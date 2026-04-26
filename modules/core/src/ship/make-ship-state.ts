@@ -7,6 +7,7 @@ import { Radar, RadarDesign } from './radar';
 import { Reactor, ReactorDesign } from './reactor';
 import { ShipDirectionConfig, getDirectionFromConfig } from './ship-direction';
 import { ShipPropertiesDesign, ShipState } from './ship-state';
+import { Signals, SignalsDesign } from './signals';
 import { SmartPilot, SmartPilotDesign } from './smart-pilot';
 import { Targeting, TargetingDesign } from './targeting';
 import { Thruster, ThrusterDesign } from './thruster';
@@ -30,6 +31,7 @@ export type ShipDesign = {
     warp: WarpDesign;
     docking: DockingDesign;
     maneuvering: ManeuveringDesign;
+    signals: SignalsDesign;
 };
 
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
@@ -121,6 +123,12 @@ function makeReactor(design: ReactorDesign) {
     return reactor;
 }
 
+function makeSignals(design: SignalsDesign) {
+    const signals = new Signals();
+    signals.design.assign(design);
+    return signals;
+}
+
 function makeSmartPilot(design: SmartPilotDesign) {
     const smartPilot = new SmartPilot();
     smartPilot.design.assign(design);
@@ -149,5 +157,6 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.warp = makeWarp(design.warp);
     state.docking = makeDocking(design.docking);
     state.maneuvering = makeManeuvering(design.maneuvering);
+    state.signals = makeSignals(design.signals);
     return state;
 }
