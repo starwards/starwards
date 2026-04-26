@@ -7,7 +7,7 @@ import { isCoded } from './errors';
 import { printError } from '../utils';
 import { raceEvents } from '../async-utils';
 
-const { debug: logDebug } = createLogger('connection');
+const { warn: logWarn } = createLogger('connection');
 
 const statusMachine = setup({
     types: {} as {
@@ -143,7 +143,7 @@ export class ConnectionManager {
     };
     onConnectionError = (err: unknown) => {
         if (printError(err) !== printError(this.statusService.getSnapshot().context.lastGameError)) {
-            logDebug(`connection error: ${printError(err)}`);
+            logWarn(`connection error: ${printError(err)}`);
         }
         if (!this.isDestroyed) {
             this.statusService.getSnapshot().context.lastGameError = err;

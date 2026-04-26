@@ -19,7 +19,7 @@ export class TaskLoop {
                     });
                 }
             } catch (e) {
-                logError(`Error running task`, e);
+                logError(`Error running task %O`, e);
             }
         }
     };

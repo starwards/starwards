@@ -9,6 +9,8 @@ export function createLogger(namespace: string) {
     const error = createDebug(`${APP_PREFIX}:${namespace}:error`);
 
     // eslint-disable-next-line no-console
+    info.log = console.log.bind(console);
+    // eslint-disable-next-line no-console
     warn.log = console.warn.bind(console);
     // eslint-disable-next-line no-console
     error.log = console.error.bind(console);
