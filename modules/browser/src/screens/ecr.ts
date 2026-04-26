@@ -1,6 +1,15 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Iterator, PowerLevelStep, ShipDriver, Status, WarpFrequency } from '@starwards/core';
+import {
+    ClientStatus,
+    Driver,
+    Iterator,
+    PowerLevelStep,
+    ShipDriver,
+    Status,
+    WarpFrequency,
+    createLogger,
+} from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { radarFogOfWar, toCss } from '../colors';
 import { readProp, readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
@@ -14,6 +23,8 @@ import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+
+const { error: logError } = createLogger('screen:ecr');
 
 ElementQueries.listen();
 
@@ -47,12 +58,10 @@ if (shipUrlParam) {
             });
             await initScreen(driver, shipUrlParam);
         },
-        // eslint-disable-next-line no-console
-        (e) => console.error(e),
+        (e) => logError(e),
     );
 } else {
-    // eslint-disable-next-line no-console
-    console.error('missing "ship" url query param');
+    logError('missing "ship" url query param');
 }
 
 async function initScreen(driver: Driver, shipId: string) {

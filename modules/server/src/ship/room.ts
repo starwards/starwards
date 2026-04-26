@@ -1,6 +1,8 @@
-import { ShipManager, ShipState, handleJsonPointerCommand } from '@starwards/core/internal';
+import { ShipManager, ShipState, createLogger, handleJsonPointerCommand } from '@starwards/core/internal';
 
 import { Room } from '@colyseus/core';
+
+const { error: logError } = createLogger('ship-room');
 
 export class ShipRoom extends Room<ShipState> {
     constructor() {
@@ -11,11 +13,9 @@ export class ShipRoom extends Room<ShipState> {
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
-        // handle all other messages
         this.onMessage('*', (_, type, message: unknown) => {
             if (!handleJsonPointerCommand(message, type, manager.state)) {
-                // eslint-disable-next-line no-console
-                console.error(`onMessage for message="${JSON.stringify(message)}" not registered.`);
+                logError(`onMessage for message="${JSON.stringify(message)}" not registered.`);
             }
         });
     }

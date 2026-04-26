@@ -19,6 +19,9 @@ import { DeepReadonly } from 'ts-essentials';
 import { Iterator } from '../logic/iteration';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
+import { createLogger } from '../logger';
+
+const { error: logError, warn: logWarn } = createLogger('movement');
 
 type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
@@ -306,8 +309,7 @@ export class MovementManager implements Updateable {
                         );
                         maneuveringCommand = matchLocalSpeed(deltaSeconds, this.state, velocity);
                     } else {
-                        // eslint-disable-next-line no-console
-                        console.error(`corrupted state: smartPilot.maneuveringMode is TARGET with no target`);
+                        logError(`corrupted state: smartPilot.maneuveringMode is TARGET with no target`);
                         maneuveringCommand = { strafe: 0, boost: 0 };
                     }
                     break;
@@ -394,8 +396,7 @@ export class MovementManager implements Updateable {
 
     private trySpendAfterBurner(value: number): boolean {
         if (value < 0) {
-            // eslint-disable-next-line no-console
-            console.log('probably an error: spending negative afterBurnerFuel');
+            logWarn('probably an error: spending negative afterBurnerFuel');
         }
         if (this.state.maneuvering.afterBurnerFuel > value) {
             this.state.maneuvering.afterBurnerFuel = limitPercisionHard(this.state.maneuvering.afterBurnerFuel - value);

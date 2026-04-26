@@ -90,5 +90,8 @@ export { getTweakables } from './tweakable';
 export { Destructors, assertUnreachable } from './utils';
 export type { Destructor } from './utils';
 
+// --- logger ---
+export { createLogger } from './logger';
+
 // --- space-object-base (re-exported via ./space) ---
 export { TypeFilter, filterObject } from './space';

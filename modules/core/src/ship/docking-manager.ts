@@ -3,6 +3,9 @@ import { SpaceManager, XY, getClosestDockingTarget, isInRange, toDegreesDelta } 
 import { DamageManager } from './damage-manager';
 import { DockingMode } from './docking';
 import { ShipState } from './ship-state';
+import { createLogger } from '../logger';
+
+const { warn: logWarn } = createLogger('docking');
 
 const toggleTransition = {
     [DockingMode.DOCKED]: DockingMode.UNDOCKING,
@@ -78,8 +81,7 @@ export class DockingManager {
                             this.state.docking.mode = DockingMode.DOCKED;
                         }
                     } else {
-                        // eslint-disable-next-line no-console
-                        console.warn(`unexpected docking.mode value ${DockingMode[this.state.docking.mode]}`);
+                        logWarn(`unexpected docking.mode value ${DockingMode[this.state.docking.mode]}`);
                     }
                 }
             }

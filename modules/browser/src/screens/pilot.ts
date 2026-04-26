@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
+import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
@@ -15,6 +15,8 @@ import { drawPilotStats } from '../widgets/pilot';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+
+const { error: logError } = createLogger('screen:pilot');
 
 ElementQueries.listen();
 
@@ -36,12 +38,10 @@ if (shipUrlParam) {
             });
             await initScreen(driver, shipUrlParam);
         },
-        // eslint-disable-next-line no-console
-        (e) => console.error(e),
+        (e) => logError(e),
     );
 } else {
-    // eslint-disable-next-line no-console
-    console.error('missing "ship" url query param');
+    logError('missing "ship" url query param');
 }
 
 async function initScreen(driver: Driver, shipId: string) {

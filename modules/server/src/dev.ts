@@ -1,13 +1,15 @@
-/* eslint-disable no-console */
 import * as path from 'path';
 
 import { GameManager } from './admin/game-manager';
+import { createLogger } from '@starwards/core/internal';
 import { server } from './server';
+
+const { error: logError } = createLogger('server:dev');
 
 const port = Number(process.env.PORT || 8080);
 process.on('uncaughtException', function (err) {
-    console.error(new Date().toUTCString() + ' uncaughtException:', err.message);
-    console.error(err.stack);
+    logError(new Date().toUTCString() + ' uncaughtException:', err.message);
+    logError(err.stack);
     // process.exit(1);
 });
 

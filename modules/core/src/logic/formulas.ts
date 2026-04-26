@@ -1,4 +1,7 @@
 import { XY } from './xy';
+import { createLogger } from '../logger';
+
+const { debug: logDebug } = createLogger('formulas');
 
 export const MAX_SAFE_FLOAT = Math.pow(2, 39);
 export const EPSILON = 0.01;
@@ -159,8 +162,7 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
 
     // check whether the cirles do not intersect of one is completely confined within another
     if (distance > subject.radius + object.radius) {
-        // eslint-disable-next-line no-console
-        console.log(
+        logDebug(
             `no intersection distance: ${distance}, (x0, y0): ${subject.position.x}, ${subject.position.y}, subject.radius = ${subject.radius}, (x1, y1): ${objPosition.x}, ${objPosition.y}, object.radius = ${object.radius}`,
         );
         return undefined;
