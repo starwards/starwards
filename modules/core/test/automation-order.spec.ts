@@ -144,13 +144,14 @@ describe('automation order on NPC ships', () => {
 });
 
 describe('resetShipState clears orders', () => {
-    it('clears order fields', () => {
+    it('clears order fields and currentTask', () => {
         const state = makeShipState('test', dragonflyConfig);
 
         state.order = Order.ATTACK;
         state.orderTargetId = 'target-1';
         state.orderPosition.x = 100;
         state.orderPosition.y = 200;
+        state.currentTask = 'Attack target-1';
 
         resetShipState(state);
 
@@ -159,5 +160,33 @@ describe('resetShipState clears orders', () => {
         expect(state.orderTargetId).to.be.null;
         expect(state.orderPosition.x).to.equal(0);
         expect(state.orderPosition.y).to.equal(0);
+        expect(state.currentTask).to.equal('');
+    });
+});
+
+describe('NPC to PC conversion clears stale currentTask', () => {
+    it('PC ship constructed from NPC state has empty currentTask', () => {
+        // Simulate NPC state: order and currentTask set during NPC execution
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = '1';
+        const die = new MockDie();
+        die.expectedRoll = 1;
+        spaceMgr.insert(shipObj);
+
+        // Build an NPC state with stale task info (as would exist during NPC→PC conversion)
+        const npcState = makeShipState(shipObj.id, dragonflyConfig);
+        npcState.order = Order.MOVE;
+        npcState.orderPosition.x = 5000;
+        npcState.orderPosition.y = 2000;
+        npcState.currentTask = 'Go to 5000,2000';
+
+        // Simulate convertShipType: clone state, then create PC manager
+        const clonedState = npcState.clone();
+        // After clone, stale currentTask should survive until resetShipState is called
+        // Creating ShipManagerPc calls resetShipState in its constructor
+        const pcMgr = new ShipManagerPc(shipObj, clonedState, spaceMgr, die);
+
+        expect(pcMgr.state.currentTask).to.equal('');
     });
 });
