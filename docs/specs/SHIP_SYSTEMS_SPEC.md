@@ -50,7 +50,7 @@ abstract class SystemState extends Schema {
     
     @range([0, 1])
     @gameField('float32')
-    power: number = PowerLevel.MAX;
+    power: number = PowerLevel.NORMAL;
     
     @range([0, 1])
     @gameField('float32')

@@ -69,7 +69,7 @@ class Reactor extends SystemState {
     @tweakable({ type: 'enum', enum: PowerLevel })
     @commandable()
     @gameField('float32')
-    public power = PowerLevel.MAX;
+    public power = PowerLevel.NORMAL;
 }
 ```
 

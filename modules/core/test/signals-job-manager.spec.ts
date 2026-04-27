@@ -1,6 +1,7 @@
 import {
     Faction,
     HackLevel,
+    PowerLevel,
     ScanLevel,
     ShipManagerPc,
     SmartPilotMode,
@@ -30,6 +31,7 @@ function createTestSetup() {
     spaceMgr.insert(shipObj);
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+    shipMgr.state.signals.power = PowerLevel.MAX;
 
     // Create a target ship within radar range
     const targetObj = new Spaceship();
@@ -47,6 +49,8 @@ function createTestSetup() {
     );
     ships.set(targetObj.id, targetMgr);
 
+    // Set signals to MAX power so job timing matches test expectations
+    shipMgr.state.signals.power = PowerLevel.MAX;
     // Flush entities so ships are in state before first update
     spaceMgr.forceFlushEntities();
     // Warmup tick to establish radar range and FOV
