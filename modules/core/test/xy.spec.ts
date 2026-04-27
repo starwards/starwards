@@ -13,6 +13,82 @@ const assertRotation = (vec: XY) => (deg: number) =>
     );
 
 describe('core', () => {
+    describe('XY zero-constant optimization', () => {
+        it('XY.difference returns XY.zero reference when vectors are identical', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.difference(v, v)).to.equal(XY.zero);
+        });
+        it('XY.difference returns XY.zero reference when result is zero', () => {
+            const a = { x: 5, y: 7 };
+            const b = { x: 5, y: 7 };
+            expect(XY.difference(a, b)).to.equal(XY.zero);
+        });
+        it('XY.add returns XY.zero reference when both inputs are zero', () => {
+            expect(XY.add(XY.zero, XY.zero)).to.equal(XY.zero);
+        });
+        it('XY.add shortcut fires for XY.difference result (hot path)', () => {
+            const pos = { x: 10, y: 20 };
+            const offset = { x: 3, y: 4 };
+            // XY.difference(offset, offset) should return XY.zero by reference
+            // so XY.add shortcut should return pos unchanged
+            const result = XY.add(pos, XY.difference(offset, offset));
+            expect(result).to.equal(pos);
+        });
+        it('XY.scale by 0 returns XY.zero reference', () => {
+            expect(XY.scale({ x: 5, y: 3 }, 0)).to.equal(XY.zero);
+        });
+        it('XY.scale of XY.zero returns XY.zero reference', () => {
+            expect(XY.scale(XY.zero, 42)).to.equal(XY.zero);
+        });
+        it('XY.negate of XY.zero returns XY.zero reference', () => {
+            expect(XY.negate(XY.zero)).to.equal(XY.zero);
+        });
+        it('XY.add returns XY.zero reference when result is zero', () => {
+            expect(XY.add({ x: 3, y: 4 }, { x: -3, y: -4 })).to.equal(XY.zero);
+        });
+        it('XY.sum returns XY.zero reference when result is zero', () => {
+            expect(XY.sum({ x: 1, y: 2 }, { x: -1, y: -2 })).to.equal(XY.zero);
+        });
+        it('XY.rotate of XY.zero returns XY.zero reference', () => {
+            expect(XY.rotate(XY.zero, 45)).to.equal(XY.zero);
+        });
+        it('XY.rotateRadians of XY.zero returns XY.zero reference', () => {
+            expect(XY.rotateRadians(XY.zero, 0.5)).to.equal(XY.zero);
+        });
+        it('XY.equasionOfMotion returns XY.zero reference when result is zero', () => {
+            expect(XY.equasionOfMotion(XY.zero, XY.zero, XY.zero, 1)).to.equal(XY.zero);
+        });
+        it('XY.min returns XY.zero reference when result is zero', () => {
+            expect(XY.min(XY.zero, { x: 1, y: 1 })).to.equal(XY.zero);
+        });
+        it('XY.max returns XY.zero reference when result is zero', () => {
+            expect(XY.max(XY.zero, { x: -1, y: -1 })).to.equal(XY.zero);
+        });
+        it('XY.absDifference returns XY.zero reference when vectors are equal', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.absDifference(v, v)).to.equal(XY.zero);
+        });
+    });
+    describe('XY value-equality shortcuts', () => {
+        it('XY.add returns first vector when second is a fresh zero-valued object', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.add(v, { x: 0, y: 0 })).to.equal(v);
+        });
+        it('XY.add returns second vector when first is a fresh zero-valued object', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.add({ x: 0, y: 0 }, v)).to.equal(v);
+        });
+        it('XY.scale returns XY.zero reference when input is a fresh zero-valued vector', () => {
+            expect(XY.scale({ x: 0, y: 0 }, 5)).to.equal(XY.zero);
+        });
+        it('XY.scale returns same vector reference when scalar is 1', () => {
+            const v = { x: 3, y: 4 };
+            expect(XY.scale(v, 1)).to.equal(v);
+        });
+        it('XY.negate returns XY.zero reference when input is a fresh zero-valued vector', () => {
+            expect(XY.negate({ x: 0, y: 0 })).to.equal(XY.zero);
+        });
+    });
     describe('XY.byLengthAndDirection() ', () => {
         it('is correct angle and length', () =>
             fc.assert(

@@ -23,54 +23,58 @@ export namespace XY {
     export function sum(...vectors: XY[]): XY {
         if (!vectors.length) return zero;
         if (vectors.length === 1) return vectors[0];
-        return {
-            x: limitPercision(vectors.reduce((acc, curr) => acc + curr.x, 0)),
-            y: limitPercision(vectors.reduce((acc, curr) => acc + curr.y, 0)),
-        };
+        const x = limitPercision(vectors.reduce((acc, curr) => acc + curr.x, 0));
+        const y = limitPercision(vectors.reduce((acc, curr) => acc + curr.y, 0));
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function add(vector: XY, vector2: XY): XY {
-        if (vector2 === zero) return vector;
-        if (vector === zero) return vector2;
-        return {
-            x: limitPercision(vector.x + vector2.x),
-            y: limitPercision(vector.y + vector2.y),
-        };
+        if (vector2.x === 0 && vector2.y === 0) return vector;
+        if (vector.x === 0 && vector.y === 0) return vector2;
+        const x = limitPercision(vector.x + vector2.x);
+        const y = limitPercision(vector.y + vector2.y);
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function equasionOfMotion(pos: XY, vel: XY, acc: XY, t: number) {
-        return {
-            x: limitPercision(eom(pos.x, vel.x, acc.x, t)),
-            y: limitPercision(eom(pos.y, vel.y, acc.y, t)),
-        };
+        const x = limitPercision(eom(pos.x, vel.x, acc.x, t));
+        const y = limitPercision(eom(pos.y, vel.y, acc.y, t));
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function difference(vector: XY, vector2: XY) {
-        return {
-            x: limitPercision(vector.x - vector2.x),
-            y: limitPercision(vector.y - vector2.y),
-        };
+        if (vector === vector2) return zero;
+        const x = limitPercision(vector.x - vector2.x);
+        const y = limitPercision(vector.y - vector2.y);
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function negate(vector: XY): XY {
+        if (vector.x === 0 && vector.y === 0) return zero;
         return { x: -vector.x, y: -vector.y };
     }
     export function scale(vector: XY, scalar: number): XY {
+        if (scalar === 0 || (vector.x === 0 && vector.y === 0)) return zero;
+        if (scalar === 1) return vector;
         return { x: limitPercision(scalar * vector.x), y: limitPercision(scalar * vector.y) };
     }
     export function min(vector: XY, vector2: XY): XY {
-        return {
-            x: vector.x < vector2.x ? vector.x : vector2.x,
-            y: vector.y < vector2.y ? vector.y : vector2.y,
-        };
+        const x = vector.x < vector2.x ? vector.x : vector2.x;
+        const y = vector.y < vector2.y ? vector.y : vector2.y;
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function max(vector: XY, vector2: XY): XY {
-        return {
-            x: vector.x > vector2.x ? vector.x : vector2.x,
-            y: vector.y > vector2.y ? vector.y : vector2.y,
-        };
+        const x = vector.x > vector2.x ? vector.x : vector2.x;
+        const y = vector.y > vector2.y ? vector.y : vector2.y;
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function absDifference(vector: XY, vector2: XY): XY {
-        return {
-            x: Math.abs(vector.x - vector2.x),
-            y: Math.abs(vector.y - vector2.y),
-        };
+        const x = Math.abs(vector.x - vector2.x);
+        const y = Math.abs(vector.y - vector2.y);
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
     export function inRange(point: XY, start: XY, end: XY): boolean {
         return start.x <= point.x && point.x <= end.x && start.y <= point.y && point.y <= end.y;
@@ -79,12 +83,13 @@ export namespace XY {
         return rotateRadians(vector, degrees * degToRad);
     }
     export function rotateRadians(vector: XY, radians: number) {
+        if (vector === zero) return zero;
         const ca = Math.cos(radians);
         const sa = Math.sin(radians);
-        return {
-            x: limitPercision(ca * vector.x - sa * vector.y),
-            y: limitPercision(sa * vector.x + ca * vector.y),
-        };
+        const x = limitPercision(ca * vector.x - sa * vector.y);
+        const y = limitPercision(sa * vector.x + ca * vector.y);
+        if (x === 0 && y === 0) return zero;
+        return { x, y };
     }
 
     export function lengthOf(vector: XY): number {

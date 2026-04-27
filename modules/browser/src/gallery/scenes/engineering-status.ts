@@ -69,4 +69,36 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
         },
     },
+
+    'engineering-status-hull-ok': {
+        name: 'engineering-status-hull-ok',
+        description: 'Engineering status panel with hull OK',
+        setup(container: HTMLElement) {
+            const ship = makeShipState('player', dragonflySF22);
+            ship.hullDamaged = false;
+            ship.reactor.energy = 800;
+            ship.maneuvering.afterBurnerFuel = 100;
+
+            const mockContainer = createMockContainer(container, 300, 200);
+            const mockShipDriver = createMockShipDriver(ship);
+
+            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+        },
+    },
+
+    'engineering-status-hull-damaged': {
+        name: 'engineering-status-hull-damaged',
+        description: 'Engineering status panel with hull DAMAGED',
+        setup(container: HTMLElement) {
+            const ship = makeShipState('player', dragonflySF22);
+            ship.hullDamaged = true;
+            ship.reactor.energy = 800;
+            ship.maneuvering.afterBurnerFuel = 100;
+
+            const mockContainer = createMockContainer(container, 300, 200);
+            const mockShipDriver = createMockShipDriver(ship);
+
+            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+        },
+    },
 };

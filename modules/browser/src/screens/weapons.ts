@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, ShipDriver, Status } from '@starwards/core';
+import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { readWriteProp, writeProp } from '../property-wrappers';
 
@@ -14,6 +14,8 @@ import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
 import { drawTubesStatus } from '../widgets/tubes-status';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+
+const { error: logError } = createLogger('screen:weapons');
 
 ElementQueries.listen();
 
@@ -35,12 +37,10 @@ if (shipUrlParam) {
             });
             await initScreen(driver, shipUrlParam);
         },
-        // eslint-disable-next-line no-console
-        (e) => console.error(e),
+        (e) => logError(e),
     );
 } else {
-    // eslint-disable-next-line no-console
-    console.error('missing "ship" url query param');
+    logError('missing "ship" url query param');
 }
 
 async function initScreen(driver: Driver, shipId: string) {

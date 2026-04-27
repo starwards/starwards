@@ -2,6 +2,7 @@ import {
     SpaceManager,
     SpaceState,
     cmdReceivers,
+    createLogger,
     handleJsonPointerCommand,
     isJsonPointer,
     isSetValueCommand,
@@ -9,6 +10,8 @@ import {
 } from '@starwards/core/internal';
 
 import { Room } from '@colyseus/core';
+
+const { error: logError } = createLogger('space-room');
 
 export class SpaceRoom extends Room<SpaceState> {
     public static id = 'space';
@@ -24,17 +27,14 @@ export class SpaceRoom extends Room<SpaceState> {
         for (const [cmdName, handler] of cmdReceivers(spaceCommands, manager)) {
             this.onMessage(cmdName, handler);
         }
-        // handle all other messages
         this.onMessage('*', (_, type, message: unknown) => {
             if (isSetValueCommand(message)) {
                 if (!isJsonPointer(type)) {
-                    // eslint-disable-next-line no-console
-                    console.error(`message type="${type}" not registered. message="${JSON.stringify(message)}"`);
+                    logError(`message type="${type}" not registered. message="${JSON.stringify(message)}"`);
                     return;
                 }
                 if (!handleJsonPointerCommand(message, type, manager.state)) {
-                    // eslint-disable-next-line no-console
-                    console.error(
+                    logError(
                         `JSON pointer command can't be handled. message="${JSON.stringify(message)}" type="${type}"`,
                     );
                 }

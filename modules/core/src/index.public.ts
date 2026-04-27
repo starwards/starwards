@@ -49,9 +49,13 @@ export {
     DockingMode,
     HackLevel,
     IdleStrategy,
+    JobStatus,
+    JobType,
     PowerLevel,
     PowerLevelStep,
     ShipState,
+    Signals,
+    SignalsJob,
     SmartPilotMode,
     TargetedStatus,
     WarpFrequency,
@@ -85,6 +89,9 @@ export { getTweakables } from './tweakable';
 // --- utils ---
 export { Destructors, assertUnreachable } from './utils';
 export type { Destructor } from './utils';
+
+// --- logger ---
+export { createLogger } from './logger';
 
 // --- space-object-base (re-exported via ./space) ---
 export { TypeFilter, filterObject } from './space';

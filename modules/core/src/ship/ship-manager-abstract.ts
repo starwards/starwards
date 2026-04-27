@@ -27,10 +27,15 @@ import { DockingManager } from './docking-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
+import { Signals } from './signals';
+import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
+import { createLogger } from '../logger';
 import { sinWave } from '../logic';
+
+const { error: logError } = createLogger('ship-manager');
 
 function fixArmor(armor: Armor) {
     const plateMaxHealth = armor.design.plateMaxHealth;
@@ -51,20 +56,20 @@ export function resetShipState(state: ShipState) {
     }
     state.radar.malfunctionRangeFactor = 0;
     state.smartPilot.offsetFactor = 0;
+    state.signals.jobs.splice(0);
+    state.signals.trackedTargets.splice(0);
     state.magazine.count_CannonShell = state.magazine.max_CannonShell;
     // Reset non-@gameField command properties that Schema.clone() does not copy.
     // Without this, cloned states have these as undefined, causing NaN propagation.
     state.afterBurnerCommand = 0;
     state.rotationModeCommand = false;
     state.maneuveringModeCommand = false;
-    // Clear automation orders (prevents stale orders after NPC→PC conversion)
+    state.hullDamaged = false;
     state.order = Order.NONE;
     state.orderTargetId = null;
     state.orderPosition.x = 0;
     state.orderPosition.y = 0;
     state.currentTask = '';
-    // Clear smartPilot automation state so stale maneuvering/rotation
-    // from NPC automation doesn't carry into a freshly-converted PC ship.
     state.smartPilot.maneuvering.x = 0;
     state.smartPilot.maneuvering.y = 0;
     state.smartPilot.rotation = 0;
@@ -77,7 +82,17 @@ function resetThruster(thruster: Thruster) {
     thruster.angleError = 0;
     thruster.availableCapacity = 1.0;
 }
-export type ShipSystem = ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering;
+export type ShipSystem =
+    | ChainGun
+    | Thruster
+    | Radar
+    | SmartPilot
+    | Reactor
+    | Magazine
+    | Warp
+    | Docking
+    | Maneuvering
+    | Signals;
 
 export type Die = {
     getRoll: (id: string) => number;
@@ -101,6 +116,7 @@ export abstract class ShipManager implements Updateable {
     protected dockingManager: DockingManager;
     protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
+    public signalsJobManager: SignalsJobManager;
 
     constructor(
         public readonly spaceObject: DeepReadonly<Spaceship>,
@@ -114,6 +130,7 @@ export abstract class ShipManager implements Updateable {
         this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
+        this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager, this.die, this.ships);
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
                 this.state.chainGun,
@@ -138,8 +155,7 @@ export abstract class ShipManager implements Updateable {
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
-            // eslint-disable-next-line no-console
-            console.error(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
+            logError(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
         } else {
             if (value !== this.state.smartPilot.maneuveringMode) {
                 this.state.smartPilot.maneuveringMode = value;
@@ -151,8 +167,7 @@ export abstract class ShipManager implements Updateable {
 
     public setSmartPilotRotationMode(value: SmartPilotMode) {
         if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
-            // eslint-disable-next-line no-console
-            console.error(new Error(`attempt to set smartPilot.rotationMode to TARGET with no target`));
+            logError(new Error(`attempt to set smartPilot.rotationMode to TARGET with no target`));
         } else {
             if (value !== this.state.smartPilot.rotationMode) {
                 this.state.smartPilot.rotationMode = value;
@@ -214,6 +229,7 @@ export abstract class ShipManager implements Updateable {
         this.calcTargetedStatus();
 
         this.updateRadarRange(id);
+        this.signalsJobManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
     }

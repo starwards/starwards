@@ -1,5 +1,6 @@
 import { MockDie, makeIterationsData } from './ship-test-harness';
 import {
+    PowerLevel,
     ShipManagerNpc,
     ShipManagerPc,
     SmartPilotMode,
@@ -142,6 +143,17 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         expect(state.magazine.count_CannonShell).to.equal(state.magazine.max_CannonShell);
     });
 
+    it('resetShipState clears hull damage', () => {
+        const state = makeShipState('test', dragonflyConfig);
+
+        state.hullDamaged = true;
+
+        resetShipState(state);
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(state.hullDamaged).to.be.false;
+    });
+
     it('ship systems carry the modelName configured in the ship design', () => {
         const state = makeShipState('test', dragonflyConfig);
 
@@ -165,4 +177,64 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
             expect(tube.design.modelName).to.equal(dragonflyConfig.tubes[tube.index][1].modelName);
         }
     });
+
+    // NPC ships bypass energy management (trySpendEnergy always returns true),
+    // so reactor power tests only apply to player ships.
+    if (shipManagerCtor === ShipManagerPc) {
+        it('reactor power level affects energy generation', () => {
+            const { spaceMgr, shipMgr } = createShipSetup();
+            const state = shipMgr.state;
+            const reactor = state.reactor;
+
+            // shut down all other systems so they don't consume energy
+            state.radar.power = PowerLevel.SHUTDOWN;
+            state.warp.power = PowerLevel.SHUTDOWN;
+            state.maneuvering.power = PowerLevel.SHUTDOWN;
+            if (state.chainGun) state.chainGun.power = PowerLevel.SHUTDOWN;
+            for (const thruster of state.thrusters) thruster.power = PowerLevel.SHUTDOWN;
+            for (const tube of state.tubes) tube.power = PowerLevel.SHUTDOWN;
+
+            const energyPerSecond = reactor.energyPerSecond;
+
+            reactor.energy = 0;
+            reactor.power = PowerLevel.MAX;
+            for (const id of makeIterationsData(1, 20)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+            const energyAtMax = reactor.energy;
+            expect(energyAtMax).to.be.closeTo(energyPerSecond, 1);
+
+            reactor.energy = 0;
+            reactor.power = PowerLevel.LOW;
+            for (const id of makeIterationsData(1, 20)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+            const energyAtLow = reactor.energy;
+            expect(energyAtLow).to.be.closeTo(energyPerSecond * PowerLevel.LOW, 1);
+        });
+
+        it('reactor at SHUTDOWN power generates no energy', () => {
+            const { spaceMgr, shipMgr } = createShipSetup();
+            const state = shipMgr.state;
+
+            // shut down all other systems so they don't consume energy
+            state.radar.power = PowerLevel.SHUTDOWN;
+            state.warp.power = PowerLevel.SHUTDOWN;
+            state.maneuvering.power = PowerLevel.SHUTDOWN;
+            if (state.chainGun) state.chainGun.power = PowerLevel.SHUTDOWN;
+            for (const thruster of state.thrusters) thruster.power = PowerLevel.SHUTDOWN;
+            for (const tube of state.tubes) tube.power = PowerLevel.SHUTDOWN;
+
+            state.reactor.energy = 0;
+            state.reactor.power = PowerLevel.SHUTDOWN;
+
+            for (const id of makeIterationsData(1, 20)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+            expect(state.reactor.energy).to.equal(0);
+        });
+    }
 });

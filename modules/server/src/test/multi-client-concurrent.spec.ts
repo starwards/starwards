@@ -82,7 +82,7 @@ describe('multi-client state synchronization', () => {
         await client2.waitForSync(ship2);
 
         // Multiple clients updating same ship state
-        await client1.sendCommand(ship1, `/reactor/power`, { value: PowerLevel.MID });
+        await client1.sendCommand(ship1, `/reactor/power`, { value: PowerLevel.NORMAL });
         await sleep(50);
         await client2.sendCommand(ship2, `/reactor/power`, { value: PowerLevel.MAX });
 

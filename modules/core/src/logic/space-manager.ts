@@ -15,6 +15,9 @@ import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
+import { createLogger } from '../logger';
+
+const { warn: logWarn, error: logError } = createLogger('space-manager');
 
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
@@ -75,6 +78,8 @@ export class SpaceManager implements Updateable {
     private cleanupBodies: Body[] = [];
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
+    private trackedBy = new Map<string, Set<string>>();
+    private trackedByFaction = new Map<number, Set<string>>();
 
     public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
@@ -114,8 +119,7 @@ export class SpaceManager implements Updateable {
     }
     public setVelocity(id: string, velocity: XY) {
         if (isNaN(velocity.x) || isNaN(velocity.y)) {
-            // eslint-disable-next-line no-console
-            console.warn(`trying to set "NaN" in velocity of ${id}`);
+            logWarn(`trying to set "NaN" in velocity of ${id}`);
             return;
         }
         const [subject] = this.getObjectPtr(id);
@@ -200,10 +204,33 @@ export class SpaceManager implements Updateable {
         this.state.moveCommands = [];
 
         for (const cmd of this.state.botOrderCommands) {
-            for (const id of cmd.ids) {
-                const [subject] = this.getObjectPtr(id);
-                if (subject && Spaceship.isInstance(subject)) {
-                    this.objectOrder.set(id, cmd.order);
+            if (cmd.order.type === 'move' && cmd.ids.length > 1) {
+                // For multi-ship move orders, preserve relative formation
+                const ships: Array<{ id: string; position: XY }> = [];
+                for (const id of cmd.ids) {
+                    const [subject] = this.getObjectPtr(id);
+                    if (subject && Spaceship.isInstance(subject)) {
+                        ships.push({ id, position: XY.clone(subject.position) });
+                    }
+                }
+                if (ships.length > 1) {
+                    const center = XY.scale(XY.sum(...ships.map((s) => s.position)), 1 / ships.length);
+                    for (const ship of ships) {
+                        const offset = XY.difference(ship.position, center);
+                        this.objectOrder.set(ship.id, {
+                            type: 'move',
+                            position: XY.add(cmd.order.position, offset),
+                        });
+                    }
+                } else if (ships.length === 1) {
+                    this.objectOrder.set(ships[0].id, cmd.order);
+                }
+            } else {
+                for (const id of cmd.ids) {
+                    const [subject] = this.getObjectPtr(id);
+                    if (subject && Spaceship.isInstance(subject)) {
+                        this.objectOrder.set(id, cmd.order);
+                    }
                 }
             }
         }
@@ -235,8 +262,16 @@ export class SpaceManager implements Updateable {
                         visibleArc.object && visibleObjects.add(visibleArc.object);
                     }
                 } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`object leak! ${object.id} has no extra data`);
+                    logError(`object leak! ${object.id} has no extra data`);
+                }
+            }
+        }
+        const factionTracked = this.trackedByFaction.get(Number(faction));
+        if (factionTracked) {
+            for (const targetId of factionTracked) {
+                const [target] = this.getObjectPtr(targetId);
+                if (target && !target.destroyed) {
+                    visibleObjects.add(target);
                 }
             }
         }
@@ -330,6 +365,8 @@ export class SpaceManager implements Updateable {
                 this.collisions.remove(data.body);
                 this.attachments.delete(destroyed.id);
             }
+            this.clearTracksForScanner(destroyed.id);
+            this.clearTracksForTarget(destroyed.id);
         }
         for (const body of this.cleanupBodies) {
             this.collisions.remove(body);
@@ -576,8 +613,7 @@ export class SpaceManager implements Updateable {
                 objectDamage.push(damage);
             }
         } else {
-            // eslint-disable-next-line no-console
-            console.error(
+            logError(
                 `unexpected undefined intersection with Spaceship.\n${collisionErrorMsg(object, subject, response)}`,
             );
         }
@@ -589,8 +625,7 @@ export class SpaceManager implements Updateable {
             if (data) {
                 data.fov.setDirty();
             } else {
-                // eslint-disable-next-line no-console
-                console.error(`object leak! ${object.id} has no extra data`);
+                logError(`object leak! ${object.id} has no extra data`);
             }
         }
     }
@@ -603,8 +638,7 @@ export class SpaceManager implements Updateable {
                     data.body.r = object.radius;
                     data.body.setPosition(object.position.x, object.position.y); // order matters! setPosition() internally calls updateAABB()
                 } else {
-                    // eslint-disable-next-line no-console
-                    console.error(`object leak! ${object.id} has no extra data`);
+                    logError(`object leak! ${object.id} has no extra data`);
                 }
             }
         }
@@ -651,8 +685,71 @@ export class SpaceManager implements Updateable {
         return storedLevel;
     }
 
+    public setTrack(scannerShipId: string, scannerFaction: Faction, targetId: string, active: boolean): void {
+        if (active) {
+            if (!this.trackedBy.has(scannerShipId)) {
+                this.trackedBy.set(scannerShipId, new Set());
+            }
+            this.trackedBy.get(scannerShipId)!.add(targetId);
+
+            const factionKey = Number(scannerFaction);
+            if (!this.trackedByFaction.has(factionKey)) {
+                this.trackedByFaction.set(factionKey, new Set());
+            }
+            this.trackedByFaction.get(factionKey)!.add(targetId);
+        } else {
+            const scannerTargets = this.trackedBy.get(scannerShipId);
+            if (scannerTargets) {
+                scannerTargets.delete(targetId);
+                if (scannerTargets.size === 0) {
+                    this.trackedBy.delete(scannerShipId);
+                }
+            }
+            this.rebuildFactionTrack(Number(scannerFaction));
+        }
+    }
+
+    public isTrackedByFaction(targetId: string, faction: Faction): boolean {
+        const factionTargets = this.trackedByFaction.get(Number(faction));
+        return !!factionTargets && factionTargets.has(targetId);
+    }
+
+    public clearTracksForScanner(scannerShipId: string): void {
+        const [scanner] = this.getObjectPtr(scannerShipId);
+        this.trackedBy.delete(scannerShipId);
+        if (scanner) {
+            this.rebuildFactionTrack(Number(scanner.faction));
+        }
+    }
+
+    public clearTracksForTarget(targetId: string): void {
+        for (const [, targets] of this.trackedBy) {
+            targets.delete(targetId);
+        }
+        for (const [, targets] of this.trackedByFaction) {
+            targets.delete(targetId);
+        }
+    }
+
+    private rebuildFactionTrack(factionKey: number): void {
+        const union = new Set<string>();
+        for (const [scannerId, targets] of this.trackedBy) {
+            const [scanner] = this.getObjectPtr(scannerId);
+            if (scanner && Number(scanner.faction) === factionKey) {
+                for (const t of targets) {
+                    union.add(t);
+                }
+            }
+        }
+        if (union.size > 0) {
+            this.trackedByFaction.set(factionKey, union);
+        } else {
+            this.trackedByFaction.delete(factionKey);
+        }
+    }
+
     /**
-     * Check if scan job can proceed (target in range and line-of-sight)
+     * Check if scan job can proceed (target in range and line-of-sight, or tracked)
      */
     public canScan(scannerId: string, targetId: string): boolean {
         const [scanner] = this.getObjectPtr(scannerId);
@@ -666,6 +763,11 @@ export class SpaceManager implements Updateable {
         const distance = XY.lengthOf(XY.difference(scanner.position, target.position));
         if (distance > scanner.radarRange) {
             return false;
+        }
+
+        // Tracked targets bypass LOS check (but range still enforced above)
+        if (this.isTrackedByFaction(targetId, scanner.faction)) {
+            return true;
         }
 
         // Check line-of-sight via field-of-view

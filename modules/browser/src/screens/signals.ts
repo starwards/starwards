@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, SpaceDriver, Status } from '@starwards/core';
+import { ClientStatus, Driver, SpaceDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 
 import $ from 'jquery';
@@ -12,6 +12,8 @@ import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+
+const { error: logError } = createLogger('screen:signals');
 
 ElementQueries.listen();
 
@@ -33,12 +35,10 @@ if (shipUrlParam) {
             });
             await initScreen(driver, shipUrlParam);
         },
-        // eslint-disable-next-line no-console
-        (e) => console.error(e),
+        (e) => logError(e),
     );
 } else {
-    // eslint-disable-next-line no-console
-    console.error('missing "ship" url query param');
+    logError('missing "ship" url query param');
 }
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';

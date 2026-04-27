@@ -2,6 +2,7 @@ import { GraphPointInput, PlotlyGraphBuilder } from './ploty-graph-builder';
 import {
     Iterator,
     MAX_SAFE_FLOAT,
+    PowerLevel,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -196,6 +197,11 @@ export class ShipTestHarness {
         global.harness = this;
         this.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+        // Physics tests assume full-power systems; set explicitly since default is NORMAL
+        this.shipMgr.state.maneuvering.power = PowerLevel.MAX;
+        for (const thruster of this.shipMgr.state.thrusters) {
+            thruster.power = PowerLevel.MAX;
+        }
     }
 
     get shipState() {

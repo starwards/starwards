@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status } from '@starwards/core';
+import { ClientStatus, Driver, Status, createLogger } from '@starwards/core';
 
 import $ from 'jquery';
 import { Config } from 'golden-layout';
@@ -29,6 +29,8 @@ import { tubesStatusWidget } from '../widgets/tubes-status';
 import { warpWidget } from '../widgets/warp';
 import { wireSinglePilotInput } from '../input/wiring';
 
+const { error: logError } = createLogger('screen:ship');
+
 ElementQueries.listen();
 // enable pixi dev-tools
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -50,12 +52,10 @@ if (shipUrlParam) {
             });
             await initScreen(dashboard, shipUrlParam);
         },
-        // eslint-disable-next-line no-console
-        (e) => console.error(e),
+        (e) => logError(e),
     );
 } else {
-    // eslint-disable-next-line no-console
-    console.error('missing "ship" url query param');
+    logError('missing "ship" url query param');
 }
 
 async function initScreen(dashboard: Dashboard, shipId: string) {

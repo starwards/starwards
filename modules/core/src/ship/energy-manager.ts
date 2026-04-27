@@ -4,6 +4,9 @@ import { IterationData, Updateable } from '../updateable';
 import { HeatManager } from './heat-manager';
 import { ShipState } from './ship-state';
 import { capToRange } from '../logic';
+import { createLogger } from '../logger';
+
+const { warn: logWarn } = createLogger('energy');
 
 class EpmEntry {
     total = 0;
@@ -20,8 +23,7 @@ export class EnergyManager implements EnergySource, Updateable {
 
     trySpendEnergy = (value: number, system?: ShipSystem): boolean => {
         if (value < 0) {
-            // eslint-disable-next-line no-console
-            console.log('probably an error: spending negative energy');
+            logWarn('probably an error: spending negative energy');
         }
         if (this.state.reactor.energy > value) {
             if (system) {
@@ -46,7 +48,8 @@ export class EnergyManager implements EnergySource, Updateable {
         this.state.reactor.energy = capToRange(
             0,
             this.state.reactor.design.maxEnergy,
-            this.state.reactor.energy + this.state.reactor.energyPerSecond * deltaSeconds,
+            this.state.reactor.energy +
+                this.state.reactor.energyPerSecond * this.state.reactor.effectiveness * deltaSeconds,
         );
         for (const [system, entry] of this.epm.entries()) {
             system.energyPerMinute = system.energyPerMinute * (1 - deltaSeconds) + entry.total;

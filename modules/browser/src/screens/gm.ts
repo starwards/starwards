@@ -1,6 +1,6 @@
 // import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status, spaceCommands } from '@starwards/core';
+import { ClientStatus, Driver, Status, createLogger, spaceCommands } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 
 import $ from 'jquery';
@@ -28,6 +28,8 @@ import { targetRadarWidget } from '../widgets/target-radar';
 import { targetingWidget } from '../widgets/targeting';
 import { tubesStatusWidget } from '../widgets/tubes-status';
 import { warpWidget } from '../widgets/warp';
+
+const { error: logError } = createLogger('screen:gm');
 
 // enable pixi dev-tools
 // https://chrome.google.com/webstore/detail/pixijs-devtools/aamddddknhcagpehecnhphigffljadon
@@ -138,6 +140,5 @@ void driver.waitForGame().then(
             dashboard.setup();
         }
     },
-    // eslint-disable-next-line no-console
-    (e) => console.error(e),
+    (e) => logError(e),
 );

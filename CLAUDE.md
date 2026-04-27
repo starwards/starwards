@@ -50,6 +50,7 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 | Skill | Trigger |
 |-------|---------|
+| `starwards-autonomous` | Running as autonomous agent on agent-ready issues |
 | `starwards-workflow` | Start of conversation - master index |
 | `starwards-tdd` | "Add X", "Implement Y", "Create Z" |
 | `starwards-debugging` | "Fix bug", "X is broken", "Not working" |
@@ -144,6 +145,10 @@ All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scr
 Node.js >= 22.11.0, npm >= 10.9.0
 
 ## Documentation
+
+**Product / PM:**
+- [`docs/design/README.md`](docs/design/README.md) - Product hub: vision, roadmap, station specs, decisions
+- [`docs/design/CLAUDE.md`](docs/design/CLAUDE.md) - Folder-scoped guide for the design KB
 
 **Core:**
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) - System design, component relationships

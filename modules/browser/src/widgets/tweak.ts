@@ -14,6 +14,7 @@ import {
     SpaceState,
     Spaceship,
     TypeFilter,
+    createLogger,
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
@@ -34,6 +35,8 @@ import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 import pluralize from 'pluralize';
+
+const { error: logError } = createLogger('tweak');
 
 const selectionTitle = (selected: Iterable<SpaceObject>) => {
     const counts = {} as Record<SpaceObject['type'], number>;
@@ -215,8 +218,7 @@ function addTweakables(
                 cleanup(shipsProp.onChange(updateOptions));
                 updateOptions();
             } else {
-                // eslint-disable-next-line no-console
-                console.error('shipId tweak property found outside of space state');
+                logError('shipId tweak property found outside of space state');
             }
         } else if (tweakable.config.type === 'number') {
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);

@@ -1,3 +1,7 @@
+import { createLogger } from './logger';
+
+const { error: logError } = createLogger('task-loop');
+
 export class TaskLoop {
     private handle: ReturnType<typeof setTimeout> | null = null;
     constructor(
@@ -15,8 +19,7 @@ export class TaskLoop {
                     });
                 }
             } catch (e) {
-                // eslint-disable-next-line no-console
-                console.error(`Error running task`, e);
+                logError(`Error running task %O`, e);
             }
         }
     };
