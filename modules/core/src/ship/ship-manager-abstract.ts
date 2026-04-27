@@ -65,6 +65,7 @@ export function resetShipState(state: ShipState) {
     state.rotationModeCommand = false;
     state.maneuveringModeCommand = false;
     state.hullDamaged = false;
+    // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;
     state.orderPosition.x = 0;

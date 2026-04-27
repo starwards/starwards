@@ -224,6 +224,8 @@ describe('NPC to PC conversion', () => {
         shipMgr.state.smartPilot.maneuvering.x = 0.8;
         shipMgr.state.smartPilot.maneuvering.y = -0.3;
         shipMgr.state.smartPilot.rotation = 0.6;
+        // currentTask must be non-empty for AutomationManager.cleanup() to fire;
+        // resetShipState() (called in the PC constructor) is the unconditional backstop.
         shipMgr.state.currentTask = 'Go to 1000,2000';
 
         shipMgr.cancelAllTasks();
