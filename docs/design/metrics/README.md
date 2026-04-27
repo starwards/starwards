@@ -4,19 +4,11 @@ A framework for quantifying and comparing bridge game dynamics.
 Use these metrics to measure Starwards against EmptyEpsilon (or any bridge sim)
 and identify specific design gaps.
 
-## Start here
-
-The fastest way to use this framework: open the **comparison template** in
-[pattern-coverage.md](pattern-coverage.md) and review your game against the
-pattern and anti-pattern checklists. Then drill into specific metric groups
-to understand *why* something is weak and *what* to change.
-
 ## How to use
 
 1. Start with [overview.md](overview.md) for all 20 metrics at a glance.
-2. Review the checklists in [pattern-coverage.md](pattern-coverage.md).
-3. For any gap you want to understand, drill into the relevant metric group.
-4. See [scoring-walkthrough.md](scoring-walkthrough.md) for a worked example
+2. For any gap you want to understand, drill into the relevant metric group.
+3. See [scoring-walkthrough.md](scoring-walkthrough.md) for a worked example
    applying metrics to a real row from the dynamics table.
 
 ## Index
@@ -33,9 +25,6 @@ to understand *why* something is weak and *what* to change.
 - [temporal-dynamics.md](temporal-dynamics.md) — Handoff edges per trigger, phase coverage, demand stagger
 - [station-complexity.md](station-complexity.md) — Decision:monitoring ratio, cognitive mode variety
 - [combined-metrics.md](combined-metrics.md) — Cognitive load, load alignment, captain leverage
-
-### Design Review
-- [pattern-coverage.md](pattern-coverage.md) — Comms-forcing pattern and anti-pattern checklists + comparison template
 
 ### Known Gaps
 This framework measures **structural** properties of bridge dynamics. It does

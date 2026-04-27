@@ -1,4 +1,10 @@
-# EmptyEpsilon Bridge Dynamics — 4-Station Layout Visual Reference
+# EmptyEpsilon Bridge Dynamics — Visual Reference
+
+> **Note:** These diagrams use the 4-station layout (Tactical = Helms+Weapons merged).
+> The baseline comparison model is the **5-role layout** (Helms, Weapons, Engineering,
+> Operations, Captain) — see `ee-bridge-dynamics-table.md` and `ee-metrics-report.md`
+> for the 5-role analysis. The key difference: everywhere these diagrams show "Tactical"
+> acting alone, the 5-role layout splits that into a Helms↔Weapons verbal dependency.
 
 EE's 4-player configuration: **Tactical** (Helms+Weapons merged), **Engineering**, **Operations** (Science+Relay merged), **Captain** (consoleless).
 
