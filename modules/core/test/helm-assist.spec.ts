@@ -80,11 +80,21 @@ describe('helm assist', function () {
                         rotation: () => harness.shipState.rotation,
                         turnSpeed: () => harness.shipState.turnSpeed,
                     });
-                    harness.simulate(metrics.timeToReach, metrics.iterations, (time: number) => {
+                    const iteration = (time: number) => {
                         const rotation = rotationFromTargetTurnSpeed(time, harness.shipState, 0);
                         harness.shipMgr.state.smartPilot.rotation = rotation;
-                    });
-                    expect(limitPercision(harness.shipObj.turnSpeed)).to.be.closeTo(0, metrics.errorMargin);
+                    };
+                    harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                    harness.annotateGraph('test turnSpeed');
+                    expect(limitPercision(harness.shipObj.turnSpeed), 'turnSpeed').to.be.closeTo(
+                        0,
+                        metrics.errorMargin,
+                    );
+                    harness.simulate(metrics.timeToReach, metrics.iterations, iteration);
+                    expect(limitPercision(harness.shipObj.turnSpeed), 'turnSpeed after stabling').to.be.closeTo(
+                        0,
+                        metrics.stabilizationErrorMargin,
+                    );
                 }),
             );
         });
