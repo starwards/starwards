@@ -20,9 +20,14 @@ export type ChaingunDesign = {
     overrideSecondsToLive: number;
     damage50: number;
     energyCost: number;
-    use_CannonShell?: boolean;
-    use_BlastCannonShell?: boolean;
-    use_Missile?: boolean;
+    use_CannonHe?: boolean;
+    use_CannonAp?: boolean;
+    use_CannonFrag?: boolean;
+    use_MissileHe?: boolean;
+    use_MissileSabot?: boolean;
+    use_MissileCluster?: boolean;
+    use_MissileTandem?: boolean;
+    use_MissileEmp?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -34,9 +39,14 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @gameField('float32') overrideSecondsToLive = -1;
     @gameField('float32') damage50 = 0;
     @gameField('float32') energyCost = 0;
-    @gameField('boolean') use_CannonShell = false;
-    @gameField('boolean') use_BlastCannonShell = false;
-    @gameField('boolean') use_Missile = false;
+    @gameField('boolean') use_CannonHe = false;
+    @gameField('boolean') use_CannonAp = false;
+    @gameField('boolean') use_CannonFrag = false;
+    @gameField('boolean') use_MissileHe = false;
+    @gameField('boolean') use_MissileSabot = false;
+    @gameField('boolean') use_MissileCluster = false;
+    @gameField('boolean') use_MissileTandem = false;
+    @gameField('boolean') use_MissileEmp = false;
 
     // get explosionSecondsToLive(): number {
     //     return this.explosionRadius / this.explosionExpansionSpeed;

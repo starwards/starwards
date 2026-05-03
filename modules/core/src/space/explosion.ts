@@ -1,3 +1,4 @@
+import { AmmoType } from '../logic/damage-matrix';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { gameField } from '../game-field';
@@ -27,6 +28,14 @@ export class Explosion extends SpaceObjectBase {
 
     @gameField('string')
     public readonly type = 'Explosion';
+
+    /**
+     * The ammo profile that produced this explosion. Empty string for
+     * explosions that aren't from a known projectile (e.g. GM-spawned),
+     * which the damage manager treats as a generic kinetic / matrix-bypass hit.
+     */
+    @gameField('string')
+    public ammoType: AmmoType | '' = '';
 
     constructor() {
         super();

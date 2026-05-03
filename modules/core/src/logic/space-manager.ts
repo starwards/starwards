@@ -27,6 +27,13 @@ export type Damage = {
     amount: number;
     damageSurfaceArc: Tuple2;
     damageDurationSeconds: number;
+    /**
+     * The ammo profile of the projectile/explosion that caused this damage.
+     * Empty string for collisions, GM-spawned explosions, or any non-projectile
+     * source — the damage manager treats those as generic kinetic hits and
+     * skips the armor/ammo matrix.
+     */
+    ammoType: import('./damage-matrix').AmmoType | '';
 };
 
 type NoOrder = {
@@ -600,11 +607,12 @@ export class SpaceManager implements Updateable {
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
             ];
-            const damage = {
+            const damage: Damage = {
                 id: object.id,
                 amount: damageAmount,
                 damageSurfaceArc: shipLocalDamageAngles,
                 damageDurationSeconds: deltaSeconds,
+                ammoType: Explosion.isInstance(object) ? object.ammoType : '',
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {

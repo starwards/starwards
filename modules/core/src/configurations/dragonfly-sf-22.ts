@@ -5,6 +5,8 @@ export const dragonflyArmor = {
     numberOfPlates: 12,
     healRate: 3,
     plateMaxHealth: 1500,
+    armorType: 'Composite' as const,
+    hasFaradayLayer: false,
 };
 export const dragonflyThruster = {
     modelName: 'RT-150 Vectored Thruster',
@@ -30,8 +32,9 @@ export const dragonflyChaingun = {
     maxShellRange: 5000,
     minShellRange: 1000,
     overrideSecondsToLive: 0,
-    use_CannonShell: true,
-    use_BlastCannonShell: true,
+    use_CannonHe: true,
+    use_CannonAp: true,
+    use_CannonFrag: true,
     damage50: 20,
     energyCost: 1,
 };
@@ -50,9 +53,16 @@ export const dragonflyProperties = {
 };
 export const dragonflyMagazine = {
     modelName: 'Hornet Mk-II Magazine',
-    max_CannonShell: 3600,
-    max_BlastCannonShell: 2000,
-    max_Missile: 20,
+    // 3 cannon ammo types — bulk shells, plus a smaller AP reserve.
+    max_CannonHe: 2400,
+    max_CannonAp: 1200,
+    max_CannonFrag: 2000,
+    // 5 missile types — generalist HE bias, with smaller specialist stocks.
+    max_MissileHe: 12,
+    max_MissileSabot: 6,
+    max_MissileCluster: 6,
+    max_MissileTandem: 4,
+    max_MissileEmp: 4,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,
@@ -78,7 +88,11 @@ export const dragonflyTube = {
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
     energyCost: 30,
-    use_Missile: true,
+    use_MissileHe: true,
+    use_MissileSabot: true,
+    use_MissileCluster: true,
+    use_MissileTandem: true,
+    use_MissileEmp: true,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',

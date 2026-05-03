@@ -116,8 +116,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1,
                 );
-                expect(shipMgr.state.magazine.count_CannonShell).to.equal(
-                    shipMgr.state.magazine.design.max_CannonShell - cannonShells.length,
+                expect(shipMgr.state.magazine.count_CannonHe).to.equal(
+                    shipMgr.state.magazine.design.max_CannonHe - cannonShells.length,
                 );
             }),
         );
@@ -143,11 +143,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.power = PowerLevel.MAX;
                     shipMgr.state.chainGun!.rateOfFireFactor = 1;
-                    shipMgr.state.chainGun!.design.use_BlastCannonShell = false;
-                    shipMgr.state.chainGun!.design.use_Missile = false;
-                    shipMgr.state.chainGun!.design.use_CannonShell = true;
-                    shipMgr.state.magazine.count_CannonShell = availableAmmo;
-                    shipMgr.state.chainGun!.projectile = 'CannonShell';
+                    shipMgr.state.chainGun!.design.use_CannonFrag = false;
+                    shipMgr.state.chainGun!.design.use_MissileHe = false;
+                    shipMgr.state.chainGun!.design.use_CannonHe = true;
+                    shipMgr.state.magazine.count_CannonHe = availableAmmo;
+                    shipMgr.state.chainGun!.projectile = 'CannonHe';
                     shipMgr.state.chainGun!.isFiring = true;
                     switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
@@ -158,7 +158,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     }
                     const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                     expect(cannonShells.length).to.equal(availableAmmo);
-                    expect(shipMgr.state.magazine.count_CannonShell).to.equal(0);
+                    expect(shipMgr.state.magazine.count_CannonHe).to.equal(0);
                 },
             ),
         );

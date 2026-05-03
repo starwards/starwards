@@ -7,73 +7,56 @@
 // The matrix below is a verbatim transcription of the "Hull Damage Matrix"
 // table in the issue body — keep them in sync if either changes.
 
-export const armorTypes = ['composite', 'whipple', 'hardened', 'reactive', 'faraday'] as const;
+export const armorTypes = ['Composite', 'Whipple', 'Hardened', 'Reactive', 'Faraday'] as const;
 export type ArmorType = (typeof armorTypes)[number];
 
-export const ammoTypes = [
-    'cannon-he',
-    'cannon-ap',
-    'cannon-frag',
-    'missile-he',
-    'missile-sabot',
-    'missile-cluster',
-    'missile-tandem',
-    'missile-emp',
-] as const;
+export const cannonAmmoTypes = ['CannonHe', 'CannonAp', 'CannonFrag'] as const;
+export const missileAmmoTypes = ['MissileHe', 'MissileSabot', 'MissileCluster', 'MissileTandem', 'MissileEmp'] as const;
+export const ammoTypes = [...cannonAmmoTypes, ...missileAmmoTypes] as const;
+export type CannonAmmoType = (typeof cannonAmmoTypes)[number];
+export type MissileAmmoType = (typeof missileAmmoTypes)[number];
 export type AmmoType = (typeof ammoTypes)[number];
 
 export type HullOutcome = 'resist' | 'normal' | 'vulnerable' | 'critical' | 'ignores';
 
 const HULL_MATRIX: Readonly<Record<AmmoType, Readonly<Record<ArmorType, HullOutcome>>>> = {
-    'cannon-he': { composite: 'normal', whipple: 'resist', hardened: 'resist', reactive: 'resist', faraday: 'ignores' },
-    'cannon-ap': {
-        composite: 'normal',
-        whipple: 'vulnerable',
-        hardened: 'vulnerable',
-        reactive: 'normal',
-        faraday: 'ignores',
+    CannonHe: { Composite: 'normal', Whipple: 'resist', Hardened: 'resist', Reactive: 'resist', Faraday: 'ignores' },
+    CannonAp: {
+        Composite: 'normal',
+        Whipple: 'vulnerable',
+        Hardened: 'vulnerable',
+        Reactive: 'normal',
+        Faraday: 'ignores',
     },
-    'cannon-frag': {
-        composite: 'normal',
-        whipple: 'resist',
-        hardened: 'resist',
-        reactive: 'resist',
-        faraday: 'ignores',
+    CannonFrag: { Composite: 'normal', Whipple: 'resist', Hardened: 'resist', Reactive: 'resist', Faraday: 'ignores' },
+    MissileHe: { Composite: 'normal', Whipple: 'normal', Hardened: 'resist', Reactive: 'resist', Faraday: 'ignores' },
+    MissileSabot: {
+        Composite: 'vulnerable',
+        Whipple: 'vulnerable',
+        Hardened: 'vulnerable',
+        Reactive: 'resist',
+        Faraday: 'ignores',
     },
-    'missile-he': {
-        composite: 'normal',
-        whipple: 'normal',
-        hardened: 'resist',
-        reactive: 'resist',
-        faraday: 'ignores',
+    MissileCluster: {
+        Composite: 'normal',
+        Whipple: 'resist',
+        Hardened: 'resist',
+        Reactive: 'resist',
+        Faraday: 'ignores',
     },
-    'missile-sabot': {
-        composite: 'vulnerable',
-        whipple: 'vulnerable',
-        hardened: 'vulnerable',
-        reactive: 'resist',
-        faraday: 'ignores',
+    MissileTandem: {
+        Composite: 'vulnerable',
+        Whipple: 'vulnerable',
+        Hardened: 'normal',
+        Reactive: 'critical',
+        Faraday: 'ignores',
     },
-    'missile-cluster': {
-        composite: 'normal',
-        whipple: 'resist',
-        hardened: 'resist',
-        reactive: 'resist',
-        faraday: 'ignores',
-    },
-    'missile-tandem': {
-        composite: 'vulnerable',
-        whipple: 'vulnerable',
-        hardened: 'normal',
-        reactive: 'critical',
-        faraday: 'ignores',
-    },
-    'missile-emp': {
-        composite: 'ignores',
-        whipple: 'ignores',
-        hardened: 'ignores',
-        reactive: 'ignores',
-        faraday: 'resist',
+    MissileEmp: {
+        Composite: 'ignores',
+        Whipple: 'ignores',
+        Hardened: 'ignores',
+        Reactive: 'ignores',
+        Faraday: 'resist',
     },
 };
 
@@ -99,14 +82,22 @@ export function damageMultiplierForOutcome(outcome: HullOutcome): number {
 // Surface-effect ammo (HE / Blast-Frag / Cluster) keeps damaging external
 // systems — antennas, sensors, exposed mounts — even when the hull resists.
 const SURFACE_EFFECT: ReadonlySet<AmmoType> = new Set<AmmoType>([
-    'cannon-he',
-    'cannon-frag',
-    'missile-he',
-    'missile-cluster',
+    'CannonHe',
+    'CannonFrag',
+    'MissileHe',
+    'MissileCluster',
 ]);
 
 export function isSurfaceEffectAmmo(ammo: AmmoType): boolean {
     return SURFACE_EFFECT.has(ammo);
+}
+
+export function isCannonAmmo(ammo: AmmoType): ammo is CannonAmmoType {
+    return (cannonAmmoTypes as readonly string[]).includes(ammo);
+}
+
+export function isMissileAmmo(ammo: AmmoType): ammo is MissileAmmoType {
+    return (missileAmmoTypes as readonly string[]).includes(ammo);
 }
 
 export type SystemDamageScope =
@@ -123,16 +114,46 @@ export interface SystemDamageProfile {
 }
 
 const SYSTEM_DAMAGE: Readonly<Record<AmmoType, SystemDamageProfile>> = {
-    'cannon-he': { scope: 'single-external', severity: 'low' },
-    'cannon-ap': { scope: 'single-internal', severity: 'medium' },
-    'cannon-frag': { scope: 'multi-external', severity: 'low' },
-    'missile-he': { scope: 'multi-internal', severity: 'medium' },
-    'missile-sabot': { scope: 'single-internal', severity: 'high' },
-    'missile-cluster': { scope: 'multi-external', severity: 'medium' },
-    'missile-tandem': { scope: 'multi-internal', severity: 'medium' },
-    'missile-emp': { scope: 'multi-electronics', severity: 'high' },
+    CannonHe: { scope: 'single-external', severity: 'low' },
+    CannonAp: { scope: 'single-internal', severity: 'medium' },
+    CannonFrag: { scope: 'multi-external', severity: 'low' },
+    MissileHe: { scope: 'multi-internal', severity: 'medium' },
+    MissileSabot: { scope: 'single-internal', severity: 'high' },
+    MissileCluster: { scope: 'multi-external', severity: 'medium' },
+    MissileTandem: { scope: 'multi-internal', severity: 'medium' },
+    MissileEmp: { scope: 'multi-electronics', severity: 'high' },
 };
 
 export function systemDamageProfile(ammo: AmmoType): SystemDamageProfile {
     return SYSTEM_DAMAGE[ammo];
+}
+
+// Map the issue's 1-5 stat scale to multipliers applied on top of a baseline
+// homing missile profile. Used by projectile design to derive per-missile
+// Speed / Range / Maneuver from the design doc table.
+export const STAT_SCALE: Readonly<Record<1 | 2 | 3 | 4 | 5, number>> = {
+    1: 0.4,
+    2: 0.7,
+    3: 1.0,
+    4: 1.3,
+    5: 1.6,
+};
+
+export interface MissilePerformanceStats {
+    readonly speed: 1 | 2 | 3 | 4 | 5;
+    readonly range: 1 | 2 | 3 | 4 | 5;
+    readonly maneuver: 1 | 2 | 3 | 4 | 5;
+}
+
+// Verbatim from the "Missile Performance Stats" table in the issue body.
+const MISSILE_STATS: Readonly<Record<MissileAmmoType, MissilePerformanceStats>> = {
+    MissileHe: { speed: 3, range: 4, maneuver: 3 },
+    MissileSabot: { speed: 5, range: 2, maneuver: 2 },
+    MissileCluster: { speed: 3, range: 4, maneuver: 3 },
+    MissileTandem: { speed: 2, range: 3, maneuver: 4 },
+    MissileEmp: { speed: 4, range: 5, maneuver: 3 },
+};
+
+export function missilePerformanceStats(ammo: MissileAmmoType): MissilePerformanceStats {
+    return MISSILE_STATS[ammo];
 }
