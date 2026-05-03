@@ -47,6 +47,7 @@ mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 
 - [decisions.md](decisions.md) — confirmed design decisions (promoted from proposals)
 - [proposals.md](proposals.md) — candidate gap-closing moves (drafts; not yet decided)
+- [plan.md](plan.md) — task plan for the next milestone (Daniel / user / Claude tracks; links agent-ready GitHub issues)
 - [interdependency-matrix.md](interdependency-matrix.md) — foundational principle: bridge stations must form a rock-paper-scissors web of dependencies + a physical-comms layer; current matrix mapped from code
 
 ## Per-station notes
