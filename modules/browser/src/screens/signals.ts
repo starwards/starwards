@@ -8,6 +8,7 @@ import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
+import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
@@ -51,14 +52,24 @@ async function initScreen(driver: Driver, shipId: string) {
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    await drawLongRangeRadar(spaceDriver, shipDriver, container, { range: 50_000 }, zoomEvents, stationTarget);
+    const radarView = await drawLongRangeRadar(
+        spaceDriver,
+        shipDriver,
+        container,
+        { range: 50_000 },
+        zoomEvents,
+        stationTarget,
+    );
+    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver);
+    radarView.addLayer(waypointLayer.renderRoot);
+
     drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
         shipDriver.systems.filter((s) => s.pointer === '/radar'),
     );
-    wireInput(spaceDriver, shipId, stationTarget, zoomEvents);
+    wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
 }
 
 function wireInput(
@@ -66,6 +77,7 @@ function wireInput(
     shipId: string,
     stationTarget: SelectionContainer,
     zoomEvents: EventEmitter<ZoomEvent>,
+    waypointLayer: WaypointPlacementLayer,
 ) {
     let currentIndex = -1;
 
@@ -102,6 +114,7 @@ function wireInput(
     );
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
+    input.addClickAction(() => waypointLayer.toggle(), 'w', 'Place Waypoint');
     input.init();
     setupHotkeyHelp(input);
 }
