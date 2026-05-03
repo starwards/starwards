@@ -1,3 +1,4 @@
+import { EnergySource, HeatSource } from './ship-manager-abstract';
 import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, projectileModels } from '../space';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
@@ -6,7 +7,6 @@ import { Vec2, gaussianRandom } from '..';
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
 import { EPSILON } from '../logic';
-import { EnergySource } from './ship-manager-abstract';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
@@ -46,6 +46,7 @@ export class ChainGunManager implements Updateable {
         private spaceManager: SpaceManager,
         private shipManager: ShipManager,
         private energyManager: EnergySource,
+        private heatSource: HeatSource,
     ) {
         switchToAvailableAmmo(chainGun, state.magazine);
     }
@@ -171,7 +172,8 @@ export class ChainGunManager implements Updateable {
             chainGun.loading >= 1 &&
             chainGun.loadedProjectile !== 'None'
         ) {
-            const projectile = new Projectile(chainGun.loadedProjectile);
+            const firedProjectileType = chainGun.loadedProjectile;
+            const projectile = new Projectile(firedProjectileType);
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
             projectile.angle = gaussianRandom(
@@ -205,6 +207,12 @@ export class ChainGunManager implements Updateable {
                 projectile.secondsToLive = chainGun.shellSecondsToLive;
             }
             this.spaceManager.insert(projectile);
+            const heatPerShot = chainGun.design[`heat_${firedProjectileType}` as keyof typeof chainGun.design] as
+                | number
+                | undefined;
+            if (heatPerShot) {
+                this.heatSource.addHeat(heatPerShot * chainGun.effectiveness, chainGun);
+            }
         }
     }
 }

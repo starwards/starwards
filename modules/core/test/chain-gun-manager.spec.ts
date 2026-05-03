@@ -68,6 +68,44 @@ describe('ChainGunManager', () => {
         });
     });
 
+    describe('heat on fire', () => {
+        it('adds per-shot heat scaled by effectiveness when firing CannonShell', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = '1';
+            const die = new MockDie();
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+            die.expectedRoll = 1;
+            spaceMgr.insert(shipObj);
+            shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+            shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+            const chainGun = shipMgr.state.chainGun!;
+            // Set a large heat-per-shot to dominate over energy-heat
+            chainGun.design.heat_CannonShell = 20;
+            // Disable coolant so heat doesn't drain
+            shipMgr.state.design.totalCoolant = 0;
+            // Disable energy-heat by setting threshold above practical usage
+            shipMgr.state.reactor.design.energyHeatEPMThreshold = 1e6;
+
+            chainGun.isFiring = true;
+            chainGun.loadAmmo = true;
+            switchToAvailableAmmo(chainGun, shipMgr.state.magazine);
+
+            const i = makeIterationsData(1, 20);
+            for (const id of i) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+
+            const shotsCount = [...spaceMgr.state.getAll('Projectile')].length;
+            // Should have fired multiple shots
+            expect(shotsCount).to.be.greaterThan(0);
+            // Heat should be at least shots * heat_CannonShell (per-shot heat * shots fired)
+            expect(chainGun.heat).to.be.greaterThanOrEqual(shotsCount * 20 * chainGun.effectiveness * 0.9);
+        });
+    });
+
     describe('loading and firing', () => {
         it('decrements magazine ammo on fire', () => {
             const spaceMgr = new SpaceManager();

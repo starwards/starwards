@@ -57,6 +57,7 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
             this.die,
         );
         this.internalProxy.trySpendEnergy = this.energyManager.trySpendEnergy;
+        this.internalProxy.addHeat = this.heatManager.addHeat.bind(this.heatManager);
     }
 
     public handleToggleSmartPilotManeuveringMode() {

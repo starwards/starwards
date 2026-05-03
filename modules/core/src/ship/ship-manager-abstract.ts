@@ -106,9 +106,17 @@ export type Die = {
 export interface EnergySource {
     trySpendEnergy(value: number, system?: ShipSystem): boolean;
 }
+
+export interface HeatSource {
+    addHeat(value: number, system: ShipSystem): void;
+}
+
 export abstract class ShipManager implements Updateable {
     protected readonly internalProxy = {
         trySpendEnergy: (_: number, _2?: ShipSystem) => false,
+        addHeat: (_: number, _2: ShipSystem) => {
+            // no-op until HeatManager is wired up in ShipManagerPc
+        },
     };
     public weaponsTarget: SpaceObject | null = null;
 
@@ -140,11 +148,20 @@ export abstract class ShipManager implements Updateable {
                 this.spaceManager,
                 this,
                 this.internalProxy,
+                this.internalProxy,
             );
         }
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(
-                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.internalProxy),
+                new ChainGunManager(
+                    tube,
+                    this.spaceObject,
+                    this.state,
+                    this.spaceManager,
+                    this,
+                    this.internalProxy,
+                    this.internalProxy,
+                ),
             );
         }
     }
