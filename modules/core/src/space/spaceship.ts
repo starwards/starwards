@@ -25,6 +25,14 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('string')
     public model: ShipModel | null = null;
 
+    @tweakable('string')
+    @gameField('string')
+    public callsign = '';
+
+    @tweakable('boolean')
+    @gameField('boolean')
+    public transponderOpen = true;
+
     constructor() {
         super();
         this.radius = Spaceship.radius;
@@ -35,6 +43,9 @@ export class Spaceship extends SpaceObjectBase {
         this.position = position;
         this.model = shipModel;
         this.faction = faction;
+        if (!this.callsign) {
+            this.callsign = id;
+        }
         return this;
     }
 }
