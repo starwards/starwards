@@ -1,3 +1,4 @@
+export * from './damage-matrix';
 export * from './docking-target';
 export * from './field-of-view';
 export * from './formulas';

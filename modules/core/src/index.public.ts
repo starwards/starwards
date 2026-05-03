@@ -27,15 +27,29 @@ export {
     XY,
     FieldOfView,
     Iterator,
+    ammoTypes,
+    armorTypes,
     calcArcAngle,
     capToRange,
+    damageMultiplierForOutcome,
     degToRad,
     getClosestDockingTarget,
     getShellExplosionLocation,
     getTargetLocationAtShellExplosion,
     isInRange,
+    isSurfaceEffectAmmo,
     lerp,
     literal2Range,
+    resolveHullOutcome,
+    systemDamageProfile,
+} from './logic';
+export type {
+    AmmoType,
+    ArmorType,
+    HullOutcome,
+    SystemDamageProfile,
+    SystemDamageScope,
+    SystemDamageSeverity,
 } from './logic';
 export type { RTuple2, Tuple2 } from './logic';
 
