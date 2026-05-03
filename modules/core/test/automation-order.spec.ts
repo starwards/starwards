@@ -6,6 +6,7 @@ import {
     SmartPilotMode,
     SpaceManager,
     Spaceship,
+    XY,
     makeShipState,
     shipConfigurations,
 } from '../src';
@@ -188,5 +189,134 @@ describe('NPC to PC conversion clears stale currentTask', () => {
         const pcMgr = new ShipManagerPc(shipObj, clonedState, spaceMgr, die);
 
         expect(pcMgr.state.currentTask).to.equal('');
+    });
+
+    it('clears smartPilot automation state', () => {
+        const state = makeShipState('test', dragonflyConfig);
+
+        state.smartPilot.maneuvering.x = 0.8;
+        state.smartPilot.maneuvering.y = -0.5;
+        state.smartPilot.rotation = 0.7;
+        state.smartPilot.rotationTargetOffset = 0.3;
+        state.smartPilot.maneuveringMode = SmartPilotMode.TARGET;
+        state.smartPilot.rotationMode = SmartPilotMode.TARGET;
+        state.currentTask = 'Go to 1000,2000';
+
+        resetShipState(state);
+
+        expect(state.smartPilot.maneuvering.x).to.equal(0);
+        expect(state.smartPilot.maneuvering.y).to.equal(0);
+        expect(state.smartPilot.rotation).to.equal(0);
+        expect(state.smartPilot.rotationTargetOffset).to.equal(0);
+        expect(state.smartPilot.maneuveringMode).to.equal(SmartPilotMode.DIRECT);
+        expect(state.smartPilot.rotationMode).to.equal(SmartPilotMode.DIRECT);
+        expect(state.currentTask).to.equal('');
+    });
+});
+
+describe('NPC to PC conversion', () => {
+    it('cancelAllTasks clears NPC automation state before conversion', () => {
+        const { shipMgr } = createShipSetup(ShipManagerNpc);
+
+        shipMgr.state.order = Order.MOVE;
+        shipMgr.state.orderPosition.x = 1000;
+        shipMgr.state.orderPosition.y = 2000;
+        shipMgr.state.smartPilot.maneuvering.x = 0.8;
+        shipMgr.state.smartPilot.maneuvering.y = -0.3;
+        shipMgr.state.smartPilot.rotation = 0.6;
+        // currentTask must be non-empty for AutomationManager.cleanup() to fire;
+        // resetShipState() (called in the PC constructor) is the unconditional backstop.
+        shipMgr.state.currentTask = 'Go to 1000,2000';
+
+        shipMgr.cancelAllTasks();
+
+        expect(shipMgr.state.smartPilot.maneuvering.x).to.equal(0);
+        expect(shipMgr.state.smartPilot.maneuvering.y).to.equal(0);
+        expect(shipMgr.state.smartPilot.rotation).to.equal(0);
+        expect(shipMgr.state.currentTask).to.equal('');
+    });
+
+    it('PC ship created from NPC state starts with clean controls', () => {
+        const { spaceMgr, shipObj, shipMgr: npcMgr } = createShipSetup(ShipManagerNpc);
+
+        npcMgr.state.order = Order.MOVE;
+        npcMgr.state.orderPosition.x = 5000;
+        npcMgr.state.orderPosition.y = 5000;
+
+        const iterations = makeIterationsData(0.05, 5);
+        for (const id of iterations) {
+            npcMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(npcMgr.state.smartPilot.maneuvering.x).to.not.equal(0);
+
+        npcMgr.cancelAllTasks();
+
+        const freshState = npcMgr.state.clone();
+        const die = new MockDie();
+        die.expectedRoll = 1;
+        const pcMgr = new ShipManagerPc(shipObj, freshState, spaceMgr, die);
+
+        expect(pcMgr.state.order).to.equal(Order.NONE);
+        expect(pcMgr.state.smartPilot.maneuvering.x).to.equal(0);
+        expect(pcMgr.state.smartPilot.maneuvering.y).to.equal(0);
+        expect(pcMgr.state.smartPilot.rotation).to.equal(0);
+        expect(pcMgr.state.currentTask).to.equal('');
+        expect(pcMgr.state.smartPilot.maneuveringMode).to.equal(SmartPilotMode.VELOCITY);
+    });
+
+    it('PC ship after conversion responds to pilot maneuvering input', () => {
+        const { spaceMgr, shipObj, shipMgr: npcMgr } = createShipSetup(ShipManagerNpc);
+
+        npcMgr.state.order = Order.MOVE;
+        npcMgr.state.orderPosition.x = 5000;
+        npcMgr.state.orderPosition.y = 5000;
+
+        const npcIterations = makeIterationsData(0.05, 5);
+        for (const id of npcIterations) {
+            npcMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        npcMgr.cancelAllTasks();
+
+        const freshState = npcMgr.state.clone();
+        const die = new MockDie();
+        die.expectedRoll = 1;
+        const pcMgr = new ShipManagerPc(shipObj, freshState, spaceMgr, die);
+
+        pcMgr.state.smartPilot.maneuvering.x = 1;
+        const velocityBefore = XY.clone(shipObj.velocity);
+
+        const pcIterations = makeIterationsData(0.05, 20);
+        for (const id of pcIterations) {
+            pcMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        const velocityAfter = shipObj.velocity;
+        expect(XY.lengthOf(XY.difference(velocityAfter, velocityBefore))).to.be.greaterThan(0);
+    });
+
+    it('PC ship after conversion does not drain all energy at idle', () => {
+        const { spaceMgr, shipObj, shipMgr: npcMgr } = createShipSetup(ShipManagerNpc);
+
+        npcMgr.cancelAllTasks();
+
+        const freshState = npcMgr.state.clone();
+        const die = new MockDie();
+        die.expectedRoll = 1;
+        const pcMgr = new ShipManagerPc(shipObj, freshState, spaceMgr, die);
+
+        const initialEnergy = pcMgr.state.reactor.energy;
+
+        const iterations = makeIterationsData(0.05, 100);
+        for (const id of iterations) {
+            pcMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(pcMgr.state.reactor.energy).to.be.greaterThan(initialEnergy * 0.5);
     });
 });
