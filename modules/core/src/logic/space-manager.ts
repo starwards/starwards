@@ -194,6 +194,8 @@ export class SpaceManager implements Updateable {
         this.state.createExplosionCommands = [];
         for (const cmd of this.state.createWaypointCommands) {
             const waypoint = new Waypoint().init(makeId(), Vec2.make(cmd.position));
+            if (cmd.owner != null) waypoint.owner = cmd.owner;
+            if (cmd.title) waypoint.title = cmd.title;
             this.insert(waypoint);
         }
         this.state.createWaypointCommands = [];

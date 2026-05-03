@@ -10,6 +10,7 @@ export class WaypointPlacementLayer {
     constructor(
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
+        private shipId?: string,
     ) {
         this.stage.interactive = true;
         this.stage.hitArea = this.circleHitArea();
@@ -48,7 +49,7 @@ export class WaypointPlacementLayer {
     private onPointerup = (event: FederatedPointerEvent) => {
         if (!this.active) return;
         const position = this.parent.screenToWorld(event.global);
-        this.spaceDriver.command(spaceCommands.createWaypointOrder, { position });
+        this.spaceDriver.command(spaceCommands.createWaypointOrder, { position, owner: this.shipId });
         this.deactivate();
     };
 }

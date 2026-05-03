@@ -12,6 +12,7 @@ import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
+import { drawWaypointList } from '../widgets/waypoint-list';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
 const { error: logError } = createLogger('screen:signals');
@@ -60,7 +61,7 @@ async function initScreen(driver: Driver, shipId: string) {
         zoomEvents,
         stationTarget,
     );
-    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver);
+    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
@@ -69,6 +70,7 @@ async function initScreen(driver: Driver, shipId: string) {
         shipDriver,
         shipDriver.systems.filter((s) => s.pointer === '/radar'),
     );
+    drawWaypointList(container.subContainer(VPos.BOTTOM, HPos.LEFT), spaceDriver, shipId);
     wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
 }
 
