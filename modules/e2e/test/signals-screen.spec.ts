@@ -36,13 +36,11 @@ test.describe('Signals Screen', () => {
         await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 
         // Wait for waypoint to appear in server space state
-        const startTime = Date.now();
-        let waypoints: unknown[] = [];
-        while (Date.now() - startTime < 3000) {
-            waypoints = [...gameDriver.gameManager.spaceManager.state.getAll('Waypoint')];
-            if (waypoints.length > 0) break;
-            await new Promise((resolve) => setTimeout(resolve, 50));
-        }
-        expect(waypoints.length).toBeGreaterThan(0);
+        await expect
+            .poll(() => [...gameDriver.gameManager.spaceManager.state.getAll('Waypoint')].length, {
+                timeout: 3000,
+                message: 'expected at least one waypoint to be created',
+            })
+            .toBeGreaterThan(0);
     });
 });
