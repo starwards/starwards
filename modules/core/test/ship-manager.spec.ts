@@ -200,6 +200,75 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         );
     });
 
+    it('chaingun must add heat when firing', () => {
+        fc.assert(
+            fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
+                const spaceMgr = new SpaceManager();
+                const shipObj = new Spaceship();
+                shipObj.id = '1';
+                const shipMgr = new shipManagerCtor(
+                    shipObj,
+                    makeShipState(shipObj.id, dragonflyConfig),
+                    spaceMgr,
+                    new MockDie(),
+                );
+                spaceMgr.insert(shipObj);
+                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+                shipMgr.state.chainGun!.power = PowerLevel.MAX;
+                shipMgr.state.chainGun!.isFiring = true;
+                // disable cooling and reactor heat to isolate weapon heat
+                shipMgr.state.design.totalCoolant = 0;
+                shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
+                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                const heatPerShell = shipMgr.state.chainGun!.design.heat_CannonShell;
+
+                const i = makeIterationsData(1, numIterationsPerSecond);
+                for (const id of i) {
+                    shipMgr.update(id);
+                    spaceMgr.update(id);
+                }
+                const shotsFired = [...spaceMgr.state.getAll('Projectile')].length;
+                expect(shotsFired).to.be.greaterThan(0);
+                expect(shipMgr.state.chainGun!.heat).to.be.closeTo(shotsFired * heatPerShell, heatPerShell);
+            }),
+        );
+    });
+
+    it('tube must add heat when firing', () => {
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = '1';
+        const shipMgr = new shipManagerCtor(
+            shipObj,
+            makeShipState(shipObj.id, dragonflyConfig),
+            spaceMgr,
+            new MockDie(),
+        );
+        spaceMgr.insert(shipObj);
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+        // disable cooling and reactor heat to isolate weapon heat
+        shipMgr.state.design.totalCoolant = 0;
+        shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
+        // fire first tube only for 2 seconds so at least 1 missile fires (rate: 1/s)
+        const tube = shipMgr.state.tubes[0];
+        tube.power = PowerLevel.MAX;
+        tube.isFiring = true;
+        switchToAvailableAmmo(tube, shipMgr.state.magazine);
+        const heatPerMissile = tube.design.heat_Missile;
+
+        const numIterationsPerSecond = 20;
+        const i = makeIterationsData(2, numIterationsPerSecond * 2);
+        for (const id of i) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        const projectiles = [...spaceMgr.state.getAll('Projectile')];
+        expect(projectiles.length).to.be.greaterThan(0);
+        expect(tube.heat).to.be.closeTo(projectiles.length * heatPerMissile, heatPerMissile);
+    });
+
     it('chaingun with cooling failure must have reduced rate of fire', () => {
         fc.assert(
             fc.property(
