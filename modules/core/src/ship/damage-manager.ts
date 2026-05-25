@@ -129,7 +129,7 @@ export class DamageManager {
             //   * Physical ammo vs pure Faraday primary: Faraday doesn't
             //     stop physical hits at all, so the projectile lands on
             //     internals at full system-damage strength.
-            this.applyMatrixSystemDamage(damage, ammo, profile, /* multiplier */ 1, outcome);
+            this.applyMatrixSystemDamage(damage, profile, /* multiplier */ 1);
             return true;
         }
 
@@ -137,7 +137,7 @@ export class DamageManager {
             // Hull holds. Surface-effect ammo (HE/Frag/Cluster) still scrapes
             // external systems; clean penetrators just bounce.
             if (isSurfaceEffectAmmo(ammo)) {
-                this.applyMatrixSystemDamage(damage, ammo, profile, multiplier, outcome);
+                this.applyMatrixSystemDamage(damage, profile, multiplier);
                 return true;
             }
             return false;
@@ -195,40 +195,41 @@ export class DamageManager {
         return damagedInternals;
     }
 
-    private applyMatrixSystemDamage(
-        damage: Damage,
-        ammo: AmmoType,
-        profile: SystemDamageProfile,
-        multiplier: number,
-        outcome: HullOutcome,
-    ): void {
+    private applyMatrixSystemDamage(damage: Damage, profile: SystemDamageProfile, multiplier: number): void {
         const severity = SEVERITY_FACTOR[profile.severity];
         const scaled: Damage = { ...damage, amount: damage.amount * multiplier * severity };
         const candidates = this.systemsForScope(profile.scope, damage.damageSurfaceArc);
         if (candidates.length === 0) return;
 
         if (profile.scope.startsWith('single-')) {
-            const idx = this.die.getRollInRange(`pickSystem:${damage.id}:${ammo}`, 0, candidates.length);
+            const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, candidates.length);
             this.damageSystem(candidates[Math.floor(idx)], scaled, 1);
         } else {
-            const ratio = outcome === 'critical' ? 2 : 1;
+            // Critical handling lives in applySystemDamageToArea; this path is
+            // only reached for 'ignores' / 'resist' outcomes (EMP, surface-effect).
             for (const system of candidates) {
-                this.damageSystem(system, scaled, ratio);
+                this.damageSystem(system, scaled, 1);
             }
         }
     }
 
-    private systemsForScope(scope: SystemDamageProfile['scope'], surfaceArc: RTuple2): ShipSystem[] {
+    private filterSystemsByScope(systems: ShipSystem[], scope: SystemDamageProfile['scope']): ShipSystem[] {
         switch (scope) {
             case 'multi-electronics':
-                return this.state.systems().filter(isElectronicsSystem);
+                return systems.filter(isElectronicsSystem);
             case 'single-internal':
             case 'multi-internal':
-                return this.collectAreaSystems(surfaceArc).filter((s) => !isExternalSystem(s));
+                return systems.filter((s) => !isExternalSystem(s));
             case 'single-external':
             case 'multi-external':
-                return this.collectAreaSystems(surfaceArc).filter(isExternalSystem);
+                return systems.filter(isExternalSystem);
         }
+    }
+
+    private systemsForScope(scope: SystemDamageProfile['scope'], surfaceArc: RTuple2): ShipSystem[] {
+        // EMP-style ship-wide electronics damage ignores the hit arc.
+        const pool = scope === 'multi-electronics' ? this.state.systems() : this.collectAreaSystems(surfaceArc);
+        return this.filterSystemsByScope(pool, scope);
     }
 
     private collectAreaSystems(surfaceArc: RTuple2): ShipSystem[] {
@@ -249,12 +250,10 @@ export class DamageManager {
     ): boolean {
         const severity = SEVERITY_FACTOR[profile.severity];
         const scaled: Damage = { ...damage, amount: damage.amount * multiplier * severity };
-        const all = this.state.systemsByAreas(hitArea) || [];
-        const filtered = profile.scope.endsWith('-external')
-            ? all.filter(isExternalSystem)
-            : profile.scope.endsWith('-internal')
-              ? all.filter((s) => !isExternalSystem(s))
-              : all.filter(isElectronicsSystem);
+        // multi-electronics is ship-wide, not area-local; everything else is
+        // scoped to the systems on this facing.
+        const pool = profile.scope === 'multi-electronics' ? this.state.systems() : this.state.systemsByAreas(hitArea);
+        const filtered = this.filterSystemsByScope(pool || [], profile.scope);
         if (filtered.length === 0) return false;
 
         const isSingle = profile.scope.startsWith('single-');

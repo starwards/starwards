@@ -57,6 +57,15 @@ describe('damage-manager × armor matrix (issue #1929)', () => {
             damageManager.takeExternalDamage(frontDamage(20, 'CannonAp'));
             expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
         });
+
+        it('consumed Reactive cells expose internals (system damage reachable)', () => {
+            const { state, damageManager } = setUpShip('Reactive');
+            // AP is Normal vs Reactive → cells stripped in the hit arc, which
+            // exposes the systems behind them and flags internal damage.
+            const damagedInternals = damageManager.takeExternalDamage(frontDamage(20, 'CannonAp'));
+            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(state.armor.numberOfPlates);
+            expect(damagedInternals).to.equal(true);
+        });
     });
 
     describe('Faraday layer vs EMP', () => {
@@ -74,6 +83,17 @@ describe('damage-manager × armor matrix (issue #1929)', () => {
             damageManager.takeExternalDamage(frontDamage(50, 'MissileEmp'));
             // Faraday absorbs EMP — plates untouched (matrix says Resist for Faraday + EMP).
             expect(state.armor.armorPlates[0].health).to.equal(initial);
+        });
+
+        it('physical ammo (AP) vs Faraday primary armor → ignores plates, hits internals', () => {
+            const { state, damageManager } = setUpShip('Faraday', false);
+            const initial = state.armor.armorPlates[0].health;
+            // Faraday doesn't stop physical hits — matrix returns 'ignores' for all
+            // physical ammo, so plates are bypassed entirely (no plate damage)...
+            const damagedInternals = damageManager.takeExternalDamage(frontDamage(50, 'CannonAp'));
+            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            // ...but the hit lands on internal systems.
+            expect(damagedInternals).to.equal(true);
         });
     });
 
