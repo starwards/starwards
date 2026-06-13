@@ -1,10 +1,10 @@
 # Cargo & Docking
 
-## Docking (Designed — [#539](https://github.com/starwards/starwards/issues/539))
+## Docking (Done — [#539](https://github.com/starwards/starwards/issues/539))
 
 Ship-in-ship docking is mandatory for LARP events (space stations are ships; players need to dock for repairs and resupply).
 
-**Mechanics:**
+**Implemented:**
 - Docking capability matrix (which ships can dock where)
 - Compound movement (docked ship follows parent's position and rotation)
 - Velocity synchronization

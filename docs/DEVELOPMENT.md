@@ -2,7 +2,7 @@
 
 ## Setup
 
-**Requirements:** Node.js ≥ 20.19.5, npm ≥ 10.2.4, Git
+**Requirements:** Node.js ≥ 22.11.0, npm ≥ 10.9.0, Git
 
 ```bash
 git clone https://github.com/starwards/starwards.git && cd starwards
@@ -24,7 +24,7 @@ npm test                   # Verify
 
 **Outputs:**
 - core: `modules/core/cjs/`
-- server: `modules/server/dist/`
+- server: `modules/server/cjs/`
 - browser: `modules/browser/dist/`
 - node-red: `modules/node-red/dist/`
 
@@ -64,7 +64,7 @@ node -r ts-node/register/transpile-only modules/server/src/dev.ts
 | `npm run test:format` | Format checking |
 | `npm run lint:fix` | Auto-fix linting |
 
-**Status:** 28 files, 200+ tests, all passing ✅
+**Status:** 30+ unit test files, 200+ tests, all passing ✅
 
 **See:** [testing/README.md](testing/README.md) for comprehensive guide
 
@@ -128,18 +128,21 @@ send(0.5);
 ### Add New Widget
 
 ```typescript
-// Create: modules/browser/src/widgets/my-widget.ts
-export const myWidget = createWidget({
-    name: 'my-widget',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        ship.state.onChange(() => { /* update UI */ });
-        return container;
-    }
-});
+// Create: modules/browser/src/widgets/my-widget.ts (see armor.ts as a reference)
+import { DashboardWidget } from './dashboard';
+import { ShipDriver } from '@starwards/core';
 
-// Register: modules/browser/src/widgets/dashboard.ts
-registerWidget(myWidget);
+export function myWidget(shipDriver: ShipDriver): DashboardWidget {
+    class MyRoot {
+        constructor(container: WidgetContainer, _: unknown) {
+            // build UI into container.getElement().get(0); subscribe to shipDriver.state changes
+        }
+    }
+    return { name: 'my-widget', type: 'component', component: MyRoot, defaultProps: {} };
+}
+
+// Register on a Dashboard instance (e.g. in modules/browser/src/screens/ship.ts):
+dashboard.registerWidget(myWidget(shipDriver));
 ```
 
 ### Create Production Build
@@ -148,7 +151,7 @@ registerWidget(myWidget);
 npm run clean
 npm ci
 npm run build
-npm run pkg      # → dist/starwards-{linux,macos,win.exe}
+npm run pkg      # → dist/exec/starwards-{linux,macos,win.exe}
 ```
 
 ## Docker
@@ -165,14 +168,14 @@ docker-compose down                    # Stop
 
 ### VSCode
 - **Debug server:** F5 → "Run Server"
-- **Debug tests:** F5 → "Jest Current File"
+- **Debug tests:** F5 → "Test current file"
 
 ### Browser
 - Chrome DevTools (F12), source maps enabled
 - `console.log()` for client debugging
 
 ### Network
-- Colyseus Monitor: http://localhost:2567/colyseus-monitor (admin/admin)
+- Colyseus Monitor: http://localhost:8080/colyseus-monitor (admin/admin)
 - WebSocket: Chrome DevTools → Network → WS
 
 ## Common Issues
@@ -190,15 +193,15 @@ docker-compose down                    # Stop
 **Extensions:** ESLint, Prettier, TypeScript
 
 **Tasks (Ctrl+Shift+P → Tasks: Run Task):**
-- `build:core` - Core watch
-- `webpack:dev server` - Dev server
-- `run server` - API server
+- `build core` - Core watch
+- `build server` - Server watch
+- `webpack: dev server` - Dev server
 
 **Settings:** Auto-format on save, ESLint auto-fix (pre-configured in `.vscode/`)
 
 ## Node Requirements
 
-**Node.js ≥ 20.19.5, npm ≥ 10.2.4**
+**Node.js ≥ 22.11.0, npm ≥ 10.9.0**
 
 **Check:** `node --version && npm --version`
 

@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/logic/space-manager.ts
+  - modules/core/src/logic/xy.ts
+related:
+  - SUBSYSTEMS.md
+last_verified: 2026-06-13
+---
+
 # Physics System
 
 **Server-authoritative physics with circular collision detection and raycast**
@@ -30,7 +41,7 @@ velocity.x += acceleration.x * dt;
 
 ## Collision Detection
 
-**Library:** `detect-collisions` v9.5.3 (spatial hashing)
+**Library:** `detect-collisions` (spatial hashing) — version in [DEPENDENCIES.md](DEPENDENCIES.md)
 
 **Complexity:**
 - Naive: O(n²) → comparisons = n×(n-1)/2
@@ -140,16 +151,8 @@ function applyDamage(target: Spaceship, damage: number, hitPos: Position) {
 ```
 
 ### Sectional Armor
-```typescript
-class Armor {
-    plates: ArmorPlate[] = [
-        { angle: 0,   health: 100 },  // Front
-        { angle: 90,  health: 80 },   // Right
-        { angle: 180, health: 70 },   // Rear
-        { angle: 270, health: 80 }    // Left
-    ];
-}
-```
+
+Armor is modeled as N equal radial plates stored in an `ArraySchema<ArmorPlate>` (e.g. 12 plates for the dragonfly "Aegis-12" design). Each plate spans `360/numberOfPlates` degrees, with its angular position derived from its array index rather than a stored angle. Plates carry only `health` and `maxHealth` (no angle field) and share a uniform `plateMaxHealth` from the armor design config — not four fixed front/right/rear/left plates with distinct hardcoded health values (100/80/70/80).
 
 ## Explosion Propagation
 
@@ -194,8 +197,8 @@ ship.velocity = parent.velocity.clone();
 
 | System | Location | Functions |
 |--------|----------|-----------|
-| HelmAssist | `logic/helm-assist.ts` | calculateInterceptCourse, calculateApproachVector, calculateOrbitPath, predictPosition |
-| GunnerAssist | `logic/gunner-assist.ts` | calculateLead, predictImpact, calculateFiringSolution, isInRange |
+| HelmAssist | `logic/helm-assist.ts` | rotationFromTargetTurnSpeed, matchGlobalSpeed, matchLocalSpeed, moveToTarget, rotateToTarget |
+| GunnerAssist | `logic/gunner-assist.ts` | predictHitLocation, calcRangediff, getKillZoneRadiusRange, isTargetInKillZone, calcShellSecondsToLive, getShellAimVelocityCompensation, getShellExplosionLocation, getTargetLocationAtShellExplosion |
 
 ## Performance
 

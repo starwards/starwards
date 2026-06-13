@@ -117,7 +117,7 @@ power = 1.0;
 - JSON Pointer: `/Spaceship/${id}/property`
 
 ### System Effectiveness
-`power * coolantFactor * (1 - hacked)`
+`broken ? 0 : power * hacked` (`hacked` is a HackLevel multiplier: OK=1, COMPROMISED=0.5, DISABLED=0; `coolantFactor` governs heat dissipation, not effectiveness — see `SystemState.effectiveness` in `modules/core/src/ship/system.ts`)
 
 ## Common Issues
 
@@ -145,6 +145,10 @@ All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scr
 Node.js >= 22.11.0, npm >= 10.9.0
 
 ## Documentation
+
+**Start here (agents):**
+- [`docs/LLM_CONTEXT.md`](docs/LLM_CONTEXT.md) - Quick reference: patterns, gotchas, task→docs routing
+- [`docs/AUTHORING.md`](docs/AUTHORING.md) - Rules for writing drift-resistant docs (read before editing docs)
 
 **Product / PM:**
 - [`docs/design/README.md`](docs/design/README.md) - Product hub: vision, roadmap, station specs, decisions

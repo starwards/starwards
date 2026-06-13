@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/test/ship-test-harness.ts
+  - modules/server/src/test
+related:
+  - README.md
+last_verified: 2026-06-13
+---
+
 # Test Utilities Reference - Starwards
 
 **Comprehensive API reference for testing utilities**
@@ -15,29 +26,30 @@
 ## Test Distribution
 
 **Current Status** (as of 2025-10-01):
-- **28 test files**, **200+ tests passing**, **23/23 suites passing**
+- **41 test files**, **200+ tests passing**
 - Test execution time: ~15-20 seconds (unit), ~2 minutes (E2E)
 
 ### Breakdown by Category
 
 ```
-Unit Tests (16 files - modules/core/test/):
+Unit Tests (23 files - modules/core/test/):
   ├─ Physics & Math: formulas, xy, helm-assist, space-manager
   ├─ State Management: space-state, ship-manager, system
-  ├─ Property Tests: state-properties, command-serialization-properties
+  ├─ Property Tests: formulas (fast-check, generators from properties)
   └─ Integration: ship-areas, range, traverse, thruster-ship-integration
 
-Multi-Client Tests (3 files - modules/server/src/test/):
-  ├─ multi-client-sync.spec.ts (10 tests) - State synchronization
-  ├─ multi-client-concurrent.spec.ts (10 tests) - Concurrent commands
-  └─ multi-client-network.spec.ts (11 tests) - Network failures/recovery
+Multi-Client Tests (2 files - modules/server/src/test/):
+  ├─ multi-client-sync.spec.ts (2 tests) - State synchronization
+  └─ multi-client-concurrent.spec.ts (3 tests) - Concurrent commands
 
-E2E Tests (5 files - modules/e2e/test/):
-  ├─ integration.spec.ts (6 tests) - Core workflows
-  ├─ movement-controls.spec.ts (9 tests) - Helm UI & navigation
-  ├─ weapon-controls.spec.ts (11 tests) - Gunner UI & combat
-  ├─ multi-ship-combat.spec.ts (11 tests) - Multi-ship scenarios (1 passing)
-  └─ power-management.spec.ts (11 tests) - Reactor & power systems
+E2E Tests (10 files - modules/e2e/test/):
+  ├─ integration.spec.ts - Core workflows
+  ├─ pilot-screen.spec.ts / pilot-hotkeys.spec.ts - Helm UI & navigation
+  ├─ weapons-screen.spec.ts / weapons-hotkeys.spec.ts - Gunner UI & combat
+  ├─ ecr-screen.spec.ts / ecr-hotkeys.spec.ts - ECR UI & power systems
+  ├─ gm-screen.spec.ts - GM view
+  ├─ signals-screen.spec.ts - Signals station
+  └─ visual/gallery.spec.ts - Visual regression
 
 Node-RED Tests (4 files - modules/node-red/src/):
   └─ Integration nodes: ship-read, ship-write, starwards-config, ship-node
@@ -139,21 +151,24 @@ harness.simulate(metrics.timeToReach, metrics.iterations, () => {
 ```typescript
 // Movement metrics
 const metrics = new MovementTestMetrics(
-    timeToReach: 30,    // Target time
-    distance: 1000,     // Target distance
-    errorMargin: 50     // Acceptable error
+    100,    // iterationsPerSecond
+    1000,   // distance
+    50      // capacity
+    // maxSpeed (optional)
 );
 
 // Speed metrics
 const speedMetrics = new SpeedTestMetrics(
-    targetSpeed: 100,
-    tolerance: 5
+    100,    // iterationsPerSecond
+    100,    // speedDiff
+    50      // capacity
 );
 
 // Timed metrics
 const timedMetrics = new TimedTestMetrics(
-    duration: 10,
-    samples: 100
+    100,    // iterationsPerSecond
+    10,     // timeToReach
+    1000    // distance
 );
 ```
 
@@ -326,16 +341,16 @@ await waitForPropertyFloatValue(page, 'speed', 100, undefined, 5);
 
 **Issue:** PropertyPanel could fail to render if `getValue()` returned `undefined` during initialization.
 
-**Root cause:** In `property-panel.ts:50`, Tweakpane's `addInput()` needs an initial value to infer the controller type. If the ship state hadn't synced yet, `getValue()` returned `undefined`.
+**Root cause:** In `property-panel.ts`, Tweakpane's `addBinding()` needs an initial value to infer the controller type. If the ship state hadn't synced yet, `getValue()` returned `undefined`.
 
-**Fix (modules/browser/src/panel/property-panel.ts:51-54):**
+**Fix (modules/browser/src/panel/property-panel.ts):**
 ```typescript
 const value = getValue();
 // Set initial value BEFORE addInput so Tweakpane can infer controller type
 if (value !== undefined) {
     viewModel[name] = value;
 }
-const guiController = guiFolder.addInput(viewModel, name, params);
+const guiController = guiFolder.addBinding(viewModel, name, params) as InputBindingApi<unknown, T>;
 ```
 
 Now Tweakpane gracefully handles undefined initial values, and the update loop fills them in when data arrives.
@@ -462,7 +477,6 @@ Test state synchronization across multiple concurrent clients with predicate-bas
 - **Multiple concurrent clients** (unlimited connections)
 - **Predicate-based sync waiting** (no race conditions)
 - **Consistency checking** across all clients
-- **Network interruption simulation**
 - **Automatic cleanup** in afterEach hooks
 
 ### API Reference
@@ -552,13 +566,14 @@ const x = ship.x;           // Property doesn't exist
 const ships = state.ships;  // Private property
 ```
 
-#### Network Simulation
+#### Disconnect and Reconnect
 
 ```typescript
-// Simulate network interruption
-await driver.simulateDisconnect(client1, 1000); // 1s disconnect
+// Leave the room (TestClient.disconnect takes no arguments)
+await client1.disconnect();
 
-// Verify reconnection and state sync
+// Reconnect and re-sync state
+const space1 = await client1.connectSpace();
 await client1.waitForSync(space1);
 
 // Check state consistency after reconnection
@@ -618,14 +633,15 @@ describe('Multi-client state sync', () => {
         }
     });
 
-    it('handles network interruptions', async () => {
+    it('reconnects and re-syncs state', async () => {
         const client = driver.createClient('client');
+        await client.connectSpace();
+
+        // Leave the room, then reconnect
+        await client.disconnect();
         const space = await client.connectSpace();
 
-        // Simulate disconnect
-        await driver.simulateDisconnect(client, 1000);
-
-        // Verify reconnection
+        // Verify re-sync
         await client.waitForSync(space);
 
         // State should still be valid
@@ -664,92 +680,42 @@ const enemy = createTestShip({
 
 #### Combat Scenarios
 
+`test-factories.ts` only exports `createTestShip`. For multi-ship combat,
+use the `ShipTestHarness.createCombatScenario(config)` method
+([`modules/core/test/ship-test-harness.ts`](../../modules/core/test/ship-test-harness.ts)),
+which takes a `CombatScenarioConfig` (`{ shipCount, teams?, positions?, rotations? }`)
+and returns a `Spaceship[]`:
+
 ```typescript
-// Create multi-ship battle
-const { attacker, defenders } = createCombatScenario(spaceManager, {
+const harness = new ShipTestHarness();
+
+// Create multi-ship battle around the harness ship
+const ships = harness.createCombatScenario({
     shipCount: 3,
-    distance: 500,
-    formation: 'line'
+    teams: [0, 1, 1]
 });
-
-// Access ships
-attacker.weapons.fire();
-defenders.forEach(d => d.shields.raise());
-```
-
-**Formations:**
-- `'line'` - Ships in horizontal line
-- `'circle'` - Ships in circle around center
-- `'V'` - V-formation
-- `'random'` - Random positions
-
-#### Ship Formations
-
-```typescript
-// Create formation
-const squadron = createFormation(spaceManager, {
-    count: 5,
-    type: 'V',
-    spacing: 200,
-    leader: leaderShip
-});
-
-// Ships positioned relative to leader
-squadron.forEach(ship => {
-    ship.follow(leaderShip);
-});
-```
-
-#### Damaged Ships
-
-```typescript
-// Create ship with damage
-const damaged = createDamagedShip(spaceManager, {
-    damageLevel: 0.5,  // 50% damage
-    systems: ['reactor', 'shields']  // Specific systems damaged
-});
-
-// Useful for testing repair mechanics
-expect(damaged.reactor.health).toBeLessThan(damaged.reactor.maxHealth);
 ```
 
 ### Complete Example
 
 ```typescript
-import {
-    createTestShip,
-    createCombatScenario,
-    createFormation
-} from '@starwards/core/test';
+import { createTestShip } from '@starwards/core/test';
+import { ShipTestHarness } from '@starwards/core/test';
 
 describe('Fleet combat', () => {
-    it('squadron engages enemy formation', () => {
-        const spaceManager = new SpaceManager(spaceState);
+    it('harness ship engages enemy ships', () => {
+        const harness = new ShipTestHarness();
 
-        // Create player squadron
-        const leader = createTestShip({ faction: 'player' });
-        const squadron = createFormation(spaceManager, {
-            count: 4,
-            type: 'V',
-            spacing: 150,
-            leader
-        });
+        // Create a player ship
+        const leader = createTestShip({ faction: 0 });
 
-        // Create enemy combat scenario
-        const { defenders } = createCombatScenario(spaceManager, {
+        // Create enemy ships positioned around the harness ship
+        const enemies = harness.createCombatScenario({
             shipCount: 3,
-            distance: 1000,
-            formation: 'line'
+            teams: [1, 1, 1]
         });
 
-        // Run combat simulation
-        spaceManager.update({ deltaSeconds: 0.1, serverTime: 0 });
-
-        // Verify engagement
-        squadron.forEach(ship => {
-            const target = ship.targeting.currentTarget;
-            expect(defenders).toContain(target);
-        });
+        expect(enemies.length).toBe(3);
     });
 });
 ```
@@ -764,28 +730,31 @@ Property-based testing automatically generates test cases to find edge cases.
 
 **Location**: [`modules/core/test/properties.ts`](../../modules/core/test/properties.ts)
 
-```typescript
-import { power, heat, coolantFactor, velocity } from './properties';
+`properties.ts` exports: `safeFloat`, `xy`, `floatIn`, `float`, `range`,
+`differentSignTuple2`, `orderedTuple2`, `orderedTuple3`, `degree`, `orderedDegreesTuple4`.
 
-// Generate random power values (0-1)
+```typescript
+import { float, range, degree, xy } from './properties';
+
+// Generate random values in a range (e.g. power 0-1)
 fc.assert(
-    fc.property(power(), (p) => {
+    fc.property(float(0, 1), (p) => {
         expect(p).to.be.at.least(0);
         expect(p).to.be.at.most(1);
     })
 );
 
-// Generate random heat values (0-MAX_SYSTEM_HEAT)
+// Generate random angles (0-360)
 fc.assert(
-    fc.property(heat(), (h) => {
-        expect(h).to.be.at.least(0);
-        expect(h).to.be.at.most(MAX_SYSTEM_HEAT);
+    fc.property(degree(), (d) => {
+        expect(d).to.be.at.least(0);
+        expect(d).to.be.below(360);
     })
 );
 
-// Generate velocity vectors
+// Generate xy vectors within a range
 fc.assert(
-    fc.property(velocity(), (v) => {
+    fc.property(xy(1000), (v) => {
         const speed = Math.sqrt(v.x * v.x + v.y * v.y);
         expect(speed).to.be.finite;
     })
@@ -794,18 +763,17 @@ fc.assert(
 
 ### Testing Mathematical Invariants
 
-**27 property tests** validate game formulas:
+Property-based tests in [`formulas.spec.ts`](../../modules/core/test/formulas.spec.ts) validate game formulas:
 
 ```typescript
 describe('System effectiveness invariants', () => {
     it('effectiveness is always between 0 and 1', () => {
         fc.assert(
             fc.property(
-                power(),
-                coolantFactor(),
-                hacked(),
-                (p, cf, h) => {
-                    const effectiveness = p * cf * (1 - h);
+                float(0, 1),  // power
+                float(0, 1),  // hacked
+                (power, hacked) => {
+                    const effectiveness = power * hacked;
                     expect(effectiveness).to.be.at.least(0);
                     expect(effectiveness).to.be.at.most(1);
                 }
@@ -816,15 +784,15 @@ describe('System effectiveness invariants', () => {
     it('effectiveness increases with power', () => {
         fc.assert(
             fc.property(
-                power(),
-                power(),
-                coolantFactor(),
-                hacked(),
-                (p1, p2, cf, h) => {
+                float(0, 1),  // power 1
+                float(0, 1),  // power 2
+                float(0, 1),  // hacked
+                (p1, p2, h) => {
                     fc.pre(p1 < p2);  // Precondition
+                    fc.pre(h > 0);    // hacked=0 zeroes both, breaking strict monotonicity
 
-                    const eff1 = p1 * cf * (1 - h);
-                    const eff2 = p2 * cf * (1 - h);
+                    const eff1 = p1 * h;
+                    const eff2 = p2 * h;
 
                     expect(eff2).to.be.greaterThan(eff1);
                 }
@@ -925,39 +893,6 @@ expect(value).toBe(expected);  // Will fail for floats
 ```
 
 ## Known Limitations
-
-### E2E FPS Measurement
-
-**Issue**: FPS measurement in `modules/e2e/test/multi-ship-combat.spec.ts:296-300` uses hardcoded placeholder:
-
-```typescript
-const fps = await page.evaluate(() => {
-    // Placeholder - doesn't measure actual FPS
-    return Math.round(60);
-});
-```
-
-**Impact**: Performance test doesn't validate actual frame rate.
-
-**Workaround**: Manual performance testing, browser DevTools profiling.
-
-### Property Test Formulas
-
-**Issue**: Heat dissipation in `modules/core/test/state-properties.spec.ts:193-202` uses simplified formula:
-
-```typescript
-const coolingRate = cf * 10;  // Invented constant
-```
-
-**Actual Formula** (from `heat-manager.ts`):
-```typescript
-const coolantPerFactor = totalCoolant / totalCoolantFactors;
-const coolingRate = coolantFactor * coolantPerFactor;
-```
-
-**Impact**: Property test doesn't validate actual game behavior.
-
-**Workaround**: Use integration tests with full HeatManager for cooling validation.
 
 ### Visual Regression Snapshots
 

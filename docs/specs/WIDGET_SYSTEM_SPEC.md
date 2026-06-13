@@ -1,3 +1,13 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/browser/src/widgets
+related:
+  - ../UI_SPECIFICATION.md
+last_verified: 2026-06-13
+---
+
 # Widget System Specification
 
 @category: ui-framework
@@ -169,10 +179,7 @@ dashboard.setup();
 
 ## createWidget Function
 ```typescript
-function createWidget(config: {
-    name: string;
-    render: (driver: ShipDriver) => HTMLElement;
-}): DashboardWidget
+function createWidget(createContainer: InteractiveLayerCommands): DashboardWidget
 ```
 
 ### Basic Widget
@@ -220,7 +227,7 @@ export const controlWidget = createWidget({
         const pane = createPane({ title: 'Controls', container });
 
         // Add controls
-        pane.addInput(ship.state.reactor, 'power', {
+        pane.addBinding(ship.state.reactor, 'power', {
             min: 0,
             max: 1,
             step: 0.25
@@ -377,14 +384,14 @@ export const controlPanel = createWidget({
         const pane = createPane({ title: 'Controls', container });
 
         // Number input
-        pane.addInput(ship.state.reactor, 'power', {
+        pane.addBinding(ship.state.reactor, 'power', {
             min: 0,
             max: 1,
             step: 0.25
         });
 
         // Boolean toggle
-        pane.addInput(ship.state, 'freeze', {
+        pane.addBinding(ship.state, 'freeze', {
             label: 'Freeze'
         });
 
@@ -403,19 +410,20 @@ const pane = createPane({ title: 'Systems', container });
 
 // Create folders
 const reactorFolder = pane.addFolder({ title: 'Reactor' });
-reactorFolder.addInput(ship.state.reactor, 'power');
-reactorFolder.addInput(ship.state.reactor, 'energy');
+reactorFolder.addBinding(ship.state.reactor, 'power');
+reactorFolder.addBinding(ship.state.reactor, 'energy');
 
 const thrustersFolder = pane.addFolder({ title: 'Thrusters' });
 for (const thruster of ship.state.thrusters) {
-    thrustersFolder.addInput(thruster, 'power');
+    thrustersFolder.addBinding(thruster, 'power');
 }
 ```
 
 ## Monitor Display
 ```typescript
 // Read-only display
-pane.addMonitor(ship.state.reactor, 'energy', {
+pane.addBinding(ship.state.reactor, 'energy', {
+    readonly: true,
     view: 'graph',
     min: 0,
     max: 10000
@@ -432,7 +440,7 @@ pane.addMonitor(ship.state.reactor, 'energy', {
 ```typescript
 // modules/browser/src/widgets/my-widget.ts
 import { createWidget } from './create';
-import { ShipDriver } from '@starwards/core/client';
+import { ShipDriver } from '@starwards/core';
 
 export const myWidget = createWidget({
     name: 'my-widget',
@@ -549,7 +557,7 @@ export const controlWidget = createWidget({
         const pane = createPane({ title: 'Controls', container });
 
         // Add controls
-        pane.addInput(ship.state.reactor, 'power', {
+        pane.addBinding(ship.state.reactor, 'power', {
             min: 0,
             max: 1
         }).on('change', (ev) => {
@@ -593,7 +601,7 @@ export const canvasWidget = createWidget({
 
 ```typescript
 import React from 'react';
-import { ShipDriver } from '@starwards/core/client';
+import { ShipDriver } from '@starwards/core';
 
 interface MyReactWidgetProps {
     ship: ShipDriver;
@@ -731,7 +739,7 @@ export const myWidget: DashboardWidget = {
 // 1. Create widget file
 // modules/browser/src/widgets/my-widget.ts
 import { createWidget } from './create';
-import { ShipDriver } from '@starwards/core/client';
+import { ShipDriver } from '@starwards/core';
 
 export const myWidget = createWidget({
     name: 'my-widget',

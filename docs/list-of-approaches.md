@@ -387,44 +387,44 @@
 ### Code Quality & Linting
 
 61. **No Console.log in Production**
-    - ESLint [`'no-console': 'error'`](.eslintrc.js:20)
+    - ESLint [`'no-console': 'error'`](eslint.config.mjs:247)
     - Explicit `// eslint-disable-next-line` required
     - Prevents debug output leaks
     - Enforces proper logging
 
 62. **Sort Imports Rule**
-    - ESLint [`'sort-imports': 'error'`](.eslintrc.js:18)
+    - ESLint [`'sort-imports': 'error'`](eslint.config.mjs:245)
     - Alphabetically sorted imports
     - Consistent code style
     - Easier merge conflicts
 
 63. **No Shadow Variables**
-    - [`'@typescript-eslint/no-shadow': 'error'`](.eslintrc.js:40)
+    - [`'@typescript-eslint/no-shadow': 'error'`](eslint.config.mjs:307)
     - Prevents variable name reuse
     - Reduces confusion
     - Catches common bugs
 
 64. **No Only Tests**
-    - [`'no-only-tests/no-only-tests': 'error'`](.eslintrc.js:19)
+    - [`'no-only-tests/no-only-tests': 'error'`](eslint.config.mjs:246)
     - Prevents `.only` in test commits
     - Ensures full test suite runs
     - CI/CD safety
 
 65. **Prettier Integration**
-    - [`'prettier/prettier': 'error'`](.eslintrc.js:24)
+    - [`'prettier/prettier': 'error'`](eslint.config.mjs:251)
     - Formatting as lint error
     - Consistent code style
     - Auto-fix on save
 
 66. **Trailing Comma Enforcement**
-    - [`'comma-dangle': ['error', 'always-multiline']`](.eslintrc.js:44)
+    - [`'comma-dangle': ['error', 'always-multiline']`](eslint.config.mjs:320)
     - Cleaner git diffs
     - Easier array/object additions
     - Consistent style
 
 67. **React Hooks Validation**
-    - [`'react-hooks/rules-of-hooks': 'error'`](.eslintrc.js:21)
-    - [`'react-hooks/exhaustive-deps': 'error'`](.eslintrc.js:22)
+    - [`'react-hooks/rules-of-hooks': 'error'`](eslint.config.mjs:248)
+    - [`'react-hooks/exhaustive-deps': 'error'`](eslint.config.mjs:249)
     - Prevents hook violations
     - Dependency array validation
 
@@ -475,12 +475,12 @@
     - WebGL acceleration
 
 75. **Arwes Sci-fi UI**
-    - [`@arwes-amir/core`](modules/browser/package.json:16) component library
+    - [`@arwes/react`](modules/browser/package.json:15) component library (version 1.0.0-next.25020502)
     - Consistent futuristic theme
     - Animation support
     - Sound effects integration
 
-76. **React 17 without Imports**
+76. **React 18**
     - [`"jsx": "react"`](tsconfig.json:9) in tsconfig
     - No `import React` needed
     - Cleaner component files
@@ -536,10 +536,10 @@
     - Visual regression testing
     - Multi-browser support
 
-85. **Jest with esbuild**
-    - [`@jgoz/jest-esbuild`](package.json:48)
-    - Fast TypeScript transformation
-    - No tsc overhead
+85. **Jest with ts-jest**
+    - [`ts-jest`](package.json:105) (`^29.4.5`)
+    - TypeScript transformation configured in [`jest.config.js`](jest.config.js:4-18) via the `transform` map (`ts-jest` for both `^.+\.tsx?$` and `^.+\.m?js$`)
+    - Uses project `tsconfig.json`
     - Quick test iterations
 
 86. **Jest JUnit Reporter**

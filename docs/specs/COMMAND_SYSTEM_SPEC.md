@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/commands.ts
+  - modules/core/src/json-ptr.ts
+related:
+  - ../API_REFERENCE.md
+last_verified: 2026-06-13
+---
+
 # Command System Specification
 
 @category: client-server-communication
@@ -112,7 +123,7 @@ class SpaceRoom extends Room<SpaceState> {
 
 ### Handler Implementation
 ```typescript
-// From commands.ts:90-114
+// From commands.ts
 export function handleJsonPointerCommand(
     message: unknown, 
     type: string | number, 
@@ -619,11 +630,12 @@ room.send('createAsteroid', {
     path: undefined
 });
 
-// Pause game
-sendJsonCmd(room, '/Admin/paused', true);
-
-// Time scale
-sendJsonCmd(room, '/Admin/timeScale', 0.5);
+// Pause/run the game and adjust time scale are NOT done via JSON-pointer commands.
+// AdminState (modules/core/src/admin/index.ts) has no `paused`/`timeScale` fields,
+// and AdminRoom (modules/server/src/admin/room.ts) registers no JSON-pointer handler.
+// Pause/run is controlled by transitioning `gameStatus` (GameStatus enum) via
+// GameManager.startGame()/stopGame(); time scaling is the `speed` field, applied in
+// game-manager.ts as `currDeltaSeconds * this.state.speed`.
 ```
 
 ---

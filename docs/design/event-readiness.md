@@ -7,7 +7,7 @@ What's needed to run a full Helios LARP event with Starwards.
 - [x] **Pilot** — flight control, two modes, helm assist
 - [x] **Weapons** — chaingun, torpedoes, targeting, ammo management
 - [x] **ECR / Engineering** — power, heat, coolant, system status
-- [ ] **Signals** — scanning, hacking, tracking (designed, not built)
+- [x] **Signals** — long-range radar, target info, systems status, waypoint placement (station shipped; scanning/hacking/tracking intel mechanics still designed-only)
 - [ ] **Navigator** — warp route plotting (designed, not built)
 - [ ] **Relay** — comms, probes, route coordination (designed, not built)
 - [x] **GM screen** — widget system works, needs scenario presets
@@ -29,8 +29,8 @@ What's needed to run a full Helios LARP event with Starwards.
 - [x] Weapons (chaingun, torpedoes, blast propagation)
 - [x] Basic warp drive
 - [x] Bot AI (tactical orders, idle behaviors)
-- [ ] Scan levels (3-tier progressive reveal)
-- [ ] Signals jobs (scan/hack/track queue)
+- [x] Scan levels (3-tier progressive reveal: UFO/Basic/Advanced)
+- [x] Signals jobs (scan/hack/track queue) — SignalsJobManager + Signals state implemented and run each tick
 - [ ] Warp frequency topology (efficiency zones, route optimization)
 - [ ] Ship-in-ship docking
 - [ ] Repair system (3-tier, field repairs)

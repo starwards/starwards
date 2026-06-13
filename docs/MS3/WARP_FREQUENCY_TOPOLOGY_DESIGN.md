@@ -368,6 +368,6 @@ Each route stores:
 ---
 
 **Related Documents:**
-- MILESTONE_1_DESIGN_ANSWERS.md
-- MILESTONE_1_PLAN.md
+- docs/MS3/DESIGN_ANSWERS.md
+- docs/MS3/PLAN.md
 - docs/ARCHITECTURE.md

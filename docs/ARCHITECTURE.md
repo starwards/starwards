@@ -1,3 +1,16 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src
+  - modules/server/src
+related:
+  - PATTERNS.md
+  - API_REFERENCE.md
+  - DEVELOPMENT.md
+last_verified: 2026-06-13
+---
+
 # Architecture
 
 **Client-server architecture with real-time WebSocket state sync**
@@ -17,7 +30,7 @@ Browser ←──WS──→ Server(Colyseus) ←──WS──→ Node-RED
 | Module | Tool | Output | Purpose |
 |--------|------|--------|---------|
 | core | tsup | `cjs/` | Shared logic, schemas, physics |
-| server | tsc | `dist/` | Colyseus rooms, game logic |
+| server | tsc | `cjs/` | Colyseus rooms, game logic |
 | browser | webpack | `dist/` | PixiJS + React UI |
 | node-red | rollup+tsc | `dist/` | Integration nodes |
 | e2e | playwright | - | E2E tests |
@@ -71,14 +84,19 @@ setSimulationInterval(dt =>
 ## State Tree
 
 ```
-AdminState
-└── space: SpaceState
-    ├── Spaceship: MapSchema<Spaceship>
-    │   └── [id]: {position, velocity, angle, ...}
-    ├── Projectile: MapSchema<Projectile>
-    ├── Explosion: MapSchema<Explosion>
-    ├── Asteroid: MapSchema<Asteroid>
-    └── Waypoint: MapSchema<Waypoint>
+AdminState (AdminRoom root)
+├── gameStatus
+├── shipIds
+├── playerShipIds
+└── speed
+
+SpaceState (SpaceRoom root)
+├── Spaceship: MapSchema<Spaceship>
+│   └── [id]: {position, velocity, angle, ...}
+├── Projectile: MapSchema<Projectile>
+├── Explosion: MapSchema<Explosion>
+├── Asteroid: MapSchema<Asteroid>
+└── Waypoint: MapSchema<Waypoint>
 
 ShipState (per ship, separate room)
 ├── design: ShipPropertiesDesignState
@@ -88,7 +106,7 @@ ShipState (per ship, separate room)
 ├── chainGun: ChainGun
 ├── radar: Radar
 ├── armor: Armor
-├── targeting: Targeting
+├── weaponsTarget: Targeting
 └── [other systems]
 ```
 
@@ -120,7 +138,7 @@ ShipState (per ship, separate room)
 
 **WebSocket flow:**
 ```
-1. Client: Connect to ws://host:2567
+1. Client: Connect to ws://host/colyseus (the server's HTTP host/port; dev default port 8080, prod default 80)
 2. Client: joinRoom('space')
 3. Server: Send initial state (full snapshot)
 4. Loop:

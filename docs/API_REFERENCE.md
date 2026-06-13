@@ -1,9 +1,22 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/game-field.ts
+  - modules/core/src/commands.ts
+  - modules/core/src/ship/system.ts
+related:
+  - TECHNICAL_REFERENCE.md
+  - LLM_CONTEXT.md
+last_verified: 2026-06-13
+---
+
 # API Reference
 
 ## Decorators
 
 ### @gameField
-**Location:** `modules/core/src/game-field.ts:16`
+**Location:** `modules/core/src/game-field.ts`
 
 **Marks properties for Colyseus schema synchronization**
 
@@ -19,7 +32,7 @@
 **Note:** float32 rounds to 2 decimals, triggers auto-sync
 
 ### @tweakable
-**Location:** `modules/core/src/tweakable.ts:38`
+**Location:** `modules/core/src/tweakable.ts`
 
 **Marks properties for GM/debug UI adjustment**
 
@@ -33,7 +46,7 @@
 **Retrieval:** `getTweakables(state) → TweakableValue[]`
 
 ### @range
-**Location:** `modules/core/src/range.ts:39`
+**Location:** `modules/core/src/range.ts`
 
 **Defines value constraints**
 
@@ -50,7 +63,7 @@ class ShipState { }
 **Retrieval:** `getRange(root, pointer)` | `tryGetRange(root, pointer)`
 
 ### @defectible
-**Location:** `modules/core/src/ship/system.ts:73`
+**Location:** `modules/core/src/ship/system.ts`
 
 **Marks damageable system properties**
 
@@ -66,7 +79,7 @@ efficiency = 1;
 ## State Classes
 
 ### SpaceState
-**Location:** `modules/core/src/space/space-state.ts:21`
+**Location:** `modules/core/src/space/space-state.ts`
 
 **Properties:** `Projectile|Explosion|Asteroid|Spaceship|Waypoint: MapSchema<T>`
 
@@ -81,7 +94,7 @@ efficiency = 1;
 **Commands (server):** `moveCommands|botOrderCommands|createAsteroidCommands|destroySpaceshipCommands`
 
 ### ShipState
-**Location:** `modules/core/src/ship/ship-state.ts:52`
+**Location:** `modules/core/src/ship/ship-state.ts`
 
 **Design:** `@gameField(ShipPropertiesDesignState) design`
 
@@ -101,14 +114,14 @@ efficiency = 1;
 **Computed:** `velocityAngle|speed|maxSpeed|maxMaxSpeed|rotationCapacity`
 
 ### AdminState
-**Location:** `modules/core/src/admin/index.ts:11`
+**Location:** `modules/core/src/admin/index.ts`
 
-**Properties:** `@gameField(SpaceState) space | @gameField('string') mapName | @gameField('boolean') running`
+**Properties:** `@gameField('int8') gameStatus | @gameField(['string']) shipIds | @gameField(['string']) playerShipIds | @gameField('float32') speed` (getter `isGameRunning`)
 
 ## Space Objects
 
 ### SpaceObjectBase (abstract)
-**Location:** `modules/core/src/space/space-object-base.ts:34`
+**Location:** `modules/core/src/space/space-object-base.ts`
 
 **Properties:** `type|destroyed|freeze|expendable|id|position|velocity|radius|angle|turnSpeed|faction|radarRange|collisionElasticity|collisionDamage|isCorporal`
 
@@ -117,56 +130,56 @@ efficiency = 1;
 - `get directionAxis(): XY`
 
 ### Derived Types
-- **Spaceship** (`spaceship.ts:14`): `+faction|radarRange|health`
-- **Projectile** (`projectile.ts:67`): `+design|secondsToLive|targetId|ownerId|_explosion`
-- **Explosion** (`explosion.ts:28`): `+secondsToLive|expansionSpeed|damageFactor|blastFactor`
-- **Asteroid** (`asteroid.ts:11`): `+health`
-- **Waypoint** (`waypoint.ts:13`): `+faction|color`
+- **Spaceship** (`spaceship.ts`): `+faction|radarRange|model|callsign|transponderOpen`
+- **Projectile** (`projectile.ts`): `+design|secondsToLive|health|shipId|targetId|model|_explosion`
+- **Explosion** (`explosion.ts`): `+secondsToLive|expansionSpeed|damageFactor|blastFactor`
+- **Asteroid** (`asteroid.ts`): `+health`
+- **Waypoint** (`waypoint.ts`): `+faction|color`
 
 **Type guards:** `ClassName.isInstance(o): o is ClassName`
 
 ## Ship Systems
 
 ### SystemState (base)
-**Location:** `modules/core/src/ship/system.ts:36`
+**Location:** `modules/core/src/ship/system.ts`
 
 **Properties:** `name|design|broken|energyPerMinute|heat:[0,100]|coolantFactor:[0,1]|power:PowerLevel|hacked:HackLevel`
 
-**Computed:** `effectiveness = broken ? 0 : power * coolantFactor * (1-hacked)`
+**Computed:** `effectiveness = broken ? 0 : power * hacked`
 
 **Enums:**
-- `PowerLevel: SHUTDOWN=0|LOW=0.25|MID=0.5|HIGH=0.75|MAX=1`
+- `PowerLevel: SHUTDOWN=0|LOW=0.25|NORMAL=0.5|HIGH=0.75|MAX=1`
 - `HackLevel: DISABLED=0|COMPROMISED=0.5|OK=1`
 
 ### Key Systems
 
 | System | Location | Key Properties | Computed |
 |--------|----------|----------------|----------|
-| Reactor | `reactor.ts:23` | energy, efficiencyFactor | - |
-| Thruster | `thruster.ts:23` | angle, active, efficiency | getVelocityCapacity() |
-| Radar | `radar.ts:29` | malfunctionRangeFactor | range |
-| ChainGun | `chain-gun.ts:116` | isFiring, loadAmmo, loading, rateOfFireFactor | - |
-| Tube | `tube.ts:82` | angle, loaded, loading, loadTimeFactor | fireCommand, loadCommand |
-| Targeting | `targeting.ts:17` | targetId, shipOnly, enemyOnly, shortRangeOnly | range, next/prev/clearTargetCommand |
-| Warp | `warp.ts:40` | damageFactor, currentLevel, desiredLevel, currentFrequency | - |
+| Reactor | `reactor.ts` | energy, effeciencyFactor | energyPerSecond |
+| Thruster | `thruster.ts` | angle, active, availableCapacity | getVelocityCapacity() |
+| Radar | `radar.ts` | malfunctionRangeFactor | broken |
+| ChainGun | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | - |
+| Tube | `tube.ts` | index, angle (extends ChainGun: isFiring, loadAmmo, loading, loadedProjectile) | (none; firing/loading handled by chain-gun-manager) |
+| Targeting | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | range, next/prev/clearTargetCommand |
+| Warp | `warp.ts` | damageFactor, currentLevel, desiredLevel, currentFrequency | - |
 | Armor | `armor.ts` | plates[], healthyPlates, totalHealth | - |
 
 ## Commands
 
 ### sendJsonCmd
-**Location:** `modules/core/src/commands.ts:19`
+**Location:** `modules/core/src/commands.ts`
 
 ```typescript
 sendJsonCmd(room, '/Spaceship/ship-1/rotation', 0.5);
 ```
 
 ### handleJsonPointerCommand (server)
-**Location:** `modules/core/src/commands.ts:90`
+**Location:** `modules/core/src/commands.ts`
 
 **Flow:** Validate pointer → check range → cap value → update state → return success
 
 ### StateCommand
-**Location:** `modules/core/src/commands.ts:6`
+**Location:** `modules/core/src/commands.ts`
 
 ```typescript
 interface StateCommand<T, S extends Schema, P> {
@@ -176,7 +189,7 @@ interface StateCommand<T, S extends Schema, P> {
 ```
 
 ### cmdSender / cmdReceiver
-**Location:** `modules/core/src/commands.ts:29|71`
+**Location:** `modules/core/src/commands.ts`
 
 ```typescript
 const send = cmdSender(room, rotateCmd, undefined);
@@ -189,7 +202,7 @@ onMessage(rotateCmd.cmdName, cmdReceiver(manager, rotateCmd));
 ## Events
 
 ### EventEmitter
-**Location:** `modules/core/src/events.ts:8`
+**Location:** `modules/core/src/events.ts`
 
 ```typescript
 interface EventEmitter<T extends EventMap> {
