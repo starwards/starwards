@@ -13,7 +13,16 @@ npm run test:e2e           # E2E tests (Playwright)
 
 # Run single test
 npm test -- --testNamePattern="test name"
-npm run test:e2e -- modules/e2e/test/visual/specific.spec.ts
+npx playwright test modules/e2e/test/visual/specific.spec.ts --project=chromium
+# (don't use `npm run test:e2e -- <file>` — the script already passes a glob, and Playwright ORs filters, so it runs everything)
+
+# E2E snapshots
+npm run test:e2e -- --update-snapshots   # Update snapshots locally
+npm run snapshots:ci                     # Update CI (linux) snapshots via docker — very slow
+npm run test:widgets                     # Gallery visual tests, headed chromium
+
+# Development — one command (requires Zellij; server pane started manually)
+npm run dev
 
 # Development (3 terminals)
 cd modules/core && npm run build:watch     # Terminal 1: Core watch
@@ -22,13 +31,15 @@ node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 
 
 # UI Gallery (no server needed, just browser dev server)
 # http://localhost:3000/gallery.html
-# Scenes: ammo, armor, engineering-status, gm-radar, pilot, tactical-radar, targeting, tubes-status, warp
+# Scenes: ammo, armor, engineering-status, gm-radar, long-range-radar, pilot, tactical-radar, targeting, tubes-status, warp
+# (scene list lives in modules/browser/src/gallery/scenes/index.ts)
 # Direct link: http://localhost:3000/gallery.html?scene=tactical-radar
 
 # Verification suite
 npm run test:types         # TypeScript check
 npm run test:format        # ESLint + Prettier
 npm run lint:fix           # Auto-fix lint issues
+npm run test:all           # format + types + unit + e2e
 ```
 
 ## State Access Patterns
@@ -130,10 +141,13 @@ power = 1.0;
 | E2E panel selectors | `page.locator('[data-id="Panel Name"]')` |
 | Multiple same labels | `getPropertyValue(page, 'label', 'PanelTitle')` to scope |
 | State not persisting | Modify `spaceObject`, not `ship.state` (see sync pattern) |
-| Port in use | `lsof -ti:2567 \| xargs kill -9` |
+| Port in use | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 
 ## CI Rules
 All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scripts.
+
+## Commits & PRs
+Follow [Conventional Commits](https://www.conventionalcommits.org/) for non-trivial changes (see CONTRIBUTING.md). For non-trivial features, open/link an issue first.
 
 ## Extension Points
 1. **New Objects**: Extend `SpaceObjectBase`
