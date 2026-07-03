@@ -208,7 +208,10 @@ const localPlugin = {
 export default [
     // Global ignores
     {
-        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts'],
+        // .claude/workflows: Claude Workflow-tool scripts — their body executes inside
+        // an async function, so top-level `return` is part of the format and cannot
+        // parse as standard JS. Prettier still formats them (separate command).
+        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts', '.claude/workflows/**'],
     },
     // Base config for all files
     {
