@@ -119,7 +119,7 @@ export function createMockSpaceDriver(objects: SpaceObject[] = []): MockSpaceDri
 
     return {
         events: new EventEmitter2({ wildcard: true, delimiter: '/', maxListeners: 0 }),
-        state: state as unknown as MockSpaceState,
+        state: state,
         command: () => {},
     };
 }

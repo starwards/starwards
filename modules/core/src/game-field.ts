@@ -137,8 +137,7 @@ export function commandableSchema(r: CommandablePaths) {
  */
 export function isCommandableFromAncestor(ancestor: object, propertyKey: string, descendantPath: string): boolean {
     const paths = Reflect.getMetadata(commandableDescendantMetadataKey, ancestor, propertyKey) as
-        | CommandablePaths
-        | undefined;
+        CommandablePaths | undefined;
     return !!paths && descendantPath in paths;
 }
 

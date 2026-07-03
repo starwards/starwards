@@ -24,7 +24,7 @@ export const pilotScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 500);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawPilotStats(mockContainer as never, mockShipDriver as never);
+            drawPilotStats(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -48,7 +48,7 @@ export const pilotScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 500);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawPilotStats(mockContainer as never, mockShipDriver as never);
+            drawPilotStats(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -71,7 +71,7 @@ export const pilotScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 500);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawPilotStats(mockContainer as never, mockShipDriver as never);
+            drawPilotStats(mockContainer, mockShipDriver as never);
         },
     },
 };

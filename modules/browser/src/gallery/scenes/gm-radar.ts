@@ -28,7 +28,7 @@ function addFovRendering(root: CameraView, mockSpaceDriver: ReturnType<typeof cr
     const rangeFilter = new RadarRangeFilter(mockSpaceDriver as never);
     root.ticker.add(rangeFilter.update, null, UPDATE_PRIORITY.LOW);
 
-    for (let faction = 0; faction < (Faction.FACTION_COUNT as number); faction++) {
+    for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
         const fovGraphics = new Graphics();
         fovGraphics.filters = [new AlphaFilter({ alpha: 0.1 })];
         root.addLayer(fovGraphics);
@@ -37,7 +37,7 @@ function addFovRendering(root: CameraView, mockSpaceDriver: ReturnType<typeof cr
             () => {
                 fovGraphics.clear();
                 for (const fov of rangeFilter.fieldsOfView()) {
-                    if ((fov.object.faction as number) === faction) {
+                    if (fov.object.faction === faction) {
                         fov.draw(root, fovGraphics);
                         fovGraphics.fill({ color: getFactionColor(faction), alpha: 1 });
                     }
@@ -70,7 +70,7 @@ export const gmRadarScenes: Record<string, Scene> = {
             camera.setZoom(ZOOM);
 
             const root = new CameraView(camera);
-            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer as never);
+            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer);
             root.canvas.setAttribute('data-id', 'GM Radar');
 
             const grid = new GridLayer(root);
@@ -99,7 +99,7 @@ export const gmRadarScenes: Record<string, Scene> = {
             camera.setZoom(ZOOM);
 
             const root = new CameraView(camera);
-            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer as never);
+            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer);
             root.canvas.setAttribute('data-id', 'GM Radar');
 
             const grid = new GridLayer(root);
@@ -155,7 +155,7 @@ export const gmRadarScenes: Record<string, Scene> = {
             camera.setZoom(ZOOM);
 
             const root = new CameraView(camera);
-            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer as never);
+            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer);
             root.canvas.setAttribute('data-id', 'GM Radar');
 
             const grid = new GridLayer(root);

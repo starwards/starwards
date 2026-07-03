@@ -159,8 +159,7 @@ export function getSystems(root: Schema): System[] {
     for (const [state, systemPointer, field, value] of allColyseusProperties(root)) {
         if (state && state instanceof SystemState && typeof value === 'number' && typeof field === 'string') {
             const config = Reflect.getMetadata(defectiblePropertyMetadataKey, state, field) as
-                | DefectibleConfig
-                | undefined;
+                DefectibleConfig | undefined;
             if (config) {
                 if (!systemsMap[systemPointer]) {
                     systemsMap[systemPointer] = System(systemPointer, state);

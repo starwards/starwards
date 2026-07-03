@@ -30,7 +30,7 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: DEFAULT_RANGE,
             });
         },
@@ -48,7 +48,7 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: DEFAULT_RANGE,
             });
         },
@@ -131,7 +131,7 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             ]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: DEFAULT_RANGE,
             });
         },
@@ -160,7 +160,7 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, nearbyShip, asteroid]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: 10_000,
             });
         },
@@ -196,7 +196,7 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, distantShip1, distantShip2, waypoint]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: 250_000,
             });
         },
