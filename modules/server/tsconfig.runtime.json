@@ -3,6 +3,7 @@
     "compilerOptions": {
         "module": "commonjs",
         "outDir": "cjs",
+        "rootDir": "src",
         "experimentalDecorators": true,
         "paths": {
             "@starwards/core": ["../core/cjs"],

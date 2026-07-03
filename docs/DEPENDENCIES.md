@@ -42,12 +42,12 @@ last_verified: 2026-06-13
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| typescript | ^5.9.3 | Modern features, strict mode |
-| webpack | ^5.102.1 | Stable, HMR |
-| webpack-dev-server | ^5.2.2 | Matches Webpack |
-| tsup | ^8.5.0 | Fast library builds |
-| jest | ^30.2.0 | Stable, fast w/ esbuild |
-| @playwright/test | ^1.56.1 | E2E testing |
+| typescript | ^6.0.3 | TS 6 (explicit `types` lists — no auto typeRoots inclusion; `ignoreDeprecations: "6.0"` for node10 resolution until module-resolution migration) |
+| webpack | ^5.108.3 | Stable, HMR |
+| webpack-dev-server | ^5.2.6 | Matches Webpack |
+| tsup | ^8.5.1 | Fast library builds |
+| jest | ^30.4.2 | Stable, fast w/ esbuild |
+| @playwright/test | ^1.61.1 | E2E testing (e2e Dockerfile image tag must match) |
 
 ## Version Pins
 
@@ -66,6 +66,9 @@ last_verified: 2026-06-13
 |---------|---------|-------|--------|
 | golden-layout | 2.x | Complete rewrite, incompatible | **NO UPGRADE** |
 | @arwes/react | 1.0.0-next (pre-release) | API may change before 1.0 | Monitoring |
+| eslint | 10.x | eslint-plugin-react peers cap at ^9.7 | Blocked on plugin |
+| colyseus | 0.17/0.18 | Breaking 0.x line (0.16.x adopted) | Dedicated migration |
+| esbuild | 0.26+ | Breaking 0.x minors | Held at 0.25.x |
 
 ## Upgrade Checklist
 

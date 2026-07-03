@@ -1,7 +1,10 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
+        /* Core is browser-agnostic; don't inherit the root's browser/test ambient types. */
+        "typeRoots": ["../../node_modules/@types"],
+        "types": ["node"]
     },
     "include": ["./src/**/*.ts"]
 }
