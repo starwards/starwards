@@ -10,11 +10,11 @@ The `accelerateToPosition` function implements a predictive braking controller t
 #### Phase 1: Low-Velocity Proportional Control
 **Activation Conditions:**
 - `absVelocity < pinPointVelocity * 0.5` (velocity is less than half the predictive threshold)
-- `targetDistance < stopDistance * 2` (ship is within twice its natural braking distance)
+- `targetDistance < max(stopDistance * 2, pinPointDistance)` (ship is within twice its natural braking distance, with a floor of `pinPointDistance` so the zone never collapses at very low velocity)
 
 **Behavior:**
-- Uses gentle proportional control: `controlStrength = targetDistance / (stopDistance * 2)`
-- Output range: `[0, 1]` scaled by direction sign
+- Uses gentle proportional control: `controlStrength = targetDistance / max(stopDistance * 2, pinPointDistance)` (the code names this denominator `controlDistance`)
+- Output: `clamp(-1, 1, controlStrength * sign(relTarget) - velocity / pinPointVelocity)` — range `[-1, 1]`, including a velocity-damping subtraction
 - **Purpose:** Prevents oscillation in the final approach phase
 - **Response:** Linear relationship between distance and thrust
 
@@ -215,10 +215,9 @@ When used for 2D control (`moveToTarget`):
 ### Future Improvements
 
 1. **Adaptive thresholds:** Scale low-velocity threshold based on ship mass/capacity
-2. **Velocity damping:** Add explicit velocity term to Phase 1 control
-3. **Jerk limiting:** Smooth thrust changes to reduce mechanical stress
-4. **Multi-step prediction:** Extend `pinpointIterationsPredict` dynamically based on velocity
-5. **Coordinate with rotation:** Optimize thrust vector when ship isn't perfectly aligned
+2. **Jerk limiting:** Smooth thrust changes to reduce mechanical stress
+3. **Multi-step prediction:** Extend `pinpointIterationsPredict` dynamically based on velocity
+4. **Coordinate with rotation:** Optimize thrust vector when ship isn't perfectly aligned
 
 ### Related Functions
 

@@ -1493,5 +1493,5 @@ This document should be used as the agenda for design sessions:
 **Last Updated:** 2025-11-06
 **Status:** Ready for Design Sessions
 **Related Docs:**
-- MILESTONE_1_PLAN.md
-- MILESTONE_1_PREENGINEERING.md
+- docs/MS3/PLAN.md
+- docs/MS3/PREENGINEERING.md

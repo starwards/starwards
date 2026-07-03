@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/ship/system.ts
+  - modules/core/src/ship
+related:
+  - ../SUBSYSTEMS.md
+last_verified: 2026-06-13
+---
+
 # Ship Systems Specification
 
 @category: game-mechanics
@@ -9,10 +20,10 @@
 | System | Purpose | Key Properties | Manager |
 |--------|---------|----------------|---------|
 | Reactor | Energy generation | energy, power | EnergyManager |
-| Thruster | Propulsion | thrust, turn | ThrustManager |
-| Radar | Detection | range, contacts | RadarManager |
-| ChainGun | Weapons | ammo, fireRate | WeaponsManager |
-| Warp | FTL travel | level, charging | WarpManager |
+| Thruster | Propulsion | thrust, turn | MovementManager |
+| Radar | Detection | range, contacts | (no dedicated manager) |
+| ChainGun | Weapons | ammo, fireRate | ChainGunManager |
+| Warp | FTL travel | level, charging | (no dedicated manager) |
 
 ---
 
@@ -79,7 +90,7 @@ abstract class SystemState extends Schema {
 enum PowerLevel {
     SHUTDOWN = 0,
     LOW = 0.25,
-    MID = 0.5,
+    NORMAL = 0.5,
     HIGH = 0.75,
     MAX = 1
 }
@@ -88,7 +99,7 @@ enum PowerLevel {
 **Usage:**
 ```typescript
 system.power = PowerLevel.HIGH;  // 0.75
-system.power = 0.5;              // MID
+system.power = 0.5;              // NORMAL
 ```
 
 ### Heat
@@ -654,7 +665,7 @@ class ChainGun extends SystemState {
 @returns: 'DISABLED' | 'DAMAGED' | 'OK'
 
 ```typescript
-// From system.ts:93-105
+// From system.ts
 getStatus: () => {
     if (state.broken) {
         return 'DISABLED';

@@ -10,7 +10,7 @@ Stations are crew positions on a ship. Each station provides a specific view of 
 | [Weapons](weapons.md) | Done | Gunner | ChainGun, torpedoes, targeting |
 | [ECR](ecr.md) | Done | Engineer | Power, heat, coolant, repairs |
 | [GM](gm.md) | Partial | Game Master | Object lifecycle, NPC orders, tweaks |
-| [Signals](signals.md) | Designed | Intel Officer | Scan, hack, track jobs |
+| [Signals](signals.md) | Partial | Intel Officer | Scan, hack, track jobs |
 | [Navigator](navigator.md) | Designed | Navigator | Warp topology, route plotting |
 | [Relay](relay.md) | Designed | Comms Officer | Probes, routes, waypoints |
 

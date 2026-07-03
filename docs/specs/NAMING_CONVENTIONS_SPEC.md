@@ -1,3 +1,13 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules
+related:
+  - ../PATTERNS.md
+last_verified: 2026-06-13
+---
+
 # Naming Conventions Specification
 
 @category: code-standards
@@ -72,9 +82,7 @@ TacticalRadar.tsx     // PascalCase
 
 ### Test Files
 ```
-.spec.ts    - Unit tests
-.test.ts    - Integration tests
-.e2e.ts     - End-to-end tests
+.spec.ts    - Unit, integration, and end-to-end tests
 ```
 
 ### Type Definitions
@@ -120,7 +128,7 @@ damage-report.tsx       → DamageReport component
 ### Utilities
 ```
 async-utils.ts      → Async utilities
-collision-utils.ts  → Collision utilities
+collisions-utils.ts → Collision utilities
 ```
 
 ---

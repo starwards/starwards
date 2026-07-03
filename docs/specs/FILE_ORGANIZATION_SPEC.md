@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - tsconfig.json
+  - package.json
+related:
+  - ../ARCHITECTURE.md
+last_verified: 2026-06-13
+---
+
 # File Organization Specification
 
 @category: project-structure
@@ -19,7 +30,7 @@
 # Project Structure
 @pattern: monorepo
 @manager: npm-workspaces
-@root: /data/Workspace/helios/starwards
+@root: <repository-root>
 
 ## Workspace Layout
 ```
@@ -212,7 +223,7 @@ import React from 'react';
 ```typescript
 // Workspace packages
 import { SpaceState, ShipState } from '@starwards/core';
-import { ShipDriver } from '@starwards/core/client';
+import { ShipDriver } from '@starwards/core';
 ```
 
 ### 3. Relative Imports
@@ -411,10 +422,10 @@ docs/
 ```typescript
 // From browser to core
 import { SpaceState, ShipState } from '@starwards/core';
-import { ShipDriver } from '@starwards/core/client';
+import { ShipDriver } from '@starwards/core';
 
 // From server to core
-import { SpaceManager } from '@starwards/core/logic';
+import { SpaceManager } from '@starwards/core/internal';
 ```
 
 ## Relative Paths
@@ -440,8 +451,8 @@ import { SystemState } from './system';
     "compilerOptions": {
         "baseUrl": ".",
         "paths": {
-            "@starwards/core": ["modules/core/src"],
-            "@starwards/core/*": ["modules/core/src/*"]
+            "@starwards/core/internal": ["modules/core/src/index.internal"],
+            "@starwards/*": ["modules/*/src", "modules/*/cjs"]
         }
     }
 }
@@ -571,7 +582,7 @@ radar.ts            → class Radar
 
 ## Utility Files
 ```
-collision-utils.ts  → collision utilities
+collisions-utils.ts → collision utilities
 async-utils.ts      → async utilities
 formulas.ts         → formula functions
 ```
@@ -592,10 +603,9 @@ save-load-game.tsx  → SaveLoadGame component
 starwards/
 ├── package.json            # Root package
 ├── tsconfig.json           # Root TS config
-├── .eslintrc.js           # ESLint config
+├── eslint.config.mjs      # ESLint config (flat config)
 ├── .prettierrc.json       # Prettier config
-├── playwright.config.ts   # Playwright config
-└── docker-compose.yml     # Docker config
+└── playwright.config.ts   # Playwright config
 ```
 
 ## Module Level

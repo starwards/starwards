@@ -56,7 +56,7 @@ node-red
 
 **Configuration:**
 
-- Server URL (e.g., `http://localhost:2567`)
+- Server URL (e.g., `http://localhost:8080`)
 - Ship ID
 
 **Usage:**
@@ -293,7 +293,7 @@ return msg;
 **File:** [`docker/docker-compose.yml`](../docker/docker-compose.yml)
 
 ```yaml
-version: '3.8'
+version: '3.9'
 
 services:
     mqtt:
@@ -301,18 +301,18 @@ services:
         ports:
             - '1883:1883'
         volumes:
-            - ./mosquitto/config:/mosquitto/config
-            - ./mosquitto/data:/mosquitto/data
-            - ./mosquitto/log:/mosquitto/log
+            - ./mqtt/config:/mosquitto/config
+            - ./mqtt/data:/mosquitto/data
+            - ./mqtt/log:/mosquitto/log
 
     node-red:
         image: nodered/node-red:3.0.2
         ports:
             - '1880:1880'
         volumes:
-            - ./node-red-data:/data
+            - ./node-red/data:/data
         environment:
-            - TZ=UTC
+            - TZ=Asia/Jerusalem
 ```
 
 ### Starting Services
@@ -347,17 +347,18 @@ docker-compose down
 
 ```
 docker/
-├── mosquitto/
+├── mqtt/
 │   ├── config/
 │   ├── data/
 │   └── log/
-└── node-red-data/
+└── node-red/
+    └── data/
 ```
 
 **Backup:**
 
 ```bash
-tar -czf backup.tar.gz docker/mosquitto docker/node-red-data
+tar -czf backup.tar.gz docker/mqtt docker/node-red
 ```
 
 **Restore:**

@@ -9,6 +9,7 @@ Mechanics are the underlying systems that the game simulates. A mechanic like "a
 | Armor, damage & malfunctions | Done | [Armor & Damage](armor-and-damage.md) |
 | Power, heat & coolant | Done | [Armor & Damage](armor-and-damage.md) |
 | Weapons (chaingun, torpedoes) | Done | [Armor & Damage](armor-and-damage.md) |
-| Scan levels & signals jobs | Designed | [Radar & Scanning](radar.md) |
+| Scan levels & signals jobs | Partial | [Radar & Scanning](radar.md) |
 | Emissions & detection | Partial | [Emissions](emissions.md) |
-| Docking & cargo | Designed/Deferred | [Cargo & Docking](cargo-and-docking.md) |
+| Docking | Done | [Cargo & Docking](cargo-and-docking.md) |
+| Cargo | Deferred | [Cargo & Docking](cargo-and-docking.md) |

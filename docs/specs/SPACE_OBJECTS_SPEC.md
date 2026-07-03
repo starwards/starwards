@@ -1,3 +1,13 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/space
+related:
+  - ../SUBSYSTEMS.md
+last_verified: 2026-06-13
+---
+
 # Space Objects Specification
 
 @category: game-entities

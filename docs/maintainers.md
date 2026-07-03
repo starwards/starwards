@@ -36,7 +36,7 @@ touches any of:
 - `modules/core/src/json-ptr.ts`
 - `modules/core/src/game-field.ts`
 - `modules/core/src/ship/ship-manager-abstract.ts`
-- `modules/core/src/space/space-manager.ts`
+- `modules/core/src/logic/space-manager.ts`
 - `modules/server/src/ship/room.ts`
 
 In branch protection, add a rule that **requires 2 approving reviews
@@ -81,12 +81,12 @@ The highest-risk source files have thin or no dedicated test coverage:
 
 | File                       | LOC  | Tests today | What to cover                                                                                                       |
 | -------------------------- | ---- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `ship-manager-abstract.ts` | 281+ | 0 dedicated | `syncShipProperties` source-of-truth invariant; command-field reset (afterBurnerCommand, rotationModeCommand, etc.) |
+| `ship-manager-abstract.ts` | 281+ | 2 dedicated | `syncShipProperties` source-of-truth invariant; command-field reset (afterBurnerCommand, rotationModeCommand, etc.) |
 | `space-manager.ts`         | 695  | 4           | `setPosition`/`updateAABB` ordering; MapSchema delete semantics; object lifecycle add/remove                        |
-| `movement-manager.ts`      | 431  | 0 dedicated | Thrust vectors, brake, afterburner, dock alignment — pure math kernel                                               |
-| `chain-gun-manager.ts`     | 200  | 0 dedicated | Ammo decrement, cooldown, jam, reload state machine                                                                 |
+| `movement-manager.ts`      | 431  | 4           | Dock alignment, additional thrust-vector edge cases (thrust/strafe/brake/afterburner covered)                       |
+| `chain-gun-manager.ts`     | 200  | 1 file (5 tests) | Cooldown, jam, reload state machine (ammo decrement/switching covered)                                          |
 
-E2E gaps: `gm-screen.spec.ts` (GM station round-trip), `multi-client-sync.spec.ts` (two clients on same ship, one writes `@commandable` property, the other observes).
+E2E gaps: a Playwright equivalent of the two-clients-on-same-ship scenario (one writes a `@commandable` property, the other observes). This scenario already has server-side coverage in `modules/server/src/test/multi-client-sync.spec.ts`; only a browser-level E2E remains outstanding.
 
 ### 3. Coverage ratchet
 

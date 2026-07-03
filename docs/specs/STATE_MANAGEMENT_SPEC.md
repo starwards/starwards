@@ -1,8 +1,20 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/space/space-state.ts
+  - modules/core/src/ship/ship-state.ts
+  - modules/core/src/admin/index.ts
+related:
+  - ../ARCHITECTURE.md
+last_verified: 2026-06-13
+---
+
 # State Management Specification
 
 @category: core-architecture
 @stability: stable
-@framework: colyseus-v0.15
+@framework: colyseus (version in ../DEPENDENCIES.md)
 
 ## Quick Reference
 
@@ -107,32 +119,40 @@ class CollectionState extends Schema {
 ### Structure
 ```typescript
 class SpaceState extends Schema {
-    @gameField({ map: Spaceship })
-    ships = new MapSchema<Spaceship>();
-    
+    // the name of each map is the type of the objects it contains (part of the events API)
     @gameField({ map: Projectile })
-    projectiles = new MapSchema<Projectile>();
-    
-    @gameField({ map: Asteroid })
-    asteroids = new MapSchema<Asteroid>();
-    
+    private readonly Projectile = new MapSchema<Projectile>();
+
     @gameField({ map: Explosion })
-    explosions = new MapSchema<Explosion>();
-    
+    private readonly Explosion = new MapSchema<Explosion>();
+
+    @gameField({ map: Asteroid })
+    private readonly Asteroid = new MapSchema<Asteroid>();
+
+    @gameField({ map: Spaceship })
+    private readonly Spaceship = new MapSchema<Spaceship>();
+
     @gameField({ map: Waypoint })
-    waypoints = new MapSchema<Waypoint>();
+    private readonly Waypoint = new MapSchema<Waypoint>();
+
+    // public access via methods:
+    get(id: string): SpaceObject | undefined;        // any type
+    getShip(id: string): Spaceship | undefined;
+    getAll<T>(typeField: T): Iterable<SpaceObjects[T]>;  // e.g. getAll('Spaceship')
+    set(obj: SpaceObject): void;
+    delete(obj: SpaceObject): void;
 }
 ```
 
 ### Access Pattern
 ```typescript
 // Server
-const ship = spaceState.ships.get('ship-1');
+const ship = spaceState.getShip('ship-1'); // or spaceState.get('ship-1')
 
 // Client
-room.state.ships.forEach((ship, id) => {
-    console.log(id, ship.position);
-});
+for (const ship of room.state.getAll('Spaceship')) {
+    console.log(ship.id, ship.position);
+}
 ```
 
 ## ShipState
@@ -140,13 +160,16 @@ room.state.ships.forEach((ship, id) => {
 @purpose: individual-ship-state
 @room: ShipRoom
 
--> extends: Spaceship
+-> extends: Schema (composes a `spaceship: Spaceship` mirror field, updated each tick by syncShipProperties)
 -> contains: ship-systems
 -> manages: ship-controls
 
 ### Structure
 ```typescript
-class ShipState extends Spaceship {
+class ShipState extends Schema {
+    @gameField(Spaceship)
+    spaceship: Spaceship = new Spaceship(); // composed mirror of authoritative Spaceship, not a base class
+
     @gameField(Reactor)
     reactor!: Reactor;
     
@@ -183,13 +206,21 @@ class ShipState extends Spaceship {
 ### Structure
 ```typescript
 class AdminState extends Schema {
-    @gameField('boolean')
-    paused: boolean = false;
-    
+    @gameField('int8')
+    gameStatus = GameStatus.STOPPED;
+
+    @gameField(['string'])
+    shipIds = new ArraySchema<string>();
+
+    @gameField(['string'])
+    playerShipIds = new ArraySchema<string>();
+
     @gameField('float32')
-    timeScale: number = 1.0;
-    
-    // Game configuration...
+    speed = 1;
+
+    get isGameRunning() {
+        return this.gameStatus === GameStatus.RUNNING;
+    }
 }
 ```
 
@@ -353,7 +384,7 @@ Calculate values from state without storing them.
 
 ## Pattern: Getters
 ```typescript
-class ShipState extends Spaceship {
+class ShipState extends Schema {
     @gameField('float32')
     @range([0, 1])
     afterBurner: number = 0;

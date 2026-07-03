@@ -803,4 +803,4 @@ These require decisions before design can proceed:
 **Document Version:** 1.0
 **Last Updated:** 2025-11-06
 **Owner:** Product/Design Team
-**Related:** MILESTONE_1_PLAN.md
+**Related:** PLAN.md

@@ -2,13 +2,13 @@
 
 ## Status
 
-**28 test files, 200+ tests, all passing ✅** (~15s unit, ~2min E2E)
+**41 test files, 200+ tests** (~15s unit, ~2min E2E)
 
 | Category | Files | Tests | Location |
 |----------|-------|-------|----------|
-| Unit | 16 | ~90 | `modules/core/test/` |
-| Multi-Client | 3 | 31 | `modules/server/src/test/` |
-| E2E | 5 | 51 | `modules/e2e/test/` |
+| Unit | 23 | ~90 | `modules/core/test/` |
+| Multi-Client | 4 | 31 | `modules/server/src/test/` |
+| E2E | 10 | 51 | `modules/e2e/test/` |
 | Integration | 4 | ~15 | `modules/node-red/src/` |
 
 **CI/CD:** Automated on every push, parallel execution (4 workers)
@@ -51,11 +51,11 @@ describe('Spaceship', () => {
 ### Property-Based Test
 ```typescript
 import fc from 'fast-check';
-import { power } from './properties';
+import { float } from './properties';
 
 it('effectiveness ∈ [0,1]', () => {
-    fc.assert(fc.property(power(), power(), power(), (p, cf, h) => {
-        const eff = p * cf * (1 - h);
+    fc.assert(fc.property(float(0, 1), float(0, 1), (power, hacked) => {
+        const eff = power * hacked;
         expect(eff).to.be.at.least(0).and.at.most(1);
     }));
 });
@@ -169,7 +169,6 @@ test.describe('My Screen', () => {
 - **setupPageErrorHandlers()** - Detects page crashes and errors early, failing fast instead of hanging
 - **navigateToScreen()** - Navigates with proper timeout and error handling, detects ECONNREFUSED
 - **cleanupPageState()** - Removes listeners, clears timers/intervals between tests
-- **checkServerHealth()** - Verifies server is alive before starting test
 - **waitForCriticalElement()** - Waits with crash detection (optional, more robust than standard waits)
 
 **Configuration:**
@@ -209,12 +208,6 @@ waitForCriticalElement: 10000ms  // Critical elements
 **Example beforeEach:**
 ```typescript
 test.beforeEach(async ({ page }) => {
-    // Fail fast if server died in previous test
-    const serverAlive = await checkServerHealth(gameDriver.port);
-    if (!serverAlive) {
-        throw new Error('Game server crashed in previous test');
-    }
-
     setupPageErrorHandlers(page);
     await gameDriver.gameManager.startGame(single_ship);
     await navigateToScreen(page, `/screen.html?ship=${shipId}`);
@@ -299,7 +292,7 @@ import { ShipTestHarness } from '@starwards/core/test';
 const harness = new ShipTestHarness();
 harness.enableStateHistory();
 harness.assertPhysicsInvariant(() => harness.shipObj.x >= 0, 'X non-negative');
-harness.simulate(30, 100, () => harness.shipMgr.addForwardThrust());
+harness.simulate(30, 100, () => { harness.shipMgr.state.smartPilot.maneuvering.x = 1; });
 const stateAt5s = harness.getStateAt(5);
 ```
 
@@ -307,11 +300,13 @@ const stateAt5s = harness.getStateAt(5);
 **Location:** `modules/core/test/test-factories.ts`
 
 ```typescript
-import { createTestShip, createCombatScenario, createFormation } from './test-factories';
+import { createTestShip } from './test-factories';
 
-const ship = createTestShip({ position: new Vec2(10, 10) });
-const { attackers, defenders } = createCombatScenario(mgr, { attackerCount: 2 });
-const formation = createFormation(mgr, 5, 'v-formation', 100);
+const ship = createTestShip({ x: 10, y: 10 });
+
+// For combat scenarios, use the ShipTestHarness method:
+const harness = new ShipTestHarness();
+const ships = harness.createCombatScenario({ shipCount: 2 });
 ```
 
 ### Multi-Client Driver

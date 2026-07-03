@@ -11,7 +11,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Helm | Pilot | Done | Newtonian physics instead of EE's simplified flight |
 | Weapons | Weapons | Done | Three engagement circles vs EE's beam weapons |
 | Engineering | ECR (Engineering Control Room) | Done | Same power/heat/coolant concept, different UI |
-| Science | Signals | Designed | Scan levels + signals jobs replace EE's scan/probe |
+| Science | Signals | Partial | Scan levels + signals jobs replace EE's scan/probe |
 | Relay/Comms | Relay | Designed | Route coordination + probes replace EE's hail system |
 | — | Navigator | Designed | No EE equivalent; new station for warp topology |
 | Main Screen | — | Skip | 2D radar views replace 3D camera; deliberate choice |
@@ -57,11 +57,11 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 
 | EE Feature | Starwards | Status | Notes |
 |-----------|-----------|--------|-------|
-| Science scanning (10s charge) | Scan levels (15-60s) | Designed | 3-tier vs EE's 2-tier; slower, more meaningful |
+| Science scanning (10s charge) | Scan levels (15-60s) | Done | 3-tier vs EE's 2-tier; slower, more meaningful |
 | Scan probes | Probes (Relay) | Designed | Mobile sensors extending vision |
 | Science database | — | Planned | Ship/object reference data |
 | Full spectrum scan | — | Skip | Scan levels provide sufficient depth |
-| — | Hack jobs | Designed | No EE equivalent; active cyber warfare |
+| — | Hack jobs | Partial | No EE equivalent; active cyber warfare |
 | — | Track jobs | Designed | Persistent target following |
 
 ## Navigation & Movement
