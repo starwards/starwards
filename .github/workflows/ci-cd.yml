@@ -17,13 +17,16 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
+                  cache: 'npm'
             - run: node --version
             - run: npm --version
-            - run: env
             - run: npm ci
             - run: npm run test:types
             - run: npm run test:format
-            - run: npm run build
+            # depcheck resolves @starwards/core/internal through package
+            # "exports" (built cjs/), so core must be built. The full build
+            # (browser/server/node-red) is covered by the Build job.
+            - run: npm run build:core
             - run: npm run depcheck
 
     Test-Units:
@@ -34,9 +37,9 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
+                  cache: 'npm'
             - run: node --version
             - run: npm --version
-            - run: env
             - run: npm ci
             - run: npm run test -- --maxWorkers=4 --reporters=default --reporters=jest-junit
               env:
@@ -62,25 +65,52 @@ jobs:
             options: --user 1001
         steps:
             - uses: actions/checkout@v4
+            # Skip the heavy build+e2e work on docs-only changes. Fails open:
+            # any doubt (missing base sha, git error) means code=true and the
+            # full job runs, so tests can never be skipped by accident.
+            - name: Detect non-docs changes
+              id: changes
+              shell: bash
+              run: |
+                  set +e
+                  git config --global --add safe.directory "$GITHUB_WORKSPACE"
+                  BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+                  git fetch --depth=1 origin "$BASE" 2>/dev/null
+                  CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null)
+                  if [ -z "$CHANGED" ]; then
+                      echo "code=true" >> "$GITHUB_OUTPUT"
+                  elif echo "$CHANGED" | grep -qvE '^docs/|\.md$'; then
+                      echo "code=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "docs-only change detected, skipping e2e"
+                      echo "code=false" >> "$GITHUB_OUTPUT"
+                  fi
+                  exit 0
             - name: Set up Node.js
+              if: steps.changes.outputs.code == 'true'
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
-            - run: node --version
-            - run: npm --version
-            - run: env
+                  cache: 'npm'
             - run: npm ci
+              if: steps.changes.outputs.code == 'true'
             - run: npm run build:core
+              if: steps.changes.outputs.code == 'true'
             - run: npm run build:server
+              if: steps.changes.outputs.code == 'true'
             - run: npm --prefix modules/browser run build
+              if: steps.changes.outputs.code == 'true'
             - run: npm run test:e2e
+              if: steps.changes.outputs.code == 'true'
             - name: Store test results
               uses: actions/upload-artifact@v4
+              if: steps.changes.outputs.code == 'true'
               with:
                   name: playwright-results
                   path: playwright-results.xml
             - name: Store artifacts
               uses: actions/upload-artifact@v4
+              if: steps.changes.outputs.code == 'true'
               with:
                   name: test-results
                   path: test-results
@@ -93,18 +123,41 @@ jobs:
             options: --user 1001
         steps:
             - uses: actions/checkout@v4
+            # Same fail-open docs-only gate as Test-E2e.
+            - name: Detect non-docs changes
+              id: changes
+              shell: bash
+              run: |
+                  set +e
+                  git config --global --add safe.directory "$GITHUB_WORKSPACE"
+                  BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+                  git fetch --depth=1 origin "$BASE" 2>/dev/null
+                  CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null)
+                  if [ -z "$CHANGED" ]; then
+                      echo "code=true" >> "$GITHUB_OUTPUT"
+                  elif echo "$CHANGED" | grep -qvE '^docs/|\.md$'; then
+                      echo "code=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "docs-only change detected, skipping visual tests"
+                      echo "code=false" >> "$GITHUB_OUTPUT"
+                  fi
+                  exit 0
             - name: Set up Node.js
+              if: steps.changes.outputs.code == 'true'
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
-            - run: node --version
-            - run: npm --version
-            - run: env
+                  cache: 'npm'
             - run: npm ci
+              if: steps.changes.outputs.code == 'true'
             - run: npm run build:core
+              if: steps.changes.outputs.code == 'true'
             - run: npm run build:server
+              if: steps.changes.outputs.code == 'true'
             - run: npm --prefix modules/browser run build
+              if: steps.changes.outputs.code == 'true'
             - run: xvfb-run npm run test:widgets
+              if: steps.changes.outputs.code == 'true'
             - name: Upload snapshot diffs
               uses: actions/upload-artifact@v4
               if: failure()
@@ -124,6 +177,7 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
+                  cache: 'npm'
             - run: npm ci
             - run: npm run test:coverage:core
             - name: Upload coverage report
@@ -142,9 +196,9 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
+                  cache: 'npm'
             - run: node --version
             - run: npm --version
-            - run: env
             - run: npm ci
             - run: npm run build
             - run: npm run pkg
