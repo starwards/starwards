@@ -17,14 +17,14 @@ import { SpaceDriver } from '@starwards/core';
 import hotkeys from 'hotkeys-js';
 import { selectionColor } from '../colors';
 
-enum MouseButton {
-    none = -1,
-    main = 0,
-    middle = 1,
-    right = 2,
-    browserBack = 3,
-    browserForward = 4,
-}
+const MouseButton = {
+    none: -1,
+    main: 0,
+    middle: 1,
+    right: 2,
+    browserBack: 3,
+    browserForward: 4,
+} as const;
 enum ActionType {
     none,
     select,
@@ -130,7 +130,8 @@ export class InteractiveLayer {
     };
 
     private onPointerDown = (event: FederatedPointerEvent) => {
-        const isMainButton = event.button === (MouseButton.main as number);
+        const button = event.button;
+        const isMainButton = button === MouseButton.main;
         if (this.actionType === ActionType.none) {
             if (isMainButton) {
                 this.dragFrom = XY.clone(event.global);
@@ -146,7 +147,7 @@ export class InteractiveLayer {
                     this.actionType = ActionType.select;
                     this.drawSelection();
                 }
-            } else if (event.button === (MouseButton.right as number)) {
+            } else if (button === MouseButton.right) {
                 this.actionType = ActionType.panCameraOrOrder;
                 this.dragFrom = XY.clone(event.global);
             }

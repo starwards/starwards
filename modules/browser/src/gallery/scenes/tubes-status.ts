@@ -21,7 +21,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 350, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawTubesStatus(mockContainer as never, mockShipDriver as never);
+            drawTubesStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -40,7 +40,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 350, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawTubesStatus(mockContainer as never, mockShipDriver as never);
+            drawTubesStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -61,7 +61,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 350, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawTubesStatus(mockContainer as never, mockShipDriver as never);
+            drawTubesStatus(mockContainer, mockShipDriver as never);
         },
     },
 };

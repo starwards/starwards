@@ -152,9 +152,9 @@ or gate this back-door.
 | #1232 (referenced by #1233) | not in repo | Predecessor that introduced the damage-report widget. |
 | #1233 add broken status to damage-report widget | ❌ open | Trivial addition: surface the `broken` (DISABLED) attribute alongside defectibles in the existing widget. Compatible with the user's D1 — would land naturally as part of the engineering-station mount. |
 | #547 repair station | ❌ open (was blocked by #1228, now unblocked) | **Direct overlap with user intent.** Ticket text: *"repair widgets / minigames. preferably behind a network API (IoT?)."* The ticket assumes a **separate** ship station; user is proposing to put repair on the **bridge engineering** station instead. |
-| #543 Fighters field repair | ❌ open | Different scope (fighters, GM-button-press). Not relevant to the bridge proposal. |
-| #545 Fighters in-station repair | ❌ open | Different scope. Not relevant. |
-| #549 Collection of damaged ships | ❌ open | Adjacent — assumes ships return to a station to be repaired. |
+| #543 Fighters field repair | ✅ closed (2026-04-13) | Different scope (fighters, GM-button-press). Not relevant to the bridge proposal. |
+| #545 Fighters in-station repair | ✅ closed (2026-04-13) | Different scope. Not relevant. |
+| #549 Collection of damaged ships | ✅ closed (2026-04-13) | Adjacent — assumes ships return to a station to be repaired. |
 
 ### 3.2 Relationship to #547 (LARP repair station): coexistence
 

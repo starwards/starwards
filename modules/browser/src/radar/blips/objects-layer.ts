@@ -30,7 +30,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
                 : ScanLevel.UFO;
         // Same-faction objects are always at least BASIC
         if (o.faction === this.playerFaction && this.playerFaction !== Faction.NONE) {
-            return Math.max(rawLevel, ScanLevel.BASIC) as ScanLevel;
+            return Math.max(rawLevel, ScanLevel.BASIC);
         }
         return rawLevel;
     }

@@ -46,7 +46,7 @@ When thruster damage causes asymmetric thrust:
 | **strafe** | [-1,1] | Lateral movement |
 | **antiDrift** | [0,1] | Oppose current velocity |
 | **breaks** | [0,1] | Rapid deceleration |
-| **afterBurner** | [0,1] | Rotation boost (generates heat) |
+| **afterBurner** | [0,1] | Boosts forward/strafe thrust and raises max speed (consumes afterburner fuel/energy) |
 
 ## Newtonian Physics
 

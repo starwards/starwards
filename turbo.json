@@ -1,0 +1,23 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "tasks": {
+        "build": {
+            "outputs": []
+        },
+        "@starwards/core#build": {
+            "outputs": ["cjs/**", "*.tgz"]
+        },
+        "@starwards/browser#build": {
+            "dependsOn": ["@starwards/core#build"],
+            "outputs": ["dist/**"]
+        },
+        "@starwards/server#build": {
+            "dependsOn": ["@starwards/core#build"],
+            "outputs": ["cjs/**", "*.tgz"]
+        },
+        "@starwards/node-red#build": {
+            "dependsOn": ["^build"],
+            "outputs": ["dist/**"]
+        }
+    }
+}

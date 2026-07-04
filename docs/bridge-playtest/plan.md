@@ -48,7 +48,7 @@ Output: design notes captured to `docs/bridge-playtest/`.
 | ID | Task | GitHub |
 |---|---|---|
 | C1.1 **[C]** | Wire `addHeat()` calls into chain-gun + missile firing path (placeholder per-ammo values) | [#1923](https://github.com/starwards/starwards/issues/1923) |
-| C1.2 **[C]** | Add `callsign` + `transponderOpen` fields to `Spaceship`, default open | [#1924](https://github.com/starwards/starwards/issues/1924) |
+| ~~C1.2~~ | ~~Add `callsign` + `transponderOpen` fields to `Spaceship`, default open~~ — **done** (merged via #1927) | [#1924](https://github.com/starwards/starwards/issues/1924) |
 | C1.3 **[C]** | 5-second in-range timer for ScanLevel.UFO→BASIC promotion; gate on `transponderOpen` | [#1925](https://github.com/starwards/starwards/issues/1925) |
 | ~~C1.4~~ | ~~Ammo selection UI audit~~ — **done** (resolved by screenshot review on 2026-05-03) | — |
 
@@ -83,7 +83,7 @@ Output: design notes captured to `docs/bridge-playtest/`.
 **Right now, in parallel:**
 - **You** draft B1, B3 (most blocking). Cheap small ones any time: B5, B6, B7, B8.
 - **Daniel** drafts A1, A2 (most blocking).
-- **Claude** executes C1.1, C1.2, C1.3 — all agent-ready, can run in parallel.
+- **Claude** executes C1.1, C1.3 — all agent-ready, can run in parallel.
 
 **Second wave (after B1/B3/A1/A2 land):**
 - Claude executes C3.1+C3.2 (scan geometry), C3.5 (repair engine), C2.1+C2.2 (armor + missile types).

@@ -1,7 +1,18 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/game-field.ts
+  - modules/core/src/json-ptr.ts
+related:
+  - API_REFERENCE.md
+last_verified: 2026-06-13
+---
+
 # Technical Reference
 
 ## @gameField Decorator
-**Location:** `modules/core/src/game-field.ts:16`
+**Location:** `modules/core/src/game-field.ts`
 
 **Marks properties for Colyseus schema serialization + auto-sync**
 
@@ -88,7 +99,7 @@ room.State.OnChange += (changes) => { /* handle */ };
 
 **Command:** `npm run pkg`
 
-**Output:** `./dist/` → `starwards-linux|starwards-macos|starwards-win.exe`
+**Output:** `./dist/exec/` → only `starwards-win.exe` is produced with the current config (`targets: ['node18-win-x64']` in scripts/post-build.js, with linux/osx targets commented out). Uncomment `node18-linux-x64` and `node18-osx-x64` to also build the Linux and macOS binaries.
 
 **Includes:** Game server + all deps + static assets + embedded Node.js runtime
 
@@ -103,9 +114,8 @@ room.State.OnChange += (changes) => { /* handle */ };
 ```json
 {
   "pkg": {
-    "targets": ["node20-linux-x64", "node20-macos-x64", "node20-win-x64"],
-    "assets": ["./static/**/*", "./dist/**/*"],
-    "output": "dist/starwards"
+    "assets": "static/**/*",
+    "targets": ["node18-win-x64"]
   }
 }
 ```
@@ -189,7 +199,7 @@ interface RangeConfig {
 
 ### Ship Input Configuration
 
-**Location:** `modules/browser/src/input/input-config.ts:75`
+**Location:** `modules/browser/src/input/input-config.ts`
 
 ```typescript
 export const shipInputConfig = {

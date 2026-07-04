@@ -1,0 +1,50 @@
+name: Agent-ready task
+description: A well-scoped task suitable for the autonomous agent pipeline (gets the agent-ready label after triage)
+title: '[task]: '
+labels: []
+body:
+    - type: markdown
+      attributes:
+          value: |
+              This template captures everything the autonomous agent needs to pick up
+              a task unattended. A maintainer applies the `agent-ready` label after
+              confirming the scope is tight and the acceptance criteria are testable.
+              See `docs/design/infrastructure/automated-agent.md`.
+    - type: textarea
+      id: goal
+      attributes:
+          label: Goal
+          description: One or two sentences — what should exist/behave differently when this is done?
+      validations:
+          required: true
+    - type: textarea
+      id: acceptance
+      attributes:
+          label: Acceptance criteria
+          description: Bullet list of verifiable outcomes. Each one should be checkable by a test or a concrete manual step.
+          placeholder: |
+              - [ ] ...
+              - [ ] ...
+      validations:
+          required: true
+    - type: textarea
+      id: scope
+      attributes:
+          label: Affected modules / files
+          description: Which of modules/{core,server,browser,node-red,e2e} — and specific files or subsystems if known.
+      validations:
+          required: true
+    - type: textarea
+      id: verification
+      attributes:
+          label: Verification command(s)
+          description: The exact command(s) that must pass (e.g. `npm test -- --testNamePattern="..."`, `npx playwright test modules/e2e/test/...`).
+      validations:
+          required: false
+    - type: textarea
+      id: context
+      attributes:
+          label: Context and constraints
+          description: Links to related issues/docs, design decisions already made, things explicitly out of scope.
+      validations:
+          required: false

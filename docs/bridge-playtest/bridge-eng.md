@@ -12,7 +12,7 @@ called out at the bottom.
 A runtime flag `/ecrControl` (server state) decides which of the two seats
 **actually controls** power and coolant. The non-controlling seat still
 displays the same widgets but its hotkeys are detached
-(`controlledInput.destroy()` in `ecr.ts:143`).
+(`controlledInput.destroy()` in `ecr.ts:152`).
 
 ## Widgets on screen (both modes)
 
@@ -23,7 +23,7 @@ displays the same widgets but its hotkeys are detached
 | Middle-middle | `fullSystemsStatus` | per-system table: status / power / EPM / heat / coolant slider / hacked, plus per-defectible row |
 | Bottom-left | `armorStatus` | dragonfly armor SVG, plate-health colored red→green |
 
-Background is set to `radarFogOfWar` (dark) per `ecr.ts:60`.
+Background is set to `radarFogOfWar` (dark) per `ecr.ts:69`.
 
 ## Inputs wired (`wireInput` in ecr.ts)
 

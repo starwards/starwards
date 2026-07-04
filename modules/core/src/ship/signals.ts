@@ -1,8 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
+import { JobType, SignalsJob } from './signals-job';
 import { commandable, gameField } from '../game-field';
 
 import { ArraySchema } from '@colyseus/schema';
-import { SignalsJob } from './signals-job';
 import { range } from '../range';
 
 export type SignalsDesign = {
@@ -64,7 +64,7 @@ export class Signals extends SystemState {
 
     // Command properties (set by client via JSON pointer, consumed by manager on tick)
     @commandable()
-    public queueJobType: number = -1;
+    public queueJobType: JobType | -1 = -1;
 
     @commandable()
     public queueJobTargetId = '';

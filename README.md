@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://discord.gg/p56nSVEjdb"><img alt="Discord Chat" src="https://img.shields.io/discord/843041591772971028?color=5865F2&label=discord&style=flat-square"></a>
-  <a href="https://circleci.com/gh/starwards/starwards/tree/master"><img alt="CircleCI" src="https://circleci.com/gh/starwards/starwards/tree/master.svg?style=svg"></a>
+  <a href="https://github.com/starwards/starwards/actions/workflows/ci-cd.yml?query=branch%3Amaster"><img alt="CI" src="https://github.com/starwards/starwards/actions/workflows/ci-cd.yml/badge.svg?branch=master"></a>
 
 <video src='https://user-images.githubusercontent.com/6019373/178277941-01a61ddb-c6cb-4620-b5aa-966291710d69.mp4' width=180/>
 </p>
@@ -26,11 +26,20 @@ Starwards is a space and starship simulator designed specifically for LARPs (Liv
 
 # how to run and use it
 
-Currently executables are being built after every change. 
-click on [this link](https://app.circleci.com/pipelines/github/starwards/starwards?branch=master&filter=build&status=none&status=success), click on the top-most "build" workflow, then on the "build executables" job, then on the "artifacts" tab, and choose the executable that fits your computer. 
-download and run it, and open [this link](http://localhost/) in your browser.
+Executables are built by CI on every change to master.
+Open the [CI workflow runs](https://github.com/starwards/starwards/actions/workflows/ci-cd.yml?query=branch%3Amaster), click the top-most run, scroll to the "Artifacts" section, and download the "Windows executable" (requires being signed in to GitHub).
+Run it, and open [this link](http://localhost/) in your browser.
 
 This is not a solution we like. We are [open to improvements and suggestions](https://github.com/starwards/starwards/issues/832).
+
+# developing
+
+```sh
+npm ci          # install dependencies
+npm run dev     # core watch + game server + web dev server, one terminal
+```
+
+Then open [http://localhost:3000](http://localhost:3000). See [Contributing to Starwards](CONTRIBUTING.md) for the full setup, [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for build/test workflows, and the [docs index](docs/) for architecture and design references.
 
 ### the game is running! now what?
 Missing documentation. contributions are welcomed!

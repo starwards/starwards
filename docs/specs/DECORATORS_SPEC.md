@@ -1,3 +1,17 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/game-field.ts
+  - modules/core/src/tweakable.ts
+  - modules/core/src/range.ts
+  - modules/core/src/ship/system.ts
+related:
+  - ../API_REFERENCE.md
+  - ../TECHNICAL_REFERENCE.md
+last_verified: 2026-06-13
+---
+
 # Decorator System Specification
 
 @category: core-infrastructure
@@ -8,10 +22,11 @@
 
 | Decorator | Purpose | Required On | Stacking Order |
 |-----------|---------|-------------|----------------|
-| [`@gameField`](../../modules/core/src/game-field.ts:16) | Network sync | Schema properties | Last (bottom) |
-| [`@tweakable`](../../modules/core/src/tweakable.ts:38) | Runtime UI control | Any property | Before @gameField |
-| [`@range`](../../modules/core/src/range.ts:39) | Value constraints | Numeric properties | Before @tweakable |
-| [`@defectible`](../../modules/core/src/ship/system.ts:73) | Damage tracking | SystemState properties | Before @range |
+| [`@gameField`](../../modules/core/src/game-field.ts) | Network sync | Schema properties | Last (bottom) |
+| [`@commandable`](../../modules/core/src/game-field.ts) | JSON Pointer remote-write surface | @gameField properties | Above @gameField, below @tweakable |
+| [`@tweakable`](../../modules/core/src/tweakable.ts) | Runtime UI control | Any property | Before @gameField |
+| [`@range`](../../modules/core/src/range.ts) | Value constraints | Numeric properties | Before @tweakable |
+| [`@defectible`](../../modules/core/src/ship/system.ts) | Damage tracking | SystemState properties | Before @range |
 
 ---
 
@@ -72,11 +87,21 @@ speed: number = 0;
 ```
 
 **Implementation:**
+The primary implementation is `number2Digits` in `game-field.ts` (lines 223-259): it calls
+`type('float32')`, then wraps the Colyseus-created setter via `Object.defineProperty` to round
+before delegating. The `definition.descriptors[field].set` path (lines 244-258) is only a v2-compat
+fallback for when Colyseus does not create a setter.
 ```typescript
-// From game-field.ts:11-12
-definition.descriptors[field].set = function (this: Schema, value: number) {
-    oldSetter?.call(this, Math.round(value * 1e2) / 1e2);
-};
+// From game-field.ts (number2Digits, lines 234-243)
+Object.defineProperty(target, field, {
+    get: colyseusDescriptor.get,
+    set(this: Schema, value: number) {
+        const rounded = Math.round(value * 1e2) / 1e2;
+        colyseusSetter.call(this, rounded);
+    },
+    enumerable: colyseusDescriptor.enumerable,
+    configurable: colyseusDescriptor.configurable,
+});
 ```
 
 ### Network Synchronization
@@ -194,6 +219,43 @@ this.position.y = 20;
 ✗ Bypass Colyseus setters
 ✗ Use float64 unless precision needed
 ✗ Stack @gameField before other decorators
+
+---
+
+# @commandable
+@file: modules/core/src/game-field.ts
+@category: command-surface
+@stability: stable
+
+-> enables: json-pointer-remote-write
+-> gates: client-write-surface
+:: decorator-function
+
+## Purpose
+Marks a `@gameField` as remotely writable through the JSON Pointer command surface. A bare
+`@gameField` without `@commandable()` (and without `@tweakable` / DesignState membership) is still
+synced to clients but the JSON Pointer setter rejects any client write to it (see
+`json-ptr.ts`).
+
+## Signature
+```typescript
+commandable(descendants?: CommandablePaths): PropertyDecorator
+commandableSchema(r: CommandablePaths)  // class-level variant
+```
+
+## Stacking
+Applied ABOVE `@gameField` but BELOW `@tweakable`:
+```typescript
+@range([0, 1])
+@tweakable('number')
+@commandable()
+@gameField('float32')
+power = 1.0;
+```
+
+Note: it must be written as a call expression (`@commandable()`) — `@colyseus/schema`'s Unity
+codegen only understands CallExpression property decorators, so a bare `@commandable` would crash
+the codegen build step.
 
 ---
 
@@ -432,7 +494,7 @@ design!: ShipDesign;
 
 **Implementation:**
 ```typescript
-// From commands.ts:96-100
+// From commands.ts
 if (typeof value === 'number') {
     const range = tryGetRange(root, pointer);
     if (range) {
@@ -642,7 +704,7 @@ for (const system of systems) {
 -> compares: current-value vs normal-value
 
 ```typescript
-// From system.ts:93-105
+// From system.ts
 getStatus: () => {
     if (state.broken) {
         return 'DISABLED';
@@ -711,9 +773,10 @@ efficiency: number = 1.0;
 -> executes: bottom-to-top
 
 ```typescript
-@defectible({ normal: 1, name: 'efficiency' })  // 4th (optional)
-@range([0, 1])                                   // 3rd (optional)
-@tweakable('number')                             // 2nd (optional)
+@defectible({ normal: 1, name: 'efficiency' })  // 5th (optional)
+@range([0, 1])                                   // 4th (optional)
+@tweakable('number')                             // 3rd (optional)
+@commandable()                                   // 2nd (optional, for remote-writable fields)
 @gameField('float32')                            // 1st (required)
 propertyName: number = 1.0;
 ```
@@ -723,9 +786,10 @@ propertyName: number = 1.0;
 
 Decorators execute **bottom-to-top**:
 1. `@gameField` - Registers with Colyseus (must be first)
-2. `@tweakable` - Adds UI metadata (needs registered property)
-3. `@range` - Adds validation metadata (needs property)
-4. `@defectible` - Adds damage metadata (needs property)
+2. `@commandable` - Admits the field to the JSON Pointer write surface (needs registered property)
+3. `@tweakable` - Adds UI metadata (needs registered property)
+4. `@range` - Adds validation metadata (needs property)
+5. `@defectible` - Adds damage metadata (needs property)
 
 ## Common Patterns
 

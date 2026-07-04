@@ -4,7 +4,7 @@
 
 This guide provides practical strategies for enhancing Starwards' existing testing infrastructure. The codebase already benefits from sophisticated testing utilities including advanced property-based testing, a feature-rich ship simulation harness, and comprehensive test drivers.
 
-**Current State:** 19 test files with sophisticated infrastructure (ShipTestHarness, property-based testing, test drivers), Playwright E2E tests, mature CI/CD pipeline.
+**Current State:** ~40 test files with sophisticated infrastructure (ShipTestHarness, property-based testing, test drivers), Playwright E2E tests across station screens, multi-client server tests, and a mature CI/CD pipeline.
 
 **Objective:** Build on existing strengths to add multi-client testing capability, expand E2E coverage, and enhance debugging utilities.
 
@@ -14,12 +14,12 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 
 ### 1.1 Existing Testing Infrastructure
 
-**Unit Testing (19 test files):**
+**Unit Testing (46 test files):**
 - Jest with multi-project setup (core, server, node-red)
-- 12 files in `modules/core/test/` - physics, state management, formulas
+- 26 files in `modules/core/test/` - physics, state management, formulas
 - 4 files in `modules/node-red/` - integration nodes
-- 2 files in `modules/server/` - API, serialization
-- 1 file in `modules/e2e/` - Playwright integration
+- 6 files in `modules/server/` - API, serialization
+- 10 files in `modules/e2e/` - Playwright integration
 
 **Sophisticated Infrastructure:**
 
@@ -46,7 +46,7 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 - Integration with game state
 
 **CI/CD Pipeline:**
-- `.github/workflows/ci-cd.yml` with 4 jobs: Test-Static, Test-Units, Test-E2e, Build
+- `.github/workflows/ci-cd.yml` with 6 jobs: Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build
 - Container-based E2E
 - Artifact storage
 
@@ -159,16 +159,16 @@ collectCoverageFrom: ['modules/*/src/**/*.ts', '!modules/browser/**']
 
 ## 4. Integration Testing
 
-### 4.1 Multi-Client Testing Infrastructure (NEW - Biggest Gap)
+### 4.1 Multi-Client Testing Infrastructure (Implemented)
 
-**Missing Capability:** Cannot test state synchronization, concurrent commands, or multi-player scenarios.
+**Capability:** State synchronization, concurrent commands, and multi-player scenarios are testable.
 
-**Implementation:**
-- Create `modules/server/src/test/multi-client-driver.ts`
-- Extend existing driver to create multiple Colyseus clients
-- TestClient interface with `waitForSync()` and `sendCommand()` helpers
+**Implementation** (`modules/server/src/test/multi-client-driver.ts`):
+- Creates multiple Colyseus clients from the existing driver
+- TestClient with `connectAdmin()`/`connectSpace()`/`connectShip()`, `waitForSync()`, `waitForShipProperty()`, and `waitForSubsystemProperty()` helpers
 - `waitForConsistency()` to ensure all clients see same state
-- Proper cleanup in afterEach
+- Automatic cleanup in afterEach (via `makeMultiClientDriver`)
+- Exercised by `multi-client-sync.spec.ts` (state sync) and `multi-client-concurrent.spec.ts` (concurrent commands)
 
 **Test Scenarios:**
 - All clients see same initial state
@@ -241,7 +241,7 @@ collectCoverageFrom: ['modules/*/src/**/*.ts', '!modules/browser/**']
 
 ### 6.1 CI/CD Enhancements
 
-**Existing:** 4 jobs (Test-Static, Test-Units, Test-E2e, Build), container E2E, artifact storage
+**Existing:** 6 jobs (Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build), container E2E, artifact storage
 
 **Proposed:**
 1. **Parallel Jest** - Add `--maxWorkers=4` to unit tests

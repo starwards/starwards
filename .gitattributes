@@ -1,0 +1,21 @@
+# Keep working trees LF on every platform. Prettier is configured with
+# endOfLine: lf, so CRLF checkouts (git core.autocrlf=true on Windows) make
+# `npm run test:format` fail locally on files that are clean in the index.
+* text=auto eol=lf
+
+# Windows scripts that must keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaries
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.exe binary
+*.tgz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.mp3 binary
+*.ogg binary

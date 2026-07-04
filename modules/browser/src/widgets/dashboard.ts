@@ -89,13 +89,17 @@ export class Dashboard extends GoldenLayout {
     ) {
         name = name || wName;
         this.registerComponent(name, component);
-        this.widgets.push({
+        const widget = {
             name,
             type,
             component,
             defaultProps: { ...defaultProps, ...props },
             makeHeaders,
-        } as DashboardWidget);
+        } as DashboardWidget;
+        this.widgets.push(widget);
+        if (this.isInitialised) {
+            this.registerWidgetMenuItem(widget.name, getGoldenLayoutItemConfig(widget));
+        }
     }
 
     private registerWidgetMenuItem(name: string, newItemConfig: GoldenLayout.ItemConfigType) {

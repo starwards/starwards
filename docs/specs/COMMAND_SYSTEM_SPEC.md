@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/commands.ts
+  - modules/core/src/json-ptr.ts
+related:
+  - ../API_REFERENCE.md
+last_verified: 2026-06-13
+---
+
 # Command System Specification
 
 @category: client-server-communication
@@ -67,9 +78,13 @@ Client                    Server                    State
 
 ### Pointer Syntax
 ```
-/Spaceship/ship-1/rotation          // Ship rotation
-/Spaceship/ship-1/reactor/power     // Nested property
-/Spaceship/ship-1/thrusters/0/power // Array element
+// SpaceRoom (SpaceState root): only reaches Spaceship space-object fields
+/Spaceship/ship-1/angle             // Ship angle
+/Spaceship/ship-1/freeze            // Spaceship field
+// ShipRoom (ShipState root, roomId = shipId): ship-control fields, unprefixed
+/rotation                           // Ship rotation
+/reactor/power                      // Nested property
+/thrusters/0/power                  // Array element
 ```
 
 ## Sending Commands
@@ -78,13 +93,13 @@ Client                    Server                    State
 ```typescript
 import { sendJsonCmd } from '@starwards/core';
 
-// Send command
-sendJsonCmd(room, '/Spaceship/ship-1/rotation', 0.5);
+// Send command (ship control uses the ShipRoom's own state, unprefixed)
+sendJsonCmd(shipRoom, '/rotation', 0.5);
 
 // With validation
-const pointer = '/Spaceship/ship-1/reactor/power';
+const pointer = '/reactor/power';
 const value = 0.75;
-sendJsonCmd(room, pointer, value);
+sendJsonCmd(shipRoom, pointer, value);
 ```
 
 ### Manual Send
@@ -112,7 +127,7 @@ class SpaceRoom extends Room<SpaceState> {
 
 ### Handler Implementation
 ```typescript
-// From commands.ts:90-114
+// From commands.ts
 export function handleJsonPointerCommand(
     message: unknown, 
     type: string | number, 
@@ -468,19 +483,22 @@ class CommandHandler {
 // Space room handles space-level commands
 class SpaceRoom extends Room<SpaceState> {
     onCreate() {
-        this.onMessage('createAsteroid', this.handleCreateAsteroid);
-        this.onMessage('createExplosion', this.handleCreateExplosion);
+        this.onMessage('createAsteroidOrder', this.handleCreateAsteroid);
+        this.onMessage('createExplosionOrder', this.handleCreateExplosion);
     }
 }
 ```
 
 ### Ship Commands
 ```typescript
-// Ship room handles ship-level commands
+// Ship room handles ship control exclusively via JSON Pointer commands
+// (no typed StateCommand surface — no 'rotate'/'fire'/'setTarget'/'warp'/'setPower').
+// Typed StateCommand handlers (the cmdReceivers loop) are used only by SpaceRoom.
 class ShipRoom extends Room<ShipState> {
     onCreate() {
-        this.onMessage('rotate', this.handleRotate);
-        this.onMessage('fire', this.handleFire);
+        this.onMessage('*', (_, type, message) =>
+            handleJsonPointerCommand(message, type, manager.state)
+        );
     }
 }
 ```
@@ -614,16 +632,17 @@ sendJsonCmd(room, '/Spaceship/ship-1/reactor/coolantFactor', 0.5);
 ## GM Commands
 ```typescript
 // Create asteroid
-room.send('createAsteroid', {
+room.send('createAsteroidOrder', {
     value: { position: { x: 100, y: 200 }, radius: 5 },
     path: undefined
 });
 
-// Pause game
-sendJsonCmd(room, '/Admin/paused', true);
-
-// Time scale
-sendJsonCmd(room, '/Admin/timeScale', 0.5);
+// Pause/run the game and adjust time scale are NOT done via JSON-pointer commands.
+// AdminState (modules/core/src/admin/index.ts) has no `paused`/`timeScale` fields,
+// and AdminRoom (modules/server/src/admin/room.ts) registers no JSON-pointer handler.
+// Pause/run is controlled by transitioning `gameStatus` (GameStatus enum) via
+// GameManager.startGame()/stopGame(); time scaling is the `speed` field, applied in
+// game-manager.ts as `currDeltaSeconds * this.state.speed`.
 ```
 
 ---

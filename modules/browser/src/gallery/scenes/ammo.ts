@@ -16,7 +16,7 @@ export const ammoScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 250, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawAmmoStatus(mockContainer as never, mockShipDriver as never);
+            drawAmmoStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -37,7 +37,7 @@ export const ammoScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 250, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawAmmoStatus(mockContainer as never, mockShipDriver as never);
+            drawAmmoStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -58,7 +58,7 @@ export const ammoScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 250, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawAmmoStatus(mockContainer as never, mockShipDriver as never);
+            drawAmmoStatus(mockContainer, mockShipDriver as never);
         },
     },
 };

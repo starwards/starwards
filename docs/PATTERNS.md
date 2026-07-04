@@ -1,3 +1,15 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/ship/ship-manager-abstract.ts
+  - modules/core/src/ship/system.ts
+related:
+  - ARCHITECTURE.md
+  - API_REFERENCE.md
+last_verified: 2026-06-13
+---
+
 # Code Patterns
 
 ## Naming Conventions
@@ -103,22 +115,23 @@ syncShipProperties() runs every tick
 ```
 
 #### Implementation
-**Location:** `modules/core/src/ship/ship-manager-abstract.ts:272-283`
+**Location:** `modules/core/src/ship/ship-manager-abstract.ts`
 
 ```typescript
 protected syncShipProperties() {
-    // Only sync data that should be exposed to room clients
-    this.state.position.x = this.spaceObject.position.x;
-    this.state.position.y = this.spaceObject.position.y;
-    this.state.velocity.x = this.spaceObject.velocity.x;
-    this.state.velocity.y = this.spaceObject.velocity.y;
-    this.state.turnSpeed = this.spaceObject.turnSpeed;
-    this.state.angle = this.spaceObject.angle;  // ← READ-ONLY!
-    this.state.faction = this.spaceObject.faction;
-    this.state.radius = this.spaceObject.radius;
-    this.state.radarRange = this.spaceObject.radarRange;
+    this.state.spaceship.position.x = this.spaceObject.position.x;
+    this.state.spaceship.position.y = this.spaceObject.position.y;
+    this.state.spaceship.velocity.x = this.spaceObject.velocity.x;
+    this.state.spaceship.velocity.y = this.spaceObject.velocity.y;
+    this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;
+    this.state.spaceship.angle = this.spaceObject.angle;
+    this.state.spaceship.faction = this.spaceObject.faction;
+    this.state.spaceship.radius = this.spaceObject.radius;
+    this.state.spaceship.radarRange = this.spaceObject.radarRange;
 }
 ```
+
+Note: `ShipState.position`/`velocity`/`angle`/`turnSpeed`/`faction`/`radius`/`radarRange` are now read-only getters delegating to `ship.spaceship` (`ship-state.ts`), so assigning to `this.state.angle`/`faction`/etc. directly would not compile.
 
 Called from `update()` method at start of every physics tick:
 ```typescript
@@ -193,7 +206,8 @@ const thrust = thruster.maxThrust;
 
 // ✓ Correct
 const thrust = thruster.maxThrust * thruster.effectiveness;
-// effectiveness = power × coolantFactor × (1 - hacked)
+// effectiveness = broken ? 0 : power × hacked
+// (hacked is a HackLevel multiplier: DISABLED=0, COMPROMISED=0.5, OK=1; coolantFactor only affects heat reduction, not effectiveness)
 ```
 
 ### JSON Pointer Paths
@@ -319,7 +333,7 @@ export * from './thruster';
 ## Performance
 
 ### Collision O(n²)
-- Current: Spatial hashing → O(n log n) avg
+- Current: BVH broadphase + SAT narrowphase via the `detect-collisions` library (`modules/core/src/logic/space-manager.ts`) → sub-O(n²) avg
 - Future: Quadtree if >300 objects
 
 ### Rendering: 30 FPS Cap

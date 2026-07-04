@@ -14,7 +14,7 @@ Three engagement circles define combat:
 
 ## What's built
 
-- ChainGun with rate-of-fire control and ammo management (max 1000)
+- ChainGun with rate-of-fire control and ammo management (magazine caps: 3600 cannon shells, 2000 blast cannon shells)
 - Torpedo tubes with loading mechanics
 - Magazine system (finite ammunition)
 - Targeting system with filters (ship-only, enemy-only, short-range-only)

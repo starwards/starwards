@@ -57,13 +57,13 @@ The lobby is the **mission control center** where game masters:
 
 **Primary Colors:**
 - **Background:** Deep black (#000000) or very dark blue-black (#0a0e27)
-- **Primary UI Elements:** Cyan/turquoise (#7EFCF6, rgb(126, 252, 246))
-- **Accent 1:** Teal (#21808D, rgb(33, 128, 141))
-- **Accent 2:** Purple-blue (#B490FC, rgb(180, 144, 252))
+- **Primary UI Elements:** Pure cyan (#00FFFF, hsl(180, 100%, 50%))
+- **Accent 1:** Orange (#FF6600, hsl(24, 100%, 50%))
+- **Accent 2:** Cyan-blue (#00AAFF)
 
 **Semantic Colors:**
-- **Success/Go:** Green-cyan (#21808D)
-- **Error/Stop:** Red (#C0152F, rgb(192, 21, 47))
+- **Success/Go:** Green (hsl(120, 50%, 40%))
+- **Error/Stop:** Red (hsl(10, 50%, 48%))
 - **Warning:** Orange-yellow (#FFA500)
 - **Disabled:** 50% opacity of primary color
 
@@ -168,6 +168,7 @@ Each card represents one player ship in the game:
   - "Pilot" (primary palette)
   - "E.C.R" (Engineering Control Room, primary palette)
   - "Bridge Engineer" (primary palette)
+  - "Signals" (primary palette, navigates to signals.html?ship={id})
 
 **Layout:** Cards displayed in horizontal wrap or grid (max 3 per row)
 
@@ -262,10 +263,10 @@ Each card represents one player ship in the game:
 - Sound effect on click (optional)
 
 **Variants:**
-- `palette="primary"` → Cyan (#7EFCF6)
-- `palette="secondary"` → Purple-blue (#B490FC)
-- `palette="success"` → Teal-green (#21808D)
-- `palette="error"` → Red (#C0152F)
+- `palette="primary"` → Cyan (hsl(180, 100%, 53%), ~#00FFFF)
+- `palette="secondary"` → Orange (#FF6600, hsl(24, 100%, 50%))
+- `palette="success"` → Green (hsl(120, 50%, 40%))
+- `palette="error"` → Red (hsl(10, 50%, 48%))
 
 ### 5.2 Card Component
 
@@ -348,6 +349,7 @@ Lobby Screen
 ├─ Click "Weapons" → Navigate to weapons.html?ship={id}
 ├─ Click "Pilot" → Navigate to pilot.html?ship={id}
 ├─ Click "E.C.R" → Navigate to ecr.html?station=ecr&ship={id}
+├─ Click "Signals" → Navigate to signals.html?ship={id}
 ├─ Click "Input" → Navigate to input.html
 └─ Click "Colyseus Monitor" → Navigate to colyseus-monitor
 ```

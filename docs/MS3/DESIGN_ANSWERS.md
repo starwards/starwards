@@ -829,6 +829,6 @@ interface RepairItem {
 **Last Updated:** 2025-11-07
 **Status:** Updated with Stakeholder Feedback
 **Related Docs:**
-- MILESTONE_1_PLAN.md
-- MILESTONE_1_PREENGINEERING.md
-- MILESTONE_1_DESIGN_QUESTIONS.md
+- docs/MS3/PLAN.md
+- docs/MS3/PREENGINEERING.md
+- docs/MS3/DESIGN_QUESTIONS.md

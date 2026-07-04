@@ -32,17 +32,17 @@ Entries are taken from current code; opinions/aspirations excluded.
 
 These three mechanisms are where the matrix actually lives in code:
 
-- **Power × Hacked × (1 − broken) → effectiveness** (`system.ts:99`).
+- **Power × Hacked × (1 − broken) → effectiveness** (`system.ts`).
   Every system's effectiveness is a function of inputs the engineer
   controls. If the engineer cuts power to `radar`, every radar-using
   station goes blind together.
 - **Coolant is finite, distributed by `coolantFactor` ratios**
-  (`heat-manager.ts:34-51`). Total coolant comes from
+  (`heat-manager.ts`). Total coolant comes from
   `design.totalCoolant` and is split across systems by the engineer's
   per-system `coolantFactor`. **Allocating coolant to one system
   starves another.** Engineer cannot give every system enough.
-- **Energy spend → heat → damage** (`energy-manager.ts:36-38` →
-  `heat-manager.ts:14-20`). Spending energy above a per-system
+- **Energy spend → heat → damage** (`energy-manager.ts` →
+  `heat-manager.ts`). Spending energy above a per-system
   threshold adds heat. Heat above `MAX_SYSTEM_HEAT` calls
   `damageManager.damageSystem` — the system literally breaks itself.
   This couples *station activity* (firing, scanning, warping) to the
@@ -52,17 +52,17 @@ These three mechanisms are where the matrix actually lives in code:
 
 | Station | Depends on … | For … | Code reference |
 |---|---|---|---|
-| **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radar` | `pilot.ts:56-63` (systems-status filter) |
-| Pilot | Engineering | warp **frequency** (only ECR can change) | `ecr.ts:124-137` |
+| **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radar` | `pilot.ts` (systems-status filter) |
+| Pilot | Engineering | warp **frequency** (only ECR can change) | `ecr.ts` |
 | Pilot | Signals | scan-level gating on pilot-radar — same-faction always BASIC, others UFO until scanned | `fc54991` (#1205) |
-| **Weapons** | Engineering | power for `/chainGun`, `/tubes/*`, `/magazine`, `/radar` | `weapons.ts:55-60` |
-| Weapons | Engineering | coolant — chaingun fires generate heat (energy spend → heat) | `energy-manager.ts:36-38` |
+| **Weapons** | Engineering | power for `/chainGun`, `/tubes/*`, `/magazine`, `/radar` | `weapons.ts` |
+| Weapons | Engineering | coolant — chaingun fires generate heat (energy spend → heat) | `energy-manager.ts` |
 | Weapons | Pilot | ship orientation — must be pointed roughly at target to hit | implicit; tactical-radar shows crosshairs from `chainGun` |
 | Weapons | Signals | scan-level gating on tactical-radar (UFO ships render as gray, no model) | `fc54991` (#1205) |
-| **Bridge Eng** | Pilot | combat exposure → damage → engineering's job to manage | `damage-manager.ts:37-54` |
-| Bridge Eng | Weapons | weapons activity → energy spend → heat → potential overheat damage | `energy-manager.ts:36-38` |
-| Bridge Eng | (ECR seat, optional) | warp-frequency authority via `/ecrControl` | `ecr.ts:142-145` |
-| **Signals** | Engineering | power for `/radar` (the **only** subsystem signals filters in its systems-status — there is **no separate "signals" subsystem class**) | `signals.ts:57-60`; `core/src/ship/` has no `signals.ts` |
+| **Bridge Eng** | Pilot | combat exposure → damage → engineering's job to manage | `damage-manager.ts` |
+| Bridge Eng | Weapons | weapons activity → energy spend → heat → potential overheat damage | `energy-manager.ts` |
+| Bridge Eng | (ECR seat, optional) | warp-frequency authority via `/ecrControl` | `ecr.ts` |
+| **Signals** | Engineering | power for `/signals` (a dedicated `Signals` system class with its own power/coolant/hacked) plus `/radar` (the signals *radar* widget still filters `/radar` for detection range) | `signals.ts` (`Signals extends SystemState`); wired into `ship-state.ts` |
 
 ### 2.3 What each station supplies *to* others
 
@@ -154,8 +154,8 @@ feature added on top.** This means:
 - The per-station information filtering documented in §3 is
   **load-bearing** for the captain's role. Examples in current code
   that enable the captain:
-  - `systemsStatus` is filtered per station (`pilot.ts:56-63`,
-    `weapons.ts:55-60`, `signals.ts:57-60`) — only engineering sees
+  - `systemsStatus` is filtered per station (`pilot.ts`,
+    `weapons.ts`, `signals.ts`) — only engineering sees
     the full systems table
   - Signals' independent `SelectionContainer` (vs `weaponsTarget`)
     means signals' "what I'm looking at" is never automatically
@@ -257,16 +257,12 @@ dissolve the captain's role**?
   workload becomes a real input the captain must triage against
   pilot/weapons priorities
 - **Signal-owned waypoints** (#1893, replacing the cut Relay):
-  unclear — depends on whether waypoints are visible to the pilot.
-  If pilot sees waypoints automatically, the signal→pilot handoff
-  bypasses the captain. If pilot must be *told* a waypoint was
-  added, the captain's orchestration role is preserved.
+  shipped — waypoints placed by signals appear automatically on the
+  pilot's radar (no faction/owner gating), so the signal→pilot handoff
+  bypasses the captain rather than requiring the captain to route it.
 
 ## 6. Open / unresolved (user-silent items, listed for completeness)
 
-- Whether to introduce a dedicated `Signals` subsystem class
-  (vs sharing `/radar`) — the matrix-strength argument leans one
-  way, the simplicity argument leans the other.
 - Whether weapons should supply *anything* back to its bridge —
   the current asymmetry leaves weapons as a sink.
 - Whether pilot needs a visible engineering-style status (heat

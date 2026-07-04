@@ -46,7 +46,7 @@ Overheat cascades: one overheating system can break, reducing the ship's capabil
 ## Weapons (Done)
 
 Three engagement circles:
-- **Close (< 1000m):** ChainGun — rapid-fire kinetic, max 1000 ammo
+- **Close (< 1000m):** ChainGun — rapid-fire kinetic, magazine holds up to 3600 cannon shells / 2000 blast cannon shells (per dragonflyMagazine)
 - **Medium (1000-4000m):** Railgun — charge time weapon (planned, not built)
 - **Long (4000m+):** Torpedoes — homing missiles, 720°/s tracking, 60s flight time, 100m proximity detonation
 

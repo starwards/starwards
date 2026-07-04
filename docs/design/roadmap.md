@@ -5,7 +5,7 @@
 ## Current Phase: Milestone 3 — LARP Event Ready
 
 **Goal:** Run a full Helios LARP event with Starwards replacing EmptyEpsilon.
-**Status:** ~57% complete (35 of 62 issues closed).
+**Status:** In progress — see the live count on the [MS3 milestone](https://github.com/starwards/starwards/milestones) / [open issues](https://github.com/starwards/starwards/issues).
 
 ## Strategy: Ship Early, Expand Later
 
@@ -21,8 +21,8 @@ Work items ordered by "what unblocks a playable event soonest":
 
 ### Tier 1: Currently In Progress
 - [x] **#1847** — Fix GM command breaking pilot control (bug)
-- [ ] **#1239** — Composition over inheritance in ship-state (refactor, simplifies #1206)
-- [ ] **#1206** — Signals jobs system (scan/hack/track queue — MS3 critical path)
+- [x] **#1239** — Composition over inheritance in ship-state (refactor, simplifies #1206)
+- [x] **#1206** — Signals jobs system (scan/hack/track queue — MS3 critical path)
 
 ### Tier 2: Minimum Playable Event
 | Priority | Item | Why |
@@ -40,7 +40,7 @@ Work items ordered by "what unblocks a playable event soonest":
 - [ ] **Navigator station** ([#1261](https://github.com/starwards/starwards/issues/1261)) — route plotting through warp topology
 - [ ] **Relay station** ([#1211](https://github.com/starwards/starwards/issues/1211)) — probes, route coordination
 - [ ] **Repair system** — 3-tier system, Node-RED integration
-- [ ] **Hull damage** ([#1187](https://github.com/starwards/starwards/issues/1187)) — IoT alerts
+- [x] **Hull damage** ([#1187](https://github.com/starwards/starwards/issues/1187)) — IoT alerts
 - [ ] **Scan minigame** ([#939](https://github.com/starwards/starwards/issues/939))
 - [ ] **Cargo system** ([#548](https://github.com/starwards/starwards/issues/548))
 

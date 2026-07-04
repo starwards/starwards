@@ -24,6 +24,7 @@ import { AutomationManager } from './automation-manager';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
 import { DockingManager } from './docking-manager';
+import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
@@ -86,16 +87,7 @@ function resetThruster(thruster: Thruster) {
     thruster.availableCapacity = 1.0;
 }
 export type ShipSystem =
-    | ChainGun
-    | Thruster
-    | Radar
-    | SmartPilot
-    | Reactor
-    | Magazine
-    | Warp
-    | Docking
-    | Maneuvering
-    | Signals;
+    ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering | Signals;
 
 export type Die = {
     getRoll: (id: string) => number;
@@ -108,9 +100,13 @@ export type Die = {
 export interface EnergySource {
     trySpendEnergy(value: number, system?: ShipSystem): boolean;
 }
+export interface HeatSink {
+    addHeat(value: number, system: ShipSystem): void;
+}
 export abstract class ShipManager implements Updateable {
     protected readonly internalProxy = {
         trySpendEnergy: (_: number, _2?: ShipSystem) => false,
+        addHeat: (_: number, _2: ShipSystem) => undefined as void,
     };
     public weaponsTarget: SpaceObject | null = null;
 
@@ -119,6 +115,7 @@ export abstract class ShipManager implements Updateable {
     protected dockingManager: DockingManager;
     protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
+    protected heatManager: HeatManager;
     public signalsJobManager: SignalsJobManager;
 
     constructor(
@@ -131,6 +128,8 @@ export abstract class ShipManager implements Updateable {
         resetShipState(this.state);
 
         this.damageManager = new DamageManager(this.spaceObject, this.state, this.spaceManager, this.die);
+        this.heatManager = new HeatManager(this.state, this.damageManager);
+        this.internalProxy.addHeat = this.heatManager.addHeat.bind(this.heatManager);
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager, this.die, this.ships);
@@ -142,11 +141,20 @@ export abstract class ShipManager implements Updateable {
                 this.spaceManager,
                 this,
                 this.internalProxy,
+                this.internalProxy,
             );
         }
         for (const tube of this.state.tubes) {
             this.tubeManagers.push(
-                new ChainGunManager(tube, this.spaceObject, this.state, this.spaceManager, this, this.internalProxy),
+                new ChainGunManager(
+                    tube,
+                    this.spaceObject,
+                    this.state,
+                    this.spaceManager,
+                    this,
+                    this.internalProxy,
+                    this.internalProxy,
+                ),
             );
         }
     }
@@ -208,7 +216,7 @@ export abstract class ShipManager implements Updateable {
         const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
-        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id);
+        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id && v.isCorporal);
         if (this.state.weaponsTarget.enemyOnly) {
             result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.faction);
         }
@@ -221,6 +229,7 @@ export abstract class ShipManager implements Updateable {
         this.syncShipProperties();
         this.healPlates(id.deltaSeconds);
         this.damageManager.update();
+        this.heatManager.update(id);
         this.automationManager.update(id);
 
         this.validateWeaponsTargetId();
@@ -312,6 +321,9 @@ export abstract class ShipManager implements Updateable {
     protected validateWeaponsTargetId() {
         if (typeof this.state.weaponsTarget.targetId === 'string') {
             this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
+            if (this.weaponsTarget && !this.weaponsTarget.isCorporal) {
+                this.weaponsTarget = null;
+            }
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
             } else {

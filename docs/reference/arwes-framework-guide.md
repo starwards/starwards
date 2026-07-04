@@ -18,7 +18,7 @@
 
 ```bash
 # Install ARWES for React
-npm install @arwes/react@1.0.0-alpha.23
+npm install @arwes/react@1.0.0-next.25020502
 
 # Install Emotion for styling (recommended)
 npm install @emotion/react
@@ -38,7 +38,7 @@ module.exports = {
 ### Legacy Version Notes
 - **v1.0.0-alpha.5** (Feb 2018): Deprecated, documentation at version1-breakpoint1.arwes.dev
 - **v1.0.0-alpha.19** (Apr 2021): Deprecated, documentation at version1-breakpoint2.arwes.dev
-- **Current**: v1.0.0-alpha.23 (Aug 2023) - Active development on `next` branch
+- **Current**: v1.0.0-next.25020502 - the `next`-branch pre-release this project pins
 
 ---
 
@@ -212,15 +212,15 @@ The `<Animated>` component wraps HTML elements with animation capabilities.
 ### Basic Usage
 
 ```typescript
-import { Animator, Animated, aa, aaVisibility } from '@arwes/react';
+import { Animator, Animated, fade } from '@arwes/react';
 
 <Animator>
   <Animated
     className='my-element'
     style={{ padding: '20px' }}
     animated={[
-      aaVisibility(),           // Fade in/out
-      aa('y', '2rem', 0)        // Slide up from 2rem to 0
+      fade(),                   // Fade in/out
+      ['y', '2rem', 0]          // Slide up from 2rem to 0
     ]}
   >
     Content
@@ -230,12 +230,12 @@ import { Animator, Animated, aa, aaVisibility } from '@arwes/react';
 
 ### Animation Helpers
 
-- `aaVisibility()`: Opacity fade in/out
-- `aa(property, from, to)`: Animate CSS property
-  - `aa('x', '-100%', 0)`: Slide from left
-  - `aa('y', '2rem', 0)`: Slide from bottom
-  - `aa('scale', 0.8, 1)`: Scale up
-  - `aa('rotate', 10, 0)`: Rotate
+- `fade()`: Opacity fade in/out (also `flicker()`, or string presets `'fade' | 'flicker' | 'draw'`)
+- `[property, from, to]`: Animate a CSS property (tuple transition)
+  - `['x', '-100%', 0]`: Slide from left
+  - `['y', '2rem', 0]`: Slide from bottom
+  - `['scale', 0.8, 1]`: Scale up
+  - `['rotate', 10, 0]`: Rotate
 
 ### Advanced Example
 
@@ -244,9 +244,9 @@ import { Animator, Animated, aa, aaVisibility } from '@arwes/react';
   as='button'
   className='sci-fi-button'
   animated={[
-    aaVisibility(),
-    aa('y', '20px', 0),
-    aa('scale', 0.95, 1)
+    fade(),
+    ['y', '20px', 0],
+    ['scale', 0.95, 1]
   ]}
   onClick={() => bleeps.click?.play()}
 >
@@ -566,8 +566,7 @@ import {
   Dots,
   useBleeps,
   BleepsOnAnimator,
-  aa,
-  aaVisibility,
+  fade,
   type AnimatorGeneralProviderSettings,
   type BleepsProviderSettings
 } from '@arwes/react';
@@ -637,7 +636,7 @@ const Card = (): ReactElement => {
           padding: theme.space(8),
           textAlign: 'center'
         }}
-        animated={[aaVisibility(), aa('y', '2rem', 0)]}
+        animated={[fade(), ['y', '2rem', 0]]}
         onClick={() => bleeps.click?.play()}
       >
         <style>{`
@@ -885,7 +884,7 @@ const LoadingIndicator = (): ReactElement => {
           borderRadius: '50%'
         }}
         animated={[
-          aa('rotate', 0, 360)
+          ['rotate', 0, 360]
         ]}
       >
       </Animated>
@@ -910,7 +909,7 @@ const Modal = ({ isOpen, onClose }: ModalProps): ReactElement => {
             alignItems: 'center',
             justifyContent: 'center'
           }}
-          animated={[aaVisibility()]}
+          animated={[fade()]}
           onClick={onClose}
         >
           <Animator>
@@ -922,9 +921,9 @@ const Modal = ({ isOpen, onClose }: ModalProps): ReactElement => {
                 position: 'relative'
               }}
               animated={[
-                aaVisibility(),
-                aa('scale', 0.9, 1),
-                aa('y', '20px', 0)
+                fade(),
+                ['scale', 0.9, 1],
+                ['y', '20px', 0]
               ]}
               onClick={(e) => e.stopPropagation()}
             >
@@ -962,8 +961,8 @@ const Button = ({
           position: 'relative'
         }}
         animated={[
-          aaVisibility(),
-          aa('scale', 0.95, 1)
+          fade(),
+          ['scale', 0.95, 1]
         ]}
         onClick={(e) => {
           bleeps.click?.play();

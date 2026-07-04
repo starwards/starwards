@@ -4,6 +4,11 @@
     "compilerOptions": {
         "module": "commonjs",
         "outDir": "dist",
+        // keep incremental state inside the cleaned output dir — a
+        // tsbuildinfo that survives `rimraf ./dist` makes tsc skip
+        // re-emitting unchanged files into the now-empty dir
+        "tsBuildInfoFile": "./dist/.tsbuildinfo",
+        "rootDir": "src",
         "experimentalDecorators": true,
         "paths": {
             "@starwards/core": ["../core/cjs"],

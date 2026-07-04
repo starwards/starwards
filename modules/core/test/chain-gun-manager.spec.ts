@@ -129,7 +129,7 @@ describe('ChainGunManager', () => {
             expect(projectiles.length).to.be.greaterThan(0);
             for (const p of projectiles) {
                 expect(p.shipId).to.equal(shipObj.id);
-                expect(p.scanLevels[Faction.Gravitas as number]).to.equal(ScanLevel.ADVANCED);
+                expect(p.scanLevels[Faction.Gravitas]).to.equal(ScanLevel.ADVANCED);
             }
         });
 

@@ -32,33 +32,33 @@ Integration architecture for sharing visual tokens (colors, borders, glows) acro
 ```css
 :root {
     /* Official Tweakpane theme variables */
-    --tp-base-background-color: hsla(230, 7%, 17%, 1);
-    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.2);
+    --tp-base-background-color: hsla(180, 10%, 8%, 1);
+    --tp-base-shadow-color: hsla(0, 0%, 0%, 0.3);
 
-    --tp-button-background-color: hsla(230, 7%, 70%, 1);
-    --tp-button-background-color-active: hsla(230, 7%, 85%, 1);
-    --tp-button-background-color-focus: hsla(230, 7%, 80%, 1);
-    --tp-button-background-color-hover: hsla(230, 7%, 75%, 1);
-    --tp-button-foreground-color: hsla(230, 7%, 17%, 1);
+    --tp-button-background-color: hsla(180, 50%, 70%, 1);
+    --tp-button-background-color-active: hsla(180, 60%, 85%, 1);
+    --tp-button-background-color-focus: hsla(180, 55%, 80%, 1);
+    --tp-button-background-color-hover: hsla(180, 55%, 75%, 1);
+    --tp-button-foreground-color: hsla(180, 10%, 8%, 1);
 
-    --tp-container-background-color: hsla(230, 7%, 75%, 0.1);
-    --tp-container-background-color-active: hsla(230, 7%, 75%, 0.25);
-    --tp-container-background-color-focus: hsla(230, 7%, 75%, 0.2);
-    --tp-container-background-color-hover: hsla(230, 7%, 75%, 0.15);
-    --tp-container-foreground-color: hsla(230, 7%, 75%, 1);
+    --tp-container-background-color: hsla(180, 100%, 50%, 0.08);
+    --tp-container-background-color-active: hsla(180, 100%, 50%, 0.2);
+    --tp-container-background-color-focus: hsla(180, 100%, 50%, 0.15);
+    --tp-container-background-color-hover: hsla(180, 100%, 50%, 0.12);
+    --tp-container-foreground-color: hsla(180, 50%, 70%, 1);
 
-    --tp-groove-foreground-color: hsla(230, 7%, 75%, 0.1);
+    --tp-groove-foreground-color: hsla(180, 100%, 50%, 0.15);
 
-    --tp-input-background-color: hsla(230, 7%, 75%, 0.1);
-    --tp-input-background-color-active: hsla(230, 7%, 75%, 0.25);
-    --tp-input-background-color-focus: hsla(230, 7%, 75%, 0.2);
-    --tp-input-background-color-hover: hsla(230, 7%, 75%, 0.15);
-    --tp-input-foreground-color: hsla(230, 7%, 75%, 1);
+    --tp-input-background-color: hsla(180, 100%, 50%, 0.08);
+    --tp-input-background-color-active: hsla(180, 100%, 50%, 0.2);
+    --tp-input-background-color-focus: hsla(180, 100%, 50%, 0.15);
+    --tp-input-background-color-hover: hsla(180, 100%, 50%, 0.12);
+    --tp-input-foreground-color: hsla(180, 70%, 70%, 1);
 
-    --tp-label-foreground-color: hsla(230, 7%, 75%, 0.7);
+    --tp-label-foreground-color: hsla(180, 40%, 50%, 1);
 
-    --tp-monitor-background-color: hsla(230, 7%, 0%, 0.2);
-    --tp-monitor-foreground-color: hsla(230, 7%, 75%, 0.7);
+    --tp-monitor-background-color: hsla(180, 20%, 5%, 1);
+    --tp-monitor-foreground-color: hsla(180, 40%, 50%, 1);
 
     /* Custom Starwards variables (unofficial) */
     --tp-font-family: Roboto Mono, Source Code Pro, Menlo, Courier, monospace;
@@ -153,7 +153,7 @@ applyTheme(); // Apply immediately
 | `system-status.ts` | 107 | System status cells |
 | `full-system-status.ts` | 72-73 | Full system status rows |
 | `warp.ts` | 41-42 | Warp jam indicator |
-| `tweak.ts` | 159-161 | System defectible folders |
+| `tweak.ts` | 177-178 | System defectible folders |
 
 #### Dynamic Application Pattern
 
@@ -212,26 +212,26 @@ export const red = 0xd53434;       // Enemy/Gravitas
 export const blue = 0x404fc9;      // Friendly/Raiders
 export const yellow = 0xe2b640;    // Neutral
 export const green = 0x34d534;     // Target/Active
-export const selectionColor = 0x26dafd;  // Selection highlight
+export const selectionColor = 0x00ffff;  // Pure cyan
 
 // ============================================================================
 // Radar Background Colors
 // ============================================================================
 
-export const radarVisibleBg = 0x0f0f0f;   // Dark gray (visible area)
-export const radarFogOfWar = 0x303030;    // Medium gray (fog)
+export const radarVisibleBg = 0x0a0a0a;   // Dark gray (visible area)
+export const radarFogOfWar = 0x1a1a1a;    // Medium gray (fog)
 
 // ============================================================================
 // Grid Colors (array for different grid levels)
 // ============================================================================
 
 export const gridColors = [
-    0xcccccc,  // Main grid
-    0xcccccc,  // Secondary
-    0x6666ff,  // Tertiary
-    0xf4fa77,  // Quaternary
-    0x55ff55,  // Quinary
-    0xff3333   // Senary
+    0x00ffff,  // Main grid
+    0x00cccc,  // Secondary
+    0x009999,  // Tertiary
+    0x006666,  // Quaternary
+    0x003333,  // Quinary
+    0xff6600   // Senary
 ];
 
 // ============================================================================
@@ -312,11 +312,11 @@ sprite.tint = rgb2hex([1 - health, health, 0]);
 ### CSS Integration from PixiJS
 
 ```typescript
-// From modules/browser/src/screens/ecr.ts:59
-import { toCss } from '../colors';
+// From modules/browser/src/screens/ecr.ts:69
+import { radarFogOfWar, toCss } from '../colors'; // line 14
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
-// Converts: 0x303030 → "#303030"
+// Converts: 0x1a1a1a → "#1a1a1a"
 ```
 
 ---
@@ -340,27 +340,27 @@ graphics.fill({ color: radarVisibleBg, alpha: 1 });
 **File:** `modules/browser/src/components/arwes-compat.tsx`
 
 ```typescript
-// Color palette object
+// Color palette object (defined in ../colors and imported here)
 const paletteColors = {
-    primary: 'rgb(126, 252, 246)',      // Cyan
-    secondary: 'rgb(180, 144, 252)',    // Purple
-    success: 'rgb(33, 128, 141)',       // Teal
-    error: 'rgb(192, 21, 47)',          // Red
-    control: 'rgb(126, 252, 246)',      // Cyan
+    primary: hsl.primary.main(3),   // hsl(180, 100%, 53%) — pure cyan
+    secondary: hsl.secondary,       // hsl(24, 100%, 50%) — orange
+    success: hsl.success,           // hsl(120, 50%, 40%)
+    error: hsl.error,               // hsl(10, 50%, 48%)
+    control: hsl.primary.main(3),   // hsl(180, 100%, 53%) — pure cyan
 };
 
 // Baseline theme
 const stylesBaseline = {
     body: {
-        backgroundColor: '#000',
-        color: 'rgba(126, 252, 246, 0.8)',  // Semi-transparent cyan
+        backgroundColor: hsl.background,
+        color: theme.colors.primary.main(3),  // pure cyan
         fontFamily: '"Titillium Web", sans-serif',
     },
 };
 
 // Component-level style injection
 <style>{`
-    .arwes-button--${colorKey} .arwes-react-frames-framesvg [data-name=line] {
+    .arwes-button--${colorKey} .arwes-frames-frame [data-name=line] {
         color: ${color};
     }
     .arwes-button--${colorKey}:hover:not(:disabled) [data-name=bg] {
@@ -372,11 +372,11 @@ const stylesBaseline = {
 ### CSS Background Application
 
 ```typescript
-// From modules/browser/src/screens/ecr.ts
+// From modules/browser/src/screens/ecr.ts:69 (import at line 14)
 import { radarFogOfWar, toCss } from '../colors';
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
-// Converts: 0x303030 → "#303030"
+// Converts: 0x1a1a1a → "#1a1a1a"
 ```
 
 ---
@@ -385,17 +385,18 @@ container.getElement().css('background-color', toCss(radarFogOfWar));
 
 | Token Name | PixiJS (hex) | CSS (rgb/hex) | Arwes (rgb) | Semantic Usage |
 |-----------|--------------|---------------|-------------|----------------|
-| **Primary Cyan** | `0x7efcf6` | `#7efcf6` | `rgb(126, 252, 246)` | Arwes primary, borders |
-| **Success Teal** | `0x21808d` | `#21808d` | `rgb(33, 128, 141)` | Cards, positive states |
-| **Error Red** | `0xd53434` / `0xc0152f` | `#d53434` | `rgb(192, 21, 47)` | Errors, enemies |
+| **Primary Cyan** | `0x00ffff` | `#00ffff` | `hsl(180, 100%, 53%)` (`paletteColors.primary` = `hsl.primary.main(3)`) | Arwes primary, borders |
+| **Success Green** | - | `hsl(120, 50%, 40%)` | `hsl(120, 50%, 40%)` | `hsl.success` / `paletteColors.success`; positive states |
+| **Error Red** | - | `hsl(10, 50%, 48%)` | `hsl(10, 50%, 48%)` | `hsl.error` / `paletteColors.error`; error states |
+| **Enemy Red** | `0xd53434` | `#d53434` | - | `red` (Enemy/Gravitas faction) |
 | **Friendly Blue** | `0x404fc9` | `#404fc9` | - | Friendly faction |
 | **Neutral Yellow** | `0xe2b640` | `#e2b640` | - | Neutral objects |
 | **Active Green** | `0x34d534` | `#34d534` | - | Targets, OK status |
-| **Selection Blue** | `0x26dafd` | `#26dafd` | - | Selection highlight |
+| **Selection Cyan** | `0x00ffff` | `#00ffff` | - | Selection highlight |
 | **White** | `0xffffff` | `#ffffff` | - | Projectiles, text |
-| **Radar BG Dark** | `0x0f0f0f` | `#0f0f0f` | - | Visible radar area |
-| **Radar BG Fog** | `0x303030` | `#303030` | - | Fog of war |
-| **Tweakpane BG** | - | `hsla(230, 7%, 17%, 1)` | - | Panel base |
+| **Radar BG Dark** | `0x0a0a0a` | `#0a0a0a` | - | Visible radar area |
+| **Radar BG Fog** | `0x1a1a1a` | `#1a1a1a` | - | Fog of war |
+| **Tweakpane BG** | - | `hsla(180, 10%, 8%, 1)` | - | Panel base |
 | **Tweakpane OK** | - | `hsl(123, 61%, 18%)` | - | Green status |
 | **Tweakpane WARN** | - | `hsl(52, 61%, 18%)` | - | Yellow warning |
 | **Tweakpane ERROR** | - | `hsl(0, 69%, 17%)` | - | Red error |
@@ -426,16 +427,21 @@ color: ${color}33;  // 20% opacity
 **Pattern:** Inline scoped styles per component
 
 ```typescript
-// Inline style injection in component
+// Inline style injection in component (from arwes-compat.tsx Card)
 <style>{`
-    .arwes-card .arwes-react-frames-framesvg [data-name=line] {
-        color: rgb(33, 128, 141);  /* Border color */
+    .arwes-card .arwes-frames-frame [data-name=bg] {
+        fill: ${withAlpha(theme.colors.primary.main(7), 0.25)};   /* Fill glow */
+        stroke: ${withAlpha(theme.colors.primary.main(7), 0.5)};
+        stroke-width: 1;
     }
-    .arwes-card .arwes-react-frames-framesvg [data-name=bg] {
-        color: rgba(33, 128, 141, 0.1);  /* Fill glow */
+    .arwes-card .arwes-frames-frame [data-name=line] {
+        stroke: ${theme.colors.primary.main(7)};                  /* Border stroke */
+        fill: none;
+        stroke-width: 4;
     }
-    .arwes-card:hover [data-name=bg] {
-        color: rgba(33, 128, 141, 0.2);  /* Hover glow */
+    .arwes-card:hover .arwes-frames-frame [data-name=line] {
+        stroke: ${theme.colors.primary.high(2)};                  /* Hover glow */
+        filter: drop-shadow(0 0 6px ${theme.colors.primary.main(3)});
     }
 `}</style>
 
@@ -770,7 +776,7 @@ export function setTheme(theme: Theme) {
 **Styling Applications:**
 - `modules/browser/src/widgets/system-status.ts:107` - Tweakpane status theming
 - `modules/browser/src/widgets/armor.ts:10` - RGB to hex conversion
-- `modules/browser/src/screens/ecr.ts:59` - CSS background from PixiJS color
+- `modules/browser/src/screens/ecr.ts:69` - CSS background from PixiJS color
 
 **Font Loading:**
 - `/static/styles/index.css` - Font-face declarations

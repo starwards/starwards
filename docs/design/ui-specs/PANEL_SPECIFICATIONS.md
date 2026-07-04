@@ -62,6 +62,7 @@ Interactive UI control panels using Tweakpane library.
 | Field | Type | Format | Description |
 |-------|------|--------|-------------|
 | `control` | Boolean | "ECR" \| "Bridge" | Control location |
+| `hull` | Boolean | "DAMAGED" \| "OK" | Hull damage indicator |
 | `energy` | float32 | Graph | Reactor energy level |
 | `after-burner fuel` | float32 | Graph | Maneuvering fuel |
 
@@ -325,8 +326,8 @@ Visual displays rendered using PixiJS graphics engine.
 **Rendering:** PixiJS Graphics + Sprites
 
 **Layers (back to front):**
-1. Fog of war (gray `0x303030`)
-2. Field of view fill (visible areas `0x0f0f0f`)
+1. Fog of war (gray `0x1a1a1a`)
+2. Field of view fill (visible areas `0x0a0a0a`)
 3. Movement anchor grid (1000px spacing, `0xaaffaa`)
 4. Range indicators (range/5 spacing)
 5. Azimuth circle (heading reference)

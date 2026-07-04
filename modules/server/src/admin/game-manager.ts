@@ -150,6 +150,7 @@ export class GameManager {
         this.map = map;
         this.spaceManager = new SpaceManager();
         this.spaceManager.insertBulk(source.fragment.space);
+        this.spaceManager.forceFlushEntities();
         await matchMaker.createRoom('space', { manager: this.spaceManager });
         await this.waitForRoom({ name: 'space' });
         for (const [id, shipState] of source.fragment.ship) {

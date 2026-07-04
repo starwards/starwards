@@ -37,6 +37,9 @@ export const dragonflyChaingun = {
     use_CannonFrag: true,
     damage50: 20,
     energyCost: 1,
+    heat_CannonHe: 5,
+    heat_CannonAp: 5,
+    heat_CannonFrag: 5,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -93,6 +96,11 @@ export const dragonflyTube = {
     use_MissileCluster: true,
     use_MissileTandem: true,
     use_MissileEmp: true,
+    heat_MissileHe: 25,
+    heat_MissileSabot: 25,
+    heat_MissileCluster: 25,
+    heat_MissileTandem: 25,
+    heat_MissileEmp: 25,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',

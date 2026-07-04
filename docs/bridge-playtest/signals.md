@@ -35,6 +35,7 @@ position vs own ship's position via `XY.difference`.
 | Clear Target | `'` |
 | Zoom In | `=` |
 | Zoom Out | `-` |
+| Place Waypoint | `w` |
 
 Target cycling iterates **all `Spaceship` objects in `spaceDriver.state`**,
 filtered to `s.id !== shipId` (own ship). It is independent of the **weapons**
@@ -67,7 +68,7 @@ exists today:
 | Target info — Lvl0: Physics (distance, heading, rel.speed) | 🟡 distance + bearing exist; **relative speed missing**; "heading" of own ship vs target not shown |
 | Target info — Lvl1: Faction, model | 🟡 Faction shown (always — not gated by scan level); **model missing** |
 | Target info — Lvl2: Armor status, damage reports, list of systems | ❌ none |
-| List of all signals jobs | ❌ jobs system (#1206) not implemented; no list |
+| List of all signals jobs | 🟡 jobs system (#1206) implemented in core (SignalsJobManager + Signals.jobs queue), but no jobs-list widget on the signals screen yet |
 
 ### Hotkeys
 
@@ -95,8 +96,10 @@ exists today:
   rules (active scanning that lifts UFO → BASIC → ADVANCED via player action)
   are explicitly out of scope for #1205 — they belong to #1206. Today scan
   level is GM-tweak-driven.
-- `#1206` signals jobs system — ❌ **open**; design exists in
-  `docs/MS3/SIGNALS_JOBS_DESIGN.md` (Scan/Hack/Track, 9-job queue), no code.
+- `#1206` signals jobs system — core implemented (PR #1878): `SignalsJobManager`
+  runs scan/hack jobs and promotes scan levels server-side. No player-facing UI
+  wires the queue/submit commands yet, so jobs are not yet reachable from the
+  signals screen.
 - `#1207` hack mechanic — ✅ **closed**; the hack-effect side is in place,
   but #1208 expects the signals seat to *initiate* a hack via #1206 jobs,
   which doesn't exist yet.
@@ -113,7 +116,7 @@ exists today:
   be changed via GM tweak panel today.
 - `targetInfo` polls every 200ms via `EmitterLoop` — distance/bearing are
   smooth-ish but not synced with the radar tick.
-- Help modal lists 5 hotkeys + SPACE; no on-screen affordance for filters
+- Help modal lists 6 hotkeys + SPACE; no on-screen affordance for filters
   (because filters don't exist yet).
 - Hotkeys overlap by intent with weapons (`]`/`[`/`'` for target cycling)
   but operate on **different** target containers. A novice may be confused
