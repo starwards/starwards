@@ -2,12 +2,12 @@ import {
     Asteroid,
     Faction,
     ShipManagerPc,
-    Waypoint,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
     TargetedStatus,
     Vec2,
+    Waypoint,
     makeShipState,
     shipConfigurations,
 } from '../src';
