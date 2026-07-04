@@ -197,7 +197,7 @@ export abstract class ShipManager implements Updateable {
         const iterable: Iterable<SpaceObject> = this.state.weaponsTarget.shipOnly
             ? this.spaceManager.state.getAll('Spaceship')
             : this.spaceManager.state;
-        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id);
+        let result = new Iterator(iterable).filter((v) => v.id !== this.state.id && v.isCorporal);
         if (this.state.weaponsTarget.enemyOnly) {
             result = result.filter((v) => v.faction !== Faction.NONE && v.faction !== this.state.faction);
         }
@@ -301,6 +301,9 @@ export abstract class ShipManager implements Updateable {
     protected validateWeaponsTargetId() {
         if (typeof this.state.weaponsTarget.targetId === 'string') {
             this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
+            if (this.weaponsTarget && !this.weaponsTarget.isCorporal) {
+                this.weaponsTarget = null;
+            }
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
             } else {
