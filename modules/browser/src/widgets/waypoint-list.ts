@@ -5,8 +5,8 @@ import { addButton, addInputBlade, createPane } from '../panel';
 import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
-function waypointFolderTitle(wp: Waypoint) {
-    return wp.title || wp.id.slice(0, 6);
+function wpTitle(title: string, id: string): string {
+    return title || id.slice(0, 6);
 }
 
 export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceDriver, shipId: string) {
@@ -23,9 +23,19 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
 
     function addWaypointRow(wp: Waypoint) {
         if (foldersByWpId.has(wp.id)) return;
-        // Collapsed by default so many waypoints fit in the available space; expand to rename/delete
-        const folder = pane.addFolder({ title: waypointFolderTitle(wp), expanded: false });
+        const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded: false });
         foldersByWpId.set(wp.id, folder);
+
+        // Accordion: expanding one waypoint collapses all others
+        folder.on('fold', (ev) => {
+            if (ev.expanded) {
+                for (const [id, f] of foldersByWpId) {
+                    if (id !== wp.id && f.expanded) {
+                        f.expanded = false;
+                    }
+                }
+            }
+        });
 
         const viewModel = { title: wp.title };
         const titlePath = `/Waypoint/${wp.id}/title`;
@@ -42,7 +52,7 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
                     const handler = (e: Replace) => {
                         if (e.path === titlePath && typeof e.value === 'string') {
                             viewModel.title = e.value;
-                            folder.title = waypointFolderTitle(wp);
+                            folder.title = wpTitle(e.value, wp.id);
                             cb();
                         }
                     };
