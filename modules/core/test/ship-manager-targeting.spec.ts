@@ -2,6 +2,7 @@ import {
     Asteroid,
     Faction,
     ShipManagerPc,
+    Waypoint,
     SmartPilotMode,
     SpaceManager,
     Spaceship,
@@ -108,6 +109,32 @@ describe('ShipManager weapons target lifecycle', () => {
         mgr.handleTargetCommands();
         expect(mgr.state.weaponsTarget.targetId).to.equal('c');
         expect(mgr.state.weaponsTarget.nextTargetCommand).to.equal(false);
+    });
+
+    it('nextTargetCommand never selects a waypoint', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        const waypoint = new Waypoint().init('wp', Vec2.make({ x: 500, y: 0 }));
+        waypoint.faction = Faction.Gravitas;
+        spaceMgr.insert(waypoint);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = false;
+        mgr.state.weaponsTarget.enemyOnly = false;
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+    });
+
+    it('setTarget rejects a waypoint id', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        const waypoint = new Waypoint().init('wp', Vec2.make({ x: 500, y: 0 }));
+        waypoint.faction = Faction.Gravitas;
+        spaceMgr.insert(waypoint);
+        flush();
+        mgr.setTarget('wp');
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+        expect(mgr.weaponsTarget).to.equal(null);
     });
 
     it('nextTargetCommand with enemyOnly skips same-faction ships', () => {
