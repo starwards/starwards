@@ -1,4 +1,13 @@
 {
+    // ts-node is only used for the dev server (modules/server/src/dev.ts).
+    // TypeScript 6 requires an explicit rootDir to compute output layout
+    // (TS5011), even under transpile-only. Applies via tsconfig inheritance
+    // whether ts-node is launched from the repo root or modules/server.
+    "ts-node": {
+        "compilerOptions": {
+            "rootDir": "."
+        }
+    },
     "compilerOptions": {
         /* Basic Options */
         "target": "es2019" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', ... or 'ESNEXT'. */,
