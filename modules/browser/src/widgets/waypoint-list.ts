@@ -1,8 +1,8 @@
 import { Add, Remove, Replace } from 'colyseus-events';
 import { Destructors, SpaceDriver, Waypoint, spaceCommands } from '@starwards/core';
-import { FolderApi, Pane } from 'tweakpane';
 import { addButton, addInputBlade, createPane } from '../panel';
 
+import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
 export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceDriver, shipId: string) {
@@ -95,5 +95,5 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
         spaceDriver.events.off('$remove', onRemove);
     });
 
-    return pane as unknown as Pane;
+    return pane;
 }
