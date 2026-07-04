@@ -1,11 +1,12 @@
-import { Add, Remove, Replace } from 'colyseus-events';
+import { Add, Remove } from 'colyseus-events';
 import { Destructors, SpaceDriver, Waypoint, spaceCommands } from '@starwards/core';
 import { addButton, addInputBlade, createPane } from '../panel';
 
 import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
+import { readWriteProp } from '../property-wrappers';
 
-function wpTitle(title: string, id: string): string {
+function wpTitle(title: string | undefined, id: string): string {
     return title || id.slice(0, 6);
 }
 
@@ -23,7 +24,9 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
 
     function addWaypointRow(wp: Waypoint) {
         if (foldersByWpId.has(wp.id)) return;
-        const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded: false });
+
+        const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wp.id}/title`);
+        const folder = pane.addFolder({ title: wpTitle(titleProp.getValue(), wp.id), expanded: false });
         foldersByWpId.set(wp.id, folder);
 
         // Accordion: expanding one waypoint collapses all others
@@ -37,28 +40,16 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
             }
         });
 
-        const viewModel = { title: wp.title };
-        const titlePath = `/Waypoint/${wp.id}/title`;
-
         addInputBlade<string>(
             folder,
             {
-                getValue: () => viewModel.title,
-                setValue: (v: string) => {
-                    viewModel.title = v;
-                    spaceDriver.sendJsonCmd(titlePath, v);
-                },
-                onChange: (cb) => {
-                    const handler = (e: Replace) => {
-                        if (e.path === titlePath && typeof e.value === 'string') {
-                            viewModel.title = e.value;
-                            folder.title = wpTitle(e.value, wp.id);
-                            cb();
-                        }
-                    };
-                    spaceDriver.events.on('$replace', handler);
-                    return () => spaceDriver.events.off('$replace', handler);
-                },
+                getValue: titleProp.getValue,
+                setValue: titleProp.setValue,
+                onChange: (cb) =>
+                    titleProp.onChange(() => {
+                        folder.title = wpTitle(titleProp.getValue(), wp.id);
+                        cb();
+                    }),
             },
             { label: 'title' },
             cleanup.add,
