@@ -3,6 +3,10 @@
     "compilerOptions": {
         "module": "commonjs",
         "outDir": "cjs",
+        // keep incremental state inside the cleaned output dir — a
+        // tsbuildinfo that survives `rimraf ./cjs` makes tsc skip
+        // re-emitting unchanged files into the now-empty dir
+        "tsBuildInfoFile": "./cjs/.tsbuildinfo",
         "rootDir": "src",
         "experimentalDecorators": true,
         "paths": {
