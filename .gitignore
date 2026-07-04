@@ -102,3 +102,6 @@ modules/core/unity-schema
 *.heapprofile
 .playwright-mcp/*
 coverage-core/
+
+# local visual baselines (only linux snapshots from snapshots:ci are committed)
+modules/e2e/test/visual/*-snapshots/*-win32.png

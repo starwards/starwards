@@ -1,4 +1,4 @@
-import { NodeDef, NodeInitializer, NodeMessage, NodeMessageInFlow } from 'node-red';
+import { NodeDef, NodeInitializer, NodeMessageInFlow } from 'node-red';
 import { Send, ShipNode, ShipOptions, createShipNode } from '../shared/ship-node';
 import { ShipDriver, getJsonPointer } from '@starwards/core';
 
@@ -27,7 +27,7 @@ const nodeInit: NodeInitializer = (RED): void => {
             const { listenPattern } = options;
             if (listenPattern) {
                 const handleStateEvent = (e: Event) => {
-                    this.send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value } as NodeMessage);
+                    this.send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value });
                 };
                 shipDriver.events.on(listenPattern, handleStateEvent);
                 return () => shipDriver.events.off(listenPattern, handleStateEvent);

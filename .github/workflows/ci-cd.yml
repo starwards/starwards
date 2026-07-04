@@ -58,7 +58,7 @@ jobs:
     Test-E2e:
         runs-on: ubuntu-latest
         container:
-            image: mcr.microsoft.com/playwright:v1.56.1-jammy
+            image: mcr.microsoft.com/playwright:v1.61.1-jammy
             options: --user 1001
         steps:
             - uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
     Test-Visual:
         runs-on: ubuntu-latest
         container:
-            image: mcr.microsoft.com/playwright:v1.56.1-jammy
+            image: mcr.microsoft.com/playwright:v1.61.1-jammy
             options: --user 1001
         steps:
             - uses: actions/checkout@v4

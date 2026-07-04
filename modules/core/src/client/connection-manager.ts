@@ -10,18 +10,10 @@ import { raceEvents } from '../async-utils';
 const { warn: logWarn } = createLogger('connection');
 
 const statusMachine = setup({
-    types: {} as {
-        context: { lastGameError: unknown };
-        events:
-            | { type: 'CONNECT' }
-            | { type: 'CONNECTED' }
-            | { type: 'ERROR' }
-            | { type: 'DESTROY' }
-            | { type: 'DISCONNECT' };
-    },
+    types: {},
 }).createMachine({
     /** @xstate-layout N4IgpgJg5mDOIC5QGUAuBDATgdyxWABAMIA2AlmAHaoFrqoCusAdAMYD2llYrqZlUAMREA8gDkxAUSIAVSQBEA2gAYAuolAAHdrDJ9OGkAA9EARgBMAGhABPM+YC+D63Rx5CpCtVoZGLDlw8fAKCkgBKYSJhKupIINq6+pSGJgjmAMymzABsAOymAJyZ2QW5AKwFymUALNZ2CAXVABzM5k0FHaam6bkdZY7OIK64mPjE5FQ0dH5snNy8-ELyksgykQCaMYYJemQGcanm5ll5hcWlFVW1tmam7cy57QXtucrPHdlOLhhuox4T3mmTFmgQWISMsF8YGY6AAZqgwJgABRlZRogCUgmG7nGXimvmBAXmwSgWziOySKUQRxO+SKphK5UqNTqiEqygeT1KbWUr3STS+Qx+IzGnkmPnohLmQUggnkAElkKIJNIZGStDpdvtQKk7ll2spssdcjymk1sqyEOkyukHuy0d1su1UZ9Bti-rjxUD-NLeLLwpFomptprKQc2VYbghHhzlOkOqUOtVygzBe7RQD8ZKfaCERA5Ss1iJNsHyaG9slwwh+pbTGV+sw4x0muU8q2ymnhTixYCCSwIGRYESZfnlVJZOr4uXtcZEM1ssx0tUegVzAUSkvzDbLRlbcpqmi0U1UY1zLlXd8sCL-niJTMB0PfXmC6sNpOKRWqQh54vl701xu1RbuklrJtUzA2gmp5tMm3Sdle3aZnewKIpg7CYHKipjqq77TpWOqICataZBykHPE8ZTHgMl6-Bmt7eswqHocI4jjmqpYaokn5VhktJnAyFzMtc9SmIaBSNvGHT7hkjTlPBtE3l6faMZgaEYcsr7FrhXEzqkNotE0y4FF0FhNKYuTCWyhScgmXQrgU-ROIMlDsBAcCGOmim9tmIY6fhs4IAAtOkFpRoF5QQYeyhHL0cbHtU8nXp63kzMOYJQL5Wr+akLa1oaC53AmTRbtUlTVKYiWIfRylpXmmVhgR36RvUS4tNUB5or0eTHgyuSVR6PZZveg61ZA9XcY16Q9BJFj5PG5kZJZVo1K0TxNG8DL9PkF5CghA1IQxTGYONumIFNtrZGU2TpGiN01NalqPOJT0OXc1TXQyCVul2+3VdmKlqcwDCUAA1i52D+R+p1WmZORXTdcZXA9UYtrkq0dEuZXPH1317XRSn-UdzB8AAtmA7AMKgJ3ZWd5pw9dt1I2UlpFGUNmlIU5lGrk6T9fjKXAm5kJoTYY1ln5X7ZJdDyXTG1QVE0mQgVGdbTaVDr8tyxwDE4QA */
-    context: () => ({ lastGameError: null as unknown }),
+    context: () => ({ lastGameError: null }),
     types: {} as {
         context: { lastGameError: unknown };
         events:
@@ -72,13 +64,7 @@ const statusMachine = setup({
     },
 });
 type StateName =
-    | 'connected'
-    | 'connecting'
-    | 'disconnected'
-    | 'error'
-    | 'error.timeout'
-    | 'error.unknown'
-    | 'destroyed';
+    'connected' | 'connecting' | 'disconnected' | 'error' | 'error.timeout' | 'error.unknown' | 'destroyed';
 type StateValue = StateName | { error?: 'unknown' | 'timeout' | undefined };
 
 export type ConnectionStateEvent = '*' | StateName | `exit:${StateName}`;
@@ -178,7 +164,7 @@ export class ConnectionManager {
 
     getErrorMessage() {
         if (!this.stateConnected) {
-            let e = this.statusService.getSnapshot().context.lastGameError;
+            let e: unknown = this.statusService.getSnapshot().context.lastGameError;
             if (!e) {
                 return null;
             }

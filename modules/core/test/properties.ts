@@ -1,4 +1,4 @@
-import { EPSILON, Tuple2, XY, limitPercisionHard, sign } from '../src';
+import { EPSILON, XY, limitPercisionHard, sign } from '../src';
 
 import fc from 'fast-check';
 
@@ -20,7 +20,7 @@ export const float = (min: number, max: number) => {
 export const range = (min: number, max: number, minDiff = 0) =>
     fc
         .tuple(float(min, max), float(min, max))
-        .map((t) => t.sort((a, b) => a - b) as Tuple2)
+        .map((t) => t.sort((a, b) => a - b))
         .filter((t) => Math.abs(t[0] - t[1]) > minDiff);
 export const differentSignTuple2 = () => fc.tuple(safeFloat(), safeFloat()).filter((t) => sign(t[0]) != sign(t[1]));
 export const orderedTuple2 = () =>

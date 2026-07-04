@@ -19,7 +19,7 @@ export const targetingScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 250, 180);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawTargetingStatus(mockContainer as never, mockShipDriver as never);
+            drawTargetingStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -36,7 +36,7 @@ export const targetingScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 250, 180);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawTargetingStatus(mockContainer as never, mockShipDriver as never);
+            drawTargetingStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -53,7 +53,7 @@ export const targetingScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 250, 180);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawTargetingStatus(mockContainer as never, mockShipDriver as never);
+            drawTargetingStatus(mockContainer, mockShipDriver as never);
         },
     },
 };

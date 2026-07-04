@@ -76,7 +76,7 @@ export class SignalsJobManager implements Updateable {
         this.state.signals.queueJobTargetId = '';
         this.state.signals.queueJobHackSystemName = '';
 
-        const validJobType = jobType as JobType;
+        const validJobType = jobType;
         if (validJobType !== JobType.SCAN && validJobType !== JobType.HACK) {
             return;
         }

@@ -21,7 +21,7 @@ export const warpScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 250);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawWarpStatus(mockContainer as never, mockShipDriver as never);
+            drawWarpStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -40,7 +40,7 @@ export const warpScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 250);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawWarpStatus(mockContainer as never, mockShipDriver as never);
+            drawWarpStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -59,7 +59,7 @@ export const warpScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 250);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawWarpStatus(mockContainer as never, mockShipDriver as never);
+            drawWarpStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -78,7 +78,7 @@ export const warpScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 250);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawWarpStatus(mockContainer as never, mockShipDriver as never);
+            drawWarpStatus(mockContainer, mockShipDriver as never);
         },
     },
 };

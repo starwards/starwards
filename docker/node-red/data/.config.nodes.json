@@ -7,9 +7,7 @@
         "nodes": {
             "junction": {
                 "name": "junction",
-                "types": [
-                    "junction"
-                ],
+                "types": ["junction"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -18,9 +16,7 @@
             },
             "inject": {
                 "name": "inject",
-                "types": [
-                    "inject"
-                ],
+                "types": ["inject"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -29,9 +25,7 @@
             },
             "debug": {
                 "name": "debug",
-                "types": [
-                    "debug"
-                ],
+                "types": ["debug"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -40,9 +34,7 @@
             },
             "complete": {
                 "name": "complete",
-                "types": [
-                    "complete"
-                ],
+                "types": ["complete"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -51,9 +43,7 @@
             },
             "catch": {
                 "name": "catch",
-                "types": [
-                    "catch"
-                ],
+                "types": ["catch"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -62,9 +52,7 @@
             },
             "status": {
                 "name": "status",
-                "types": [
-                    "status"
-                ],
+                "types": ["status"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -73,11 +61,7 @@
             },
             "link": {
                 "name": "link",
-                "types": [
-                    "link in",
-                    "link out",
-                    "link call"
-                ],
+                "types": ["link in", "link out", "link call"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -86,9 +70,7 @@
             },
             "comment": {
                 "name": "comment",
-                "types": [
-                    "comment"
-                ],
+                "types": ["comment"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -97,9 +79,7 @@
             },
             "unknown": {
                 "name": "unknown",
-                "types": [
-                    "unknown"
-                ],
+                "types": ["unknown"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -108,9 +88,7 @@
             },
             "function": {
                 "name": "function",
-                "types": [
-                    "function"
-                ],
+                "types": ["function"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -119,9 +97,7 @@
             },
             "switch": {
                 "name": "switch",
-                "types": [
-                    "switch"
-                ],
+                "types": ["switch"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -130,9 +106,7 @@
             },
             "change": {
                 "name": "change",
-                "types": [
-                    "change"
-                ],
+                "types": ["change"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -141,9 +115,7 @@
             },
             "range": {
                 "name": "range",
-                "types": [
-                    "range"
-                ],
+                "types": ["range"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -152,9 +124,7 @@
             },
             "template": {
                 "name": "template",
-                "types": [
-                    "template"
-                ],
+                "types": ["template"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -163,9 +133,7 @@
             },
             "delay": {
                 "name": "delay",
-                "types": [
-                    "delay"
-                ],
+                "types": ["delay"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -174,9 +142,7 @@
             },
             "trigger": {
                 "name": "trigger",
-                "types": [
-                    "trigger"
-                ],
+                "types": ["trigger"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -185,9 +151,7 @@
             },
             "exec": {
                 "name": "exec",
-                "types": [
-                    "exec"
-                ],
+                "types": ["exec"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -196,9 +160,7 @@
             },
             "rbe": {
                 "name": "rbe",
-                "types": [
-                    "rbe"
-                ],
+                "types": ["rbe"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -207,9 +169,7 @@
             },
             "tls": {
                 "name": "tls",
-                "types": [
-                    "tls-config"
-                ],
+                "types": ["tls-config"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -218,9 +178,7 @@
             },
             "httpproxy": {
                 "name": "httpproxy",
-                "types": [
-                    "http proxy"
-                ],
+                "types": ["http proxy"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -229,11 +187,7 @@
             },
             "mqtt": {
                 "name": "mqtt",
-                "types": [
-                    "mqtt in",
-                    "mqtt out",
-                    "mqtt-broker"
-                ],
+                "types": ["mqtt in", "mqtt out", "mqtt-broker"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -242,10 +196,7 @@
             },
             "httpin": {
                 "name": "httpin",
-                "types": [
-                    "http in",
-                    "http response"
-                ],
+                "types": ["http in", "http response"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -254,9 +205,7 @@
             },
             "httprequest": {
                 "name": "httprequest",
-                "types": [
-                    "http request"
-                ],
+                "types": ["http request"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -265,12 +214,7 @@
             },
             "websocket": {
                 "name": "websocket",
-                "types": [
-                    "websocket in",
-                    "websocket out",
-                    "websocket-listener",
-                    "websocket-client"
-                ],
+                "types": ["websocket in", "websocket out", "websocket-listener", "websocket-client"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -279,11 +223,7 @@
             },
             "tcpin": {
                 "name": "tcpin",
-                "types": [
-                    "tcp in",
-                    "tcp out",
-                    "tcp request"
-                ],
+                "types": ["tcp in", "tcp out", "tcp request"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -292,10 +232,7 @@
             },
             "udp": {
                 "name": "udp",
-                "types": [
-                    "udp in",
-                    "udp out"
-                ],
+                "types": ["udp in", "udp out"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -304,9 +241,7 @@
             },
             "CSV": {
                 "name": "CSV",
-                "types": [
-                    "csv"
-                ],
+                "types": ["csv"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -315,9 +250,7 @@
             },
             "HTML": {
                 "name": "HTML",
-                "types": [
-                    "html"
-                ],
+                "types": ["html"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -326,9 +259,7 @@
             },
             "JSON": {
                 "name": "JSON",
-                "types": [
-                    "json"
-                ],
+                "types": ["json"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -337,9 +268,7 @@
             },
             "XML": {
                 "name": "XML",
-                "types": [
-                    "xml"
-                ],
+                "types": ["xml"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -348,9 +277,7 @@
             },
             "YAML": {
                 "name": "YAML",
-                "types": [
-                    "yaml"
-                ],
+                "types": ["yaml"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -359,10 +286,7 @@
             },
             "split": {
                 "name": "split",
-                "types": [
-                    "split",
-                    "join"
-                ],
+                "types": ["split", "join"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -371,9 +295,7 @@
             },
             "sort": {
                 "name": "sort",
-                "types": [
-                    "sort"
-                ],
+                "types": ["sort"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -382,9 +304,7 @@
             },
             "batch": {
                 "name": "batch",
-                "types": [
-                    "batch"
-                ],
+                "types": ["batch"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -393,10 +313,7 @@
             },
             "file": {
                 "name": "file",
-                "types": [
-                    "file",
-                    "file in"
-                ],
+                "types": ["file", "file in"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -405,9 +322,7 @@
             },
             "watch": {
                 "name": "watch",
-                "types": [
-                    "watch"
-                ],
+                "types": ["watch"],
                 "enabled": true,
                 "local": false,
                 "user": false,
@@ -424,9 +339,7 @@
         "nodes": {
             "ship-read": {
                 "name": "ship-read",
-                "types": [
-                    "ship-read"
-                ],
+                "types": ["ship-read"],
                 "enabled": true,
                 "local": true,
                 "user": false,
@@ -435,9 +348,7 @@
             },
             "ship-write": {
                 "name": "ship-write",
-                "types": [
-                    "ship-write"
-                ],
+                "types": ["ship-write"],
                 "enabled": true,
                 "local": true,
                 "user": false,
@@ -446,9 +357,7 @@
             },
             "starwards-config": {
                 "name": "starwards-config",
-                "types": [
-                    "starwards-config"
-                ],
+                "types": ["starwards-config"],
                 "enabled": true,
                 "local": true,
                 "user": false,

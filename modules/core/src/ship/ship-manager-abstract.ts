@@ -84,16 +84,7 @@ function resetThruster(thruster: Thruster) {
     thruster.availableCapacity = 1.0;
 }
 export type ShipSystem =
-    | ChainGun
-    | Thruster
-    | Radar
-    | SmartPilot
-    | Reactor
-    | Magazine
-    | Warp
-    | Docking
-    | Maneuvering
-    | Signals;
+    ChainGun | Thruster | Radar | SmartPilot | Reactor | Magazine | Warp | Docking | Maneuvering | Signals;
 
 export type Die = {
     getRoll: (id: string) => number;
