@@ -1,0 +1,2 @@
+# dev-only game state snapshots (STARWARDS_RESTORE=1)
+.state-snapshot/
