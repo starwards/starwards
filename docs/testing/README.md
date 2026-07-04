@@ -7,7 +7,7 @@
 | Category | Files | Tests | Location |
 |----------|-------|-------|----------|
 | Unit | 23 | ~90 | `modules/core/test/` |
-| Multi-Client | 4 | 31 | `modules/server/src/test/` |
+| Server | 6 | 28 | `modules/server/src/test/` |
 | E2E | 10 | 51 | `modules/e2e/test/` |
 | Integration | 4 | ~15 | `modules/node-red/src/` |
 

@@ -35,6 +35,7 @@ position vs own ship's position via `XY.difference`.
 | Clear Target | `'` |
 | Zoom In | `=` |
 | Zoom Out | `-` |
+| Place Waypoint | `w` |
 
 Target cycling iterates **all `Spaceship` objects in `spaceDriver.state`**,
 filtered to `s.id !== shipId` (own ship). It is independent of the **weapons**
@@ -115,7 +116,7 @@ exists today:
   be changed via GM tweak panel today.
 - `targetInfo` polls every 200ms via `EmitterLoop` — distance/bearing are
   smooth-ish but not synced with the radar tick.
-- Help modal lists 5 hotkeys + SPACE; no on-screen affordance for filters
+- Help modal lists 6 hotkeys + SPACE; no on-screen affordance for filters
   (because filters don't exist yet).
 - Hotkeys overlap by intent with weapons (`]`/`[`/`'` for target cycling)
   but operate on **different** target containers. A novice may be confused

@@ -62,6 +62,7 @@ Interactive UI control panels using Tweakpane library.
 | Field | Type | Format | Description |
 |-------|------|--------|-------------|
 | `control` | Boolean | "ECR" \| "Bridge" | Control location |
+| `hull` | Boolean | "DAMAGED" \| "OK" | Hull damage indicator |
 | `energy` | float32 | Graph | Reactor energy level |
 | `after-burner fuel` | float32 | Graph | Maneuvering fuel |
 

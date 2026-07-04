@@ -470,42 +470,33 @@ return msg;
 
 ```typescript
 // modules/browser/src/widgets/my-widget.ts
-import { createWidget } from './create';
 import type { ShipDriver } from '@starwards/core';
+import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 
-export const myWidget = createWidget({
-    name: 'my-widget',
-    render: (ship: ShipDriver) => {
-        // Create container
-        const container = document.createElement('div');
-        container.className = 'my-widget';
+export function myWidget(shipDriver: ShipDriver): DashboardWidget {
+    class MyComponent {
+        constructor(container: WidgetContainer) {
+            // Build UI into the widget's DOM element
+            const el = container.getElement().get(0);
+            el.innerHTML = `
+                <h2>My Widget</h2>
+                <div class="content">
+                    <div class="value" id="value">0</div>
+                </div>
+            `;
 
-        // Build UI
-        container.innerHTML = `
-            <h2>My Widget</h2>
-            <div class="content">
-                <div class="value" id="value">0</div>
-            </div>
-        `;
-
-        // Update on state change
-        const valueEl = container.querySelector('#value');
-        ship.state.onChange(() => {
-            if (valueEl) {
-                valueEl.textContent = ship.state.reactor.energy.toString();
-            }
-        });
-
-        // Listen to specific property
-        ship.state.reactor.listen('energy', (value) => {
-            if (valueEl) {
-                valueEl.textContent = value.toString();
-            }
-        });
-
-        return container;
-    },
-});
+            // Observe state changes through the driver's event bridge
+            const valueEl = el.querySelector('#value');
+            shipDriver.events.on('/reactor/energy', () => {
+                if (valueEl) {
+                    valueEl.textContent = shipDriver.state.reactor.energy.toString();
+                }
+            });
+        }
+    }
+    return { name: 'my-widget', type: 'component', component: MyComponent, defaultProps: {} };
+}
 ```
 
 ### Widget with Controls
@@ -513,34 +504,35 @@ export const myWidget = createWidget({
 **Interactive Widget:**
 
 ```typescript
-export const powerControl = createWidget({
-    name: 'power-control',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
+export function powerControl(shipDriver: ShipDriver): DashboardWidget {
+    class PowerControlComponent {
+        constructor(container: WidgetContainer) {
+            const el = container.getElement().get(0);
 
-        // Create slider
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.min = '0';
-        slider.max = '1';
-        slider.step = '0.01';
-        slider.value = ship.state.reactor.power.toString();
+            // Create slider
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = '0';
+            slider.max = '1';
+            slider.step = '0.01';
+            slider.value = shipDriver.state.reactor.power.toString();
 
-        // Update on change
-        slider.addEventListener('input', (e) => {
-            const value = parseFloat((e.target as HTMLInputElement).value);
-            ship.room.send('/reactor/power', { value });
-        });
+            // Send command on change
+            slider.addEventListener('input', (e) => {
+                const value = parseFloat((e.target as HTMLInputElement).value);
+                shipDriver.sendJsonCmd('/reactor/power', value);
+            });
 
-        // Update slider when state changes
-        ship.state.reactor.listen('power', (value) => {
-            slider.value = value.toString();
-        });
+            // Update slider when state changes
+            shipDriver.events.on('/reactor/power', () => {
+                slider.value = shipDriver.state.reactor.power.toString();
+            });
 
-        container.appendChild(slider);
-        return container;
-    },
-});
+            el.appendChild(slider);
+        }
+    }
+    return { name: 'power-control', type: 'component', component: PowerControlComponent, defaultProps: {} };
+}
 ```
 
 ### Widget with Tweakpane
@@ -550,32 +542,31 @@ export const powerControl = createWidget({
 ```typescript
 import { createPane } from '../panel';
 
-export const systemControl = createWidget({
-    name: 'system-control',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        const pane = createPane({ title: 'System Control', container });
+export function systemControl(shipDriver: ShipDriver): DashboardWidget {
+    class SystemControlComponent {
+        constructor(container: WidgetContainer) {
+            const pane = createPane({ title: 'System Control', container: container.getElement().get(0) });
 
-        // Add controls
-        pane.addInput(ship.state.reactor, 'power', {
-            min: 0,
-            max: 1,
-            step: 0.01,
-        }).on('change', (ev) => {
-            ship.room.send('/reactor/power', { value: ev.value });
-        });
+            // Add controls
+            pane.addBinding(shipDriver.state.reactor, 'power', {
+                min: 0,
+                max: 1,
+                step: 0.01,
+            }).on('change', (ev) => {
+                shipDriver.sendJsonCmd('/reactor/power', ev.value);
+            });
 
-        pane.addInput(ship.state.reactor, 'coolantFactor', {
-            min: 0,
-            max: 1,
-            step: 0.01,
-        }).on('change', (ev) => {
-            ship.room.send('/reactor/coolantFactor', { value: ev.value });
-        });
-
-        return container;
-    },
-});
+            pane.addBinding(shipDriver.state.reactor, 'coolantFactor', {
+                min: 0,
+                max: 1,
+                step: 0.01,
+            }).on('change', (ev) => {
+                shipDriver.sendJsonCmd('/reactor/coolantFactor', ev.value);
+            });
+        }
+    }
+    return { name: 'system-control', type: 'component', component: SystemControlComponent, defaultProps: {} };
+}
 ```
 
 ### Widget Registration
@@ -583,12 +574,12 @@ export const systemControl = createWidget({
 **Register in dashboard:**
 
 ```typescript
-// modules/browser/src/widgets/dashboard.ts
-import { myWidget } from './my-widget';
-import { powerControl } from './power-control';
+// modules/browser/src/screens/ship.ts
+import { myWidget } from '../widgets/my-widget';
+import { powerControl } from '../widgets/power-control';
 
-registerWidget(myWidget);
-registerWidget(powerControl);
+dashboard.registerWidget(myWidget(shipDriver));
+dashboard.registerWidget(powerControl(shipDriver));
 ```
 
 **Add to screen:**
@@ -731,35 +722,36 @@ export class ShipManagerPc extends ShipManager {
 
 ```typescript
 // modules/browser/src/widgets/shield.ts
-import { createWidget } from './create';
+import { ShipDriver } from '@starwards/core';
+import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 
-export const shield = createWidget({
-    name: 'shield',
-    render: (ship) => {
-        const container = document.createElement('div');
-        container.className = 'shield-widget';
+export function shieldWidget(shipDriver: ShipDriver): DashboardWidget {
+    class ShieldComponent {
+        constructor(container: WidgetContainer) {
+            const el = container.getElement().get(0);
+            el.innerHTML = `
+                <h3>Shield</h3>
+                <div class="shield-bar">
+                    <div class="shield-fill" id="shield-fill"></div>
+                </div>
+                <div class="shield-value" id="shield-value">0</div>
+            `;
 
-        container.innerHTML = `
-            <h3>Shield</h3>
-            <div class="shield-bar">
-                <div class="shield-fill" id="shield-fill"></div>
-            </div>
-            <div class="shield-value" id="shield-value">0</div>
-        `;
+            const fill = el.querySelector('#shield-fill') as HTMLElement;
+            const value = el.querySelector('#shield-value') as HTMLElement;
 
-        const fill = container.querySelector('#shield-fill') as HTMLElement;
-        const value = container.querySelector('#shield-value') as HTMLElement;
-
-        ship.state.shield.listen('strength', (strength) => {
-            const max = ship.state.shield.design.maxStrength;
-            const percent = (strength / max) * 100;
-            fill.style.width = `${percent}%`;
-            value.textContent = `${Math.round(strength)} / ${max}`;
-        });
-
-        return container;
-    },
-});
+            shipDriver.events.on('/shield/strength', () => {
+                const strength = shipDriver.state.shield.strength;
+                const max = shipDriver.state.shield.design.maxStrength;
+                const percent = (strength / max) * 100;
+                fill.style.width = `${percent}%`;
+                value.textContent = `${Math.round(strength)} / ${max}`;
+            });
+        }
+    }
+    return { name: 'shield', type: 'component', component: ShieldComponent, defaultProps: {} };
+}
 ```
 
 **7. Add Configuration:**

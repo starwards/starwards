@@ -762,7 +762,7 @@ The Ship screen provides a fully customizable dashboard for any ship. Used for s
 5. **No Layout Preview**: Can't see what a saved layout looks like before loading
 6. **Keyboard Conflicts**: Input manager always active - interferes with text inputs
 7. **No Widget Favorites**: Can't mark frequently used widgets
-8. **Menu Clutter**: All 19 widgets in flat list
+8. **Menu Clutter**: All 20 widgets in flat list
 9. **No Responsive**: Layout breaks on window resize
 10. **No Help**: No indication of what each widget does
 

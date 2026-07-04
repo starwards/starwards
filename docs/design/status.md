@@ -32,7 +32,7 @@ _None._
 | [Signals jobs](mechanics/radar.md) | Done | [#1206](https://github.com/starwards/starwards/issues/1206) | Scan/hack/track job queue (SignalsJobManager) |
 | [Emissions](mechanics/emissions.md) | Partial | [#1001](https://github.com/starwards/starwards/issues/1001) | System power creates detectable signatures |
 | [Radar](mechanics/radar.md) | Partial | [#969](https://github.com/starwards/starwards/issues/969) | Tactical/Dradis work; scan filtering not built |
-| [Docking](mechanics/cargo-and-docking.md) | Designed | [#539](https://github.com/starwards/starwards/issues/539) | Ship-in-ship, compound movement |
+| [Docking](mechanics/cargo-and-docking.md) | Done | [#539](https://github.com/starwards/starwards/issues/539) | Ship-in-ship, compound movement |
 | [Cargo](mechanics/cargo-and-docking.md) | Deferred | [#548](https://github.com/starwards/starwards/issues/548) | Post-LARP; not needed for first event |
 | Bot AI | Done | — | Tactical orders (MOVE, ATTACK, FOLLOW), idle behaviors |
 

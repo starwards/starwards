@@ -32,7 +32,7 @@ What's needed to run a full Helios LARP event with Starwards.
 - [x] Scan levels (3-tier progressive reveal: UFO/Basic/Advanced)
 - [x] Signals jobs (scan/hack/track queue) — SignalsJobManager + Signals state implemented and run each tick
 - [ ] Warp frequency topology (efficiency zones, route optimization)
-- [ ] Ship-in-ship docking
+- [x] Ship-in-ship docking
 - [ ] Repair system (3-tier, field repairs)
 
 ## GM Tooling

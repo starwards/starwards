@@ -43,7 +43,7 @@ last_verified: 2026-06-13
 
 | System | Location | Key Properties | Notes |
 |--------|----------|----------------|-------|
-| **Reactor** | `reactor.ts` | energy, efficiencyFactor | Primary energy generation |
+| **Reactor** | `reactor.ts` | energy, effeciencyFactor | Primary energy generation |
 | **Maneuvering** | `maneuvering.ts` | afterBurnerFuel, efficiency (design: rotationCapacity, afterBurnerCharge) | Rotation + afterburner control |
 | **Thrusters** | `thruster.ts` | angle, active, afterBurnerActive, availableCapacity, angleError | Directional thrust (Fwd/Back/L/R array) |
 | **Radar** | `radar.ts` | range, malfunctionRangeFactor | Detection range |

@@ -64,31 +64,19 @@ with explicit `@username` entries so reviews are actually requested.
 
 These items are independent of each other and can be tackled in any order.
 
-### 1. `modules/core` public/internal barrel split
-
-`modules/core/src/index.ts` re-exports everything — any consumer can
-import internal classes and break on refactors. The goal is to trim
-`index.ts` to externally-needed symbols only and move the rest to
-`index.internal.ts` (the file and the `exports` field in `package.json`
-already exist). `modules/server` and `modules/node-red` would import
-internals from `@starwards/core/internal`; `modules/browser` stays on
-`@starwards/core` (enforced by the dependency-cruiser rule
-`no-core-internal-from-browser`).
-
-### 2. Core kernel test backfill
+### 1. Core kernel test backfill
 
 The highest-risk source files have thin or no dedicated test coverage:
 
 | File                       | LOC  | Tests today | What to cover                                                                                                       |
 | -------------------------- | ---- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `ship-manager-abstract.ts` | 281+ | 2 dedicated | `syncShipProperties` source-of-truth invariant; command-field reset (afterBurnerCommand, rotationModeCommand, etc.) |
-| `space-manager.ts`         | 695  | 4           | `setPosition`/`updateAABB` ordering; MapSchema delete semantics; object lifecycle add/remove                        |
+| `space-manager.ts`         | 798  | 2 files (46 tests) | `setPosition`/`updateAABB` ordering; MapSchema delete semantics                                               |
 | `movement-manager.ts`      | 431  | 4           | Dock alignment, additional thrust-vector edge cases (thrust/strafe/brake/afterburner covered)                       |
 | `chain-gun-manager.ts`     | 200  | 1 file (5 tests) | Cooldown, jam, reload state machine (ammo decrement/switching covered)                                          |
 
 E2E gaps: a Playwright equivalent of the two-clients-on-same-ship scenario (one writes a `@commandable` property, the other observes). This scenario already has server-side coverage in `modules/server/src/test/multi-client-sync.spec.ts`; only a browser-level E2E remains outstanding.
 
-### 3. Coverage ratchet
+### 2. Coverage ratchet
 
 The `coverage-core` CI job is currently at 69% lines / 58% functions /
 51% branches / 69% statements. Bump the thresholds by +5 points per

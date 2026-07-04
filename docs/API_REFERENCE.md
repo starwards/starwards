@@ -68,9 +68,9 @@ class ShipState { }
 **Marks damageable system properties**
 
 ```typescript
-@gameField('float32')
 @range([0, 1])
 @defectible({ normal: 1, name: 'efficiency' })
+@gameField('float32')
 efficiency = 1;
 ```
 
@@ -162,7 +162,7 @@ efficiency = 1;
 | Tube | `tube.ts` | index, angle (extends ChainGun: isFiring, loadAmmo, loading, loadedProjectile) | (none; firing/loading handled by chain-gun-manager) |
 | Targeting | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | range, next/prev/clearTargetCommand |
 | Warp | `warp.ts` | damageFactor, currentLevel, desiredLevel, currentFrequency | - |
-| Armor | `armor.ts` | plates[], healthyPlates, totalHealth | - |
+| Armor | `armor.ts` | armorPlates[], design | numberOfPlates, numberOfHealthyPlates, degreesPerPlate |
 
 ## Commands
 
@@ -223,7 +223,7 @@ interface EventEmitter<T extends EventMap> {
 **Static:**
 - `zero|one: XY` - Constants
 - `lengthOf(v): number` | `angleOf(v): number`
-- `normalize(v, len?): XY` | `rotate(v, deg): XY`
+- `normalize(v): XY` | `rotate(v, deg): XY`
 - `add(a, b)|difference(a, b)|scale(v, s)|negate(v): XY`
 - `isZero(v, threshold?): boolean` | `clone(v): XY`
 

@@ -7,7 +7,7 @@ source_of_truth:
   - modules/browser/package.json
 related:
   - PROJECT_ANALYSIS.md
-last_verified: 2026-06-13
+last_verified: 2026-07-04
 ---
 
 # Dependencies
@@ -17,7 +17,7 @@ last_verified: 2026-06-13
 | Package | Version | Rationale |
 |---------|---------|-----------|
 | @colyseus/core | ^0.16.23 | Server framework (0.16.x line adopted) |
-| @colyseus/schema | ^3.0.68 | Compatible with TS strict mode |
+| @colyseus/schema | ^3.0.76 | Compatible with TS strict mode |
 | colyseus.js | ^0.16.22 | Must match server version |
 | @colyseus/ws-transport | ^0.16.5 | Stable WebSocket |
 
@@ -25,16 +25,16 @@ last_verified: 2026-06-13
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| xstate | ^5.24.0 | Modern TS support, v5.x migration complete |
+| xstate | ^5.32.4 | Modern TS support, v5.x migration complete |
 | detect-collisions | ^10.10.2025 | Spatial hashing, O(n log n) avg |
 
 ## Browser
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| pixi.js | ^8.14.0 | Stable, WebGL 2 (upgraded from v7) |
-| react | ^18.3.0 | React 18 in use, Arwes (@arwes/react) compatible |
-| react-dom | ^18.3.0 | Matches React version |
+| pixi.js | ^8.19.0 | Stable, WebGL 2 (upgraded from v7) |
+| react | ^18.3.1 | React 18 in use, Arwes (@arwes/react) compatible |
+| react-dom | ^18.3.1 | Matches React version |
 | golden-layout | ^1.5.9 | **PINNED** (v2.x complete rewrite, incompatible) |
 | @arwes/react | 1.0.0-next.25020502 | Sci-fi UI framework (next pre-release) |
 
@@ -48,6 +48,7 @@ last_verified: 2026-06-13
 | tsup | ^8.5.1 | Fast library builds |
 | jest | ^30.4.2 | Stable, fast w/ esbuild |
 | @playwright/test | ^1.61.1 | E2E testing (e2e Dockerfile image tag must match) |
+| turbo | ^2.10.3 | Build task graph + local caching (core → rest ordering; requires `packageManager` field in root package.json) |
 
 ## Version Pins
 

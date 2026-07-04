@@ -14,12 +14,12 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 
 ### 1.1 Existing Testing Infrastructure
 
-**Unit Testing (19 test files):**
+**Unit Testing (46 test files):**
 - Jest with multi-project setup (core, server, node-red)
-- 12 files in `modules/core/test/` - physics, state management, formulas
+- 26 files in `modules/core/test/` - physics, state management, formulas
 - 4 files in `modules/node-red/` - integration nodes
-- 2 files in `modules/server/` - API, serialization
-- 1 file in `modules/e2e/` - Playwright integration
+- 6 files in `modules/server/` - API, serialization
+- 10 files in `modules/e2e/` - Playwright integration
 
 **Sophisticated Infrastructure:**
 
@@ -241,7 +241,7 @@ collectCoverageFrom: ['modules/*/src/**/*.ts', '!modules/browser/**']
 
 ### 6.1 CI/CD Enhancements
 
-**Existing:** 4 jobs (Test-Static, Test-Units, Test-E2e, Build), container E2E, artifact storage
+**Existing:** 6 jobs (Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build), container E2E, artifact storage
 
 **Proposed:**
 1. **Parallel Jest** - Add `--maxWorkers=4` to unit tests

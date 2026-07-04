@@ -62,8 +62,8 @@ The lobby is the **mission control center** where game masters:
 - **Accent 2:** Cyan-blue (#00AAFF)
 
 **Semantic Colors:**
-- **Success/Go:** Green-cyan (#21808D)
-- **Error/Stop:** Red (#C0152F, rgb(192, 21, 47))
+- **Success/Go:** Green (hsl(120, 50%, 40%))
+- **Error/Stop:** Red (hsl(10, 50%, 48%))
 - **Warning:** Orange-yellow (#FFA500)
 - **Disabled:** 50% opacity of primary color
 
@@ -168,6 +168,7 @@ Each card represents one player ship in the game:
   - "Pilot" (primary palette)
   - "E.C.R" (Engineering Control Room, primary palette)
   - "Bridge Engineer" (primary palette)
+  - "Signals" (primary palette, navigates to signals.html?ship={id})
 
 **Layout:** Cards displayed in horizontal wrap or grid (max 3 per row)
 
@@ -348,6 +349,7 @@ Lobby Screen
 ├─ Click "Weapons" → Navigate to weapons.html?ship={id}
 ├─ Click "Pilot" → Navigate to pilot.html?ship={id}
 ├─ Click "E.C.R" → Navigate to ecr.html?station=ecr&ship={id}
+├─ Click "Signals" → Navigate to signals.html?ship={id}
 ├─ Click "Input" → Navigate to input.html
 └─ Click "Colyseus Monitor" → Navigate to colyseus-monitor
 ```
