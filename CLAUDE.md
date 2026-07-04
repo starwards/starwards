@@ -71,6 +71,7 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 | `starwards-colyseus` | State not syncing, @gameField issues |
 | `starwards-ci-debugging` | GitHub Actions CI failures |
 | `starwards-station-ui` | Station screen layout, widgets, input wiring, color system |
+| `osc-controllers` | Open Stage Control layouts/custom modules, Node-RED OSC bridge, tablet controllers, Playwright tests driving O-S-C widgets |
 
 ## Custom Commands
 
