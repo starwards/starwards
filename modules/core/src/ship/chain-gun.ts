@@ -23,6 +23,9 @@ export type ChaingunDesign = {
     use_CannonShell?: boolean;
     use_BlastCannonShell?: boolean;
     use_Missile?: boolean;
+    heat_CannonShell?: number;
+    heat_BlastCannonShell?: number;
+    heat_Missile?: number;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -37,6 +40,9 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @gameField('boolean') use_CannonShell = false;
     @gameField('boolean') use_BlastCannonShell = false;
     @gameField('boolean') use_Missile = false;
+    @gameField('float32') heat_CannonShell = 0;
+    @gameField('float32') heat_BlastCannonShell = 0;
+    @gameField('float32') heat_Missile = 0;
 
     // get explosionSecondsToLive(): number {
     //     return this.explosionRadius / this.explosionExpansionSpeed;

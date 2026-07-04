@@ -12,14 +12,12 @@ import {
 
 import { DeepReadonly } from 'ts-essentials';
 import { EnergyManager } from './energy-manager';
-import { HeatManager } from './heat-manager';
 import { IterationData } from '../updateable';
 import { MovementManager } from './movement-manager';
 import { SpaceManager } from '../logic/space-manager';
 
 export class ShipManagerPc extends ShipManager implements PcShipApi {
     readonly isPlayerShip = true;
-    private heatManager: HeatManager;
     private energyManager: EnergyManager;
     private smartPilotManeuveringMode: StatesToggle<SmartPilotMode>;
     private smartPilotRotationMode: StatesToggle<SmartPilotMode>;
@@ -45,7 +43,6 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
             SmartPilotMode.VELOCITY,
             SmartPilotMode.TARGET,
         );
-        this.heatManager = new HeatManager(this.state, this.damageManager);
         this.energyManager = new EnergyManager(this.state, this.heatManager);
         this.movementManager = new MovementManager(
             this.spaceObject,
@@ -76,7 +73,6 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
     update(id: IterationData) {
         super.update(id);
 
-        this.heatManager.update(id);
         this.movementManager.update(id);
         this.handleToggleSmartPilotRotationMode();
         this.handleToggleSmartPilotManeuveringMode();
