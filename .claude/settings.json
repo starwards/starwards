@@ -17,6 +17,8 @@
             "Bash(git status*)",
             "Bash(git diff*)",
             "Bash(git log*)",
+            "Bash(git fetch:*)",
+            "Bash(git pull:*)",
             "Bash(gh auth status)",
             "Bash(gh issue list*)",
             "Bash(gh issue view*)"
