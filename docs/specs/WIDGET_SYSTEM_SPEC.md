@@ -20,7 +20,7 @@ last_verified: 2026-06-13
 |-----------|---------|-------------|
 | DashboardWidget | Widget interface | Defines widget contract |
 | Dashboard | Widget manager | Golden Layout wrapper |
-| createWidget | Widget factory | Simplifies widget creation |
+| createWidget | GM "Create Objects" panel factory | Builds the object-creation GM widget |
 | registerWidget | Registration | Adds widget to dashboard |
 
 ---
@@ -168,77 +168,103 @@ dashboard.setup();
 ---
 
 # Widget Creation Pattern
-@file: modules/browser/src/widgets/create.ts
+@file: modules/browser/src/widgets/ammo.ts
 @pattern: factory-function
 @stability: stable
 
--> simplifies: widget-creation
 -> provides: common-structure
 -> integrates: tweakpane
 :: factory-pattern
 
-## createWidget Function
-```typescript
-function createWidget(createContainer: InteractiveLayerCommands): DashboardWidget
-```
+## The Widget Factory Function
+
+Each widget file exports a factory function that takes a `ShipDriver` and returns a
+`DashboardWidget`. The factory defines a local component class (its constructor receives
+`(container, props)`) and returns `{ name, type: 'component', component, defaultProps: {} }`.
 
 ### Basic Widget
 ```typescript
-import { createWidget } from './create';
+import { ShipDriver } from '@starwards/core';
+import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 
-export const myWidget = createWidget({
-    name: 'my-widget',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        container.innerHTML = '<h1>My Widget</h1>';
-        return container;
+export function myWidget(shipDriver: ShipDriver): DashboardWidget {
+    class MyComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            container.getElement().get(0).innerHTML = '<h1>My Widget</h1>';
+        }
     }
-});
+    return {
+        name: 'my-widget',
+        type: 'component',
+        component: MyComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ### Widget with State Updates
 ```typescript
-export const statusWidget = createWidget({
-    name: 'status',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        const statusDiv = document.createElement('div');
-        container.appendChild(statusDiv);
-        
-        // Update on state change
-        ship.state.onChange(() => {
-            statusDiv.textContent = `Energy: ${ship.state.reactor.energy}`;
-        });
-        
-        return container;
+export function statusWidget(shipDriver: ShipDriver): DashboardWidget {
+    class StatusComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const statusDiv = document.createElement('div');
+            container.getElement().get(0).appendChild(statusDiv);
+
+            // Update on state change
+            shipDriver.state.onChange(() => {
+                statusDiv.textContent = `Energy: ${shipDriver.state.reactor.energy}`;
+            });
+        }
     }
-});
+    return {
+        name: 'status',
+        type: 'component',
+        component: StatusComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ### Widget with Tweakpane
 ```typescript
 import { createPane } from '../panel';
 
-export const controlWidget = createWidget({
-    name: 'controls',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        // Use createPane() for automatic data-id attribute (enables semantic testing)
-        const pane = createPane({ title: 'Controls', container });
+export function controlWidget(shipDriver: ShipDriver): DashboardWidget {
+    class ControlComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            // Use createPane() for automatic data-id attribute (enables semantic testing)
+            const pane = createPane({ title: 'Controls', container: container.getElement().get(0) });
 
-        // Add controls
-        pane.addBinding(ship.state.reactor, 'power', {
-            min: 0,
-            max: 1,
-            step: 0.25
-        });
-
-        return container;
+            // Add controls
+            pane.addBinding(shipDriver.state.reactor, 'power', {
+                min: 0,
+                max: 1,
+                step: 0.25,
+            });
+        }
     }
-});
+    return {
+        name: 'controls',
+        type: 'component',
+        component: ControlComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 **Note**: Always use `createPane({ title: 'Panel Name', container })` instead of `new Pane({ container })`. This automatically adds `data-id="Panel Name"` for semantic testing via `page.locator('[data-id="Panel Name"]')`.
+
+## createWidget (GM "Create Objects" panel)
+@file: modules/browser/src/widgets/create.ts
+
+`createWidget` in `create.ts` is not a generic factory — it builds one specific GM widget
+(the "Create Objects" panel, `name: 'create'`) and takes an `InteractiveLayerCommands`
+object used to spawn asteroids, ships, explosions and waypoints:
+
+```typescript
+function createWidget(createContainer: InteractiveLayerCommands): DashboardWidget
+```
 
 
 ---
@@ -281,24 +307,27 @@ export const myWidget: DashboardWidget<MyWidgetProps> = {
 
 ## State Management
 ```typescript
-export const stateWidget = createWidget({
-    name: 'state-widget',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        
-        // Listen to specific property
-        ship.state.reactor.listen('energy', (value) => {
-            updateDisplay(value);
-        });
-        
-        // Listen to entire state
-        ship.state.onChange(() => {
-            updateAllDisplays();
-        });
-        
-        return container;
+export function stateWidget(shipDriver: ShipDriver): DashboardWidget {
+    class StateComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            // Listen to specific property
+            shipDriver.state.reactor.listen('energy', (value) => {
+                updateDisplay(value);
+            });
+
+            // Listen to entire state
+            shipDriver.state.onChange(() => {
+                updateAllDisplays();
+            });
+        }
     }
-});
+    return {
+        name: 'state-widget',
+        type: 'component',
+        component: StateComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ---
@@ -377,31 +406,34 @@ dashboard.createDragSource(menuItem, itemConfig);
 ```typescript
 import { createPane } from '../panel';
 
-export const controlPanel = createWidget({
-    name: 'controls',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        const pane = createPane({ title: 'Controls', container });
+export function controlPanel(shipDriver: ShipDriver): DashboardWidget {
+    class ControlPanelComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const pane = createPane({ title: 'Controls', container: container.getElement().get(0) });
 
-        // Number input
-        pane.addBinding(ship.state.reactor, 'power', {
-            min: 0,
-            max: 1,
-            step: 0.25
-        });
+            // Number input
+            pane.addBinding(shipDriver.state.reactor, 'power', {
+                min: 0,
+                max: 1,
+                step: 0.25,
+            });
 
-        // Boolean toggle
-        pane.addBinding(ship.state, 'freeze', {
-            label: 'Freeze'
-        });
+            // Boolean toggle
+            pane.addBinding(shipDriver.state, 'freeze', {
+                label: 'Freeze',
+            });
 
-        // Button
-        pane.addButton({ title: 'Fire' })
-            .on('click', () => ship.fire());
-
-        return container;
+            // Button
+            pane.addButton({ title: 'Fire' }).on('click', () => shipDriver.fire());
+        }
     }
-});
+    return {
+        name: 'controls',
+        type: 'component',
+        component: ControlPanelComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ## Folder Organization
@@ -439,32 +471,38 @@ pane.addBinding(ship.state.reactor, 'energy', {
 ### 1. Create Widget File
 ```typescript
 // modules/browser/src/widgets/my-widget.ts
-import { createWidget } from './create';
 import { ShipDriver } from '@starwards/core';
+import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 
-export const myWidget = createWidget({
-    name: 'my-widget',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        container.className = 'my-widget';
-        
-        // Build UI
-        const title = document.createElement('h2');
-        title.textContent = 'My Widget';
-        container.appendChild(title);
-        
-        const content = document.createElement('div');
-        content.className = 'content';
-        container.appendChild(content);
-        
-        // Update on state change
-        ship.state.onChange(() => {
-            updateContent(content, ship.state);
-        });
-        
-        return container;
+export function myWidget(shipDriver: ShipDriver): DashboardWidget {
+    class MyComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const root = container.getElement().get(0);
+            root.className = 'my-widget';
+
+            // Build UI
+            const title = document.createElement('h2');
+            title.textContent = 'My Widget';
+            root.appendChild(title);
+
+            const content = document.createElement('div');
+            content.className = 'content';
+            root.appendChild(content);
+
+            // Update on state change
+            shipDriver.state.onChange(() => {
+                updateContent(content, shipDriver.state);
+            });
+        }
     }
-});
+    return {
+        name: 'my-widget',
+        type: 'component',
+        component: MyComponent,
+        defaultProps: {},
+    };
+}
 
 function updateContent(element: HTMLElement, state: ShipState) {
     element.innerHTML = `
@@ -525,23 +563,27 @@ const config: GoldenLayout.Config = {
 @purpose: read-only-display
 
 ```typescript
-export const displayWidget = createWidget({
-    name: 'display',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        const display = document.createElement('div');
-        container.appendChild(display);
-        
-        function update() {
-            display.innerHTML = formatData(ship.state);
+export function displayWidget(shipDriver: ShipDriver): DashboardWidget {
+    class DisplayComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const display = document.createElement('div');
+            container.getElement().get(0).appendChild(display);
+
+            function update() {
+                display.innerHTML = formatData(shipDriver.state);
+            }
+
+            shipDriver.state.onChange(update);
+            update();
         }
-        
-        ship.state.onChange(update);
-        update();
-        
-        return container;
     }
-});
+    return {
+        name: 'display',
+        type: 'component',
+        component: DisplayComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ## Control Widget Pattern
@@ -550,50 +592,59 @@ export const displayWidget = createWidget({
 ```typescript
 import { createPane } from '../panel';
 
-export const controlWidget = createWidget({
-    name: 'controls',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        const pane = createPane({ title: 'Controls', container });
+export function controlWidget(shipDriver: ShipDriver): DashboardWidget {
+    class ControlComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const pane = createPane({ title: 'Controls', container: container.getElement().get(0) });
 
-        // Add controls
-        pane.addBinding(ship.state.reactor, 'power', {
-            min: 0,
-            max: 1
-        }).on('change', (ev) => {
-            ship.setPower('reactor', ev.value);
-        });
-
-        return container;
+            // Add controls
+            pane.addBinding(shipDriver.state.reactor, 'power', {
+                min: 0,
+                max: 1,
+            }).on('change', (ev) => {
+                shipDriver.setPower('reactor', ev.value);
+            });
+        }
     }
-});
+    return {
+        name: 'controls',
+        type: 'component',
+        component: ControlComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ## Canvas Widget Pattern
 @purpose: graphics-rendering
 
 ```typescript
-export const canvasWidget = createWidget({
-    name: 'canvas',
-    render: (ship: ShipDriver) => {
-        const container = document.createElement('div');
-        const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 600;
-        container.appendChild(canvas);
-        
-        const ctx = canvas.getContext('2d')!;
-        
-        function render() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawContent(ctx, ship.state);
-            requestAnimationFrame(render);
+export function canvasWidget(shipDriver: ShipDriver): DashboardWidget {
+    class CanvasComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 600;
+            container.getElement().get(0).appendChild(canvas);
+
+            const ctx = canvas.getContext('2d')!;
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawContent(ctx, shipDriver.state);
+                requestAnimationFrame(render);
+            }
+
+            render();
         }
-        
-        render();
-        return container;
     }
-});
+    return {
+        name: 'canvas',
+        type: 'component',
+        component: CanvasComponent,
+        defaultProps: {},
+    };
+}
 ```
 
 ## React Widget Pattern
@@ -712,7 +763,7 @@ export const myWidget: DashboardWidget = {
 # Best Practices
 
 ## DO
-✓ Use createWidget for simple widgets
+✓ Export a `xWidget(shipDriver): DashboardWidget` factory per widget
 ✓ Listen to state changes for updates
 ✓ Clean up event listeners on destroy
 ✓ Use Tweakpane for controls
@@ -738,39 +789,44 @@ export const myWidget: DashboardWidget = {
 ```typescript
 // 1. Create widget file
 // modules/browser/src/widgets/my-widget.ts
-import { createWidget } from './create';
 import { ShipDriver } from '@starwards/core';
+import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 
-export const myWidget = createWidget({
-    name: 'my-widget',
-    render: (ship: ShipDriver) => {
-        // Create container
-        const container = document.createElement('div');
-        container.className = 'my-widget';
-        
-        // Build UI
-        const content = document.createElement('div');
-        container.appendChild(content);
-        
-        // Update function
-        function update() {
-            content.innerHTML = formatData(ship.state);
+export function myWidget(shipDriver: ShipDriver): DashboardWidget {
+    class MyComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            const root = container.getElement().get(0);
+            root.className = 'my-widget';
+
+            // Build UI
+            const content = document.createElement('div');
+            root.appendChild(content);
+
+            // Update function
+            function update() {
+                content.innerHTML = formatData(shipDriver.state);
+            }
+
+            // Listen to changes
+            shipDriver.state.onChange(update);
+
+            // Initial render
+            update();
+
+            // Cleanup
+            container.on('destroy', () => {
+                // Remove listeners
+            });
         }
-        
-        // Listen to changes
-        ship.state.onChange(update);
-        
-        // Initial render
-        update();
-        
-        // Cleanup
-        container.addEventListener('destroy', () => {
-            // Remove listeners
-        });
-        
-        return container;
     }
-});
+    return {
+        name: 'my-widget',
+        type: 'component',
+        component: MyComponent,
+        defaultProps: {},
+    };
+}
 
 // 2. Register widget
 // modules/browser/src/screens/ship.ts

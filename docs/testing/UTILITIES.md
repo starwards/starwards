@@ -114,8 +114,7 @@ harness.simulate(10, 100, () => {
 // Create multi-ship combat scenario
 const enemies = harness.createCombatScenario({
     shipCount: 3,
-    distance: 1000,
-    faction: 'hostile'
+    teams: [1, 1, 1]
 });
 
 // Ships positioned in formation around test ship
@@ -124,9 +123,9 @@ const enemies = harness.createCombatScenario({
 
 **Configuration:**
 - `shipCount`: Number of enemy ships
-- `distance`: Distance from test ship
-- `faction`: Enemy faction (optional)
-- `formation`: Formation pattern (optional)
+- `teams`: Per-ship faction numbers (optional, defaults to `i % 2`)
+- `positions`: Per-ship `{ x, y }` overrides (optional)
+- `rotations`: Per-ship angle overrides (optional)
 
 #### Graph Visualization
 
@@ -254,17 +253,23 @@ const reactorPower = await getPropertyValue(page, 'power', 'Reactor');
 **How it works:**
 ```typescript
 if (panelTitle) {
-    // Scope search to panel via data-id (prevents strict mode violations)
-    const panel = page.locator(`[data-id="${panelTitle}"]`);
-    const label = panel.getByText(labelText, { exact: true });
+    // Scope to the widget container by data-id, with a text fallback
+    const widgetContainer = page
+        .locator(`[data-id="${panelTitle}"], div:has-text("${panelTitle}")`)
+        .first();
+    await expect(widgetContainer).toBeVisible();
+    const label = widgetContainer.getByText(labelText, { exact: true });
+    await expect(label).toBeVisible();
     const input = label.locator('..').locator('input');
-    // No visibility check - Tweakpane checkboxes are CSS-hidden but interactive
-    return await input.inputValue();
+    // Prefer data-value attribute (set by PropertyPanel), else read inputValue
+    const dataValue = await input.getAttribute('data-value');
+    return dataValue ?? (await input.inputValue());
 } else {
-    // Global search - may fail if label appears in multiple places
     const label = page.getByText(labelText, { exact: true });
+    await expect(label).toBeVisible();
     const input = label.locator('..').locator('input');
-    return await input.inputValue();
+    const dataValue = await input.getAttribute('data-value');
+    return dataValue ?? (await input.inputValue());
 }
 ```
 
@@ -673,8 +678,9 @@ const fastShip = createTestShip({
 
 // Create ship with specific faction
 const enemy = createTestShip({
-    faction: 'hostile',
-    position: { x: 1000, y: 500 }
+    faction: 1,
+    x: 1000,
+    y: 500
 });
 ```
 

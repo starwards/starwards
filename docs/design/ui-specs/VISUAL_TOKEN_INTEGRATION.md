@@ -153,7 +153,7 @@ applyTheme(); // Apply immediately
 | `system-status.ts` | 107 | System status cells |
 | `full-system-status.ts` | 72-73 | Full system status rows |
 | `warp.ts` | 41-42 | Warp jam indicator |
-| `tweak.ts` | 159-161 | System defectible folders |
+| `tweak.ts` | 177-178 | System defectible folders |
 
 #### Dynamic Application Pattern
 
@@ -386,8 +386,9 @@ container.getElement().css('background-color', toCss(radarFogOfWar));
 | Token Name | PixiJS (hex) | CSS (rgb/hex) | Arwes (rgb) | Semantic Usage |
 |-----------|--------------|---------------|-------------|----------------|
 | **Primary Cyan** | `0x00ffff` | `#00ffff` | `hsl(180, 100%, 53%)` (`paletteColors.primary` = `hsl.primary.main(3)`) | Arwes primary, borders |
-| **Success Teal** | `0x21808d` | `#21808d` | `rgb(33, 128, 141)` | Cards, positive states |
-| **Error Red** | `0xd53434` / `0xc0152f` | `#d53434` | `rgb(192, 21, 47)` | Errors, enemies |
+| **Success Green** | - | `hsl(120, 50%, 40%)` | `hsl(120, 50%, 40%)` | `hsl.success` / `paletteColors.success`; positive states |
+| **Error Red** | - | `hsl(10, 50%, 48%)` | `hsl(10, 50%, 48%)` | `hsl.error` / `paletteColors.error`; error states |
+| **Enemy Red** | `0xd53434` | `#d53434` | - | `red` (Enemy/Gravitas faction) |
 | **Friendly Blue** | `0x404fc9` | `#404fc9` | - | Friendly faction |
 | **Neutral Yellow** | `0xe2b640` | `#e2b640` | - | Neutral objects |
 | **Active Green** | `0x34d534` | `#34d534` | - | Targets, OK status |
@@ -426,16 +427,21 @@ color: ${color}33;  // 20% opacity
 **Pattern:** Inline scoped styles per component
 
 ```typescript
-// Inline style injection in component
+// Inline style injection in component (from arwes-compat.tsx Card)
 <style>{`
-    .arwes-card .arwes-frames-frame [data-name=line] {
-        color: rgb(33, 128, 141);  /* Border color */
-    }
     .arwes-card .arwes-frames-frame [data-name=bg] {
-        color: rgba(33, 128, 141, 0.1);  /* Fill glow */
+        fill: ${withAlpha(theme.colors.primary.main(7), 0.25)};   /* Fill glow */
+        stroke: ${withAlpha(theme.colors.primary.main(7), 0.5)};
+        stroke-width: 1;
     }
-    .arwes-card:hover [data-name=bg] {
-        color: rgba(33, 128, 141, 0.2);  /* Hover glow */
+    .arwes-card .arwes-frames-frame [data-name=line] {
+        stroke: ${theme.colors.primary.main(7)};                  /* Border stroke */
+        fill: none;
+        stroke-width: 4;
+    }
+    .arwes-card:hover .arwes-frames-frame [data-name=line] {
+        stroke: ${theme.colors.primary.high(2)};                  /* Hover glow */
+        filter: drop-shadow(0 0 6px ${theme.colors.primary.main(3)});
     }
 `}</style>
 
@@ -770,7 +776,7 @@ export function setTheme(theme: Theme) {
 **Styling Applications:**
 - `modules/browser/src/widgets/system-status.ts:107` - Tweakpane status theming
 - `modules/browser/src/widgets/armor.ts:10` - RGB to hex conversion
-- `modules/browser/src/screens/ecr.ts:59` - CSS background from PixiJS color
+- `modules/browser/src/screens/ecr.ts:69` - CSS background from PixiJS color
 
 **Font Loading:**
 - `/static/styles/index.css` - Font-face declarations

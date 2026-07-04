@@ -1,3 +1,8 @@
+# node-red credential-store encryption key — never commit it alongside
+# flows_cred.json (the pair makes stored credentials plaintext-equivalent).
+# node-red regenerates it on first run.
+docker/node-red/data/.config.runtime.json
+
 # build artifact folders
 dist
 cjs
@@ -96,6 +101,7 @@ ngrok.*
 assets
 test-results
 *.tsbuildinfo
+.turbo
 
 modules/core/unity-schema
 *.cpuprofile

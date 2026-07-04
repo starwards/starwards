@@ -32,7 +32,7 @@ Utility scripts are stored in the `scripts` folder:
 
 ### Installing and running commands
 
-To install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installd. nodejs should be at version 15.11 at least and npm should be at version 7.6 at least
+To install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installed. node.js should be at version 22.11.0 at least (see `.nvmrc`) and npm should be at version 10.9.0 at least (see `engines` in `package.json`).
 Then, `git clone` this repository locally and make sure you can run the following:
 
 ```sh
@@ -56,8 +56,12 @@ more commands:
 # normalize project code style
 npm run prettify
 # update snapshots for E2E tests on local development environment
+# (visual snapshots are per-platform: this refreshes the *-<platform>.png set
+# for YOUR OS only; win32 baselines are local-only and gitignored)
 npm run test:e2e -- --update-snapshots
 # update snapshots for the E2E tests on CI (linux) environment (requires docker. very slow)
+# only linux baselines are committed and CI compares against them, so run
+# this whenever a visual change is intended
 npm run snapshots:ci
 # generate native binary executables. executables will appear in ./dist folder.
 npm run pkg
@@ -112,11 +116,19 @@ Please keep in mind that this project is not well covered with tests. For now, a
 
 ## VSCode setup
 
-This project comes pre-configured for [VSCode](https://code.visualstudio.com/). We assume yuo have instlled all recommended plugins.
+This project comes pre-configured for [VSCode](https://code.visualstudio.com/). We assume you have installed all recommended plugins.
 
 ## Running and debugging a local development environment
 
-Running and debugging requires three running processes.
+The quickest way is the one-command launcher (cross-platform, uses `concurrently`):
+
+```sh
+npm run dev
+```
+
+It starts all three processes described below in one terminal (core watch, web dev server, API server). Zellij users can get the same setup in a pane grid with `npm run dev:zellij`.
+
+Alternatively, run the three processes manually:
 
 1. Continously build the core module
 
@@ -138,12 +150,6 @@ Running and debugging requires three running processes.
     cd ./modules/browser && npm start
     ```
 
-    Some versions of NodeJS (17) will require adding an extra flag for this command to work:
-
-    ```sh
-    cd ./modules/browser && NODE_OPTIONS=--openssl-legacy-provider npm start
-    ```
-
 3. API server
 
     Runs a local development API server (game logic and static files serving) in debug mode. you will need to restart the API server manually if you want it to re-load server-side code (changes to the `server` or `core` modules).
@@ -154,11 +160,11 @@ Running and debugging requires three running processes.
     node -r ts-node/register/transpile-only ./modules/server/src/dev.ts
     ```
 
-After all three processes are up, open your chrome browser at `http://localhost/`.
+After all three processes are up, open your chrome browser at `http://localhost:3000/` (the web dev server proxies API requests to the API server on port 8080).
 
 ### Hosting an internet game
 
-To quickly host a local game with a remote party outside your network, I reccommend you use [ngrok](https://ngrok.com/). just download the executable file to the root of this project and run `./ngrok http` to create an HTTP tunnel to your local server.
+To quickly host a local game with a remote party outside your network, I recommend you use [ngrok](https://ngrok.com/). just download the executable file to the root of this project and run `./ngrok http` to create an HTTP tunnel to your local server.
 
 [discord-invite-link]: https://discord.gg/p56nSVEjdb
 [good-first-issue]: https://github.com/starwards/starwards/labels/good%20first%20issue

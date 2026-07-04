@@ -87,7 +87,7 @@ room.send('commandName', {value: 0.5});                       // Typed command
 
 **Types:** `Spaceship|Projectile|Explosion|Asteroid|Waypoint`
 
-**Properties:** `id|position|velocity|angle|radius|health|destroyed|freeze|faction`
+**Properties:** `id|position|velocity|angle|radius|destroyed|freeze|faction` (on SpaceObjectBase); `health` is not on the base — it exists only on `Projectile` and `Asteroid`.
 
 **Type guard:** `Spaceship.isInstance(o): o is Spaceship`
 

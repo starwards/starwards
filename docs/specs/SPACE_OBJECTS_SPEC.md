@@ -535,7 +535,7 @@ export class Projectile extends SpaceObjectBase {
     public timeToLive: number = 5.0;
     
     public readonly isCorporal: boolean = true;
-    public readonly collisionDamage: number = 1.0;
+    // collisionDamage is not overridden — inherits SpaceObjectBase default (0.5)
     
     init(
         id: string,
@@ -574,8 +574,9 @@ export class Explosion extends SpaceObjectBase {
     @gameField('float32')
     public timeToLive: number = 1.0;
     
-    // Non-corporeal (no collision)
-    public readonly isCorporal: boolean = false;
+    // Corporeal (inherited default) — participates in the collision
+    // system to deal blast damage/impulse
+    public readonly isCorporal: boolean = true;
     
     init(id: string, position: Vec2, damageFactor: number): this {
         this.id = id;
@@ -597,7 +598,7 @@ export class Asteroid extends SpaceObjectBase {
         return !!o && (o as SpaceObjectBase).type === 'Asteroid';
     };
     
-    public static maxSize = 50;
+    public static maxSize = 350;
     
     @gameField('string')
     public readonly type = 'Asteroid';
@@ -628,17 +629,27 @@ export class Waypoint extends SpaceObjectBase {
     @gameField('string')
     public readonly type = 'Waypoint';
     
+    @gameField('int8')
+    public faction: Faction = Faction.NONE;
+    
     @gameField('string')
-    public label: string = '';
+    public owner: string | null = null;
+    
+    @gameField('string')
+    public collection = '';
+    
+    @gameField('string')
+    public title = '';
+    
+    @gameField('uint32')
+    public color = 0xffffff;
     
     // Non-corporeal (no collision)
     public readonly isCorporal: boolean = false;
     
-    init(id: string, position: Vec2, label: string): this {
+    init(id: string, position: Vec2): this {
         this.id = id;
         this.position = position;
-        this.label = label;
-        this.radius = 10;
         return this;
     }
 }

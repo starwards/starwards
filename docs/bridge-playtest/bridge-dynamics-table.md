@@ -45,10 +45,10 @@ Each cell = what that station **controls** (⚙), **sees** (👁), or is **blind
 | **Armor plates** | combat | info | — | ✅ | 👁 armor status | — | 👁 armor status | — | — |
 | **Combat damage events** | combat | info | — | ✅ | causes (exposure) | causes (return fire) | 👁 sees + ⬜ would repair | — | 🗣 decides priority |
 | **Repair** | combat | action | — | ⬜ | — | — | ⬜ not built (back-door slider, no skill gate) | — | — |
-| **Scan initiation** | both | action | — | ⬜ | — | — | — | ⬜ not built (mini-game TBD) | — |
-| **Hack initiation** | combat | action | — | ⬜ | — | — | — | ⬜ not built (effect exists, no player trigger) | — |
+| **Scan initiation** | both | action | — | ✅ | — | — | — | ⚙ player-triggered job queue | — |
+| **Hack initiation** | combat | action | — | ✅ | — | — | — | ⚙ player-triggered job queue | — |
 | **Hack effect on enemy** | combat | info | — | 🟡 | — | 👁 enemy degraded | — | ⬜ would initiate | — |
-| **Signals subsystem** | both | resource | — | ❌ | — | — | ⚙ shares `/radar` (no dedicated system) | 👁 depends on shared radar | — |
+| **Signals subsystem** | both | resource | — | ✅ | — | — | ⚙ dedicated system (power/coolant/heat) | 👁 own subsystem status | — |
 | **Supplies to others** | both | output | — | varies | position, heading (implicit) | ❌ nothing (pure sink) | power, coolant, warp freq | scan level to radars; ⬜ hack | orders, priority |
 
 ---
@@ -69,7 +69,7 @@ Each cell = what that station **controls** (⚙), **sees** (👁), or is **blind
 | **Range-Limited Action by Proxy** | — | ❌ | No action requires another station's positioning. |
 | **Solo Minigame (anti-pattern)** | scan, hack, repair (all TBD) | ⚠️ | Design risk — must add cross-station inputs. |
 | **Weapons as sink** | supplies to others row | ❌ | Weapons returns nothing to bridge. |
-| **Signals subsystem collapse** | signals subsystem row | ❌ | Shares `/radar`, no independent Eng tradeoff. |
+| **Signals subsystem collapse** | signals subsystem row | ✅ | Dedicated Signals system with independent power/coolant/heat tradeoff. |
 
 ---
 

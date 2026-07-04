@@ -6,6 +6,9 @@ module.exports = merge(common, {
     devtool: 'source-map', //'cheap-module-eval-source-map',
     devServer: {
         // index: '',
+        // Intentionally disabled: HMR caused issues with this app (PixiJS/
+        // golden-layout state). Keep full live-reload; do not re-enable
+        // without testing station screens end-to-end.
         hot: false,
         port: 3000,
         allowedHosts: 'all',

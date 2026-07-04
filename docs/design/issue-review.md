@@ -43,7 +43,7 @@ These directly block the first LARP event. Ordered by dependency chain.
 ### Dependency Chain 3: Docking & Repair
 | # | Issue | Status | Dependency |
 |---|-------|--------|------------|
-| [#539](https://github.com/starwards/starwards/issues/539) | Ship-in-ship docking | Core mechanic, designed | None |
+| [#539](https://github.com/starwards/starwards/issues/539) | Ship-in-ship docking | Core mechanic, Done | None |
 | [#538](https://github.com/starwards/starwards/issues/538) | Dock master functionality | Station feature, blocked | #539 |
 | [#547](https://github.com/starwards/starwards/issues/547) | Repair station | Station, blocked | #1228 (closed?) |
 

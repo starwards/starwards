@@ -2,7 +2,7 @@
 
 Complete guide for integrating Arwes futuristic sci-fi UI framework into React applications.
 
-**Note:** This project depends on `@arwes/react`, pinned to the `1.0.0-next.25020502` pre-release (see `modules/browser/package.json`). It is sourced from the React 19 compatible fork published under the `@arwes/*` scope. See [ARWES_VERSION_MIGRATION_GUIDE.md](./ARWES_VERSION_MIGRATION_GUIDE.md) and [CHANGES_SINCE_BLOG.md](./CHANGES_SINCE_BLOG.md) for fork details, or the fork repo https://github.com/amir-arad/arwes.
+**Note:** This project depends on `@arwes/react`, pinned to the `1.0.0-next.25020502` pre-release (see `modules/browser/package.json`). This pinned version peer-depends on React 18 (`peerDependencies: { "react": "18" }`), matching the project's `react@^18.3.1`; React 19 support is a separate, still-incomplete effort (the `@arwes-amir/react` fork). See [ARWES_VERSION_MIGRATION_GUIDE.md](./ARWES_VERSION_MIGRATION_GUIDE.md) and [CHANGES_SINCE_BLOG.md](./CHANGES_SINCE_BLOG.md) for fork details, or the fork repo https://github.com/amir-arad/arwes.
 
 ## Installation
 
@@ -31,7 +31,7 @@ npm install @arwes/react
 
 - **No React Strict Mode** - Arwes does not work with React strict mode
 - **No React Server Components (RSC)** - Use client-side rendering only (`'use client'`)
-- **React 18+ Required** - This fork supports React 19, original supports React 18
+- **React 18 Required** - This pinned version supports React 18
 
 ## Core Concepts
 

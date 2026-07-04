@@ -13,16 +13,17 @@ npm run test:e2e           # E2E tests (Playwright)
 
 # Run single test
 npm test -- --testNamePattern="test name"
-npx playwright test modules/e2e/test/visual/specific.spec.ts --project=chromium
-# (don't use `npm run test:e2e -- <file>` — the script already passes a glob, and Playwright ORs filters, so it runs everything)
+npm run test:e2e -- modules/e2e/test/visual/specific.spec.ts
+# (the script no longer passes a glob — testMatch lives in playwright.config.ts — so file filters work and it runs fine from PowerShell too)
 
 # E2E snapshots
 npm run test:e2e -- --update-snapshots   # Update snapshots locally
 npm run snapshots:ci                     # Update CI (linux) snapshots via docker — very slow
 npm run test:widgets                     # Gallery visual tests, headed chromium
 
-# Development — one command (requires Zellij; server pane started manually)
+# Development — one command (cross-platform: core watch + server + browser via concurrently)
 npm run dev
+# Zellij pane-grid variant: npm run dev:zellij
 
 # Development (3 terminals)
 cd modules/core && npm run build:watch     # Terminal 1: Core watch
@@ -145,6 +146,9 @@ power = 1.0;
 
 ## CI Rules
 All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scripts.
+
+## GitHub Access
+Use the `gh` CLI for all GitHub operations (issues, PRs, workflow runs) — it is the reliable path in headless/agent runs. Treat GitHub MCP tools as a fallback only.
 
 ## Commits & PRs
 Follow [Conventional Commits](https://www.conventionalcommits.org/) for non-trivial changes (see CONTRIBUTING.md). For non-trivial features, open/link an issue first.

@@ -48,7 +48,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Jump drive | — | Skip | Warp topology provides strategic travel |
 | Front/rear shields | — | Skip | Replaced by sectional armor |
 | Maneuver system | Maneuvering | Done | Rotation and afterburner |
-| Docking system | Docking | Designed | Ship-in-ship, compound movement |
+| Docking system | Docking | Done | Ship-in-ship, compound movement |
 | — | Armor (sectional) | Done | No EE equivalent; directional plates |
 | — | Targeting system | Done | Filters: ship-only, enemy-only, range |
 | — | Magazine/ammo | Done | Finite ammunition with loading |

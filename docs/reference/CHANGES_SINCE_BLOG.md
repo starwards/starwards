@@ -341,4 +341,4 @@
 
 *Last blog post: June 19, 2022 - "Radar Damage"*
 *Current analysis: November 7, 2025*
-*Repository started fresh: March 4, 2024 (appears to be rewrite/new implementation)*
+*Repository history: continuous since March 17, 2019*

@@ -8,11 +8,17 @@
         "node": ">= 22.11.0",
         "npm": ">= 10.9.0"
     },
+    "packageManager": "npm@10.9.2",
     "workspaces": [
         "modules/*"
     ],
     "scripts": {
-        "dev": "bash scripts/dev.sh",
+        "predev": "rimraf ./modules/core/cjs/index.js",
+        "dev": "concurrently --kill-others -c blue,green,yellow -n core,server,browser \"npm:dev:core\" \"npm:dev:server\" \"npm:dev:browser\"",
+        "dev:core": "npm --prefix ./modules/core run build:watch",
+        "dev:server": "node scripts/wait-for-core.js",
+        "dev:browser": "npm --prefix ./modules/browser run start",
+        "dev:zellij": "bash scripts/dev.sh",
         "clean": "rimraf ./modules/browser/dist ./modules/browser/dist ./modules/core/cjs ./modules/server/cjs",
         "postbuild": "node scripts/post-build.js",
         "pretty-quick": "pretty-quick --staged --pattern \"./modules/*/src/**/*.{ts,tsx,json}\"",
@@ -22,7 +28,7 @@
         "build:unity": "npm --prefix ./modules/core run build:unity",
         "build:node-red": "npm --prefix ./modules/node-red run build",
         "build:server": "npm --prefix ./modules/server run build",
-        "build": "npm run build:core && concurrently --kill-others-on-fail -c blue,yellow,green,magenta \"npm:build:*(!core)\"",
+        "build": "turbo run build",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "xstate-typegen": "xstate typegen \"./modules/core/src/**/*.ts?(x)\"",
@@ -30,7 +36,7 @@
         "test": "jest",
         "snapshots:ci": "docker-compose -f ./modules/e2e/docker-compose.yml up",
         "test:all": "npm run test:format && npm run test:types && npm run test && npm run test:e2e",
-        "test:e2e": "playwright test modules/e2e/**/*.spec.ts --project=chromium",
+        "test:e2e": "playwright test --project=chromium",
         "test:widgets": "playwright test modules/e2e/test/visual/gallery.spec.ts --project=chromium-headed",
         "test:format": "npm run prettier && npm run lint",
         "test:types": "tsc --noEmit --skipLibCheck",
@@ -44,8 +50,12 @@
         "release": "bash ./scripts/release.sh"
     },
     "lint-staged": {
-        "./modules/*/{src,test}/**/*.{ts,tsx,json}": [
-            "prettier -cw **/*.{js,ts} && eslint . --fix"
+        "./modules/*/{src,test}/**/*.{ts,tsx}": [
+            "prettier --write",
+            "eslint --fix --no-warn-ignored"
+        ],
+        "./modules/*/{src,test}/**/*.json": [
+            "prettier --write"
         ]
     },
     "devDependencies": {
@@ -107,6 +117,7 @@
         "tsconfig-paths-webpack-plugin": "^4.2.0",
         "tslib": "^2.8.1",
         "tsup": "^8.5.1",
+        "turbo": "^2.10.3",
         "typescript": "^6.0.3",
         "webpack": "^5.108.3",
         "webpack-cli": "^7.1.0",

@@ -20,7 +20,7 @@ npm test                   # Verify
 | `npm run clean` | Remove artifacts |
 | `npm run pkg` | Native executables (Linux/macOS/Win) |
 
-**Build order:** core → (server, browser, node-red in parallel)
+**Build order:** core → (server, browser, node-red in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
 
 **Outputs:**
 - core: `modules/core/cjs/`
@@ -28,7 +28,16 @@ npm test                   # Verify
 - browser: `modules/browser/dist/`
 - node-red: `modules/node-red/dist/`
 
-## Development Workflow (3 Terminals)
+## Development Workflow
+
+**One command (cross-platform, via concurrently):**
+```bash
+npm run dev
+# core watch + API server + webpack dev server in one terminal
+# Zellij pane-grid variant: npm run dev:zellij
+```
+
+**Or 3 separate terminals:**
 
 **Terminal 1: Core Watch**
 ```bash
@@ -38,7 +47,6 @@ cd modules/core && npm run build:watch
 **Terminal 2: Webpack Dev Server**
 ```bash
 cd modules/browser && npm start
-# Node 17+: NODE_OPTIONS=--openssl-legacy-provider npm start
 # Serves http://localhost:3000
 ```
 
@@ -49,6 +57,8 @@ node -r ts-node/register/transpile-only modules/server/src/dev.ts
 ```
 
 **Hot reload:** Browser client auto-reloads | Server requires manual restart
+
+**Surviving server restarts:** set `STARWARDS_RESTORE=1` on the dev server to persist the running game state to a local snapshot (gitignored, written every few seconds) and auto-restore it on boot — a restart lands back in the same scenario instead of an empty lobby. Delete the snapshot file (see `modules/server/src/snapshot/snapshot-persistence.ts` for the path, overridable via `STARWARDS_SNAPSHOT_FILE`) to start fresh. Dev-only: `prod.ts` is unaffected.
 
 ## Testing
 

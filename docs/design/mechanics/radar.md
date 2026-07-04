@@ -8,7 +8,7 @@ Multiple radar types serve different stations:
 - **Tactical radar** (Weapons) — real-time contacts, target highlighting
 - **Dradis radar** (Relay) — alternative display with probe coverage
 - **Navigator radar** (Navigator) — warp topology overlay (designed, not built)
-- **Long-range radar** (Signals) — extended range for intelligence (designed, not built)
+- **Long-range radar** (Signals) — extended range for intelligence (built; drives the Signals station's main radar view)
 
 Radar range = `maxRange x effectiveness`. Unpowered radar shows nothing.
 

@@ -62,7 +62,7 @@ These three mechanisms are where the matrix actually lives in code:
 | **Bridge Eng** | Pilot | combat exposure → damage → engineering's job to manage | `damage-manager.ts` |
 | Bridge Eng | Weapons | weapons activity → energy spend → heat → potential overheat damage | `energy-manager.ts` |
 | Bridge Eng | (ECR seat, optional) | warp-frequency authority via `/ecrControl` | `ecr.ts` |
-| **Signals** | Engineering | power for `/radar` (the **only** subsystem signals filters in its systems-status — there is **no separate "signals" subsystem class**) | `signals.ts`; `core/src/ship/` has no `signals.ts` |
+| **Signals** | Engineering | power for `/signals` (a dedicated `Signals` system class with its own power/coolant/hacked) plus `/radar` (the signals *radar* widget still filters `/radar` for detection range) | `signals.ts` (`Signals extends SystemState`); wired into `ship-state.ts` |
 
 ### 2.3 What each station supplies *to* others
 
@@ -257,16 +257,12 @@ dissolve the captain's role**?
   workload becomes a real input the captain must triage against
   pilot/weapons priorities
 - **Signal-owned waypoints** (#1893, replacing the cut Relay):
-  unclear — depends on whether waypoints are visible to the pilot.
-  If pilot sees waypoints automatically, the signal→pilot handoff
-  bypasses the captain. If pilot must be *told* a waypoint was
-  added, the captain's orchestration role is preserved.
+  shipped — waypoints placed by signals appear automatically on the
+  pilot's radar (no faction/owner gating), so the signal→pilot handoff
+  bypasses the captain rather than requiring the captain to route it.
 
 ## 6. Open / unresolved (user-silent items, listed for completeness)
 
-- Whether to introduce a dedicated `Signals` subsystem class
-  (vs sharing `/radar`) — the matrix-strength argument leans one
-  way, the simplicity argument leans the other.
 - Whether weapons should supply *anything* back to its bridge —
   the current asymmetry leaves weapons as a sink.
 - Whether pilot needs a visible engineering-style status (heat

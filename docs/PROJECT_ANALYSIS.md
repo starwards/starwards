@@ -555,7 +555,7 @@ the dependency groups, not version numbers, so it can't drift.
 **Float Precision:** [`game-field.ts`](modules/core/src/game-field.ts) rounds to 2 decimals
 **Angle Wrapping:** Use `toPositiveDegreesDelta()` for 0-360 range
 **Velocity Zero:** Check with `XY.isZero(velocity, threshold)`
-**System Effectiveness:** Multiply by `power * hacked * efficiency`
+**System Effectiveness:** `broken ? 0 : power * hacked` (see `SystemState.effectiveness` getter in modules/core/src/ship/system.ts). `efficiency` is not part of this generic formula; it is a per-system defectible property (e.g. Maneuvering) that can gate `broken`, not a universal multiplier.
 
 ### 10.3 Extension Points
 

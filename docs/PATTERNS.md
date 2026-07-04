@@ -333,7 +333,7 @@ export * from './thruster';
 ## Performance
 
 ### Collision O(n²)
-- Current: Spatial hashing → O(n log n) avg
+- Current: BVH broadphase + SAT narrowphase via the `detect-collisions` library (`modules/core/src/logic/space-manager.ts`) → sub-O(n²) avg
 - Future: Quadtree if >300 objects
 
 ### Rendering: 30 FPS Cap

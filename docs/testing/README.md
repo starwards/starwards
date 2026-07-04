@@ -7,7 +7,7 @@
 | Category | Files | Tests | Location |
 |----------|-------|-------|----------|
 | Unit | 23 | ~90 | `modules/core/test/` |
-| Multi-Client | 4 | 31 | `modules/server/src/test/` |
+| Server | 6 | 28 | `modules/server/src/test/` |
 | E2E | 10 | 51 | `modules/e2e/test/` |
 | Integration | 4 | ~15 | `modules/node-red/src/` |
 
@@ -378,6 +378,12 @@ npm run test:e2e -- --debug   # Inspector
 | Tweakpane properties not rendering | PropertyPanel race condition - ensure value exists before display |
 | API access errors | Use driver's accessor, not public API |
 | MaxListeners warnings | Expected for multi-client (harmless) |
+
+### Known CI flakiness (pre-existing, not a regression)
+
+- **Green e2e jobs can hide first-attempt failures.** `playwright.config.ts` sets `retries: 1` on CI, so a test that fails once and passes on retry is reported "flaky" and the job stays green. Check the "flaky" count in the run summary, not just the job conclusion.
+- **`Error: Cannot find module '@starwards/server'`** — a handful of driver-based specs (pilot/weapons/signals screens + hotkeys) intermittently fail at import on first attempt with this error and pass on retry. Verified present on master before PR #1938 (same 5 flaky specs in master and PR runs). Symptom points at a Playwright worker-startup race resolving the workspace package through tsconfig `paths` (`require-in-the-middle` appears in the stack). Suspected fix, untried: give `modules/server/package.json` a `main`/`exports` entry pointing at `cjs/` so Node resolution has a fallback when the transform race loses.
+- **Test-E2e count jumped from 33 to 75 tests** when the shell glob was removed from the `test:e2e` script (PR #1938): bash without `globstar` expanded `**` as `*`, silently excluding `modules/e2e/test/visual/` specs from CI; Playwright's own `testMatch` now includes them.
 
 **See:** [UTILITIES.md](UTILITIES.md) for detailed test utilities reference
 

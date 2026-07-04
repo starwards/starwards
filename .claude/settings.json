@@ -1,5 +1,25 @@
 {
     "enabledPlugins": {
         "frontend-design@claude-plugins-official": true
+    },
+    "permissions": {
+        "allow": [
+            "Bash(npm test*)",
+            "Bash(npm run test:*)",
+            "Bash(npm run build*)",
+            "Bash(npm run lint)",
+            "Bash(npm run depcheck)",
+            "Bash(npx jest*)",
+            "Bash(npx tsc*)",
+            "Bash(npx playwright test*)",
+            "Bash(npx prettier*)",
+            "Bash(npx eslint*)",
+            "Bash(git status*)",
+            "Bash(git diff*)",
+            "Bash(git log*)",
+            "Bash(gh auth status)",
+            "Bash(gh issue list*)",
+            "Bash(gh issue view*)"
+        ]
     }
 }

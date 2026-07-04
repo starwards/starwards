@@ -46,7 +46,7 @@ Each weapon functions outside its circle at drastically reduced effectiveness.
 
 ## System Effectiveness
 
-`power × coolantFactor × (1 - hacked)`
+`broken ? 0 : power × hacked` (hacked is a HackLevel multiplier: OK=1, COMPROMISED=0.5, DISABLED=0; coolantFactor governs heat dissipation, not system effectiveness)
 
 Simple formula, deep tactics. Energy allocation, heat management, and cyber warfare create interconnected trade-offs.
 
