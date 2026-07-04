@@ -5,9 +5,16 @@ import { addButton, addInputBlade, createPane } from '../panel';
 import { FolderApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
 
+function waypointFolderTitle(wp: Waypoint) {
+    return wp.title || wp.id.slice(0, 6);
+}
+
 export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceDriver, shipId: string) {
     const cleanup = new Destructors();
     container.on('destroy', cleanup.destroy);
+
+    // Bound the panel so a long waypoint list scrolls instead of growing over other panels
+    container.getElement().css({ 'max-height': '35vh', 'overflow-y': 'auto', 'overflow-x': 'hidden' });
 
     const pane = createPane({ title: 'Waypoints', container: container.getElement().get(0) });
     cleanup.add(() => pane.dispose());
@@ -16,7 +23,8 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
 
     function addWaypointRow(wp: Waypoint) {
         if (foldersByWpId.has(wp.id)) return;
-        const folder = pane.addFolder({ title: wp.id.slice(0, 6), expanded: true });
+        // Collapsed by default so many waypoints fit in the available space; expand to rename/delete
+        const folder = pane.addFolder({ title: waypointFolderTitle(wp), expanded: false });
         foldersByWpId.set(wp.id, folder);
 
         const viewModel = { title: wp.title };
@@ -34,6 +42,7 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
                     const handler = (e: Replace) => {
                         if (e.path === titlePath && typeof e.value === 'string') {
                             viewModel.title = e.value;
+                            folder.title = waypointFolderTitle(wp);
                             cb();
                         }
                     };

@@ -7,6 +7,7 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
@@ -14,6 +15,7 @@ import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { drawWaypointList } from '../widgets/waypoint-list';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
 const { error: logError } = createLogger('screen:signals');
 
@@ -63,6 +65,17 @@ async function initScreen(driver: Driver, shipId: string) {
     );
     const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
     radarView.addLayer(waypointLayer.renderRoot);
+
+    const waypointsLayer = new ObjectsLayer(
+        radarView,
+        spaceDriver,
+        32,
+        (w) => w.color,
+        tacticalDrawWaypoints,
+        undefined,
+        (w) => w.owner === shipId,
+    );
+    radarView.addLayer(waypointsLayer.renderRoot);
 
     drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
     drawSystemsStatus(
