@@ -68,7 +68,7 @@ Source of facts: `docs/bridge-playtest/signals.md`. Tabular delta:
 |---|---|---|
 | C1 long-range radar with zoom | ✅ `longRangeRadar` widget, 50km default, presets up to 250km, mouse wheel + header + `=`/`-` keys | none |
 | C2 target selection | ✅ `]` / `[` cycle, `'` clear; client-side `SelectionContainer` (independent of `/weaponsTarget`) | filters not implemented (unknown-only / enemy-only) |
-| C3 scan as mini-game | ❌ no scan action exists on signals station; scan level is GM-controlled via tweak panel today | **whole capability missing** — neither a queue job nor a mini-game |
+| C3 scan as mini-game | 🟡 a queue-job scan mechanic exists in core (Signals.jobs queue + SignalsJobManager: JobType.SCAN jobs with duration/progress that advance scan level UFO→BASIC→ADVANCED), but it is NOT wired to the signals station UI — no client sends submitJobCommand, so in practice scan level is still GM-controlled via the tweak panel | wire the existing core scan-job mechanic to the signals station UI; no mini-game form exists yet |
 | C4 read scan results | 🟡 radar blip rendering is gated by scan level (`fc54991`/#1205): UFO = gray dot, BASIC/ADVANCED = sprite + ID. **`targetInfo` widget on signals does NOT gate by scan level** — it always shows Type + Faction + Distance + Bearing. No "model" field. No tactical intel for weapons. | scan-level gating in `targetInfo`; add model and intel fields; potentially expose intel to weapons station |
 | C5 cyber attack | 🟡 the **effect side** of hacking systems exists (#1207 closed) — `SystemState.hacked` is in the data model and reduces effectiveness via `power × coolantFactor × (1 - hacked)`. **No way for the signals officer to initiate a hack**; it is GM-controlled today. | initiation flow + system-selection UI + mini-game (or whatever interaction model is chosen) |
 
@@ -80,7 +80,7 @@ Source of facts: `docs/bridge-playtest/signals.md`. Tabular delta:
 |---|---|---|
 | #1204 long-range radar widget | ✅ closed | Delivers C1 |
 | #1205 scan levels mechanic | ✅ closed | Delivers the **state model** behind C3/C4 (per-faction scan level on each space object), and the **visibility gating** in radar blips. **Does not** deliver scan progression UX. |
-| #1206 signals jobs system | ❌ open | Delivers C3 + C5 — **but** as a queued-jobs system, not as a mini-game. See §3.2. |
+| #1206 signals jobs system | 🟡 core shipped (PR #1878), no player UI | Delivers the server-side queued-jobs system behind C3 + C5 (SignalsJobManager in modules/core, instantiated/ticked in ship-manager-abstract.ts) — as a queued-jobs system, not a mini-game (see §3.2). Remaining gap: no signals-station UI to submit/cancel jobs; initiation is still effectively GM/command-only. |
 | #1207 hack mechanic | ✅ closed | Delivers the effect side of C5 (`hacked` flag on systems). |
 | #1208 signals station | ❌ open | Umbrella ticket; lists widgets & hotkeys. **Does not** describe a mini-game; assumes the #1206 jobs flow. |
 

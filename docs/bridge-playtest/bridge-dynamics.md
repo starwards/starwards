@@ -168,8 +168,8 @@ flowchart TB
         direction TB
         S1["long-range radar<br/><small>50km default, up to 250km</small>"]
         S2["select targets independently<br/><small>own SelectionContainer</small>"]
-        S3["⬜ scan targets<br/><small>NOT YET BUILT — mini-game TBD</small>"]
-        S4["⬜ hack enemy systems<br/><small>NOT YET BUILT — mini-game TBD</small>"]
+        S3["🟡 scan targets<br/><small>mechanics built server-side; station UI for queuing jobs TBD</small>"]
+        S4["🟡 hack enemy systems<br/><small>mechanics built server-side; station UI for queuing jobs TBD</small>"]
     end
 
     subgraph CAPTAIN ["⚪ CAPTAIN <small>(no UI, no controls)</small>"]
@@ -288,7 +288,7 @@ flowchart LR
     Hacked -->|"× (1 - hacked)"| EFF
     Broken -->|"if broken → 0"| EFF
 
-    EFF["<b>EFFECTIVENESS</b><br/><small>system.ts:99</small>"]
+    EFF["<b>EFFECTIVENESS</b><br/><small>system.ts:106</small>"]
 
     EFF -->|"determines"| Output["System Output<br/><small>thrust, fire rate,<br/>scan range, warp speed,<br/>energy generation</small>"]
 
@@ -367,12 +367,12 @@ graph LR
 graph TD
     subgraph SCAN ["SIGNALS: Scan"]
         SC_built["✅ Scan level state model<br/>✅ Per-faction scan levels<br/>✅ Radar blip gating by level<br/>✅ Long-range radar widget"]
-        SC_missing["❌ Scan initiation action<br/>❌ Mini-game mechanic<br/>❌ targetInfo scan-level gating<br/>❌ Model + intel fields<br/>❌ Signals subsystem class"]
+        SC_missing["❌ targetInfo scan-level gating<br/>❌ Model + intel fields"]
     end
 
     subgraph HACK ["SIGNALS: Hack"]
         HC_built["✅ hacked field on SystemState<br/>✅ Effectiveness formula uses hacked<br/>✅ power × coolantFactor × (1-hacked)"]
-        HC_missing["❌ Hack initiation by player<br/>❌ System selection UI<br/>❌ Mini-game mechanic<br/>❌ Duration / cooldown logic"]
+        HC_missing["❌ System selection UI"]
     end
 
     subgraph REPAIR ["ENGINEERING: Repair"]

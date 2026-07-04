@@ -1,4 +1,13 @@
 {
+    // ts-node is only used for the dev server (modules/server/src/dev.ts).
+    // TypeScript 6 requires an explicit rootDir to compute output layout
+    // (TS5011), even under transpile-only. Applies via tsconfig inheritance
+    // whether ts-node is launched from the repo root or modules/server.
+    "ts-node": {
+        "compilerOptions": {
+            "rootDir": "."
+        }
+    },
     "compilerOptions": {
         /* Basic Options */
         "target": "es2019" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', ... or 'ESNEXT'. */,
@@ -36,11 +45,12 @@
         "noFallthroughCasesInSwitch": true /* Report errors for fallthrough cases in switch statement. */,
         "skipLibCheck": true,
         /* Module Resolution Options */
+        "ignoreDeprecations": "6.0" /* node10 resolution + baseUrl are deprecated in TS 6; full moduleResolution migration is tracked separately. */,
         "moduleResolution": "node" /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */,
         "baseUrl": "." /* Base directory to resolve non-absolute module names. */,
         "paths": {
-            "@starwards/core/internal": ["modules/core/src/index.internal"],
-            "@starwards/*": ["modules/*/src", "modules/*/cjs"]
+            "@starwards/core/internal": ["./modules/core/src/index.internal"],
+            "@starwards/*": ["./modules/*/src", "./modules/*/cjs"]
             // "mini-signals": ["node_modules/resource-loader/typings/mini-signals.d.ts"]
         } /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */,
         // "rootDirs": [],                        /* List of root folders whose combined content represents the structure of the project at runtime. */
@@ -48,7 +58,19 @@
             "./custom-typings",
             "./node_modules/@types"
         ] /* List of folders to include type definitions from. */,
-        //  "types": [],                              /* Type declaration files to be included in compilation. */
+        /* TS 6 no longer auto-includes typeRoots packages — list global/ambient type packages explicitly. */
+        "types": [
+            "node",
+            "jest",
+            "jquery",
+            "chai",
+            "webfontloader",
+            "d3-selection",
+            "golden-layout",
+            "mini-signals",
+            "pixi__core",
+            "pixi__filter-noise"
+        ],
         "allowSyntheticDefaultImports": true /* Allow default imports from modules with no default export. This does not affect code emit, just typechecking. */,
         "esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */,
         // "preserveSymlinks": true,              /* Do not resolve the real path of symlinks. */

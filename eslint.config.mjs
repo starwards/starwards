@@ -53,7 +53,8 @@ const localPlugin = {
                 },
             },
             create(context) {
-                const filename = context.filename || context.getFilename?.() || '';
+                // Normalize Windows path separators so the allowlist regexes match.
+                const filename = (context.filename || context.getFilename?.() || '').replace(/\\/g, '/');
                 if (DIRECT_WRITE_ALLOWLIST.some((re) => re.test(filename))) {
                     return {};
                 }
@@ -175,7 +176,8 @@ const localPlugin = {
                 },
             },
             create(context) {
-                const filename = context.filename || context.getFilename?.() || '';
+                // Normalize Windows path separators so the path check matches.
+                const filename = (context.filename || context.getFilename?.() || '').replace(/\\/g, '/');
                 if (!/modules\/core\/src\/json-ptr\.ts$/.test(filename)) {
                     return {};
                 }
@@ -208,7 +210,10 @@ const localPlugin = {
 export default [
     // Global ignores
     {
-        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts'],
+        // .claude/workflows: Claude Workflow-tool scripts — their body executes inside
+        // an async function, so top-level `return` is part of the format and cannot
+        // parse as standard JS. Prettier still formats them (separate command).
+        ignores: ['node_modules/**', '**/dist/**', '**/cjs/**', '**/*.typegen.ts', '.claude/workflows/**'],
     },
     // Base config for all files
     {

@@ -16,13 +16,13 @@ You are running **unattended**. No human will read your narration. Execute direc
 
 ## Phase 0: Bootstrap (do this FIRST, before anything else)
 
-Load all required tool schemas in a single call:
+**`gh` CLI is the primary GitHub interface.** Use it for all GitHub operations (issues, PRs, comments) — it authenticates reliably in headless runs, where GitHub MCP auth has repeatedly failed (up to 15 wasted retries in past sessions). Verify it once with `gh auth status`; if it's not authenticated, only then load GitHub MCP tools as the fallback:
 
 ```
 ToolSearch: select:mcp__github__list_issues,mcp__github__search_pull_requests,mcp__github__issue_write,mcp__github__issue_read,mcp__github__create_pull_request,mcp__github__pull_request_read
 ```
 
-If GitHub MCP tools fail to authenticate, fall back to `gh` CLI for all GitHub operations. Do not retry MCP auth more than once.
+Do not retry MCP auth more than once.
 
 ## Phase 1: Issue Selection
 

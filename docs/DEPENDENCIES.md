@@ -1,42 +1,54 @@
+---
+audience: both
+depth: deep
+source_of_truth:
+  - package.json
+  - modules/core/package.json
+  - modules/browser/package.json
+related:
+  - PROJECT_ANALYSIS.md
+last_verified: 2026-07-04
+---
+
 # Dependencies
 
 ## Core Framework
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| colyseus | ^0.15.15 | Stable, mature state sync (0.16.x has breaking changes) |
-| @colyseus/schema | ^2.0.30 | Compatible with TS strict mode |
-| colyseus.js | ^0.15.18 | Must match server version |
-| @colyseus/ws-transport | ^0.15.0 | Stable WebSocket |
+| @colyseus/core | ^0.16.23 | Server framework (0.16.x line adopted) |
+| @colyseus/schema | ^3.0.76 | Compatible with TS strict mode |
+| colyseus.js | ^0.16.22 | Must match server version |
+| @colyseus/ws-transport | ^0.16.5 | Stable WebSocket |
 
 ## State & Logic
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| xstate | ^5.9.1 | Modern TS support, v5.x migration complete |
-| detect-collisions | ^9.5.3 | Spatial hashing, O(n log n) avg |
-| json-ptr | ^3.1.1 | RFC 6901 compliant, zero deps |
+| xstate | ^5.32.4 | Modern TS support, v5.x migration complete |
+| detect-collisions | ^10.10.2025 | Spatial hashing, O(n log n) avg |
 
 ## Browser
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| pixi.js | ^7.1.2 | Stable, WebGL 2 (v8.x has breaking changes) |
-| react | ^17.0.2 | Stable, Arwes compatible (v18 needs testing) |
-| react-dom | ^17.0.2 | Matches React version |
+| pixi.js | ^8.19.0 | Stable, WebGL 2 (upgraded from v7) |
+| react | ^18.3.1 | React 18 in use, Arwes (@arwes/react) compatible |
+| react-dom | ^18.3.1 | Matches React version |
 | golden-layout | ^1.5.9 | **PINNED** (v2.x complete rewrite, incompatible) |
-| @arwes-amir/core | 1.0.0-alpha.19 | **ALPHA** (only version w/ React support) |
+| @arwes/react | 1.0.0-next.25020502 | Sci-fi UI framework (next pre-release) |
 
 ## Development
 
 | Package | Version | Rationale |
 |---------|---------|-----------|
-| typescript | ~5.4.3 | Modern features, strict mode |
-| webpack | ^5.91.0 | Stable, HMR |
-| webpack-dev-server | ^5.0.4 | Matches Webpack |
-| tsup | ^8.0.2 | Fast library builds |
-| jest | ^29.7.0 | Stable, fast w/ esbuild |
-| @playwright/test | ^1.42.1 | E2E testing |
+| typescript | ^6.0.3 | TS 6 (explicit `types` lists — no auto typeRoots inclusion; `ignoreDeprecations: "6.0"` for node10 resolution until module-resolution migration) |
+| webpack | ^5.108.3 | Stable, HMR |
+| webpack-dev-server | ^5.2.6 | Matches Webpack |
+| tsup | ^8.5.1 | Fast library builds |
+| jest | ^30.4.2 | Stable, fast w/ esbuild |
+| @playwright/test | ^1.61.1 | E2E testing (e2e Dockerfile image tag must match) |
+| turbo | ^2.10.3 | Build task graph + local caching (core → rest ordering; requires `packageManager` field in root package.json) |
 
 ## Version Pins
 
@@ -47,17 +59,17 @@
 - `~5.4.3` → 5.4.4+ OK, 5.5.0+ NO
 
 **Exact:** No updates
-- `1.0.0-alpha.19` → Exactly this version
+- `1.0.0-next.25020502` → Exactly this version
 
 ## Known Issues
 
 | Package | Version | Issue | Status |
 |---------|---------|-------|--------|
-| colyseus | 0.16.x | Breaking room lifecycle changes | Monitoring |
-| @colyseus/schema | 2.1.x | Deprecations introduced | Monitoring |
-| pixi.js | 8.x | Breaking renderer API | Monitoring |
 | golden-layout | 2.x | Complete rewrite, incompatible | **NO UPGRADE** |
-| @arwes-amir/core | alpha | API may change before 1.0 | Monitoring |
+| @arwes/react | 1.0.0-next (pre-release) | API may change before 1.0 | Monitoring |
+| eslint | 10.x | eslint-plugin-react peers cap at ^9.7 | Blocked on plugin |
+| colyseus | 0.17/0.18 | Breaking 0.x line (0.16.x adopted) | Dedicated migration |
+| esbuild | 0.26+ | Breaking 0.x minors | Held at 0.25.x |
 
 ## Upgrade Checklist
 

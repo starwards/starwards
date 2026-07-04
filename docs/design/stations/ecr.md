@@ -10,7 +10,7 @@
 The engineer allocates power and coolant across all ship systems, monitors heat levels, and responds to malfunctions. Every system's effectiveness follows one formula:
 
 ```
-effectiveness = broken ? 0 : power x coolantFactor x (1 - hacked)
+effectiveness = broken ? 0 : power x hacked  (hacked is a HackLevel multiplier: OK=1, COMPROMISED=0.5, DISABLED=0; coolantFactor governs heat dissipation only, not effectiveness)
 ```
 
 Power levels: SHUTDOWN (0), LOW (0.25), MID (0.5), HIGH (0.75), MAX (1.0)

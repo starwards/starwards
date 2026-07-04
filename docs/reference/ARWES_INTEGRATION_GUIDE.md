@@ -2,7 +2,7 @@
 
 Complete guide for integrating Arwes futuristic sci-fi UI framework into React applications.
 
-**Note:** This is the React 19 compatible fork. See [CLAUDE.md](./CLAUDE.md) for fork details.
+**Note:** This project depends on `@arwes/react`, pinned to the `1.0.0-next.25020502` pre-release (see `modules/browser/package.json`). This pinned version peer-depends on React 18 (`peerDependencies: { "react": "18" }`), matching the project's `react@^18.3.1`; React 19 support is a separate, still-incomplete effort (the `@arwes-amir/react` fork). See [ARWES_VERSION_MIGRATION_GUIDE.md](./ARWES_VERSION_MIGRATION_GUIDE.md) and [CHANGES_SINCE_BLOG.md](./CHANGES_SINCE_BLOG.md) for fork details, or the fork repo https://github.com/amir-arad/arwes.
 
 ## Installation
 
@@ -10,28 +10,28 @@ Complete guide for integrating Arwes futuristic sci-fi UI framework into React a
 
 ```bash
 # Main bundle (includes all packages)
-npm install @arwes-amir/react
+npm install @arwes/react
 
 # Or install individual packages
-npm install @arwes-amir/react-animator
-npm install @arwes-amir/react-animated
-npm install @arwes-amir/react-frames
-npm install @arwes-amir/react-bleeps
-npm install @arwes-amir/react-text
-npm install @arwes-amir/react-bgs
+npm install @arwes/react-animator
+npm install @arwes/react-animated
+npm install @arwes/react-frames
+npm install @arwes/react-bleeps
+npm install @arwes/react-text
+npm install @arwes/react-bgs
 ```
 
 ### Original Packages (React 18 only)
 
 ```bash
-npm install @arwes-amir/react
+npm install @arwes/react
 ```
 
 ## Important Limitations
 
 - **No React Strict Mode** - Arwes does not work with React strict mode
 - **No React Server Components (RSC)** - Use client-side rendering only (`'use client'`)
-- **React 18+ Required** - This fork supports React 19, original supports React 18
+- **React 18 Required** - This pinned version supports React 18
 
 ## Core Concepts
 
@@ -62,7 +62,7 @@ All animations are controlled through the `<Animator>` component which creates a
 ```tsx
 'use client' // Required for Next.js
 
-import { Animator, Animated } from '@arwes-amir/react'
+import { Animator, Animated } from '@arwes/react'
 
 function MyComponent() {
   return (
@@ -82,7 +82,7 @@ function MyComponent() {
 ### With Global Settings
 
 ```tsx
-import { AnimatorGeneralProvider } from '@arwes-amir/react'
+import { AnimatorGeneralProvider } from '@arwes/react'
 
 function App() {
   return (
@@ -101,7 +101,7 @@ function App() {
 ### Built-in Animations
 
 ```tsx
-import { Animated } from '@arwes-amir/react'
+import { Animated } from '@arwes/react'
 
 // Fade in/out
 <Animated animated={['fade']} />
@@ -203,7 +203,7 @@ import {
   FrameKranox,
   FrameHeader,
   FrameCircle
-} from '@arwes-amir/react'
+} from '@arwes/react'
 ```
 
 ### Basic Usage
@@ -243,7 +243,7 @@ import {
 ### Custom Frames with FrameBase
 
 ```tsx
-import { FrameBase, type FrameSettings } from '@arwes-amir/react'
+import { FrameBase, type FrameSettings } from '@arwes/react'
 
 const frameSettings: FrameSettings = {
   elements: [
@@ -283,7 +283,7 @@ All backgrounds use `position: absolute` by default to fill the parent container
 ### Available Backgrounds
 
 ```tsx
-import { Dots, Puffs, GridLines, MovingLines } from '@arwes-amir/react'
+import { Dots, Puffs, GridLines, MovingLines } from '@arwes/react'
 ```
 
 ### Dots Pattern
@@ -355,7 +355,7 @@ Text components animate character-by-character and work with the Animator system
 ### Sequence (Typewriter Effect)
 
 ```tsx
-import { Text } from '@arwes-amir/react'
+import { Text } from '@arwes/react'
 
 <Animator duration={{ enter: 2 }}>
   <Text
@@ -413,7 +413,7 @@ export type BleepsNames = 'hover' | 'click' | 'type' | 'error'
 ### Provider Configuration
 
 ```tsx
-import { BleepsProvider, type BleepsProviderSettings } from '@arwes-amir/react'
+import { BleepsProvider, type BleepsProviderSettings } from '@arwes/react'
 import type { BleepsNames } from './types'
 
 const bleepsSettings: BleepsProviderSettings<BleepsNames> = {
@@ -474,7 +474,7 @@ function App() {
 ### Using Bleeps
 
 ```tsx
-import { useBleeps } from '@arwes-amir/react'
+import { useBleeps } from '@arwes/react'
 import type { BleepsNames } from './types'
 
 function Button() {
@@ -494,7 +494,7 @@ function Button() {
 ### Bleeps on Animator Events
 
 ```tsx
-import { Animator, Text, BleepsOnAnimator } from '@arwes-amir/react'
+import { Animator, Text, BleepsOnAnimator } from '@arwes/react'
 import type { BleepsNames } from './types'
 
 <Animator>
@@ -520,7 +520,7 @@ import {
   GridLines,
   Text,
   AnimatorGeneralProvider
-} from '@arwes-amir/react'
+} from '@arwes/react'
 
 function SpaceshipPanel() {
   return (
@@ -761,38 +761,38 @@ Stack multiple effects using z-index:
 - **Documentation Site:** https://arwes.dev
 - **Original Repository:** https://github.com/arwes/arwes
 - **This Fork (React 19):** https://github.com/amir-arad/arwes
-- **npm Packages (Fork):** `@arwes-amir/*`
-- **npm Packages (Original):** `@arwes-amir/*`
+- **npm Package (this project):** `@arwes/react`, pinned to `1.0.0-next.25020502`
+- **npm Packages (scope):** `@arwes/*`
 - **Discord Community:** https://discord.gg/s5sbTkw
 
 ## Package Reference
 
-All packages in `@arwes-amir/*` scope (this fork):
+All packages in `@arwes/*` scope:
 
 **Main Bundles:**
-- `@arwes-amir/react` - All React packages
-- `@arwes-amir/arwes` - All vanilla packages
+- `@arwes/react` - All React packages
+- `@arwes/arwes` - All vanilla packages
 
 **Vanilla (Framework-agnostic):**
-- `@arwes-amir/animator` - Animation orchestration
-- `@arwes-amir/animated` - HTML element animations
-- `@arwes-amir/bleeps` - Web Audio API wrapper
-- `@arwes-amir/text` - Text rendering effects
-- `@arwes-amir/frames` - SVG frames
-- `@arwes-amir/bgs` - Background effects
-- `@arwes-amir/theme` - Theming system
-- `@arwes-amir/tools` - Utilities
+- `@arwes/animator` - Animation orchestration
+- `@arwes/animated` - HTML element animations
+- `@arwes/bleeps` - Web Audio API wrapper
+- `@arwes/text` - Text rendering effects
+- `@arwes/frames` - SVG frames
+- `@arwes/bgs` - Background effects
+- `@arwes/theme` - Theming system
+- `@arwes/tools` - Utilities
 
 **React Wrappers:**
-- `@arwes-amir/react-animator` - React animator components
-- `@arwes-amir/react-animated` - Animated elements
-- `@arwes-amir/react-bleeps` - Sound manager
-- `@arwes-amir/react-text` - Text components
-- `@arwes-amir/react-frames` - Frame components
-- `@arwes-amir/react-bgs` - Background components
-- `@arwes-amir/react-tools` - React utilities
-- `@arwes-amir/react-core` - Core functionalities
-- `@arwes-amir/react-effects` - Special effects
+- `@arwes/react-animator` - React animator components
+- `@arwes/react-animated` - Animated elements
+- `@arwes/react-bleeps` - Sound manager
+- `@arwes/react-text` - Text components
+- `@arwes/react-frames` - Frame components
+- `@arwes/react-bgs` - Background components
+- `@arwes/react-tools` - React utilities
+- `@arwes/react-core` - Core functionalities
+- `@arwes/react-effects` - Special effects
 
 ## License
 

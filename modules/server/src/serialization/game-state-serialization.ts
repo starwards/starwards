@@ -10,7 +10,7 @@ export async function schemaToString(fragment: Schema) {
     // In @colyseus/schema v3, use Encoder class
     const encoder = new Encoder(fragment);
     const encoded = encoder.encodeAll();
-    const zipped = await do_gzip(Buffer.from(encoded) as Uint8Array);
+    const zipped = await do_gzip(Buffer.from(encoded));
     return zipped.toString('base64');
 }
 type Constructor<T extends Schema> = new (...args: never[]) => T;
@@ -20,7 +20,7 @@ export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, ser
 }
 
 export async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
-    const unzipped = await do_unzip(Buffer.from(serialized, 'base64') as Uint8Array);
+    const unzipped = await do_unzip(Buffer.from(serialized, 'base64'));
     // In @colyseus/schema v3, use Decoder class
     const decoder = new Decoder(obj);
     decoder.decode(Buffer.from(unzipped));
@@ -28,6 +28,6 @@ export async function stringToSchemaObject<T extends Schema>(obj: T, serialized:
 }
 
 export async function getUnzipped(zipped: string) {
-    const unzipped = await do_unzip(Buffer.from(zipped, 'base64') as Uint8Array);
+    const unzipped = await do_unzip(Buffer.from(zipped, 'base64'));
     return unzipped.toString('base64');
 }

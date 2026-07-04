@@ -35,7 +35,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: RANGE,
             });
         },
@@ -53,7 +53,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: RANGE,
             });
         },
@@ -110,7 +110,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             ]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: RANGE,
             });
         },
@@ -138,7 +138,7 @@ export const tacticalRadarScenes: Record<string, Scene> = {
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, enemyShip, shell1, shell2, shell3]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
-            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer as never, {
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: RANGE,
             });
         },

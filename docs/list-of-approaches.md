@@ -4,20 +4,20 @@
 ### Core Game Architecture
 
 1. **Colyseus Schema with Custom Decorator**
-   - [`@gameField`](modules/core/src/game-field.ts:16) decorator wraps Colyseus `@type`
+   - [`@gameField`](modules/core/src/game-field.ts:260) decorator wraps Colyseus `@type`
    - Automatic float32 rounding to 2 decimals for bandwidth optimization
    - Runtime serialization with TypeScript type safety
 
 2. **JSON Pointer Command System**
    - [RFC 6901 JSON Pointers](modules/core/src/json-ptr.ts:1) as command identifiers
-   - [`handleJsonPointerCommand`](modules/core/src/commands.ts:90) wildcard routing
+   - [`handleJsonPointerCommand`](modules/core/src/commands.ts:103) wildcard routing
    - Direct state tree manipulation without explicit command handlers
    - Pointer instance caching for performance
 
 3. **Dual State Synchronization**
    - Server-authoritative [`SpaceObject`](modules/core/src/space/space-object-base.ts:1)
    - Separate [`ShipState`](modules/core/src/ship/ship-state.ts:52) for network sync
-   - Manual [`syncShipProperties`](modules/core/src/ship/ship-manager-abstract.ts:272) selective copying
+   - Manual [`syncShipProperties`](modules/core/src/ship/ship-manager-abstract.ts:319) selective copying
    - Server-only calculations without network overhead
 
 4. **Design vs State Separation**
@@ -53,7 +53,7 @@
    - Dynamic range calculation via functions
 
 9. **Traverse System for Schema Introspection**
-   - [`allColyseusProperties`](modules/core/src/traverse.ts:17) generator
+   - [`allColyseusProperties`](modules/core/src/traverse.ts:43) generator
    - Yields `[container, namespace, field, value]` tuples
    - Handles ArraySchema, MapSchema, SetSchema
    - Generic serialization and debugging
@@ -86,7 +86,7 @@
 
 14. **Batch Collision Updates**
     - [`toUpdateCollisions`](modules/core/src/logic/space-manager.ts:75) Set aggregates changes
-    - Single [`collisions.update()`](modules/core/src/logic/space-manager.ts:610) call per frame
+    - Single [`collisions.update()`](modules/core/src/logic/space-manager.ts:645) call per frame
     - Minimizes spatial index rebuilds
     - Position changes batched together
 
@@ -118,7 +118,7 @@
 
 19. **System Degradation Pattern**
     - Systems have effectiveness factors that accumulate damage
-    - [`efficiency`](modules/core/src/ship/heat-manager.ts:1), `malfunctionRangeFactor`, `angleError`
+    - [`effectiveness`](modules/core/src/ship/system.ts:106), `malfunctionRangeFactor`, `angleError`
     - Gradual performance loss vs instant failure
     - Repair vs replace decisions
 
@@ -245,7 +245,7 @@
     - Deduplication of identical values
 
 39. **Destructor Pattern for Cleanup**
-    - [`Destructors`](modules/browser/src/property-wrappers.ts:28) class accumulates cleanup functions
+    - [`Destructors`](modules/core/src/utils.ts:9) class accumulates cleanup functions
     - [`destroy`](modules/browser/src/property-wrappers.ts:41) calls all registered destructors
     - Prevents memory leaks in event subscriptions
     - RAII-like pattern in TypeScript
@@ -387,44 +387,44 @@
 ### Code Quality & Linting
 
 61. **No Console.log in Production**
-    - ESLint [`'no-console': 'error'`](.eslintrc.js:20)
+    - ESLint [`'no-console': 'error'`](eslint.config.mjs:247)
     - Explicit `// eslint-disable-next-line` required
     - Prevents debug output leaks
     - Enforces proper logging
 
 62. **Sort Imports Rule**
-    - ESLint [`'sort-imports': 'error'`](.eslintrc.js:18)
+    - ESLint [`'sort-imports': 'error'`](eslint.config.mjs:245)
     - Alphabetically sorted imports
     - Consistent code style
     - Easier merge conflicts
 
 63. **No Shadow Variables**
-    - [`'@typescript-eslint/no-shadow': 'error'`](.eslintrc.js:40)
+    - [`'@typescript-eslint/no-shadow': 'error'`](eslint.config.mjs:307)
     - Prevents variable name reuse
     - Reduces confusion
     - Catches common bugs
 
 64. **No Only Tests**
-    - [`'no-only-tests/no-only-tests': 'error'`](.eslintrc.js:19)
+    - [`'no-only-tests/no-only-tests': 'error'`](eslint.config.mjs:246)
     - Prevents `.only` in test commits
     - Ensures full test suite runs
     - CI/CD safety
 
 65. **Prettier Integration**
-    - [`'prettier/prettier': 'error'`](.eslintrc.js:24)
+    - [`'prettier/prettier': 'error'`](eslint.config.mjs:251)
     - Formatting as lint error
     - Consistent code style
     - Auto-fix on save
 
 66. **Trailing Comma Enforcement**
-    - [`'comma-dangle': ['error', 'always-multiline']`](.eslintrc.js:44)
+    - [`'comma-dangle': ['error', 'always-multiline']`](eslint.config.mjs:320)
     - Cleaner git diffs
     - Easier array/object additions
     - Consistent style
 
 67. **React Hooks Validation**
-    - [`'react-hooks/rules-of-hooks': 'error'`](.eslintrc.js:21)
-    - [`'react-hooks/exhaustive-deps': 'error'`](.eslintrc.js:22)
+    - [`'react-hooks/rules-of-hooks': 'error'`](eslint.config.mjs:248)
+    - [`'react-hooks/exhaustive-deps': 'error'`](eslint.config.mjs:249)
     - Prevents hook violations
     - Dependency array validation
 
@@ -475,12 +475,12 @@
     - WebGL acceleration
 
 75. **Arwes Sci-fi UI**
-    - [`@arwes-amir/core`](modules/browser/package.json:16) component library
+    - [`@arwes/react`](modules/browser/package.json:15) component library (version 1.0.0-next.25020502)
     - Consistent futuristic theme
     - Animation support
     - Sound effects integration
 
-76. **React 17 without Imports**
+76. **React 18**
     - [`"jsx": "react"`](tsconfig.json:9) in tsconfig
     - No `import React` needed
     - Cleaner component files
@@ -536,10 +536,10 @@
     - Visual regression testing
     - Multi-browser support
 
-85. **Jest with esbuild**
-    - [`@jgoz/jest-esbuild`](package.json:48)
-    - Fast TypeScript transformation
-    - No tsc overhead
+85. **Jest with ts-jest**
+    - [`ts-jest`](package.json:105) (`^29.4.5`)
+    - TypeScript transformation configured in [`jest.config.js`](jest.config.js:4-18) via the `transform` map (`ts-jest` for both `^.+\.tsx?$` and `^.+\.m?js$`)
+    - Uses project `tsconfig.json`
     - Quick test iterations
 
 86. **Jest JUnit Reporter**

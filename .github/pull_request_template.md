@@ -45,7 +45,7 @@ Public API:
 
 Local verification:
 
-- [ ] I ran `npm run test:static && npm test` locally and they pass.
+- [ ] I ran `npm run test:format && npm run test:types && npm test` locally and they pass.
 - [ ] If I touched a station screen, I ran the relevant E2E spec under
       `modules/e2e/test/` locally.
 

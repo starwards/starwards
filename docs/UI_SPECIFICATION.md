@@ -153,7 +153,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 - **Widget**: `drawDockingStatus()` - Tweakpane panel
 - **Properties**:
   - `Current Target`: ID of docking target
-  - `Mode`: Docking mode (dropdown: NONE, AUTO, MANUAL)
+  - `Mode`: Docking mode (dropdown: DOCKED, UNDOCKED, DOCKING, UNDOCKING)
   - `Closest Option`: Nearest dockable object (computed every 250ms)
 - **Data Source**: `/docking/targetId`, `/docking/mode`, computed from spatial index
 - **Updates**: Polling loop for closest option
@@ -242,12 +242,13 @@ The Engineering Control Room (ECR) screen provides detailed system management, p
 - **Widget**: `drawEngineeringStatus()` - Tweakpane panel
 - **Properties**:
   - `control`: Shows "ECR" or "Bridge" (who has control)
+  - `hull`: Shows "OK" or "DAMAGED" (bound to `/hullDamaged`)
   - `energy`: Graph of reactor energy over time
   - `after-burner fuel`: Graph of afterburner fuel over time
 - **Features**:
   - Graphs show history (Tweakpane graph blade)
   - Control status indicates if ECR or Bridge has system control
-- **Data Source**: `/ecrControl`, `/reactor/energy`, `/maneuvering/afterBurnerFuel`
+- **Data Source**: `/ecrControl`, `/hullDamaged`, `/reactor/energy`, `/maneuvering/afterBurnerFuel`
 - **Control Toggle**: Backtick key (`) toggles ECR control on/off
 
 #### 2. Full Systems Status Panel (Center)
@@ -391,11 +392,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
   - Crosshairs for chain gun (if equipped)
   - Speed lines showing target velocity
   - Range indicators (5 rings at 1000m intervals)
-  - Blips colored by faction:
-    - Green: Neutral/friendly
-    - Red: Gravitas faction
-    - Blue: Raiders faction
-    - White: Projectiles
+  - Blips: all detected objects rendered in green (no per-faction coloring); projectiles and this ship's own shells rendered in the radar shell tint (orange, `0xff6600`)
   - Visual target highlighting
 - **Data Source**: SpaceDriver (all space objects), ShipDriver (own ship, chain gun)
 - **Interactions**: Read-only display, shows currently selected target
@@ -421,7 +418,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 - **Widget**: `drawAmmoStatus()` - Tweakpane panel
 - **Projectile Types Shown**:
   - For each projectile type in `projectileModels`:
-    - Display name (e.g., "EMP", "Nuclear", "Homing")
+    - Display name (e.g., "cannon shell", "blast cannon shell", "missile")
     - Count format: `{current} / {max}`
 - **Data Source**: `/magazine/count_{type}`, `/magazine/max_{type}`, `/magazine/capacity`
 - **Visual**: Text labels with current/max counts
@@ -488,9 +485,8 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 5. **Radar Range Fixed**: 5000m range may be too close or too far depending on situation
 6. **No Fire Solution**: No lead indicator or time-to-target calculation
 7. **Tube Cooldown**: Loading time shown but no estimated time to ready
-8. **Chain Gun Missing**: Chain gun shown in status but no fire control
-9. **No Ammo Warnings**: No alert when running low on specific ammo type
-10. **Filter Persistence**: Targeting filters don't persist across reloads
+8. **No Ammo Warnings**: No alert when running low on specific ammo type
+9. **Filter Persistence**: Targeting filters don't persist across reloads
 
 ### Data Dependencies
 
@@ -585,7 +581,7 @@ The GM (Game Master) screen provides god-mode control over the game space. Used 
 - **Widget**: `createWidget()` - Object spawning interface
 - **Purpose**: Create new space objects
 - **Features**:
-  - Spawn ships, projectiles, asteroids, stations
+  - Spawn asteroids, ships, explosions, and waypoints
   - Set initial properties (position, angle, faction, etc.)
   - Place at mouse cursor position
 - **Tab**: "Create" tab in right panel
@@ -612,6 +608,8 @@ The GM (Game Master) screen provides god-mode control over the game space. Used 
   - `{shipId} targeting`: Targeting panel
   - `{shipId} warp`: Warp controls
   - `{shipId} docking`: Docking panel
+  - `{shipId} target info`: Target information
+  - `{shipId} long range radar`: Long range radar view
 - **Layout Persistence**: Auto-save to localStorage
 - **Dynamic Registration**: Widgets added as ships spawn
 
@@ -648,7 +646,7 @@ The GM (Game Master) screen provides god-mode control over the game space. Used 
 
 ### Current Pain Points
 
-1. **Overwhelming Widget List**: 19 widgets per ship - menu becomes huge with multiple ships
+1. **Overwhelming Widget List**: 20 widgets per ship - menu becomes huge with multiple ships
 2. **No Search**: Can't search/filter dashboard menu for specific widget
 3. **Layout Lost**: No named layouts - closing browser loses layout
 4. **No Grouping**: Ship widgets not grouped by ship in menu
@@ -714,12 +712,12 @@ The Ship screen provides a fully customizable dashboard for any ship. Used for s
 #### 1. Dashboard System
 - **Framework**: GoldenLayout (same as GM screen)
 - **Menu**: Top menu bar with widget list
-- **Available Widgets**: All 19 per-ship widgets from GM screen
-  - radar, tactical radar, pilot radar
+- **Available Widgets**: All 20 per-ship widgets from GM screen
+  - radar, tactical radar, pilot radar, long range radar
   - helm, gun, design state, target radar
   - monitor, damage report, armor, ammo
   - tubes, systems, systems (full), engineering status
-  - targeting, warp, docking
+  - targeting, warp, docking, target info
 - **Layout Parameter**: `?layout={name}` in URL
 - **Layout Storage**: Saved to `localStorage` key `layout:{name}`
 - **Layout Serialization**: Ship ID replaced with placeholder for reusability
@@ -764,7 +762,7 @@ The Ship screen provides a fully customizable dashboard for any ship. Used for s
 5. **No Layout Preview**: Can't see what a saved layout looks like before loading
 6. **Keyboard Conflicts**: Input manager always active - interferes with text inputs
 7. **No Widget Favorites**: Can't mark frequently used widgets
-8. **Menu Clutter**: All 19 widgets in flat list
+8. **Menu Clutter**: All 20 widgets in flat list
 9. **No Responsive**: Layout breaks on window resize
 10. **No Help**: No indication of what each widget does
 

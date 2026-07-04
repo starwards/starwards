@@ -22,10 +22,7 @@ export type CreateWaypointTemplate = {
 };
 
 export type CreateTemplate =
-    | CreateAsteroidTemplate
-    | CreateSpaceshipTemplate
-    | CreateExplosionTemplate
-    | CreateWaypointTemplate;
+    CreateAsteroidTemplate | CreateSpaceshipTemplate | CreateExplosionTemplate | CreateWaypointTemplate;
 export type EventTypes = {
     cancel: [];
     createByTemplate: [CreateTemplate];

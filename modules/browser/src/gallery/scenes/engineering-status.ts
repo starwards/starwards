@@ -18,7 +18,7 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+            drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -34,7 +34,7 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+            drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -50,7 +50,7 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+            drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -66,7 +66,7 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+            drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -82,7 +82,7 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+            drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -98,7 +98,7 @@ export const engineeringStatusScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 300, 200);
             const mockShipDriver = createMockShipDriver(ship);
 
-            drawEngineeringStatus(mockContainer as never, mockShipDriver as never);
+            drawEngineeringStatus(mockContainer, mockShipDriver as never);
         },
     },
 };

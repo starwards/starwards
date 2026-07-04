@@ -27,9 +27,7 @@ export type TweakableConfig =
           };
       };
 export type TweakableMetadata =
-    | TweakableValue
-    | { config: (target: Schema) => TweakableConfig; field: string }
-    | undefined;
+    TweakableValue | { config: (target: Schema) => TweakableConfig; field: string } | undefined;
 export type TweakableValue = { config: TweakableConfig; field: string };
 
 function isTweakableValue(data: TweakableMetadata): data is TweakableValue {

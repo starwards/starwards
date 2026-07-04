@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "license": "SEE LICENSE IN LICENSE.md",
+    "main": "cjs/index.js",
     "files": [
         "cjs"
     ],
@@ -11,16 +12,17 @@
         "postbuild": "npm pack --quiet",
         "prebuild": "npm run clean",
         "build": "tsc -p ./tsconfig.runtime.json",
-        "build_watch": "tsc -p ./tsconfig.runtime.json",
+        "build_watch": "tsc -p ./tsconfig.runtime.json --watch",
         "start": "node -r ts-node/register/transpile-only ./src/dev.ts",
         "loadtest": "colyseus-loadtest loadtest/bot.ts --room space --endpoint ws://localhost:8080",
         "test": "jest"
     },
     "dependencies": {
         "@colyseus/core": "^0.16.23",
+        "@starwards/core": "0.5.1",
         "@colyseus/monitor": "^0.16.7",
         "@colyseus/ws-transport": "^0.16.5",
-        "express": "^5.1.0",
+        "express": "^5.2.1",
         "express-async-handler": "^1.2.0",
         "express-basic-auth": "^1.2.1"
     }

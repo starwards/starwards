@@ -24,7 +24,7 @@ export const armorScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -38,7 +38,7 @@ export const armorScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -52,7 +52,7 @@ export const armorScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -66,7 +66,7 @@ export const armorScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -80,7 +80,7 @@ export const armorScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer, mockShipDriver as never);
         },
     },
 
@@ -94,7 +94,7 @@ export const armorScenes: Record<string, Scene> = {
             const mockContainer = createMockContainer(container, 400, 400);
             const mockShipDriver = createMockShipDriver(ship);
 
-            return await drawArmorStatus(mockContainer as never, mockShipDriver as never);
+            return await drawArmorStatus(mockContainer, mockShipDriver as never);
         },
     },
 };

@@ -1,3 +1,14 @@
+---
+audience: agent
+depth: deep
+source_of_truth:
+  - modules/core/src/ship/system.ts
+  - modules/core/src/ship
+related:
+  - ../SUBSYSTEMS.md
+last_verified: 2026-06-13
+---
+
 # Ship Systems Specification
 
 @category: game-mechanics
@@ -9,10 +20,10 @@
 | System | Purpose | Key Properties | Manager |
 |--------|---------|----------------|---------|
 | Reactor | Energy generation | energy, power | EnergyManager |
-| Thruster | Propulsion | thrust, turn | ThrustManager |
-| Radar | Detection | range, contacts | RadarManager |
-| ChainGun | Weapons | ammo, fireRate | WeaponsManager |
-| Warp | FTL travel | level, charging | WarpManager |
+| Thruster | Propulsion | thrust, turn | MovementManager |
+| Radar | Detection | range, contacts | (no dedicated manager) |
+| ChainGun | Weapons | isFiring, rateOfFireFactor, angleOffset | ChainGunManager |
+| Warp | FTL travel | level, charging | (no dedicated manager) |
 
 ---
 
@@ -79,7 +90,7 @@ abstract class SystemState extends Schema {
 enum PowerLevel {
     SHUTDOWN = 0,
     LOW = 0.25,
-    MID = 0.5,
+    NORMAL = 0.5,
     HIGH = 0.75,
     MAX = 1
 }
@@ -88,7 +99,7 @@ enum PowerLevel {
 **Usage:**
 ```typescript
 system.power = PowerLevel.HIGH;  // 0.75
-system.power = 0.5;              // MID
+system.power = 0.5;              // NORMAL
 ```
 
 ### Heat
@@ -150,7 +161,16 @@ Stores system design parameters (max values, rates, etc.)
 ```typescript
 abstract class DesignState extends Schema {
     keys() {
-        return Object.keys(this.$changes.indexes);
+        // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
+        const metadata = (this.constructor as any)[Symbol.metadata];
+        const keys: string[] = [];
+        for (const index in metadata) {
+            const field = metadata[index] as any;
+            if (!field.deprecated && field.name) {
+                keys.push(field.name);
+            }
+        }
+        return keys;
     }
 }
 ```
@@ -578,19 +598,22 @@ class RadarManager {
 ```typescript
 class Reactor extends SystemState {
     readonly name = 'Reactor';
-    readonly broken = false;
-    
+
     @gameField(ReactorDesignState)
     design = new ReactorDesignState();
-    
-    @defectible({ normal: 1, name: 'efficiency' })
+
     @range([0, 1])
+    @defectible({ normal: 1, name: 'effeciency' })
     @gameField('float32')
-    efficiency: number = 1.0;
-    
+    effeciencyFactor = 1;
+
     @range((t: Reactor) => [0, t.design.maxEnergy])
-    @gameField('float32')
-    energy: number = 1000;
+    @gameField('number')
+    energy = 1000;
+
+    get broken() {
+        return this.effeciencyFactor === 0;
+    }
 }
 ```
 
@@ -600,21 +623,22 @@ class Reactor extends SystemState {
 
 ```typescript
 class Thruster extends SystemState {
-    readonly name = 'Thruster';
-    readonly broken = false;
-    
     @gameField(ThrusterDesignState)
     design = new ThrusterDesignState();
-    
-    @defectible({ normal: 1, name: 'thrust efficiency' })
-    @range([0, 1])
+
+    @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
+    @defectible({ normal: 0, name: 'offset' })
     @gameField('float32')
-    thrustEfficiency: number = 1.0;
-    
-    @defectible({ normal: 1, name: 'turn efficiency' })
+    angleError = 0.0;
+
     @range([0, 1])
+    @defectible({ normal: 1, name: 'capacity' })
     @gameField('float32')
-    turnEfficiency: number = 1.0;
+    availableCapacity = 1.0;
+
+    get broken(): boolean {
+        return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.design.maxAngleError;
+    }
 }
 ```
 
@@ -624,25 +648,36 @@ class Thruster extends SystemState {
 
 ```typescript
 class ChainGun extends SystemState {
-    readonly name = 'ChainGun';
-    readonly broken = false;
-    
-    @gameField(ChainGunDesignState)
-    design = new ChainGunDesignState();
-    
-    @range((t: ChainGun) => [0, t.design.maxAmmo])
-    @gameField('int32')
-    ammo: number = 1000;
-    
+    @gameField('boolean')
+    isFiring = false;
+
+    @range([0, 1])
     @gameField('float32')
-    cooldown: number = 0;
-    
-    get canFire(): boolean {
-        return this.ammo > 0 && 
-               this.cooldown <= 0 && 
-               this.effectiveness > 0;
+    loading = 0;
+
+    @defectible({ normal: 0, name: 'offset' })
+    @range([-90, 90])
+    @gameField('float32')
+    angleOffset = 0;
+
+    @range([0, 1])
+    @defectible({ normal: 1, name: 'rate of fire' })
+    @gameField('float32')
+    rateOfFireFactor = 1;
+
+    @gameField('string')
+    projectile: SelectedProjectileModel = 'None';
+
+    @gameField(ChaingunDesignState)
+    design = new ChaingunDesignState();
+
+    get broken(): boolean {
+        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.rateOfFireFactor <= 0;
     }
 }
+
+// Note: ammo capacity is not tracked on ChainGun. It lives on a separate
+// Magazine system (e.g. the browser ammo widget reads shipDriver.state.magazine).
 ```
 
 ---
@@ -654,7 +689,7 @@ class ChainGun extends SystemState {
 @returns: 'DISABLED' | 'DAMAGED' | 'OK'
 
 ```typescript
-// From system.ts:93-105
+// From system.ts
 getStatus: () => {
     if (state.broken) {
         return 'DISABLED';
