@@ -28,7 +28,16 @@ npm test                   # Verify
 - browser: `modules/browser/dist/`
 - node-red: `modules/node-red/dist/`
 
-## Development Workflow (3 Terminals)
+## Development Workflow
+
+**One command (cross-platform, via concurrently):**
+```bash
+npm run dev
+# core watch + API server + webpack dev server in one terminal
+# Zellij pane-grid variant: npm run dev:zellij
+```
+
+**Or 3 separate terminals:**
 
 **Terminal 1: Core Watch**
 ```bash
@@ -38,7 +47,6 @@ cd modules/core && npm run build:watch
 **Terminal 2: Webpack Dev Server**
 ```bash
 cd modules/browser && npm start
-# Node 17+: NODE_OPTIONS=--openssl-legacy-provider npm start
 # Serves http://localhost:3000
 ```
 
