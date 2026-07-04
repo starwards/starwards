@@ -1,6 +1,19 @@
-import { Damage, DamageManager, FRONT_ARC, SpaceManager, Spaceship, dragonflySF22, makeShipState } from '../src';
+import {
+    ArmorModelStats,
+    Damage,
+    DamageManager,
+    FRONT_ARC,
+    SpaceManager,
+    Spaceship,
+    compositeArmor,
+    dragonflySF22,
+    faradayArmor,
+    makeShipState,
+    reactiveArmor,
+    whippleArmor,
+    withFaradayLayer,
+} from '../src';
 
-import { ArmorType } from '../src/logic/damage-matrix';
 import { MockDie } from './ship-test-harness';
 import { ShipState } from '../src/ship/ship-state';
 import { expect } from 'chai';
@@ -12,121 +25,168 @@ interface Fixture {
     damageManager: DamageManager;
 }
 
-function setUpShip(armorType: ArmorType = 'Composite', hasFaradayLayer = false): Fixture {
+function setUpShip(armorStats: ArmorModelStats = compositeArmor): Fixture {
     const ship = new Spaceship();
     ship.id = 'test-ship';
     const state = makeShipState(ship.id, dragonflySF22);
-    state.armor.design.armorType = armorType;
-    state.armor.design.hasFaradayLayer = hasFaradayLayer;
+    state.armor.design.assign(armorStats);
     const spaceManager = new SpaceManager();
     spaceManager.insert(ship);
     const damageManager = new DamageManager(ship, state, spaceManager, new MockDie());
     return { ship, state, spaceManager, damageManager };
 }
 
-function frontDamage(amount: number, ammoType: Damage['ammoType']): Damage {
+function frontDamage(amount: number, damageType: Damage['damageType']): Damage {
     return {
         id: 'd-1',
         amount,
         damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
         damageDurationSeconds: 1,
-        ammoType,
+        damageType,
     };
 }
 
-describe('damage-manager × armor matrix (issue #1929)', () => {
-    describe('Reactive armor', () => {
-        it('absorbs Sabot hits as Resist (no plate damage on the cell side)', () => {
-            const { state, damageManager } = setUpShip('Reactive');
+describe('damage-manager × armor design stats (issue #1929)', () => {
+    describe('Reactive armor (single-use cells)', () => {
+        it('does not engage ArmPen hits (no cell consumed)', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
             const initialHealthy = state.armor.numberOfHealthyPlates;
-            damageManager.takeExternalDamage(frontDamage(50, 'MissileSabot'));
-            // Resist outcome → no plates consumed.
+            damageManager.takeExternalDamage(frontDamage(50, 'ArmPen'));
             expect(state.armor.numberOfHealthyPlates).to.equal(initialHealthy);
         });
 
-        it('Tandem on Reactive consumes cells (Critical)', () => {
-            const { state, damageManager } = setUpShip('Reactive');
+        it('Tandem consumes cells and exposes internals fully', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
             const initialHealthy = state.armor.numberOfHealthyPlates;
-            damageManager.takeExternalDamage(frontDamage(50, 'MissileTandem'));
+            const damagedInternals = damageManager.takeExternalDamage(frontDamage(50, 'Tandem'));
             expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
-        });
-
-        it('AP on Reactive deals Normal damage and consumes cells in the hit area', () => {
-            const { state, damageManager } = setUpShip('Reactive');
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            damageManager.takeExternalDamage(frontDamage(20, 'CannonAp'));
-            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
-        });
-
-        it('consumed Reactive cells expose internals (system damage reachable)', () => {
-            const { state, damageManager } = setUpShip('Reactive');
-            // AP is Normal vs Reactive → cells stripped in the hit arc, which
-            // exposes the systems behind them and flags internal damage.
-            const damagedInternals = damageManager.takeExternalDamage(frontDamage(20, 'CannonAp'));
-            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(state.armor.numberOfPlates);
             expect(damagedInternals).to.equal(true);
         });
     });
 
-    describe('Faraday layer vs EMP', () => {
-        it('Composite armor + EMP missile → bypasses plates entirely', () => {
-            const { state, damageManager } = setUpShip('Composite', false);
+    describe('Elec hits and the Faraday layer', () => {
+        it('Composite armor + Elec hit → bypasses plates entirely', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
             const initial = state.armor.armorPlates[0].health;
-            damageManager.takeExternalDamage(frontDamage(50, 'MissileEmp'));
-            // EMP ignores physical plates regardless of primary armor.
+            const damagedInternals = damageManager.takeExternalDamage(frontDamage(50, 'Elec'));
             expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(damagedInternals).to.equal(true);
         });
 
-        it('Composite + Faraday layer + EMP → resisted', () => {
-            const { state, damageManager } = setUpShip('Composite', true);
+        it('Composite + Faraday layer + Elec hit → blocked', () => {
+            const { state, damageManager } = setUpShip(withFaradayLayer(compositeArmor));
             const initial = state.armor.armorPlates[0].health;
-            damageManager.takeExternalDamage(frontDamage(50, 'MissileEmp'));
-            // Faraday absorbs EMP — plates untouched (matrix says Resist for Faraday + EMP).
+            const damagedInternals = damageManager.takeExternalDamage(frontDamage(50, 'Elec'));
             expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(damagedInternals).to.equal(false);
         });
 
-        it('physical ammo (AP) vs Faraday primary armor → ignores plates, hits internals', () => {
-            const { state, damageManager } = setUpShip('Faraday', false);
+        it('physical (ArmPen) vs pure Faraday armor → ignores plates, hits internals', () => {
+            const { state, damageManager } = setUpShip(faradayArmor);
             const initial = state.armor.armorPlates[0].health;
-            // Faraday doesn't stop physical hits — matrix returns 'ignores' for all
-            // physical ammo, so plates are bypassed entirely (no plate damage)...
-            const damagedInternals = damageManager.takeExternalDamage(frontDamage(50, 'CannonAp'));
+            const damagedInternals = damageManager.takeExternalDamage(frontDamage(50, 'ArmPen'));
             expect(state.armor.armorPlates[0].health).to.equal(initial);
-            // ...but the hit lands on internal systems.
             expect(damagedInternals).to.equal(true);
         });
     });
 
-    describe('Surface effect on Resist', () => {
-        it('HE shell vs Whipple armor (Resist) does not damage plates', () => {
-            const { state, damageManager } = setUpShip('Whipple');
+    describe('surface effect on blocked hits', () => {
+        it('HiExp vs Whipple armor does not damage plates but scrapes externals', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
             const initial = state.armor.armorPlates[0].health;
-            damageManager.takeExternalDamage(frontDamage(100, 'CannonHe'));
+            const damagedExternals = damageManager.takeExternalDamage(frontDamage(100, 'HiExp'));
             expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(damagedExternals).to.equal(true);
         });
 
-        it('SABOT vs Whipple (Vulnerable) chews through plates', () => {
-            const { state, damageManager } = setUpShip('Whipple');
+        it('Frag vs Whipple is blocked but still returns surface damage', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
+            const initial = state.armor.armorPlates[0].health;
+            const damagedExternals = damageManager.takeExternalDamage(frontDamage(100, 'Frag'));
+            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(damagedExternals).to.equal(true);
+        });
+
+        it('ArmPen vs Whipple (plateDamage 2) chews through plates', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
             const before = state.armor.armorPlates[0].health;
-            damageManager.takeExternalDamage(frontDamage(800, 'MissileSabot'));
-            // Vulnerable multiplier 2.0 against high damage clearly chips a plate.
+            damageManager.takeExternalDamage(frontDamage(800, 'ArmPen'));
             expect(state.armor.armorPlates[0].health).to.be.lessThan(before);
         });
     });
 
+    describe('system scoping regressions', () => {
+        it('Elec hit damages electronics ship-wide and nothing else', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            damageManager.takeExternalDamage(frontDamage(1000, 'Elec'));
+            // electronics defects appear (front AND rear electronics)
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.smartPilot.offsetFactor).to.be.greaterThan(0);
+            expect(state.warp.damageFactor).to.be.greaterThan(0);
+            // non-electronics untouched
+            for (const thruster of state.thrusters) {
+                expect(thruster.angleError).to.equal(0);
+                expect(thruster.availableCapacity).to.equal(1);
+            }
+            expect(state.maneuvering.efficiency).to.equal(1);
+        });
+
+        it('surface-effect hit on blocked armor damages only external systems', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
+            damageManager.takeExternalDamage(frontDamage(1000, 'HiExp'));
+            // hitsInternal=true HiExp on blocked armor → surface effect targets externals
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            // internal systems untouched
+            expect(state.smartPilot.offsetFactor).to.equal(0);
+            expect(state.warp.damageFactor).to.equal(0);
+            expect(state.maneuvering.efficiency).to.equal(1);
+        });
+
+        it('ArmPen (single scope) vs pure Faraday damages exactly one internal system', () => {
+            const { state, damageManager } = setUpShip(faradayArmor);
+            damageManager.takeExternalDamage(frontDamage(1000, 'ArmPen'));
+            const internalDefects = [
+                state.smartPilot.offsetFactor > 0,
+                state.warp.damageFactor > 0,
+                state.maneuvering.efficiency < 1,
+                state.reactor.effeciencyFactor < 1 || state.reactor.energy < state.reactor.design.maxEnergy,
+                state.magazine.capacity < 1 || state.magazine.getCount('HiExpShell') < state.magazine.max_HiExpShell,
+            ].filter(Boolean).length;
+            expect(internalDefects).to.equal(1);
+        });
+
+        it('blocked non-surface-effect hit (ArmPen vs Reactive) leaves the ship untouched', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
+            const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'ArmPen'));
+            expect(damaged).to.equal(false);
+            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
+
+        it('broken plates expose area systems on engaging hits (Composite + HiExp)', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            // pre-break all front plates so exposure is 1
+            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+                plate.health = 0;
+            }
+            const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'HiExp'));
+            expect(damaged).to.equal(true);
+            expect(state.smartPilot.offsetFactor).to.be.greaterThan(0);
+        });
+    });
+
     describe('non-projectile damage path', () => {
-        it('keeps the legacy flat-damage flow when ammoType is empty (collisions)', () => {
-            const { state, damageManager } = setUpShip('Composite');
+        it('keeps the legacy flat-damage flow when damageType is null (collisions)', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
             const before = state.armor.armorPlates[0].health;
             const collision: Damage = {
                 id: 'collision-1',
                 amount: 100,
                 damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
                 damageDurationSeconds: 1,
-                ammoType: '',
+                damageType: null,
             };
             damageManager.takeExternalDamage(collision);
-            // Flat damage applies to plates directly — health drops.
             expect(state.armor.armorPlates[0].health).to.be.lessThan(before);
         });
     });

@@ -43,6 +43,8 @@ export class Warp extends SystemState {
     };
 
     public readonly type = 'Warp';
+    override readonly isInternal = true;
+    override readonly isElectronics = true;
     public readonly name = 'Warp';
 
     @gameField(WarpDesignState)

@@ -17,6 +17,7 @@ export interface SpaceObjects {
 export type SpaceObject = SpaceObjects[keyof SpaceObjects];
 
 export * from './asteroid';
+export * from './damage-profile';
 export * from './space-object-base';
 export * from './spaceship';
 export * from './projectile';

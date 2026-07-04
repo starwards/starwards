@@ -20,22 +20,14 @@ export type ChaingunDesign = {
     overrideSecondsToLive: number;
     damage50: number;
     energyCost: number;
-    use_CannonHe?: boolean;
-    use_CannonAp?: boolean;
-    use_CannonFrag?: boolean;
-    use_MissileHe?: boolean;
-    use_MissileSabot?: boolean;
-    use_MissileCluster?: boolean;
-    use_MissileTandem?: boolean;
-    use_MissileEmp?: boolean;
-    heat_CannonHe?: number;
-    heat_CannonAp?: number;
-    heat_CannonFrag?: number;
-    heat_MissileHe?: number;
-    heat_MissileSabot?: number;
-    heat_MissileCluster?: number;
-    heat_MissileTandem?: number;
-    heat_MissileEmp?: number;
+    use_HiExpShell?: boolean;
+    use_ArmPenShell?: boolean;
+    use_FragShell?: boolean;
+    use_HiExpMissile?: boolean;
+    use_ArmPenMissile?: boolean;
+    use_ClusterMissile?: boolean;
+    use_TandemMissile?: boolean;
+    use_ElecMissile?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -47,22 +39,18 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @gameField('float32') overrideSecondsToLive = -1;
     @gameField('float32') damage50 = 0;
     @gameField('float32') energyCost = 0;
-    @gameField('boolean') use_CannonHe = false;
-    @gameField('boolean') use_CannonAp = false;
-    @gameField('boolean') use_CannonFrag = false;
-    @gameField('boolean') use_MissileHe = false;
-    @gameField('boolean') use_MissileSabot = false;
-    @gameField('boolean') use_MissileCluster = false;
-    @gameField('boolean') use_MissileTandem = false;
-    @gameField('boolean') use_MissileEmp = false;
-    @gameField('float32') heat_CannonHe = 0;
-    @gameField('float32') heat_CannonAp = 0;
-    @gameField('float32') heat_CannonFrag = 0;
-    @gameField('float32') heat_MissileHe = 0;
-    @gameField('float32') heat_MissileSabot = 0;
-    @gameField('float32') heat_MissileCluster = 0;
-    @gameField('float32') heat_MissileTandem = 0;
-    @gameField('float32') heat_MissileEmp = 0;
+    @gameField('boolean') use_HiExpShell = false;
+    @gameField('boolean') use_ArmPenShell = false;
+    @gameField('boolean') use_FragShell = false;
+    @gameField('boolean') use_HiExpMissile = false;
+    @gameField('boolean') use_ArmPenMissile = false;
+    @gameField('boolean') use_ClusterMissile = false;
+    @gameField('boolean') use_TandemMissile = false;
+    @gameField('boolean') use_ElecMissile = false;
+
+    isAmmoEnabled(m: ProjectileModel): boolean {
+        return this[`use_${m}`];
+    }
 
     // get explosionSecondsToLive(): number {
     //     return this.explosionRadius / this.explosionExpansionSpeed;
@@ -80,6 +68,7 @@ export class ChainGun extends SystemState {
     };
 
     public readonly type: string = 'ChainGun';
+    override readonly isElectronics = true;
     get name() {
         return 'Chain gun';
     }
@@ -127,14 +116,14 @@ export class ChainGun extends SystemState {
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
-        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+        enum: ['None', ...projectileModels.filter((k) => t.design.isAmmoEnabled(k))],
     }))
     @gameField('string')
     projectile: SelectedProjectileModel = 'None';
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
-        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+        enum: ['None', ...projectileModels.filter((k) => t.design.isAmmoEnabled(k))],
     }))
     @gameField('string')
     loadedProjectile: SelectedProjectileModel = 'None';

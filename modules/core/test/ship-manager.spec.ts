@@ -21,6 +21,7 @@ import { degree, float } from './properties';
 import { DockingMode } from '../src/ship/docking';
 import { expect } from 'chai';
 import fc from 'fast-check';
+import { projectileDesigns } from '../src/space/projectile';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
@@ -116,8 +117,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1,
                 );
-                expect(shipMgr.state.magazine.count_CannonHe).to.equal(
-                    shipMgr.state.magazine.design.max_CannonHe - cannonShells.length,
+                expect(shipMgr.state.magazine.count_HiExpShell).to.equal(
+                    shipMgr.state.magazine.design.max_HiExpShell - cannonShells.length,
                 );
             }),
         );
@@ -143,11 +144,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.power = PowerLevel.MAX;
                     shipMgr.state.chainGun!.rateOfFireFactor = 1;
-                    shipMgr.state.chainGun!.design.use_CannonFrag = false;
-                    shipMgr.state.chainGun!.design.use_MissileHe = false;
-                    shipMgr.state.chainGun!.design.use_CannonHe = true;
-                    shipMgr.state.magazine.count_CannonHe = availableAmmo;
-                    shipMgr.state.chainGun!.projectile = 'CannonHe';
+                    shipMgr.state.chainGun!.design.use_FragShell = false;
+                    shipMgr.state.chainGun!.design.use_HiExpMissile = false;
+                    shipMgr.state.chainGun!.design.use_HiExpShell = true;
+                    shipMgr.state.magazine.count_HiExpShell = availableAmmo;
+                    shipMgr.state.chainGun!.projectile = 'HiExpShell';
                     shipMgr.state.chainGun!.isFiring = true;
                     switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
@@ -158,7 +159,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     }
                     const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                     expect(cannonShells.length).to.equal(availableAmmo);
-                    expect(shipMgr.state.magazine.count_CannonHe).to.equal(0);
+                    expect(shipMgr.state.magazine.count_HiExpShell).to.equal(0);
                 },
             ),
         );
@@ -221,7 +222,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipMgr.state.design.totalCoolant = 0;
                 shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
                 switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
-                const heatPerShell = shipMgr.state.chainGun!.design.heat_CannonHe;
+                const heatPerShell = projectileDesigns.HiExpShell.heatPerShot;
 
                 const i = makeIterationsData(1, numIterationsPerSecond);
                 for (const id of i) {
@@ -256,7 +257,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         tube.power = PowerLevel.MAX;
         tube.isFiring = true;
         switchToAvailableAmmo(tube, shipMgr.state.magazine);
-        const heatPerMissile = tube.design.heat_MissileHe;
+        const heatPerMissile = projectileDesigns.HiExpMissile.heatPerShot;
 
         const numIterationsPerSecond = 20;
         const i = makeIterationsData(2, numIterationsPerSecond * 2);

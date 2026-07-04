@@ -59,9 +59,7 @@ export function resetShipState(state: ShipState) {
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
     state.signals.trackedTargets.splice(0);
-    // Restock the cheap workhorse cannon round on respawn; keep specialist
-    // stocks (AP, missiles, etc.) at zero so refill is a deliberate choice.
-    state.magazine.count_CannonHe = state.magazine.max_CannonHe;
+    state.magazine.count_HiExpShell = state.magazine.max_HiExpShell;
     // Reset non-@gameField command properties that Schema.clone() does not copy.
     // Without this, cloned states have these as undefined, causing NaN propagation.
     state.afterBurnerCommand = 0;
@@ -290,6 +288,9 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected healPlates(deltaSeconds: number) {
+        if (this.state.armor.design.singleUsePlates) {
+            return;
+        }
         for (const plate of this.state.armor.armorPlates) {
             if (plate.health < this.state.armor.design.plateMaxHealth) {
                 plate.health = Math.min(

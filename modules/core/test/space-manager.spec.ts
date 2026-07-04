@@ -138,7 +138,7 @@ describe('SpaceManager', () => {
                 shipMgr.state.chainGun!.design.maxShellRange = 10_000;
                 shipMgr.state.chainGun!.shellRange = 1;
                 shipMgr.state.chainGun!.loading = 1;
-                shipMgr.state.chainGun!.loadedProjectile = 'CannonHe';
+                shipMgr.state.chainGun!.loadedProjectile = 'HiExpShell';
                 shipMgr.state.chainGun!.isFiring = true;
                 switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 

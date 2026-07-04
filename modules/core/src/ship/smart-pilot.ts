@@ -38,6 +38,8 @@ export class SmartPilot extends SystemState {
     };
 
     public readonly type = 'SmartPilot';
+    override readonly isInternal = true;
+    override readonly isElectronics = true;
     public readonly name = 'Smart pilot';
 
     @gameField(SmartPilotDesignState)

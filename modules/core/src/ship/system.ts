@@ -79,6 +79,12 @@ export abstract class SystemState extends Schema {
      */
     abstract readonly broken: boolean;
 
+    // damage classification (not synced). Systems are external by default;
+    // internal systems sit deeper and are only hit through exposure or penetration.
+    readonly isInternal: boolean = false;
+    // EMP-vulnerable
+    readonly isElectronics: boolean = false;
+
     @gameField('float32')
     public energyPerMinute = 0;
 

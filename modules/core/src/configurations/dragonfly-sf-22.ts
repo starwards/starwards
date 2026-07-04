@@ -1,12 +1,12 @@
 import { ShipDesign } from '../ship';
+import { compositeArmor } from './armor-models';
 
 export const dragonflyArmor = {
     modelName: 'Aegis-12 Plated Armor',
     numberOfPlates: 12,
     healRate: 3,
     plateMaxHealth: 1500,
-    armorType: 'Composite' as const,
-    hasFaradayLayer: false,
+    ...compositeArmor,
 };
 export const dragonflyThruster = {
     modelName: 'RT-150 Vectored Thruster',
@@ -32,14 +32,11 @@ export const dragonflyChaingun = {
     maxShellRange: 5000,
     minShellRange: 1000,
     overrideSecondsToLive: 0,
-    use_CannonHe: true,
-    use_CannonAp: true,
-    use_CannonFrag: true,
+    use_HiExpShell: true,
+    use_ArmPenShell: true,
+    use_FragShell: true,
     damage50: 20,
     energyCost: 1,
-    heat_CannonHe: 5,
-    heat_CannonAp: 5,
-    heat_CannonFrag: 5,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -56,16 +53,14 @@ export const dragonflyProperties = {
 };
 export const dragonflyMagazine = {
     modelName: 'Hornet Mk-II Magazine',
-    // 3 cannon ammo types — bulk shells, plus a smaller AP reserve.
-    max_CannonHe: 2400,
-    max_CannonAp: 1200,
-    max_CannonFrag: 2000,
-    // 5 missile types — generalist HE bias, with smaller specialist stocks.
-    max_MissileHe: 12,
-    max_MissileSabot: 6,
-    max_MissileCluster: 6,
-    max_MissileTandem: 4,
-    max_MissileEmp: 4,
+    max_HiExpShell: 2400,
+    max_ArmPenShell: 1200,
+    max_FragShell: 2000,
+    max_HiExpMissile: 12,
+    max_ArmPenMissile: 6,
+    max_ClusterMissile: 6,
+    max_TandemMissile: 4,
+    max_ElecMissile: 4,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,
@@ -91,16 +86,11 @@ export const dragonflyTube = {
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
     energyCost: 30,
-    use_MissileHe: true,
-    use_MissileSabot: true,
-    use_MissileCluster: true,
-    use_MissileTandem: true,
-    use_MissileEmp: true,
-    heat_MissileHe: 25,
-    heat_MissileSabot: 25,
-    heat_MissileCluster: 25,
-    heat_MissileTandem: 25,
-    heat_MissileEmp: 25,
+    use_HiExpMissile: true,
+    use_ArmPenMissile: true,
+    use_ClusterMissile: true,
+    use_TandemMissile: true,
+    use_ElecMissile: true,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',

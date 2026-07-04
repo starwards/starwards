@@ -1,6 +1,5 @@
-import { AmmoType, MissileAmmoType, STAT_SCALE, missilePerformanceStats } from '../logic/damage-matrix';
-
 import { Craft } from '../logic';
+import { DamageType } from './damage-profile';
 import { Explosion } from './explosion';
 import { ShipDirection } from '../ship';
 import { SpaceObjectBase } from './space-object-base';
@@ -8,29 +7,25 @@ import { Vec2 } from './vec2';
 import { gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
-// Projectile designs are derived from the issue #1929 design doc:
-//   - 3 cannon shells (HE, AP, Blast/Frag)
-//   - 5 guided missiles (HE, SABOT, Cluster, Tandem, EMP)
-// Per-missile Speed / Range / Maneuver come from the "Missile Performance
-// Stats" table; the 1-5 stats are scaled into concrete game values via
-// STAT_SCALE so the table stays the source of truth.
+export const shellAmmoTypes = ['HiExpShell', 'ArmPenShell', 'FragShell'] as const;
+export const missileAmmoTypes = [
+    'HiExpMissile',
+    'ArmPenMissile',
+    'ClusterMissile',
+    'TandemMissile',
+    'ElecMissile',
+] as const;
+export const ammoTypes = [...shellAmmoTypes, ...missileAmmoTypes] as const;
+export type ShellAmmoType = (typeof shellAmmoTypes)[number];
+export type MissileAmmoType = (typeof missileAmmoTypes)[number];
+export type AmmoType = (typeof ammoTypes)[number];
 
-interface CannonDesign {
+export interface ProjectileDesign {
     name: string;
     radius: number;
-    homing: null;
-    explosion: {
-        secondsToLive: number;
-        expansionSpeed: number;
-        damageFactor: number;
-        blastFactor: number;
-    };
-}
-
-interface MissileDesign {
-    name: string;
-    radius: number;
-    homing: {
+    damageType: DamageType;
+    heatPerShot: number;
+    homing: null | {
         secondsToLive: number;
         rotationCapacity: number;
         velocityCapacity: number;
@@ -45,63 +40,117 @@ interface MissileDesign {
     };
 }
 
-const BASE_MISSILE_SPEED = 600;
-const BASE_MISSILE_SECONDS_TO_LIVE = 60;
-const BASE_MISSILE_ROTATION = 720;
-const BASE_MISSILE_VELOCITY_CAPACITY = 600;
-
-function makeMissileDesign(ammo: MissileAmmoType, name: string, damageFactor: number, blastFactor = 1): MissileDesign {
-    const stats = missilePerformanceStats(ammo);
-    return {
-        name,
-        radius: 2,
-        homing: {
-            secondsToLive: BASE_MISSILE_SECONDS_TO_LIVE * STAT_SCALE[stats.range],
-            rotationCapacity: BASE_MISSILE_ROTATION * STAT_SCALE[stats.maneuver],
-            velocityCapacity: BASE_MISSILE_VELOCITY_CAPACITY * STAT_SCALE[stats.speed],
-            maxSpeed: BASE_MISSILE_SPEED * STAT_SCALE[stats.speed],
-            proximityDetonation: 100,
-        },
-        explosion: {
-            secondsToLive: 0.5,
-            expansionSpeed: 1_000,
-            damageFactor,
-            blastFactor,
-        },
-    };
+export interface MissileDesign extends ProjectileDesign {
+    homing: NonNullable<ProjectileDesign['homing']>;
 }
 
 export const projectileDesigns = {
-    // --- 30mm cannons ---
-    CannonHe: {
-        name: '30mm HE shell',
+    HiExpShell: {
+        name: '30mm HiExp shell',
         radius: 1,
+        damageType: 'HiExp',
+        heatPerShot: 5,
         homing: null,
         explosion: { secondsToLive: 1, expansionSpeed: 200, damageFactor: 20, blastFactor: 2 },
     },
-    CannonAp: {
-        name: '30mm AP shell',
+    ArmPenShell: {
+        name: '30mm ArmPen shell',
         radius: 1,
+        damageType: 'ArmPen',
+        heatPerShot: 5,
         homing: null,
         explosion: { secondsToLive: 0.5, expansionSpeed: 80, damageFactor: 30, blastFactor: 1 },
     },
-    CannonFrag: {
-        name: '30mm Blast/Frag shell',
+    FragShell: {
+        name: '30mm Frag shell',
         radius: 1,
+        damageType: 'Frag',
+        heatPerShot: 5,
         homing: null,
         explosion: { secondsToLive: 1, expansionSpeed: 250, damageFactor: 10, blastFactor: 4 },
     },
-    // --- guided missiles ---
-    MissileHe: makeMissileDesign('MissileHe', 'HE missile', 50, 1),
-    MissileSabot: makeMissileDesign('MissileSabot', 'SABOT missile', 80, 0.5),
-    MissileCluster: makeMissileDesign('MissileCluster', 'Cluster missile', 30, 4),
-    MissileTandem: makeMissileDesign('MissileTandem', 'Tandem missile', 60, 1),
-    MissileEmp: makeMissileDesign('MissileEmp', 'EMP missile', 5, 1),
-} as const satisfies Record<AmmoType, CannonDesign | MissileDesign>;
+    HiExpMissile: {
+        name: 'HiExp missile',
+        radius: 2,
+        damageType: 'HiExp',
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 78,
+            rotationCapacity: 720,
+            velocityCapacity: 600,
+            maxSpeed: 600,
+            proximityDetonation: 100,
+        },
+        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 50, blastFactor: 1 },
+    },
+    ArmPenMissile: {
+        name: 'ArmPen missile',
+        radius: 2,
+        damageType: 'ArmPen',
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 42,
+            rotationCapacity: 504,
+            velocityCapacity: 960,
+            maxSpeed: 960,
+            proximityDetonation: 100,
+        },
+        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 80, blastFactor: 0.5 },
+    },
+    ClusterMissile: {
+        name: 'Cluster missile',
+        radius: 2,
+        damageType: 'Cluster',
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 78,
+            rotationCapacity: 720,
+            velocityCapacity: 600,
+            maxSpeed: 600,
+            proximityDetonation: 100,
+        },
+        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 30, blastFactor: 4 },
+    },
+    TandemMissile: {
+        name: 'Tandem missile',
+        radius: 2,
+        damageType: 'Tandem',
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 60,
+            rotationCapacity: 936,
+            velocityCapacity: 420,
+            maxSpeed: 420,
+            proximityDetonation: 100,
+        },
+        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 60, blastFactor: 1 },
+    },
+    ElecMissile: {
+        name: 'Elec missile',
+        radius: 2,
+        damageType: 'Elec',
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 96,
+            rotationCapacity: 720,
+            velocityCapacity: 780,
+            maxSpeed: 780,
+            proximityDetonation: 100,
+        },
+        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 5, blastFactor: 1 },
+    },
+} as const satisfies Record<AmmoType, ProjectileDesign | MissileDesign>;
 
 export const projectileModels = Object.keys(projectileDesigns) as readonly AmmoType[];
 export type ProjectileModel = AmmoType;
-export type ProjectileDesign = (typeof projectileDesigns)[ProjectileModel];
+
+export function isShellAmmo(ammo: AmmoType): ammo is ShellAmmoType {
+    return projectileDesigns[ammo].homing === null;
+}
+
+export function isMissileAmmo(ammo: AmmoType): ammo is MissileAmmoType {
+    return projectileDesigns[ammo].homing !== null;
+}
 
 export class Projectile extends SpaceObjectBase implements Craft {
     public static isInstance = (o: unknown): o is Projectile => {
@@ -131,7 +180,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
 
     @tweakable({ type: 'string enum', enum: projectileModels })
     @gameField('string')
-    public model: ProjectileModel = 'CannonHe';
+    public model: ProjectileModel = 'HiExpShell';
 
     constructor(model?: ProjectileModel) {
         super();
@@ -139,7 +188,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
             this.model = model;
             this._explosion = new Explosion();
             this._explosion.assign(this.design.explosion);
-            this._explosion.ammoType = model;
+            this._explosion.damageType = this.design.damageType;
             this.radius = this.design.radius;
         }
     }
@@ -150,12 +199,12 @@ export class Projectile extends SpaceObjectBase implements Craft {
         return this;
     }
 
-    get design() {
+    get design(): ProjectileDesign {
         return projectileDesigns[this.model];
     }
 
-    get ammoType(): AmmoType {
-        return this.model;
+    get damageType(): DamageType {
+        return this.design.damageType;
     }
 
     get capacity() {

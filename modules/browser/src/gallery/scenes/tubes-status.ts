@@ -31,8 +31,8 @@ export const tubesStatusScenes: Record<string, Scene> = {
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
             for (const tube of ship.tubes.values()) {
-                tube.projectile = 'CannonHe';
-                tube.loadedProjectile = 'CannonHe';
+                tube.projectile = 'HiExpShell';
+                tube.loadedProjectile = 'HiExpShell';
                 tube.loading = 1;
                 tube.loadAmmo = true;
             }
@@ -51,7 +51,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
             const ship = makeShipState('player', dragonflySF22);
             let loadingProgress = 0.2;
             for (const tube of ship.tubes.values()) {
-                tube.projectile = 'CannonHe';
+                tube.projectile = 'HiExpShell';
                 tube.loadedProjectile = 'None';
                 tube.loading = loadingProgress;
                 tube.loadAmmo = true;

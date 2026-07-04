@@ -1,39 +1,35 @@
 import { DesignState, SystemState, defectible } from './system';
-
 import { commandable, gameField } from '../game-field';
+
+import { ProjectileModel } from '../space/projectile';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
-
-// Magazine fields are templated after the 8 AmmoType keys defined in
-// logic/damage-matrix (CannonHe, CannonAp, CannonFrag, MissileHe, MissileSabot,
-// MissileCluster, MissileTandem, MissileEmp). chain-gun-manager / damage-manager
-// access them generically via `count_${ammoType}` / `max_${ammoType}`.
 
 export type MagazineDesign = {
     modelName?: string;
     damage50: number;
-    max_CannonHe: number;
-    max_CannonAp: number;
-    max_CannonFrag: number;
-    max_MissileHe: number;
-    max_MissileSabot: number;
-    max_MissileCluster: number;
-    max_MissileTandem: number;
-    max_MissileEmp: number;
+    max_HiExpShell: number;
+    max_ArmPenShell: number;
+    max_FragShell: number;
+    max_HiExpMissile: number;
+    max_ArmPenMissile: number;
+    max_ClusterMissile: number;
+    max_TandemMissile: number;
+    max_ElecMissile: number;
     capacityBrokenThreshold: number;
     capacityDamageFactor: number;
 };
 
 export class MagazineDesignState extends DesignState implements MagazineDesign {
     @gameField('float32') damage50 = 0;
-    @gameField('uint16') max_CannonHe = 0;
-    @gameField('uint16') max_CannonAp = 0;
-    @gameField('uint16') max_CannonFrag = 0;
-    @gameField('uint16') max_MissileHe = 0;
-    @gameField('uint16') max_MissileSabot = 0;
-    @gameField('uint16') max_MissileCluster = 0;
-    @gameField('uint16') max_MissileTandem = 0;
-    @gameField('uint16') max_MissileEmp = 0;
+    @gameField('uint16') max_HiExpShell = 0;
+    @gameField('uint16') max_ArmPenShell = 0;
+    @gameField('uint16') max_FragShell = 0;
+    @gameField('uint16') max_HiExpMissile = 0;
+    @gameField('uint16') max_ArmPenMissile = 0;
+    @gameField('uint16') max_ClusterMissile = 0;
+    @gameField('uint16') max_TandemMissile = 0;
+    @gameField('uint16') max_ElecMissile = 0;
     @gameField('float32') capacityBrokenThreshold = 0;
     @gameField('float32') capacityDamageFactor = 0;
 }
@@ -44,50 +40,52 @@ export class Magazine extends SystemState {
     };
 
     public readonly type = 'Magazine';
+    override readonly isInternal = true;
+    override readonly isElectronics = true;
     public readonly name = 'Magazine';
 
     @gameField(MagazineDesignState)
     design = new MagazineDesignState();
 
-    @range((t: Magazine) => [0, t.max_CannonHe])
+    @range((t: Magazine) => [0, t.max_HiExpShell])
     @tweakable('number')
     @gameField('uint16')
-    count_CannonHe = 0;
+    count_HiExpShell = 0;
 
-    @range((t: Magazine) => [0, t.max_CannonAp])
+    @range((t: Magazine) => [0, t.max_ArmPenShell])
     @tweakable('number')
     @gameField('uint16')
-    count_CannonAp = 0;
+    count_ArmPenShell = 0;
 
-    @range((t: Magazine) => [0, t.max_CannonFrag])
+    @range((t: Magazine) => [0, t.max_FragShell])
     @tweakable('number')
     @gameField('uint16')
-    count_CannonFrag = 0;
+    count_FragShell = 0;
 
-    @range((t: Magazine) => [0, t.max_MissileHe])
+    @range((t: Magazine) => [0, t.max_HiExpMissile])
     @tweakable('number')
     @gameField('uint16')
-    count_MissileHe = 0;
+    count_HiExpMissile = 0;
 
-    @range((t: Magazine) => [0, t.max_MissileSabot])
+    @range((t: Magazine) => [0, t.max_ArmPenMissile])
     @tweakable('number')
     @gameField('uint16')
-    count_MissileSabot = 0;
+    count_ArmPenMissile = 0;
 
-    @range((t: Magazine) => [0, t.max_MissileCluster])
+    @range((t: Magazine) => [0, t.max_ClusterMissile])
     @tweakable('number')
     @gameField('uint16')
-    count_MissileCluster = 0;
+    count_ClusterMissile = 0;
 
-    @range((t: Magazine) => [0, t.max_MissileTandem])
+    @range((t: Magazine) => [0, t.max_TandemMissile])
     @tweakable('number')
     @gameField('uint16')
-    count_MissileTandem = 0;
+    count_TandemMissile = 0;
 
-    @range((t: Magazine) => [0, t.max_MissileEmp])
+    @range((t: Magazine) => [0, t.max_ElecMissile])
     @tweakable('number')
     @gameField('uint16')
-    count_MissileEmp = 0;
+    count_ElecMissile = 0;
 
     @commandable()
     @defectible({ normal: 1, name: 'capacity' })
@@ -99,43 +97,55 @@ export class Magazine extends SystemState {
         return this.capacity < this.design.capacityBrokenThreshold;
     }
 
-    @range((t: Magazine) => [0, t.design.max_CannonHe])
-    get max_CannonHe() {
-        return Math.round(this.design.max_CannonHe * this.capacity);
+    getCount(m: ProjectileModel): number {
+        return this[`count_${m}`];
     }
 
-    @range((t: Magazine) => [0, t.design.max_CannonAp])
-    get max_CannonAp() {
-        return Math.round(this.design.max_CannonAp * this.capacity);
+    setCount(m: ProjectileModel, value: number): void {
+        this[`count_${m}`] = value;
     }
 
-    @range((t: Magazine) => [0, t.design.max_CannonFrag])
-    get max_CannonFrag() {
-        return Math.round(this.design.max_CannonFrag * this.capacity);
+    getMax(m: ProjectileModel): number {
+        return this[`max_${m}`];
     }
 
-    @range((t: Magazine) => [0, t.design.max_MissileHe])
-    get max_MissileHe() {
-        return Math.round(this.design.max_MissileHe * this.capacity);
+    @range((t: Magazine) => [0, t.design.max_HiExpShell])
+    get max_HiExpShell() {
+        return Math.round(this.design.max_HiExpShell * this.capacity);
     }
 
-    @range((t: Magazine) => [0, t.design.max_MissileSabot])
-    get max_MissileSabot() {
-        return Math.round(this.design.max_MissileSabot * this.capacity);
+    @range((t: Magazine) => [0, t.design.max_ArmPenShell])
+    get max_ArmPenShell() {
+        return Math.round(this.design.max_ArmPenShell * this.capacity);
     }
 
-    @range((t: Magazine) => [0, t.design.max_MissileCluster])
-    get max_MissileCluster() {
-        return Math.round(this.design.max_MissileCluster * this.capacity);
+    @range((t: Magazine) => [0, t.design.max_FragShell])
+    get max_FragShell() {
+        return Math.round(this.design.max_FragShell * this.capacity);
     }
 
-    @range((t: Magazine) => [0, t.design.max_MissileTandem])
-    get max_MissileTandem() {
-        return Math.round(this.design.max_MissileTandem * this.capacity);
+    @range((t: Magazine) => [0, t.design.max_HiExpMissile])
+    get max_HiExpMissile() {
+        return Math.round(this.design.max_HiExpMissile * this.capacity);
     }
 
-    @range((t: Magazine) => [0, t.design.max_MissileEmp])
-    get max_MissileEmp() {
-        return Math.round(this.design.max_MissileEmp * this.capacity);
+    @range((t: Magazine) => [0, t.design.max_ArmPenMissile])
+    get max_ArmPenMissile() {
+        return Math.round(this.design.max_ArmPenMissile * this.capacity);
+    }
+
+    @range((t: Magazine) => [0, t.design.max_ClusterMissile])
+    get max_ClusterMissile() {
+        return Math.round(this.design.max_ClusterMissile * this.capacity);
+    }
+
+    @range((t: Magazine) => [0, t.design.max_TandemMissile])
+    get max_TandemMissile() {
+        return Math.round(this.design.max_TandemMissile * this.capacity);
+    }
+
+    @range((t: Magazine) => [0, t.design.max_ElecMissile])
+    get max_ElecMissile() {
+        return Math.round(this.design.max_ElecMissile * this.capacity);
     }
 }

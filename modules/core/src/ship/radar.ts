@@ -32,6 +32,7 @@ export class Radar extends SystemState {
     };
 
     public readonly type = 'Radar';
+    override readonly isElectronics = true;
     public readonly name = 'Radar';
 
     @gameField(RadarDesignState)

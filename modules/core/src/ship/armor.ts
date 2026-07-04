@@ -1,7 +1,7 @@
-import { ArmorType, armorTypes } from '../logic/damage-matrix';
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { RTuple2, toPositiveDegreesDelta } from '..';
 
+import { DamageType } from '../space/damage-profile';
 import { DesignState } from './system';
 import { MAX_SAFE_FLOAT } from '../logic';
 import { gameField } from '../game-field';
@@ -13,26 +13,51 @@ export type ArmorDesign = {
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
-    armorType?: ArmorType;
-    /**
-     * If true, the ship has a Faraday cage layered over the primary armor.
-     * The issue calls Faraday out as the only armor that layers with another
-     * type — under this PR's data model that's a single boolean on the
-     * single Armor instance instead of a separate slot.
-     */
-    hasFaradayLayer?: boolean;
+    // multiplier applied to plate and system damage per damage type. 0 = the armor does not engage the hit.
+    plateDamage_HiExp: number;
+    plateDamage_ArmPen: number;
+    plateDamage_Frag: number;
+    plateDamage_Cluster: number;
+    plateDamage_Tandem: number;
+    plateDamage_Elec: number;
+    // fraction (0..1) of system damage that bypasses the plates regardless of plate state.
+    penetration_HiExp: number;
+    penetration_ArmPen: number;
+    penetration_Frag: number;
+    penetration_Cluster: number;
+    penetration_Tandem: number;
+    penetration_Elec: number;
+    // ERA cells: an engaging hit zeroes the plate and it does not heal.
+    singleUsePlates?: boolean;
 };
 
 export class ArmorDesignState extends DesignState implements ArmorDesign {
     @gameField('float32') numberOfPlates = 0;
     @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;
-    @tweakable({ type: 'string enum', enum: armorTypes })
-    @gameField('string')
-    armorType: ArmorType = 'Composite';
+    @gameField('float32') plateDamage_HiExp = 1;
+    @gameField('float32') plateDamage_ArmPen = 1;
+    @gameField('float32') plateDamage_Frag = 1;
+    @gameField('float32') plateDamage_Cluster = 1;
+    @gameField('float32') plateDamage_Tandem = 1;
+    @gameField('float32') plateDamage_Elec = 0;
+    @gameField('float32') penetration_HiExp = 0;
+    @gameField('float32') penetration_ArmPen = 0;
+    @gameField('float32') penetration_Frag = 0;
+    @gameField('float32') penetration_Cluster = 0;
+    @gameField('float32') penetration_Tandem = 0;
+    @gameField('float32') penetration_Elec = 1;
     @tweakable('boolean')
     @gameField('boolean')
-    hasFaradayLayer = false;
+    singleUsePlates = false;
+
+    plateDamage(t: DamageType): number {
+        return this[`plateDamage_${t}`];
+    }
+
+    penetration(t: DamageType): number {
+        return this[`penetration_${t}`];
+    }
 }
 
 export class ArmorPlate extends Schema {
@@ -62,20 +87,6 @@ export class Armor extends Schema {
 
     get degreesPerPlate(): number {
         return 360 / this.numberOfPlates;
-    }
-
-    /**
-     * Convenience accessor — `armor.type` reads through to the design.
-     * Reactive armor treats each plate as a one-shot ERA cell; once the cell
-     * detonates (plate health hits 0) it does not regenerate, so the damage
-     * manager skips heal-on-tick for Reactive armor.
-     */
-    get type(): ArmorType {
-        return this.design.armorType;
-    }
-
-    get hasFaradayLayer(): boolean {
-        return this.design.hasFaradayLayer;
     }
 
     public numberOfPlatesInRange(localAngleHitRange: RTuple2): number {

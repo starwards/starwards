@@ -1,28 +1,20 @@
 import {
-    AmmoType,
     ChainGun,
     Damage,
-    HullOutcome,
     RTuple2,
     ShipArea,
     SmartPilot,
     SpaceManager,
     Spaceship,
-    SystemDamageProfile,
     archIntersection,
     capToRange,
-    damageMultiplierForOutcome,
-    isSurfaceEffectAmmo,
     limitPercision,
     projectileModels,
-    resolveHullOutcome,
     shipAreasInRange,
-    systemDamageProfile,
 } from '..';
+import { DamageProfile, damageProfiles } from '../space/damage-profile';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
-
-import { ArmorType } from '../logic/damage-matrix';
 
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
@@ -36,42 +28,8 @@ import { Signals } from './signals';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
 
-// Severity scales the incoming damage when applied to systems. Mirrors the
-// "low / medium / high" rows of the System Damage Profile table in #1929.
-const SEVERITY_FACTOR: Record<SystemDamageProfile['severity'], number> = {
-    low: 0.5,
-    medium: 1,
-    high: 2,
-};
-
-// Classify systems as electronics (EMP-vulnerable) and as internal/external
-// (used by ammo system-damage scope). Defaults to "internal electronics"
-// when a system isn't explicitly listed, since most ship subsystems are both.
-//   - external: exposed to direct hull fire (sensors, antennas, mounts).
-//   - internal: deep-hull components.
-//   - electronics: targeted by EMP regardless of position.
-function isElectronicsSystem(system: ShipSystem): boolean {
-    return (
-        Radar.isInstance(system) ||
-        SmartPilot.isInstance(system) ||
-        Reactor.isInstance(system) ||
-        Warp.isInstance(system) ||
-        Signals.isInstance(system) ||
-        Docking.isInstance(system) ||
-        Magazine.isInstance(system) ||
-        ChainGun.isInstance(system)
-    );
-}
-
-function isExternalSystem(system: ShipSystem): boolean {
-    return (
-        Radar.isInstance(system) ||
-        Signals.isInstance(system) ||
-        ChainGun.isInstance(system) ||
-        Docking.isInstance(system) ||
-        Thruster.isInstance(system)
-    );
-}
+// system damage dealt to external systems when the armor blocks a surface-effect hit
+const SURFACE_EFFECT_FACTOR = 0.25;
 
 export class DamageManager {
     constructor(
@@ -100,72 +58,49 @@ export class DamageManager {
         }
     }
 
-    private effectiveArmorType(ammo: AmmoType): ArmorType {
-        const armor = this.state.armor;
-        // Faraday is layerable on top of any other armor; it only matters
-        // for EMP. For physical ammo we fall through to the primary armor.
-        if (ammo === 'MissileEmp' && armor.hasFaradayLayer) {
-            return 'Faraday';
-        }
-        return armor.type;
-    }
-
     public takeExternalDamage(damage: Damage): boolean {
-        if (!damage.ammoType) {
-            // Non-projectile sources (collisions, GM-spawned explosions) skip
-            // the matrix and use the original flat-damage flow.
+        if (!damage.damageType) {
             return this.takeFlatDamage(damage);
         }
-        const ammo = damage.ammoType;
-        const armor = this.effectiveArmorType(ammo);
-        const outcome = resolveHullOutcome(ammo, armor);
-        const multiplier = damageMultiplierForOutcome(outcome);
-        const profile = systemDamageProfile(ammo);
+        const profile = damageProfiles[damage.damageType];
+        const armorDesign = this.state.armor.design;
+        const plateFactor = armorDesign.plateDamage(damage.damageType);
+        const penetration = armorDesign.penetration(damage.damageType);
 
-        if (outcome === 'ignores') {
-            // Two distinct cases collapse here:
-            //   * EMP vs any non-Faraday armor: weapon walks past plates and
-            //     fries every electronic system on the ship.
-            //   * Physical ammo vs pure Faraday primary: Faraday doesn't
-            //     stop physical hits at all, so the projectile lands on
-            //     internals at full system-damage strength.
-            this.applyMatrixSystemDamage(damage, profile, /* multiplier */ 1);
-            return true;
-        }
-
-        if (outcome === 'resist') {
-            // Hull holds. Surface-effect ammo (HE/Frag/Cluster) still scrapes
-            // external systems; clean penetrators just bounce.
-            if (isSurfaceEffectAmmo(ammo)) {
-                this.applyMatrixSystemDamage(damage, profile, multiplier);
+        if (plateFactor === 0) {
+            if (penetration >= 1) {
+                // the armor does not engage this hit at all
+                this.applyPenetratingSystemDamage(damage, profile, 1);
+                return true;
+            }
+            // the armor blocks the hit; surface-effect ammo still scrapes external systems
+            if (profile.surfaceEffect) {
+                this.applySurfaceEffectDamage(damage, profile);
                 return true;
             }
             return false;
         }
 
-        // normal / vulnerable / critical: plate damage + system damage.
         let damagedInternals = false;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
             if (!areaHitRangeAngles) continue;
 
-            if (this.state.armor.type === 'Reactive') {
-                // Each plate is a one-shot ERA cell. Any non-resist physical
-                // hit strips the cells in the hit range. On Critical (Tandem)
-                // the precursor pops the cell AND the main warhead lands.
-                this.consumeReactiveCells(areaHitRangeAngles);
+            if (armorDesign.singleUsePlates) {
+                this.consumeSingleUsePlates(areaHitRangeAngles);
             } else {
-                this.applyDamageToArmor(damage.amount * multiplier, areaHitRangeAngles);
+                this.applyDamageToArmor(damage.amount * plateFactor, areaHitRangeAngles);
             }
 
             const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
             const broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-            const exposureRatio = outcome === 'critical' ? 1 : platesInArea > 0 ? broken / platesInArea : 0;
+            const brokenRatio = platesInArea > 0 ? broken / platesInArea : 0;
+            const exposureRatio = Math.max(penetration, brokenRatio);
 
             if (exposureRatio > 0) {
                 damagedInternals =
-                    this.applySystemDamageToArea(damage, profile, multiplier, hitArea, exposureRatio, outcome) ||
+                    this.applySystemDamageToArea(damage, profile, plateFactor, hitArea, exposureRatio) ||
                     damagedInternals;
             }
         }
@@ -195,41 +130,45 @@ export class DamageManager {
         return damagedInternals;
     }
 
-    private applyMatrixSystemDamage(damage: Damage, profile: SystemDamageProfile, multiplier: number): void {
-        const severity = SEVERITY_FACTOR[profile.severity];
-        const scaled: Damage = { ...damage, amount: damage.amount * multiplier * severity };
-        const candidates = this.systemsForScope(profile.scope, damage.damageSurfaceArc);
+    // system damage for hits the armor plates never engage (bypass or blocked surface-effect)
+    private applyPenetratingSystemDamage(damage: Damage, profile: DamageProfile, multiplier: number): void {
+        const scaled: Damage = { ...damage, amount: damage.amount * multiplier * profile.systemDamageFactor };
+        // electronics damage is ship-wide and ignores the hit arc
+        const pool =
+            profile.systemScope === 'electronics'
+                ? this.state.systems()
+                : this.collectAreaSystems(damage.damageSurfaceArc);
+        const candidates = this.filterSystemsByProfile(pool, profile);
         if (candidates.length === 0) return;
 
-        if (profile.scope.startsWith('single-')) {
+        if (profile.systemScope === 'single') {
             const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, candidates.length);
             this.damageSystem(candidates[Math.floor(idx)], scaled, 1);
         } else {
-            // Critical handling lives in applySystemDamageToArea; this path is
-            // only reached for 'ignores' / 'resist' outcomes (EMP, surface-effect).
             for (const system of candidates) {
                 this.damageSystem(system, scaled, 1);
             }
         }
     }
 
-    private filterSystemsByScope(systems: ShipSystem[], scope: SystemDamageProfile['scope']): ShipSystem[] {
-        switch (scope) {
-            case 'multi-electronics':
-                return systems.filter(isElectronicsSystem);
-            case 'single-internal':
-            case 'multi-internal':
-                return systems.filter((s) => !isExternalSystem(s));
-            case 'single-external':
-            case 'multi-external':
-                return systems.filter(isExternalSystem);
+    // a blocked surface-effect hit scrapes the external systems in the hit arc
+    private applySurfaceEffectDamage(damage: Damage, profile: DamageProfile): void {
+        const scaled: Damage = {
+            ...damage,
+            amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.systemDamageFactor,
+        };
+        for (const system of this.collectAreaSystems(damage.damageSurfaceArc)) {
+            if (!system.isInternal) {
+                this.damageSystem(system, scaled, 1);
+            }
         }
     }
 
-    private systemsForScope(scope: SystemDamageProfile['scope'], surfaceArc: RTuple2): ShipSystem[] {
-        // EMP-style ship-wide electronics damage ignores the hit arc.
-        const pool = scope === 'multi-electronics' ? this.state.systems() : this.collectAreaSystems(surfaceArc);
-        return this.filterSystemsByScope(pool, scope);
+    private filterSystemsByProfile(systems: ShipSystem[], profile: DamageProfile): ShipSystem[] {
+        if (profile.systemScope === 'electronics') {
+            return systems.filter((s) => s.isElectronics);
+        }
+        return systems.filter((s) => s.isInternal === profile.hitsInternal);
     }
 
     private collectAreaSystems(surfaceArc: RTuple2): ShipSystem[] {
@@ -242,34 +181,29 @@ export class DamageManager {
 
     private applySystemDamageToArea(
         damage: Damage,
-        profile: SystemDamageProfile,
+        profile: DamageProfile,
         multiplier: number,
         hitArea: ShipArea,
         exposureRatio: number,
-        outcome: HullOutcome,
     ): boolean {
-        const severity = SEVERITY_FACTOR[profile.severity];
-        const scaled: Damage = { ...damage, amount: damage.amount * multiplier * severity };
-        // multi-electronics is ship-wide, not area-local; everything else is
-        // scoped to the systems on this facing.
-        const pool = profile.scope === 'multi-electronics' ? this.state.systems() : this.state.systemsByAreas(hitArea);
-        const filtered = this.filterSystemsByScope(pool || [], profile.scope);
+        const scaled: Damage = { ...damage, amount: damage.amount * multiplier * profile.systemDamageFactor };
+        // electronics damage is ship-wide, not area-local
+        const pool = profile.systemScope === 'electronics' ? this.state.systems() : this.state.systemsByAreas(hitArea);
+        const filtered = this.filterSystemsByProfile(pool || [], profile);
         if (filtered.length === 0) return false;
 
-        const isSingle = profile.scope.startsWith('single-');
-        if (isSingle) {
+        if (profile.systemScope === 'single') {
             const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, filtered.length);
             this.damageSystem(filtered[Math.floor(idx)], scaled, exposureRatio);
         } else {
-            const ratio = outcome === 'critical' ? Math.min(1, exposureRatio * 2) : exposureRatio;
             for (const system of filtered) {
-                this.damageSystem(system, scaled, ratio);
+                this.damageSystem(system, scaled, exposureRatio);
             }
         }
         return true;
     }
 
-    private consumeReactiveCells(localAngleHitRange: RTuple2): void {
+    private consumeSingleUsePlates(localAngleHitRange: RTuple2): void {
         for (const [_, plate] of this.state.armor.platesInRange(localAngleHitRange)) {
             if (plate.health > 0) {
                 plate.health = 0;
@@ -350,8 +284,9 @@ export class DamageManager {
             // todo convert to a defectible property that accumulates damage
             const idx = this.die.getRollInRange('magazineLostAmmo:' + damageId, 0, projectileModels.length);
             const projectileKey = projectileModels[Math.floor(idx)];
-            magazine[`count_${projectileKey}`] = Math.round(
-                magazine[`count_${projectileKey}`] * (1 - magazine.design.capacityDamageFactor),
+            magazine.setCount(
+                projectileKey,
+                Math.round(magazine.getCount(projectileKey) * (1 - magazine.design.capacityDamageFactor)),
             );
         } else {
             magazine.capacity *= 1 - magazine.design.capacityDamageFactor;

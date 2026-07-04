@@ -27,6 +27,8 @@ export class Reactor extends SystemState {
     };
 
     public readonly type = 'Reactor';
+    override readonly isInternal = true;
+    override readonly isElectronics = true;
     public readonly name = 'Reactor';
 
     @gameField(ReactorDesignState)
