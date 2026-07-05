@@ -12,6 +12,11 @@
     "workspaces": [
         "modules/*"
     ],
+    "overrides": {
+        "ws@^7": "^7.5.11",
+        "picomatch@^4": "^4.0.4",
+        "form-data@^4": "^4.0.6"
+    },
     "scripts": {
         "predev": "rimraf ./modules/core/cjs/index.js",
         "dev": "concurrently --kill-others -c blue,green,yellow -n core,server,browser \"npm:dev:core\" \"npm:dev:server\" \"npm:dev:browser\"",
