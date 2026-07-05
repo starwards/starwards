@@ -19,7 +19,8 @@ describe('armor model presets (issue #1929)', () => {
         expect(whippleArmor.plateDamage_Tandem).to.equal(2);
     });
 
-    it('Hardened resists blast and Tandem better than Whipple', () => {
+    it('Hardened grinds down slowly under blast and takes Tandem better than Whipple', () => {
+        expect(hardenedArmor.plateDamage_HiExp).to.equal(0.5);
         expect(hardenedArmor.plateDamage_ArmPen).to.equal(2);
         expect(hardenedArmor.plateDamage_Tandem).to.equal(1);
     });

@@ -17,7 +17,8 @@ export type ArmorModelStats = Pick<
     | 'singleUsePlates'
 >;
 
-// plateDamage: multiplier on plate + system damage, 0 = armor does not engage the hit.
+// plateDamage: multiplier on plate erosion only, 0 = armor does not engage the hit.
+// The armor is worn down until its plates are dead; system damage behind it is never scaled.
 // penetration: fraction of system damage bypassing the plates.
 
 export const compositeArmor: ArmorModelStats = {
@@ -53,7 +54,8 @@ export const whippleArmor: ArmorModelStats = {
 };
 
 export const hardenedArmor: ArmorModelStats = {
-    plateDamage_HiExp: 0,
+    // blast grinds the slab down slowly instead of being defeated outright (unlike Whipple)
+    plateDamage_HiExp: 0.5,
     plateDamage_ArmPen: 2,
     plateDamage_Frag: 0,
     plateDamage_Cluster: 0,
@@ -73,8 +75,8 @@ export const reactiveArmor: ArmorModelStats = {
     plateDamage_ArmPen: 0,
     plateDamage_Frag: 0,
     plateDamage_Cluster: 0,
-    // tandem precursor pops the cell and the main charge lands at full force
-    plateDamage_Tandem: 4,
+    // tandem precursor pops the cell (any engaging value consumes it) and the main charge lands at full force
+    plateDamage_Tandem: 1,
     plateDamage_Elec: 0,
     penetration_HiExp: 0,
     penetration_ArmPen: 0,

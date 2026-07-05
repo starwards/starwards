@@ -8,6 +8,7 @@ import {
     compositeArmor,
     dragonflySF22,
     faradayArmor,
+    hardenedArmor,
     makeShipState,
     reactiveArmor,
     whippleArmor,
@@ -112,6 +113,13 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const before = state.armor.armorPlates[0].health;
             damageManager.takeExternalDamage(frontDamage(800, 'ArmPen'));
             expect(state.armor.armorPlates[0].health).to.be.lessThan(before);
+        });
+
+        it('HiExp vs Hardened (plateDamage 0.5) erodes plates at half rate', () => {
+            const { state, damageManager } = setUpShip(hardenedArmor);
+            const before = state.armor.armorPlates[0].health;
+            damageManager.takeExternalDamage(frontDamage(100, 'HiExp'));
+            expect(before - state.armor.armorPlates[0].health).to.be.closeTo(50, 0.001);
         });
     });
 

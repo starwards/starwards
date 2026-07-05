@@ -70,7 +70,7 @@ export class DamageManager {
         if (plateFactor === 0) {
             if (penetration >= 1) {
                 // the armor does not engage this hit at all
-                this.applyPenetratingSystemDamage(damage, profile, 1);
+                this.applyPenetratingSystemDamage(damage, profile);
                 return true;
             }
             // the armor blocks the hit; surface-effect ammo still scrapes external systems
@@ -100,8 +100,7 @@ export class DamageManager {
 
             if (exposureRatio > 0) {
                 damagedInternals =
-                    this.applySystemDamageToArea(damage, profile, plateFactor, hitArea, exposureRatio) ||
-                    damagedInternals;
+                    this.applySystemDamageToArea(damage, profile, hitArea, exposureRatio) || damagedInternals;
             }
         }
         return damagedInternals;
@@ -131,8 +130,8 @@ export class DamageManager {
     }
 
     // system damage for hits the armor plates never engage (bypass or blocked surface-effect)
-    private applyPenetratingSystemDamage(damage: Damage, profile: DamageProfile, multiplier: number): void {
-        const scaled: Damage = { ...damage, amount: damage.amount * multiplier * profile.systemDamageFactor };
+    private applyPenetratingSystemDamage(damage: Damage, profile: DamageProfile): void {
+        const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
         // electronics damage is ship-wide and ignores the hit arc
         const pool =
             profile.systemScope === 'electronics'
@@ -179,14 +178,14 @@ export class DamageManager {
         return collected;
     }
 
+    // plateDamage governs plate erosion only — once exposed, systems take the round's own damage
     private applySystemDamageToArea(
         damage: Damage,
         profile: DamageProfile,
-        multiplier: number,
         hitArea: ShipArea,
         exposureRatio: number,
     ): boolean {
-        const scaled: Damage = { ...damage, amount: damage.amount * multiplier * profile.systemDamageFactor };
+        const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
         // electronics damage is ship-wide, not area-local
         const pool = profile.systemScope === 'electronics' ? this.state.systems() : this.state.systemsByAreas(hitArea);
         const filtered = this.filterSystemsByProfile(pool || [], profile);

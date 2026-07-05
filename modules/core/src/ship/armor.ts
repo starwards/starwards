@@ -13,7 +13,8 @@ export type ArmorDesign = {
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
-    // multiplier applied to plate and system damage per damage type. 0 = the armor does not engage the hit.
+    // multiplier on plate erosion per damage type. 0 = the armor does not engage the hit.
+    // System damage is never scaled by this — once plates break (or penetration applies), the round's own damage goes through.
     plateDamage_HiExp: number;
     plateDamage_ArmPen: number;
     plateDamage_Frag: number;

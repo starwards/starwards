@@ -1,7 +1,9 @@
 # Decision: Damage-profile unification for the armor/ammo rework (PR #1932)
 
 **Date:** 2026-07
-**Status:** Accepted (operative — pending review by original author @KokoiG)
+**Status:** Accepted (operative — pending review by original author @KokoiG).
+Partially superseded by [007](007-plate-damage-erosion-only.md): plateDamage no longer scales
+system damage (item 8's ×4), and Hardened is now resistant (0.5) rather than immune to HiExp.
 
 ## Context
 

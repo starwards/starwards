@@ -12,6 +12,7 @@ Key product decisions and their rationale. Not every choice needs a record — o
 | 4 | Ship 4-station game first, expand later | 2026-04 | [004-ship-early-expand-later.md](004-ship-early-expand-later.md) |
 | 5 | TypeScript scenario files | 2026-04 | [005-typescript-scenarios.md](005-typescript-scenarios.md) |
 | 6 | Damage-profile unification for armor/ammo rework | 2026-07 | [006-damage-profile-unification.md](006-damage-profile-unification.md) |
+| 7 | plateDamage governs plate erosion only | 2026-07 | [007-plate-damage-erosion-only.md](007-plate-damage-erosion-only.md) |
 
 ## Template
 
