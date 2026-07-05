@@ -26,15 +26,23 @@ const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
 
 export const HTTP_CONFLICT_STATUS = 409;
 const HTTP_BAD_REQUEST_STATUS = 400;
-export async function server(port: number, staticDirs: string | string[], manager: GameManager) {
+export async function server(
+    port: number,
+    staticDirs: string | string[],
+    manager: GameManager,
+    // Test-only escape hatch: test/driver.ts passes { pingInterval: 0 } to prevent a
+    // 3 s setInterval from outliving gracefullyShutdown() in Jest teardown.
+    // WebSocketTransport.shutdown() calls httpServer.close() without awaiting the
+    // resulting "close" event, so clearInterval(pingInterval) never fires in time.
+    // Production/dev omit this so Colyseus's normal ping heartbeat (dead-connection
+    // detection) stays active.
+    wsTransportOverrides?: { pingInterval?: number; pingMaxRetries?: number },
+) {
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
     const gameServer = new Server({
-        // pingInterval: 0 prevents a 3 s setInterval from outliving gracefullyShutdown().
-        // WebSocketTransport.shutdown() calls httpServer.close() without awaiting the
-        // resulting "close" event, so clearInterval(pingInterval) never fires in time.
-        transport: new WebSocketTransport({ server: httpServer, pingInterval: 0 }),
+        transport: new WebSocketTransport({ server: httpServer, ...wsTransportOverrides }),
         greet: false,
         presence: new CleanLocalPresence(),
     });
