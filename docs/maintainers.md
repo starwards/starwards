@@ -13,8 +13,14 @@ The following checks are required on `master`:
 - `Test-Units`
 - `Test-E2e`
 - `Test-Visual`
-- `pr-template-check`
 - `coverage-core`
+
+`pr-template-check` was retired (2026-07): checkbox attestation filled in
+by the same LLM whose blindness it was meant to catch carries no evidence,
+and routinely-bypassed red checks erode the "all CI must pass" norm. The
+invariants it listed are enforced mechanically instead — `local/*` lint
+rules in `eslint.config.mjs`, the runtime `@commandable` whitelist, and
+the CI test jobs.
 
 Set "Require branches to be up to date before merging" so the checks
 have actually run on the merge commit's tree, not on stale parents.
@@ -68,11 +74,11 @@ These items are independent of each other and can be tackled in any order.
 
 The highest-risk source files have thin or no dedicated test coverage:
 
-| File                       | LOC  | Tests today | What to cover                                                                                                       |
-| -------------------------- | ---- | ----------- | ------------------------------------------------------------------------------------------------------------------- |
-| `space-manager.ts`         | 798  | 2 files (46 tests) | `setPosition`/`updateAABB` ordering; MapSchema delete semantics                                               |
-| `movement-manager.ts`      | 431  | 4           | Dock alignment, additional thrust-vector edge cases (thrust/strafe/brake/afterburner covered)                       |
-| `chain-gun-manager.ts`     | 200  | 1 file (5 tests) | Cooldown, jam, reload state machine (ammo decrement/switching covered)                                          |
+| File                   | LOC | Tests today        | What to cover                                                                                 |
+| ---------------------- | --- | ------------------ | --------------------------------------------------------------------------------------------- |
+| `space-manager.ts`     | 798 | 2 files (46 tests) | `setPosition`/`updateAABB` ordering; MapSchema delete semantics                               |
+| `movement-manager.ts`  | 431 | 4                  | Dock alignment, additional thrust-vector edge cases (thrust/strafe/brake/afterburner covered) |
+| `chain-gun-manager.ts` | 200 | 1 file (5 tests)   | Cooldown, jam, reload state machine (ammo decrement/switching covered)                        |
 
 E2E gaps: a Playwright equivalent of the two-clients-on-same-ship scenario (one writes a `@commandable` property, the other observes). This scenario already has server-side coverage in `modules/server/src/test/multi-client-sync.spec.ts`; only a browser-level E2E remains outstanding.
 
