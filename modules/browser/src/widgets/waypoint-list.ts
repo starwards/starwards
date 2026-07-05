@@ -1,10 +1,10 @@
 import { Add, Remove } from 'colyseus-events';
 import { Destructors, SpaceDriver, Waypoint, spaceCommands } from '@starwards/core';
 import { addButton, addInputBlade, createPane } from '../panel';
+import { readProp, readWriteProp } from '../property-wrappers';
 
-import { FolderApi } from 'tweakpane';
+import { ButtonApi } from 'tweakpane';
 import { WidgetContainer } from '../container';
-import { readWriteProp } from '../property-wrappers';
 
 function wpTitle(title: string | undefined, id: string): string {
     return title || id.slice(0, 6);
@@ -20,58 +20,83 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
     const pane = createPane({ title: 'Waypoints', container: container.getElement().get(0) });
     cleanup.add(() => pane.dispose());
 
-    const foldersByWpId = new Map<string, FolderApi>();
+    // Shared edit section — hidden until a waypoint is selected
+    const editFolder = pane.addFolder({ title: 'Edit', expanded: true });
+    editFolder.hidden = true;
+    let editSession: Destructors | null = null;
+    let selectedWpId: string | null = null;
+
+    function selectWaypoint(wpId: string) {
+        if (selectedWpId === wpId) return;
+
+        // Tear down previous edit session
+        if (editSession) {
+            editSession.destroy();
+            editSession = null;
+        }
+        for (const child of [...editFolder.children]) child.dispose();
+
+        selectedWpId = wpId;
+        const session = new Destructors();
+        editSession = session;
+
+        const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wpId}/title`);
+        const updateFolderTitle = () => {
+            editFolder.title = `Edit: ${wpTitle(titleProp.getValue(), wpId)}`;
+        };
+        updateFolderTitle();
+        session.add(titleProp.onChange(updateFolderTitle));
+        editFolder.hidden = false;
+
+        addInputBlade<string>(editFolder, titleProp, { label: 'name' }, session.add);
+        addButton(
+            editFolder,
+            () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: [wpId] }),
+            { label: 'Delete', title: 'Delete' },
+            session.add,
+        );
+    }
+
+    cleanup.add(() => {
+        if (editSession) editSession.destroy();
+    });
+
+    // List of waypoint buttons — one per waypoint, always visible
+    const buttonsByWpId = new Map<string, { button: ButtonApi; unsub: () => void }>();
 
     function addWaypointRow(wp: Waypoint) {
-        if (foldersByWpId.has(wp.id)) return;
+        if (buttonsByWpId.has(wp.id)) return;
 
-        const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wp.id}/title`);
-        const folder = pane.addFolder({ title: wpTitle(titleProp.getValue(), wp.id), expanded: false });
-        foldersByWpId.set(wp.id, folder);
-
-        // Accordion: expanding one waypoint collapses all others
-        folder.on('fold', (ev) => {
-            if (ev.expanded) {
-                for (const [id, f] of foldersByWpId) {
-                    if (id !== wp.id && f.expanded) {
-                        f.expanded = false;
-                    }
-                }
-            }
+        const titleProp = readProp<string>(spaceDriver, `/Waypoint/${wp.id}/title`);
+        const button = pane.addButton({ title: wpTitle(titleProp.getValue(), wp.id) });
+        const unsub = titleProp.onChange(() => {
+            button.title = wpTitle(titleProp.getValue(), wp.id);
         });
-
-        addInputBlade<string>(
-            folder,
-            {
-                getValue: titleProp.getValue,
-                setValue: titleProp.setValue,
-                onChange: (cb) =>
-                    titleProp.onChange(() => {
-                        folder.title = wpTitle(titleProp.getValue(), wp.id);
-                        cb();
-                    }),
-            },
-            { label: 'title' },
-            cleanup.add,
-        );
-
-        addButton(
-            folder,
-            () => {
-                spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: [wp.id] });
-            },
-            { label: 'Delete', title: 'Delete' },
-            cleanup.add,
-        );
+        button.on('click', () => selectWaypoint(wp.id));
+        buttonsByWpId.set(wp.id, { button, unsub });
     }
 
     function removeWaypointRow(wpId: string) {
-        const folder = foldersByWpId.get(wpId);
-        if (folder) {
-            folder.dispose();
-            foldersByWpId.delete(wpId);
+        const entry = buttonsByWpId.get(wpId);
+        if (entry) {
+            entry.unsub();
+            entry.button.dispose();
+            buttonsByWpId.delete(wpId);
+        }
+        if (selectedWpId === wpId) {
+            if (editSession) {
+                editSession.destroy();
+                editSession = null;
+            }
+            for (const child of [...editFolder.children]) child.dispose();
+            editFolder.hidden = true;
+            selectedWpId = null;
         }
     }
+
+    cleanup.add(() => {
+        for (const { unsub } of buttonsByWpId.values()) unsub();
+    });
 
     // Populate existing waypoints
     for (const wp of spaceDriver.state.getAll('Waypoint')) {
