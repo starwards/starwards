@@ -18,7 +18,8 @@ export function createLogger(namespace: string) {
     // Force info/warn/error visible in normal runs; under Jest fall back to the
     // debug package's DEBUG-driven enablement so tests are quiet by default.
     // Re-enable in a specific test run with DEBUG=starwards:* (or a narrower namespace).
-    if (!process.env.JEST_WORKER_ID) {
+    // `process` is undefined in the browser bundle (no polyfill), so guard for that too.
+    if (typeof process === 'undefined' || !process.env.JEST_WORKER_ID) {
         info.enabled = true;
         warn.enabled = true;
         error.enabled = true;
