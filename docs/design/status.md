@@ -40,7 +40,7 @@ _None._
 
 | Area | Status | Key Issues | Notes |
 |------|--------|------------|-------|
-| [Distribution](infrastructure/distribution.md) | Partial | [#1295](https://github.com/starwards/starwards/issues/1295), [#832](https://github.com/starwards/starwards/issues/832) | pkg.js builds work; versioned downloads not done |
+| [Distribution](infrastructure/distribution.md) | Partial | [#1295](https://github.com/starwards/starwards/issues/1295) | pkg.js builds work; versioned downloads not done (#832 merged into #1295, now agent-ready) |
 | [Scenario loading](infrastructure/scenarios.md) | Planned | [#870](https://github.com/starwards/starwards/issues/870) | TypeScript scenario files loaded from disk |
 | [Networking](infrastructure/networking.md) | Done | — | Colyseus multiplayer, LAN-ready |
 | Node-RED integration | Done | [#1294](https://github.com/starwards/starwards/issues/1294) | IoT bridge via colyseus-events |

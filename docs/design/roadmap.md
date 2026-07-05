@@ -28,7 +28,7 @@ Work items ordered by "what unblocks a playable event soonest":
 | Priority | Item | Why |
 |----------|------|-----|
 | 1 | **Ship models** ([#546](https://github.com/starwards/starwards/issues/546)) | Can't crew a corvette without corvette ships |
-| 2 | **Docking** ([#539](https://github.com/starwards/starwards/issues/539)) | Stations are ships; repair/resupply requires docking |
+| 2 | ~~**Docking**~~ ([#539](https://github.com/starwards/starwards/issues/539)) — **Done**, closed 2026-07-05 | Ship-in-ship docking landed; dock-master ([#538](https://github.com/starwards/starwards/issues/538)) remains |
 | 3 | **Signals station UI** ([#1208](https://github.com/starwards/starwards/issues/1208)) | Wire up the jobs system to a playable station |
 | 4 | **Pre-event bugs** ([#866](https://github.com/starwards/starwards/issues/866), [#1002](https://github.com/starwards/starwards/issues/1002), [#748](https://github.com/starwards/starwards/issues/748)) | Things that will break during play |
 | 5 | **Scenario file loading** ([#870](https://github.com/starwards/starwards/issues/870)) | Externalize maps so organizers can author scenarios |
@@ -41,7 +41,7 @@ Work items ordered by "what unblocks a playable event soonest":
 - [ ] **Relay station** ([#1211](https://github.com/starwards/starwards/issues/1211)) — probes, route coordination
 - [ ] **Repair system** — 3-tier system, Node-RED integration
 - [x] **Hull damage** ([#1187](https://github.com/starwards/starwards/issues/1187)) — IoT alerts
-- [ ] **Scan minigame** ([#939](https://github.com/starwards/starwards/issues/939))
+- ~~**Scan minigame** ([#939](https://github.com/starwards/starwards/issues/939))~~ — closed 2026-07-05, superseded by the EW scan beam design (`docs/bridge-playtest/decisions.md`)
 - [ ] **Cargo system** ([#548](https://github.com/starwards/starwards/issues/548))
 
 ### Pre-Event Gate
@@ -86,4 +86,4 @@ Features explicitly deferred until after the first LARP event:
 - Cargo system ([#548](https://github.com/starwards/starwards/issues/548))
 - Fighters as playable ships (currently only NPC)
 - 3D visualization (separate Unity client)
-- Scan minigame ([#939](https://github.com/starwards/starwards/issues/939))
+- ~~Scan minigame ([#939](https://github.com/starwards/starwards/issues/939))~~ — superseded by the EW scan beam design
