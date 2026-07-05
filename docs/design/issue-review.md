@@ -106,14 +106,13 @@ These are 3-4 year old design sketches. Some have been superseded by the detaile
 | [#1001](https://github.com/starwards/starwards/issues/1001) | Emissions signature (WIP) | **Keep** — not yet absorbed into MS3 design. Post-event feature. |
 | [#969](https://github.com/starwards/starwards/issues/969) | Radar improvements (mega-task draft) | **Superseded** — scan levels design in docs covers this. Close with link to docs. |
 | [#967](https://github.com/starwards/starwards/issues/967) | Name ship systems models | **Still relevant** — display names in tweak panel. Quick win. |
-| [#939](https://github.com/starwards/starwards/issues/939) | Scan minigame idea | **Keep as idea** — explicitly deferred post-event. Label as such. |
 | [#882](https://github.com/starwards/starwards/issues/882) | Constants panel for ship model design | **Still relevant** — needed for #546 (multiple ship models). |
 | [#870](https://github.com/starwards/starwards/issues/870) | Dynamic map/config/asset loading | **Critical for events** but not MS3. Needed for reusable scenarios. |
 
 **Recommendations:**
 1. **Close #969** — superseded by scan levels + signals jobs design
 2. **Keep #882 and #870** — both needed, just not on critical path
-3. **Label #939 and #1001** as `post-event`
+3. **Label #1001** as `post-event`
 
 ---
 
@@ -168,7 +167,6 @@ These are 3-4 year old design sketches. Some have been superseded by the detaile
 | [#835](https://github.com/starwards/starwards/issues/835) | Usage instructions | **Important for events** — players need onboarding docs |
 | [#834](https://github.com/starwards/starwards/issues/834) | Keys configuration | Keep — different events may need different keybinds |
 | [#833](https://github.com/starwards/starwards/issues/833) | Armor plates on tactical radar | Keep — combined view for single-pilot |
-| [#832](https://github.com/starwards/starwards/issues/832) | Accessible executable download | Keep — distribution story |
 | [#551](https://github.com/starwards/starwards/issues/551) | AI handicap variables | Keep — GM needs difficulty tuning |
 | [#548](https://github.com/starwards/starwards/issues/548) | Cargo system | Keep — explicitly deferred post-event |
 
