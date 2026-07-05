@@ -4,12 +4,12 @@
 
 **41 test files, 200+ tests** (~15s unit, ~2min E2E)
 
-| Category | Files | Tests | Location |
-|----------|-------|-------|----------|
-| Unit | 23 | ~90 | `modules/core/test/` |
-| Server | 6 | 28 | `modules/server/src/test/` |
-| E2E | 10 | 51 | `modules/e2e/test/` |
-| Integration | 4 | ~15 | `modules/node-red/src/` |
+| Category    | Files | Tests | Location                   |
+| ----------- | ----- | ----- | -------------------------- |
+| Unit        | 23    | ~90   | `modules/core/test/`       |
+| Server      | 6     | 28    | `modules/server/src/test/` |
+| E2E         | 10    | 51    | `modules/e2e/test/`        |
+| Integration | 4     | ~15   | `modules/node-red/src/`    |
 
 **CI/CD:** Automated on every push, parallel execution (4 workers)
 
@@ -36,6 +36,7 @@ npm run lint:fix                      # Auto-fix
 ## Writing Tests
 
 ### Unit Test
+
 ```typescript
 import { expect } from 'chai';
 import { Spaceship } from '../src';
@@ -49,19 +50,23 @@ describe('Spaceship', () => {
 ```
 
 ### Property-Based Test
+
 ```typescript
 import fc from 'fast-check';
 import { float } from './properties';
 
 it('effectiveness ∈ [0,1]', () => {
-    fc.assert(fc.property(float(0, 1), float(0, 1), (power, hacked) => {
-        const eff = power * hacked;
-        expect(eff).to.be.at.least(0).and.at.most(1);
-    }));
+    fc.assert(
+        fc.property(float(0, 1), float(0, 1), (power, hacked) => {
+            const eff = power * hacked;
+            expect(eff).to.be.at.least(0).and.at.most(1);
+        }),
+    );
 });
 ```
 
 ### E2E Test
+
 ```typescript
 import { test, expect } from '@playwright/test';
 import { makeDriver, waitForPropertyFloatValue } from './driver';
@@ -85,6 +90,7 @@ test('helm displays heading', async ({ page }) => {
 #### UI Testing Best Practices
 
 **✓ Use semantic selectors (data-id)**
+
 ```typescript
 // ✓ Semantic - stable across Tweakpane versions
 const panel = page.locator('[data-id="Targeting"]');
@@ -96,6 +102,7 @@ const panel = page.getByRole('button', { name: /Targeting/ });
 **Why:** All Tweakpane panels created with `createPane({ title, container })` automatically get `data-id="title"` for semantic testing. This decouples tests from Tweakpane's internal DOM structure.
 
 **✓ Test panel presence, not internals**
+
 ```typescript
 // ✓ Test panel exists
 await expect(page.locator('[data-id="Tubes Status"]')).toBeVisible();
@@ -105,18 +112,19 @@ const value = await getPropertyValue(page, 'auto load', 'Tube 0');
 expect(value).toBe('on');
 
 // ❌ Don't traverse Tweakpane DOM
-const checkbox = panel.locator('.tp-ckbv_i');  // Brittle!
+const checkbox = panel.locator('.tp-ckbv_i'); // Brittle!
 ```
 
 **Why:** Tweakpane's internal DOM structure can change between versions. Use test helpers that understand the abstraction layer.
 
 **✓ Scope searches to panels**
+
 ```typescript
 // ✓ When multiple panels have same label, scope to panel
 const value = await getPropertyValue(page, 'power', 'Reactor');
 
 // ❌ Global search fails with strict mode violations
-const value = await getPropertyValue(page, 'power');  // Error: multiple matches
+const value = await getPropertyValue(page, 'power'); // Error: multiple matches
 ```
 
 **Why:** `getPropertyValue(page, label, panelTitle)` uses `[data-id="panelTitle"]` to scope searches, preventing ambiguity.
@@ -126,17 +134,19 @@ const value = await getPropertyValue(page, 'power');  // Error: multiple matches
 #### E2E Anti-Patterns
 
 **❌ Don't: Wait for arbitrary time**
+
 ```typescript
 await page.keyboard.press('e');
-await page.waitForTimeout(100);  // ❌ Non-deterministic
+await page.waitForTimeout(100); // ❌ Non-deterministic
 const value = await getPropertyValue(page, 'rotationCommand');
-expect(parseFloat(value)).not.toBe(0);  // ❌ Vague assertion
+expect(parseFloat(value)).not.toBe(0); // ❌ Vague assertion
 ```
 
 **✓ Do: Wait for specific state change**
+
 ```typescript
 await page.keyboard.press('e');
-await waitForPropertyFloatValue(page, 'rotationCommand', 0.05);  // ✓ Deterministic + specific
+await waitForPropertyFloatValue(page, 'rotationCommand', 0.05); // ✓ Deterministic + specific
 ```
 
 ### E2E Test Infrastructure
@@ -166,12 +176,14 @@ test.describe('My Screen', () => {
 ```
 
 **Features:**
+
 - **setupPageErrorHandlers()** - Detects page crashes and errors early, failing fast instead of hanging
 - **navigateToScreen()** - Navigates with proper timeout and error handling, detects ECONNREFUSED
 - **cleanupPageState()** - Removes listeners, clears timers/intervals between tests
 - **waitForCriticalElement()** - Waits with crash detection (optional, more robust than standard waits)
 
 **Configuration:**
+
 ```typescript
 // playwright.config.ts
 {
@@ -189,6 +201,7 @@ waitForCriticalElement: 10000ms  // Critical elements
 ```
 
 **Why This Matters:**
+
 - Prevents 30-second timeouts from cascading across multiple tests
 - Detects page crashes immediately instead of waiting for element timeouts
 - Cleans up timers/intervals that could interfere with subsequent tests
@@ -206,6 +219,7 @@ waitForCriticalElement: 10000ms  // Critical elements
 3. **Connection detection** - `navigateToScreen()` detects ECONNREFUSED immediately
 
 **Example beforeEach:**
+
 ```typescript
 test.beforeEach(async ({ page }) => {
     setupPageErrorHandlers(page);
@@ -217,6 +231,7 @@ test.beforeEach(async ({ page }) => {
 **Result:** If server crashes, next test fails immediately with clear message instead of hanging for 20+ seconds.
 
 **❌ Don't: Test name mismatch**
+
 ```typescript
 test('keyboard rotation controls update heading', async ({ page }) => {
     // But test actually checks rotationCommand, not heading ❌
@@ -225,6 +240,7 @@ test('keyboard rotation controls update heading', async ({ page }) => {
 ```
 
 **✓ Do: Match test name to behavior**
+
 ```typescript
 test('keyboard rotation controls update rotation command', async ({ page }) => {
     await page.keyboard.press('e');
@@ -233,24 +249,27 @@ test('keyboard rotation controls update rotation command', async ({ page }) => {
 ```
 
 **❌ Don't: Assume absolute values without checking config**
+
 ```typescript
 test('keyboard thrust', async ({ page }) => {
     await page.keyboard.press('w');
-    await waitForPropertyFloatValue(page, 'boostCommand', 1.0);  // ❌ Wrong! Assumes absolute value
+    await waitForPropertyFloatValue(page, 'boostCommand', 1.0); // ❌ Wrong! Assumes absolute value
 });
 ```
 
 **✓ Do: Use values from input-config.ts and document coupling**
+
 ```typescript
 // NOTE: Coupled to step values in modules/browser/src/input/input-config.ts
 // boostCommand uses KeysRangeConfig with step: 0.05
 test('keyboard thrust', async ({ page }) => {
     await page.keyboard.press('w');
-    await waitForPropertyFloatValue(page, 'boostCommand', 0.05);  // ✓ Correct step value
+    await waitForPropertyFloatValue(page, 'boostCommand', 0.05); // ✓ Correct step value
 });
 ```
 
 ### Multi-Client Test
+
 ```typescript
 import { makeMultiClientDriver } from './multi-client-driver';
 
@@ -258,11 +277,8 @@ describe('multi-client sync', () => {
     const driver = makeMultiClientDriver();
 
     beforeEach(async () => {
-        await supertest(driver.serverDriver.httpServer)
-            .post('/start-game')
-            .send({ mapName: 'two_vs_one' })
-            .expect(200);
-        driver.serverDriver.gameManager.state.speed = 0;  // Pause physics
+        await supertest(driver.serverDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        driver.serverDriver.gameManager.state.speed = 0; // Pause physics
     });
 
     it('clients see same state', async () => {
@@ -271,8 +287,8 @@ describe('multi-client sync', () => {
         const s1 = await c1.connectSpace();
         const s2 = await c2.connectSpace();
 
-        await c1.waitForSync(s1, state => state.getAll('Spaceship').length > 0);
-        await c2.waitForSync(s2, state => state.getAll('Spaceship').length > 0);
+        await c1.waitForSync(s1, (state) => state.getAll('Spaceship').length > 0);
+        await c2.waitForSync(s2, (state) => state.getAll('Spaceship').length > 0);
 
         expect(c1.getState(s1).toJSON()).toEqual(c2.getState(s2).toJSON());
     });
@@ -282,6 +298,7 @@ describe('multi-client sync', () => {
 ## Test Utilities
 
 ### ShipTestHarness
+
 **Location:** `modules/core/test/ship-test-harness.ts`
 
 **Features:** Physics simulation, graphing, metrics, state history, invariants
@@ -292,11 +309,14 @@ import { ShipTestHarness } from '@starwards/core/test';
 const harness = new ShipTestHarness();
 harness.enableStateHistory();
 harness.assertPhysicsInvariant(() => harness.shipObj.x >= 0, 'X non-negative');
-harness.simulate(30, 100, () => { harness.shipMgr.state.smartPilot.maneuvering.x = 1; });
+harness.simulate(30, 100, () => {
+    harness.shipMgr.state.smartPilot.maneuvering.x = 1;
+});
 const stateAt5s = harness.getStateAt(5);
 ```
 
 ### Test Factories
+
 **Location:** `modules/core/test/test-factories.ts`
 
 ```typescript
@@ -310,9 +330,11 @@ const ships = harness.createCombatScenario({ shipCount: 2 });
 ```
 
 ### Multi-Client Driver
+
 **Location:** `modules/server/src/test/multi-client-driver.ts`
 
 **Key methods:**
+
 - `createClient(name)` - New test client
 - `client.connectSpace()` - Connect to space room
 - `client.waitForSync(room, predicate?)` - Wait for state (with optional condition)
@@ -341,17 +363,20 @@ npm run test:e2e -- --debug   # Inspector
 ## Best Practices
 
 ### Unit Tests
+
 - ✓ Test single units in isolation
 - ✓ Keep fast (< 100ms each)
 - ✓ Use `toBeCloseTo()` for floats (tolerance 0.1-0.2)
 
 ### Multi-Client Tests
+
 - ✓ Pause physics: `gameManager.state.speed = 0`
 - ✓ Use predicate-based `waitForSync()`
 - ✓ Access state via `state.getAll('Spaceship')` (not `state.ships`)
 - ✓ Clean up automatic (driver handles `afterEach`)
 
 ### E2E Tests
+
 - ✓ Focus on critical user workflows
 - ✓ **Wait for state changes, not arbitrary time** - use `waitForPropertyValue()` instead of `waitForTimeout()`
 - ✓ **Test specific expected values** - check `rotationCommand === 0.05` not `!== 0`
@@ -364,26 +389,26 @@ npm run test:e2e -- --debug   # Inspector
 - ✓ Don't E2E test everything (expensive)
 
 ### Property Tests
+
 - ✓ Test mathematical invariants
 - ✓ Use arbitraries from `properties.ts`
 - ✓ Let fast-check find edge cases
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Tests hang during cleanup | Ensure sockets disconnect before room destroy |
-| State comparison fails | Pause physics (`state.speed = 0`) + use `toBeCloseTo()` |
-| Ship state changes revert | Modify SpaceObject not ship.state (see [PATTERNS.md](../PATTERNS.md#state-synchronization-architecture)) |
-| Tweakpane properties not rendering | PropertyPanel race condition - ensure value exists before display |
-| API access errors | Use driver's accessor, not public API |
-| MaxListeners warnings | Expected for multi-client (harmless) |
+| Issue                              | Solution                                                                                                 |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Tests hang during cleanup          | Ensure sockets disconnect before room destroy                                                            |
+| State comparison fails             | Pause physics (`state.speed = 0`) + use `toBeCloseTo()`                                                  |
+| Ship state changes revert          | Modify SpaceObject not ship.state (see [PATTERNS.md](../PATTERNS.md#state-synchronization-architecture)) |
+| Tweakpane properties not rendering | PropertyPanel race condition - ensure value exists before display                                        |
+| API access errors                  | Use driver's accessor, not public API                                                                    |
+| MaxListeners warnings              | Expected for multi-client (harmless)                                                                     |
 
 ### Known CI flakiness (pre-existing, not a regression)
 
 - **Green e2e jobs can hide first-attempt failures.** `playwright.config.ts` sets `retries: 1` on CI, so a test that fails once and passes on retry is reported "flaky" and the job stays green. Check the "flaky" count in the run summary, not just the job conclusion.
 - **`Error: Cannot find module '@starwards/server'`** — a handful of driver-based specs (pilot/weapons/signals screens + hotkeys) intermittently fail at import on first attempt with this error and pass on retry. Verified present on master before PR #1938 (same 5 flaky specs in master and PR runs). Symptom points at a Playwright worker-startup race resolving the workspace package through tsconfig `paths` (`require-in-the-middle` appears in the stack). Suspected fix, untried: give `modules/server/package.json` a `main`/`exports` entry pointing at `cjs/` so Node resolution has a fallback when the transform race loses.
-- **Test-E2e count jumped from 33 to 75 tests** when the shell glob was removed from the `test:e2e` script (PR #1938): bash without `globstar` expanded `**` as `*`, silently excluding `modules/e2e/test/visual/` specs from CI; Playwright's own `testMatch` now includes them.
 
 **See:** [UTILITIES.md](UTILITIES.md) for detailed test utilities reference
 

@@ -15,13 +15,6 @@ The following checks are required on `master`:
 - `Test-Visual`
 - `coverage-core`
 
-`pr-template-check` was retired (2026-07): checkbox attestation filled in
-by the same LLM whose blindness it was meant to catch carries no evidence,
-and routinely-bypassed red checks erode the "all CI must pass" norm. The
-invariants it listed are enforced mechanically instead — `local/*` lint
-rules in `eslint.config.mjs`, the runtime `@commandable` whitelist, and
-the CI test jobs.
-
 Set "Require branches to be up to date before merging" so the checks
 have actually run on the merge commit's tree, not on stale parents.
 

@@ -17,7 +17,7 @@ intentionally short so it stays in sync; the real content lives in
 3. **`docs/PATTERNS.md`** and **`docs/ARCHITECTURE.md`** — gotchas and
    system design.
 4. **`docs/json-ptr.md`** — the remote command surface and the
-   `@commandable` whitelist (PR bodies are checked for compliance).
+   `@commandable` whitelist.
 
 ## Hard rules
 
@@ -59,7 +59,6 @@ npm run test:e2e -- modules/e2e/test/visual/<the-spec>.spec.ts
 ```
 
 Fill in the PR template (`.github/pull_request_template.md`): a summary
-and the tests you added or ran. There is no checkbox attestation — the
-invariants listed above are enforced mechanically by the `local/*` lint
-rules in `eslint.config.mjs`, the runtime `@commandable` whitelist, and
-the CI test jobs.
+and the tests you added or ran. The invariants listed above are enforced
+mechanically by the `local/*` lint rules in `eslint.config.mjs`, the
+runtime `@commandable` whitelist, and the CI test jobs.
