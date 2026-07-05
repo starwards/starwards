@@ -34,6 +34,8 @@ export const dragonflyChaingun = {
     use_BlastCannonShell: true,
     damage50: 20,
     energyCost: 1,
+    heat_CannonShell: 5,
+    heat_BlastCannonShell: 5,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -79,6 +81,7 @@ export const dragonflyTube = {
     overrideSecondsToLive: 10,
     energyCost: 30,
     use_Missile: true,
+    heat_Missile: 25,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',

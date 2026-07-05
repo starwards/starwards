@@ -2,6 +2,23 @@
 
 Confirmed decisions only. Candidates and drafts live in [`proposals.md`](proposals.md).
 
+## 2026-07-04 — Next-step priorities
+
+Agreed order of upcoming work (Amir + Daniel, 2026-07-04):
+
+1. **Merge the ammo-type × armor-type damage metrics.** Land the new per-pair damage mechanic (see the 2026-05-03 armor×ammo decision below). Daniel's concrete draft is [#1929](https://github.com/starwards/starwards/issues/1929) (5 armor types × 8 ammo types, full damage matrix); implementation is pending in [PR #1932](https://github.com/starwards/starwards/pull/1932). Merging that PR is the immediate next step.
+2. **Design the player ship — the corvette (Gravitas).** Make it interesting and durable for play: it must survive and stay engaging across a full session, not just a dogfight.
+3. **Add the Signals radar beam.** The directional beam at the Signals station (see the tier-2 EW scan beam in the 2026-05-03 scan-tiers decision below).
+
+Future features discussed in the same talk (probes, railgun, torpedo) are drafted in [`proposals.md`](proposals.md), not committed to this milestone.
+
+**Open design issues.** Two questions remain unresolved after the priorities above:
+
+1. **Ship kill condition — how do you destroy a ship?** What ends a ship in play? Needs to be reconciled with the standing "malfunction over destruction" philosophy (ships never auto-explode; TPK is a GM decision — see [`../design/mechanics/armor-and-damage.md`](../design/mechanics/armor-and-damage.md)). With durable player ships (the Gravitas corvette) and the new ammo×armor damage model, the win/loss condition of combat needs an explicit design.
+2. **Weapons officer and multiple PDCs — controlling or managing?** If the ship carries several PDCs, what is the weapons officer's game experience? Directly aiming/firing one at a time vs. a management layer (assigning targets/arcs/priorities to semi-autonomous mounts). Relates to the PDC + Brace cascade proposal in [`proposals.md`](proposals.md) (currently out of MVP scope per the 2026-05-03 scope decision).
+
+**Status.** Priorities agreed (Daniel, 2026-07-04). The two design issues above are open — no direction chosen yet.
+
 ## 2026-05-03 — MVP scope (next milestone)
 
 **In scope.** Only items confirmed in this file.
@@ -22,7 +39,7 @@ Confirmed decisions only. Candidates and drafts live in [`proposals.md`](proposa
 - **Weapons**: receives the call, selects matching ammo, fires.
 - Replaces the "shield frequency equivalent" slot in the gap-closing plan.
 
-**Counts.** Multiple armor types and multiple ammo types (missiles + cannon shells). Concrete counts owned by Daniel — see his draft when ready. Intent: asymmetric ammo↔armor mapping (no clean 1:1) so some ammo is strong vs. multiple armors and weak vs. others, forcing real Weapons judgment rather than lookup.
+**Counts.** Multiple armor types and multiple ammo types (missiles + cannon shells). Concrete counts owned by Daniel — draft landed as [#1929](https://github.com/starwards/starwards/issues/1929) (5 armor types, 8 ammo types, Resist/Normal/Vulnerable/Critical/Ignores matrix). Intent: asymmetric ammo↔armor mapping (no clean 1:1) so some ammo is strong vs. multiple armors and weak vs. others, forcing real Weapons judgment rather than lookup.
 
 **Status.** Direction agreed (Daniel, 2026-05-03). Open: full per-pair damage matrix, partial-match curve shape, per-ammo magazine slot allocation, in-flight reload swap rules.
 

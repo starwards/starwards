@@ -28,12 +28,9 @@ Work items ordered by "what unblocks a playable event soonest":
 | Priority | Item | Why |
 |----------|------|-----|
 | 1 | **Ship models** ([#546](https://github.com/starwards/starwards/issues/546)) | Can't crew a corvette without corvette ships |
-| 2 | **Docking** ([#539](https://github.com/starwards/starwards/issues/539)) | Stations are ships; repair/resupply requires docking |
-| 3 | **Signals station UI** ([#1208](https://github.com/starwards/starwards/issues/1208)) | Wire up the jobs system to a playable station |
-| 4 | **Pre-event bugs** ([#866](https://github.com/starwards/starwards/issues/866), [#1002](https://github.com/starwards/starwards/issues/1002), [#748](https://github.com/starwards/starwards/issues/748)) | Things that will break during play |
-| 5 | **Scenario file loading** ([#870](https://github.com/starwards/starwards/issues/870)) | Externalize maps so organizers can author scenarios |
-| 6 | **Room lifecycle** ([#1238](https://github.com/starwards/starwards/issues/1238)) | Stale rooms during multi-hour event = chaos |
-| 7 | **Usage docs** ([#835](https://github.com/starwards/starwards/issues/835)) | Players need onboarding |
+| 2 | **Signals station UI** ([#1208](https://github.com/starwards/starwards/issues/1208)) | Wire up the jobs system to a playable station |
+| 3 | **Scenario file loading** ([#870](https://github.com/starwards/starwards/issues/870)) | Externalize maps so organizers can author scenarios |
+| 4 | **Usage docs** ([#835](https://github.com/starwards/starwards/issues/835)) | Players need onboarding |
 
 ### Tier 3: Expansion (post-first-event)
 - [ ] **Warp frequency topology** ([#1182](https://github.com/starwards/starwards/issues/1182)) — procedural efficiency zones
@@ -41,7 +38,6 @@ Work items ordered by "what unblocks a playable event soonest":
 - [ ] **Relay station** ([#1211](https://github.com/starwards/starwards/issues/1211)) — probes, route coordination
 - [ ] **Repair system** — 3-tier system, Node-RED integration
 - [x] **Hull damage** ([#1187](https://github.com/starwards/starwards/issues/1187)) — IoT alerts
-- [ ] **Scan minigame** ([#939](https://github.com/starwards/starwards/issues/939))
 - [ ] **Cargo system** ([#548](https://github.com/starwards/starwards/issues/548))
 
 ### Pre-Event Gate
@@ -62,9 +58,8 @@ Warp Topology (#1182)
   └─► Navigator Radar (#1262)
        └─► Navigator Station (#1261)
 
-Docking (#539)
-  └─► Dock Master (#538)
-       └─► Repair features
+Dock Master (#538)
+  └─► Repair features
 ```
 
 ## History
@@ -86,4 +81,3 @@ Features explicitly deferred until after the first LARP event:
 - Cargo system ([#548](https://github.com/starwards/starwards/issues/548))
 - Fighters as playable ships (currently only NPC)
 - 3D visualization (separate Unity client)
-- Scan minigame ([#939](https://github.com/starwards/starwards/issues/939))

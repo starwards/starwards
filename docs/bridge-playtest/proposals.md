@@ -38,6 +38,18 @@ Hard maneuvers and broken sight lines drop the tier. The details live on the Sig
 
 Once a target is scanned deep enough, hack becomes available — soften enemy weapons, engines, sensors, or reactor for thirty to sixty seconds. The action is short two-or-three-second code bursts, never absorbing. The skill lives in the *coordination*: engineering can power-dump on the mark for a multiplier, the pilot has to hold range, the captain picks which enemy system softens which of our problems. A successful hack is the Signals→Weapons→Pilot offensive cascade — the mirror of the Brace cascade running the other direction. The skill ceiling is *when and what*, not *how fast*. Resist making it a fast-typing mini-game (that's how EE got its comms islands).
 
+## Probe capability (complements the radar beam)
+
+*Added 2026-07-04 (talk with Daniel).* Launchable probes that complement the Signals radar/scan beam by covering what a line-of-sight beam cannot: looking **behind obstacles** and **inside nebulae**, etc. The beam is the ship's directional sensing tool; the probe is the remote one — send it where the beam can't reach. Relates to the existing probe scope in the Relay station design (post-first-event expansion).
+
+## Railgun (beam-like line weapon)
+
+*Added 2026-07-04 (talk with Daniel).* The railgun behaves like a laser beam: a **line that just cuts through everything** along its path — closer to hitscan than a projectile. Distinct from the earlier "charge-time medium-range weapon" sketch; the defining trait is the piercing line. Damage model, charge/heat cost, and how it interacts with armor types TBD.
+
+## Torpedo (large-charge, high-maneuverability drone)
+
+*Added 2026-07-04 (talk with Daniel).* The torpedo is the railgun's opposite: a **high-speed, large-charge drone-like projectile with high maneuverability**. Where the railgun is an instant line, the torpedo is a guided object that flies, turns hard, and delivers a big warhead. Refines the existing homing-missile torpedo concept; specifics (speed, tracking, counterplay such as PDC interception) TBD.
+
 ---
 
 ## Proposed build order

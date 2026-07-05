@@ -6,8 +6,11 @@ import { Die } from './ship-manager-abstract';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
+import { Spaceship } from '../space/spaceship';
 import { XY } from '../logic';
 import { makeId } from '../id';
+
+const TIER1_DWELL_SECONDS = 5;
 
 type IncomingHack = {
     systemName: string;
@@ -37,6 +40,8 @@ export class SignalsJobManager implements Updateable {
     // Not persisted: lost on server restart (hacked systems stay COMPROMISED until manually reset)
     private incomingHacks: IncomingHack[] = [];
     private hackCooldowns: HackCooldown[] = [];
+    // Ephemeral per-target dwell timers for tier-1 passive scan promotion
+    private tier1DwellTimers = new Map<string, number>();
 
     constructor(
         private state: ShipState,
@@ -60,6 +65,7 @@ export class SignalsJobManager implements Updateable {
         this.trimExcessJobs();
         this.processJobQueue(deltaSeconds, totalSeconds);
         this.validateTrackedTargets();
+        this.updateTier1ScanPromotion(deltaSeconds);
     }
 
     private processSubmitJobCommand(totalSeconds: number): void {
@@ -294,6 +300,32 @@ export class SignalsJobManager implements Updateable {
             if (!this.isTargetInRange(targetId)) {
                 this.state.signals.trackedTargets.splice(i, 1);
                 this.spaceManager.setTrack(this.state.id, this.state.faction, targetId, false);
+            }
+        }
+    }
+
+    private updateTier1ScanPromotion(deltaSeconds: number): void {
+        const seenIds = new Set<string>();
+        for (const target of this.spaceManager.state.getAll('Spaceship')) {
+            if (target.id === this.state.id) continue;
+            const inRange = this.isTargetInRange(target.id);
+            const scanLevel = this.spaceManager.getScanLevel(target.id, this.state.faction);
+            const transponderOpen = Spaceship.isInstance(target) && target.transponderOpen;
+            if (inRange && transponderOpen && scanLevel === ScanLevel.UFO) {
+                seenIds.add(target.id);
+                const dwell = (this.tier1DwellTimers.get(target.id) ?? 0) + deltaSeconds;
+                if (dwell >= TIER1_DWELL_SECONDS) {
+                    this.spaceManager.setScanLevel(target.id, this.state.faction, ScanLevel.BASIC);
+                    this.tier1DwellTimers.delete(target.id);
+                } else {
+                    this.tier1DwellTimers.set(target.id, dwell);
+                }
+            }
+        }
+        // TODO B7: reset timer on leaving range (re-entry rule undecided)
+        for (const id of this.tier1DwellTimers.keys()) {
+            if (!seenIds.has(id)) {
+                this.tier1DwellTimers.delete(id);
             }
         }
     }
