@@ -10,7 +10,7 @@
 
 ## What's needed
 
-- [ ] Versioned downloadable binaries ([#1295](https://github.com/starwards/starwards/issues/1295)) — GitHub Release binaries on version tags, version in lobby, README download instructions (absorbed #832; rewritten agent-ready 2026-07-05)
+- [ ] Versioned downloadable binaries ([#1295](https://github.com/starwards/starwards/issues/1295)) — GitHub Release binaries on version tags, version in lobby, README download instructions
 - [ ] Event setup documentation — step-by-step guide for LAN deployment
 - [ ] Network topology guide — what hardware, how to connect, what ports
 
