@@ -15,10 +15,14 @@ export function createLogger(namespace: string) {
     // eslint-disable-next-line no-console
     error.log = console.error.bind(console);
 
-    // info, warn, and error are always visible regardless of DEBUG env var
-    info.enabled = true;
-    warn.enabled = true;
-    error.enabled = true;
+    // Force info/warn/error visible in normal runs; under Jest fall back to the
+    // debug package's DEBUG-driven enablement so tests are quiet by default.
+    // Re-enable in a specific test run with DEBUG=starwards:* (or a narrower namespace).
+    if (!process.env.JEST_WORKER_ID) {
+        info.enabled = true;
+        warn.enabled = true;
+        error.enabled = true;
+    }
 
     return { debug, info, warn, error };
 }
