@@ -28,7 +28,13 @@ export async function server(port: number, staticDirs: string | string[], manage
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
-    const gameServer = new Server({ transport: new WebSocketTransport({ server: httpServer }), greet: false });
+    const gameServer = new Server({
+        transport: new WebSocketTransport({ server: httpServer }),
+        greet: false,
+        ...(process.env.JEST_WORKER_ID
+            ? { logger: { debug: () => {}, error: () => {}, info: () => {}, trace: () => {}, warn: () => {} } }
+            : {}),
+    });
 
     gameServer.define('space', SpaceRoom);
     gameServer.define('admin', AdminRoom);
