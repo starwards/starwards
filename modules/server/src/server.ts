@@ -1,5 +1,6 @@
 import * as http from 'http';
 import * as maps from './maps';
+import * as path from 'path';
 
 import { NextFunction, Request, Response } from 'express';
 import { Server, matchMaker } from '@colyseus/core';
@@ -7,6 +8,7 @@ import { schemaToString, stringToSchema } from './serialization/game-state-seria
 
 import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
+import { CleanLocalPresence } from './clean-local-presence';
 import { GameManager } from './admin/game-manager';
 import { SavedGame } from './serialization/game-state-protocol';
 import { ShipRoom } from './ship/room';
@@ -28,7 +30,14 @@ export async function server(port: number, staticDirs: string | string[], manage
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
-    const gameServer = new Server({ transport: new WebSocketTransport({ server: httpServer }), greet: false });
+    const gameServer = new Server({
+        // pingInterval: 0 prevents a 3 s setInterval from outliving gracefullyShutdown().
+        // WebSocketTransport.shutdown() calls httpServer.close() without awaiting the
+        // resulting "close" event, so clearInterval(pingInterval) never fires in time.
+        transport: new WebSocketTransport({ server: httpServer, pingInterval: 0 }),
+        greet: false,
+        presence: new CleanLocalPresence(),
+    });
 
     gameServer.define('space', SpaceRoom);
     gameServer.define('admin', AdminRoom);
@@ -128,6 +137,20 @@ export async function server(port: number, staticDirs: string | string[], manage
     return {
         httpServer,
         addressInfo,
-        close: async () => await gameServer.gracefullyShutdown(false),
+        close: async () => {
+            // Stats.persist() schedules a 1 s setTimeout when createRoom() runs shortly
+            // after the previous persist.  That handle outlives gracefullyShutdown() and
+            // keeps Jest worker processes alive.  Calling reset(true) here clears the
+            // pending timeout and force-flushes the counters before state becomes
+            // SHUTTING_DOWN (at which point Stats.persist() becomes a no-op).
+            // @colyseus/core/package.json restricts sub-path exports, so we resolve
+            // Stats.js via the package entry-point directory rather than a named export.
+
+            const statsPath = path.join(path.dirname(require.resolve('@colyseus/core')), 'Stats.js');
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const Stats = require(statsPath) as { reset: (persist?: boolean) => void };
+            Stats.reset(true);
+            await gameServer.gracefullyShutdown(false);
+        },
     };
 }
