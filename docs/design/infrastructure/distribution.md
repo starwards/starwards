@@ -10,8 +10,7 @@
 
 ## What's needed
 
-- [ ] Versioned downloadable binaries ([#1295](https://github.com/starwards/starwards/issues/1295)) — tagged releases with download links
-- [ ] Accessible executable download ([#832](https://github.com/starwards/starwards/issues/832)) — easy for non-technical LARP organizers
+- [ ] Versioned downloadable binaries ([#1295](https://github.com/starwards/starwards/issues/1295)) — GitHub Release binaries on version tags, version in lobby, README download instructions
 - [ ] Event setup documentation — step-by-step guide for LAN deployment
 - [ ] Network topology guide — what hardware, how to connect, what ports
 

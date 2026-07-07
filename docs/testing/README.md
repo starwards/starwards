@@ -360,6 +360,17 @@ npm run test:e2e -- --headed  # Visible browser
 npm run test:e2e -- --debug   # Inspector
 ```
 
+### Seeing application logs during tests
+
+App logs (`logInfo/logWarn/logError`) are silenced under Jest by default to keep output clean. Turn them back on for a run with the `DEBUG` env var:
+
+```bash
+DEBUG=starwards:* npm test                    # all namespaces
+DEBUG=starwards:space-manager:* npm test      # one subsystem
+```
+
+Outside Jest (dev/prod) these channels are always on, so this only affects test runs. See `modules/core/src/logger.ts`.
+
 ## Best Practices
 
 ### Unit Tests
@@ -408,7 +419,6 @@ npm run test:e2e -- --debug   # Inspector
 ### Known CI flakiness (pre-existing, not a regression)
 
 - **Green e2e jobs can hide first-attempt failures.** `playwright.config.ts` sets `retries: 1` on CI, so a test that fails once and passes on retry is reported "flaky" and the job stays green. Check the "flaky" count in the run summary, not just the job conclusion.
-- **`Error: Cannot find module '@starwards/server'`** — a handful of driver-based specs (pilot/weapons/signals screens + hotkeys) intermittently fail at import on first attempt with this error and pass on retry. Verified present on master before PR #1938 (same 5 flaky specs in master and PR runs). Symptom points at a Playwright worker-startup race resolving the workspace package through tsconfig `paths` (`require-in-the-middle` appears in the stack). Suspected fix, untried: give `modules/server/package.json` a `main`/`exports` entry pointing at `cjs/` so Node resolution has a fallback when the transform race loses.
 
 **See:** [UTILITIES.md](UTILITIES.md) for detailed test utilities reference
 

@@ -59,6 +59,11 @@ npm test
 # Read expected vs actual values
 # Check if float precision issue (use toBeCloseTo)
 # Verify async operations completed (await harness.waitForSync())
+
+# App logs (logInfo/logWarn/logError) are silenced under Jest by default.
+# Surface them for the run when tracing a failure:
+DEBUG=starwards:* npm test                 # all namespaces
+DEBUG=starwards:space-manager:* npm test   # one subsystem
 ```
 
 **Playwright failures:**
