@@ -13,6 +13,7 @@ import { MovementAnchorLayer } from '../radar/movement-anchor-layer';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
+import { WaypointLayerVisibility } from '../radar/waypoint-layer-visibility';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
 
@@ -65,12 +66,14 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     contentElements.mask = contentMask;
 
     const rangeFilter = new RadarRangeFilter(spaceDriver, (o: SpaceObject) => o.faction === shipDriver.state.faction);
+    const waypointVisibility = new WaypointLayerVisibility();
     const fovGraphics = new Graphics();
     contentElements.addChild(fovGraphics);
 
     root.ticker.add(
         () => {
             rangeFilter.update();
+            waypointVisibility.update(spaceDriver.state);
             fovGraphics.clear();
             for (const fov of rangeFilter.fieldsOfView()) {
                 fov.draw(root, fovGraphics);
@@ -119,7 +122,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) => XY.lengthOf(XY.difference(w.position, camera)) <= p.range,
+        (w) => waypointVisibility.isVisible(w.collection) && XY.lengthOf(XY.difference(w.position, camera)) <= p.range,
     );
     contentElements.addChild(waypointsInRange.renderRoot);
 
