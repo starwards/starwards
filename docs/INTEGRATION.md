@@ -6,6 +6,7 @@
 
 - [Node-RED Integration](#node-red-integration)
 - [Docker Deployment](#docker-deployment)
+- [Touch Controllers (Open Stage Control)](#touch-controllers-open-stage-control)
 - [MQTT Integration](#mqtt-integration)
 - [Custom Widget Creation](#custom-widget-creation)
 - [New Ship System Creation](#new-ship-system-creation)
@@ -366,6 +367,119 @@ tar -czf backup.tar.gz docker/mqtt docker/node-red
 ```bash
 tar -xzf backup.tar.gz
 ```
+
+## Touch Controllers (Open Stage Control)
+
+### Overview
+
+[Open Stage Control](https://openstagecontrol.ammd.net/) (O-S-C) provides touchscreen and MIDI control surfaces for bridge stations. Tablets connect to an O-S-C server over HTTP; O-S-C widgets send OSC messages over UDP; Node-RED bridges OSC to the Starwards JSON-pointer command surface.
+
+**Core convention: widget OSC address = admitted JSON pointer.**
+A fader addressed `/reactor/power` just works — no new server code needed. The existing `@tweakable`/`@commandable` admission layer (see `docs/json-ptr.md`) enforces safety: writes to non-admitted paths are silently dropped.
+
+### Architecture
+
+```
+Tablet (browser, O-S-C client)
+    │  HTTP  (session + UI)
+    ▼
+Open Stage Control server (docker/osc/)
+    │  UDP OSC  (widget interactions)
+    ▼
+Node-RED (docker/node-red/osc-bridge-flow.json)
+    ├─ Write path:  udp-in → osc-decode → ship-write
+    └─ Feedback:   ship-read (subscribe) → RBE → rate-limit → osc-encode → udp-out → O-S-C
+    │
+    ▼
+Starwards game server (ship-write / ship-read)
+```
+
+**No changes to core game state or server** — this is a pure infrastructure layer.
+
+### Deployment
+
+Add the `open-stage-control` service in `docker/docker-compose.yml` and start it alongside Node-RED:
+
+```bash
+cd docker
+docker-compose up -d open-stage-control node-red
+```
+
+Import `docker/node-red/osc-bridge-flow.json` into Node-RED, then update the `starwards-config` node URL to point at your game server.
+
+### O-S-C Version and Installation
+
+**O-S-C is NOT on npm.** The Docker image (`docker/osc/Dockerfile`) downloads the pure-Node release asset at build time:
+
+```
+open-stage-control-1.30.3-node.zip  (pinned; see docs/DEPENDENCIES.md)
+```
+
+Run headless with `--no-gui` (not `--headless`). No Electron or virtual framebuffer needed with the `-node.zip` package.
+
+### Session Files
+
+Session JSON files live in `docker/osc/sessions/`. Each file maps to a bridge station (e.g. `reactor-demo.json`). A widget's OSC `address` field must match an admitted JSON pointer:
+
+```json
+{
+  "type": "fader",
+  "id": "reactor_power",
+  "address": "/reactor/power",
+  "target": ["node-red-host:57121"],
+  "range": { "min": 0, "max": 1 }
+}
+```
+
+**Per-client sessions** are routed by the custom module (`docker/osc/modules/starwards-bridge.js`): tablets connect with `?id=<station>` and the module calls `/SESSION/OPEN` to load that station's session.
+
+### Subscription Bootstrap
+
+When a client opens a session, the custom module walks the session JSON, collects all widget addresses, and sends `/starwards/subscribe <address>` messages to Node-RED (port 57121). Node-RED routes these to `ship-read` with `{ topic: address, subscribe: true }`.
+
+`ship-read` then:
+1. Emits the current value immediately (so widgets show correct state on load)
+2. Listens for future state changes and emits them (feedback path)
+
+Dynamic subscriptions are **additive** (multiple addresses accumulate) and **idempotent** (same address subscribed twice → subscribed once).
+
+### Feedback Loop Prevention
+
+Plain inbound OSC matching in O-S-C does **not** re-emit — receiving a value from Node-RED updates the widget display without triggering another send. `/SET` and user interaction do emit. The RBE node in the Node-RED flow drops repeated identical values, and the rate-limit node caps at 25 messages/second per address.
+
+### Writing a New Session
+
+1. Create `docker/osc/sessions/<station>.json` following the format in `reactor-demo.json`.
+2. Widget `address` must be an admitted JSON pointer (`/system/property`).
+3. Widget `target` should point at the Node-RED OSC UDP-in port (`node-red-host:57120`).
+4. Read-only widgets (displays) should set `"bypass": true` to prevent them from emitting on user interaction.
+5. Restart the `open-stage-control` container.
+
+### Testing
+
+E2E specs live in `modules/e2e/test/osc-bridge.spec.ts`. They require a live O-S-C instance and are skipped in CI unless `OSC_BRIDGE_URL` is set:
+
+```bash
+cd docker && docker-compose up -d
+OSC_BRIDGE_URL=http://localhost:8080 npm run test:e2e -- osc-bridge.spec.ts
+```
+
+The specs cover:
+- Write path (fader → UDP → ship state change)
+- Feedback path (ship state → widget display via subscribe)
+- Multi-controller (two clients see same state)
+- Noise budget (rate-limit caps 50 changes/s to 25 packets/s)
+- Rejection path (non-admitted write is dropped — state unchanged)
+
+### Key Facts (avoid common mistakes)
+
+| Mistake | Reality |
+|---|---|
+| `npm install open-stage-control` | Package doesn't exist; Docker image downloads `-node.zip` |
+| `--headless` flag | The flag is `--no-gui` |
+| Widget DOM `id` attribute | DOM uses internal hash; Playwright reads via `el._widget_instance.getProp('id')` |
+| `?session=x.json` per tablet | Use `?id=<station>` + custom module `/SESSION/OPEN` |
+| Feedback loop via udp-out → O-S-C | Plain inbound match never re-emits; only `/SET`/interaction does |
 
 ## MQTT Integration
 

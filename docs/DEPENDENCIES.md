@@ -61,6 +61,12 @@ last_verified: 2026-07-04
 **Exact:** No updates
 - `1.0.0-next.25020502` → Exactly this version
 
+## Docker Infrastructure
+
+| Component | Version | Rationale |
+|-----------|---------|-----------|
+| open-stage-control | **1.30.3** (exact) | Not on npm; downloaded as `-node.zip` in `docker/osc/Dockerfile`. Pin via `ARG OSC_VERSION` in that file. Not available via Docker Hub image. |
+
 ## Known Issues
 
 | Package | Version | Issue | Status |

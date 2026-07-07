@@ -18,3 +18,18 @@ services:
             - '1880:1880'
         volumes:
             - ./node-red/data:/data
+    # Open Stage Control v1.30.3 — touch/MIDI controller frontend for bridge stations.
+    # Not on npm; deployed from the pure-Node release asset (-node.zip) downloaded at build time.
+    # OSC address = JSON pointer — widgets addressed /reactor/power just work via the
+    # existing @tweakable/@commandable admission surface (no new server changes).
+    open-stage-control:
+        build:
+            context: ./osc
+            dockerfile: Dockerfile
+        restart: always
+        ports:
+            - '8080:8080'   # O-S-C HTTP client port
+            - '57120:57120/udp'  # OSC UDP receive (from tablets)
+        volumes:
+            - ./osc/sessions:/sessions:ro
+            - ./osc/modules:/modules:ro
