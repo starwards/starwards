@@ -6,7 +6,7 @@
  *
  * Run locally:
  *   cd docker && docker-compose up -d open-stage-control node-red
- *   OSC_BRIDGE_URL=http://localhost:8080 npm run test:e2e -- osc-bridge.spec.ts
+ *   OSC_BRIDGE_URL=http://localhost:8090 npm run test:e2e -- osc-bridge.spec.ts
  *
  * Architecture under test:
  *   O-S-C widget → UDP → Node-RED ship-write (write path)

@@ -28,7 +28,7 @@ services:
             dockerfile: Dockerfile
         restart: always
         ports:
-            - '8080:8080'   # O-S-C HTTP client port
+            - '8090:8080'   # O-S-C HTTP client port (host 8090; 8080 is the local dev server)
             - '57120:57120/udp'  # OSC UDP receive (from tablets)
         volumes:
             - ./osc/sessions:/sessions:ro

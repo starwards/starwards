@@ -461,7 +461,7 @@ E2E specs live in `modules/e2e/test/osc-bridge.spec.ts`. They require a live O-S
 
 ```bash
 cd docker && docker-compose up -d
-OSC_BRIDGE_URL=http://localhost:8080 npm run test:e2e -- osc-bridge.spec.ts
+OSC_BRIDGE_URL=http://localhost:8090 npm run test:e2e -- osc-bridge.spec.ts
 ```
 
 The specs cover:
