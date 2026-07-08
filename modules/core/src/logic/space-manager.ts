@@ -431,6 +431,10 @@ export class SpaceManager implements Updateable {
             if (object.freeze || this.attachments.get(object.id)) {
                 object.velocity.x = object.velocity.y = object.turnSpeed = 0;
             }
+            const data = this.stateToExtraData.get(object);
+            if (data) {
+                data.body.isStatic = object.freeze;
+            }
         }
     }
 
