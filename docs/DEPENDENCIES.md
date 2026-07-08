@@ -65,7 +65,7 @@ last_verified: 2026-07-04
 
 | Component | Version | Rationale |
 |-----------|---------|-----------|
-| open-stage-control | **1.30.3** (exact) | Not on npm; downloaded as `-node.zip` in `docker/osc/Dockerfile`. Pin via `ARG OSC_VERSION` in that file. Not available via Docker Hub image. |
+| open-stage-control | **1.30.4** (exact) | Not on npm; downloaded as `_node.zip` in `docker/osc/Dockerfile`. Pin via `ARG OSC_VERSION` in that file. Not available via Docker Hub image. |
 
 ## Known Issues
 
