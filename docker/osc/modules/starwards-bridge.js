@@ -1,7 +1,7 @@
-/* global app, receive, loadJSON */
+/* global app, send, receive, loadJSON */
 /* eslint-disable no-console */
 /**
- * Starwards OSC Bridge — Custom Module (Open Stage Control v1.30.3)
+ * Starwards OSC Bridge — Custom Module (Open Stage Control)
  *
  * Responsibilities:
  *  1. Per-client session routing: client connects with ?id=<station>,
@@ -20,7 +20,7 @@
  *   → osc decode → ship-write (JSON-pointer admission enforced)
  *
  * Architecture (feedback path):
- *   ship-read subscribe output → RBE → rate-limit → osc encode
+ *   ship-read subscribe output → rate-limit → osc encode
  *   → Node-RED udp-out → O-S-C :57120 → widget display update (no re-emit)
  *
  * Node-RED subscribe message format (sent as synthetic OSC to Node-RED):
@@ -29,9 +29,9 @@
  * Node-RED function node routes this to ship-read with { topic, subscribe: true }.
  */
 
-var NODE_RED_HOST = '172.17.0.1'; // Docker host gateway; override via env if needed
-var NODE_RED_PORT = 57121; // Node-RED udp-in port for subscribe messages
-var SESSIONS_DIR = '/sessions';
+const NODE_RED_HOST = 'node-red';
+const NODE_RED_PORT = 57121;
+const SESSIONS_DIR = '/sessions';
 
 /**
  * Recursively collect every widget's OSC address from a session JSON tree.
@@ -39,13 +39,11 @@ var SESSIONS_DIR = '/sessions';
  * @param {string[]} out - Accumulator
  */
 function collectAddresses(widget, out) {
-    if (widget.address && typeof widget.address === 'string' && widget.address.startsWith('/')) {
+    if (typeof widget.address === 'string' && widget.address.startsWith('/')) {
         out.push(widget.address);
     }
-    if (Array.isArray(widget.widgets)) {
-        for (var i = 0; i < widget.widgets.length; i++) {
-            collectAddresses(widget.widgets[i], out);
-        }
+    for (const child of widget.widgets ?? []) {
+        collectAddresses(child, out);
     }
 }
 
@@ -54,51 +52,36 @@ function collectAddresses(widget, out) {
  * Node-RED receives: msg.topic = '/starwards/subscribe', msg.payload = [address]
  * A function node then routes to ship-read with { topic: address, subscribe: true }.
  */
-function sendSubscribe(address, clientId) {
-    receive(NODE_RED_HOST, NODE_RED_PORT, '/starwards/subscribe', address, { clientId: clientId });
-}
+const sendSubscribe = (address) => send(NODE_RED_HOST, NODE_RED_PORT, '/starwards/subscribe', address);
 
 module.exports = {
-    init: function () {
+    init: () => {
         // Per-client session routing: resolve station session from ?id= URL param
-        app.on('open', function (data, client) {
-            var clientId = client ? client.id : null;
-            if (!clientId) return;
+        app.on('open', (data, client) => {
+            const stationId = client?.id; // client.id is set from ?id= by O-S-C
+            if (!stationId) return;
 
-            // Extract ?id=<station> from the client's connection URL
-            var stationId = clientId; // client.id is set from ?id= by O-S-C
-            var sessionPath = SESSIONS_DIR + '/' + stationId + '.json';
-
-            // Ask O-S-C to open that session for this client
-            receive('/SESSION/OPEN', sessionPath, { clientId: clientId });
+            // Ask O-S-C to open that station's session for this client
+            receive('/SESSION/OPEN', `${SESSIONS_DIR}/${stationId}.json`, { clientId: stationId });
         });
 
         // Subscription bootstrap: after session opens, subscribe to every widget address
-        app.on('sessionOpened', function (data, client) {
-            var clientId = client ? client.id : null;
-            if (!clientId || !data || !data.path) return;
+        app.on('sessionOpened', (data, client) => {
+            const clientId = client?.id;
+            if (!clientId || !data?.path) return;
 
-            var session = loadJSON(data.path, function (err) {
+            const session = loadJSON(data.path, (err) => {
                 console.error('[starwards-bridge] failed to load session:', err);
             });
             if (!session) return;
 
-            var addresses = [];
-            collectAddresses(session, addresses);
-
-            // Deduplicate and send subscribe messages to Node-RED
-            var seen = {};
-            for (var i = 0; i < addresses.length; i++) {
-                var addr = addresses[i];
-                if (!seen[addr]) {
-                    seen[addr] = true;
-                    sendSubscribe(addr, clientId);
-                }
-            }
+            const addresses = [];
+            collectAddresses(session.content ?? session, addresses);
+            const unique = new Set(addresses);
+            console.log(`[starwards-bridge] subscribing ${unique.size} addresses for ${clientId}`);
+            setTimeout(() => unique.forEach(sendSubscribe), 1000);
         });
     },
 
-    stop: function () {
-        // No persistent state to clean up
-    },
+    stop: () => {},
 };

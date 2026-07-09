@@ -34,7 +34,7 @@ Touch/MIDI control surfaces via Open Stage Control (O-S-C), bridged to the game 
 ## Architecture (this repo)
 
 - Write path: O-S-C widget → UDP → Node-RED `udp in` → `osc` decode → `ship-write` (JSON Pointer admission enforces safety — no new server surface).
-- Feedback path: `ship-read` → RBE filter → per-topic rate limit → `osc` encode → `udp out` → O-S-C (matches widgets by address, no loop).
+- Feedback path: `ship-read` → per-topic rate limit → `osc` encode → `udp out` (dedicated `outport`) → O-S-C (matches widgets by address, no loop).
 - Subscription: O-S-C custom module walks session on load → synthetic subscribe messages → `ship-read` dynamic patterns (see SPEC-0002 in the design repo).
 
 ## Common mistakes

@@ -7,6 +7,10 @@ import { Event } from 'colyseus-events';
 export interface ShipReadOptions extends ShipOptions {
     listenPattern?: string;
 }
+export interface ShipReadMessage extends NodeMessageInFlow {
+    /** when true, dynamically subscribe to the topic instead of querying it once */
+    subscribe?: boolean;
+}
 export type ShipReadNode = ShipNode;
 
 const nodeInit: NodeInitializer = (RED): void => {
@@ -20,9 +24,9 @@ const nodeInit: NodeInitializer = (RED): void => {
             send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value });
         };
 
-        const handleInput = (shipDriver: ShipDriver, msg: NodeMessageInFlow, send: Send) => {
+        const handleInput = (shipDriver: ShipDriver, msg: ShipReadMessage, send: Send) => {
             if (typeof msg.topic === 'string' && msg.topic) {
-                const isSubscribe = (msg as NodeMessageInFlow & { subscribe?: boolean }).subscribe === true;
+                const isSubscribe = msg.subscribe === true;
                 if (isSubscribe) {
                     // Dynamic subscription: additive and idempotent
                     const topic = msg.topic; // capture string for closures

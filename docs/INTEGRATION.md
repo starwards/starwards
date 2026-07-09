@@ -387,8 +387,8 @@ Open Stage Control server (docker/osc/)
     │  UDP OSC  (widget interactions)
     ▼
 Node-RED (docker/node-red/osc-bridge-flow.json)
-    ├─ Write path:  udp-in → osc-decode → ship-write
-    └─ Feedback:   ship-read (subscribe) → RBE → rate-limit → osc-encode → udp-out → O-S-C
+    ├─ Write path:  udp-in :57120 → osc-decode → ship-write
+    └─ Feedback:   ship-read (subscribe) → rate-limit → osc-encode → udp-out → O-S-C :57120
     │
     ▼
 Starwards game server (ship-write / ship-read)
@@ -398,44 +398,65 @@ Starwards game server (ship-write / ship-read)
 
 ### Deployment
 
-Add the `open-stage-control` service in `docker/docker-compose.yml` and start it alongside Node-RED:
+Start the `open-stage-control` and `node-red` services from `docker/docker-compose.yml`:
 
 ```bash
 cd docker
 docker-compose up -d open-stage-control node-red
 ```
 
-Import `docker/node-red/osc-bridge-flow.json` into Node-RED, then update the `starwards-config` node URL to point at your game server.
+O-S-C serves clients on host port **8090** (container port 8080; host 8080 is the game dev server).
+
+The bridge flow is deployed by copying it over Node-RED's active flow file and restarting:
+
+```bash
+cp docker/node-red/osc-bridge-flow.json docker/node-red/data/flows.json
+docker restart docker-node-red-1
+```
+
+The flow's `starwards-config` node points at `http://starwards-server:8080` — an `extra_hosts` alias in `docker-compose.yml` that maps to the docker host (`host-gateway`), where the game server runs.
+
+Node-RED's dependencies (`@starwards/core`, `@starwards/node-red`, `node-red-contrib-osc`) are declared in `docker/node-red/data/package.json` — the same manifest Node-RED's palette manager maintains. The `@starwards` packages aren't on npm, so they are referenced as `file:` tarballs; build and place them, then let the manifest drive the install:
+
+```bash
+npm run build --workspace @starwards/core --workspace @starwards/node-red   # emits *.tgz via npm pack
+cp modules/core/starwards-core-*.tgz modules/node-red/starwards-node-red-*.tgz docker/node-red/data/
+docker exec docker-node-red-1 sh -c 'cd /data && npm install'
+docker restart docker-node-red-1
+```
+
+The tarballs are gitignored (`*.tgz`), so this build-and-copy step is needed once per fresh clone and whenever the `@starwards` modules change; `node-red-contrib-osc` needs nothing beyond the manifest entry.
 
 ### O-S-C Version and Installation
 
 **O-S-C is NOT on npm.** The Docker image (`docker/osc/Dockerfile`) downloads the pure-Node release asset at build time:
 
 ```
-open-stage-control-1.30.3-node.zip  (pinned; see docs/DEPENDENCIES.md)
+open-stage-control_1.30.4_node.zip  (pinned; see docs/DEPENDENCIES.md)
 ```
 
-Run headless with `--no-gui` (not `--headless`). No Electron or virtual framebuffer needed with the `-node.zip` package.
+The zip extracts to `open-stage-control_<version>_node/` with `index.js` as the entry point. The node package is inherently headless — no Electron, virtual framebuffer, or `--no-gui` flag needed. The container starts it with `--send node-red:57120` so widget interactions go to Node-RED's UDP-in by default (no per-widget `target` needed).
 
 ### Session Files
 
-Session JSON files live in `docker/osc/sessions/`. Each file maps to a bridge station (e.g. `reactor-demo.json`). A widget's OSC `address` field must match an admitted JSON pointer:
+Session JSON files live in `docker/osc/sessions/`. Each file maps to a bridge station (e.g. `reactor-demo.json`). Sessions use the modern O-S-C format — `{"version": "1.30.4", "type": "session", "content": {root widget}}`; a bare root widget triggers legacy conversion and an "older version" warning dialog. A widget's OSC `address` field must match an admitted JSON pointer:
 
 ```json
 {
   "type": "fader",
   "id": "reactor_power",
   "address": "/reactor/power",
-  "target": ["node-red-host:57121"],
   "range": { "min": 0, "max": 1 }
 }
 ```
+
+Widgets need no `target` — the server-level `--send node-red:57120` default covers them. Don't set a widget `value` in the session; current values arrive from the game via the subscription bootstrap.
 
 **Per-client sessions** are routed by the custom module (`docker/osc/modules/starwards-bridge.js`): tablets connect with `?id=<station>` and the module calls `/SESSION/OPEN` to load that station's session.
 
 ### Subscription Bootstrap
 
-When a client opens a session, the custom module walks the session JSON, collects all widget addresses, and sends `/starwards/subscribe <address>` messages to Node-RED (port 57121). Node-RED routes these to `ship-read` with `{ topic: address, subscribe: true }`.
+When a client opens a session, the custom module walks the session JSON (`content` subtree), collects all widget addresses, and — after a 1 s delay so the client finishes loading before the initial values arrive — sends `/starwards/subscribe <address>` messages to Node-RED's subscribe port (`node-red:57121`, via the module-scripting `send()` API). Node-RED routes these to `ship-read` with `{ topic: address, subscribe: true }`.
 
 `ship-read` then:
 1. Emits the current value immediately (so widgets show correct state on load)
@@ -445,15 +466,14 @@ Dynamic subscriptions are **additive** (multiple addresses accumulate) and **ide
 
 ### Feedback Loop Prevention
 
-Plain inbound OSC matching in O-S-C does **not** re-emit — receiving a value from Node-RED updates the widget display without triggering another send. `/SET` and user interaction do emit. The RBE node in the Node-RED flow drops repeated identical values, and the rate-limit node caps at 25 messages/second per address.
+Plain inbound OSC matching in O-S-C does **not** re-emit — receiving a value from Node-RED updates the widget display without triggering another send. `/SET` and user interaction do emit. The rate-limit node in the Node-RED flow caps feedback at 25 messages/second per address.
 
 ### Writing a New Session
 
-1. Create `docker/osc/sessions/<station>.json` following the format in `reactor-demo.json`.
+1. Create `docker/osc/sessions/<station>.json` following the format in `reactor-demo.json` (modern `{version, type, content}` wrapper).
 2. Widget `address` must be an admitted JSON pointer (`/system/property`).
-3. Widget `target` should point at the Node-RED OSC UDP-in port (`node-red-host:57120`).
-4. Read-only widgets (displays) should set `"bypass": true` to prevent them from emitting on user interaction.
-5. Restart the `open-stage-control` container.
+3. Read-only widgets (displays) should set `"bypass": true` to prevent them from emitting on user interaction.
+4. No restart needed — the sessions directory is volume-mounted and read per session open; just reload the tablet at `?id=<station>`.
 
 ### Testing
 
@@ -476,7 +496,8 @@ The specs cover:
 | Mistake | Reality |
 |---|---|
 | `npm install open-stage-control` | Package doesn't exist; Docker image downloads `-node.zip` |
-| `--headless` flag | The flag is `--no-gui` |
+| `--headless` / `--no-gui` flags | The node package is headless by default; no flag needed |
+| Node-RED `udp out` without `outport` | Shares the `udp in` socket when ports collide and goes stale on redeploy — set a dedicated `outport` |
 | Widget DOM `id` attribute | DOM uses internal hash; Playwright reads via `el._widget_instance.getProp('id')` |
 | `?session=x.json` per tablet | Use `?id=<station>` + custom module `/SESSION/OPEN` |
 | Feedback loop via udp-out → O-S-C | Plain inbound match never re-emits; only `/SET`/interaction does |

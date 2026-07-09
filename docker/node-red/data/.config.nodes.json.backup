@@ -418,9 +418,9 @@
     },
     "@starwards/node-red": {
         "name": "@starwards/node-red",
-        "version": "0.4.2",
+        "version": "0.5.1",
         "local": true,
-        "user": false,
+        "user": true,
         "nodes": {
             "ship-read": {
                 "name": "ship-read",
