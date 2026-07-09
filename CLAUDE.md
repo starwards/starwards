@@ -159,6 +159,13 @@ power = 1.0;
 
 All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scripts.
 
+## Working Style
+
+- Prefer a tool's own idiomatic mechanism over overriding it (e.g. Node-RED dependencies belong in its `data/package.json` manifest, not ad-hoc installs).
+- When a claim is challenged, settle it with evidence (git history, logs, a live test) — not argument.
+- Test after every change, including cosmetic refactors — exercise the affected flow end-to-end.
+- Keep responses concise: answer first, minimal words, no preamble.
+
 ## No Tombstones
 
 When something is removed or replaced, delete every mention of it — no "X was retired", "this used to be Y", no commented-out code. History lives in git, not in docs or comments. Delete any tombstone you encounter; never add new ones.
