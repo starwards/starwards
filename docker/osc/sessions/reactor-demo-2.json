@@ -1,0 +1,51 @@
+{
+    "version": "1.30.4",
+    "type": "session",
+    "content": {
+        "type": "root",
+        "id": "root",
+        "widgets": [
+            {
+                "type": "panel",
+                "id": "reactor_panel",
+                "label": "Reactor",
+                "widgets": [
+                    {
+                        "type": "fader",
+                        "id": "reactor_power",
+                        "label": "Power",
+                        "address": "/reactor/power",
+                        "preArgs": [],
+                        "range": {
+                            "min": 0,
+                            "max": 1
+                        }
+                    },
+                    {
+                        "type": "fader",
+                        "id": "reactor_coolant",
+                        "label": "Coolant",
+                        "address": "/reactor/coolantFactor",
+                        "preArgs": [],
+                        "range": {
+                            "min": 0,
+                            "max": 1
+                        }
+                    },
+                    {
+                        "type": "fader",
+                        "id": "reactor_energy",
+                        "label": "Energy",
+                        "address": "/reactor/energy",
+                        "preArgs": [],
+                        "range": {
+                            "min": 0,
+                            "max": 1000
+                        },
+                        "bypass": true
+                    }
+                ]
+            }
+        ]
+    }
+}

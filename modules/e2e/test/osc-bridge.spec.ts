@@ -4,8 +4,12 @@
  * These tests require a running O-S-C instance (docker/osc/) and Node-RED with the
  * osc-bridge-flow.json loaded. They are skipped in CI unless OSC_BRIDGE_URL is set.
  *
+ * The Node-RED flow targets starwards-server:8080 (the docker host), so the spec's
+ * own game server must own host port 8080: stop any running dev server first, and
+ * run this spec alone (with parallel workers, only worker 0 gets port 8080).
+ *
  * Run locally:
- *   cd docker && docker-compose up -d open-stage-control node-red
+ *   docker compose -f docker/docker-compose.yml up -d
  *   OSC_BRIDGE_URL=http://localhost:8090 npm run test:e2e -- osc-bridge.spec.ts
  *
  * Architecture under test:
@@ -25,7 +29,8 @@ const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 
 const OSC_BRIDGE_URL = process.env.OSC_BRIDGE_URL;
-const OSC_UDP_PORT = parseInt(process.env.OSC_UDP_PORT ?? '57120', 10);
+// Node-RED's OSC write-path udp-in as published on the host (57123:57120 in docker-compose.yml)
+const OSC_UDP_PORT = parseInt(process.env.OSC_UDP_PORT ?? '57123', 10);
 const NODE_RED_SUB_PORT = parseInt(process.env.NODE_RED_SUB_PORT ?? '57121', 10);
 const NODE_RED_HOST = process.env.NODE_RED_HOST ?? 'localhost';
 
@@ -33,6 +38,11 @@ const NODE_RED_HOST = process.env.NODE_RED_HOST ?? 'localhost';
 test.skip(!OSC_BRIDGE_URL, 'OSC_BRIDGE_URL not set — start docker/osc and docker/node-red first');
 
 const gameDriver = makeDriver(test);
+
+test.beforeAll(() => {
+    // The Node-RED flow targets starwards-server:8080 — this spec's server must own it
+    test.skip(gameDriver.port !== 8080, 'needs host port 8080: stop the dev server and run this spec alone');
+});
 
 // ---------------------------------------------------------------------------
 // Helper: encode a minimal OSC message (address + single float arg)
@@ -116,15 +126,21 @@ test.describe('OSC write path — widget press → state change', () => {
         const spaceShip = gameDriver.gameManager.scriptApi.getShip(shipId);
         if (!spaceShip) throw new Error('ship not found in space');
 
-        // Send an OSC float message directly (simulates a fader being dragged)
+        // Send an OSC float message directly (simulates a fader being dragged).
+        // Resend inside the poll: Node-RED's ship driver may still be reconnecting
+        // to this spec's freshly started server, dropping early packets.
         const newPower = 0.3;
         const msg = encodeOscFloat('/reactor/power', newPower);
-        await sendUdp(NODE_RED_HOST, OSC_UDP_PORT, msg);
-
-        // Allow Node-RED to process and ship-write to relay the command
-        await new Promise((r) => setTimeout(r, 300));
-
-        expect(spaceShip.state.reactor.power).toBeCloseTo(newPower, 1);
+        await expect
+            .poll(
+                async () => {
+                    await sendUdp(NODE_RED_HOST, OSC_UDP_PORT, msg);
+                    await new Promise((r) => setTimeout(r, 300));
+                    return spaceShip.state.reactor.power;
+                },
+                { timeout: 15_000 },
+            )
+            .toBeCloseTo(newPower, 1);
     });
 });
 
@@ -149,12 +165,13 @@ test.describe('OSC feedback path — state change → widget display update', ()
         const targetEnergy = 500;
         spaceShip.state.reactor.energy = targetEnergy;
 
-        // Allow ship-read → RBE → rate-limit → OSC encode → udp out → O-S-C cycle
+        // Allow ship-read → rate-limit → OSC encode → udp out → O-S-C cycle.
+        // Energy drifts naturally (~12/s) after being set, so assert proximity.
         await page.waitForTimeout(800);
 
         const value = await getWidgetValue(page, 'reactor_energy');
         expect(typeof value).toBe('number');
-        expect(value as number).toBeCloseTo(targetEnergy, 0);
+        expect(Math.abs((value as number) - targetEnergy)).toBeLessThan(50);
     });
 });
 
@@ -173,6 +190,8 @@ test.describe('multi-controller — two clients see same state', () => {
         const page2 = await ctx2.newPage();
 
         await page1.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo`);
+        // distinct client id — O-S-C keeps one client record per id, so two
+        // tablets on the same id would collide (only one receives feedback)
         await page2.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo-2`);
         await page1.waitForLoadState('networkidle');
         await page2.waitForLoadState('networkidle');
@@ -186,10 +205,11 @@ test.describe('multi-controller — two clients see same state', () => {
         await page1.waitForTimeout(800);
         await page2.waitForTimeout(800);
 
+        // energy drifts naturally after being set — assert proximity on both clients
         const v1 = await getWidgetValue(page1, 'reactor_energy');
         const v2 = await getWidgetValue(page2, 'reactor_energy');
-        expect(v1 as number).toBeCloseTo(750, 0);
-        expect(v2 as number).toBeCloseTo(750, 0);
+        expect(Math.abs((v1 as number) - 750)).toBeLessThan(50);
+        expect(Math.abs((v2 as number) - 750)).toBeLessThan(50);
 
         await ctx1.close();
         await ctx2.close();
@@ -232,15 +252,15 @@ test.describe('rejection path — non-admitted write is dropped', () => {
     test('OSC write to a non-tweakable path does not change ship state', async () => {
         const spaceShip = gameDriver.gameManager.scriptApi.getShip(shipId);
         if (!spaceShip) throw new Error('ship not found in space');
-        const before = spaceShip.state.reactor.energy;
+        const before = spaceShip.state.reactor.design.damage50;
 
-        // /reactor/energy is read-only (not @tweakable/@commandable)
-        const msg = encodeOscFloat('/reactor/energy', before + 999);
+        // /reactor/design/damage50 is read-only (plain @gameField, not @tweakable/@commandable)
+        const msg = encodeOscFloat('/reactor/design/damage50', before + 999);
         await sendUdp(NODE_RED_HOST, OSC_UDP_PORT, msg);
 
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 1000));
 
         // State must be unchanged — ship-write's JSON-pointer admission blocks this write
-        expect(spaceShip.state.reactor.energy).toBeCloseTo(before, 1);
+        expect(spaceShip.state.reactor.design.damage50).toBe(before);
     });
 });

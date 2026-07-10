@@ -416,16 +416,13 @@ docker restart docker-node-red-1
 
 The flow's `starwards-config` node points at `http://starwards-server:8080` — an `extra_hosts` alias in `docker-compose.yml` that maps to the docker host (`host-gateway`), where the game server runs.
 
-Node-RED's dependencies (`@starwards/core`, `@starwards/node-red`, `node-red-contrib-osc`) are declared in `docker/node-red/data/package.json` — the same manifest Node-RED's palette manager maintains. The `@starwards` packages aren't on npm, so they are referenced as `file:` tarballs; build and place them, then let the manifest drive the install:
+Node-RED's dependencies (`@starwards/core`, `@starwards/node-red`, `node-red-contrib-osc`) are declared in `docker/node-red/data/package.json` — the same manifest Node-RED's palette manager maintains. The `@starwards` packages aren't on npm, so they are referenced as `file:` tarballs. `npm run node-red` does the whole cycle — builds the tarballs, places them in `data/`, runs the manifest-driven install, and restarts the docker stack:
 
 ```bash
-npm run build --workspace @starwards/core --workspace @starwards/node-red   # emits *.tgz via npm pack
-cp modules/core/starwards-core-*.tgz modules/node-red/starwards-node-red-*.tgz docker/node-red/data/
-docker exec docker-node-red-1 sh -c 'cd /data && npm install'
-docker restart docker-node-red-1
+npm run node-red   # scripts/dev-node-red.sh
 ```
 
-The tarballs are gitignored (`*.tgz`), so this build-and-copy step is needed once per fresh clone and whenever the `@starwards` modules change; `node-red-contrib-osc` needs nothing beyond the manifest entry.
+The tarballs are gitignored (`*.tgz`), so run this once per fresh clone and whenever the `@starwards` modules change; `node-red-contrib-osc` needs nothing beyond the manifest entry.
 
 ### O-S-C Version and Installation
 
@@ -477,12 +474,14 @@ Plain inbound OSC matching in O-S-C does **not** re-emit — receiving a value f
 
 ### Testing
 
-E2E specs live in `modules/e2e/test/osc-bridge.spec.ts`. They require a live O-S-C instance and are skipped in CI unless `OSC_BRIDGE_URL` is set:
+E2E specs live in `modules/e2e/test/osc-bridge.spec.ts`. They require a live O-S-C instance and are skipped in CI unless `OSC_BRIDGE_URL` is set. The Node-RED flow targets `starwards-server:8080` (the docker host), so the spec's own game server must own host port 8080 — **stop any running dev server first** and run the spec alone:
 
 ```bash
-cd docker && docker-compose up -d
+docker compose -f docker/docker-compose.yml up -d
 OSC_BRIDGE_URL=http://localhost:8090 npm run test:e2e -- osc-bridge.spec.ts
 ```
+
+The spec reaches Node-RED's UDP inputs through the host-published ports (`57123` → write path, `57121` → subscribe; see `docker-compose.yml`).
 
 The specs cover:
 - Write path (fader → UDP → ship state change)

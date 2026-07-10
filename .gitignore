@@ -3,6 +3,9 @@
 # node-red regenerates it on first run.
 docker/node-red/data/.config.runtime.json
 
+# node-red runtime backups — regenerated on every deploy
+docker/node-red/data/*.backup
+
 # build artifact folders
 dist
 cjs

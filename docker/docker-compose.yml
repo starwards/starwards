@@ -18,6 +18,8 @@ services:
             - TZ=Asia/Jerusalem
         ports:
             - '1880:1880'
+            - '57123:57120/udp' # OSC write path in (host 57123; O-S-C owns host 57120)
+            - '57121:57121/udp' # subscribe messages in
         volumes:
             - ./node-red/data:/data
     open-stage-control:
