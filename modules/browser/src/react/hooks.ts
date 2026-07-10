@@ -1,4 +1,13 @@
-import { AdminDriver, DefectibleValue, Destructors, Driver, GameStatus, ShipDriver, TaskLoop } from '@starwards/core';
+import {
+    AdminDriver,
+    DefectibleValue,
+    Destructors,
+    Driver,
+    GameStatus,
+    ShipDriver,
+    System,
+    TaskLoop,
+} from '@starwards/core';
 import { DependencyList, useEffect, useRef, useState } from 'react';
 import { abstractOnChange, readProp } from '../property-wrappers';
 
@@ -76,6 +85,37 @@ export function defectReadProp(driver: ShipDriver) {
             },
             getValue: () => {
                 return { name, status: d.name, pointer, alertTime, isOk };
+            },
+        };
+    };
+}
+
+export function brokenReadProp(driver: ShipDriver) {
+    return (system: System) => {
+        const pointerStr = `${system.pointer}/broken`;
+        const brokenProp = readProp<boolean>(driver, pointerStr);
+        let alertTime = 0;
+        let wasBroken = !!brokenProp.getValue();
+        return {
+            pointer: brokenProp.pointer,
+            onChange(cb: () => unknown) {
+                return brokenProp.onChange(() => {
+                    const isBroken = !!brokenProp.getValue();
+                    if (isBroken && !wasBroken) {
+                        alertTime = Date.now();
+                    }
+                    wasBroken = isBroken;
+                    cb();
+                });
+            },
+            getValue: () => {
+                return {
+                    name: system.state.name,
+                    status: 'offline',
+                    pointer: pointerStr,
+                    alertTime,
+                    isOk: !brokenProp.getValue(),
+                };
             },
         };
     };

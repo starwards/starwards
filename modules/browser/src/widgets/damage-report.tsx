@@ -1,6 +1,6 @@
 import { ArwesThemeProvider, StylesBaseline, Text } from '../components/arwes-compat';
 import React, { Component, useEffect, useRef } from 'react';
-import { defectReadProp, useProperties } from '../react/hooks';
+import { brokenReadProp, defectReadProp, useProperties } from '../react/hooks';
 
 import { BleepsProvider } from '../components/arwes-compat';
 import { DashboardWidget } from './dashboard';
@@ -68,9 +68,9 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
 }
 function AllReports({ driver }: { driver: ShipDriver }) {
     const divRef = useRef<null | HTMLDivElement>(null);
-    const defectsState = useProperties(driver.systems.flatMap((s) => s.defectibles).map(defectReadProp(driver))).sort(
-        (a, b) => a.alertTime - b.alertTime,
-    );
+    const defectsState = useProperties(driver.systems.flatMap((s) => s.defectibles).map(defectReadProp(driver)));
+    const brokenState = useProperties(driver.systems.map(brokenReadProp(driver)));
+    const reports = [...defectsState, ...brokenState].sort((a, b) => a.alertTime - b.alertTime);
     return (
         <>
             <>
@@ -79,7 +79,7 @@ function AllReports({ driver }: { driver: ShipDriver }) {
                 </Text>
                 <br />
             </>
-            {defectsState.map((d) => (
+            {reports.map((d) => (
                 <SystemStatusReport key={d.pointer} name={d.name} status={d.status} isOk={d.isOk} />
             ))}
             <div ref={divRef} />
