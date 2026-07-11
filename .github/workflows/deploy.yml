@@ -81,6 +81,9 @@ jobs:
     needs: build-push
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
     environment:
       name: ${{ needs.build-push.outputs.release }}
       url: https://${{ needs.build-push.outputs.host }}
@@ -98,6 +101,7 @@ jobs:
           sudo mv kubectl /usr/local/bin/
 
       - name: Deploy to cluster
+        id: deploy
         env:
           RELEASE: ${{ needs.build-push.outputs.release }}
           SERVER_IMAGE: ${{ needs.build-push.outputs.image }}
@@ -126,6 +130,44 @@ jobs:
           for d in $(kubectl -n "$NAMESPACE" get deploy -l app=starwards -o name); do
             kubectl -n "$NAMESPACE" rollout status "$d" --timeout=180s
           done
+
+          {
+            echo 'hosts<<EOF'
+            docker compose -f docker/docker-compose.yml config --format json \
+              | node .github/k8s/render-preview.js --hosts
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # The job's `environment:` only reports the game server URL — register a
+      # GitHub deployment per additional exposed service (pr-N-<service>) so
+      # the PR shows every preview URL. Teardown deletes them by prefix.
+      - name: Report per-service deployments
+        uses: actions/github-script@v7
+        env:
+          RELEASE: ${{ needs.build-push.outputs.release }}
+          HOSTS: ${{ steps.deploy.outputs.hosts }}
+        with:
+          script: |
+            const { RELEASE, HOSTS } = process.env;
+            for (const host of HOSTS.split('\n').filter(Boolean)) {
+              const environment = host.split('.')[0];
+              if (environment === RELEASE) continue; // game server: already reported via `environment:`
+              const { data: deployment } = await github.rest.repos.createDeployment({
+                ...context.repo,
+                ref: context.payload.pull_request?.head.sha ?? context.sha,
+                environment,
+                transient_environment: true,
+                auto_merge: false,
+                required_contexts: [],
+              });
+              await github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: deployment.id,
+                state: 'success',
+                environment_url: `https://${host}`,
+                auto_inactive: true,
+              });
+            }
 
   teardown:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -157,24 +199,33 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const environment = `pr-${context.payload.pull_request.number}`;
-            const { data: deployments } = await github.rest.repos.listDeployments({
-              ...context.repo, environment, per_page: 100
+            // pr-<N> (game server) plus per-service environments pr-<N>-<service>
+            const prefix = `pr-${context.payload.pull_request.number}`;
+            const { data } = await github.rest.repos.getAllEnvironments({
+              ...context.repo, per_page: 100
             });
-            for (const d of deployments) {
-              await github.rest.repos.createDeploymentStatus({
-                ...context.repo, deployment_id: d.id, state: 'inactive'
+            const names = data.environments
+              .map((e) => e.name)
+              .filter((n) => n === prefix || n.startsWith(`${prefix}-`));
+            for (const environment of names) {
+              const { data: deployments } = await github.rest.repos.listDeployments({
+                ...context.repo, environment, per_page: 100
               });
-              await github.rest.repos.deleteDeployment({
-                ...context.repo, deployment_id: d.id
-              });
-            }
-            // Deleting the environment shell needs admin rights, which
-            // GITHUB_TOKEN may not have — best-effort only.
-            try {
-              await github.rest.repos.deleteAnEnvironment({
-                ...context.repo, environment_name: environment
-              });
-            } catch (e) {
-              core.warning(`Could not delete environment ${environment}: ${e.message}`);
+              for (const d of deployments) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo, deployment_id: d.id, state: 'inactive'
+                });
+                await github.rest.repos.deleteDeployment({
+                  ...context.repo, deployment_id: d.id
+                });
+              }
+              // Deleting the environment shell needs admin rights, which
+              // GITHUB_TOKEN may not have — best-effort only.
+              try {
+                await github.rest.repos.deleteAnEnvironment({
+                  ...context.repo, environment_name: environment
+                });
+              } catch (e) {
+                core.warning(`Could not delete environment ${environment}: ${e.message}`);
+              }
             }

@@ -29,8 +29,9 @@ interface RenderOpts {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { render } = require('./render-preview') as {
+const { render, hosts } = require('./render-preview') as {
     render: (config: unknown, opts: RenderOpts) => Doc[];
+    hosts: (docs: Doc[]) => string[];
 };
 
 const composeConfig = {
@@ -115,11 +116,11 @@ describe('render-preview', () => {
     });
 
     it('creates an ingress pair per published TCP port only', () => {
-        const hosts = byKind('IngressRoute')
+        const routeHosts = byKind('IngressRoute')
             .map((d) => /Host\(`([^`]*)`\)/.exec(d.spec?.routes?.[0].match ?? '')?.[1])
             .sort();
         // server + mqtt + node-red + open-stage-control, each with https + redirect
-        expect(hosts).toEqual(
+        expect(routeHosts).toEqual(
             [
                 'pr-7.dev.starwards.space',
                 'pr-7-mqtt.dev.starwards.space',
@@ -154,6 +155,15 @@ describe('render-preview', () => {
             expect(container(name)?.volumeMounts).toBeUndefined();
             expect(deployment(name)?.spec?.template?.spec.volumes).toBeUndefined();
         }
+    });
+
+    it('lists every exposed host once, game server first', () => {
+        expect(hosts(docs)).toEqual([
+            'pr-7.dev.starwards.space',
+            'pr-7-mqtt.dev.starwards.space',
+            'pr-7-node-red.dev.starwards.space',
+            'pr-7-open-stage-control.dev.starwards.space',
+        ]);
     });
 
     it('rejects a compose service with no image mapping', () => {

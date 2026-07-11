@@ -255,6 +255,21 @@ function render(composeConfig, { release, baseDomain, serverImage, images }) {
     return docs;
 }
 
+// Every externally-exposed host, in render order (game server first).
+function hosts(docs) {
+    const out = [];
+    for (const d of docs) {
+        if (d.kind !== 'IngressRoute' || !d.spec.entryPoints.includes('websecure')) {
+            continue;
+        }
+        const host = /Host\(`([^`]*)`\)/.exec(d.spec.routes[0].match)[1];
+        if (!out.includes(host)) {
+            out.push(host);
+        }
+    }
+    return out;
+}
+
 function main() {
     const input = require('fs').readFileSync(0, 'utf8');
     const docs = render(JSON.parse(input), {
@@ -263,6 +278,10 @@ function main() {
         serverImage: process.env.SERVER_IMAGE,
         images: JSON.parse(process.env.IMAGES || '{}'),
     });
+    if (process.argv.includes('--hosts')) {
+        process.stdout.write(hosts(docs).join('\n') + '\n');
+        return;
+    }
     // JSON is valid YAML, so a `---`-separated JSON stream is a valid multi-doc YAML stream.
     process.stdout.write(docs.map((d) => `---\n${JSON.stringify(d, null, 2)}\n`).join(''));
 }
@@ -271,4 +290,4 @@ if (require.main === module) {
     main();
 }
 
-module.exports = { render };
+module.exports = { render, hosts };
