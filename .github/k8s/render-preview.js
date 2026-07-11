@@ -164,6 +164,21 @@ function ingressRoutes({ namespace, release, name, host, serviceName, port }) {
     ];
 }
 
+// The game server's Service. Besides port 80, it aliases port 8080 → 80:
+// in local compose, `starwards-server` is the dev server on host port 8080
+// (via host-gateway), and branch configs (e.g. node-red's starwards-config
+// node) dial that port. The preview stand-in must answer on it too.
+function serverService(namespace, release) {
+    const doc = service({
+        namespace,
+        release,
+        name: SERVER_NAME,
+        ports: [{ containerPort: 80, protocol: 'TCP' }],
+    });
+    doc.spec.ports.push({ name: 'p8080-tcp', port: 8080, targetPort: 80, protocol: 'TCP' });
+    return doc;
+}
+
 function render(composeConfig, { release, baseDomain, serverImage, images }) {
     if (!release || !serverImage) {
         throw new Error('release and serverImage are required');
@@ -201,7 +216,7 @@ function render(composeConfig, { release, baseDomain, serverImage, images }) {
             },
             probe: { httpGet: { path: '/health', port: 80 }, initialDelaySeconds: 5, periodSeconds: 10 },
         }),
-        service({ namespace, release, name: SERVER_NAME, ports: serverPorts }),
+        serverService(namespace, release),
         ...ingressRoutes({
             namespace,
             release,

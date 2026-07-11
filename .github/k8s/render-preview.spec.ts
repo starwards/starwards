@@ -157,6 +157,12 @@ describe('render-preview', () => {
         }
     });
 
+    it('aliases the dev-server port 8080 to the game server', () => {
+        const svc = byKind('Service').find((d) => d.metadata.name === 'starwards-server');
+        expect(svc?.spec?.ports).toContainEqual({ name: 'p8080-tcp', port: 8080, targetPort: 80, protocol: 'TCP' });
+        expect(svc?.spec?.ports).toContainEqual({ name: 'p80-tcp', port: 80, targetPort: 80, protocol: 'TCP' });
+    });
+
     it('lists every exposed host once, game server first', () => {
         expect(hosts(docs)).toEqual([
             'pr-7.dev.starwards.space',
