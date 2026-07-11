@@ -63,6 +63,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # node-red's /data manifest depends on file: tgz packages built from the
+      # branch — pack them into docker/node-red/data before the wrapper bake.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - run: bash scripts/prepare-node-red-data.sh
+
       # Every service in docker/docker-compose.yml also runs in the preview.
       # Bind mounts are baked into per-release wrapper images; `build:`
       # services are built from the branch like the main image.

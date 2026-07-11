@@ -11,6 +11,15 @@ services:
             - ./mqtt/log:/mosquitto/log
     node-red:
         image: nodered/node-red:3.0.2
+        labels:
+            # Hooks for preview wrapper-image builds (build-preview-images.sh).
+            # pre-run: BEFORE bind mounts are baked — stable deps land in a
+            # docker layer that stays cached across builds. Keep the version
+            # in sync with node-red/data/package.json.
+            starwards.preview.pre-run: cd /data && npm install node-red-contrib-osc@^1.1.0
+            # run: AFTER bind mounts are baked — installs the @starwards file:
+            # tgz deps, which are rebuilt from the branch on every push.
+            starwards.preview.run: cd /data && npm install
         restart: always
         extra_hosts:
             - 'starwards-server:host-gateway'

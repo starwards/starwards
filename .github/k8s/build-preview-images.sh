@@ -65,12 +65,18 @@ for svc in $(jq -r '.services | keys[]' "$COMPOSE_JSON" | tr -d '\r'); do
 
     # 2. Generate the wrapper Dockerfile. COPY --chown to the image's USER so
     # services that write into a baked dir (e.g. node-red's /data) still can.
+    # Label hooks: `starwards.preview.pre-run` runs BEFORE the COPYs (stable
+    # deps → cached docker layer), `starwards.preview.run` after them (deps on
+    # baked files that change every build).
+    pre_run=$(jq -r '.labels["starwards.preview.pre-run"] // empty' <<<"$svc_json" | tr -d '\r')
+    post_run=$(jq -r '.labels["starwards.preview.run"] // empty' <<<"$svc_json" | tr -d '\r')
     docker pull "$base" >&2
     user=$(docker image inspect -f '{{.Config.User}}' "$base" | tr -d '\r')
     chown_flag=""
     [ -n "$user" ] && chown_flag="--chown=${user}"
     wrapper_df=$(mktemp)
     echo "FROM ${base}" >"$wrapper_df"
+    [ -n "$pre_run" ] && echo "RUN ${pre_run}" >>"$wrapper_df"
     for bind in "${binds[@]}"; do
         src="${bind%%|*}" target="${bind##*|}"
         # gitignored runtime dirs (e.g. mqtt/data) don't exist on a fresh
@@ -85,11 +91,15 @@ for svc in $(jq -r '.services | keys[]' "$COMPOSE_JSON" | tr -d '\r'); do
         esac
         echo "COPY ${chown_flag} ${rel} ${target}" >>"$wrapper_df"
     done
+    [ -n "$post_run" ] && echo "RUN ${post_run}" >>"$wrapper_df"
     cat "$wrapper_df" >&2
 
     final="${IMAGE_PREFIX}-${name}"
     # shellcheck disable=SC2046
-    docker buildx build --push $(tag_args "$final") -f "$wrapper_df" "$COMPOSE_DIR" >&2
+    docker buildx build --push $(tag_args "$final") \
+        --cache-from type=gha,scope="preview-${name}-wrapper" \
+        --cache-to type=gha,mode=max,scope="preview-${name}-wrapper" \
+        -f "$wrapper_df" "$COMPOSE_DIR" >&2
     RESULT[$svc]="${final}:${MAIN_TAG}"
 done
 
