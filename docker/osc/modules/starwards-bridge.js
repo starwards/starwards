@@ -61,8 +61,17 @@ module.exports = {
             const stationId = client?.id; // client.id is set from ?id= by O-S-C
             if (!stationId) return;
 
+            // Without ?id=, O-S-C assigns a random client id — there is no
+            // session file for it, so opening would just pop an ENOENT error
+            // in the client. Only open sessions that actually exist.
+            const sessionPath = `${SESSIONS_DIR}/${stationId}.json`;
+            const session = loadJSON(sessionPath, () => {
+                console.warn(`[starwards-bridge] no session for client "${stationId}" — connect with ?id=<station>`);
+            });
+            if (!session) return;
+
             // Ask O-S-C to open that station's session for this client
-            receive('/SESSION/OPEN', `${SESSIONS_DIR}/${stationId}.json`, { clientId: stationId });
+            receive('/SESSION/OPEN', sessionPath, { clientId: stationId });
         });
 
         // Subscription bootstrap: after session opens, subscribe to every widget address
