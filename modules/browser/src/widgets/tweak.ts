@@ -18,7 +18,14 @@ import {
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
-import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
+import {
+    OnChange,
+    abstractOnChange,
+    readProp,
+    readWriteNumberProp,
+    readWriteProp,
+    readWriteVec2Prop,
+} from '../property-wrappers';
 import {
     addCameraRingBlade,
     addEnumListBlade,
@@ -97,6 +104,13 @@ const singleSelectionDetails = async (
     }
 
     if (Spaceship.isInstance(subject)) {
+        addTextBlade(
+            guiFolder,
+            readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/radarRange`),
+            { label: 'radarRange', disabled: true },
+            cleanup,
+        );
+
         const adminDriver = await driver.getAdminDriver();
         const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 
@@ -115,6 +129,9 @@ const singleSelectionDetails = async (
         });
 
         const shipDriver = await driver.getShipDriver(subject.id);
+
+        const targetIdProp = readWriteProp<string | null>(shipDriver, `/weaponsTarget/targetId`);
+        addTextBlade(guiFolder, targetIdProp, { label: 'targetId' }, cleanup);
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
@@ -203,6 +220,9 @@ function addTweakables(
         } else if (tweakable.config === 'string') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
             addTextBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config === 'vec2') {
+            const prop = readWriteVec2Prop(driver, `${pointer}/${tweakable.field}`);
+            addInputBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
         } else if (tweakable.config === 'shipId') {
             const rootState = driver.state;
             if (rootState instanceof SpaceState) {

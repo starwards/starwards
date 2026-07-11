@@ -85,4 +85,23 @@ test.describe('GM Screen', () => {
         const zoomAfterShipAdded = parseFloat((await radarCanvas.getAttribute('data-zoom')) ?? '1');
         expect(zoomAfterShipAdded).toBeCloseTo(zoomAfterScroll, 2);
     });
+
+    test('tweak panel shows velocity, targetId and radarRange for a selected spaceship', async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        // the single_ship map spawns the player ship at world (0,0), which the
+        // default (unpanned, zoom=1) GM camera maps to the canvas center.
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await expect(tweakPanel.getByText('velocity', { exact: true })).toBeVisible({ timeout: 5000 });
+        await expect(tweakPanel.getByText('radarRange', { exact: true })).toBeVisible();
+        // 'targetId' also appears inside the (unrelated, collapsed) Docking system
+        // folder further down the panel; the ship-level one we add is the first
+        // in DOM order since it's wired up before the per-system folders loop.
+        await expect(tweakPanel.getByText('targetId', { exact: true }).first()).toBeVisible();
+    });
 });
