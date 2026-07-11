@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(code-review)",
+      "PowerShell(git pull origin master)",
+      "PowerShell(\\(Get-Content modules/core/test/ship-manager-targeting.spec.ts -Raw\\) -replace 'CannonShell','CannonHe' | Set-Content modules/core/test/ship-manager-targeting.spec.ts -NoNewline)",
+      "PowerShell(npm run build --workspace @starwards/core 2>&1)",
+      "PowerShell(npm run test:types 2>&1)",
+      "Bash(git checkout *)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(npx jest *)",
+      "Bash(gh pr *)"
+    ]
+  }
+}
