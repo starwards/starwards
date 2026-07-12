@@ -8,7 +8,7 @@ Ships never auto-explode. Damage causes malfunctions that create gameplay. TPK i
 
 ## Armor System (Done)
 
-Sectional plates (front, right, rear, left) absorb damage based on hit angle. Each plate has independent health. When a plate's health reaches 0, damage penetrates to internal systems.
+Sectional plates arranged around the hull absorb damage based on hit angle. Each plate has independent health. When a plate's health reaches 0, damage penetrates to the systems behind it. Ships wear an armor *model* (Composite, Whipple, Hardened, Reactive, Faraday) whose resistance to each ammo type is data-driven — see the [Damage Model Spec](damage-model-spec.md) for the full armor × ammo interaction.
 
 **Key design:** Armor is only repairable at shipyards/stations — creating a "cost of combat" that drives docking gameplay and narrative beats ("we need to get to a station for repairs").
 
@@ -18,7 +18,7 @@ Two types:
 - **Soft problems:** Increase probability of further malfunctions without direct performance impact
 - **Hard problems:** Directly reduce system effectiveness
 
-When damage penetrates armor, a random internal system takes the hit. System effectiveness drops. At low enough levels, the system breaks entirely (effectiveness = 0).
+When damage penetrates armor, the ammo's damage profile decides which systems take the hit — one random system for penetrators, every system in the arc for blast, electronics ship-wide for EMP; shrapnel affects only hull-mounted (external) systems and never penetrates (see the [Damage Model Spec](damage-model-spec.md)). System effectiveness drops. At low enough levels, the system breaks entirely (effectiveness = 0).
 
 ## System Effectiveness (Done)
 
@@ -46,9 +46,9 @@ Overheat cascades: one overheating system can break, reducing the ship's capabil
 ## Weapons (Done)
 
 Three engagement circles:
-- **Close (< 1000m):** ChainGun — rapid-fire kinetic, magazine holds up to 3600 cannon shells / 2000 blast cannon shells (per dragonflyMagazine)
+- **Close (< 1000m):** ChainGun — rapid-fire, three shell types (HiExp / ArmPen / Frag; dragonfly magazine 2400/1200/2000)
 - **Medium (1000-4000m):** Railgun — charge time weapon (planned, not built)
-- **Long (4000m+):** Torpedoes — homing missiles, 720°/s tracking, 60s flight time, 100m proximity detonation
+- **Long (4000m+):** Missiles — six homing types incl. dual-mode Cluster (per-type speed/agility/lifetime, 100m proximity detonation; see the [Damage Model Spec](damage-model-spec.md) ammo catalog)
 
 Chain reaction explosions: destroyed ships create secondary blast with inverse-square falloff.
 
