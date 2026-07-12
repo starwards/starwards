@@ -2,6 +2,7 @@ import {
     ArmorModelStats,
     Damage,
     DamageManager,
+    Explosion,
     FRONT_ARC,
     SpaceManager,
     Spaceship,
@@ -17,6 +18,7 @@ import {
 
 import { MockDie } from './ship-test-harness';
 import { ShipState } from '../src/ship/ship-state';
+import { Vec2 } from '../src';
 import { expect } from 'chai';
 
 interface Fixture {
@@ -56,6 +58,28 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
             expect(damaged).to.equal(false);
             expect(state.smartPilot.offsetFactor).to.equal(0);
+        });
+
+        it('a defeated hit pops exactly one cell and consumes the damaging explosion', () => {
+            const { state, spaceManager, damageManager } = setUpShip(reactiveArmor);
+            const explosion = new Explosion().init('d-1', new Vec2(0, 0), 20);
+            spaceManager.insert(explosion);
+            spaceManager.forceFlushEntities();
+            const initialHealthy = state.armor.numberOfHealthyPlates;
+            damageManager.takeExternalDamage(frontDamage(50, 'HiExp'));
+            expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
+            expect(explosion.destroyed).to.equal(true);
+        });
+
+        it('Tandem pops a cell but is not consumed — the main charge lives on', () => {
+            const { state, spaceManager, damageManager } = setUpShip(reactiveArmor);
+            const explosion = new Explosion().init('d-1', new Vec2(0, 0), 60);
+            spaceManager.insert(explosion);
+            spaceManager.forceFlushEntities();
+            const initialHealthy = state.armor.numberOfHealthyPlates;
+            damageManager.takeExternalDamage(frontDamage(50, 'Tandem'));
+            expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
+            expect(explosion.destroyed).to.equal(false);
         });
 
         it('a follow-up hit on the bared section gets through (cells do not heal)', () => {
@@ -163,7 +187,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
             const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'Frag'));
             expect(damaged).to.equal(true);
-            // ERA cells do not react to shrapnel — no cell consumed
+            // reactive cells do not react to shrapnel — no cell consumed
             expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
         });
@@ -183,6 +207,23 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
                 expect(thruster.availableCapacity).to.equal(1);
             }
             expect(state.maneuvering.efficiency).to.equal(1);
+        });
+
+        it('an engaging Elec hit spanning both ship areas damages each electronics system once', () => {
+            // Faraday-over-nothing strawman: the plates engage Elec and are all broken, so
+            // exposure is 1 in both areas — electronics must still be damaged exactly once
+            const { state, damageManager } = setUpShip({ ...compositeArmor, plateDamage_Elec: 1, penetration_Elec: 0 });
+            for (const plate of state.armor.armorPlates) {
+                plate.health = 0;
+            }
+            damageManager.takeExternalDamage({
+                id: 'd-1',
+                amount: 1000,
+                damageSurfaceArc: [-45, 135],
+                damageDurationSeconds: 1,
+                damageType: 'Elec',
+            });
+            expect(state.radar.malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
         });
 
         it('surface-effect hit with plates intact damages only external systems', () => {

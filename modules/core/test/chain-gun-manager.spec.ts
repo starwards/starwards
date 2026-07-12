@@ -6,6 +6,7 @@ import {
     SpaceManager,
     Spaceship,
     makeShipState,
+    projectileModels,
     shipConfigurations,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
@@ -57,14 +58,9 @@ describe('ChainGunManager', () => {
             const magazine = shipMgr.state.magazine;
 
             // Deplete all ammo
-            magazine.count_HiExpShell = 0;
-            magazine.count_ArmPenShell = 0;
-            magazine.count_FragShell = 0;
-            magazine.count_HiExpMissile = 0;
-            magazine.count_ArmPenMissile = 0;
-            magazine.count_ClusterMissile = 0;
-            magazine.count_TandemMissile = 0;
-            magazine.count_ElecMissile = 0;
+            for (const model of projectileModels) {
+                magazine.setCount(model, 0);
+            }
 
             chainGun.projectile = 'None';
             switchToAvailableAmmo(chainGun, magazine);

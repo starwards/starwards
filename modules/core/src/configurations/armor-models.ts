@@ -1,20 +1,10 @@
-import { ArmorDesign } from '../ship/armor';
+import { ArmorDesign, PenetrationStats, PlateDamageStats } from '../ship/armor';
 
-export type ArmorModelStats = Pick<
-    ArmorDesign,
-    | 'plateDamage_HiExp'
-    | 'plateDamage_ArmPen'
-    | 'plateDamage_Frag'
-    | 'plateDamage_Tandem'
-    | 'plateDamage_Elec'
-    | 'penetration_HiExp'
-    | 'penetration_ArmPen'
-    | 'penetration_Frag'
-    | 'penetration_Tandem'
-    | 'penetration_Elec'
-    | 'singleUsePlates'
-    | 'deflectsSurfaceEffect'
->;
+// per-damage-type stats are mapped from DamageType, so adding a damage type
+// fails compilation on every armor model until it takes a stance on it
+export type ArmorModelStats = PlateDamageStats &
+    PenetrationStats &
+    Required<Pick<ArmorDesign, 'singleUsePlates' | 'deflectsSurfaceEffect'>>;
 
 // plateDamage: multiplier on plate erosion only, 0 = armor does not engage the hit.
 // The armor is worn down until its plates are dead; system damage behind it is never scaled.
@@ -25,7 +15,7 @@ export type ArmorModelStats = Pick<
 
 export const compositeArmor: ArmorModelStats = {
     plateDamage_HiExp: 1,
-    // penetrators are composite's weakness — AP chews it double-speed
+    // penetrators are composite's weakness — armor-piercing rounds chew it double-speed
     plateDamage_ArmPen: 2,
     // frag never interacts with armor plates (any model) — its damage is the surface scrape only
     plateDamage_Frag: 0,
@@ -41,12 +31,12 @@ export const compositeArmor: ArmorModelStats = {
 };
 
 export const whippleArmor: ArmorModelStats = {
-    // the standoff screen defeats most of the blast — massed HE remains a very slow plan-C
+    // the standoff screen defeats most of the blast — massed high-explosive fire remains a very slow plan-C
     plateDamage_HiExp: 0.25,
     // a kinetic penetrator punches straight through the thin standoff shield without noticing it
     plateDamage_ArmPen: 0,
     plateDamage_Frag: 0,
-    // ...but the screen pre-detonates shaped charges (Tandem/HEAT) — its historic role
+    // ...but the screen pre-detonates shaped charges (Tandem) — its historic role
     plateDamage_Tandem: 0,
     plateDamage_Elec: 0,
     penetration_HiExp: 0,
@@ -64,7 +54,7 @@ export const hardenedArmor: ArmorModelStats = {
     // the slab genuinely stops kinetic penetrators — normal engagement, no shortcut
     plateDamage_ArmPen: 1,
     plateDamage_Frag: 0,
-    // ...but a shaped-charge jet (Tandem/HEAT) burns through thick solid armor double-speed
+    // ...but a shaped-charge jet (Tandem) burns through thick solid armor double-speed
     plateDamage_Tandem: 2,
     plateDamage_Elec: 0,
     penetration_HiExp: 0,
@@ -77,11 +67,11 @@ export const hardenedArmor: ArmorModelStats = {
 };
 
 export const reactiveArmor: ArmorModelStats = {
-    // ERA cells react to any warhead (HiExp/ArmPen/Elec): the cell pops and defeats the hit —
+    // reactive cells react to any warhead (HiExp/ArmPen/Elec): the cell pops and defeats the hit —
     // nothing penetrates, but the cell is spent (exposure is measured before the pop)
     plateDamage_HiExp: 1,
     plateDamage_ArmPen: 1,
-    // shrapnel does not activate ERA: no cell consumed, but the scrape lands (not deflectable)
+    // shrapnel does not activate the reactive cells: no cell consumed, but the scrape lands (not deflectable)
     plateDamage_Frag: 0,
     // tandem precursor pops the cell and the main charge lands at full force
     plateDamage_Tandem: 1,
@@ -92,7 +82,7 @@ export const reactiveArmor: ArmorModelStats = {
     penetration_Tandem: 1,
     penetration_Elec: 0,
     singleUsePlates: true,
-    // ERA pushes the round/missile away before its blast develops — no surface scrape
+    // the reactive charge pushes the round/missile away before its blast develops — no surface scrape
     // (does not apply to Frag: there is no round to deflect, the shrapnel cloud arrives anyway)
     deflectsSurfaceEffect: true,
 };

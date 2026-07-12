@@ -1,6 +1,51 @@
-import { compositeArmor, faradayArmor, hardenedArmor, reactiveArmor, whippleArmor, withFaradayLayer } from '../src';
+import {
+    ArmorDesignState,
+    compositeArmor,
+    damageTypes,
+    faradayArmor,
+    hardenedArmor,
+    reactiveArmor,
+    whippleArmor,
+    withFaradayLayer,
+} from '../src';
 
 import { expect } from 'chai';
+
+const allModels = { compositeArmor, whippleArmor, hardenedArmor, reactiveArmor, faradayArmor } as const;
+
+describe('armor model stats validity', () => {
+    it('every armor model defines plateDamage and penetration for every damage type', () => {
+        for (const [name, model] of Object.entries(allModels)) {
+            for (const t of damageTypes) {
+                expect(model[`plateDamage_${t}`], `${name}.plateDamage_${t}`).to.be.a('number');
+                expect(model[`penetration_${t}`], `${name}.penetration_${t}`).to.be.a('number');
+            }
+        }
+    });
+
+    it('ArmorDesignState carries a synced field for every damage type', () => {
+        const design = new ArmorDesignState();
+        for (const t of damageTypes) {
+            expect(design.plateDamage(t), `plateDamage_${t}`).to.be.a('number');
+            expect(design.penetration(t), `penetration_${t}`).to.be.a('number');
+        }
+    });
+
+    it('penetration is within [0,1], and binary when the armor does not engage the type', () => {
+        for (const [name, model] of Object.entries(allModels)) {
+            for (const t of damageTypes) {
+                const penetration = model[`penetration_${t}`];
+                expect(penetration, `${name}.penetration_${t}`).to.be.within(0, 1);
+                if (model[`plateDamage_${t}`] === 0) {
+                    // the blocked path treats penetration as all-or-nothing (see DamageManager)
+                    expect([0, 1], `${name}.penetration_${t} must be 0 or 1 when plateDamage_${t} is 0`).to.include(
+                        penetration,
+                    );
+                }
+            }
+        }
+    });
+});
 
 describe('armor model presets (issue #1929)', () => {
     it('Composite is the baseline, weak to penetrators', () => {
@@ -23,7 +68,7 @@ describe('armor model presets (issue #1929)', () => {
         expect(whippleArmor.plateDamage_Frag).to.equal(0);
         expect(whippleArmor.plateDamage_ArmPen).to.equal(0);
         expect(whippleArmor.penetration_ArmPen).to.equal(1);
-        // the standoff screen pre-detonates HEAT — Tandem is defeated
+        // the standoff screen pre-detonates shaped charges — Tandem is defeated
         expect(whippleArmor.plateDamage_Tandem).to.equal(0);
         expect(whippleArmor.penetration_Tandem).to.equal(0);
     });
@@ -44,7 +89,7 @@ describe('armor model presets (issue #1929)', () => {
         }
         expect(reactiveArmor.plateDamage_Tandem).to.equal(1);
         expect(reactiveArmor.penetration_Tandem).to.equal(1);
-        // shrapnel does not activate ERA
+        // shrapnel does not activate the reactive cells
         expect(reactiveArmor.plateDamage_Frag).to.equal(0);
         expect(reactiveArmor.penetration_Frag).to.equal(0);
     });

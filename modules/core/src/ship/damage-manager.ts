@@ -84,11 +84,14 @@ export class DamageManager {
                 this.applyPenetratingSystemDamage(damage, profile);
                 return true;
             }
-            // the armor blocks the hit
+            // the armor blocks the hit. Penetration is binary (0 or 1) when the armor does not
+            // engage — fractional penetration applies to engaging hits only (see ArmorDesign)
             return damagedSystems;
         }
 
         let damagedInternals = damagedSystems;
+        let electronicsExposure = 0;
+        let cellPopped = false;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
@@ -96,10 +99,12 @@ export class DamageManager {
 
             let broken: number;
             if (armorDesign.singleUsePlates) {
-                // exposure is measured before the cells pop: the sacrificed cell defeats this
+                // exposure is measured before the cell pops: the sacrificed cell defeats this
                 // hit, and only already-bare sections (or penetration) let damage through
                 broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-                this.consumeSingleUsePlates(areaHitRangeAngles);
+                if (!cellPopped) {
+                    cellPopped = this.consumeSingleUsePlate(areaHitRangeAngles);
+                }
             } else {
                 this.applyDamageToArmor(damage.amount * plateFactor, areaHitRangeAngles);
                 broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
@@ -110,9 +115,23 @@ export class DamageManager {
             const exposureRatio = Math.max(penetration, brokenRatio);
 
             if (exposureRatio > 0) {
-                damagedInternals =
-                    this.applySystemDamageToArea(damage, profile, hitArea, exposureRatio) || damagedInternals;
+                if (profile.systemScope === 'electronics') {
+                    // electronics damage is ship-wide — collect the worst exposure across areas
+                    // and apply it once, outside the per-area loop
+                    electronicsExposure = Math.max(electronicsExposure, exposureRatio);
+                } else {
+                    damagedInternals =
+                        this.applySystemDamageToArea(damage, profile, hitArea, exposureRatio) || damagedInternals;
+                }
             }
+        }
+        if (electronicsExposure > 0) {
+            damagedInternals = this.applyElectronicsDamage(damage, profile, electronicsExposure) || damagedInternals;
+        }
+        if (cellPopped && penetration < 1) {
+            // the popped reactive cell defeats the hit: the blast/round is consumed and stops
+            // dealing damage on subsequent ticks and to other ships
+            this.spaceManager.destroyObject(damage.id);
         }
         return damagedInternals;
     }
@@ -197,9 +216,7 @@ export class DamageManager {
         exposureRatio: number,
     ): boolean {
         const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
-        // electronics damage is ship-wide, not area-local
-        const pool = profile.systemScope === 'electronics' ? this.state.systems() : this.state.systemsByAreas(hitArea);
-        const filtered = this.filterSystemsByProfile(pool || [], profile);
+        const filtered = this.filterSystemsByProfile(this.state.systemsByAreas(hitArea) || [], profile);
         if (filtered.length === 0) return false;
 
         if (profile.systemScope === 'single') {
@@ -213,12 +230,26 @@ export class DamageManager {
         return true;
     }
 
-    private consumeSingleUsePlates(localAngleHitRange: RTuple2): void {
+    // electronics damage is ship-wide, not area-local
+    private applyElectronicsDamage(damage: Damage, profile: DamageProfile, exposureRatio: number): boolean {
+        const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
+        const filtered = this.filterSystemsByProfile(this.state.systems(), profile);
+        if (filtered.length === 0) return false;
+        for (const system of filtered) {
+            this.damageSystem(system, scaled, exposureRatio);
+        }
+        return true;
+    }
+
+    // reactive armor: a single cell sacrifices itself to defeat the hit; returns whether a cell popped
+    private consumeSingleUsePlate(localAngleHitRange: RTuple2): boolean {
         for (const [_, plate] of this.state.armor.platesInRange(localAngleHitRange)) {
             if (plate.health > 0) {
                 plate.health = 0;
+                return true;
             }
         }
+        return false;
     }
 
     damageAllSystems(damageObject: { id: string; amount: number }) {

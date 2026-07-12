@@ -14,6 +14,7 @@ import {
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
+import { DamageType } from '../space/damage-profile';
 import { SWResponse } from './collisions-utils';
 import { createLogger } from '../logger';
 
@@ -28,7 +29,7 @@ export type Damage = {
     damageSurfaceArc: Tuple2;
     damageDurationSeconds: number;
     // null for generic kinetic hits (collisions, GM-spawned explosions)
-    damageType: import('../space/damage-profile').DamageType | null;
+    damageType: DamageType | null;
 };
 
 type NoOrder = {

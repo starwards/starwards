@@ -54,9 +54,6 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
         return this[`use_${m}`];
     }
 
-    // get explosionSecondsToLive(): number {
-    //     return this.explosionRadius / this.explosionExpansionSpeed;
-    // }
     get minShellSecondsToLive(): number {
         return this.minShellRange / this.bulletSpeed;
     }

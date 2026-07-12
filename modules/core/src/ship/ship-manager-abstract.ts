@@ -59,7 +59,9 @@ export function resetShipState(state: ShipState) {
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
     state.signals.trackedTargets.splice(0);
-    state.magazine.count_HiExpShell = state.magazine.max_HiExpShell;
+    for (const model of projectileModels) {
+        state.magazine.setCount(model, state.magazine.getMax(model));
+    }
     // Reset non-@gameField command properties that Schema.clone() does not copy.
     // Without this, cloned states have these as undefined, causing NaN propagation.
     state.afterBurnerCommand = 0;
