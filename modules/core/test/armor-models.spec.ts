@@ -3,31 +3,50 @@ import { compositeArmor, faradayArmor, hardenedArmor, reactiveArmor, whippleArmo
 import { expect } from 'chai';
 
 describe('armor model presets (issue #1929)', () => {
-    it('Composite takes normal damage from all physical types, doubled from Tandem', () => {
+    it('Composite is the baseline, weak to penetrators', () => {
         expect(compositeArmor.plateDamage_HiExp).to.equal(1);
-        expect(compositeArmor.plateDamage_ArmPen).to.equal(1);
-        expect(compositeArmor.plateDamage_Frag).to.equal(1);
-        expect(compositeArmor.plateDamage_Tandem).to.equal(2);
+        expect(compositeArmor.plateDamage_ArmPen).to.equal(2);
+        expect(compositeArmor.plateDamage_Tandem).to.equal(1);
+        expect(compositeArmor.penetration_ArmPen).to.equal(0);
+        expect(compositeArmor.penetration_Tandem).to.equal(0);
     });
 
-    it('Whipple blocks blast types but is vulnerable to penetrators', () => {
-        expect(whippleArmor.plateDamage_HiExp).to.equal(0);
+    it('Frag never interacts with any armor — 0/0 across all models', () => {
+        for (const model of [compositeArmor, whippleArmor, hardenedArmor, reactiveArmor, faradayArmor]) {
+            expect(model.plateDamage_Frag).to.equal(0);
+            expect(model.penetration_Frag).to.equal(0);
+        }
+    });
+
+    it('Whipple blunts blast, blocks shaped charges; kinetic penetrators punch straight through', () => {
+        expect(whippleArmor.plateDamage_HiExp).to.equal(0.25);
         expect(whippleArmor.plateDamage_Frag).to.equal(0);
-        expect(whippleArmor.plateDamage_ArmPen).to.equal(2);
-        expect(whippleArmor.plateDamage_Tandem).to.equal(2);
+        expect(whippleArmor.plateDamage_ArmPen).to.equal(0);
+        expect(whippleArmor.penetration_ArmPen).to.equal(1);
+        // the standoff screen pre-detonates HEAT — Tandem is defeated
+        expect(whippleArmor.plateDamage_Tandem).to.equal(0);
+        expect(whippleArmor.penetration_Tandem).to.equal(0);
     });
 
-    it('Hardened grinds down slowly under blast and takes Tandem better than Whipple', () => {
+    it('Hardened stops kinetic penetrators but the shaped-charge jet burns through', () => {
         expect(hardenedArmor.plateDamage_HiExp).to.equal(0.5);
-        expect(hardenedArmor.plateDamage_ArmPen).to.equal(2);
-        expect(hardenedArmor.plateDamage_Tandem).to.equal(1);
+        expect(hardenedArmor.plateDamage_ArmPen).to.equal(1);
+        expect(hardenedArmor.penetration_ArmPen).to.equal(0);
+        expect(hardenedArmor.plateDamage_Tandem).to.equal(2);
+        expect(hardenedArmor.penetration_Tandem).to.equal(0);
     });
 
-    it('Reactive has single-use cells and is fully penetrated by Tandem', () => {
+    it('Reactive cells react to warheads (pop, no penetration); only Tandem gets through', () => {
         expect(reactiveArmor.singleUsePlates).to.equal(true);
-        expect(reactiveArmor.plateDamage_Tandem).to.be.greaterThan(0);
+        for (const key of ['HiExp', 'ArmPen', 'Elec'] as const) {
+            expect(reactiveArmor[`plateDamage_${key}`]).to.equal(1);
+            expect(reactiveArmor[`penetration_${key}`]).to.equal(0);
+        }
+        expect(reactiveArmor.plateDamage_Tandem).to.equal(1);
         expect(reactiveArmor.penetration_Tandem).to.equal(1);
-        expect(reactiveArmor.plateDamage_ArmPen).to.equal(0);
+        // shrapnel does not activate ERA
+        expect(reactiveArmor.plateDamage_Frag).to.equal(0);
+        expect(reactiveArmor.penetration_Frag).to.equal(0);
     });
 
     it('only Reactive deflects the surface-effect scrape', () => {
@@ -37,8 +56,8 @@ describe('armor model presets (issue #1929)', () => {
         }
     });
 
-    it('every non-Faraday model lets Elec hits bypass the plates', () => {
-        for (const model of [compositeArmor, whippleArmor, hardenedArmor, reactiveArmor]) {
+    it('every non-Faraday passive model lets Elec hits bypass the plates', () => {
+        for (const model of [compositeArmor, whippleArmor, hardenedArmor]) {
             expect(model.plateDamage_Elec).to.equal(0);
             expect(model.penetration_Elec).to.equal(1);
         }

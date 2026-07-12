@@ -11,6 +11,7 @@ export const shellAmmoTypes = ['HiExpShell', 'ArmPenShell', 'FragShell'] as cons
 export const missileAmmoTypes = [
     'HiExpMissile',
     'ArmPenMissile',
+    'FragMissile',
     'ClusterMissile',
     'TandemMissile',
     'ElecMissile',
@@ -89,7 +90,8 @@ export const projectileDesigns = {
             maxSpeed: 600,
             proximityDetonation: 100,
         },
-        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 50, blastFactor: 1 },
+        // sharp 350m blast (blast size = expansionSpeed * secondsToLive)
+        explosion: { secondsToLive: 0.35, expansionSpeed: 1_000, damageFactor: 50, blastFactor: 1 },
     },
     ArmPenMissile: {
         name: 'ArmPen missile',
@@ -103,7 +105,24 @@ export const projectileDesigns = {
             maxSpeed: 960,
             proximityDetonation: 100,
         },
-        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 80, blastFactor: 0.5 },
+        // tight 200m instant punch
+        explosion: { secondsToLive: 0.25, expansionSpeed: 800, damageFactor: 80, blastFactor: 0.5 },
+    },
+    FragMissile: {
+        name: 'Frag missile',
+        radius: 2,
+        damageType: 'Frag',
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 78,
+            rotationCapacity: 720,
+            velocityCapacity: 600,
+            maxSpeed: 600,
+            proximityDetonation: 100,
+        },
+        // dedicated shrapnel warhead. All frag warheads share the same intensity (damageFactor 10);
+        // the missile's edge over the cluster frag mode is size and time: an 800m cloud lingering 1.6s
+        explosion: { secondsToLive: 1.6, expansionSpeed: 500, damageFactor: 10, blastFactor: 1 },
     },
     ClusterMissile: {
         name: 'Cluster missile',
@@ -118,17 +137,17 @@ export const projectileDesigns = {
             maxSpeed: 600,
             proximityDetonation: 100,
         },
-        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 20, blastFactor: 6 },
+        explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
         warheads: {
-            // wide shrapnel shower — sands external systems over a large arc
+            // big lingering 750m shrapnel cloud — sands external systems over a large area
             Frag: {
                 damageType: 'Frag',
-                explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 20, blastFactor: 6 },
+                explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
             },
-            // focused submunitions — small blast (still wider than a HiExp missile), weaker than a dedicated ArmPen
+            // focused submunitions — small 400m blast (still bigger than a HiExp missile), weaker than a dedicated ArmPen
             ArmPen: {
                 damageType: 'ArmPen',
-                explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 40, blastFactor: 2 },
+                explosion: { secondsToLive: 0.4, expansionSpeed: 1_000, damageFactor: 40, blastFactor: 0.5 },
             },
         },
     },
@@ -144,7 +163,8 @@ export const projectileDesigns = {
             maxSpeed: 420,
             proximityDetonation: 100,
         },
-        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 60, blastFactor: 1 },
+        // focused 300m — the delivery mechanism is the point
+        explosion: { secondsToLive: 0.3, expansionSpeed: 1_000, damageFactor: 60, blastFactor: 1 },
     },
     ElecMissile: {
         name: 'Elec missile',
@@ -158,7 +178,8 @@ export const projectileDesigns = {
             maxSpeed: 780,
             proximityDetonation: 100,
         },
-        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 5, blastFactor: 1 },
+        // focused 300m — the delivery mechanism is the point
+        explosion: { secondsToLive: 0.3, expansionSpeed: 1_000, damageFactor: 5, blastFactor: 1 },
     },
 } as const satisfies Record<AmmoType, ProjectileDesign | MissileDesign>;
 

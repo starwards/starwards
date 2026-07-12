@@ -15,6 +15,8 @@ Key product decisions and their rationale. Not every choice needs a record — o
 | 7 | plateDamage governs plate erosion only | 2026-07 | [007-plate-damage-erosion-only.md](007-plate-damage-erosion-only.md) |
 | 8 | Surface effect applies regardless of armor (Reactive deflects) | 2026-07 | [008-unconditional-surface-effect.md](008-unconditional-surface-effect.md) |
 | 9 | Frag never deflects/penetrates; Cluster becomes a dual-mode warhead | 2026-07 | [009-frag-mechanics-and-cluster-modes.md](009-frag-mechanics-and-cluster-modes.md) |
+| 10 | Differentiated blast sizes; Frag is the strongest surface scraper | 2026-07 | [010-blast-size-and-surface-factors.md](010-blast-size-and-surface-factors.md) |
+| 11 | Armor table rebalance — AP hierarchy, reactive pops on any warhead | 2026-07 | [011-armor-table-rebalance.md](011-armor-table-rebalance.md) |
 
 ## Template
 

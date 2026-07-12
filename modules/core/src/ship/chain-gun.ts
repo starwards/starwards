@@ -25,6 +25,7 @@ export type ChaingunDesign = {
     use_FragShell?: boolean;
     use_HiExpMissile?: boolean;
     use_ArmPenMissile?: boolean;
+    use_FragMissile?: boolean;
     use_ClusterMissile?: boolean;
     use_TandemMissile?: boolean;
     use_ElecMissile?: boolean;
@@ -44,6 +45,7 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @gameField('boolean') use_FragShell = false;
     @gameField('boolean') use_HiExpMissile = false;
     @gameField('boolean') use_ArmPenMissile = false;
+    @gameField('boolean') use_FragMissile = false;
     @gameField('boolean') use_ClusterMissile = false;
     @gameField('boolean') use_TandemMissile = false;
     @gameField('boolean') use_ElecMissile = false;

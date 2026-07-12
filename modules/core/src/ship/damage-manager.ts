@@ -28,8 +28,10 @@ import { Signals } from './signals';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
 
-// system damage dealt to external systems when the armor blocks a surface-effect hit
-const SURFACE_EFFECT_FACTOR = 0.25;
+// system damage dealt to external systems by a surface-effect hit. Explosion damage arrives
+// per tick (damageFactor x dt x overlap), so this is calibrated for sanding over a full cloud
+// pass (a handful of small defects), not instant kills.
+const SURFACE_EFFECT_FACTOR = 0.05;
 
 export class DamageManager {
     constructor(
@@ -92,14 +94,18 @@ export class DamageManager {
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
             if (!areaHitRangeAngles) continue;
 
+            let broken: number;
             if (armorDesign.singleUsePlates) {
+                // exposure is measured before the cells pop: the sacrificed cell defeats this
+                // hit, and only already-bare sections (or penetration) let damage through
+                broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
                 this.consumeSingleUsePlates(areaHitRangeAngles);
             } else {
                 this.applyDamageToArmor(damage.amount * plateFactor, areaHitRangeAngles);
+                broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
             }
 
             const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-            const broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
             const brokenRatio = platesInArea > 0 ? broken / platesInArea : 0;
             const exposureRatio = Math.max(penetration, brokenRatio);
 
@@ -155,11 +161,11 @@ export class DamageManager {
         }
     }
 
-    // a blocked surface-effect hit scrapes the external systems in the hit arc
+    // a surface-effect hit scrapes the external systems in the hit arc
     private applySurfaceEffectDamage(damage: Damage, profile: DamageProfile): void {
         const scaled: Damage = {
             ...damage,
-            amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.systemDamageFactor,
+            amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor,
         };
         for (const system of this.collectAreaSystems(damage.damageSurfaceArc)) {
             if (!system.isInternal) {

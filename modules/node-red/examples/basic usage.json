@@ -111,7 +111,7 @@
         "crontab": "",
         "once": true,
         "onceDelay": 0.1,
-        "topic": "/magazine/count_Missile",
+        "topic": "/magazine/count_HiExpMissile",
         "x": 260,
         "y": 40,
         "wires": [["1890d5650aca1bc6"]]

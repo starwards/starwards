@@ -13,6 +13,7 @@ export type MagazineDesign = {
     max_FragShell: number;
     max_HiExpMissile: number;
     max_ArmPenMissile: number;
+    max_FragMissile: number;
     max_ClusterMissile: number;
     max_TandemMissile: number;
     max_ElecMissile: number;
@@ -27,6 +28,7 @@ export class MagazineDesignState extends DesignState implements MagazineDesign {
     @gameField('uint16') max_FragShell = 0;
     @gameField('uint16') max_HiExpMissile = 0;
     @gameField('uint16') max_ArmPenMissile = 0;
+    @gameField('uint16') max_FragMissile = 0;
     @gameField('uint16') max_ClusterMissile = 0;
     @gameField('uint16') max_TandemMissile = 0;
     @gameField('uint16') max_ElecMissile = 0;
@@ -71,6 +73,11 @@ export class Magazine extends SystemState {
     @tweakable('number')
     @gameField('uint16')
     count_ArmPenMissile = 0;
+
+    @range((t: Magazine) => [0, t.max_FragMissile])
+    @tweakable('number')
+    @gameField('uint16')
+    count_FragMissile = 0;
 
     @range((t: Magazine) => [0, t.max_ClusterMissile])
     @tweakable('number')
@@ -132,6 +139,11 @@ export class Magazine extends SystemState {
     @range((t: Magazine) => [0, t.design.max_ArmPenMissile])
     get max_ArmPenMissile() {
         return Math.round(this.design.max_ArmPenMissile * this.capacity);
+    }
+
+    @range((t: Magazine) => [0, t.design.max_FragMissile])
+    get max_FragMissile() {
+        return Math.round(this.design.max_FragMissile * this.capacity);
     }
 
     @range((t: Magazine) => [0, t.design.max_ClusterMissile])

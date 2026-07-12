@@ -49,11 +49,29 @@ function frontDamage(amount: number, damageType: Damage['damageType']): Damage {
 
 describe('damage-manager × armor design stats (issue #1929)', () => {
     describe('Reactive armor (single-use cells)', () => {
-        it('does not engage ArmPen hits (no cell consumed)', () => {
+        it('ArmPen pops cells but is defeated — no system damage on the popping hit', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
             const initialHealthy = state.armor.numberOfHealthyPlates;
+            const damaged = damageManager.takeExternalDamage(frontDamage(50, 'ArmPen'));
+            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
+            expect(damaged).to.equal(false);
+            expect(state.smartPilot.offsetFactor).to.equal(0);
+        });
+
+        it('a follow-up hit on the bared section gets through (cells do not heal)', () => {
+            const { damageManager } = setUpShip(reactiveArmor);
             damageManager.takeExternalDamage(frontDamage(50, 'ArmPen'));
-            expect(state.armor.numberOfHealthyPlates).to.equal(initialHealthy);
+            const damaged = damageManager.takeExternalDamage({ ...frontDamage(50, 'ArmPen'), id: 'd-2' });
+            expect(damaged).to.equal(true);
+        });
+
+        it('Elec pops cells and is blocked — electronics untouched', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
+            const initialHealthy = state.armor.numberOfHealthyPlates;
+            const damaged = damageManager.takeExternalDamage(frontDamage(50, 'Elec'));
+            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
+            expect(damaged).to.equal(false);
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
         });
 
         it('Tandem consumes cells and exposes internals fully', () => {
@@ -92,11 +110,11 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
     });
 
     describe('surface effect on blocked hits', () => {
-        it('HiExp vs Whipple armor does not damage plates but scrapes externals', () => {
+        it('HiExp vs Whipple (plateDamage 0.25) erodes plates at quarter rate and scrapes externals', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             const initial = state.armor.armorPlates[0].health;
             const damagedExternals = damageManager.takeExternalDamage(frontDamage(100, 'HiExp'));
-            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(initial - state.armor.armorPlates[0].health).to.be.closeTo(25, 0.001);
             expect(damagedExternals).to.equal(true);
         });
 
@@ -108,11 +126,12 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(damagedExternals).to.equal(true);
         });
 
-        it('ArmPen vs Whipple (plateDamage 2) chews through plates', () => {
+        it('ArmPen vs Whipple punches straight through — plates untouched, internals hit', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             const before = state.armor.armorPlates[0].health;
-            damageManager.takeExternalDamage(frontDamage(800, 'ArmPen'));
-            expect(state.armor.armorPlates[0].health).to.be.lessThan(before);
+            const damaged = damageManager.takeExternalDamage(frontDamage(800, 'ArmPen'));
+            expect(state.armor.armorPlates[0].health).to.equal(before);
+            expect(damaged).to.equal(true);
         });
 
         it('HiExp vs Hardened (plateDamage 0.5) erodes plates at half rate', () => {
@@ -132,11 +151,11 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.warp.damageFactor).to.equal(0);
         });
 
-        it('HiExp vs Reactive is deflected — no scrape, no cell consumed', () => {
+        it('HiExp vs Reactive: scrape deflected, cells pop, nothing penetrates', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
             const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'HiExp'));
             expect(damaged).to.equal(false);
-            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
+            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(state.armor.numberOfPlates);
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
         });
 
@@ -166,10 +185,10 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.maneuvering.efficiency).to.equal(1);
         });
 
-        it('surface-effect hit on blocked armor damages only external systems', () => {
+        it('surface-effect hit with plates intact damages only external systems', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             damageManager.takeExternalDamage(frontDamage(1000, 'HiExp'));
-            // hitsInternal=true HiExp on blocked armor → surface effect targets externals
+            // while plates hold, only the surface scrape lands — and it targets externals
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
             // internal systems untouched
             expect(state.smartPilot.offsetFactor).to.equal(0);
@@ -190,12 +209,12 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(internalDefects).to.equal(1);
         });
 
-        it('blocked non-surface-effect hit (ArmPen vs Reactive) leaves the ship untouched', () => {
-            const { state, damageManager } = setUpShip(reactiveArmor);
-            const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'ArmPen'));
+        it('blocked non-surface-effect hit (ArmPen vs Hardened, plates intact) leaves systems untouched', () => {
+            const { state, damageManager } = setUpShip(hardenedArmor);
+            const damaged = damageManager.takeExternalDamage(frontDamage(100, 'ArmPen'));
             expect(damaged).to.equal(false);
-            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            expect(state.smartPilot.offsetFactor).to.equal(0);
         });
 
         it('broken plates expose area systems on engaging hits (Composite + HiExp)', () => {
