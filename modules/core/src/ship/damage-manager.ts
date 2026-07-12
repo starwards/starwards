@@ -249,23 +249,16 @@ export class DamageManager {
     // (explosion delivery only) by the defect cooldown. If the system breaks mid-burst the
     // remaining rolls dissipate — damageSystem no-ops on a broken system.
     private applyDefectRolls(system: ShipSystem, damage: AttackDamage, exposure: number): void {
-        if (system.broken) {
-            return;
-        }
-        const delivery = damage.delivery ?? 'explosion';
-        if (delivery === 'explosion') {
+        if ((damage.delivery ?? 'explosion') === 'explosion') {
             const last = this.lastDefectTime.get(system);
             if (last !== undefined && this.gameTime - last < DEFECT_COOLDOWN_SECONDS) {
                 return;
             }
             this.lastDefectTime.set(system, this.gameTime);
         }
-        const concentration = Math.max(1, Math.round(damage.concentration ?? 1));
-        for (let roll = 0; roll < concentration; roll++) {
-            if (system.broken) {
-                return;
-            }
-            // per-roll die key: N same-key rolls would hash identically (spec §4)
+        // mid-burst dissipation is free: damageSystem no-ops once the system breaks.
+        // per-roll die key: N same-key rolls would hash identically (spec §4)
+        for (let roll = 0; roll < (damage.concentration ?? 1); roll++) {
             this.damageSystem(system, damage, exposure, `${damage.id}:${roll}`);
         }
     }
