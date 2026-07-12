@@ -15,6 +15,9 @@ umd
 # IDEs
 .idea
 
+# per-user Claude Code overrides
+.claude/settings.local.json
+
 # OS-specific
 .DS_Store
 

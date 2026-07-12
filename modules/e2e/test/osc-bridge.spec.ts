@@ -17,7 +17,7 @@
  *   ship-read subscribe → RBE → rate-limit → O-S-C (feedback path)
  *
  * Rejection path (non-admitted write): ship-write drops writes to paths
- * not admitted by @tweakable/@commandable — no game state change occurs.
+ * not admitted by @tweakable/@commandable/DesignState — no game state change occurs.
  */
 
 import * as dgram from 'dgram';
@@ -166,13 +166,13 @@ test.describe('OSC feedback path — state change → widget display update', ()
         const targetEnergy = 500;
         spaceShip.state.reactor.energy = targetEnergy;
 
-        // Allow ship-read → rate-limit → OSC encode → udp out → O-S-C cycle.
+        // Poll the ship-read → rate-limit → OSC encode → udp out → O-S-C cycle.
         // Energy drifts naturally (~12/s) after being set, so assert proximity.
-        await page.waitForTimeout(800);
-
-        const value = await getWidgetValue(page, 'reactor_energy');
-        expect(typeof value).toBe('number');
-        expect(Math.abs((value as number) - targetEnergy)).toBeLessThan(50);
+        await expect
+            .poll(async () => Math.abs(((await getWidgetValue(page, 'reactor_energy')) as number) - targetEnergy), {
+                timeout: 15_000,
+            })
+            .toBeLessThan(50);
     });
 });
 
@@ -224,8 +224,9 @@ test.describe('multi-controller — two clients see same state', () => {
 
         await page1.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo`);
         // distinct client id — O-S-C keeps one client record per id, so two
-        // tablets on the same id would collide (only one receives feedback)
-        await page2.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo-2`);
+        // tablets on the same id would collide (only one receives feedback).
+        // The bridge module strips a ~suffix, so both share reactor-demo.json.
+        await page2.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo~2`);
         await page1.waitForLoadState('networkidle');
         await page2.waitForLoadState('networkidle');
 
@@ -235,14 +236,15 @@ test.describe('multi-controller — two clients see same state', () => {
         await sendUdp(NODE_RED_HOST, NODE_RED_SUB_PORT, subMsg);
 
         spaceShip.state.reactor.energy = 750;
-        await page1.waitForTimeout(800);
-        await page2.waitForTimeout(800);
 
-        // energy drifts naturally after being set — assert proximity on both clients
-        const v1 = await getWidgetValue(page1, 'reactor_energy');
-        const v2 = await getWidgetValue(page2, 'reactor_energy');
-        expect(Math.abs((v1 as number) - 750)).toBeLessThan(50);
-        expect(Math.abs((v2 as number) - 750)).toBeLessThan(50);
+        // energy drifts naturally after being set — poll for proximity on both clients
+        for (const p of [page1, page2]) {
+            await expect
+                .poll(async () => Math.abs(((await getWidgetValue(p, 'reactor_energy')) as number) - 750), {
+                    timeout: 15_000,
+                })
+                .toBeLessThan(50);
+        }
 
         await ctx1.close();
         await ctx2.close();
@@ -254,26 +256,51 @@ test.describe('noise budget — high-frequency updates do not flood O-S-C', () =
         await gameDriver.gameManager.startGame(single_ship);
     });
 
-    test('rate-limit node caps feedback messages at 25/s per address', async () => {
+    test('rate-limit node caps feedback messages at 25/s per address', async ({ page }) => {
         const spaceShip = gameDriver.gameManager.scriptApi.getShip(shipId);
         if (!spaceShip) throw new Error('ship not found in space');
 
-        // Subscribe to the fast-changing energy field
-        const subMsg = encodeOscString('/starwards/subscribe', '/reactor/energy');
-        await sendUdp(NODE_RED_HOST, NODE_RED_SUB_PORT, subMsg);
+        // Load the demo session — its custom-module bootstrap subscribes
+        // /reactor/energy, so feedback for it reaches this client's widget.
+        await page.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo`);
+        await page.waitForLoadState('networkidle');
+        // Wait for feedback to actually flow (bootstrap + reconnect jitter)
+        await expect.poll(async () => getWidgetValue(page, 'reactor_energy'), { timeout: 15_000 }).toBeGreaterThan(0);
 
-        // Emit 50 changes in 1 s (10× the rate limit of 25/s)
-        const start = Date.now();
-        for (let i = 0; i < 50; i++) {
-            spaceShip.state.reactor.energy = i * 10;
+        // Count inbound display updates on the widget: every feedback message
+        // that survives the rate limiter lands as a setValue call.
+        await page.evaluate(() => {
+            const win = window as unknown as { __energyUpdates: number };
+            win.__energyUpdates = 0;
+            for (const el of document.querySelectorAll('[data-widget]')) {
+                const w = (
+                    el as unknown as {
+                        _widget_instance?: { getProp: (k: string) => unknown; setValue: (...a: unknown[]) => void };
+                    }
+                )._widget_instance;
+                if (w && w.getProp('id') === 'reactor_energy') {
+                    const orig = w.setValue.bind(w);
+                    w.setValue = (...args: unknown[]) => {
+                        win.__energyUpdates++;
+                        orig(...args);
+                    };
+                }
+            }
+        });
+
+        // Emit 100 changes over 2 s (~50/s, 2× the 25/s limit)
+        for (let i = 0; i < 100; i++) {
+            spaceShip.state.reactor.energy = 100 + i;
             await new Promise((r) => setTimeout(r, 20));
         }
-        const elapsed = Date.now() - start;
+        // let queued messages drain before reading the counter
+        await page.waitForTimeout(300);
 
-        // Verify: we produced 50 updates over ~1 s; the rate-limit node in Node-RED
-        // should cap the outbound OSC to ≤25 msgs/s. This assertion validates
-        // the test harness produced the right load.
-        expect(elapsed).toBeGreaterThan(900);
+        const updates = await page.evaluate(() => (window as unknown as { __energyUpdates: number }).__energyUpdates);
+        // ≤25/s over the ~2.3 s window ⇒ at most ~58; allow slack for timer skew.
+        // A missing/global-passthrough limiter would deliver ~100+.
+        expect(updates).toBeGreaterThan(10); // feedback actually flowed
+        expect(updates).toBeLessThanOrEqual(70); // capped at ~25/s
     });
 });
 
@@ -285,15 +312,17 @@ test.describe('rejection path — non-admitted write is dropped', () => {
     test('OSC write to a non-tweakable path does not change ship state', async () => {
         const spaceShip = gameDriver.gameManager.scriptApi.getShip(shipId);
         if (!spaceShip) throw new Error('ship not found in space');
-        const before = spaceShip.state.reactor.design.damage50;
+        const before = spaceShip.state.reactor.effeciencyFactor;
 
-        // /reactor/design/damage50 is read-only (plain @gameField, not @tweakable/@commandable)
-        const msg = encodeOscFloat('/reactor/design/damage50', before + 999);
+        // /reactor/effeciencyFactor is not admitted: plain @gameField+@defectible,
+        // not @tweakable/@commandable, and not under a DesignState (design fields
+        // ARE admitted for the GM design panel — see JsonPointer.set whitelist).
+        const msg = encodeOscFloat('/reactor/effeciencyFactor', 0.123);
         await sendUdp(NODE_RED_HOST, OSC_UDP_PORT, msg);
 
         await new Promise((r) => setTimeout(r, 1000));
 
         // State must be unchanged — ship-write's JSON-pointer admission blocks this write
-        expect(spaceShip.state.reactor.design.damage50).toBe(before);
+        expect(spaceShip.state.reactor.effeciencyFactor).toBe(before);
     });
 });

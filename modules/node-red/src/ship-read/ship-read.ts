@@ -19,9 +19,19 @@ const nodeInit: NodeInitializer = (RED): void => {
 
         // Tracks dynamically subscribed patterns (additive, idempotent across the node lifetime)
         const dynamicPatterns = new Set<string>();
+        // Listener registrations for the CURRENT connection only. handleShipFound
+        // resets it per connection, and dynamic subscribes push into it — a single
+        // registry, so a pattern can never get two live handlers on one driver.
+        let connectionCleanups: Array<() => void> = [];
 
         const makeStateEventHandler = (send: Send) => (e: Event) => {
             send({ topic: e.path, payload: e.op === 'remove' ? undefined : e.value });
+        };
+
+        const addSubscription = (shipDriver: ShipDriver, pattern: string) => {
+            const handler = makeStateEventHandler((msg) => this.send(msg));
+            shipDriver.events.on(pattern, handler);
+            connectionCleanups.push(() => shipDriver.events.off(pattern, handler));
         };
 
         const handleInput = (shipDriver: ShipDriver, msg: ShipReadMessage, send: Send) => {
@@ -32,10 +42,7 @@ const nodeInit: NodeInitializer = (RED): void => {
                     const topic = msg.topic; // capture string for closures
                     if (!dynamicPatterns.has(topic)) {
                         dynamicPatterns.add(topic);
-                        const handler = makeStateEventHandler(send);
-                        shipDriver.events.on(topic, handler);
-                        // Clean up on node close
-                        this.cleanups.add(() => shipDriver.events.off(topic, handler));
+                        addSubscription(shipDriver, topic);
                     }
                     // Immediate emit of current value (if exact JSON pointer)
                     const pointer = getJsonPointer(topic);
@@ -58,23 +65,18 @@ const nodeInit: NodeInitializer = (RED): void => {
 
         const handleShipFound = (shipDriver: ShipDriver) => {
             const { listenPattern } = options;
-            const cleanups: Array<() => void> = [];
+            connectionCleanups = [];
 
-            const addSubscription = (pattern: string, send: Send) => {
-                const handler = makeStateEventHandler(send);
-                shipDriver.events.on(pattern, handler);
-                cleanups.push(() => shipDriver.events.off(pattern, handler));
-            };
-
-            // Re-apply dynamic subscriptions on reconnect using this.send as the send fn
+            // Re-apply dynamic subscriptions on reconnect
             for (const pattern of dynamicPatterns) {
-                addSubscription(pattern, (msg) => this.send(msg));
+                addSubscription(shipDriver, pattern);
             }
 
             if (listenPattern) {
-                addSubscription(listenPattern, (msg) => this.send(msg));
+                addSubscription(shipDriver, listenPattern);
             }
 
+            const cleanups = connectionCleanups;
             return () => {
                 for (const cleanup of cleanups) cleanup();
             };

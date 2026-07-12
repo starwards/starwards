@@ -61,10 +61,17 @@ module.exports = {
             const stationId = client?.id; // client.id is set from ?id= by O-S-C
             if (!stationId) return;
 
+            // O-S-C keeps ONE client record per id — two tablets sharing an id
+            // collide (only one receives targeted messages). To run several
+            // tablets on the same session, connect with ?id=<station>~<n>:
+            // the ~suffix keeps client ids distinct, the station part before
+            // it picks the session file.
+            const station = stationId.split('~')[0];
+
             // Without ?id=, O-S-C assigns a random client id — there is no
             // session file for it, so opening would just pop an ENOENT error
             // in the client. Only open sessions that actually exist.
-            const sessionPath = `${SESSIONS_DIR}/${stationId}.json`;
+            const sessionPath = `${SESSIONS_DIR}/${station}.json`;
             const session = loadJSON(sessionPath, () => {
                 console.warn(`[starwards-bridge] no session for client "${stationId}" — connect with ?id=<station>`);
             });

@@ -21,10 +21,10 @@ COMPOSE_JSON="$1"
 MAIN_TAG=$(cut -d' ' -f1 <<<"$TAGS")
 declare -A RESULT
 
-tag_args() { # tag_args <repo> -> "-t repo:tag1 -t repo:tag2"
-    local repo="$1" out=""
-    for t in $TAGS; do out+=" -t ${repo}:${t}"; done
-    echo "$out"
+tag_args() { # tag_args <repo> — fills the tag_flags array with -t repo:tag pairs
+    local repo="$1"
+    tag_flags=()
+    for t in $TAGS; do tag_flags+=(-t "${repo}:${t}"); done
 }
 
 # tr -d '\r': jq on Windows emits CRLF; harmless on the Linux CI runner
@@ -41,8 +41,8 @@ for svc in $(jq -r '.services | keys[]' "$COMPOSE_JSON" | tr -d '\r'); do
         if [ "${#binds[@]}" -eq 0 ]; then
             # No mounts to bake — the built image IS the final image.
             final="${IMAGE_PREFIX}-${name}"
-            # shellcheck disable=SC2046
-            docker buildx build --push $(tag_args "$final") \
+            tag_args "$final"
+            docker buildx build --push "${tag_flags[@]}" \
                 --cache-from type=gha,scope="preview-${name}" \
                 --cache-to type=gha,mode=max,scope="preview-${name}" \
                 -f "${ctx}/${dockerfile}" "$ctx" >&2
@@ -95,8 +95,8 @@ for svc in $(jq -r '.services | keys[]' "$COMPOSE_JSON" | tr -d '\r'); do
     cat "$wrapper_df" >&2
 
     final="${IMAGE_PREFIX}-${name}"
-    # shellcheck disable=SC2046
-    docker buildx build --push $(tag_args "$final") \
+    tag_args "$final"
+    docker buildx build --push "${tag_flags[@]}" \
         --cache-from type=gha,scope="preview-${name}-wrapper" \
         --cache-to type=gha,mode=max,scope="preview-${name}-wrapper" \
         -f "$wrapper_df" "$COMPOSE_DIR" >&2
