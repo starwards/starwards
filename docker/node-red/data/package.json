@@ -4,8 +4,8 @@
     "version": "0.0.1",
     "private": true,
     "dependencies": {
-        "@starwards/core": "file:starwards-core-0.5.1.tgz",
-        "@starwards/node-red": "file:starwards-node-red-0.5.1.tgz",
+        "@starwards/core": "file:starwards-core.tgz",
+        "@starwards/node-red": "file:starwards-node-red.tgz",
         "node-red-contrib-osc": "^1.1.0"
     }
 }
