@@ -93,5 +93,8 @@ export type { Destructor } from './utils';
 // --- logger ---
 export { createLogger } from './logger';
 
+// --- version ---
+export { VERSION } from './version';
+
 // --- space-object-base (re-exported via ./space) ---
 export { TypeFilter, filterObject } from './space';

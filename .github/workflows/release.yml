@@ -1,0 +1,41 @@
+name: Release
+
+on:
+    push:
+        tags:
+            - 'v*'
+
+jobs:
+    Release:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+                  cache: 'npm'
+            - run: npm ci
+            - run: npm run build
+            - run: npm run pkg
+            - name: Create GitHub Release with executable
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const path = require('path');
+                      const tag = context.ref.replace('refs/tags/', '');
+                      const { data: release } = await github.rest.repos.createRelease({
+                          ...context.repo,
+                          tag_name: tag,
+                          name: tag,
+                          generate_release_notes: true,
+                      });
+                      await github.rest.repos.uploadReleaseAsset({
+                          ...context.repo,
+                          release_id: release.id,
+                          name: 'starwards.exe',
+                          data: fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, 'dist', 'exec', 'starwards.exe')),
+                      });
