@@ -1,5 +1,5 @@
+import { ClusterWarheadMode, ProjectileModel, clusterWarheadModes, projectileModels } from '../space/projectile';
 import { DesignState, SystemState, defectible } from './system';
-import { ProjectileModel, projectileModels } from '../space/projectile';
 import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
@@ -127,6 +127,11 @@ export class ChainGun extends SystemState {
     }))
     @gameField('string')
     loadedProjectile: SelectedProjectileModel = 'None';
+
+    // warhead mode stamped on cluster munitions at launch — ignored by single-warhead ammo
+    @tweakable({ type: 'string enum', enum: clusterWarheadModes })
+    @gameField('string')
+    clusterWarhead: ClusterWarheadMode = 'Frag';
 
     @gameField(ChaingunDesignState)
     design = new ChaingunDesignState();

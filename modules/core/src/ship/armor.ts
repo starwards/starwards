@@ -18,14 +18,12 @@ export type ArmorDesign = {
     plateDamage_HiExp: number;
     plateDamage_ArmPen: number;
     plateDamage_Frag: number;
-    plateDamage_Cluster: number;
     plateDamage_Tandem: number;
     plateDamage_Elec: number;
     // fraction (0..1) of system damage that bypasses the plates regardless of plate state.
     penetration_HiExp: number;
     penetration_ArmPen: number;
     penetration_Frag: number;
-    penetration_Cluster: number;
     penetration_Tandem: number;
     penetration_Elec: number;
     // ERA cells: an engaging hit zeroes the plate and it does not heal.
@@ -41,13 +39,11 @@ export class ArmorDesignState extends DesignState implements ArmorDesign {
     @gameField('float32') plateDamage_HiExp = 1;
     @gameField('float32') plateDamage_ArmPen = 1;
     @gameField('float32') plateDamage_Frag = 1;
-    @gameField('float32') plateDamage_Cluster = 1;
     @gameField('float32') plateDamage_Tandem = 1;
     @gameField('float32') plateDamage_Elec = 0;
     @gameField('float32') penetration_HiExp = 0;
     @gameField('float32') penetration_ArmPen = 0;
     @gameField('float32') penetration_Frag = 0;
-    @gameField('float32') penetration_Cluster = 0;
     @gameField('float32') penetration_Tandem = 0;
     @gameField('float32') penetration_Elec = 1;
     @tweakable('boolean')

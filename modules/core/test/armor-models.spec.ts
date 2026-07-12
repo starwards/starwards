@@ -7,14 +7,12 @@ describe('armor model presets (issue #1929)', () => {
         expect(compositeArmor.plateDamage_HiExp).to.equal(1);
         expect(compositeArmor.plateDamage_ArmPen).to.equal(1);
         expect(compositeArmor.plateDamage_Frag).to.equal(1);
-        expect(compositeArmor.plateDamage_Cluster).to.equal(1);
         expect(compositeArmor.plateDamage_Tandem).to.equal(2);
     });
 
     it('Whipple blocks blast types but is vulnerable to penetrators', () => {
         expect(whippleArmor.plateDamage_HiExp).to.equal(0);
         expect(whippleArmor.plateDamage_Frag).to.equal(0);
-        expect(whippleArmor.plateDamage_Cluster).to.equal(0);
         expect(whippleArmor.plateDamage_ArmPen).to.equal(2);
         expect(whippleArmor.plateDamage_Tandem).to.equal(2);
     });
@@ -46,13 +44,15 @@ describe('armor model presets (issue #1929)', () => {
         }
     });
 
-    it('pure Faraday blocks Elec but lets all physical types through', () => {
+    it('pure Faraday blocks Elec but lets physical types through — except Frag, which never penetrates', () => {
         expect(faradayArmor.penetration_Elec).to.equal(0);
         expect(faradayArmor.plateDamage_Elec).to.equal(0);
-        for (const key of ['HiExp', 'ArmPen', 'Frag', 'Cluster', 'Tandem'] as const) {
+        for (const key of ['HiExp', 'ArmPen', 'Tandem'] as const) {
             expect(faradayArmor[`plateDamage_${key}`]).to.equal(0);
             expect(faradayArmor[`penetration_${key}`]).to.equal(1);
         }
+        expect(faradayArmor.plateDamage_Frag).to.equal(0);
+        expect(faradayArmor.penetration_Frag).to.equal(0);
     });
 
     it('withFaradayLayer blocks Elec without changing physical stats', () => {

@@ -69,8 +69,9 @@ export class DamageManager {
 
         // hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
         // regardless of the plates, unless the armor deflects the round before the blast develops
+        // (shrapnel clouds are not deflectable)
         let damagedSystems = false;
-        if (profile.surfaceEffect && !armorDesign.deflectsSurfaceEffect) {
+        if (profile.surfaceEffect && !(profile.deflectable && armorDesign.deflectsSurfaceEffect)) {
             this.applySurfaceEffectDamage(damage, profile);
             damagedSystems = true;
         }

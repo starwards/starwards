@@ -139,6 +139,15 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
         });
+
+        it('Frag vs Reactive still scrapes — a shrapnel cloud cannot be deflected', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
+            const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'Frag'));
+            expect(damaged).to.equal(true);
+            // ERA cells do not react to shrapnel — no cell consumed
+            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+        });
     });
 
     describe('system scoping regressions', () => {

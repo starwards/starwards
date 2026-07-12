@@ -20,10 +20,22 @@ export type ShellAmmoType = (typeof shellAmmoTypes)[number];
 export type MissileAmmoType = (typeof missileAmmoTypes)[number];
 export type AmmoType = (typeof ammoTypes)[number];
 
-export interface ProjectileDesign {
+export const clusterWarheadModes = ['Frag', 'ArmPen'] as const;
+export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
+
+export interface WarheadDesign {
+    damageType: DamageType;
+    explosion: {
+        secondsToLive: number;
+        expansionSpeed: number;
+        damageFactor: number;
+        blastFactor: number;
+    };
+}
+
+export interface ProjectileDesign extends WarheadDesign {
     name: string;
     radius: number;
-    damageType: DamageType;
     heatPerShot: number;
     homing: null | {
         secondsToLive: number;
@@ -32,12 +44,8 @@ export interface ProjectileDesign {
         maxSpeed: number;
         proximityDetonation: number;
     };
-    explosion: {
-        secondsToLive: number;
-        expansionSpeed: number;
-        damageFactor: number;
-        blastFactor: number;
-    };
+    // selectable warheads (cluster munitions): overrides damageType + explosion per mode
+    warheads?: Record<ClusterWarheadMode, WarheadDesign>;
 }
 
 export interface MissileDesign extends ProjectileDesign {
@@ -100,7 +108,8 @@ export const projectileDesigns = {
     ClusterMissile: {
         name: 'Cluster missile',
         radius: 2,
-        damageType: 'Cluster',
+        // default warhead mode; the tube can switch modes before launch
+        damageType: 'Frag',
         heatPerShot: 25,
         homing: {
             secondsToLive: 78,
@@ -109,7 +118,19 @@ export const projectileDesigns = {
             maxSpeed: 600,
             proximityDetonation: 100,
         },
-        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 30, blastFactor: 4 },
+        explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 20, blastFactor: 6 },
+        warheads: {
+            // wide shrapnel shower — sands external systems over a large arc
+            Frag: {
+                damageType: 'Frag',
+                explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 20, blastFactor: 6 },
+            },
+            // focused submunitions — small blast (still wider than a HiExp missile), weaker than a dedicated ArmPen
+            ArmPen: {
+                damageType: 'ArmPen',
+                explosion: { secondsToLive: 0.5, expansionSpeed: 1_000, damageFactor: 40, blastFactor: 2 },
+            },
+        },
     },
     TandemMissile: {
         name: 'Tandem missile',
@@ -165,6 +186,8 @@ export class Projectile extends SpaceObjectBase implements Craft {
 
     @gameField('uint16')
     public health = 10;
+    // manual override for the detonation explosion (tests/GM); normally built
+    // from the warhead design at detonation time — see makeExplosion()
     public _explosion?: Explosion;
 
     /**
@@ -182,13 +205,16 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @gameField('string')
     public model: ProjectileModel = 'HiExpShell';
 
+    // warhead mode for cluster munitions — ignored by single-warhead designs.
+    // Can be switched until detonation; the explosion is built from the mode in effect.
+    @tweakable({ type: 'string enum', enum: clusterWarheadModes })
+    @gameField('string')
+    public warhead: ClusterWarheadMode = 'Frag';
+
     constructor(model?: ProjectileModel) {
         super();
         if (model) {
             this.model = model;
-            this._explosion = new Explosion();
-            this._explosion.assign(this.design.explosion);
-            this._explosion.damageType = this.design.damageType;
             this.radius = this.design.radius;
         }
     }
@@ -203,8 +229,22 @@ export class Projectile extends SpaceObjectBase implements Craft {
         return projectileDesigns[this.model];
     }
 
+    get warheadDesign(): WarheadDesign {
+        return this.design.warheads?.[this.warhead] ?? this.design;
+    }
+
     get damageType(): DamageType {
-        return this.design.damageType;
+        return this.warheadDesign.damageType;
+    }
+
+    makeExplosion(): Explosion {
+        if (this._explosion) {
+            return this._explosion;
+        }
+        const explosion = new Explosion();
+        explosion.assign(this.warheadDesign.explosion);
+        explosion.damageType = this.warheadDesign.damageType;
+        return explosion;
     }
 
     get capacity() {

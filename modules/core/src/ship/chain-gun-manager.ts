@@ -180,6 +180,7 @@ export class ChainGunManager implements Updateable {
         ) {
             const firedProjectileType = chainGun.loadedProjectile;
             const projectile = new Projectile(firedProjectileType);
+            projectile.warhead = chainGun.clusterWarhead;
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
             projectile.angle = gaussianRandom(

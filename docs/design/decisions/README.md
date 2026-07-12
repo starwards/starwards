@@ -14,6 +14,7 @@ Key product decisions and their rationale. Not every choice needs a record — o
 | 6 | Damage-profile unification for armor/ammo rework | 2026-07 | [006-damage-profile-unification.md](006-damage-profile-unification.md) |
 | 7 | plateDamage governs plate erosion only | 2026-07 | [007-plate-damage-erosion-only.md](007-plate-damage-erosion-only.md) |
 | 8 | Surface effect applies regardless of armor (Reactive deflects) | 2026-07 | [008-unconditional-surface-effect.md](008-unconditional-surface-effect.md) |
+| 9 | Frag never deflects/penetrates; Cluster becomes a dual-mode warhead | 2026-07 | [009-frag-mechanics-and-cluster-modes.md](009-frag-mechanics-and-cluster-modes.md) |
 
 ## Template
 

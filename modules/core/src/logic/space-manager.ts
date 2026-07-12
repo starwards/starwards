@@ -478,7 +478,7 @@ export class SpaceManager implements Updateable {
 
     private explodeProjectile(projectile: Projectile) {
         projectile.destroyed = true;
-        const explosion = projectile._explosion || new Explosion();
+        const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
         this.insert(explosion);
