@@ -22,6 +22,7 @@
 
 import * as dgram from 'dgram';
 import { Page, expect, test } from '@playwright/test';
+import { PowerLevel } from '@starwards/core';
 import { makeDriver } from './driver';
 import { maps } from '@starwards/server';
 
@@ -172,6 +173,38 @@ test.describe('OSC feedback path — state change → widget display update', ()
         const value = await getWidgetValue(page, 'reactor_energy');
         expect(typeof value).toBe('number');
         expect(Math.abs((value as number) - targetEnergy)).toBeLessThan(50);
+    });
+});
+
+test.describe('initial values — session load populates all widgets', () => {
+    test.beforeEach(async () => {
+        await gameDriver.gameManager.startGame(single_ship);
+    });
+
+    test('all faders show current ship state on load, without any state change', async ({ page }) => {
+        const spaceShip = gameDriver.gameManager.scriptApi.getShip(shipId);
+        if (!spaceShip) throw new Error('ship not found in space');
+
+        // Distinctive values set BEFORE the page loads — the only way the
+        // widgets can show them is the subscribe bootstrap's immediate emit.
+        // The burst of one emit per address must survive the rate limiter
+        // (per-topic queue mode; a global limiter drops all but one).
+        spaceShip.state.reactor.power = PowerLevel.HIGH;
+        spaceShip.state.reactor.coolantFactor = 0.65;
+
+        // Loading the session triggers the custom module's subscribe burst
+        await page.goto(`${OSC_BRIDGE_URL}/?id=reactor-demo`);
+        await page.waitForLoadState('networkidle');
+
+        // Bootstrap fires ~1 s after session open; poll past reconnect jitter
+        await expect
+            .poll(async () => getWidgetValue(page, 'reactor_power'), { timeout: 15_000 })
+            .toBeCloseTo(PowerLevel.HIGH, 1);
+        await expect
+            .poll(async () => getWidgetValue(page, 'reactor_coolant'), { timeout: 15_000 })
+            .toBeCloseTo(0.65, 1);
+        // energy drifts, so just assert a live (non-zero) value arrived
+        await expect.poll(async () => getWidgetValue(page, 'reactor_energy'), { timeout: 15_000 }).toBeGreaterThan(0);
     });
 });
 
