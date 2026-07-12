@@ -19,8 +19,10 @@ EXPOSE 57120/udp
 # --osc-port: UDP port to receive OSC messages from tablets
 # --send: default targets — widget interactions are sent to Node-RED's udp-in
 # --custom-module: per-client session routing + subscription bootstrap
+# --remote-root: root the in-app file browser at the mounted sessions dir
 CMD ["node", "index.js", \
      "--port", "8080", \
      "--osc-port", "57120", \
      "--send", "node-red:57120", \
-     "--custom-module", "/modules/starwards-bridge.js"]
+     "--custom-module", "/modules/starwards-bridge.js", \
+     "--remote-root", "/sessions"]
