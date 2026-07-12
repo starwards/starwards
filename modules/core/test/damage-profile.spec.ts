@@ -43,10 +43,11 @@ describe('damage profiles and projectile designs (regression pins)', () => {
             hitsInternal: false,
             systemDamageFactor: 0.5,
         });
-        // a slightly weaker ArmPen (single system, factor 1 vs 1.5) whose niche is defeating reactive
+        // a slightly weaker ArmPen (single system, factor 1 vs 1.5) whose niche is defeating reactive;
+        // not deflectable — the precursor defeats the deflection
         expect(damageProfiles.Tandem).to.deep.equal({
             surfaceEffect: false,
-            deflectable: true,
+            deflectable: false,
             surfaceDamageFactor: 0,
             systemScope: 'single',
             hitsInternal: true,
