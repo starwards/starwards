@@ -333,9 +333,9 @@
     },
     "@starwards/node-red": {
         "name": "@starwards/node-red",
-        "version": "0.5.0",
+        "version": "0.5.1",
         "local": true,
-        "user": false,
+        "user": true,
         "nodes": {
             "ship-read": {
                 "name": "ship-read",
@@ -363,6 +363,23 @@
                 "user": false,
                 "module": "@starwards/node-red",
                 "file": "/data/node_modules/@starwards/node-red/dist/starwards-config/starwards-config.js"
+            }
+        }
+    },
+    "node-red-contrib-osc": {
+        "name": "node-red-contrib-osc",
+        "version": "1.1.0",
+        "local": true,
+        "user": true,
+        "nodes": {
+            "osc": {
+                "name": "osc",
+                "types": ["osc"],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "node-red-contrib-osc",
+                "file": "/data/node_modules/node-red-contrib-osc/osc.js"
             }
         }
     }

@@ -1,0 +1,173 @@
+[
+    {
+        "id": "tab-osc-bridge",
+        "type": "tab",
+        "label": "OSC Bridge",
+        "disabled": false,
+        "info": "Open Stage Control ↔ Starwards OSC bridge.\nWrite path: tablet widget → UDP → OSC decode → ship-write\nFeedback path: ship-read subscribe → RBE → rate-limit → OSC encode → UDP → tablet"
+    },
+    {
+        "id": "starwards-config-1",
+        "type": "starwards-config",
+        "name": "Starwards",
+        "url": "http://starwards-server:8080",
+        "z": "tab-osc-bridge"
+    },
+    {
+        "id": "udp-osc-in",
+        "type": "udp in",
+        "name": "OSC from tablets",
+        "multicast": "false",
+        "group": "",
+        "datatype": "buffer",
+        "iface": "",
+        "port": "57120",
+        "ipv": "udp4",
+        "z": "tab-osc-bridge",
+        "x": 120,
+        "y": 100,
+        "wires": [["osc-decode-in"]]
+    },
+    {
+        "id": "osc-decode-in",
+        "type": "osc",
+        "name": "OSC decode",
+        "metadata": false,
+        "z": "tab-osc-bridge",
+        "x": 320,
+        "y": 100,
+        "wires": [["route-subscribe-or-write"]],
+        "path": ""
+    },
+    {
+        "id": "route-subscribe-or-write",
+        "type": "switch",
+        "name": "subscribe vs write",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "/starwards/subscribe",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 2,
+        "z": "tab-osc-bridge",
+        "x": 560,
+        "y": 100,
+        "wires": [["fn-make-subscribe"], ["ship-write-1"]]
+    },
+    {
+        "id": "fn-make-subscribe",
+        "type": "function",
+        "name": "make subscribe msg",
+        "func": "// OSC custom module sends /starwards/subscribe with one arg: the pointer\n// Transform to { topic: pointer, subscribe: true } for ship-read\nvar ptr = Array.isArray(msg.payload) ? msg.payload[0] : msg.payload;\nif (typeof ptr !== 'string' || !ptr.startsWith('/')) {\n    return null; // drop malformed\n}\nmsg.topic = ptr;\nmsg.subscribe = true;\ndelete msg.payload;\nreturn msg;",
+        "outputs": 1,
+        "z": "tab-osc-bridge",
+        "x": 780,
+        "y": 60,
+        "wires": [["ship-read-1"]]
+    },
+    {
+        "id": "ship-read-1",
+        "type": "ship-read",
+        "name": "ship-read",
+        "configNode": "starwards-config-1",
+        "shipId": "GVTS",
+        "z": "tab-osc-bridge",
+        "x": 1000,
+        "y": 60,
+        "wires": [["rate-limit-1"]]
+    },
+    {
+        "id": "ship-write-1",
+        "type": "ship-write",
+        "name": "ship-write",
+        "configNode": "starwards-config-1",
+        "shipId": "GVTS",
+        "z": "tab-osc-bridge",
+        "x": 780,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "rate-limit-1",
+        "type": "delay",
+        "name": "rate limit 25 msg/s (latest per topic)",
+        "pauseType": "queue",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "25",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "z": "tab-osc-bridge",
+        "x": 1440,
+        "y": 60,
+        "wires": [["osc-encode-out"]]
+    },
+    {
+        "id": "osc-encode-out",
+        "type": "osc",
+        "name": "OSC encode",
+        "metadata": false,
+        "z": "tab-osc-bridge",
+        "x": 1660,
+        "y": 60,
+        "wires": [["udp-osc-out"]],
+        "path": ""
+    },
+    {
+        "id": "udp-osc-out",
+        "type": "udp out",
+        "name": "OSC to tablets",
+        "addr": "open-stage-control",
+        "iface": "",
+        "port": "57120",
+        "portType": "fixed",
+        "base64": false,
+        "multicast": "false",
+        "z": "tab-osc-bridge",
+        "x": 1880,
+        "y": 60,
+        "wires": [],
+        "outport": "57122"
+    },
+    {
+        "id": "udp-subscribe-in",
+        "type": "udp in",
+        "name": "Subscribe from O-S-C module",
+        "multicast": "false",
+        "group": "",
+        "datatype": "buffer",
+        "iface": "",
+        "port": "57121",
+        "ipv": "udp4",
+        "z": "tab-osc-bridge",
+        "x": 120,
+        "y": 200,
+        "wires": [["osc-decode-sub"]]
+    },
+    {
+        "id": "osc-decode-sub",
+        "type": "osc",
+        "name": "OSC decode",
+        "metadata": false,
+        "z": "tab-osc-bridge",
+        "x": 320,
+        "y": 200,
+        "wires": [["fn-make-subscribe"]],
+        "path": ""
+    }
+]

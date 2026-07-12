@@ -1,0 +1,50 @@
+{
+    "$schema": "https://unpkg.com/knip@5/schema.json",
+    // Dead-code detection. Currently enforces unused files and dependencies;
+    // the unused-exports rules are off until the ~130 findings are triaged
+    // (public API surface, ship model configurations, react hooks), and
+    // "unlisted" is off until workspace cross-deps (@starwards/server in
+    // e2e/node-red tests, etc.) are declared in each module's package.json.
+    "rules": {
+        "exports": "off",
+        "types": "off",
+        "nsExports": "off",
+        "nsTypes": "off",
+        "enumMembers": "off",
+        "duplicates": "off",
+        "unlisted": "off",
+        // custom-typings/ tsconfig path aliases that knip cannot resolve
+        "unresolved": "off"
+    },
+    "ignoreBinaries": [
+        // system binary (docker compose v1 syntax in npm scripts)
+        "docker-compose"
+    ],
+    "ignore": [
+        // agent workflow scripts, invoked by name at runtime
+        ".claude/**",
+        // runtime-mounted into containers, not part of the ts build graph
+        "docker/**"
+    ],
+    "ignoreDependencies": [
+        // emit helper, required by tsconfig importHelpers
+        "tslib",
+        // WebSocket implementation colyseus.js requires at runtime in Node (node-red module)
+        "ws",
+        // git hooks in .husky/
+        "husky",
+        // jest reporter, referenced by CLI flag in .github/workflows/ci-cd.yml
+        "jest-junit"
+    ],
+    "workspaces": {
+        ".": {
+            "entry": ["scripts/*.{js,mjs,sh}", ".github/k8s/*.{js,ts}", "*.{js,mjs,ts}"]
+        },
+        "modules/node-red": {
+            "entry": ["src/*/*.ts", "src/**/index.ts", "rollup.config*.mjs"]
+        },
+        "modules/server": {
+            "entry": ["src/prod.ts"]
+        }
+    }
+}

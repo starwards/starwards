@@ -14,6 +14,7 @@ import {
     makeShipState,
     padArch,
     shipConfigurations,
+    toPositiveDegreesDelta,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
 import { degree, float } from './properties';
@@ -31,11 +32,13 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         fc.assert(
             fc.property(
                 degree(),
+                degree(),
                 fc.integer({ min: 15, max: 20 }),
-                (explosionAngleToShip: number, numIterationsPerSecond: number) => {
+                (explosionAngleToShip: number, shipAngle: number, numIterationsPerSecond: number) => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
+                    shipObj.angle = shipAngle;
                     const die = new MockDie();
                     const shipMgr = new shipManagerCtor(
                         shipObj,
@@ -67,8 +70,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         shipMgr.update(id);
                         spaceMgr.update(id);
                     }
+                    // damage arc is expressed in ship-local frame; account for ship's world rotation
+                    const explosionLocalAngle = toPositiveDegreesDelta(explosionAngleToShip - shipAngle);
                     const expectedHitPlatesRange = padArch(
-                        [explosionAngleToShip, explosionAngleToShip],
+                        [explosionLocalAngle, explosionLocalAngle],
                         sizeOfPlate + EPSILON,
                     );
                     //@ts-ignore : access private property

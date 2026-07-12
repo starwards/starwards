@@ -49,7 +49,11 @@ export function makeDriver() {
 
     beforeEach(async () => {
         gameManager = new GameManager();
-        serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager);
+        // pingInterval: 0 avoids a lingering setInterval outliving gracefullyShutdown()
+        // during Jest teardown; see server.ts for why this is test-only.
+        serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager, {
+            pingInterval: 0,
+        });
         sockets = makeSocketsControls(serverInfo.httpServer);
     });
 
