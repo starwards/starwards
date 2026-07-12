@@ -5,7 +5,10 @@ export interface DamageProfile {
     // damages external systems even when the armor blocks the hit
     readonly surfaceEffect: boolean;
     // a deflecting armor (e.g. reactive) can push the round away before its blast develops.
-    // Shrapnel clouds cannot be deflected — only relevant for surfaceEffect types.
+    // Everything is deflectable except Tandem (its precursor defeats the deflection) and
+    // Frag (a shrapnel cloud does not attack the armor — there is no round to push away).
+    // Currently gates the surface scrape only; Tandem-beats-Reactive is encoded in the
+    // armor table (penetration_Tandem).
     readonly deflectable: boolean;
     // strength of the unconditional scrape on hull-mounted systems, relative to the hit amount.
     // Decoupled from systemDamageFactor: shrapnel is purpose-built to shred equipment (Frag 2),
@@ -45,7 +48,7 @@ export const damageProfiles: Readonly<Record<DamageType, DamageProfile>> = {
     // a slightly weaker ArmPen (factor 1 vs 1.5) whose niche is defeating reactive armor
     Tandem: {
         surfaceEffect: false,
-        deflectable: true,
+        deflectable: false,
         surfaceDamageFactor: 0,
         systemScope: 'single',
         hitsInternal: true,

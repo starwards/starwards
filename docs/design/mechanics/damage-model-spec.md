@@ -31,10 +31,14 @@ matching system in the hit area, `electronics` = all electronics **ship-wide**, 
 | Type | Scope | Reaches | Factor | Scrape (×) | Deflectable | Fiction |
 |---|---|---|---|---|---|---|
 | HiExp | multi | internal | 1 | yes (0.25) | yes | blast wave: breaches inward, washes the deck |
-| ArmPen | single | internal | 1.5 | no | — | kinetic dart: one deep channel, nothing outside |
-| Frag | multi | external | 0.5 | yes (**2**) | **no** | shrapnel cloud: shreds equipment, can't get inside |
-| Tandem | single | internal | 1 | no | — | shaped charge (HEAT): slightly weaker ArmPen, defeats ERA |
-| Elec | electronics | (electronics, ship-wide) | 2 | no | — | EMP: hits electronics wherever mounted |
+| ArmPen | single | internal | 1.5 | no | yes | kinetic dart: one deep channel, nothing outside |
+| Frag | multi | external | 0.5 | yes (**2**) | **no** — no round to deflect | shrapnel cloud: shreds equipment, can't get inside |
+| Tandem | single | internal | 1 | no | **no** — precursor defeats the deflection | shaped charge (HEAT): slightly weaker ArmPen, defeats ERA |
+| Elec | electronics | (electronics, ship-wide) | 2 | no | yes | EMP: hits electronics wherever mounted |
+
+Everything is deflectable except Tandem and Frag. The flag currently gates the surface scrape;
+the round-defeating side of deflection (Reactive popping a cell to stop the hit, Tandem's
+precursor beating it) is encoded in the armor table below.
 
 **Invariant:** weapons whose penetrating damage reaches internal systems can never full-force
 damage externals — externals are touched *only* by the scrape channel (and by Elec via the
