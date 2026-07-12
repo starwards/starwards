@@ -24,8 +24,19 @@ export type AmmoType = (typeof ammoTypes)[number];
 export const clusterWarheadModes = ['Frag', 'ArmPen'] as const;
 export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
 
+// how the damage arrives at the ship (damage-model spec §3). impact = the round must
+// physically hit the ship (contact fuze); exactly one damage event at the contact point.
+// explosion = detonation into a growing blast; one damage event per tick while overlapping.
+export const deliveries = ['impact', 'explosion'] as const;
+export type Delivery = (typeof deliveries)[number];
+
 export interface WarheadDesign {
     damageType: DamageType;
+    delivery: Delivery;
+    // defect rolls per target per damage event (damage-model spec §4). default 1.
+    concentration: number;
+    // flat damage for a single impact event (spec §8 "Damage" column). ignored by explosion.
+    impactDamage: number;
     explosion: {
         secondsToLive: number;
         expansionSpeed: number;
@@ -58,6 +69,9 @@ export const projectileDesigns = {
         name: '30mm HiExp shell',
         radius: 1,
         damageType: 'HiExp',
+        delivery: 'explosion',
+        concentration: 1,
+        impactDamage: 0,
         heatPerShot: 5,
         homing: null,
         explosion: { secondsToLive: 1, expansionSpeed: 200, damageFactor: 20, blastFactor: 2 },
@@ -66,6 +80,9 @@ export const projectileDesigns = {
         name: '30mm ArmPen shell',
         radius: 1,
         damageType: 'ArmPen',
+        delivery: 'impact',
+        concentration: 1,
+        impactDamage: 30,
         heatPerShot: 5,
         homing: null,
         explosion: { secondsToLive: 0.5, expansionSpeed: 80, damageFactor: 30, blastFactor: 1 },
@@ -74,6 +91,9 @@ export const projectileDesigns = {
         name: '30mm Frag shell',
         radius: 1,
         damageType: 'Frag',
+        delivery: 'explosion',
+        concentration: 1,
+        impactDamage: 0,
         heatPerShot: 5,
         homing: null,
         explosion: { secondsToLive: 1, expansionSpeed: 250, damageFactor: 10, blastFactor: 4 },
@@ -82,6 +102,9 @@ export const projectileDesigns = {
         name: 'HiExp missile',
         radius: 2,
         damageType: 'HiExp',
+        delivery: 'explosion',
+        concentration: 1,
+        impactDamage: 0,
         heatPerShot: 25,
         homing: {
             secondsToLive: 78,
@@ -97,6 +120,9 @@ export const projectileDesigns = {
         name: 'ArmPen missile',
         radius: 2,
         damageType: 'ArmPen',
+        delivery: 'impact',
+        concentration: 8,
+        impactDamage: 60,
         heatPerShot: 25,
         homing: {
             secondsToLive: 42,
@@ -112,6 +138,9 @@ export const projectileDesigns = {
         name: 'Frag missile',
         radius: 2,
         damageType: 'Frag',
+        delivery: 'explosion',
+        concentration: 1,
+        impactDamage: 0,
         heatPerShot: 25,
         homing: {
             secondsToLive: 78,
@@ -129,6 +158,9 @@ export const projectileDesigns = {
         radius: 2,
         // default warhead mode; the tube can switch modes before launch
         damageType: 'Frag',
+        delivery: 'explosion',
+        concentration: 1,
+        impactDamage: 0,
         heatPerShot: 25,
         homing: {
             secondsToLive: 78,
@@ -142,11 +174,18 @@ export const projectileDesigns = {
             // big lingering 750m shrapnel cloud — sands external systems over a large area
             Frag: {
                 damageType: 'Frag',
+                delivery: 'explosion',
+                concentration: 1,
+                impactDamage: 0,
                 explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
             },
-            // focused submunitions — small 400m blast (still bigger than a HiExp missile), weaker than a dedicated ArmPen
+            // focused submunitions: impact delivery, but multi-scope (the carrier penetrates and its
+            // bomblets pepper every internal in the struck area — spec §5 exception)
             ArmPen: {
                 damageType: 'ArmPen',
+                delivery: 'impact',
+                concentration: 3,
+                impactDamage: 30,
                 explosion: { secondsToLive: 0.4, expansionSpeed: 1_000, damageFactor: 40, blastFactor: 0.5 },
             },
         },
@@ -155,6 +194,9 @@ export const projectileDesigns = {
         name: 'Tandem missile',
         radius: 2,
         damageType: 'Tandem',
+        delivery: 'impact',
+        concentration: 5,
+        impactDamage: 50,
         heatPerShot: 25,
         homing: {
             secondsToLive: 60,
@@ -170,6 +212,9 @@ export const projectileDesigns = {
         name: 'Elec missile',
         radius: 2,
         damageType: 'Elec',
+        delivery: 'impact',
+        concentration: 1,
+        impactDamage: 25,
         heatPerShot: 25,
         homing: {
             secondsToLive: 96,
@@ -258,6 +303,18 @@ export class Projectile extends SpaceObjectBase implements Craft {
         return this.warheadDesign.damageType;
     }
 
+    get delivery(): Delivery {
+        return this.warheadDesign.delivery;
+    }
+
+    get concentration(): number {
+        return this.warheadDesign.concentration;
+    }
+
+    get impactDamage(): number {
+        return this.warheadDesign.impactDamage;
+    }
+
     makeExplosion(): Explosion {
         if (this._explosion) {
             return this._explosion;
@@ -265,6 +322,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
         const explosion = new Explosion();
         explosion.assign(this.warheadDesign.explosion);
         explosion.damageType = this.warheadDesign.damageType;
+        explosion.concentration = this.warheadDesign.concentration;
         return explosion;
     }
 

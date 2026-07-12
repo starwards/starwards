@@ -33,6 +33,11 @@ import { Warp } from './warp';
 // pass (a handful of small defects), not instant kills.
 const SURFACE_EFFECT_FACTOR = 0.05;
 
+// explosion delivery only (spec §4): a system accepts at most one damage-event application per
+// this window. Rations a blast overlapping at 60 ticks/s from ~20 defects down to ~2-3 per
+// engulfment. Impact needs no cooldown — one event per round, rate-limited by the weapon.
+const DEFECT_COOLDOWN_SECONDS = 0.15;
+
 export type AttackDamage = Damage & {
     damageType: DamageType;
     profile: DamageProfile;
@@ -41,6 +46,10 @@ export type AttackDamage = Damage & {
 type AreaExposure = { hitArea: ShipArea; exposure: number };
 
 export class DamageManager {
+    private gameTime = 0;
+    // explosion-delivery defect cooldown: game time of the last damage-event application per system
+    private readonly lastDefectTime = new WeakMap<ShipSystem, number>();
+
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         private state: ShipState,
@@ -48,7 +57,8 @@ export class DamageManager {
         private die: Die,
     ) {}
 
-    update() {
+    update(deltaSeconds = 0) {
+        this.gameTime += deltaSeconds;
         let damagedInternals = false;
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
             if (damage.damageType === null) {
@@ -133,7 +143,7 @@ export class DamageManager {
         const scaled = { ...damage, amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor };
         for (const system of this.collectAreaSystems(damage.damageSurfaceArc)) {
             if (!system.isInternal) {
-                this.damageSystem(system, scaled, 1);
+                this.applyDefectRolls(system, scaled, 1);
             }
         }
         return true;
@@ -208,7 +218,7 @@ export class DamageManager {
                 return false;
             }
             for (const system of electronics) {
-                this.damageSystem(system, scaled, worstExposure);
+                this.applyDefectRolls(system, scaled, worstExposure);
             }
             return true;
         }
@@ -222,15 +232,42 @@ export class DamageManager {
             return false;
         }
         if (profile.systemScope === 'single') {
+            // sticky victim (spec §4): picked once per projectile, deterministically from its id.
+            // every concentration roll from this projectile lands on this one system.
             const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, candidates.length);
             const { system, exposure } = candidates[Math.floor(idx)];
-            this.damageSystem(system, scaled, exposure);
+            this.applyDefectRolls(system, scaled, exposure);
         } else {
             for (const { system, exposure } of candidates) {
-                this.damageSystem(system, scaled, exposure);
+                this.applyDefectRolls(system, scaled, exposure);
             }
         }
         return true;
+    }
+
+    // one damage-event application to one system: concentration independent defect rolls, gated
+    // (explosion delivery only) by the defect cooldown. If the system breaks mid-burst the
+    // remaining rolls dissipate — damageSystem no-ops on a broken system.
+    private applyDefectRolls(system: ShipSystem, damage: AttackDamage, exposure: number): void {
+        if (system.broken) {
+            return;
+        }
+        const delivery = damage.delivery ?? 'explosion';
+        if (delivery === 'explosion') {
+            const last = this.lastDefectTime.get(system);
+            if (last !== undefined && this.gameTime - last < DEFECT_COOLDOWN_SECONDS) {
+                return;
+            }
+            this.lastDefectTime.set(system, this.gameTime);
+        }
+        const concentration = Math.max(1, Math.round(damage.concentration ?? 1));
+        for (let roll = 0; roll < concentration; roll++) {
+            if (system.broken) {
+                return;
+            }
+            // per-roll die key: N same-key rolls would hash identically (spec §4)
+            this.damageSystem(system, damage, exposure, `${damage.id}:${roll}`);
+        }
     }
 
     private filterSystemsByProfile(systems: ShipSystem[], profile: DamageProfile): ShipSystem[] {
@@ -265,33 +302,38 @@ export class DamageManager {
         }
     }
 
-    damageSystem(system: ShipSystem, damageObject: { id: string; amount: number }, percentageOfBrokenPlates: number) {
+    damageSystem(
+        system: ShipSystem,
+        damageObject: { id: string; amount: number },
+        percentageOfBrokenPlates: number,
+        dieId: string = damageObject.id,
+    ) {
         if (system.broken) {
             return;
         }
         const dist = new NormalDistribution(system.design.damage50, system.design.damage50 / 2);
         const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
-        if (this.die.getRoll('damageSystem:' + damageObject.id) < normalizedDamageProbability) {
+        if (this.die.getRoll('damageSystem:' + dieId) < normalizedDamageProbability) {
             if (Thruster.isInstance(system)) {
-                this.damageThruster(system, damageObject.id);
+                this.damageThruster(system, dieId);
             } else if (ChainGun.isInstance(system)) {
-                this.damageChainGun(system, damageObject.id);
+                this.damageChainGun(system, dieId);
             } else if (Radar.isInstance(system)) {
                 this.damageRadar(system);
             } else if (SmartPilot.isInstance(system)) {
                 this.damageSmartPilot(system);
             } else if (Reactor.isInstance(system)) {
-                this.damageReactor(system, damageObject.id);
+                this.damageReactor(system, dieId);
             } else if (Magazine.isInstance(system)) {
-                this.damageMagazine(system, damageObject.id);
+                this.damageMagazine(system, dieId);
             } else if (Warp.isInstance(system)) {
-                this.damageWarp(system, damageObject.id);
+                this.damageWarp(system, dieId);
             } else if (Docking.isInstance(system)) {
                 this.damageDocking(system);
             } else if (Maneuvering.isInstance(system)) {
-                this.damageManeuvering(system, damageObject.id);
+                this.damageManeuvering(system, dieId);
             } else if (Signals.isInstance(system)) {
-                this.damageSignals(system, damageObject.id);
+                this.damageSignals(system, dieId);
             }
         }
     }

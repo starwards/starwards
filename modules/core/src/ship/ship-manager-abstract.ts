@@ -228,7 +228,7 @@ export abstract class ShipManager implements Updateable {
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
         this.healPlates(id.deltaSeconds);
-        this.damageManager.update();
+        this.damageManager.update(id.deltaSeconds);
         this.heatManager.update(id);
         this.automationManager.update(id);
 

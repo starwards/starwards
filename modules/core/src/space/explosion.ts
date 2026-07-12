@@ -26,6 +26,11 @@ export class Explosion extends SpaceObjectBase {
     @gameField('float32')
     public blastFactor = 1;
 
+    // defect rolls per damage event (damage-model spec §4). carried onto every per-tick
+    // damage event the blast produces.
+    @gameField('float32')
+    public concentration = 1;
+
     @gameField('string')
     public readonly type = 'Explosion';
 

@@ -15,6 +15,7 @@ import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { DamageType } from '../space/damage-profile';
+import { Delivery } from '../space/projectile';
 import { SWResponse } from './collisions-utils';
 import { createLogger } from '../logger';
 
@@ -30,6 +31,11 @@ export type Damage = {
     damageDurationSeconds: number;
     // null for generic kinetic hits (collisions, GM-spawned explosions)
     damageType: DamageType | null;
+    // how the damage arrived (spec §3). explosion events are rationed by the defect cooldown;
+    // impact events are not. undefined is treated as 'explosion' downstream.
+    delivery?: Delivery;
+    // defect rolls per target for this event (spec §4). undefined is treated as 1.
+    concentration?: number;
 };
 
 type NoOrder = {
@@ -303,7 +309,12 @@ export class SpaceManager implements Updateable {
             if (!shell.freeze) {
                 shell.secondsToLive -= deltaSeconds;
                 if (shell.secondsToLive <= 0) {
-                    this.explodeProjectile(shell);
+                    if (shell.delivery === 'impact') {
+                        // an impact round that ran out of time simply missed — it does not detonate
+                        shell.destroyed = true;
+                    } else {
+                        this.explodeProjectile(shell);
+                    }
                 }
             }
         }
@@ -317,8 +328,10 @@ export class SpaceManager implements Updateable {
                     const destination = target.position;
                     const relativeDestination = XY.difference(destination, projectile.position);
                     if (
-                        XY.lengthOf(relativeDestination) - target.radius <
-                        projectile.design.homing.proximityDetonation
+                        // impact rounds are contact-fuzed (spec §8): they must physically hit,
+                        // proximity does not detonate them
+                        projectile.delivery === 'explosion' &&
+                        XY.lengthOf(relativeDestination) - target.radius < projectile.design.homing.proximityDetonation
                     ) {
                         this.explodeProjectile(projectile);
                     } else {
@@ -485,6 +498,40 @@ export class SpaceManager implements Updateable {
         this.insert(explosion);
     }
 
+    // impact delivery (spec §3): the round physically hit the target. No explosion object is
+    // created — exactly one damage event is emitted at the contact point (against a ship), or the
+    // target simply loses health (against non-ships).
+    private impactProjectile(projectile: Projectile, target: SpaceObject) {
+        projectile.destroyed = true;
+        if (Spaceship.isInstance(target)) {
+            this.addImpactDamage(projectile, target);
+        } else if (typeof (target as { health?: unknown }).health === 'number') {
+            (target as { health: number }).health -= projectile.impactDamage;
+        }
+    }
+
+    private addImpactDamage(projectile: Projectile, ship: Spaceship) {
+        // narrow contact arc: one plate, one ship area (spec §3). Centred on the bearing from the
+        // ship to the projectile's contact point.
+        const localContact = ship.globalToLocal(XY.difference(projectile.position, ship.position));
+        const bearing = limitPercision(XY.angleOf(localContact));
+        const damage: Damage = {
+            id: projectile.id,
+            amount: projectile.impactDamage,
+            damageSurfaceArc: [toPositiveDegreesDelta(bearing - 1), toPositiveDegreesDelta(bearing + 1)],
+            damageDurationSeconds: 0,
+            damageType: projectile.damageType,
+            delivery: 'impact',
+            concentration: projectile.concentration,
+        };
+        const objectDamage = this.objectDamage.get(ship.id);
+        if (objectDamage === undefined) {
+            this.objectDamage.set(ship.id, [damage]);
+        } else {
+            objectDamage.push(damage);
+        }
+    }
+
     public *resolveObjectDamage(id: string): IterableIterator<Damage> {
         const damageArr = this.objectDamage.get(id);
         if (damageArr !== undefined) {
@@ -527,7 +574,11 @@ export class SpaceManager implements Updateable {
             ) {
                 let positionChange: XY | null = null;
                 if (Projectile.isInstance(subject)) {
-                    this.explodeProjectile(subject);
+                    if (subject.delivery === 'impact') {
+                        this.impactProjectile(subject, object);
+                    } else {
+                        this.explodeProjectile(subject);
+                    }
                 } else if (Explosion.isInstance(subject)) {
                     positionChange = this.handleExplosionCollision(subject, response);
                 } else {
@@ -603,12 +654,15 @@ export class SpaceManager implements Updateable {
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
             ];
+            const isExplosion = Explosion.isInstance(object);
             const damage: Damage = {
                 id: object.id,
                 amount: damageAmount,
                 damageSurfaceArc: shipLocalDamageAngles,
                 damageDurationSeconds: deltaSeconds,
                 damageType: object.damageType,
+                delivery: isExplosion ? 'explosion' : 'impact',
+                concentration: isExplosion ? object.concentration : 1,
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {
