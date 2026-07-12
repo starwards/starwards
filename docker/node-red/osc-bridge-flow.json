@@ -13,7 +13,6 @@
         "url": "http://starwards-server:8080",
         "z": "tab-osc-bridge"
     },
-
     {
         "id": "udp-osc-in",
         "type": "udp in",
@@ -100,8 +99,8 @@
     {
         "id": "rate-limit-1",
         "type": "delay",
-        "name": "rate limit 25 msg/s",
-        "pauseType": "rate",
+        "name": "rate limit 25 msg/s (latest per topic)",
+        "pauseType": "queue",
         "timeout": "5",
         "timeoutUnits": "seconds",
         "rate": "25",
@@ -110,7 +109,7 @@
         "randomFirst": "1",
         "randomLast": "5",
         "randomUnits": "seconds",
-        "drop": true,
+        "drop": false,
         "allowrate": false,
         "outputs": 1,
         "z": "tab-osc-bridge",
