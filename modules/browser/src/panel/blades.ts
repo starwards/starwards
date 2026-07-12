@@ -286,3 +286,19 @@ export function addSliderCellToRow(
     wireBlade(blade, model, cleanup);
     return blade;
 }
+
+/**
+ * Add a non-interactive bar cell to a table row: shows where a read-only value sits within its
+ * range, styled (see `.sw-bar` in tweakpane.css) to hide the drag handle so it doesn't look draggable.
+ */
+export function addBarCellToRow(
+    row: RowApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(configSliderBlade(params, model.range, model.getValue)) as BladeGuiApi<number>;
+    blade.element.classList.add('sw-bar');
+    wireBlade(blade, model, cleanup);
+    return blade;
+}

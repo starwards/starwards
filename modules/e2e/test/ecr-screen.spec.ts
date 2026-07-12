@@ -41,4 +41,19 @@ test.describe('ECR Screen', () => {
         ship.state.warp.currentLevel = 3;
         await waitForPropertyValue(page, 'Actual LVL', (v) => Math.abs(parseFloat(v) - 3) < 0.5, 'Warp');
     });
+
+    test('coolant and defectible readouts render as non-interactive bars, not draggable sliders', async ({ page }) => {
+        const fullStatusPanel = page.locator('[data-id="Full Systems Status"]');
+        await expect(fullStatusPanel).toBeVisible({ timeout: 10000 });
+
+        const bar = fullStatusPanel.locator('.sw-bar').first();
+        await expect(bar).toBeVisible();
+
+        // the slider's drag handle must be hidden so the control reads as a solid bar, not a draggable slider
+        const knobDisplay = await bar.evaluate((el) => {
+            const knob = el.querySelector('.tp-sldv_k');
+            return knob && getComputedStyle(knob, '::after').display;
+        });
+        expect(knobDisplay).toBe('none');
+    });
 });

@@ -1,6 +1,6 @@
 import {
     BladeGuiApi,
-    addSliderCellToRow,
+    addBarCellToRow,
     addTextCellToRow,
     configSliderBlade,
     configTextBlade,
@@ -93,7 +93,7 @@ export function drawFullSystemsStatus(
             { format: (heat: number) => `${Math.round(heat)}`, width: '60px' },
             panelCleanup.add,
         );
-        addSliderCellToRow(
+        addBarCellToRow(
             standardRowApi,
             readNumberProp(shipDriver, `${system.pointer}/coolantFactor`),
             { format: (c: number) => `${Math.round(c * 100)}%`, width: '120px' },
@@ -114,6 +114,7 @@ export function drawFullSystemsStatus(
                 ...configSliderBlade({}, defectibleProp.range, defectibleProp.getValue),
                 width: `${defectibleWidth}px`,
             }) as unknown as BladeGuiApi<number>;
+            valueBlade.element.classList.add('sw-bar');
             wireBlade(valueBlade, defectibleProp, panelCleanup.add);
         }
         pane.addBlade({ view: 'separator' });
