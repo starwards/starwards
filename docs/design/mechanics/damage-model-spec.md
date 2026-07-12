@@ -31,7 +31,7 @@ matching system in the hit area, `electronics` = all electronics **ship-wide**, 
 | Type | Scope | Reaches | Factor | Scrape (×) | Deflectable | Fiction |
 |---|---|---|---|---|---|---|
 | HiExp | multi | internal | 1 | yes (0.25) | yes | blast wave: breaches inward, washes the deck |
-| ArmPen | single | internal | 1.5 | no | — | kinetic dart: one deep channel, nothing outside |
+| ArmPen | single | internal | 1.5 |  yes | — | kinetic dart: one deep channel, nothing outside |
 | Frag | multi | external | 0.5 | yes (**2**) | **no** | shrapnel cloud: shreds equipment, can't get inside |
 | Tandem | single | internal | 1 | no | — | shaped charge (HEAT): slightly weaker ArmPen, defeats ERA |
 | Elec | electronics | (electronics, ship-wide) | 2 | no | — | EMP: hits electronics wherever mounted |
