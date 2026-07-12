@@ -72,7 +72,7 @@ Dock Master (#538)
 | 2023 H1 | ECR completion | Power allocation, coolant, armor widget |
 | 2024 | Consolidation | Removed 3D view, fixed armor, bot AI rewrite, GM tools |
 | 2025 | Sustainability | AI-assisted dev workflow, Playwright E2E, extensive docs |
-| 2026 | MS3: Event Ready | Three new stations, scan levels, warp topology, docking |
+| 2026 | MS3: Event Ready | Signals station, scan levels, docking — 4-station ship-early core |
 
 ## Post-Event Backlog
 Features explicitly deferred until after the first LARP event:
