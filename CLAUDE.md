@@ -39,6 +39,7 @@ node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 
 # Verification suite
 npm run test:types         # TypeScript check
 npm run test:format        # ESLint + Prettier
+npm run knip               # Dead code: unused files + dependencies (config in knip.jsonc)
 npm run lint:fix           # Auto-fix lint issues
 npm run test:all           # format + types + unit + e2e
 ```
@@ -164,6 +165,8 @@ All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scr
 - Prefer a tool's own idiomatic mechanism over overriding it (e.g. Node-RED dependencies belong in its `data/package.json` manifest, not ad-hoc installs).
 - When a claim is challenged, settle it with evidence (git history, logs, a live test) — not argument.
 - Test after every change, including cosmetic refactors — exercise the affected flow end-to-end.
+- Dead-code warnings come from tooling (`npm run knip`), not from review opinion. Knip structurally can't see empty lifecycle exports consumed by convention or inert JSON config keys — call those out explicitly instead of silently deleting.
+- Verify demo-affecting changes on the deployed preview environment (pr-N.dev.starwards.space + per-service hosts), not only on the local stack — local drifts (stale images; Windows bind mounts don't deliver file-change events, so O-S-C/Node-RED hot reload silently doesn't fire).
 - Keep responses concise: answer first, minimal words, no preamble.
 
 ## No Tombstones
