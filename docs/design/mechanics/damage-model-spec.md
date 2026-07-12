@@ -58,6 +58,31 @@ be deflected. Calibration (010): explosion damage arrives per tick with growing 
 constant is tuned for *sanding* — a full frag-cloud engulfment causes ~4–6 small defects per
 external system; a HiExp wash well under 1.
 
+### 3.1 Designed — defect bursts & cooldown (not yet implemented)
+
+The game loop runs at 60 ticks/s and an explosion deals one damage event per tick it overlaps
+the ship, so under a full breach the saturated per-event rolls deliver ~21 defect steps per
+system per HiExp missile — section annihilation instead of graduated damage. Separately,
+`single` scope is structurally weaker than `multi` even against its own victim (one roll per
+event vs one per system, and a defect step is fixed-size regardless of damage amount). The
+agreed rework:
+
+1. **Defect cooldown per system** (baseline **0.15s**): a system accepts at most one defect
+   *application* per window. Multi-scope damage becomes rationed broad degradation — a full
+   HiExp missile engulfment through a breach yields ~2–3 steps per internal system instead
+   of ~21. Also decouples combat balance from the tick rate.
+2. **Single-scope concentration bursts**: the victim is picked once per projectile
+   (deterministic from the damage id — one rod, one victim across all its ticks) and each
+   successful application delivers `concentration` defect steps as one atomic burst. The burst
+   bypasses the cooldown internally; the window gates *between* bursts. **ArmPen 5, Tandem 4.**
+3. **Multi unchanged otherwise.** A `pierce` scope (a line crossing hull areas, overpenetration)
+   is deliberately reserved for the future railgun.
+
+Resulting doctrine: *one HE = everything in the section bleeds; one AP = one system dies.* An
+ArmPen missile (~2 windows × 5) puts ~10 steps into its victim — crippling-to-breaking one
+system; blast degrades everything a little and needs repeat hits. Tuning dials: cooldown length
+(longer = gentler blast), per-profile `concentration`, and the existing `systemDamageFactor`s.
+
 ## 4. Armor engagement — `plateDamage / penetration` per type
 
 `plateDamage` multiplies **plate erosion only** (0 = the armor does not engage the hit at all);
@@ -131,9 +156,12 @@ except thrusters and maneuvering. Classification is per system *class* (`isInter
 
 ## 8. Open questions / follow-up candidates (out of PR scope)
 
-1. **Play-test the calibration** — 010/011 numbers were derived analytically (per-tick explosion
+1. **Implement the defect bursts & cooldown rework (§3.1)** — designed and agreed, pending
+   implementation green light.
+2. **Play-test the calibration** — 010/011 numbers were derived analytically (per-tick explosion
    damage × overlap), not in play. Watch: frag defect rate on externals, Hardened time-to-kill
-   via HiExp grind, Reactive cell-attrition pace vs cheap ArmPen shells.
+   via HiExp grind, Reactive cell-attrition pace vs cheap ArmPen shells; after §3.1 lands, the
+   cooldown length and concentration values join this list.
 2. **Weapons-station UI for cluster mode** — state/commands exist; a labeled Frag/ArmPen toggle
    on the tube widget is presentation work.
 3. **Counter-play vs Frag** — no armor answers shrapnel by design; the counters are range,
