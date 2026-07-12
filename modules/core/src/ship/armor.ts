@@ -28,6 +28,15 @@ export type ArmorDesign = {
 } & PlateDamageStats &
     PenetrationStats;
 
+// how the armor engages an incoming damage type
+export type ArmorResponse =
+    // the armor does not engage this type and is transparent to it
+    | { kind: 'bypass' }
+    // the armor does not engage this type and stops it outright
+    | { kind: 'block' }
+    // plates take the hit; damage leaks through broken sections and inherent penetration
+    | { kind: 'engage'; plateFactor: number; penetration: number };
+
 export class ArmorDesignState extends DesignState implements ArmorDesign {
     @gameField('float32') numberOfPlates = 0;
     @gameField('float32') healRate = 0;
@@ -56,6 +65,15 @@ export class ArmorDesignState extends DesignState implements ArmorDesign {
 
     penetration(t: DamageType): number {
         return this[`penetration_${t}`];
+    }
+
+    response(t: DamageType): ArmorResponse {
+        const plateFactor = this.plateDamage(t);
+        const penetration = this.penetration(t);
+        if (plateFactor !== 0) {
+            return { kind: 'engage', plateFactor, penetration };
+        }
+        return penetration >= 1 ? { kind: 'bypass' } : { kind: 'block' };
     }
 }
 

@@ -12,7 +12,7 @@ import {
     projectileModels,
     shipAreasInRange,
 } from '..';
-import { DamageProfile, damageProfiles } from '../space/damage-profile';
+import { DamageProfile, DamageType, damageProfiles } from '../space/damage-profile';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
 
@@ -33,6 +33,13 @@ import { Warp } from './warp';
 // pass (a handful of small defects), not instant kills.
 const SURFACE_EFFECT_FACTOR = 0.05;
 
+export type AttackDamage = Damage & {
+    damageType: DamageType;
+    profile: DamageProfile;
+};
+
+type AreaExposure = { hitArea: ShipArea; exposure: number };
+
 export class DamageManager {
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
@@ -44,7 +51,16 @@ export class DamageManager {
     update() {
         let damagedInternals = false;
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
-            damagedInternals = this.takeExternalDamage(damage) || damagedInternals;
+            if (damage.damageType === null) {
+                damagedInternals = this.takeCollisionDamage(damage) || damagedInternals;
+            } else {
+                damagedInternals =
+                    this.takeWeaponDamage({
+                        ...damage,
+                        damageType: damage.damageType,
+                        profile: damageProfiles[damage.damageType],
+                    }) || damagedInternals;
+            }
         }
         if (damagedInternals && this.spaceObject.expendable) {
             const { count, broken } = this.state
@@ -60,83 +76,27 @@ export class DamageManager {
         }
     }
 
-    public takeExternalDamage(damage: Damage): boolean {
-        if (!damage.damageType) {
-            return this.takeFlatDamage(damage);
-        }
-        const profile = damageProfiles[damage.damageType];
-        const armorDesign = this.state.armor.design;
-        const plateFactor = armorDesign.plateDamage(damage.damageType);
-        const penetration = armorDesign.penetration(damage.damageType);
-
-        // hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
-        // regardless of the plates, unless the armor deflects the round before the blast develops
-        // (shrapnel clouds are not deflectable)
-        let damagedSystems = false;
-        if (profile.surfaceEffect && !(profile.deflectable && armorDesign.deflectsSurfaceEffect)) {
-            this.applySurfaceEffectDamage(damage, profile);
-            damagedSystems = true;
-        }
-
-        if (plateFactor === 0) {
-            if (penetration >= 1) {
-                // the armor does not engage this hit at all
-                this.applyPenetratingSystemDamage(damage, profile);
+    public takeWeaponDamage(damage: AttackDamage): boolean {
+        const armorResponse = this.state.armor.design.response(damage.damageType);
+        const damagedExternals = this.applySurfaceEffect(damage);
+        switch (armorResponse.kind) {
+            case 'bypass': {
+                // the armor is transparent to this type — every hit area is fully exposed
+                const fullExposure = [...shipAreasInRange(damage.damageSurfaceArc)].map((hitArea) => ({
+                    hitArea,
+                    exposure: 1,
+                }));
+                this.applyExposedSystemDamage(damage, fullExposure);
                 return true;
             }
-            // the armor blocks the hit. Penetration is binary (0 or 1) when the armor does not
-            // engage — fractional penetration applies to engaging hits only (see ArmorDesign)
-            return damagedSystems;
+            case 'block':
+                return damagedExternals;
+            case 'engage':
+                return this.resolveArmorEngagement(damage, armorResponse) || damagedExternals;
         }
-
-        let damagedInternals = damagedSystems;
-        let electronicsExposure = 0;
-        let cellPopped = false;
-        for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
-            const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
-            const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
-            if (!areaHitRangeAngles) continue;
-
-            let broken: number;
-            if (armorDesign.singleUsePlates) {
-                // exposure is measured before the cell pops: the sacrificed cell defeats this
-                // hit, and only already-bare sections (or penetration) let damage through
-                broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-                if (!cellPopped) {
-                    cellPopped = this.consumeSingleUsePlate(areaHitRangeAngles);
-                }
-            } else {
-                this.applyDamageToArmor(damage.amount * plateFactor, areaHitRangeAngles);
-                broken = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-            }
-
-            const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-            const brokenRatio = platesInArea > 0 ? broken / platesInArea : 0;
-            const exposureRatio = Math.max(penetration, brokenRatio);
-
-            if (exposureRatio > 0) {
-                if (profile.systemScope === 'electronics') {
-                    // electronics damage is ship-wide — collect the worst exposure across areas
-                    // and apply it once, outside the per-area loop
-                    electronicsExposure = Math.max(electronicsExposure, exposureRatio);
-                } else {
-                    damagedInternals =
-                        this.applySystemDamageToArea(damage, profile, hitArea, exposureRatio) || damagedInternals;
-                }
-            }
-        }
-        if (electronicsExposure > 0) {
-            damagedInternals = this.applyElectronicsDamage(damage, profile, electronicsExposure) || damagedInternals;
-        }
-        if (cellPopped && penetration < 1) {
-            // the popped reactive cell defeats the hit: the blast/round is consumed and stops
-            // dealing damage on subsequent ticks and to other ships
-            this.spaceManager.destroyObject(damage.id);
-        }
-        return damagedInternals;
     }
 
-    private takeFlatDamage(damage: Damage): boolean {
+    public takeCollisionDamage(damage: Damage): boolean {
         let damagedInternals = false;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
@@ -159,38 +119,118 @@ export class DamageManager {
         return damagedInternals;
     }
 
-    // system damage for hits the armor plates never engage (bypass or blocked surface-effect)
-    private applyPenetratingSystemDamage(damage: Damage, profile: DamageProfile): void {
-        const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
-        // electronics damage is ship-wide and ignores the hit arc
-        const pool =
-            profile.systemScope === 'electronics'
-                ? this.state.systems()
-                : this.collectAreaSystems(damage.damageSurfaceArc);
-        const candidates = this.filterSystemsByProfile(pool, profile);
-        if (candidates.length === 0) return;
-
-        if (profile.systemScope === 'single') {
-            const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, candidates.length);
-            this.damageSystem(candidates[Math.floor(idx)], scaled, 1);
-        } else {
-            for (const system of candidates) {
-                this.damageSystem(system, scaled, 1);
-            }
+    // hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
+    // regardless of the plates, unless the armor deflects the round before the blast develops
+    // (shrapnel clouds are not deflectable)
+    private applySurfaceEffect(damage: AttackDamage): boolean {
+        const { profile } = damage;
+        if (!profile.surfaceEffect) {
+            return false;
         }
-    }
-
-    // a surface-effect hit scrapes the external systems in the hit arc
-    private applySurfaceEffectDamage(damage: Damage, profile: DamageProfile): void {
-        const scaled: Damage = {
-            ...damage,
-            amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor,
-        };
+        if (profile.deflectable && this.state.armor.design.deflectsSurfaceEffect) {
+            return false;
+        }
+        const scaled = { ...damage, amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor };
         for (const system of this.collectAreaSystems(damage.damageSurfaceArc)) {
             if (!system.isInternal) {
                 this.damageSystem(system, scaled, 1);
             }
         }
+        return true;
+    }
+
+    // the armor engages: plates take the hit per area, then systems take damage wherever
+    // a section is exposed — by broken plates or by inherent penetration
+    private resolveArmorEngagement(damage: AttackDamage, armor: { plateFactor: number; penetration: number }): boolean {
+        const exposures: AreaExposure[] = [];
+        let cellPopped = false;
+        for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
+            const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
+            const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
+            if (!areaHitRangeAngles) {
+                continue;
+            }
+            const engagement = this.engagePlatesInArea(
+                damage.amount * armor.plateFactor,
+                areaHitRangeAngles,
+                !cellPopped,
+            );
+            cellPopped = engagement.cellPopped || cellPopped;
+            const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
+            const brokenRatio = platesInArea > 0 ? engagement.brokenPlates / platesInArea : 0;
+            const exposure = Math.max(armor.penetration, brokenRatio);
+            if (exposure > 0) {
+                exposures.push({ hitArea, exposure });
+            }
+        }
+        const damagedInternals = this.applyExposedSystemDamage(damage, exposures);
+        if (cellPopped && armor.penetration < 1) {
+            // the popped reactive cell defeats the hit: the blast/round is consumed and stops
+            // dealing damage on subsequent ticks and to other ships. A full-penetration round
+            // (tandem warhead) pops the cell but is not consumed — the main charge lands.
+            this.spaceManager.destroyObject(damage.id);
+        }
+        return damagedInternals;
+    }
+
+    // plate response to an engaging hit, one hit area at a time. Ablative plates erode, and
+    // the hit leaks through whatever is bare after the erosion; a reactive cell (at most one
+    // per hit) pops to defeat this hit, so only sections already bare before the pop count
+    // as exposed
+    private engagePlatesInArea(
+        erosion: number,
+        areaHitRangeAngles: RTuple2,
+        mayPopCell: boolean,
+    ): { brokenPlates: number; cellPopped: boolean } {
+        if (this.state.armor.design.singleUsePlates) {
+            const brokenPlates = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
+            const cellPopped = mayPopCell && this.consumeSingleUsePlate(areaHitRangeAngles);
+            return { brokenPlates, cellPopped };
+        }
+        this.applyDamageToArmor(erosion, areaHitRangeAngles);
+        return { brokenPlates: this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles), cellPopped: false };
+    }
+
+    // damage that got past the armor. plateDamage governs plate erosion only — once exposed,
+    // systems take the round's own damage. Electronics damage is ship-wide, applied once at
+    // the worst exposure across areas; other scopes draw from the systems of each exposed
+    // area — 'single' defects one random system per hit, 'multi' defects every matching one
+    private applyExposedSystemDamage(damage: AttackDamage, exposures: AreaExposure[]): boolean {
+        const { profile } = damage;
+        const scaled = { ...damage, amount: damage.amount * profile.systemDamageFactor };
+        if (profile.systemScope === 'electronics') {
+            const worstExposure = exposures.reduce((r, { exposure }) => Math.max(r, exposure), 0);
+            if (worstExposure === 0) {
+                return false;
+            }
+            const electronics = this.filterSystemsByProfile(this.state.systems(), profile);
+            if (electronics.length === 0) {
+                return false;
+            }
+            for (const system of electronics) {
+                this.damageSystem(system, scaled, worstExposure);
+            }
+            return true;
+        }
+        const candidates = exposures.flatMap(({ hitArea, exposure }) =>
+            this.filterSystemsByProfile(this.state.systemsByAreas(hitArea) || [], profile).map((system) => ({
+                system,
+                exposure,
+            })),
+        );
+        if (candidates.length === 0) {
+            return false;
+        }
+        if (profile.systemScope === 'single') {
+            const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, candidates.length);
+            const { system, exposure } = candidates[Math.floor(idx)];
+            this.damageSystem(system, scaled, exposure);
+        } else {
+            for (const { system, exposure } of candidates) {
+                this.damageSystem(system, scaled, exposure);
+            }
+        }
+        return true;
     }
 
     private filterSystemsByProfile(systems: ShipSystem[], profile: DamageProfile): ShipSystem[] {
@@ -206,39 +246,6 @@ export class DamageManager {
             collected.push(...(this.state.systemsByAreas(hitArea) || []));
         }
         return collected;
-    }
-
-    // plateDamage governs plate erosion only — once exposed, systems take the round's own damage
-    private applySystemDamageToArea(
-        damage: Damage,
-        profile: DamageProfile,
-        hitArea: ShipArea,
-        exposureRatio: number,
-    ): boolean {
-        const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
-        const filtered = this.filterSystemsByProfile(this.state.systemsByAreas(hitArea) || [], profile);
-        if (filtered.length === 0) return false;
-
-        if (profile.systemScope === 'single') {
-            const idx = this.die.getRollInRange(`pickSystem:${damage.id}`, 0, filtered.length);
-            this.damageSystem(filtered[Math.floor(idx)], scaled, exposureRatio);
-        } else {
-            for (const system of filtered) {
-                this.damageSystem(system, scaled, exposureRatio);
-            }
-        }
-        return true;
-    }
-
-    // electronics damage is ship-wide, not area-local
-    private applyElectronicsDamage(damage: Damage, profile: DamageProfile, exposureRatio: number): boolean {
-        const scaled: Damage = { ...damage, amount: damage.amount * profile.systemDamageFactor };
-        const filtered = this.filterSystemsByProfile(this.state.systems(), profile);
-        if (filtered.length === 0) return false;
-        for (const system of filtered) {
-            this.damageSystem(system, scaled, exposureRatio);
-        }
-        return true;
     }
 
     // reactive armor: a single cell sacrifices itself to defeat the hit; returns whether a cell popped
