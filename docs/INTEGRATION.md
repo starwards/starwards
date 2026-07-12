@@ -432,7 +432,7 @@ The tarballs are gitignored (`*.tgz`), so run this once per fresh clone and when
 open-stage-control_1.30.4_node.zip  (pinned; see docs/DEPENDENCIES.md)
 ```
 
-The zip extracts to `open-stage-control_<version>_node/` with `index.js` as the entry point. The node package is inherently headless — no Electron, virtual framebuffer, or `--no-gui` flag needed. The container starts it with `--send node-red:57120` so widget interactions go to Node-RED's UDP-in by default (no per-widget `target` needed).
+The zip extracts to `open-stage-control_<version>_node/` with `index.js` as the entry point. The node package is inherently headless — no Electron, virtual framebuffer, or `--no-gui` flag needed. The container starts it with `--send node-red:57120` so widget interactions go to Node-RED's UDP-in by default (no per-widget `target` needed), and `--remote-root /sessions` so the in-app Session → Open dialog browses the mounted sessions dir instead of the server's working dir.
 
 ### Session Files
 

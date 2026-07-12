@@ -51,6 +51,7 @@ Touch/MIDI control surfaces via Open Stage Control (O-S-C), bridged to the game 
 | Assuming widget targets constrain inbound matching | Matching is address + preArgs only (targets matter for MIDI and outbound) |
 | `"label": "Power"` on a fader | Faders have no label prop; add a `text` widget next to the fader |
 | `delay` node in `rate` mode + `drop` for feedback | Global limiter drops the subscribe-burst initial emits; use `queue` mode (latest per `msg.topic`) |
+| Session → Open dialog shows an empty/home dir in Docker | File browser roots at the server's working dir; pass `--remote-root /sessions` |
 
 ## Verify hands-on (source-verified, not yet runtime-verified)
 
