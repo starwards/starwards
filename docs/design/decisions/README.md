@@ -13,6 +13,7 @@ Key product decisions and their rationale. Not every choice needs a record — o
 | 5 | TypeScript scenario files | 2026-04 | [005-typescript-scenarios.md](005-typescript-scenarios.md) |
 | 6 | Damage-profile unification for armor/ammo rework | 2026-07 | [006-damage-profile-unification.md](006-damage-profile-unification.md) |
 | 7 | plateDamage governs plate erosion only | 2026-07 | [007-plate-damage-erosion-only.md](007-plate-damage-erosion-only.md) |
+| 8 | Surface effect applies regardless of armor (Reactive deflects) | 2026-07 | [008-unconditional-surface-effect.md](008-unconditional-surface-effect.md) |
 
 ## Template
 

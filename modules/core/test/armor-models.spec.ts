@@ -32,6 +32,13 @@ describe('armor model presets (issue #1929)', () => {
         expect(reactiveArmor.plateDamage_ArmPen).to.equal(0);
     });
 
+    it('only Reactive deflects the surface-effect scrape', () => {
+        expect(reactiveArmor.deflectsSurfaceEffect).to.equal(true);
+        for (const model of [compositeArmor, whippleArmor, hardenedArmor, faradayArmor]) {
+            expect(model.deflectsSurfaceEffect).to.equal(false);
+        }
+    });
+
     it('every non-Faraday model lets Elec hits bypass the plates', () => {
         for (const model of [compositeArmor, whippleArmor, hardenedArmor, reactiveArmor]) {
             expect(model.plateDamage_Elec).to.equal(0);

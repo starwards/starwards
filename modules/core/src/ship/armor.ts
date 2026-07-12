@@ -30,6 +30,8 @@ export type ArmorDesign = {
     penetration_Elec: number;
     // ERA cells: an engaging hit zeroes the plate and it does not heal.
     singleUsePlates?: boolean;
+    // pushes the round/missile away before the blast develops: surface-effect scrape does not apply.
+    deflectsSurfaceEffect?: boolean;
 };
 
 export class ArmorDesignState extends DesignState implements ArmorDesign {
@@ -51,6 +53,10 @@ export class ArmorDesignState extends DesignState implements ArmorDesign {
     @tweakable('boolean')
     @gameField('boolean')
     singleUsePlates = false;
+
+    @tweakable('boolean')
+    @gameField('boolean')
+    deflectsSurfaceEffect = false;
 
     plateDamage(t: DamageType): number {
         return this[`plateDamage_${t}`];

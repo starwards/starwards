@@ -67,21 +67,25 @@ export class DamageManager {
         const plateFactor = armorDesign.plateDamage(damage.damageType);
         const penetration = armorDesign.penetration(damage.damageType);
 
+        // hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
+        // regardless of the plates, unless the armor deflects the round before the blast develops
+        let damagedSystems = false;
+        if (profile.surfaceEffect && !armorDesign.deflectsSurfaceEffect) {
+            this.applySurfaceEffectDamage(damage, profile);
+            damagedSystems = true;
+        }
+
         if (plateFactor === 0) {
             if (penetration >= 1) {
                 // the armor does not engage this hit at all
                 this.applyPenetratingSystemDamage(damage, profile);
                 return true;
             }
-            // the armor blocks the hit; surface-effect ammo still scrapes external systems
-            if (profile.surfaceEffect) {
-                this.applySurfaceEffectDamage(damage, profile);
-                return true;
-            }
-            return false;
+            // the armor blocks the hit
+            return damagedSystems;
         }
 
-        let damagedInternals = false;
+        let damagedInternals = damagedSystems;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);

@@ -15,11 +15,14 @@ export type ArmorModelStats = Pick<
     | 'penetration_Tandem'
     | 'penetration_Elec'
     | 'singleUsePlates'
+    | 'deflectsSurfaceEffect'
 >;
 
 // plateDamage: multiplier on plate erosion only, 0 = armor does not engage the hit.
 // The armor is worn down until its plates are dead; system damage behind it is never scaled.
 // penetration: fraction of system damage bypassing the plates.
+// Surface-effect ammo (HiExp/Frag/Cluster) always scrapes hull-mounted systems regardless of
+// the armor model — the equipment sits outside the plates — unless deflectsSurfaceEffect is set.
 
 export const compositeArmor: ArmorModelStats = {
     plateDamage_HiExp: 1,
@@ -35,6 +38,7 @@ export const compositeArmor: ArmorModelStats = {
     penetration_Tandem: 0,
     penetration_Elec: 1,
     singleUsePlates: false,
+    deflectsSurfaceEffect: false,
 };
 
 export const whippleArmor: ArmorModelStats = {
@@ -51,6 +55,7 @@ export const whippleArmor: ArmorModelStats = {
     penetration_Tandem: 0,
     penetration_Elec: 1,
     singleUsePlates: false,
+    deflectsSurfaceEffect: false,
 };
 
 export const hardenedArmor: ArmorModelStats = {
@@ -68,6 +73,7 @@ export const hardenedArmor: ArmorModelStats = {
     penetration_Tandem: 0,
     penetration_Elec: 1,
     singleUsePlates: false,
+    deflectsSurfaceEffect: false,
 };
 
 export const reactiveArmor: ArmorModelStats = {
@@ -85,6 +91,8 @@ export const reactiveArmor: ArmorModelStats = {
     penetration_Tandem: 1,
     penetration_Elec: 1,
     singleUsePlates: true,
+    // ERA pushes the round/missile away before its blast develops — no surface scrape
+    deflectsSurfaceEffect: true,
 };
 
 export const faradayArmor: ArmorModelStats = {
@@ -101,6 +109,7 @@ export const faradayArmor: ArmorModelStats = {
     penetration_Tandem: 1,
     penetration_Elec: 0,
     singleUsePlates: false,
+    deflectsSurfaceEffect: false,
 };
 
 // A Faraday cage layered over any other armor model: blocks Elec hits instead of letting them bypass.

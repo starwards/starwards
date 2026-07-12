@@ -121,6 +121,24 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             damageManager.takeExternalDamage(frontDamage(100, 'HiExp'));
             expect(before - state.armor.armorPlates[0].health).to.be.closeTo(50, 0.001);
         });
+
+        it('Frag vs Composite scrapes externals even while plates hold', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            const damaged = damageManager.takeExternalDamage(frontDamage(100, 'Frag'));
+            expect(damaged).to.equal(true);
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            // internals untouched — the scrape only reaches hull-mounted systems
+            expect(state.smartPilot.offsetFactor).to.equal(0);
+            expect(state.warp.damageFactor).to.equal(0);
+        });
+
+        it('HiExp vs Reactive is deflected — no scrape, no cell consumed', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
+            const damaged = damageManager.takeExternalDamage(frontDamage(1000, 'HiExp'));
+            expect(damaged).to.equal(false);
+            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
     });
 
     describe('system scoping regressions', () => {
