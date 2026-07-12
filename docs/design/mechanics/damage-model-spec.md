@@ -13,8 +13,9 @@ A weapon hit is resolved in four steps, each governed by data (no special-case c
 
 1. **Delivery**: how the damage arrives. A physical hit (**impact**) or a blast area
    (**explosion**). Property of the round.
-2. **Armor engagement**: the target's armor model reacts to the round's **damage type** using
-   two numbers (`plateDamage`, `penetration`). Decides how much reaches the ship.
+2. **Armor engagement**: the target's armor **layers** react to the round's **damage type**,
+   outermost first, each using two numbers (`plateDamage`, `penetration`). Decides how much
+   reaches the ship.
 3. **Channels**: damage that gets past armor goes to systems through the **penetration
    channel**; blast/shrapnel weapons additionally scrape hull-mounted systems through the
    **surface channel**, armor or no armor.
@@ -148,29 +149,53 @@ channel.
 Exception to memorize: Cluster-AP mode is ArmPen-type but **multi**. The carrier penetrates
 and its bomblets pepper every internal system in the struck area (section 8).
 
-## 6. Armor
+## 6. Armor: layered models
 
-**General explanation:** a ship wears one armor model, a ring of plates, each with its own
-health, absorbing hits by angle. Per damage type, the model declares two numbers that fully
-describe the engagement. Both apply identically to impact and explosion events.
+**General explanation:** a ship's armor is a **stack of layers**. Every ship has a mandatory
+**Composite base layer** (the hull itself, always innermost); the ship design may add any
+number of layers outside it, in any order (for example `Reactive > Whipple > Composite`).
+Each layer is a full ring of plates with its **own health pool per that armor model's
+parameters** (its own `plateMaxHealth`, `healRate`, and stats row). A hit resolves against the
+stack **outside-in**; the same rules apply identically to impact and explosion events.
 
 **Terms:**
 
+- **Layer**: one armor model in the stack, with its own plate ring (same sector geometry,
+  aligned arcs across layers) and its own per-type numbers below.
+- **Resolution walk**: the round meets the outermost layer in the hit arc and resolves against
+  that layer's numbers for its damage type. Three outcomes per layer:
+  **Blocked** (`0/0`): stops there, deeper layers never see it.
+  **Transparent** (`0/1`, for example ArmPen vs Whipple): passes through untouched to the next
+  layer in.
+  **Engages** (`plateDamage > 0`): erodes (or pops) that layer's plates; damage continues
+  inward only through that layer's exposure.
 - **`plateDamage`**: multiplier on **plate erosion only**, never on system damage (armor
-  decides time to breach, not post-breach pain). `0` = the armor does not engage this type at
-  all. Scale: 0 immune, 0.25/0.5 resistant, 1 normal, 2 vulnerable; anything between is legal,
+  decides time to breach, not post-breach pain). `0` = this layer does not engage this type.
+  Scale: 0 immune, 0.25/0.5 resistant, 1 normal, 2 vulnerable; anything between is legal,
   per model, data-only.
-- **`penetration`**: fraction (0..1) of system damage that bypasses **intact** plates. On a
-  non-engaging hit (`plateDamage 0`), `penetration >= 1` means the armor is transparent.
-- **Exposure**: how open a hit arc is, `max(penetration, brokenPlateRatio)`. Scales the
-  penetrating channel's roll amounts. Broken plates are the hole damage flows through.
+- **`penetration`**: fraction (0..1) of system damage that bypasses this layer's **intact**
+  plates. On a non-engaging hit (`plateDamage 0`), `penetration >= 1` means the layer is
+  transparent.
+- **Exposure (per layer)**: how open the hit arc is in this layer,
+  `max(penetration, brokenPlateRatio)`. **Exposure chains multiplicatively across the stack**:
+  what reaches the systems is scaled by the product of every layer's exposure in that arc. One
+  intact blocking layer zeroes it; a breached layer stops mattering.
 - **Single-use cells (`singleUsePlates`)**: Reactive. An engaging hit **pops** the cells in the
   arc (they go to zero and never heal) and is **defeated** (exposure is measured before the
-  pop). Follow-up hits on the bared section get through. Every defeated warhead costs a cell:
-  sustained cheap fire strips ERA.
-- **`deflectsSurfaceEffect`**: Reactive only. Cancels the scrape of deflectable types.
+  pop). Follow-up hits on the bared section pass to the next layer. Every defeated warhead
+  costs a cell: sustained cheap fire strips ERA off the stack.
+- **`deflectsSurfaceEffect`**: cancels the scrape of deflectable types, but only while the
+  deflecting layer is the **outermost intact layer** in the hit arc. Stripped Reactive deflects
+  nothing.
+- **Repair**: the shipyard repairs all layers (future option: repairing layers separately).
+  Reactive cells never heal anywhere.
 
-Cell values below are `plateDamage / penetration`:
+The emergent gameplay: counter-ammo **peels specific layers**. Tandem pops the Reactive coat,
+HiExp grinds the Whipple screen, and ArmPen skips the screen entirely and eats the Composite
+core while the outer layers stand. Weapons officers sequence ammo like peeling an onion; ship
+design chooses the coat stack.
+
+Cell values below are `plateDamage / penetration`, per layer:
 
 | vs | Composite | Whipple | Hardened | Reactive | Faraday |
 | --- | --- | --- | --- | --- | --- |
@@ -180,11 +205,11 @@ Cell values below are `plateDamage / penetration`:
 | Tandem | 1 / 0 | **0 / 0** | **2 / 0** | **1 / 1** pop | 0 / 1 |
 | Elec | 0 / 1 | 0 / 1 | 0 / 1 | 1 / 0 pop | **0 / 0** |
 
-**Armor identities:**
+**Armor identities** (as layers in a stack):
 
 | Model | One-liner | Nightmare | Specialty |
 | --- | --- | --- | --- |
-| Composite | the baseline hull layer | ArmPen (2x) | no walls, no gaps |
+| Composite | the mandatory base hull layer | ArmPen (2x) | no walls, no gaps |
 | Whipple | standoff screen | ArmPen ignores it (0/1) | blunts blast, pre-detonates shaped charges |
 | Hardened | thick slab | Tandem jet (2x) | the only armor that stops kinetic rounds |
 | Reactive | one-shot cells | Tandem (pop + full force); attrition | defeats every warhead once per cell; blocks Elec; deflects HiExp scrape |
@@ -287,6 +312,14 @@ and repair, not armor.
 **electronics safe, one cell spent**. Same missile vs Composite: 0/1 transparent, so every
 electronics system ship-wide rolls once at x2.
 
+**Layered ship (`Reactive > Whipple > Composite`) under sequenced fire:** Tandem missiles pop
+the Reactive cells in the target arc (Whipple beneath would pre-detonate them, so switch ammo
+once the cells are gone). ArmPen was the wrong opener (each round costs a Reactive cell) but
+becomes the right finisher: with the cells stripped it passes the Whipple screen untouched
+(0/1) and erodes the Composite core at 2x. HiExp is nearly useless here until the end (deflected
+scrape while Reactive stands, then 0.25x grind on the screen), while Frag sands the externals
+the entire time regardless of the stack.
+
 ## 10. Tuning knobs
 
 | Knob | Where | Governs |
@@ -303,8 +336,9 @@ change is a deliberate pin update.
 
 ## 11. Future and open items
 
-1. **Replan PR #1932 around this document**: impact delivery (Amir, in progress),
-   concentration + sticky victim, explosion defect cooldown; then retune damage numbers.
+1. **Replan PR #1932 around this document**: impact delivery (Amir, in progress), layered
+   armor stacks, concentration + sticky victim, explosion defect cooldown; then retune damage
+   numbers.
 2. **Pierce delivery**: the railgun's overpenetration line. Reserved, not designed.
 3. **EMP-explosion variant**: area-denial EMP (multi-ship) as a future GM tool or mine; the
    delivery flag supports it without new mechanics.
