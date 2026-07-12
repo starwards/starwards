@@ -40,3 +40,5 @@ Same convention O-S-C uses in its scripting `send()`. For ship pointer values th
 ```
 
 O-S-C matches the fed-back address literally against widget `address` + `preArgs`; the widget updates without re-emitting (no loop).
+
+The rate-limit `delay` node must use `pauseType: "queue"` (rate limit → "For each msg.topic", sending the latest message per topic). `rate` mode with `drop: true` limits globally: the subscription bootstrap emits one current-value message per address in the same instant, and all but one get dropped — faders then sit at 0 until their value changes.

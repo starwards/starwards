@@ -463,14 +463,15 @@ Dynamic subscriptions are **additive** (multiple addresses accumulate) and **ide
 
 ### Feedback Loop Prevention
 
-Plain inbound OSC matching in O-S-C does **not** re-emit — receiving a value from Node-RED updates the widget display without triggering another send. `/SET` and user interaction do emit. The rate-limit node in the Node-RED flow caps feedback at 25 messages/second per address.
+Plain inbound OSC matching in O-S-C does **not** re-emit — receiving a value from Node-RED updates the widget display without triggering another send. `/SET` and user interaction do emit. The rate-limit node in the Node-RED flow (a `delay` node in `queue` mode) releases the latest message per address at 25 messages/second — it must stay per-topic, or the burst of initial values on session load loses all but one message.
 
 ### Writing a New Session
 
 1. Create `docker/osc/sessions/<station>.json` following the format in `reactor-demo.json` (modern `{version, type, content}` wrapper).
 2. Widget `address` must be an admitted JSON pointer (`/system/property`).
 3. Read-only widgets (displays) should set `"bypass": true` to prevent them from emitting on user interaction.
-4. No restart needed — the sessions directory is volume-mounted and read per session open; just reload the tablet at `?id=<station>`.
+4. Faders have no `label` property — label them with sibling `text` widgets (see the labeled columns in `reactor-demo.json`).
+5. No restart needed — the sessions directory is volume-mounted and read per session open; just reload the tablet at `?id=<station>`.
 
 ### Testing
 

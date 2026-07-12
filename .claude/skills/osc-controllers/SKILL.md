@@ -19,6 +19,8 @@ Touch/MIDI control surfaces via Open Stage Control (O-S-C), bridged to the game 
 4. **Per-client sessions are NOT selected by URL.** No `?session=`/`?load=` query param exists. One instance serves per-station sessions via custom module: client connects with `?id=<station>`, module calls `receive('/SESSION/OPEN', <path>, {clientId})`.
 5. **Inbound OSC does not loop by default.** A message matching a widget (by `address` + `preArgs` only — sender host:port is ignored) updates the display without re-emitting. `/SET` and user interaction DO emit. `bypass: true` stops a widget's own emissions.
 6. **Canvas widgets (fader/knob/xy) never show their value in the DOM.** Read values via the widget instance, not DOM scraping.
+7. **Faders have no `label` property.** A `"label"` key in a fader's session JSON is silently ignored (runtime-verified on v1.30.4). Label sliders with sibling `text` widgets (e.g. a vertical panel: fader `expand: true` + text below).
+8. **The feedback rate limit must be per-topic (`delay` node in `queue` mode).** `rate` mode with `drop: true` is a global limiter: the session-load burst of immediate emits (one per subscribed address, same instant) gets all but one message dropped, leaving faders uninitialized until their value next changes. `queue` mode releases the latest message per `msg.topic` at the configured rate.
 
 ## Quick reference
 
@@ -47,9 +49,11 @@ Touch/MIDI control surfaces via Open Stage Control (O-S-C), bridged to the game 
 | Expecting `?session=x.json` per tablet | Use `?id=<station>` + custom module `/SESSION/OPEN` with `{clientId}` |
 | Fearing feedback loops from `udp out` → O-S-C | Plain inbound match doesn't re-emit; only `/SET`/interaction do |
 | Assuming widget targets constrain inbound matching | Matching is address + preArgs only (targets matter for MIDI and outbound) |
+| `"label": "Power"` on a fader | Faders have no label prop; add a `text` widget next to the fader |
+| `delay` node in `rate` mode + `drop` for feedback | Global limiter drops the subscribe-burst initial emits; use `queue` mode (latest per `msg.topic`) |
 
 ## Verify hands-on (source-verified, not yet runtime-verified)
 
-- The `_widget_instance` Playwright recipe against a live v1.30.3 client (first E2E run validates this).
 - Inner DOM of `toggle`/`push`/`xy` widgets (base structure confirmed; per-type internals not read from source).
-- Whether session files carry a `version`/migration field.
+
+Runtime-verified on v1.30.4 (live browser session, 2026-07-12): the `_widget_instance` recipe (`getProp('id')`/`getValue()`), session files carrying a `"version"` field, and `w.setValue(v, {send: true, sync: true})` emitting like a real interaction.
