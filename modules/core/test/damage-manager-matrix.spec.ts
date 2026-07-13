@@ -13,11 +13,12 @@ import {
     dragonflySF22,
     faradayArmor,
     hardenedArmor,
+    makeArmor,
     makeShipState,
     reactiveArmor,
     whippleArmor,
-    withFaradayLayer,
 } from '../src';
+import { ArmorDesign } from '../src';
 
 import { MockDie } from './ship-test-harness';
 import { ShipState } from '../src/ship/ship-state';
@@ -120,8 +121,20 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(damagedInternals).to.equal(true);
         });
 
-        it('Composite + Faraday layer + Elec hit → blocked', () => {
-            const { state, damageManager } = setUpShip(withFaradayLayer(compositeArmor));
+        it('Composite base + Faraday coat + Elec hit → blocked', () => {
+            const asDesign = (stats: ArmorModelStats): ArmorDesign => ({
+                numberOfPlates: 12,
+                healRate: 3,
+                plateMaxHealth: 1500,
+                ...stats,
+            });
+            const ship = new Spaceship();
+            ship.id = 'test-ship';
+            const state = makeShipState(ship.id, dragonflySF22);
+            state.armor = makeArmor([asDesign(faradayArmor), asDesign(compositeArmor)]);
+            const spaceManager = new SpaceManager();
+            spaceManager.insert(ship);
+            const damageManager = new DamageManager(ship, state, spaceManager, new MockDie());
             const initial = state.armor.armorPlates[0].health;
             const damagedInternals = damageManager.takeWeaponDamage(frontDamage(50, 'Elec'));
             expect(state.armor.armorPlates[0].health).to.equal(initial);

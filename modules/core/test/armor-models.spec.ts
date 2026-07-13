@@ -6,7 +6,6 @@ import {
     hardenedArmor,
     reactiveArmor,
     whippleArmor,
-    withFaradayLayer,
 } from '../src';
 
 import { expect } from 'chai';
@@ -117,13 +116,5 @@ describe('armor model presets (issue #1929)', () => {
         }
         expect(faradayArmor.plateDamage_Frag).to.equal(0);
         expect(faradayArmor.penetration_Frag).to.equal(0);
-    });
-
-    it('withFaradayLayer blocks Elec without changing physical stats', () => {
-        const layered = withFaradayLayer(whippleArmor);
-        expect(layered.penetration_Elec).to.equal(0);
-        expect(layered.plateDamage_Elec).to.equal(0);
-        expect(layered.plateDamage_ArmPen).to.equal(whippleArmor.plateDamage_ArmPen);
-        expect(layered.penetration_HiExp).to.equal(whippleArmor.penetration_HiExp);
     });
 });

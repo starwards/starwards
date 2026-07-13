@@ -77,12 +77,18 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         sizeOfPlate + EPSILON,
                     );
                     //@ts-ignore : access private property
-                    const brokenTotal = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                    const brokenTotal = shipMgr.damageManager.getNumberOfBrokenPlatesInRange(shipMgr.state.armor, [
+                        EPSILON,
+                        360,
+                    ]);
                     expect(brokenTotal).to.oneOf([2, 3]);
 
                     const brokenInsideExplosion =
                         //@ts-ignore : access private property
-                        shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
+                        shipMgr.damageManager.getNumberOfBrokenPlatesInRange(
+                            shipMgr.state.armor,
+                            expectedHitPlatesRange,
+                        );
                     expect(brokenInsideExplosion).to.equal(brokenTotal);
                     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                     expect(shipMgr.state.chainGun!.broken).to.be.false;
