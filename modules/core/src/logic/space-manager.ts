@@ -14,8 +14,8 @@ import {
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
-import { DamageType } from '../space/damage-profile';
 import { SWResponse } from './collisions-utils';
+import { SpaceDamageType } from '../space/damage-profile';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -28,8 +28,8 @@ export type Damage = {
     amount: number;
     damageSurfaceArc: Tuple2;
     damageDurationSeconds: number;
-    // null for generic kinetic hits (collisions, GM-spawned explosions)
-    damageType: DamageType | null;
+    // 'Collision' for generic kinetic hits (collisions, GM-spawned explosions)
+    damageType: SpaceDamageType;
 };
 
 type NoOrder = {

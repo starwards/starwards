@@ -1,6 +1,13 @@
 export const damageTypes = ['HiExp', 'ArmPen', 'Frag', 'Tandem', 'Elec'] as const;
 export type DamageType = (typeof damageTypes)[number];
 
+// 'Collision' carries no weapon profile — flat kinetic damage (collisions, bare explosions)
+export type SpaceDamageType = DamageType | 'Collision';
+
+export function isWeaponDamageType(t: SpaceDamageType): t is DamageType {
+    return (damageTypes as readonly string[]).includes(t);
+}
+
 export interface DamageProfile {
     // damages external systems even when the armor blocks the hit
     readonly surfaceEffect: boolean;

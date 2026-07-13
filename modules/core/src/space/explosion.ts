@@ -1,4 +1,4 @@
-import { DamageType } from './damage-profile';
+import { SpaceDamageType } from './damage-profile';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { gameField } from '../game-field';
@@ -29,15 +29,15 @@ export class Explosion extends SpaceObjectBase {
     @gameField('string')
     public readonly type = 'Explosion';
 
-    // server-side only. null (e.g. GM-spawned explosions) means a generic hit
-    // handled by the flat-damage path.
-    private _damageType: DamageType | null = null;
+    // server-side only. 'Collision' (e.g. GM-spawned explosions) means a generic
+    // hit handled by the flat-damage path.
+    private _damageType: SpaceDamageType = 'Collision';
 
-    get damageType(): DamageType | null {
+    get damageType(): SpaceDamageType {
         return this._damageType;
     }
 
-    set damageType(value: DamageType | null) {
+    set damageType(value: SpaceDamageType) {
         this._damageType = value;
     }
 

@@ -1,9 +1,9 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { commandable, gameField } from '../game-field';
 
-import { DamageType } from './damage-profile';
 import { Faction } from './faction';
 import { ScanLevel } from './scan-level';
+import { SpaceDamageType } from './damage-profile';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
@@ -38,9 +38,9 @@ export abstract class SpaceObjectBase extends Schema {
     public abstract readonly type: keyof SpaceObjects;
 
     // server-side only (not synced). Harmful object types override this with
-    // their damage profile; null means plain kinetic collision damage.
-    get damageType(): DamageType | null {
-        return null;
+    // their damage profile; 'Collision' means plain kinetic collision damage.
+    get damageType(): SpaceDamageType {
+        return 'Collision';
     }
     @gameField('boolean')
     // @tweakable('boolean')

@@ -106,8 +106,8 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         }
     });
 
-    it('a bare explosion carries no damageType (flat-damage path)', () => {
-        expect(new Explosion().damageType).to.equal(null);
+    it('a bare explosion carries the Collision damageType (flat-damage path)', () => {
+        expect(new Explosion().damageType).to.equal('Collision');
     });
 
     describe('cluster missile warhead modes', () => {

@@ -44,6 +44,11 @@ a property of the warhead, so the ClusterMissile switches type with its selected
 | Tandem | tandem shaped charge (HEAT) | slightly weaker ArmPen that defeats reactive armor |
 | Elec | EMP discharge | hits electronics wherever they are mounted |
 
+Damage events that come from no round — ship/asteroid collisions and bare (GM-spawned)
+explosions — carry the **Collision** type. It is not one of the five weapon types and has no
+damage profile or armor-table row: it erodes plates flat, and reaches systems only through
+plates that were already broken.
+
 ## 3. Delivery: impact, explosion, pierce (TBA)
 
 **General explanation:** delivery answers how the damage arrives at the ship. It is a flag on

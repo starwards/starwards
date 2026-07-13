@@ -276,7 +276,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
     });
 
     describe('non-projectile damage path', () => {
-        it('untyped damage (collisions) takes the flat-damage flow', () => {
+        it('Collision damage takes the flat-damage flow', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             const before = state.armor.armorPlates[0].health;
             const collision: Damage = {
@@ -284,7 +284,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
                 amount: 100,
                 damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
                 damageDurationSeconds: 1,
-                damageType: null,
+                damageType: 'Collision',
             };
             damageManager.takeCollisionDamage(collision);
             expect(state.armor.armorPlates[0].health).to.be.lessThan(before);

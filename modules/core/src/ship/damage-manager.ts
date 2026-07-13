@@ -12,7 +12,7 @@ import {
     projectileModels,
     shipAreasInRange,
 } from '..';
-import { DamageProfile, DamageType, damageProfiles } from '../space/damage-profile';
+import { DamageProfile, DamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
 
@@ -51,15 +51,15 @@ export class DamageManager {
     update() {
         let damagedInternals = false;
         for (const damage of this.spaceManager.resolveObjectDamage(this.spaceObject.id)) {
-            if (damage.damageType === null) {
-                damagedInternals = this.takeCollisionDamage(damage) || damagedInternals;
-            } else {
+            if (isWeaponDamageType(damage.damageType)) {
                 damagedInternals =
                     this.takeWeaponDamage({
                         ...damage,
                         damageType: damage.damageType,
                         profile: damageProfiles[damage.damageType],
                     }) || damagedInternals;
+            } else {
+                damagedInternals = this.takeCollisionDamage(damage) || damagedInternals;
             }
         }
         if (damagedInternals && this.spaceObject.expendable) {
