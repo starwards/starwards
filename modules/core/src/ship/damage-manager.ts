@@ -16,6 +16,7 @@ import { DamageProfile, DamageType, damageProfiles } from '../space/damage-profi
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
 
+import { ArmorLayer } from './armor';
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
 import { Magazine } from './magazine';
@@ -87,23 +88,9 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
-        const armorResponse = this.state.armor.design.response(damage.damageType);
         const damagedExternals = this.applySurfaceEffect(damage);
-        switch (armorResponse.kind) {
-            case 'bypass': {
-                // the armor is transparent to this type — every hit area is fully exposed
-                const fullExposure = [...shipAreasInRange(damage.damageSurfaceArc)].map((hitArea) => ({
-                    hitArea,
-                    exposure: 1,
-                }));
-                this.applyExposedSystemDamage(damage, fullExposure);
-                return true;
-            }
-            case 'block':
-                return damagedExternals;
-            case 'engage':
-                return this.resolveArmorEngagement(damage, armorResponse) || damagedExternals;
-        }
+        const damagedInternals = this.resolveArmorStack(damage);
+        return damagedInternals || damagedExternals;
     }
 
     public takeCollisionDamage(damage: Damage): boolean {
@@ -114,31 +101,41 @@ export class DamageManager {
             if (!areaHitRangeAngles) {
                 continue;
             }
-            const areaUnarmoredHits = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-            if (areaUnarmoredHits) {
-                const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
+            // collisions are untyped: every layer erodes flat, exposure is the product of each
+            // layer's already-broken ratio (measured before this hit's erosion)
+            let exposure = 1;
+            for (const layer of this.state.armor.layersOutsideIn) {
+                const platesInArea = layer.numberOfPlatesInRange(areaArc);
+                const brokenBefore = this.getNumberOfBrokenPlatesInRange(layer, areaHitRangeAngles);
+                exposure *= platesInArea > 0 ? brokenBefore / platesInArea : 0;
+                this.applyDamageToArmor(layer, damage.amount, areaHitRangeAngles);
+            }
+            if (exposure > 0) {
                 for (const system of this.state.systemsByAreas(hitArea) || []) {
                     if (system) {
                         damagedInternals = true;
-                        this.damageSystem(system, damage, areaUnarmoredHits / platesInArea);
+                        this.damageSystem(system, damage, exposure);
                     }
                 }
             }
-            this.applyDamageToArmor(damage.amount, areaHitRangeAngles);
         }
         return damagedInternals;
     }
 
     // hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
-    // regardless of the plates, unless the armor deflects the round before the blast develops
-    // (shrapnel clouds are not deflectable)
+    // regardless of the plates, unless the armor deflects the round before the blast develops.
+    // Deflection only works while the deflecting layer is the outermost intact layer in the arc
+    // (shrapnel clouds are not deflectable at all).
     private applySurfaceEffect(damage: AttackDamage): boolean {
         const { profile } = damage;
         if (!profile.surfaceEffect) {
             return false;
         }
-        if (profile.deflectable && this.state.armor.design.deflectsSurfaceEffect) {
-            return false;
+        if (profile.deflectable) {
+            const outer = this.outermostIntactLayer(damage.damageSurfaceArc);
+            if (outer?.design.deflectsSurfaceEffect) {
+                return false;
+            }
         }
         const scaled = { ...damage, amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor };
         for (const system of this.collectAreaSystems(damage.damageSurfaceArc)) {
@@ -149,32 +146,25 @@ export class DamageManager {
         return true;
     }
 
-    // the armor engages: plates take the hit per area, then systems take damage wherever
-    // a section is exposed — by broken plates or by inherent penetration
-    private resolveArmorEngagement(damage: AttackDamage, armor: { plateFactor: number; penetration: number }): boolean {
+    // resolve a weapon hit against the whole armor stack, outside-in per hit area. Each layer's
+    // exposure chains multiplicatively; systems take the round's own damage wherever the arc
+    // ends up exposed. A defeated reactive cell (popped, not fully penetrated) consumes the round.
+    private resolveArmorStack(damage: AttackDamage): boolean {
+        const pop = { popped: false, consumes: false };
         const exposures: AreaExposure[] = [];
-        let cellPopped = false;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
             if (!areaHitRangeAngles) {
                 continue;
             }
-            const engagement = this.engagePlatesInArea(
-                damage.amount * armor.plateFactor,
-                areaHitRangeAngles,
-                !cellPopped,
-            );
-            cellPopped = engagement.cellPopped || cellPopped;
-            const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-            const brokenRatio = platesInArea > 0 ? engagement.brokenPlates / platesInArea : 0;
-            const exposure = Math.max(armor.penetration, brokenRatio);
+            const exposure = this.stackAreaExposure(damage.damageType, areaHitRangeAngles, areaArc, pop, damage.amount);
             if (exposure > 0) {
                 exposures.push({ hitArea, exposure });
             }
         }
         const damagedInternals = this.applyExposedSystemDamage(damage, exposures);
-        if (cellPopped && armor.penetration < 1) {
+        if (pop.popped && pop.consumes) {
             // the popped reactive cell defeats the hit: the blast/round is consumed and stops
             // dealing damage on subsequent ticks and to other ships. A full-penetration round
             // (tandem warhead) pops the cell but is not consumed — the main charge lands.
@@ -183,22 +173,81 @@ export class DamageManager {
         return damagedInternals;
     }
 
-    // plate response to an engaging hit, one hit area at a time. Ablative plates erode, and
-    // the hit leaks through whatever is bare after the erosion; a reactive cell (at most one
-    // per hit) pops to defeat this hit, so only sections already bare before the pop count
-    // as exposed
+    // walk the stack outside-in for one hit area, eroding engaging layers and returning the
+    // exposure fraction that reaches the systems (product of every layer's exposure). Stops as
+    // soon as an intact blocking layer zeroes the product. `pop` accumulates reactive-cell state
+    // across areas (at most one cell per event).
+    private stackAreaExposure(
+        type: DamageType,
+        areaHitRange: RTuple2,
+        areaArc: RTuple2,
+        pop: { popped: boolean; consumes: boolean } = { popped: false, consumes: false },
+        amount = 1,
+    ): number {
+        let exposure = 1;
+        for (const layer of this.state.armor.layersOutsideIn) {
+            const response = layer.design.response(type);
+            const platesInArea = layer.numberOfPlatesInRange(areaArc);
+            let layerExposure: number;
+            if (response.kind === 'engage') {
+                const engagement = this.engagePlatesInArea(
+                    layer,
+                    amount * response.plateFactor,
+                    areaHitRange,
+                    !pop.popped,
+                );
+                if (engagement.cellPopped) {
+                    pop.popped = true;
+                    if (response.penetration < 1) {
+                        pop.consumes = true;
+                    }
+                }
+                const brokenRatio = platesInArea > 0 ? engagement.brokenPlates / platesInArea : 0;
+                layerExposure = Math.max(response.penetration, brokenRatio);
+            } else {
+                // block (0/0) or bypass/transparent (0/1): non-engaging, plates untouched.
+                // A breached blocking layer still leaks by its broken ratio; an intact one zeroes it.
+                const penetration = response.kind === 'bypass' ? 1 : 0;
+                const brokenPlates = this.getNumberOfBrokenPlatesInRange(layer, areaHitRange);
+                const brokenRatio = platesInArea > 0 ? brokenPlates / platesInArea : 0;
+                layerExposure = Math.max(penetration, brokenRatio);
+            }
+            exposure *= layerExposure;
+            if (exposure === 0) {
+                break;
+            }
+        }
+        return exposure;
+    }
+
+    // plate response to an engaging hit, one layer and hit area at a time. Ablative plates erode,
+    // and the hit leaks through whatever is bare after the erosion; a reactive cell (at most one
+    // per event) pops to defeat this hit, so only sections already bare before the pop count as exposed
     private engagePlatesInArea(
+        layer: ArmorLayer,
         erosion: number,
         areaHitRangeAngles: RTuple2,
         mayPopCell: boolean,
     ): { brokenPlates: number; cellPopped: boolean } {
-        if (this.state.armor.design.singleUsePlates) {
-            const brokenPlates = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-            const cellPopped = mayPopCell && this.consumeSingleUsePlate(areaHitRangeAngles);
+        if (layer.design.singleUsePlates) {
+            const brokenPlates = this.getNumberOfBrokenPlatesInRange(layer, areaHitRangeAngles);
+            const cellPopped = mayPopCell && this.consumeSingleUsePlate(layer, areaHitRangeAngles);
             return { brokenPlates, cellPopped };
         }
-        this.applyDamageToArmor(erosion, areaHitRangeAngles);
-        return { brokenPlates: this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles), cellPopped: false };
+        this.applyDamageToArmor(layer, erosion, areaHitRangeAngles);
+        return { brokenPlates: this.getNumberOfBrokenPlatesInRange(layer, areaHitRangeAngles), cellPopped: false };
+    }
+
+    // the outermost layer in the arc that still has a healthy plate; deflection is its privilege
+    private outermostIntactLayer(arc: RTuple2): ArmorLayer | undefined {
+        for (const layer of this.state.armor.layersOutsideIn) {
+            for (const [, plate] of layer.platesInRange(arc)) {
+                if (plate.health > 0) {
+                    return layer;
+                }
+            }
+        }
+        return undefined;
     }
 
     // damage that got past the armor. plateDamage governs plate erosion only — once exposed,
@@ -279,8 +328,8 @@ export class DamageManager {
     }
 
     // reactive armor: a single cell sacrifices itself to defeat the hit; returns whether a cell popped
-    private consumeSingleUsePlate(localAngleHitRange: RTuple2): boolean {
-        for (const [_, plate] of this.state.armor.platesInRange(localAngleHitRange)) {
+    private consumeSingleUsePlate(layer: ArmorLayer, localAngleHitRange: RTuple2): boolean {
+        for (const [_, plate] of layer.platesInRange(localAngleHitRange)) {
             if (plate.health > 0) {
                 plate.health = 0;
                 return true;
@@ -416,9 +465,9 @@ export class DamageManager {
         }
     }
 
-    private getNumberOfBrokenPlatesInRange(hitRange: RTuple2): number {
+    private getNumberOfBrokenPlatesInRange(layer: ArmorLayer, hitRange: RTuple2): number {
         let brokenPlates = 0;
-        for (const [_, plate] of this.state.armor.platesInRange(hitRange)) {
+        for (const [_, plate] of layer.platesInRange(hitRange)) {
             if (plate.health <= 0) {
                 brokenPlates++;
             }
@@ -426,8 +475,8 @@ export class DamageManager {
         return brokenPlates;
     }
 
-    private applyDamageToArmor(damageFactor: number, localAnglesHitRange: RTuple2) {
-        for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
+    private applyDamageToArmor(layer: ArmorLayer, damageFactor: number, localAnglesHitRange: RTuple2) {
+        for (const [_, plate] of layer.platesInRange(localAnglesHitRange)) {
             if (plate.health > 0) {
                 const newHealth = plate.health - damageFactor;
                 plate.health = Math.max(newHealth, 0);
