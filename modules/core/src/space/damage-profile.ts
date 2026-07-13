@@ -1,6 +1,8 @@
 export const damageTypes = ['HiExp', 'ArmPen', 'Frag', 'Tandem', 'Elec'] as const;
 export type DamageType = (typeof damageTypes)[number];
 
+export type SystemScope = 'single' | 'multi' | 'electronics';
+
 export interface DamageProfile {
     // damages external systems even when the armor blocks the hit
     readonly surfaceEffect: boolean;
@@ -14,7 +16,7 @@ export interface DamageProfile {
     // Decoupled from systemDamageFactor: shrapnel is purpose-built to shred equipment (Frag 2),
     // a blast wave only washes over it (HiExp 0.25). 0 for types with no surface effect.
     readonly surfaceDamageFactor: number;
-    readonly systemScope: 'single' | 'multi' | 'electronics';
+    readonly systemScope: SystemScope;
     // false: only external systems are affected
     readonly hitsInternal: boolean;
     readonly systemDamageFactor: number;

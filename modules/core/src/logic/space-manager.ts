@@ -1,5 +1,6 @@
 import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
+import { DamageType, SystemScope } from '../space/damage-profile';
 import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
     FieldOfView,
@@ -14,7 +15,6 @@ import {
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
-import { DamageType } from '../space/damage-profile';
 import { Delivery } from '../space/projectile';
 import { SWResponse } from './collisions-utils';
 import { createLogger } from '../logger';
@@ -36,6 +36,9 @@ export type Damage = {
     delivery?: Delivery;
     // defect rolls per target for this event (spec §4). undefined is treated as 1.
     concentration?: number;
+    // per-warhead scope override (spec §5 exception): Cluster-AP is ArmPen-type but multi-scope.
+    // When set, it replaces the damage profile's systemScope. undefined keeps the profile default.
+    scopeOverride?: SystemScope;
 };
 
 type NoOrder = {
@@ -523,6 +526,7 @@ export class SpaceManager implements Updateable {
             damageType: projectile.damageType,
             delivery: 'impact',
             concentration: projectile.concentration,
+            scopeOverride: projectile.scopeOverride,
         };
         const objectDamage = this.objectDamage.get(ship.id);
         if (objectDamage === undefined) {

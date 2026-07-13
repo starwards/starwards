@@ -133,6 +133,26 @@ describe('warhead delivery + defect mechanics (issue #1971)', () => {
         });
     });
 
+    describe('Cluster-AP multi-scope override (spec §5 exception)', () => {
+        it('an ArmPen round with a multi scope override defects every internal in the area — no sticky victim', () => {
+            const { state, damageManager } = setUpShip(faradayArmor);
+            // faraday is transparent to ArmPen → full exposure. The multi override makes the
+            // carrier's bomblets pepper every internal in the struck area (not one sticky victim).
+            damageManager.takeWeaponDamage(
+                frontDamage(1000, 'ArmPen', { id: 'ap', delivery: 'impact', concentration: 1, scopeOverride: 'multi' }),
+            );
+            expect(countDefectedInternals(state)).to.be.greaterThan(1);
+        });
+
+        it('without the override, the same ArmPen round is single-scope: exactly one victim', () => {
+            const { state, damageManager } = setUpShip(faradayArmor);
+            damageManager.takeWeaponDamage(
+                frontDamage(1000, 'ArmPen', { id: 'ap', delivery: 'impact', concentration: 1 }),
+            );
+            expect(countDefectedInternals(state)).to.equal(1);
+        });
+    });
+
     describe('sticky victim (single scope)', () => {
         it('every concentration roll lands on one system, and remaining rolls dissipate once it breaks', () => {
             const { state, damageManager } = setUpShip(faradayArmor);

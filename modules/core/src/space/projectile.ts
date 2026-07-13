@@ -1,5 +1,5 @@
+import { DamageType, SystemScope } from './damage-profile';
 import { Craft } from '../logic';
-import { DamageType } from './damage-profile';
 import { Explosion } from './explosion';
 import { ShipDirection } from '../ship';
 import { SpaceObjectBase } from './space-object-base';
@@ -37,6 +37,9 @@ export interface WarheadDesign {
     concentration: number;
     // flat damage for a single impact event (spec §8 "Damage" column). ignored by explosion.
     impactDamage: number;
+    // per-warhead scope override (spec §5 exception): Cluster-AP is ArmPen-type but multi-scope.
+    // undefined keeps the damage type's own profile scope.
+    systemScope?: SystemScope;
     explosion: {
         secondsToLive: number;
         expansionSpeed: number;
@@ -186,6 +189,7 @@ export const projectileDesigns = {
                 delivery: 'impact',
                 concentration: 3,
                 impactDamage: 30,
+                systemScope: 'multi',
                 explosion: { secondsToLive: 0.4, expansionSpeed: 1_000, damageFactor: 40, blastFactor: 0.5 },
             },
         },
@@ -309,6 +313,11 @@ export class Projectile extends SpaceObjectBase implements Craft {
 
     get concentration(): number {
         return this.warheadDesign.concentration;
+    }
+
+    // per-warhead systemScope override (spec §5 exception), undefined for normal rounds
+    get scopeOverride(): SystemScope | undefined {
+        return this.warheadDesign.systemScope;
     }
 
     get impactDamage(): number {

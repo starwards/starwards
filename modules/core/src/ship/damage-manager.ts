@@ -88,6 +88,12 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
+        // per-warhead scope override (spec §5 exception): Cluster-AP is ArmPen-type but multi-scope.
+        // Resolve it here, where the profile's systemScope is read downstream — a multi scope has no
+        // sticky victim, so overriding to multi also drops victim locking automatically.
+        if (damage.scopeOverride && damage.scopeOverride !== damage.profile.systemScope) {
+            damage = { ...damage, profile: { ...damage.profile, systemScope: damage.scopeOverride } };
+        }
         const damagedExternals = this.applySurfaceEffect(damage);
         const damagedInternals = this.resolveArmorStack(damage);
         return damagedInternals || damagedExternals;
