@@ -102,8 +102,3 @@ export const faradayArmor: ArmorModelStats = {
     singleUsePlates: false,
     deflectsSurfaceEffect: false,
 };
-
-// A Faraday cage layered over any other armor model: blocks Elec hits instead of letting them bypass.
-export function withFaradayLayer<T extends ArmorModelStats>(stats: T): T {
-    return { ...stats, plateDamage_Elec: 0, penetration_Elec: 0 };
-}

@@ -1,4 +1,4 @@
-import { Armor, ArmorDesign, ArmorPlate } from './armor';
+import { Armor, ArmorDesign, ArmorLayer, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
 import { Magazine, MagazineDesign } from './magazine';
@@ -22,7 +22,8 @@ export type ShipDesign = {
     chainGun: ChaingunDesign | null;
     tubes: [ShipDirectionConfig, ChaingunDesign][];
     thrusters: [ShipDirectionConfig, ThrusterDesign][];
-    armor: ArmorDesign;
+    // a single Composite-base design, or a stack ordered outermost-first with the base last
+    armor: ArmorDesign | ArmorDesign[];
     radar: RadarDesign;
     smartPilot: SmartPilotDesign;
     reactor: ReactorDesign;
@@ -42,14 +43,30 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
     return thruster;
 }
 
-function makeArmor(design: ArmorDesign): Armor {
-    const armor = new Armor();
-    armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.design.assign(design);
+function makePlates(target: ArmorLayer, design: ArmorDesign) {
+    target.armorPlates = new ArraySchema<ArmorPlate>();
+    target.design.assign(design);
     for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
         plate.health = plate.maxHealth = design.plateMaxHealth;
-        armor.armorPlates.push(plate);
+        target.armorPlates.push(plate);
+    }
+}
+
+// Builds a ship's armor stack. Accepts a single Composite-base design, or a stack ordered
+// outermost-first with the mandatory base (innermost) last. The returned Armor is the base
+// hull; extra layers become coats stacked outside it.
+export function makeArmor(design: ArmorDesign | ArmorDesign[]): Armor {
+    const designs = Array.isArray(design) ? design : [design];
+    const baseDesign = designs[designs.length - 1];
+    const coatDesigns = designs.slice(0, -1); // outermost-first
+    const armor = new Armor();
+    armor.coats = new ArraySchema<ArmorLayer>();
+    makePlates(armor, baseDesign);
+    for (const coatDesign of coatDesigns) {
+        const coat = new ArmorLayer();
+        makePlates(coat, coatDesign);
+        armor.coats.push(coat);
     }
     return armor;
 }

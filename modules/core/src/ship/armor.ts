@@ -87,7 +87,9 @@ export class ArmorPlate extends Schema {
     maxHealth!: number;
 }
 
-export class Armor extends Schema {
+// one armor model in the stack: a full plate ring with aligned sector geometry, its own
+// health pool and per-type stats row. All layers in a stack share the same sector geometry.
+export class ArmorLayer extends Schema {
     @gameField([ArmorPlate])
     armorPlates!: ArraySchema<ArmorPlate>;
 
@@ -119,5 +121,21 @@ export class Armor extends Schema {
             const plateIdx = (i + firstPlateIdx) % this.armorPlates.length;
             yield [plateIdx, this.armorPlates[plateIdx]];
         }
+    }
+}
+
+// A ship's armor is a stack of layers: this Armor object is the mandatory Composite base
+// (always innermost), and `coats` holds any extra layers stacked outside it, outermost first.
+// A hit resolves against the stack outside-in (see `layersOutsideIn`). Single-layer ships
+// (plain base, no coats) behave exactly as before. The base's own plates/design remain the
+// backward-compatible accessors (`state.armor.armorPlates`, `state.armor.design`).
+export class Armor extends ArmorLayer {
+    // extra layers stacked outside the base hull, ordered outermost-first
+    @gameField([ArmorLayer])
+    coats!: ArraySchema<ArmorLayer>;
+
+    // the whole stack from the outermost coat inward to the base hull
+    get layersOutsideIn(): ArmorLayer[] {
+        return [...(this.coats ?? []), this];
     }
 }
