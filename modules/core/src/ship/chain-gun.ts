@@ -1,4 +1,10 @@
-import { ClusterWarheadMode, ProjectileModel, clusterWarheadModes, projectileModels } from '../space/projectile';
+import {
+    AmmoType,
+    ClusterWarheadMode,
+    ProjectileModel,
+    clusterWarheadModes,
+    projectileModels,
+} from '../space/projectile';
 import { DesignState, SystemState, defectible } from './system';
 import { commandable, gameField } from '../game-field';
 
@@ -9,8 +15,11 @@ import { tweakable } from '../tweakable';
 
 export type SelectedProjectileModel = 'None' | ProjectileModel;
 
-// Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
+// per-damage-type stats are mapped from DamageType,
+// so adding a damage type fails compilation
 export type ChaingunDesign = {
+    [T in AmmoType as `use_${T}`]: boolean;
+} & {
     modelName?: string;
     bulletsPerSecond: number;
     bulletSpeed: number;
@@ -20,15 +29,6 @@ export type ChaingunDesign = {
     overrideSecondsToLive: number;
     damage50: number;
     energyCost: number;
-    use_HiExpShell?: boolean;
-    use_ArmPenShell?: boolean;
-    use_FragShell?: boolean;
-    use_HiExpMissile?: boolean;
-    use_ArmPenMissile?: boolean;
-    use_FragMissile?: boolean;
-    use_ClusterMissile?: boolean;
-    use_TandemMissile?: boolean;
-    use_ElecMissile?: boolean;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {

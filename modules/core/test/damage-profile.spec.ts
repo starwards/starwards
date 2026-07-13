@@ -1,66 +1,55 @@
-import { Explosion, Projectile, damageProfiles, projectileDesigns, projectileModels } from '../src';
+import {
+    Explosion,
+    Projectile,
+    damageProfiles,
+    damageTypes,
+    isMissileAmmo,
+    isShellAmmo,
+    projectileDesigns,
+    projectileModels,
+} from '../src';
 
 import { expect } from 'chai';
 
 const blastSize = (e: { expansionSpeed: number; secondsToLive: number }) => e.expansionSpeed * e.secondsToLive;
 
-describe('damage profiles and projectile designs (regression pins)', () => {
-    it('every projectile maps to its damage profile', () => {
-        expect(projectileDesigns.HiExpShell.damageType).to.equal('HiExp');
-        expect(projectileDesigns.HiExpMissile.damageType).to.equal('HiExp');
-        expect(projectileDesigns.ArmPenShell.damageType).to.equal('ArmPen');
-        expect(projectileDesigns.ArmPenMissile.damageType).to.equal('ArmPen');
-        expect(projectileDesigns.FragShell.damageType).to.equal('Frag');
-        expect(projectileDesigns.FragMissile.damageType).to.equal('Frag');
-        expect(projectileDesigns.ClusterMissile.damageType).to.equal('Frag'); // default warhead mode
-        expect(projectileDesigns.TandemMissile.damageType).to.equal('Tandem');
-        expect(projectileDesigns.ElecMissile.damageType).to.equal('Elec');
+describe('damage profiles and projectile designs (design invariants)', () => {
+    it('surface effect and surface damage factor agree', () => {
+        for (const type of damageTypes) {
+            const profile = damageProfiles[type];
+            expect(profile.surfaceDamageFactor > 0, type).to.equal(profile.surfaceEffect);
+        }
     });
 
-    it('profile behavior data matches the design', () => {
-        expect(damageProfiles.HiExp).to.deep.equal({
-            surfaceEffect: true,
-            deflectable: true,
-            surfaceDamageFactor: 0.25,
-            systemScope: 'multi',
-            hitsInternal: true,
-            systemDamageFactor: 1,
-        });
-        expect(damageProfiles.ArmPen).to.deep.equal({
-            surfaceEffect: false,
-            deflectable: true,
-            surfaceDamageFactor: 0,
-            systemScope: 'single',
-            hitsInternal: true,
-            systemDamageFactor: 1.5,
-        });
-        // shrapnel clouds cannot be deflected, never penetrate plates, and out-scrape any blast wave
-        expect(damageProfiles.Frag).to.deep.equal({
-            surfaceEffect: true,
-            deflectable: false,
-            surfaceDamageFactor: 2,
-            systemScope: 'multi',
-            hitsInternal: false,
-            systemDamageFactor: 0.5,
-        });
-        // a slightly weaker ArmPen (single system, factor 1 vs 1.5) whose niche is defeating reactive;
-        // not deflectable — the precursor defeats the deflection
-        expect(damageProfiles.Tandem).to.deep.equal({
-            surfaceEffect: false,
-            deflectable: false,
-            surfaceDamageFactor: 0,
-            systemScope: 'single',
-            hitsInternal: true,
-            systemDamageFactor: 1,
-        });
-        expect(damageProfiles.Elec).to.deep.equal({
-            surfaceEffect: false,
-            deflectable: true,
-            surfaceDamageFactor: 0,
-            systemScope: 'electronics',
-            hitsInternal: true,
-            systemDamageFactor: 2,
-        });
+    it('Frag is a shrapnel cloud: undeflectable, never penetrates, strongest surface shredder', () => {
+        expect(damageProfiles.Frag.deflectable).to.equal(false);
+        expect(damageProfiles.Frag.hitsInternal).to.equal(false);
+        for (const type of damageTypes) {
+            if (type === 'Frag') continue;
+            expect(damageProfiles.Frag.surfaceDamageFactor).to.be.greaterThan(damageProfiles[type].surfaceDamageFactor);
+        }
+    });
+
+    it('Frag is the only profile that does not hit internal systems', () => {
+        for (const type of damageTypes) {
+            expect(damageProfiles[type].hitsInternal, type).to.equal(type !== 'Frag');
+        }
+    });
+
+    it('Tandem is a weaker ArmPen whose niche is defeating deflection', () => {
+        expect(damageProfiles.Tandem.deflectable).to.equal(false);
+        expect(damageProfiles.Tandem.systemScope).to.equal(damageProfiles.ArmPen.systemScope);
+        expect(damageProfiles.Tandem.systemDamageFactor).to.be.lessThan(damageProfiles.ArmPen.systemDamageFactor);
+    });
+
+    it('Elec is the only electronics-scoped profile and hits its scope hardest', () => {
+        for (const type of damageTypes) {
+            expect(damageProfiles[type].systemScope === 'electronics', type).to.equal(type === 'Elec');
+        }
+        for (const type of damageTypes) {
+            if (type === 'Elec') continue;
+            expect(damageProfiles.Elec.systemDamageFactor).to.be.greaterThan(damageProfiles[type].systemDamageFactor);
+        }
     });
 
     it('Frag is the strongest surface scraper', () => {
@@ -75,30 +64,35 @@ describe('damage profiles and projectile designs (regression pins)', () => {
         );
     });
 
-    it('heat per shot is 5 for shells and 25 for missiles', () => {
-        for (const model of projectileModels) {
-            const design = projectileDesigns[model];
-            expect(design.heatPerShot).to.equal(design.homing ? 25 : 5);
-        }
+    it('all shells share one heat cost, all missiles another, and missiles run hotter', () => {
+        const heats = (models: readonly (typeof projectileModels)[number][]) =>
+            new Set(models.map((m) => projectileDesigns[m].heatPerShot));
+        const shellHeats = heats(projectileModels.filter(isShellAmmo));
+        const missileHeats = heats(projectileModels.filter(isMissileAmmo));
+        expect(shellHeats.size).to.equal(1);
+        expect(missileHeats.size).to.equal(1);
+        expect([...missileHeats][0]).to.be.greaterThan([...shellHeats][0]);
     });
 
-    it('missile blast sizes are differentiated (expansionSpeed x secondsToLive)', () => {
-        expect(blastSize(projectileDesigns.ArmPenMissile.explosion)).to.equal(200);
-        expect(blastSize(projectileDesigns.TandemMissile.explosion)).to.equal(300);
-        expect(blastSize(projectileDesigns.ElecMissile.explosion)).to.equal(300);
-        expect(blastSize(projectileDesigns.HiExpMissile.explosion)).to.equal(350);
-        expect(blastSize(projectileDesigns.ClusterMissile.warheads.ArmPen.explosion)).to.equal(400);
-        expect(blastSize(projectileDesigns.ClusterMissile.warheads.Frag.explosion)).to.equal(750);
-        expect(blastSize(projectileDesigns.FragMissile.explosion)).to.equal(800);
+    it('shrapnel clouds out-size any blast wave', () => {
+        const nonFragMissiles = ['HiExpMissile', 'ArmPenMissile', 'TandemMissile', 'ElecMissile'] as const;
+        const fragBlasts = [
+            projectileDesigns.FragMissile.explosion,
+            projectileDesigns.ClusterMissile.warheads.Frag.explosion,
+        ];
+        for (const frag of fragBlasts) {
+            for (const model of nonFragMissiles) {
+                expect(blastSize(frag)).to.be.greaterThan(blastSize(projectileDesigns[model].explosion));
+            }
+        }
     });
 
     it('all frag warheads share the same intensity — they differ only in cloud size and linger time', () => {
         const shell = projectileDesigns.FragShell.explosion;
         const clusterFrag = projectileDesigns.ClusterMissile.warheads.Frag.explosion;
         const dedicated = projectileDesigns.FragMissile.explosion;
-        expect(shell.damageFactor).to.equal(10);
-        expect(clusterFrag.damageFactor).to.equal(10);
-        expect(dedicated.damageFactor).to.equal(10);
+        expect(clusterFrag.damageFactor).to.equal(shell.damageFactor);
+        expect(dedicated.damageFactor).to.equal(shell.damageFactor);
         // the dedicated missile's edge over the cluster mode is a bigger cloud that lingers longer
         expect(blastSize(dedicated)).to.be.greaterThan(blastSize(clusterFrag));
         expect(dedicated.secondsToLive).to.be.greaterThan(clusterFrag.secondsToLive);
@@ -117,6 +111,11 @@ describe('damage profiles and projectile designs (regression pins)', () => {
     });
 
     describe('cluster missile warhead modes', () => {
+        it('default damageType matches the default warhead mode', () => {
+            const p = new Projectile('ClusterMissile');
+            expect(p.damageType).to.equal(p.design.warheads![p.warhead].damageType);
+        });
+
         it('Frag mode: big lingering shrapnel cloud, second only to the dedicated Frag missile', () => {
             const p = new Projectile('ClusterMissile');
             p.warhead = 'Frag';

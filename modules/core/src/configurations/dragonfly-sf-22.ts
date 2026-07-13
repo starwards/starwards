@@ -1,13 +1,14 @@
 import { ShipDesign } from '../ship';
-import { compositeArmor } from './armor-models';
 
 export const dragonflyArmor = {
     modelName: 'Aegis-12 Plated Armor',
     numberOfPlates: 12,
     healRate: 3,
     plateMaxHealth: 1500,
-    ...compositeArmor,
+    type: 'composite' as const,
+    withFaradayLayer: false,
 };
+
 export const dragonflyThruster = {
     modelName: 'RT-150 Vectored Thruster',
     maxAngleError: 45,
@@ -35,6 +36,12 @@ export const dragonflyChaingun = {
     use_HiExpShell: true,
     use_ArmPenShell: true,
     use_FragShell: true,
+    use_HiExpMissile: false,
+    use_ArmPenMissile: false,
+    use_FragMissile: false,
+    use_ClusterMissile: false,
+    use_TandemMissile: false,
+    use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
 };
@@ -87,6 +94,9 @@ export const dragonflyTube = {
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
     energyCost: 30,
+    use_HiExpShell: false,
+    use_ArmPenShell: false,
+    use_FragShell: false,
     use_HiExpMissile: true,
     use_ArmPenMissile: true,
     use_FragMissile: true,
@@ -143,7 +153,7 @@ export const dragonflySignals = {
     hackBaseSuccessRate: 0.6,
 };
 
-export const dragonflySF22: ShipDesign = {
+export const dragonflySF22 = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
     thrusters: [
@@ -165,4 +175,4 @@ export const dragonflySF22: ShipDesign = {
     docking: dragonflyDocking,
     maneuvering: dragonflyManeuvering,
     signals: dragonflySignals,
-};
+} satisfies ShipDesign;

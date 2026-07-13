@@ -1,4 +1,4 @@
-import { ArmorModelStats, RTuple2, toPositiveDegreesDelta } from '..';
+import { ArmorModelName, ArmorModelStats, RTuple2, toPositiveDegreesDelta } from '..';
 import { ArraySchema, Schema } from '@colyseus/schema';
 
 import { DamageType } from '../space/damage-profile';
@@ -13,7 +13,9 @@ export type ArmorDesign = {
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
-} & ArmorModelStats;
+    type: ArmorModelName;
+    withFaradayLayer: boolean;
+};
 
 // how the armor engages an incoming damage type
 export type ArmorResponse =
@@ -24,7 +26,7 @@ export type ArmorResponse =
     // plates take the hit; damage leaks through broken sections and inherent penetration
     | { kind: 'engage'; plateFactor: number; penetration: number };
 
-export class ArmorDesignState extends DesignState implements ArmorDesign {
+export class ArmorDesignState extends DesignState implements ArmorModelStats {
     @gameField('float32') numberOfPlates = 0;
     @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;

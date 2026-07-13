@@ -119,3 +119,13 @@ export const faradayArmor: ArmorModelStats = {
 export function withFaradayLayer<T extends ArmorModelStats>(stats: T): T {
     return { ...stats, plateDamage_Elec: 0, penetration_Elec: 0 };
 }
+
+export const armorModels = {
+    composite: compositeArmor,
+    whipple: whippleArmor,
+    hardened: hardenedArmor,
+    reactive: reactiveArmor,
+    faraday: faradayArmor,
+} as const satisfies Record<string, ArmorModelStats>;
+
+export type ArmorModelName = keyof typeof armorModels;
