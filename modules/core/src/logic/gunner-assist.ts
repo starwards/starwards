@@ -1,6 +1,6 @@
 import { ChainGun, ShipState } from '../ship';
+import { ProjectileDesign, SpaceObject, projectileDesigns } from '../space';
 import { RTuple2, addScale } from './formulas';
-import { SpaceObject, projectileDesigns } from '../space';
 
 import { XY } from './xy';
 
@@ -79,13 +79,19 @@ export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPos
     return XY.div(posDeltaOnDirection, direction);
 }
 
+// blast radius of the loaded round's detonation. Impact rounds are contact-fuzed and carry
+// no blast (spec §3) — aim for a direct hit, radius 0.
+function shellBlastRadius(projectile: keyof typeof projectileDesigns): number {
+    const { explosion }: ProjectileDesign = projectileDesigns[projectile];
+    return explosion ? explosion.secondsToLive * explosion.expansionSpeed : 0;
+}
+
 export function getKillZoneRadiusRange(chainGun: ChainGun): RTuple2 {
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     if (chainGun.projectile === 'None') {
         return [0, 1_000_000];
     }
-    const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
-    const explosionRadius = secondsToLive * expansionSpeed;
+    const explosionRadius = shellBlastRadius(chainGun.projectile);
     return [shellExplosionDistance - 3.0 * explosionRadius, shellExplosionDistance + 3.0 * explosionRadius];
 }
 
@@ -119,8 +125,7 @@ function getShellDangerZoneRadius(chainGun: ChainGun): number {
     if (chainGun.projectile === 'None') {
         return 0;
     }
-    const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
-    const explosionRadius = secondsToLive * expansionSpeed;
+    const explosionRadius = shellBlastRadius(chainGun.projectile);
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     const spreadDegrees = 3.0 * chainGun.design.bulletDegreesDeviation;
     const spread = Math.sin(spreadDegrees) * shellExplosionDistance;

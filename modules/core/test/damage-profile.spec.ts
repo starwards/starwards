@@ -82,14 +82,18 @@ describe('damage profiles and projectile designs (regression pins)', () => {
         }
     });
 
-    it('missile blast sizes are differentiated (expansionSpeed x secondsToLive)', () => {
-        expect(blastSize(projectileDesigns.ArmPenMissile.explosion)).to.equal(200);
-        expect(blastSize(projectileDesigns.TandemMissile.explosion)).to.equal(300);
-        expect(blastSize(projectileDesigns.ElecMissile.explosion)).to.equal(300);
+    it('blast sizes are differentiated (expansionSpeed x secondsToLive); impact rounds carry no blast', () => {
         expect(blastSize(projectileDesigns.HiExpMissile.explosion)).to.equal(350);
-        expect(blastSize(projectileDesigns.ClusterMissile.warheads.ArmPen.explosion)).to.equal(400);
         expect(blastSize(projectileDesigns.ClusterMissile.warheads.Frag.explosion)).to.equal(750);
         expect(blastSize(projectileDesigns.FragMissile.explosion)).to.equal(800);
+        // impact delivery is contact-fuzed and never detonates (spec §3)
+        expect(new Projectile('ArmPenShell').warheadDesign.explosion).to.equal(undefined);
+        expect(new Projectile('ArmPenMissile').warheadDesign.explosion).to.equal(undefined);
+        expect(new Projectile('TandemMissile').warheadDesign.explosion).to.equal(undefined);
+        expect(new Projectile('ElecMissile').warheadDesign.explosion).to.equal(undefined);
+        const clusterAP = new Projectile('ClusterMissile');
+        clusterAP.warhead = 'ArmPen';
+        expect(clusterAP.warheadDesign.explosion).to.equal(undefined);
     });
 
     it('all frag warheads share the same intensity — they differ only in cloud size and linger time', () => {
@@ -104,11 +108,16 @@ describe('damage profiles and projectile designs (regression pins)', () => {
         expect(dedicated.secondsToLive).to.be.greaterThan(clusterFrag.secondsToLive);
     });
 
-    it('projectiles propagate their damageType to their explosion', () => {
+    it('explosion-delivery projectiles propagate their damageType to their explosion; impact rounds have none', () => {
         for (const model of projectileModels) {
             const p = new Projectile(model);
             expect(p.damageType).to.equal(projectileDesigns[model].damageType);
-            expect(p.makeExplosion().damageType).to.equal(projectileDesigns[model].damageType);
+            if (p.delivery === 'explosion') {
+                expect(p.makeExplosion().damageType).to.equal(projectileDesigns[model].damageType);
+            } else {
+                // impact rounds are contact-fuzed and never detonate (spec §3)
+                expect(() => p.makeExplosion()).to.throw();
+            }
         }
     });
 
@@ -124,19 +133,19 @@ describe('damage profiles and projectile designs (regression pins)', () => {
             const explosion = p.makeExplosion();
             for (const model of projectileModels) {
                 if (model === 'ClusterMissile' || model === 'FragMissile') continue;
-                expect(blastSize(explosion)).to.be.greaterThan(blastSize(projectileDesigns[model].explosion));
+                const other = new Projectile(model).warheadDesign.explosion;
+                if (!other) continue; // impact rounds carry no blast
+                expect(blastSize(explosion)).to.be.greaterThan(blastSize(other));
             }
             expect(blastSize(explosion)).to.be.lessThan(blastSize(projectileDesigns.FragMissile.explosion));
         });
 
-        it('ArmPen mode: small blast, still bigger than a HiExp missile, weaker than a dedicated ArmPen missile', () => {
+        it('ArmPen mode: impact submunitions, no blast — contact-fuzed like every impact round', () => {
             const p = new Projectile('ClusterMissile');
             p.warhead = 'ArmPen';
             expect(p.damageType).to.equal('ArmPen');
-            const explosion = p.makeExplosion();
-            expect(blastSize(explosion)).to.be.greaterThan(blastSize(projectileDesigns.HiExpMissile.explosion));
-            expect(blastSize(explosion)).to.be.lessThan(blastSize(p.design.warheads!.Frag.explosion));
-            expect(explosion.damageFactor).to.be.lessThan(projectileDesigns.ArmPenMissile.explosion.damageFactor);
+            expect(p.delivery).to.equal('impact');
+            expect(() => p.makeExplosion()).to.throw();
         });
 
         it('warhead mode is ignored by single-warhead designs', () => {

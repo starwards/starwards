@@ -40,7 +40,9 @@ export interface WarheadDesign {
     // per-warhead scope override (spec §5 exception): Cluster-AP is ArmPen-type but multi-scope.
     // undefined keeps the damage type's own profile scope.
     systemScope?: SystemScope;
-    explosion: {
+    // detonation blast — explosion delivery only. Impact rounds are contact-fuzed and never
+    // detonate (spec §3): they carry no blast.
+    explosion?: {
         secondsToLive: number;
         expansionSpeed: number;
         damageFactor: number;
@@ -88,7 +90,6 @@ export const projectileDesigns = {
         impactDamage: 30,
         heatPerShot: 5,
         homing: null,
-        explosion: { secondsToLive: 0.5, expansionSpeed: 80, damageFactor: 30, blastFactor: 1 },
     },
     FragShell: {
         name: '30mm Frag shell',
@@ -134,8 +135,6 @@ export const projectileDesigns = {
             maxSpeed: 960,
             proximityDetonation: 100,
         },
-        // tight 200m instant punch
-        explosion: { secondsToLive: 0.25, expansionSpeed: 800, damageFactor: 80, blastFactor: 0.5 },
     },
     FragMissile: {
         name: 'Frag missile',
@@ -190,7 +189,6 @@ export const projectileDesigns = {
                 concentration: 3,
                 impactDamage: 30,
                 systemScope: 'multi',
-                explosion: { secondsToLive: 0.4, expansionSpeed: 1_000, damageFactor: 40, blastFactor: 0.5 },
             },
         },
     },
@@ -209,8 +207,6 @@ export const projectileDesigns = {
             maxSpeed: 420,
             proximityDetonation: 100,
         },
-        // focused 300m — the delivery mechanism is the point
-        explosion: { secondsToLive: 0.3, expansionSpeed: 1_000, damageFactor: 60, blastFactor: 1 },
     },
     ElecMissile: {
         name: 'Elec missile',
@@ -227,8 +223,6 @@ export const projectileDesigns = {
             maxSpeed: 780,
             proximityDetonation: 100,
         },
-        // focused 300m — the delivery mechanism is the point
-        explosion: { secondsToLive: 0.3, expansionSpeed: 1_000, damageFactor: 5, blastFactor: 1 },
     },
 } as const satisfies Record<AmmoType, ProjectileDesign | MissileDesign>;
 
@@ -328,8 +322,13 @@ export class Projectile extends SpaceObjectBase implements Craft {
         if (this._explosion) {
             return this._explosion;
         }
+        const design = this.warheadDesign.explosion;
+        if (!design) {
+            // impact rounds are contact-fuzed and never detonate (spec §3)
+            throw new Error(`${this.model} (${this.warhead}) is an impact round — it has no blast`);
+        }
         const explosion = new Explosion();
-        explosion.assign(this.warheadDesign.explosion);
+        explosion.assign(design);
         explosion.damageType = this.warheadDesign.damageType;
         explosion.concentration = this.warheadDesign.concentration;
         return explosion;

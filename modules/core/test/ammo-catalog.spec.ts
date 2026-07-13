@@ -53,10 +53,12 @@ describe('§8 ammo catalog (regression pins)', () => {
                 expect(row.warhead.concentration).to.equal(row.concentration);
                 if (row.delivery === 'impact') {
                     expect(row.warhead.impactDamage).to.equal(row.impactDamage);
+                    // impact rounds are contact-fuzed and never detonate (spec §3) — no blast data
+                    expect(row.warhead.explosion).to.equal(undefined);
                 } else {
                     // explosion: per-second damage factor + blast size (expansionSpeed x secondsToLive)
-                    expect(row.warhead.explosion.damageFactor).to.equal(row.damageFactor);
-                    expect(blastSize(row.warhead.explosion)).to.equal(row.blast);
+                    expect(row.warhead.explosion!.damageFactor).to.equal(row.damageFactor);
+                    expect(blastSize(row.warhead.explosion!)).to.equal(row.blast);
                 }
             });
         }

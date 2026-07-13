@@ -288,6 +288,66 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         });
     });
 
+    describe('spec §9 worked examples', () => {
+        function countDefectedInternals(state: ShipState): number {
+            return [
+                state.smartPilot.offsetFactor > 0,
+                state.warp.damageFactor > 0 || state.warp.velocityFactor < 1,
+                state.maneuvering.efficiency < 1,
+                state.reactor.effeciencyFactor < 1 || state.reactor.energy < state.reactor.design.maxEnergy,
+                state.magazine.capacity < 1 || state.magazine.getCount('HiExpShell') < state.magazine.max_HiExpShell,
+            ].filter(Boolean).length;
+        }
+
+        function breachFrontArc(state: ShipState) {
+            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+                plate.health = 0;
+            }
+        }
+
+        it('ArmPen missile vs intact Composite: plate erodes amount x2, no system damage', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            const before = state.armor.armorPlates[0].health;
+            const damaged = damageManager.takeWeaponDamage({
+                ...frontDamage(60, 'ArmPen'),
+                delivery: 'impact',
+                concentration: 8,
+            });
+            expect(before - state.armor.armorPlates[0].health).to.be.closeTo(120, 0.001);
+            expect(damaged).to.equal(false);
+            expect(countDefectedInternals(state)).to.equal(0);
+        });
+
+        it('ArmPen missile vs breached Composite: the 8-roll burst lands on one sticky victim only', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            breachFrontArc(state);
+            const damaged = damageManager.takeWeaponDamage({
+                ...frontDamage(60, 'ArmPen'),
+                delivery: 'impact',
+                concentration: 8,
+            });
+            expect(damaged).to.equal(true);
+            // single scope: exactly one internal system takes the whole 8-roll burst
+            expect(countDefectedInternals(state)).to.equal(1);
+            // externals in the section untouched — ArmPen has no surface effect
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
+
+        it('HiExp missile vs the same breach: every internal in the section bleeds, externals get the weak scrape', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            breachFrontArc(state);
+            const damaged = damageManager.takeWeaponDamage({
+                ...frontDamage(1000, 'HiExp'),
+                delivery: 'explosion',
+            });
+            expect(damaged).to.equal(true);
+            // multi scope: more than one internal in the exposed section defected
+            expect(countDefectedInternals(state)).to.be.greaterThan(1);
+            // plus the (weak, x0.25) surface scrape on hull-mounted systems
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+        });
+    });
+
     describe('non-projectile damage path', () => {
         it('untyped damage (collisions) takes the flat-damage flow', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
