@@ -1,6 +1,6 @@
-import { Destructors, ShipDriver } from '@starwards/core';
-import { addInputBlade, addSliderBlade, addTextBlade, createPane } from '../panel/blades';
-import { readNumberProp, readProp } from '../property-wrappers';
+import { ClusterWarheadMode, Destructors, ShipDriver, clusterWarheadModes } from '@starwards/core';
+import { addInputBlade, addListBlade, addSliderBlade, addTextBlade, createPane } from '../panel/blades';
+import { readNumberProp, readProp, readWriteProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
@@ -41,6 +41,16 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
             tubeFolder,
             readProp(shipDriver, `/tubes/${tube.index}/loadAmmo`),
             { label: 'auto load' },
+            panelCleanup.add,
+        );
+        // cluster warhead mode is stamped on cluster munitions at launch; ignored by single-warhead ammo
+        addListBlade(
+            tubeFolder,
+            readWriteProp<ClusterWarheadMode>(shipDriver, `/tubes/${tube.index}/clusterWarhead`),
+            {
+                label: 'cluster warhead',
+                options: clusterWarheadModes.map((mode) => ({ value: mode, text: mode })),
+            },
             panelCleanup.add,
         );
         if (tube.index < shipDriver.state.tubes.length - 1) {
