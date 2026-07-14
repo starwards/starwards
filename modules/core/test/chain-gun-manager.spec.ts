@@ -5,8 +5,8 @@ import {
     SmartPilotMode,
     SpaceManager,
     Spaceship,
+    ammoTypes,
     makeShipState,
-    projectileModels,
     shipConfigurations,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
@@ -58,8 +58,8 @@ describe('ChainGunManager', () => {
             const magazine = shipMgr.state.magazine;
 
             // Deplete all ammo
-            for (const model of projectileModels) {
-                magazine.setCount(model, 0);
+            for (const at of ammoTypes) {
+                magazine.setCount(at, 0);
             }
 
             chainGun.projectile = 'None';

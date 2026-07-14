@@ -1,22 +1,15 @@
 import { DesignState, SystemState, defectible } from './system';
 import { commandable, gameField } from '../game-field';
 
-import { ProjectileModel } from '../space/projectile';
+import { AmmoType } from '../space/projectile';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
 export type MagazineDesign = {
+    [T in AmmoType as `max_${T}`]: number;
+} & {
     modelName?: string;
     damage50: number;
-    max_HiExpShell: number;
-    max_ArmPenShell: number;
-    max_FragShell: number;
-    max_HiExpMissile: number;
-    max_ArmPenMissile: number;
-    max_FragMissile: number;
-    max_ClusterMissile: number;
-    max_TandemMissile: number;
-    max_ElecMissile: number;
     capacityBrokenThreshold: number;
     capacityDamageFactor: number;
 };
@@ -104,15 +97,15 @@ export class Magazine extends SystemState {
         return this.capacity < this.design.capacityBrokenThreshold;
     }
 
-    getCount(m: ProjectileModel): number {
+    getCount(m: AmmoType): number {
         return this[`count_${m}`];
     }
 
-    setCount(m: ProjectileModel, value: number): void {
+    setCount(m: AmmoType, value: number): void {
         this[`count_${m}`] = value;
     }
 
-    getMax(m: ProjectileModel): number {
+    getMax(m: AmmoType): number {
         return this[`max_${m}`];
     }
 

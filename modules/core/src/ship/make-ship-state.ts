@@ -16,7 +16,7 @@ import { armorModels, withFaradayLayer } from '../configurations/armor-models';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
-import { projectileModels } from '../space/projectile';
+import { ammoTypes } from '../space/projectile';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
@@ -113,7 +113,7 @@ function makeWarp(design: WarpDesign) {
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
-    for (const projectileModel of projectileModels) {
+    for (const projectileModel of ammoTypes) {
         magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
     }
     return magazine;

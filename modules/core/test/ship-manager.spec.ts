@@ -20,9 +20,9 @@ import { MockDie, makeIterationsData } from './ship-test-harness';
 import { degree, float } from './properties';
 
 import { DockingMode } from '../src/ship/docking';
+import { ammoDesigns } from '../src/space/projectile';
 import { expect } from 'chai';
 import fc from 'fast-check';
-import { projectileDesigns } from '../src/space/projectile';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
@@ -227,7 +227,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipMgr.state.design.totalCoolant = 0;
                 shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
                 switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
-                const heatPerShell = projectileDesigns.HiExpShell.heatPerShot;
+                const heatPerShell = ammoDesigns.HiExpShell.heatPerShot;
 
                 const i = makeIterationsData(1, numIterationsPerSecond);
                 for (const id of i) {
@@ -262,7 +262,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         tube.power = PowerLevel.MAX;
         tube.isFiring = true;
         switchToAvailableAmmo(tube, shipMgr.state.magazine);
-        const heatPerMissile = projectileDesigns.HiExpMissile.heatPerShot;
+        const heatPerMissile = ammoDesigns.HiExpMissile.heatPerShot;
 
         const numIterationsPerSecond = 20;
         const i = makeIterationsData(2, numIterationsPerSecond * 2);

@@ -6,10 +6,10 @@ import {
     SmartPilot,
     SpaceManager,
     Spaceship,
+    ammoTypes,
     archIntersection,
     capToRange,
     limitPercision,
-    projectileModels,
     shipAreasInRange,
 } from '..';
 import { DamageProfile, WeaponDamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
@@ -28,9 +28,10 @@ import { Signals } from './signals';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
 
-// system damage dealt to external systems by a surface-effect hit. Explosion damage arrives
-// per tick (damageFactor x dt x overlap), so this is calibrated for sanding over a full cloud
-// pass (a handful of small defects), not instant kills.
+/**
+ * Explosion damage arrives per tick (damageFactor × dt × capped overlap), so this is
+ * calibrated for sanding over a full cloud pass (a handful of small defects), not instant kills.
+ */
 const SURFACE_EFFECT_FACTOR = 0.05;
 
 export type AttackDamage = Damage & {
@@ -81,7 +82,6 @@ export class DamageManager {
         const damagedExternals = this.applySurfaceEffect(damage);
         switch (armorResponse.kind) {
             case 'bypass': {
-                // the armor is transparent to this type — every hit area is fully exposed
                 const fullExposure = [...shipAreasInRange(damage.damageSurfaceArc)].map((hitArea) => ({
                     hitArea,
                     exposure: 1,
@@ -119,9 +119,10 @@ export class DamageManager {
         return damagedInternals;
     }
 
-    // hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
-    // regardless of the plates, unless the armor deflects the round before the blast develops
-    // (shrapnel clouds are not deflectable)
+    /**
+     * hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
+     * regardless of the plates, unless the armor deflects the round before the blast develops
+     */
     private applySurfaceEffect(damage: AttackDamage): boolean {
         const { profile } = damage;
         if (!profile.surfaceEffect) {
@@ -139,8 +140,10 @@ export class DamageManager {
         return true;
     }
 
-    // the armor engages: plates take the hit per area, then systems take damage wherever
-    // a section is exposed — by broken plates or by inherent penetration
+    /**
+     * systems take damage wherever a section is exposed — by broken plates or by
+     * inherent penetration
+     */
     private resolveArmorEngagement(damage: AttackDamage, armor: { plateFactor: number; penetration: number }): boolean {
         const exposures: AreaExposure[] = [];
         let cellPopped = false;
@@ -165,18 +168,21 @@ export class DamageManager {
         }
         const damagedInternals = this.applyExposedSystemDamage(damage, exposures);
         if (cellPopped && armor.penetration < 1) {
-            // the popped reactive cell defeats the hit: the blast/round is consumed and stops
-            // dealing damage on subsequent ticks and to other ships. A full-penetration round
-            // (tandem warhead) pops the cell but is not consumed — the main charge lands.
+            // the popped cell consumes the blast/round — it must not keep dealing damage on
+            // subsequent ticks or to other ships. A full-penetration round (tandem warhead)
+            // survives the pop: the main charge lands.
             this.spaceManager.destroyObject(damage.id);
         }
         return damagedInternals;
     }
 
-    // plate response to an engaging hit, one hit area at a time. Ablative plates erode, and
-    // the hit leaks through whatever is bare after the erosion; a reactive cell (at most one
-    // per hit) pops to defeat this hit, so only sections already bare before the pop count
-    // as exposed
+    /**
+     * Ablative plates erode, and the hit leaks through whatever is bare after the erosion;
+     * a reactive cell pops to defeat this hit, so only sections already bare before the pop
+     * count as exposed. Intended: at most one cell per hit. Actual: one per damage tick —
+     * a full-penetration explosion (Tandem) survives the pop and pops another cell each tick
+     * it keeps dealing damage (see decision 011 item 3, known deviation).
+     */
     private engagePlatesInArea(
         erosion: number,
         areaHitRangeAngles: RTuple2,
@@ -191,10 +197,11 @@ export class DamageManager {
         return { brokenPlates: this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles), cellPopped: false };
     }
 
-    // damage that got past the armor. plateDamage governs plate erosion only — once exposed,
-    // systems take the round's own damage. Electronics damage is ship-wide, applied once at
-    // the worst exposure across areas; other scopes draw from the systems of each exposed
-    // area — 'single' defects one random system per hit, 'multi' defects every matching one
+    /**
+     * plateDamage governs plate erosion only — once exposed, systems take the round's own
+     * damage. Electronics damage is ship-wide, applied once at the worst exposure across
+     * areas; other scopes draw from the systems of each exposed area
+     */
     private applyExposedSystemDamage(damage: AttackDamage, exposures: AreaExposure[]): boolean {
         const { profile } = damage;
         const scaled = { ...damage, amount: damage.amount * profile.systemDamageFactor };
@@ -248,7 +255,7 @@ export class DamageManager {
         return collected;
     }
 
-    // reactive armor: a single cell sacrifices itself to defeat the hit; returns whether a cell popped
+    /** a single reactive cell sacrifices itself to defeat the whole hit */
     private consumeSingleUsePlate(localAngleHitRange: RTuple2): boolean {
         for (const [_, plate] of this.state.armor.platesInRange(localAngleHitRange)) {
             if (plate.health > 0) {
@@ -330,8 +337,8 @@ export class DamageManager {
     private damageMagazine(magazine: Magazine, damageId: string) {
         if (this.die.getSuccess('damageMagazine:' + damageId, 0.5)) {
             // todo convert to a defectible property that accumulates damage
-            const idx = this.die.getRollInRange('magazineLostAmmo:' + damageId, 0, projectileModels.length);
-            const projectileKey = projectileModels[Math.floor(idx)];
+            const idx = this.die.getRollInRange('magazineLostAmmo:' + damageId, 0, ammoTypes.length);
+            const projectileKey = ammoTypes[Math.floor(idx)];
             magazine.setCount(
                 projectileKey,
                 Math.round(magazine.getCount(projectileKey) * (1 - magazine.design.capacityDamageFactor)),

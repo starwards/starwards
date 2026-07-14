@@ -22,15 +22,18 @@ When damage penetrates armor, the ammo's damage profile decides which systems ta
 
 ## System Effectiveness (Done)
 
-Universal formula across all systems:
+Universal formula across all systems (`SystemState.effectiveness` in `modules/core/src/ship/system.ts`):
+
 ```
-effectiveness = broken ? 0 : power x coolantFactor x (1 - hacked)
+effectiveness = broken ? 0 : power x hacked
 ```
+
+`hacked` is a multiplier by hack level: OK = 1, COMPROMISED = 0.5, DISABLED = 0. Coolant governs heat dissipation, not effectiveness — under-cooled systems overheat and take damage.
 
 This single formula creates deep interconnected gameplay:
 - Engineer allocates **power** (SHUTDOWN/LOW/MID/HIGH/MAX)
-- Engineer allocates **coolant** (dissipates heat)
-- Signals officer can **hack** enemy systems (50% reduction)
+- Engineer allocates **coolant** (dissipates heat, preventing overheat damage)
+- Signals officer can **hack** enemy systems (COMPROMISED = 50% reduction, DISABLED = 0)
 - Physical **damage** can break systems entirely
 
 ## Power Distribution (Done)
@@ -49,8 +52,6 @@ Three engagement circles:
 - **Close (< 1000m):** ChainGun — rapid-fire, three shell types (HiExp / ArmPen / Frag; dragonfly magazine 2400/1200/2000)
 - **Medium (1000-4000m):** Railgun — charge time weapon (planned, not built)
 - **Long (4000m+):** Missiles — six homing types incl. dual-mode Cluster (per-type speed/agility/lifetime, 100m proximity detonation; see the [Damage Model Spec](damage-model-spec.md) ammo catalog)
-
-Chain reaction explosions: destroyed ships create secondary blast with inverse-square falloff.
 
 ## Repair System (Designed — MS3 Phase 4)
 

@@ -12,9 +12,9 @@ import {
     Spaceship,
     TargetedStatus,
     XY,
+    ammoTypes,
     capToRange,
     lerp,
-    projectileModels,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
@@ -59,8 +59,8 @@ export function resetShipState(state: ShipState) {
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
     state.signals.trackedTargets.splice(0);
-    for (const model of projectileModels) {
-        state.magazine.setCount(model, state.magazine.getMax(model));
+    for (const at of ammoTypes) {
+        state.magazine.setCount(at, state.magazine.getMax(at));
     }
     // Reset non-@gameField command properties that Schema.clone() does not copy.
     // Without this, cloned states have these as undefined, causing NaN propagation.
@@ -355,10 +355,10 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected updateAmmo() {
-        for (const projectileKey of projectileModels) {
-            this.state.magazine[`count_${projectileKey}`] = Math.min(
-                this.state.magazine[`count_${projectileKey}`],
-                this.state.magazine[`max_${projectileKey}`],
+        for (const at of ammoTypes) {
+            this.state.magazine[`count_${at}`] = Math.min(
+                this.state.magazine[`count_${at}`],
+                this.state.magazine[`max_${at}`],
             );
         }
     }

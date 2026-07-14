@@ -33,14 +33,14 @@ Two findings after [009](009-frag-mechanics-and-cluster-modes.md):
 4. **Missile blast sizes are differentiated** via explosion `expansionSpeed`/`secondsToLive`
    (shells unchanged; `blastFactor` toned to knockback-sane values ≤1 except shells):
 
-   | Warhead | Size | Character |
-   |---|---|---|
-   | ArmPen missile | 200m (800×0.25) | tight instant punch |
-   | Tandem / Elec missile | 300m (1000×0.3) | focused — delivery is the point |
-   | HiExp missile | 350m (1000×0.35) | big sharp blast |
-   | Cluster ArmPen mode | 400m (1000×0.4) | small, still bigger than HiExp |
-   | Cluster Frag mode | 750m (750×1.0) | big *lingering* shrapnel cloud |
-   | Frag missile (new, 9th ammo) | 800m (500×1.6) | dedicated shrapnel warhead — bigger cloud, longest linger |
+   | Warhead                      | Size             | Character                                                 |
+   | ---------------------------- | ---------------- | --------------------------------------------------------- |
+   | ArmPen missile               | 200m (800×0.25)  | tight instant punch                                       |
+   | Tandem / Elec missile        | 300m (1000×0.3)  | focused — delivery is the point                           |
+   | HiExp missile                | 350m (1000×0.35) | big sharp blast                                           |
+   | Cluster ArmPen mode          | 400m (1000×0.4)  | small, still bigger than HiExp                            |
+   | Cluster Frag mode            | 750m (750×1.0)   | big *lingering* shrapnel cloud                            |
+   | Frag missile (new, 9th ammo) | 800m (500×1.6)   | dedicated shrapnel warhead — bigger cloud, longest linger |
 
    The Frag cloud reaches its size slowly and persists a full second — ships can fly into it
    and damage accumulates over more ticks; the AP/HE blasts are near-instant flashes.
@@ -52,5 +52,5 @@ Two findings after [009](009-frag-mechanics-and-cluster-modes.md):
 - `secondsToLive` also scales total delivered damage (more ticks in contact), so the longer
   Frag cloud partially offsets its low damageFactor — total-damage ordering was kept sane
   (dedicated ArmPen > cluster-AP; see damage-profile.spec pins).
-- All numbers live in `projectileDesigns`/`damageProfiles` literals — trivially tunable after
+- All numbers live in `ammoDesigns`/`damageProfiles` literals — trivially tunable after
   play-testing.

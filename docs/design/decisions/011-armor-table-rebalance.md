@@ -29,6 +29,10 @@ penetrator family and reactive armor.
    fix: exposure is measured **before** the pop, so the popping hit cannot leak damage through
    its own freshly-bared section; follow-up hits on that section get through normally.
    Reactive now blocks Elec (was bypass) at the cost of cells.
+   The intended rate is **one cell per hit**. For defeated warheads that holds (the pop consumes
+   the explosion), but a Tandem explosion survives the pop and its damage arrives per tick, so
+   today it pops one cell _per tick_ over its blast life — a single Tandem strike burns several
+   cells in the arc. Known deviation, to be fixed toward per-hit.
 4. **Frag never interacts with armor at all — `0/0` on every model** (Composite included): no
    plate erosion, no penetration, no ERA activation. Its entire damage output is the
    unconditional surface scrape (009/010), which no armor except nothing can stop — shrapnel is

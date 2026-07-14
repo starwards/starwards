@@ -53,7 +53,7 @@ export interface MissileDesign extends ProjectileDesign {
     homing: NonNullable<ProjectileDesign['homing']>;
 }
 
-export const projectileDesigns = {
+export const ammoDesigns = {
     HiExpShell: {
         name: '30mm HiExp shell',
         radius: 1,
@@ -183,15 +183,12 @@ export const projectileDesigns = {
     },
 } as const satisfies Record<AmmoType, ProjectileDesign | MissileDesign>;
 
-export const projectileModels = Object.keys(projectileDesigns) as readonly AmmoType[];
-export type ProjectileModel = AmmoType;
-
 export function isShellAmmo(ammo: AmmoType): ammo is ShellAmmoType {
-    return projectileDesigns[ammo].homing === null;
+    return ammoDesigns[ammo].homing === null;
 }
 
 export function isMissileAmmo(ammo: AmmoType): ammo is MissileAmmoType {
-    return projectileDesigns[ammo].homing !== null;
+    return ammoDesigns[ammo].homing !== null;
 }
 
 export class Projectile extends SpaceObjectBase implements Craft {
@@ -222,9 +219,9 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @gameField('string')
     public targetId: string | null = null;
 
-    @tweakable({ type: 'string enum', enum: projectileModels })
+    @tweakable({ type: 'string enum', enum: ammoTypes })
     @gameField('string')
-    public model: ProjectileModel = 'HiExpShell';
+    public model: AmmoType = 'HiExpShell';
 
     // warhead mode for cluster munitions — ignored by single-warhead designs.
     // Can be switched until detonation; the explosion is built from the mode in effect.
@@ -232,7 +229,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @gameField('string')
     public warhead: ClusterWarheadMode = 'Frag';
 
-    constructor(model?: ProjectileModel) {
+    constructor(model?: AmmoType) {
         super();
         if (model) {
             this.model = model;
@@ -247,7 +244,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
     }
 
     get design(): ProjectileDesign {
-        return projectileDesigns[this.model];
+        return ammoDesigns[this.model];
     }
 
     get warheadDesign(): WarheadDesign {

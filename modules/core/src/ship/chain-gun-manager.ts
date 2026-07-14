@@ -1,5 +1,5 @@
 import { EnergySource, HeatSink } from './ship-manager-abstract';
-import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, projectileDesigns, projectileModels } from '../space';
+import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, ammoDesigns, ammoTypes } from '../space';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
@@ -28,7 +28,7 @@ type ShipManager = {
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
     if (chainGun.projectile === 'None') {
-        chainGun.projectile = new Iterator(projectileModels)
+        chainGun.projectile = new Iterator(ammoTypes)
             .filter((p) => chainGun.design.isAmmoEnabled(p) && magazine.getCount(p) > 0)
             .firstOr('None');
     }
@@ -109,11 +109,11 @@ export class ChainGunManager implements Updateable {
         }
         if (chainGun.changeProjectileCommand) {
             chainGun.changeProjectileCommand = false;
-            const ammoTypes = new Iterator(projectileModels).filter((p) => chainGun.design.isAmmoEnabled(p));
+            const enabledAmmo = new Iterator(ammoTypes).filter((p) => chainGun.design.isAmmoEnabled(p));
             if (chainGun.projectile === 'None') {
-                chainGun.projectile = ammoTypes.firstOr('None');
+                chainGun.projectile = enabledAmmo.firstOr('None');
             } else {
-                chainGun.projectile = ammoTypes.elementAfter(chainGun.projectile);
+                chainGun.projectile = enabledAmmo.elementAfter(chainGun.projectile);
             }
         }
         if (!chainGun.effectiveness) {
@@ -215,7 +215,7 @@ export class ChainGunManager implements Updateable {
                 projectile.secondsToLive = chainGun.shellSecondsToLive;
             }
             this.spaceManager.insert(projectile);
-            const heatPerShot = projectileDesigns[firedProjectileType].heatPerShot;
+            const heatPerShot = ammoDesigns[firedProjectileType].heatPerShot;
             this.heatSink.addHeat(heatPerShot * chainGun.effectiveness, chainGun);
         }
     }

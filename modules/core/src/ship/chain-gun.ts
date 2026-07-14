@@ -1,10 +1,4 @@
-import {
-    AmmoType,
-    ClusterWarheadMode,
-    ProjectileModel,
-    clusterWarheadModes,
-    projectileModels,
-} from '../space/projectile';
+import { AmmoType, ClusterWarheadMode, ammoTypes, clusterWarheadModes } from '../space/projectile';
 import { DesignState, SystemState, defectible } from './system';
 import { commandable, gameField } from '../game-field';
 
@@ -13,7 +7,7 @@ import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
-export type SelectedProjectileModel = 'None' | ProjectileModel;
+export type SelectedProjectileModel = 'None' | AmmoType;
 
 // some stats are mapped from AmmoType,
 // so adding a AmmoType fails compilation
@@ -50,7 +44,7 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @gameField('boolean') use_TandemMissile = false;
     @gameField('boolean') use_ElecMissile = false;
 
-    isAmmoEnabled(m: ProjectileModel): boolean {
+    isAmmoEnabled(m: AmmoType): boolean {
         return this[`use_${m}`];
     }
 
@@ -115,14 +109,14 @@ export class ChainGun extends SystemState {
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
-        enum: ['None', ...projectileModels.filter((k) => t.design.isAmmoEnabled(k))],
+        enum: ['None', ...ammoTypes.filter((k) => t.design.isAmmoEnabled(k))],
     }))
     @gameField('string')
     projectile: SelectedProjectileModel = 'None';
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
-        enum: ['None', ...projectileModels.filter((k) => t.design.isAmmoEnabled(k))],
+        enum: ['None', ...ammoTypes.filter((k) => t.design.isAmmoEnabled(k))],
     }))
     @gameField('string')
     loadedProjectile: SelectedProjectileModel = 'None';

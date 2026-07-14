@@ -1,7 +1,9 @@
 # Decision: Frag never deflects/penetrates; Cluster becomes a dual-mode warhead
 
 **Date:** 2026-07
-**Status:** Accepted
+**Status:** Accepted. Item 4's warhead numbers superseded by
+[010](010-blast-size-and-surface-factors.md): all frag warheads share `damageFactor 10`, blast
+size is encoded in `expansionSpeed × secondsToLive` (not `blastFactor`, which is knockback only).
 
 ## Context
 
@@ -24,13 +26,13 @@ armor-piercing.
 3. **The `Cluster` damage type is dissolved.** `damageTypes` is now HiExp/ArmPen/Frag/Tandem/Elec;
    the `plateDamage_Cluster`/`penetration_Cluster` armor columns are removed.
 4. **ClusterMissile gets selectable warhead modes** (`warheads` on the projectile design):
-   - **Frag mode (default):** wide shrapnel shower — damageFactor 20, blastFactor 6 (the widest
-     blast in the game; FragShell is 4 — big, not comical).
-   - **ArmPen mode:** focused submunitions — damageFactor 40, blastFactor 2 (small blast, still
-     wider than a HiExp missile's 1; well below the dedicated ArmPen missile's 80 damage).
-   The mode is set per tube (`ChainGun.clusterWarhead`, tweakable/synced) and stamped on the
-   projectile at launch; the projectile's `warhead` field stays switchable until detonation,
-   when the explosion is built from the mode in effect (`Projectile.makeExplosion()`).
+    - **Frag mode (default):** wide shrapnel shower — damageFactor 20, blastFactor 6 (the widest
+      blast in the game; FragShell is 4 — big, not comical).
+    - **ArmPen mode:** focused submunitions — damageFactor 40, blastFactor 2 (small blast, still
+      wider than a HiExp missile's 1; well below the dedicated ArmPen missile's 80 damage).
+      The mode is set per tube (`ChainGun.clusterWarhead`, tweakable/synced) and stamped on the
+      projectile at launch; the projectile's `warhead` field stays switchable until detonation,
+      when the explosion is built from the mode in effect (`Projectile.makeExplosion()`).
 
 ## Consequences
 

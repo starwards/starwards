@@ -1,19 +1,21 @@
 # Decision: plateDamage governs plate erosion only
 
 **Date:** 2026-07
-**Status:** Accepted
+**Status:** Accepted. Partially superseded by [008](008-unconditional-surface-effect.md): the
+surface scrape is now unconditional, so Hardened's external systems _are_ washed by HiExp blast
+(at the reduced surface factor of [010](010-blast-size-and-surface-factors.md)).
 
 ## Context
 
 After the damage-profile unification ([006](006-damage-profile-unification.md)), the per-armor
 `plateDamage_<T>` factor multiplied **both** plate erosion and the system damage leaking through
-broken/penetrated sections. So `2/0` (vulnerable) breached twice as fast *and* hit systems twice
+broken/penetrated sections. So `2/0` (vulnerable) breached twice as fast _and_ hit systems twice
 as hard afterwards, and Reactive's `plateDamage_Tandem: 4` existed purely to deliver ×4 system
 damage (single-use cells pop regardless of the factor's magnitude).
 
 This double-dipping contradicts the intended mental model: armor is worn down until its plates
 are dead, and then the round's own damage reaches the systems. Armor quality should decide
-*time to breach*, not scale what a round does after the breach.
+_time to breach_, not scale what a round does after the breach.
 
 ## Decision
 

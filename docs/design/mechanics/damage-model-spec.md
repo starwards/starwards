@@ -345,7 +345,8 @@ change is a deliberate pin update.
 
 1. **Replan PR #1932 around this document**: impact delivery (Amir, in progress), layered
    armor stacks, concentration + sticky victim, explosion defect rationing; then retune damage
-   numbers.
+   numbers. Also fix Reactive's pop rate to once per hit — today a surviving explosion (Tandem)
+   pops one cell per damage tick ([011](../decisions/011-armor-table-rebalance.md) item 3).
 2. **Pierce delivery**: the railgun's overpenetration line. Reserved, not designed.
 3. **EMP-explosion variant**: area-denial EMP (multi-ship) as a future GM tool or mine; the
    delivery flag supports it without new mechanics.

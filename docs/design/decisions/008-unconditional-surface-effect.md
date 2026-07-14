@@ -1,18 +1,22 @@
 # Decision: surface effect applies regardless of armor (Reactive deflects)
 
 **Date:** 2026-07
-**Status:** Accepted
+**Status:** Accepted. Partially superseded by [009](009-frag-mechanics-and-cluster-modes.md):
+deflection covers deflectable types only (Frag scrapes Reactive too, so its blast immunity is no
+longer total), and the Cluster damage type is dissolved. Scrape strength superseded by
+[010](010-blast-size-and-surface-factors.md): `surfaceDamageFactor` × 0.05, not
+25% × `systemDamageFactor`.
 
 ## Context
 
 Surface-effect scrape (blast/shrapnel damaging hull-mounted systems at 25% strength) previously
 applied only when the armor fully blocked the hit (`plateDamage 0`). This produced an inversion:
-standard Composite armor protected external systems from Frag *better* than the anti-blast
+standard Composite armor protected external systems from Frag _better_ than the anti-blast
 Whipple did, because engaging armor "shadowed" the externals until breached.
 
 The fiction says otherwise: Composite is the basic hull layer, other armor models are layered
 over it, and hull-mounted equipment (thrusters, guns, radar, docking, signals) always sits
-*outside* the plates. A blast washing over the hull reaches that equipment no matter which armor
+_outside_ the plates. A blast washing over the hull reaches that equipment no matter which armor
 the hull wears.
 
 ## Decision
@@ -28,7 +32,7 @@ the hull wears.
 
 - Frag/Cluster fulfill their anti-external role against every armor model except Reactive;
   wrong-ammo fire vs wall armors (e.g. HiExp vs Whipple) still degrades surface equipment.
-- Reactive is now the *strongest* protection against blast weapons — full immunity including
+- Reactive is now the _strongest_ protection against blast weapons — full immunity including
   externals — balanced by single-use cells and the Tandem hard counter.
 - Engaging paths double-dip externals slightly once plates break (scrape + exposure damage);
   accepted as "sustained blast fire is bad for surface equipment".

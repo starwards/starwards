@@ -1,6 +1,6 @@
 import { ChainGun, ShipState } from '../ship';
 import { RTuple2, addScale } from './formulas';
-import { SpaceObject, projectileDesigns } from '../space';
+import { SpaceObject, ammoDesigns } from '../space';
 
 import { XY } from './xy';
 
@@ -84,7 +84,7 @@ export function getKillZoneRadiusRange(chainGun: ChainGun): RTuple2 {
     if (chainGun.projectile === 'None') {
         return [0, 1_000_000];
     }
-    const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
+    const { secondsToLive, expansionSpeed } = ammoDesigns[chainGun.projectile].explosion;
     const explosionRadius = secondsToLive * expansionSpeed;
     return [shellExplosionDistance - 3.0 * explosionRadius, shellExplosionDistance + 3.0 * explosionRadius];
 }
@@ -119,7 +119,7 @@ function getShellDangerZoneRadius(chainGun: ChainGun): number {
     if (chainGun.projectile === 'None') {
         return 0;
     }
-    const { secondsToLive, expansionSpeed } = projectileDesigns[chainGun.projectile].explosion;
+    const { secondsToLive, expansionSpeed } = ammoDesigns[chainGun.projectile].explosion;
     const explosionRadius = secondsToLive * expansionSpeed;
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     const spreadDegrees = 3.0 * chainGun.design.bulletDegreesDeviation;

@@ -3,11 +3,11 @@ import {
     AttackDamage,
     Damage,
     DamageManager,
-    DamageType,
     Explosion,
     FRONT_ARC,
     SpaceManager,
     Spaceship,
+    WeaponDamageType,
     compositeArmor,
     damageProfiles,
     dragonflySF22,
@@ -42,7 +42,7 @@ function setUpShip(armorStats: ArmorModelStats = compositeArmor): Fixture {
     return { ship, state, spaceManager, damageManager };
 }
 
-function frontDamage(amount: number, damageType: DamageType): AttackDamage {
+function frontDamage(amount: number, damageType: WeaponDamageType): AttackDamage {
     return {
         id: 'd-1',
         amount,

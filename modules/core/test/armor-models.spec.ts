@@ -1,10 +1,10 @@
 import {
     ArmorDesignState,
     compositeArmor,
-    damageTypes,
     faradayArmor,
     hardenedArmor,
     reactiveArmor,
+    weaponDamageTypes,
     whippleArmor,
     withFaradayLayer,
 } from '../src';
@@ -16,7 +16,7 @@ const allModels = { compositeArmor, whippleArmor, hardenedArmor, reactiveArmor, 
 describe('armor model stats validity', () => {
     it('every armor model defines plateDamage and penetration for every damage type', () => {
         for (const [name, model] of Object.entries(allModels)) {
-            for (const t of damageTypes) {
+            for (const t of weaponDamageTypes) {
                 expect(model[`plateDamage_${t}`], `${name}.plateDamage_${t}`).to.be.a('number');
                 expect(model[`penetration_${t}`], `${name}.penetration_${t}`).to.be.a('number');
             }
@@ -25,7 +25,7 @@ describe('armor model stats validity', () => {
 
     it('ArmorDesignState carries a synced field for every damage type', () => {
         const design = new ArmorDesignState();
-        for (const t of damageTypes) {
+        for (const t of weaponDamageTypes) {
             expect(design.plateDamage(t), `plateDamage_${t}`).to.be.a('number');
             expect(design.penetration(t), `penetration_${t}`).to.be.a('number');
         }
@@ -33,7 +33,7 @@ describe('armor model stats validity', () => {
 
     it('penetration is within [0,1], and binary when the armor does not engage the type', () => {
         for (const [name, model] of Object.entries(allModels)) {
-            for (const t of damageTypes) {
+            for (const t of weaponDamageTypes) {
                 const penetration = model[`penetration_${t}`];
                 expect(penetration, `${name}.penetration_${t}`).to.be.within(0, 1);
                 if (model[`plateDamage_${t}`] === 0) {
