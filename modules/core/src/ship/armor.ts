@@ -1,9 +1,9 @@
 import { ArmorModelName, ArmorModelStats, RTuple2, toPositiveDegreesDelta } from '..';
 import { ArraySchema, Schema } from '@colyseus/schema';
 
-import { DamageType } from '../space/damage-profile';
 import { DesignState } from './system';
 import { MAX_SAFE_FLOAT } from '../logic';
+import { WeaponDamageType } from '../space/damage-profile';
 import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
@@ -30,16 +30,16 @@ export class ArmorDesignState extends DesignState implements ArmorModelStats {
     @gameField('float32') numberOfPlates = 0;
     @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;
-    @gameField('float32') plateDamage_HiExp = 1;
-    @gameField('float32') plateDamage_ArmPen = 1;
-    @gameField('float32') plateDamage_Frag = 1;
-    @gameField('float32') plateDamage_Tandem = 1;
+    @gameField('float32') plateDamage_HiExp = 0;
+    @gameField('float32') plateDamage_ArmPen = 0;
+    @gameField('float32') plateDamage_Frag = 0;
+    @gameField('float32') plateDamage_Tandem = 0;
     @gameField('float32') plateDamage_Elec = 0;
     @gameField('float32') penetration_HiExp = 0;
     @gameField('float32') penetration_ArmPen = 0;
     @gameField('float32') penetration_Frag = 0;
     @gameField('float32') penetration_Tandem = 0;
-    @gameField('float32') penetration_Elec = 1;
+    @gameField('float32') penetration_Elec = 0;
     @tweakable('boolean')
     @gameField('boolean')
     singleUsePlates = false;
@@ -48,15 +48,15 @@ export class ArmorDesignState extends DesignState implements ArmorModelStats {
     @gameField('boolean')
     deflectsSurfaceEffect = false;
 
-    plateDamage(t: DamageType): number {
+    plateDamage(t: WeaponDamageType): number {
         return this[`plateDamage_${t}`];
     }
 
-    penetration(t: DamageType): number {
+    penetration(t: WeaponDamageType): number {
         return this[`penetration_${t}`];
     }
 
-    response(t: DamageType): ArmorResponse {
+    response(t: WeaponDamageType): ArmorResponse {
         const plateFactor = this.plateDamage(t);
         const penetration = this.penetration(t);
         if (plateFactor !== 0) {

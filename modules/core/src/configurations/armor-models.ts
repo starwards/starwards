@@ -1,16 +1,16 @@
-import { DamageType } from '../space/damage-profile';
+import { WeaponDamageType } from '../space/damage-profile';
 
 // per-damage-type stats are mapped from DamageType, so adding a damage type
 // fails compilation on every armor model until it takes a stance on it
 export type ArmorModelStats = {
     // multiplier on plate erosion per damage type. 0 = the armor does not engage the hit.
     // System damage is never scaled by this — once plates break (or penetration applies), the round's own damage goes through.
-    [T in DamageType as `plateDamage_${T}`]: number;
+    [T in WeaponDamageType as `plateDamage_${T}`]: number;
 } & {
     // fraction (0..1) of system damage that bypasses the plates regardless of plate state.
     // When the armor does not engage a type (plateDamage 0), only 0 (blocked) or 1 (full bypass)
     // are meaningful — fractional penetration applies to engaging hits only (validated in armor-models.spec).
-    [T in DamageType as `penetration_${T}`]: number;
+    [T in WeaponDamageType as `penetration_${T}`]: number;
 } & {
     // reactive cells: an engaging hit zeroes the plate and it does not heal.
     singleUsePlates?: boolean;

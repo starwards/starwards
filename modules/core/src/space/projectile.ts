@@ -1,9 +1,9 @@
 import { Craft } from '../logic';
-import { DamageType } from './damage-profile';
 import { Explosion } from './explosion';
 import { ShipDirection } from '../ship';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
+import { WeaponDamageType } from './damage-profile';
 import { gameField } from '../game-field';
 import { tweakable } from '../tweakable';
 
@@ -25,7 +25,7 @@ export const clusterWarheadModes = ['Frag', 'ArmPen'] as const;
 export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
 
 export interface WarheadDesign {
-    damageType: DamageType;
+    damageType: WeaponDamageType;
     explosion: {
         secondsToLive: number;
         expansionSpeed: number;
@@ -254,7 +254,7 @@ export class Projectile extends SpaceObjectBase implements Craft {
         return this.design.warheads?.[this.warhead] ?? this.design;
     }
 
-    get damageType(): DamageType {
+    get damageType(): WeaponDamageType {
         return this.warheadDesign.damageType;
     }
 

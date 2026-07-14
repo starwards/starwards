@@ -12,7 +12,7 @@ import {
     projectileModels,
     shipAreasInRange,
 } from '..';
-import { DamageProfile, DamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
+import { DamageProfile, WeaponDamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
 
@@ -34,7 +34,7 @@ import { Warp } from './warp';
 const SURFACE_EFFECT_FACTOR = 0.05;
 
 export type AttackDamage = Damage & {
-    damageType: DamageType;
+    damageType: WeaponDamageType;
     profile: DamageProfile;
 };
 

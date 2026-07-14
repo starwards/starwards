@@ -15,8 +15,8 @@ import { tweakable } from '../tweakable';
 
 export type SelectedProjectileModel = 'None' | ProjectileModel;
 
-// per-damage-type stats are mapped from DamageType,
-// so adding a damage type fails compilation
+// some stats are mapped from AmmoType,
+// so adding a AmmoType fails compilation
 export type ChaingunDesign = {
     [T in AmmoType as `use_${T}`]: boolean;
 } & {
