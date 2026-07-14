@@ -45,6 +45,11 @@ module.exports = {
         },
         {
             ...baseConfig,
+            displayName: 'browser',
+            testRegex: 'modules/browser/.*\\.spec\\.ts$',
+        },
+        {
+            ...baseConfig,
             displayName: 'deploy',
             testRegex: '\\.github/k8s/.*\\.spec\\.ts$',
         },

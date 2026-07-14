@@ -7,6 +7,8 @@ import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
 import WebFont from 'webfontloader';
 import { createMachine } from 'xstate';
+import { getBrokenSystems } from './damage-report-logic';
+import { readProp } from '../property-wrappers';
 import { useMachine } from '@xstate/react';
 
 WebFont.load({
@@ -66,11 +68,26 @@ function SystemStatusReport({ name, status, isOk }: { name: string; status: stri
         </>
     );
 }
+function SystemOfflineReport({ name }: { name: string }) {
+    return (
+        <>
+            <Text>
+                --------------------------
+                <br />
+                <b>{name} :</b> OFFLINE
+            </Text>
+            <br />
+        </>
+    );
+}
+
 function AllReports({ driver }: { driver: ShipDriver }) {
     const divRef = useRef<null | HTMLDivElement>(null);
     const defectsState = useProperties(driver.systems.flatMap((s) => s.defectibles).map(defectReadProp(driver))).sort(
         (a, b) => a.alertTime - b.alertTime,
     );
+    useProperties(driver.systems.map((s) => readProp<boolean>(driver, `${s.pointer}/broken`)));
+    const brokenSystems = getBrokenSystems(driver.systems);
     return (
         <>
             <>
@@ -79,6 +96,9 @@ function AllReports({ driver }: { driver: ShipDriver }) {
                 </Text>
                 <br />
             </>
+            {brokenSystems.map((s) => (
+                <SystemOfflineReport key={s.pointer} name={s.name} />
+            ))}
             {defectsState.map((d) => (
                 <SystemStatusReport key={d.pointer} name={d.name} status={d.status} isOk={d.isOk} />
             ))}
