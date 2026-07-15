@@ -1,6 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
-import { getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
+import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
 
 import { maps } from '@starwards/server';
 
@@ -45,15 +45,12 @@ test.describe('ECR Screen', () => {
     test('coolant and defectible readouts render as non-interactive bars, not draggable sliders', async ({ page }) => {
         const fullStatusPanel = page.locator('[data-id="Full Systems Status"]');
         await expect(fullStatusPanel).toBeVisible({ timeout: 10000 });
+        await expectNonInteractiveBar(fullStatusPanel.locator('.sw-bar').first());
+    });
 
-        const bar = fullStatusPanel.locator('.sw-bar').first();
-        await expect(bar).toBeVisible();
-
-        // the slider's drag handle must be hidden so the control reads as a solid bar, not a draggable slider
-        const knobDisplay = await bar.evaluate((el) => {
-            const knob = el.querySelector('.tp-sldv_k');
-            return knob && getComputedStyle(knob, '::after').display;
-        });
-        expect(knobDisplay).toBe('none');
+    test('warp level readouts render as non-interactive bars, not draggable sliders', async ({ page }) => {
+        const warpPanel = page.locator('[data-id="Warp"]');
+        await expect(warpPanel).toBeVisible({ timeout: 10000 });
+        await expectNonInteractiveBar(warpPanel.locator('.sw-bar').first());
     });
 });

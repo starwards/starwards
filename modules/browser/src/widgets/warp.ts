@@ -25,12 +25,7 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
     addBarBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual LVL' }, panelCleanup.add);
-    addBarBlade(
-        pane,
-        readNumberProp(shipDriver, '/warp/desiredLevel'),
-        { label: 'Designated LVL' },
-        panelCleanup.add,
-    );
+    addBarBlade(pane, readNumberProp(shipDriver, '/warp/desiredLevel'), { label: 'Designated LVL' }, panelCleanup.add);
     const jammedProp = readProp(shipDriver, '/warp/jammed');
     const jamBlade = addTextBlade(
         pane,
@@ -55,10 +50,5 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
         { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Designated FRQ' },
         panelCleanup.add,
     );
-    addBarBlade(
-        pane,
-        readNumberProp(shipDriver, '/warp/frequencyChange'),
-        { label: 'Calibration' },
-        panelCleanup.add,
-    );
+    addBarBlade(pane, readNumberProp(shipDriver, '/warp/frequencyChange'), { label: 'Calibration' }, panelCleanup.add);
 }

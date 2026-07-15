@@ -1,7 +1,7 @@
-import { addBarCellToRow, addTextCellToRow, configTextBlade, createPane } from '../panel';
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
 import { RowApi, plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
+import { addBarCellToRow, addTextCellToRow, configTextBlade, createPane } from '../panel';
 
 import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
