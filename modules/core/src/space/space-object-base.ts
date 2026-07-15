@@ -3,6 +3,7 @@ import { commandable, gameField } from '../game-field';
 
 import { Faction } from './faction';
 import { ScanLevel } from './scan-level';
+import { SpaceDamageType } from './damage-profile';
 import { SpaceObjects } from '.';
 import { Vec2 } from './vec2';
 import { XY } from '..';
@@ -35,6 +36,12 @@ export const filterObject = (f: TypeFilter) => (o: SpaceObjectBase) => {
 };
 export abstract class SpaceObjectBase extends Schema {
     public abstract readonly type: keyof SpaceObjects;
+
+    // server-side only (not synced). Harmful object types override this with
+    // their damage profile; 'Collision' means plain kinetic collision damage.
+    get damageType(): SpaceDamageType {
+        return 'Collision';
+    }
     @gameField('boolean')
     // @tweakable('boolean')
     public destroyed = false;

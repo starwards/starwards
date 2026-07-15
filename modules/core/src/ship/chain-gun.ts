@@ -1,5 +1,5 @@
+import { AmmoType, ClusterWarheadMode, ammoTypes, clusterWarheadModes } from '../space/projectile';
 import { DesignState, SystemState, defectible } from './system';
-import { ProjectileModel, projectileModels } from '../space/projectile';
 import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
@@ -7,10 +7,13 @@ import { range } from '../range';
 import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
-export type SelectedProjectileModel = 'None' | ProjectileModel;
+export type SelectedProjectileModel = 'None' | AmmoType;
 
-// Properties with underline ( _ ) are templated after Projectile types, and are accessed in a generic way.
+// some stats are mapped from AmmoType,
+// so adding a AmmoType fails compilation
 export type ChaingunDesign = {
+    [T in AmmoType as `use_${T}`]: boolean;
+} & {
     modelName?: string;
     bulletsPerSecond: number;
     bulletSpeed: number;
@@ -20,12 +23,6 @@ export type ChaingunDesign = {
     overrideSecondsToLive: number;
     damage50: number;
     energyCost: number;
-    use_CannonShell?: boolean;
-    use_BlastCannonShell?: boolean;
-    use_Missile?: boolean;
-    heat_CannonShell?: number;
-    heat_BlastCannonShell?: number;
-    heat_Missile?: number;
 };
 
 export class ChaingunDesignState extends DesignState implements ChaingunDesign {
@@ -37,16 +34,20 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
     @gameField('float32') overrideSecondsToLive = -1;
     @gameField('float32') damage50 = 0;
     @gameField('float32') energyCost = 0;
-    @gameField('boolean') use_CannonShell = false;
-    @gameField('boolean') use_BlastCannonShell = false;
-    @gameField('boolean') use_Missile = false;
-    @gameField('float32') heat_CannonShell = 0;
-    @gameField('float32') heat_BlastCannonShell = 0;
-    @gameField('float32') heat_Missile = 0;
+    @gameField('boolean') use_HiExpShell = false;
+    @gameField('boolean') use_ArmPenShell = false;
+    @gameField('boolean') use_FragShell = false;
+    @gameField('boolean') use_HiExpMissile = false;
+    @gameField('boolean') use_ArmPenMissile = false;
+    @gameField('boolean') use_FragMissile = false;
+    @gameField('boolean') use_ClusterMissile = false;
+    @gameField('boolean') use_TandemMissile = false;
+    @gameField('boolean') use_ElecMissile = false;
 
-    // get explosionSecondsToLive(): number {
-    //     return this.explosionRadius / this.explosionExpansionSpeed;
-    // }
+    isAmmoEnabled(m: AmmoType): boolean {
+        return this[`use_${m}`];
+    }
+
     get minShellSecondsToLive(): number {
         return this.minShellRange / this.bulletSpeed;
     }
@@ -60,6 +61,7 @@ export class ChainGun extends SystemState {
     };
 
     public readonly type: string = 'ChainGun';
+    override readonly isElectronics = true;
     get name() {
         return 'Chain gun';
     }
@@ -107,17 +109,22 @@ export class ChainGun extends SystemState {
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
-        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+        enum: ['None', ...ammoTypes.filter((k) => t.design.isAmmoEnabled(k))],
     }))
     @gameField('string')
     projectile: SelectedProjectileModel = 'None';
 
     @tweakable((t: ChainGun) => ({
         type: 'string enum',
-        enum: ['None', ...projectileModels.filter((k) => t.design[`use_${k}`])],
+        enum: ['None', ...ammoTypes.filter((k) => t.design.isAmmoEnabled(k))],
     }))
     @gameField('string')
     loadedProjectile: SelectedProjectileModel = 'None';
+
+    // warhead mode stamped on cluster munitions at launch — ignored by single-warhead ammo
+    @tweakable({ type: 'string enum', enum: clusterWarheadModes })
+    @gameField('string')
+    clusterWarhead: ClusterWarheadMode = 'Frag';
 
     @gameField(ChaingunDesignState)
     design = new ChaingunDesignState();

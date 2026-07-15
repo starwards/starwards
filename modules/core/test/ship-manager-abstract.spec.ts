@@ -136,11 +136,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('resetShipState restores magazine count', () => {
         const state = makeShipState('test', dragonflyConfig);
 
-        state.magazine.count_CannonShell = 0;
+        state.magazine.count_HiExpShell = 0;
 
         resetShipState(state);
 
-        expect(state.magazine.count_CannonShell).to.equal(state.magazine.max_CannonShell);
+        expect(state.magazine.count_HiExpShell).to.equal(state.magazine.max_HiExpShell);
     });
 
     it('resetShipState clears hull damage', () => {

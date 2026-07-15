@@ -5,7 +5,10 @@ export const dragonflyArmor = {
     numberOfPlates: 12,
     healRate: 3,
     plateMaxHealth: 1500,
+    type: 'composite' as const,
+    withFaradayLayer: false,
 };
+
 export const dragonflyThruster = {
     modelName: 'RT-150 Vectored Thruster',
     maxAngleError: 45,
@@ -30,12 +33,17 @@ export const dragonflyChaingun = {
     maxShellRange: 5000,
     minShellRange: 1000,
     overrideSecondsToLive: 0,
-    use_CannonShell: true,
-    use_BlastCannonShell: true,
+    use_HiExpShell: true,
+    use_ArmPenShell: true,
+    use_FragShell: true,
+    use_HiExpMissile: false,
+    use_ArmPenMissile: false,
+    use_FragMissile: false,
+    use_ClusterMissile: false,
+    use_TandemMissile: false,
+    use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
-    heat_CannonShell: 5,
-    heat_BlastCannonShell: 5,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -52,9 +60,15 @@ export const dragonflyProperties = {
 };
 export const dragonflyMagazine = {
     modelName: 'Hornet Mk-II Magazine',
-    max_CannonShell: 3600,
-    max_BlastCannonShell: 2000,
-    max_Missile: 20,
+    max_HiExpShell: 2400,
+    max_ArmPenShell: 1200,
+    max_FragShell: 2000,
+    max_HiExpMissile: 12,
+    max_ArmPenMissile: 6,
+    max_FragMissile: 8,
+    max_ClusterMissile: 6,
+    max_TandemMissile: 4,
+    max_ElecMissile: 4,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,
@@ -80,8 +94,15 @@ export const dragonflyTube = {
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
     energyCost: 30,
-    use_Missile: true,
-    heat_Missile: 25,
+    use_HiExpShell: false,
+    use_ArmPenShell: false,
+    use_FragShell: false,
+    use_HiExpMissile: true,
+    use_ArmPenMissile: true,
+    use_FragMissile: true,
+    use_ClusterMissile: true,
+    use_TandemMissile: true,
+    use_ElecMissile: true,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',
@@ -132,7 +153,7 @@ export const dragonflySignals = {
     hackBaseSuccessRate: 0.6,
 };
 
-export const dragonflySF22: ShipDesign = {
+export const dragonflySF22 = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
     thrusters: [
@@ -154,4 +175,4 @@ export const dragonflySF22: ShipDesign = {
     docking: dragonflyDocking,
     maneuvering: dragonflyManeuvering,
     signals: dragonflySignals,
-};
+} satisfies ShipDesign;

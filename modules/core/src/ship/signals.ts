@@ -37,6 +37,7 @@ export class Signals extends SystemState {
     };
 
     public readonly type = 'Signals';
+    override readonly isElectronics = true;
     public readonly name = 'Signals';
 
     @gameField(SignalsDesignState)

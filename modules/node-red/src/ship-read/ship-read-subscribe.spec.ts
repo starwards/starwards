@@ -113,17 +113,17 @@ describe('ship-read dynamic subscribe', () => {
         await waitForStatus(expect.objectContaining({ fill: 'green', text: 'connected' }) as NodeStatus);
 
         node.receive({ topic: '/magazine/capacity', subscribe: true });
-        node.receive({ topic: '/magazine/count_CannonShell', subscribe: true });
+        node.receive({ topic: '/magazine/count_HiExpShell', subscribe: true });
 
         await waitForOutput({ topic: '/magazine/capacity', payload: expect.any(Number) });
-        await waitForOutput({ topic: '/magazine/count_CannonShell', payload: expect.any(Number) });
+        await waitForOutput({ topic: '/magazine/count_HiExpShell', payload: expect.any(Number) });
 
         const capacityPromise = waitForOutput({ topic: '/magazine/capacity', payload: 55 });
         gameDriver.getShip(test_map_1.testShipId).state.magazine.capacity = 55;
         await capacityPromise;
 
-        const countPromise = waitForOutput({ topic: '/magazine/count_CannonShell', payload: 12 });
-        gameDriver.getShip(test_map_1.testShipId).state.magazine.count_CannonShell = 12;
+        const countPromise = waitForOutput({ topic: '/magazine/count_HiExpShell', payload: 12 });
+        gameDriver.getShip(test_map_1.testShipId).state.magazine.count_HiExpShell = 12;
         await countPromise;
     });
 });

@@ -59,12 +59,12 @@ Interactive UI control panels using Tweakpane library.
 **Hierarchy:** Flat list
 
 **Fields:**
-| Field | Type | Format | Description |
-|-------|------|--------|-------------|
-| `control` | Boolean | "ECR" \| "Bridge" | Control location |
-| `hull` | Boolean | "DAMAGED" \| "OK" | Hull damage indicator |
-| `energy` | float32 | Graph | Reactor energy level |
-| `after-burner fuel` | float32 | Graph | Maneuvering fuel |
+| Field               | Type    | Format            | Description           |
+| ------------------- | ------- | ----------------- | --------------------- |
+| `control`           | Boolean | "ECR" \| "Bridge" | Control location      |
+| `hull`              | Boolean | "DAMAGED" \| "OK" | Hull damage indicator |
+| `energy`            | float32 | Graph             | Reactor energy level  |
+| `after-burner fuel` | float32 | Graph             | Maneuvering fuel      |
 
 **Semantics:** Ship resource monitoring for engineering crew
 
@@ -79,12 +79,12 @@ Interactive UI control panels using Tweakpane library.
 **Hierarchy:** Folder per tube (dynamic)
 
 **Per-Tube Fields:**
-| Field | Type | Editable | Description |
-|-------|------|----------|-------------|
-| `ammo to use` | String | ❌ | Selected projectile type |
-| `ammo loaded` | String | ❌ | Currently loaded ammo |
-| `loading` | Slider 0-1 | ❌ | Loading progress |
-| `auto load` | Boolean | ✅ | Auto-load toggle |
+| Field         | Type       | Editable | Description              |
+| ------------- | ---------- | -------- | ------------------------ |
+| `ammo to use` | String     | ❌        | Selected projectile type |
+| `ammo loaded` | String     | ❌        | Currently loaded ammo    |
+| `loading`     | Slider 0-1 | ❌        | Loading progress         |
+| `auto load`   | Boolean    | ✅        | Auto-load toggle         |
 
 **Variations:** Number of tubes varies by ship class
 
@@ -106,14 +106,14 @@ Status | Power | EPM | Heat | Coolant | Hacked
 ```
 
 **System Row (per system):**
-| Column | Type | Format | Color Coding |
-|--------|------|--------|--------------|
-| Status | Enum | "OK" \| "DAMAGED" \| "DISABLED" | ✅ Status-based |
-| Power | Enum | PowerLevel (0/0.25/0.5/0.75/1) | - |
-| EPM | int | Rounded energy/min | - |
-| Heat | int | Rounded temperature (0-~400) | - |
-| Coolant | Slider | 0-100% editable | - |
-| Hacked | Enum | HackLevel (0/0.5/1) | - |
+| Column  | Type   | Format                          | Color Coding   |
+| ------- | ------ | ------------------------------- | -------------- |
+| Status  | Enum   | "OK" \| "DAMAGED" \| "DISABLED" | ✅ Status-based |
+| Power   | Enum   | PowerLevel (0/0.25/0.5/0.75/1)  | -              |
+| EPM     | int    | Rounded energy/min              | -              |
+| Heat    | int    | Rounded temperature (0-~400)    | -              |
+| Coolant | Slider | 0-100% editable                 | -              |
+| Hacked  | Enum   | HackLevel (0/0.5/1)             | -              |
 
 **Defectibles Row:**
 - Variable width cells (80px each)
@@ -205,11 +205,11 @@ Status | Power | Heat | Hacked
 **Hierarchy:** Flat
 
 **Fields:**
-| Field | Type | Update Frequency | Description |
-|-------|------|-----------------|-------------|
-| `Current Target` | String | On change | Ship ID |
-| `Mode` | Enum | On change | DockingMode list |
-| `Closest Option` | String | 250ms loop | Computed closest dock |
+| Field            | Type   | Update Frequency | Description           |
+| ---------------- | ------ | ---------------- | --------------------- |
+| `Current Target` | String | On change        | Ship ID               |
+| `Mode`           | Enum   | On change        | DockingMode list      |
+| `Closest Option` | String | 250ms loop       | Computed closest dock |
 
 **Semantics:** Ship docking interface
 
@@ -240,14 +240,14 @@ Status | Power | Heat | Hacked
 **Hierarchy:** Flat
 
 **Fields:**
-| Field | Type | Format | Status Styled |
-|-------|------|--------|--------------|
-| `Actual LVL` | Slider | Current warp level | - |
-| `Designated LVL` | Slider | Target warp level | - |
-| `Proximity Jam` | Text | "JAMMED" \| "CLEAR" | ✅ WARN if jammed |
-| `Actual FRQ` | Text | WarpFrequency enum | - |
-| `Designated FRQ` | Text | WarpFrequency enum | - |
-| `Calibration` | Slider | Frequency change | - |
+| Field            | Type   | Format              | Status Styled    |
+| ---------------- | ------ | ------------------- | ---------------- |
+| `Actual LVL`     | Slider | Current warp level  | -                |
+| `Designated LVL` | Slider | Target warp level   | -                |
+| `Proximity Jam`  | Text   | "JAMMED" \| "CLEAR" | ✅ WARN if jammed |
+| `Actual FRQ`     | Text   | WarpFrequency enum  | -                |
+| `Designated FRQ` | Text   | WarpFrequency enum  | -                |
+| `Calibration`    | Slider | Frequency change    | -                |
 
 **Status Styling:**
 ```typescript
@@ -268,7 +268,7 @@ jamBlade.element.dataset.status = shipDriver.state.warp.jammed ? 'WARN' : '';
 - Label: Projectile name
 - Value: `${count} / ${max}` (computed)
 
-**Variations:** Iterates `projectileModels` array
+**Variations:** Iterates `ammoTypes` array
 
 **Semantics:** Magazine inventory display
 
@@ -389,12 +389,12 @@ const range = isWarp ? 100_000 : 5_000;
 - Waypoints
 
 **Faction Colors:**
-| Faction | Color | Hex |
-|---------|-------|-----|
-| NONE | Yellow | `0xe2b640` |
-| Gravitas | Red | `0xd53434` |
-| Raiders | Blue | `0x404fc9` |
-| Projectiles | White | `0xffffff` |
+| Faction     | Color  | Hex        |
+| ----------- | ------ | ---------- |
+| NONE        | Yellow | `0xe2b640` |
+| Gravitas    | Red    | `0xd53434` |
+| Raiders     | Blue   | `0x404fc9` |
+| Projectiles | White  | `0xffffff` |
 
 **Interaction:** Selection, object creation via InteractiveLayer
 
@@ -542,13 +542,13 @@ HTML components for game lobby.
 **File:** `modules/browser/src/components/lobby.tsx`
 
 **Elements:**
-| data-id | Element | Action |
-|---------|---------|--------|
-| "stop game" | Button | Stops current game |
-| "save game" | Button | Saves game state |
-| "new game" | Button | Starts 2v1 game |
-| "title" | Header | "Starwards" text |
-| (dynamic) | Cards | Per-ship selection |
+| data-id     | Element | Action             |
+| ----------- | ------- | ------------------ |
+| "stop game" | Button  | Stops current game |
+| "save game" | Button  | Saves game state   |
+| "new game"  | Button  | Starts 2v1 game    |
+| "title"     | Header  | "Starwards" text   |
+| (dynamic)   | Cards   | Per-ship selection |
 
 **Framework:** React + Arwes
 
@@ -558,13 +558,13 @@ HTML components for game lobby.
 
 ### Data Type Patterns
 
-| Type | Usage | Example Fields |
-|------|-------|---------------|
-| **float32** | Most numeric game state | energy, speed, heat |
-| **int8** | Enums | IdleStrategy, Order, PowerLevel, HackLevel |
-| **boolean** | Toggles | ecrControl, isPlayerShip, auto-load |
-| **string** | IDs, names | targetId, shipId, currentTask |
-| **Computed** | Aggregated values | ammo format, status calculations |
+| Type         | Usage                   | Example Fields                             |
+| ------------ | ----------------------- | ------------------------------------------ |
+| **float32**  | Most numeric game state | energy, speed, heat                        |
+| **int8**     | Enums                   | IdleStrategy, Order, PowerLevel, HackLevel |
+| **boolean**  | Toggles                 | ecrControl, isPlayerShip, auto-load        |
+| **string**   | IDs, names              | targetId, shipId, currentTask              |
+| **Computed** | Aggregated values       | ammo format, status calculations           |
 
 ### Semantic Categories
 
@@ -623,6 +623,6 @@ HTML components for game lobby.
 
 ## Change History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-11-23 | Initial comprehensive specification |
+| Version | Date       | Changes                             |
+| ------- | ---------- | ----------------------------------- |
+| 1.0     | 2025-11-23 | Initial comprehensive specification |

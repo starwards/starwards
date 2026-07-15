@@ -36,6 +36,7 @@ export class Docking extends SystemState {
     };
 
     public readonly type = 'Docking';
+    override readonly isElectronics = true;
     public readonly name = 'Docking';
 
     @gameField(DockingDesignState)

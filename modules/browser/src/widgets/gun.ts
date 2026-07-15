@@ -38,8 +38,8 @@ export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
             });
             const chainGunPanel = panel.addFolder('chainGun');
 
-            chainGunPanel.addProperty('max Ammo', readNumberProp(shipDriver, `/magazine/count_CannonShell`));
-            chainGunPanel.addProperty('ammo', readNumberProp(shipDriver, `/magazine/count_CannonShell`));
+            chainGunPanel.addProperty('max Ammo', readNumberProp(shipDriver, `/magazine/count_HiExpShell`));
+            chainGunPanel.addProperty('ammo', readNumberProp(shipDriver, `/magazine/count_HiExpShell`));
             chainGunPanel.addProperty('loading', readNumberProp(shipDriver, `/chainGun/loading`));
             chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.state.chainGun?.isFiring) });
             chainGunPanel.addText('loadAmmo', { getValue: () => String(shipDriver.state.chainGun?.loadAmmo) });

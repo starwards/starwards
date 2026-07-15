@@ -1,6 +1,7 @@
 import { dragonflySF22 } from './dragonfly-sf-22';
 import { getKeys } from '../utils';
 
+export * from './armor-models';
 export * from './dragonfly-sf-22';
 
 export const shipConfigurations = {

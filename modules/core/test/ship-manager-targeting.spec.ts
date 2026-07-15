@@ -236,11 +236,11 @@ describe('ShipManager housekeeping', () => {
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
         flush();
         const magazine = mgr.state.magazine;
-        expect(magazine.count_CannonShell).to.equal(magazine.design.max_CannonShell);
+        expect(magazine.count_HiExpShell).to.equal(magazine.design.max_HiExpShell);
         magazine.capacity = 0.5;
         runTick(mgr);
-        expect(magazine.count_CannonShell).to.equal(magazine.max_CannonShell);
-        expect(magazine.count_CannonShell).to.be.lessThan(magazine.design.max_CannonShell);
+        expect(magazine.count_HiExpShell).to.equal(magazine.max_HiExpShell);
+        expect(magazine.count_HiExpShell).to.be.lessThan(magazine.design.max_HiExpShell);
     });
 
     it('damaged armor plates heal at the design heal rate', () => {

@@ -73,8 +73,8 @@ export {
     Spaceship,
     Waypoint,
     getSectorName,
-    projectileDesigns,
-    projectileModels,
+    ammoDesigns,
+    ammoTypes,
     sectorSize,
     spaceCommands,
 } from './space';

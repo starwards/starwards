@@ -417,7 +417,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 #### 3. Ammunition Panel (Middle-Left)
 - **Widget**: `drawAmmoStatus()` - Tweakpane panel
 - **Projectile Types Shown**:
-  - For each projectile type in `projectileModels`:
+  - For each projectile type in `ammoTypes`:
     - Display name (e.g., "cannon shell", "blast cannon shell", "missile")
     - Count format: `{current} / {max}`
 - **Data Source**: `/magazine/count_{type}`, `/magazine/max_{type}`, `/magazine/capacity`

@@ -12,10 +12,11 @@ import { SmartPilot, SmartPilotDesign } from './smart-pilot';
 import { Targeting, TargetingDesign } from './targeting';
 import { Thruster, ThrusterDesign } from './thruster';
 import { Warp, WarpDesign } from './warp';
+import { armorModels, withFaradayLayer } from '../configurations/armor-models';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
-import { projectileModels } from '../space/projectile';
+import { ammoTypes } from '../space/projectile';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
@@ -45,7 +46,14 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
 function makeArmor(design: ArmorDesign): Armor {
     const armor = new Armor();
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.design.assign(design);
+    const stats = armorModels[design.type];
+    armor.design.assign(design.withFaradayLayer ? withFaradayLayer(stats) : stats);
+    armor.design.assign({
+        modelName: design.modelName ?? '',
+        numberOfPlates: design.numberOfPlates,
+        healRate: design.healRate,
+        plateMaxHealth: design.plateMaxHealth,
+    });
     for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
         plate.health = plate.maxHealth = design.plateMaxHealth;
@@ -105,7 +113,7 @@ function makeWarp(design: WarpDesign) {
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
-    for (const projectileModel of projectileModels) {
+    for (const projectileModel of ammoTypes) {
         magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
     }
     return magazine;

@@ -1,22 +1,69 @@
+import { ArmorModelName, ArmorModelStats, RTuple2, toPositiveDegreesDelta } from '..';
 import { ArraySchema, Schema } from '@colyseus/schema';
-import { RTuple2, toPositiveDegreesDelta } from '..';
 
 import { DesignState } from './system';
 import { MAX_SAFE_FLOAT } from '../logic';
+import { WeaponDamageType } from '../space/damage-profile';
 import { gameField } from '../game-field';
 import { range } from '../range';
+import { tweakable } from '../tweakable';
 
 export type ArmorDesign = {
     modelName?: string;
     numberOfPlates: number;
     healRate: number;
     plateMaxHealth: number;
+    type: ArmorModelName;
+    withFaradayLayer: boolean;
 };
 
-export class ArmorDesignState extends DesignState implements ArmorDesign {
+// how the armor engages an incoming damage type
+export type ArmorResponse =
+    // the armor does not engage this type and is transparent to it
+    | { kind: 'bypass' }
+    // the armor does not engage this type and stops it outright
+    | { kind: 'block' }
+    // plates take the hit; damage leaks through broken sections and inherent penetration
+    | { kind: 'engage'; plateFactor: number; penetration: number };
+
+export class ArmorDesignState extends DesignState implements ArmorModelStats {
     @gameField('float32') numberOfPlates = 0;
     @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;
+    @gameField('float32') plateDamage_HiExp = 0;
+    @gameField('float32') plateDamage_ArmPen = 0;
+    @gameField('float32') plateDamage_Frag = 0;
+    @gameField('float32') plateDamage_Tandem = 0;
+    @gameField('float32') plateDamage_Elec = 0;
+    @gameField('float32') penetration_HiExp = 0;
+    @gameField('float32') penetration_ArmPen = 0;
+    @gameField('float32') penetration_Frag = 0;
+    @gameField('float32') penetration_Tandem = 0;
+    @gameField('float32') penetration_Elec = 0;
+    @tweakable('boolean')
+    @gameField('boolean')
+    singleUsePlates = false;
+
+    @tweakable('boolean')
+    @gameField('boolean')
+    deflectsSurfaceEffect = false;
+
+    plateDamage(t: WeaponDamageType): number {
+        return this[`plateDamage_${t}`];
+    }
+
+    penetration(t: WeaponDamageType): number {
+        return this[`penetration_${t}`];
+    }
+
+    response(t: WeaponDamageType): ArmorResponse {
+        const plateFactor = this.plateDamage(t);
+        const penetration = this.penetration(t);
+        if (plateFactor !== 0) {
+            return { kind: 'engage', plateFactor, penetration };
+        }
+        return penetration >= 1 ? { kind: 'bypass' } : { kind: 'block' };
+    }
 }
 
 export class ArmorPlate extends Schema {

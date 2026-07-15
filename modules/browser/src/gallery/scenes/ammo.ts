@@ -25,9 +25,15 @@ export const ammoScenes: Record<string, Scene> = {
         description: 'Ammunition panel with low ammo',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            ship.magazine.count_CannonShell = Math.round(ship.magazine.max_CannonShell * 0.2);
-            ship.magazine.count_BlastCannonShell = Math.round(ship.magazine.max_BlastCannonShell * 0.1);
-            ship.magazine.count_Missile = Math.round(ship.magazine.max_Missile * 0.3);
+            ship.magazine.count_HiExpShell = Math.round(ship.magazine.max_HiExpShell * 0.2);
+            ship.magazine.count_ArmPenShell = Math.round(ship.magazine.max_ArmPenShell * 0.2);
+            ship.magazine.count_FragShell = Math.round(ship.magazine.max_FragShell * 0.1);
+            ship.magazine.count_HiExpMissile = Math.round(ship.magazine.max_HiExpMissile * 0.3);
+            ship.magazine.count_ArmPenMissile = Math.round(ship.magazine.max_ArmPenMissile * 0.3);
+            ship.magazine.count_FragMissile = Math.round(ship.magazine.max_FragMissile * 0.2);
+            ship.magazine.count_ClusterMissile = Math.round(ship.magazine.max_ClusterMissile * 0.3);
+            ship.magazine.count_TandemMissile = Math.round(ship.magazine.max_TandemMissile * 0.3);
+            ship.magazine.count_ElecMissile = Math.round(ship.magazine.max_ElecMissile * 0.3);
 
             const mockContainer = createMockContainer(container, 250, 200);
             const mockShipDriver = createMockShipDriver(ship);
@@ -41,9 +47,15 @@ export const ammoScenes: Record<string, Scene> = {
         description: 'Ammunition panel with no ammo',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            ship.magazine.count_CannonShell = 0;
-            ship.magazine.count_BlastCannonShell = 0;
-            ship.magazine.count_Missile = 0;
+            ship.magazine.count_HiExpShell = 0;
+            ship.magazine.count_ArmPenShell = 0;
+            ship.magazine.count_FragShell = 0;
+            ship.magazine.count_HiExpMissile = 0;
+            ship.magazine.count_ArmPenMissile = 0;
+            ship.magazine.count_FragMissile = 0;
+            ship.magazine.count_ClusterMissile = 0;
+            ship.magazine.count_TandemMissile = 0;
+            ship.magazine.count_ElecMissile = 0;
 
             const mockContainer = createMockContainer(container, 250, 200);
             const mockShipDriver = createMockShipDriver(ship);

@@ -15,6 +15,7 @@ import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
+import { SpaceDamageType } from '../space/damage-profile';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -27,6 +28,8 @@ export type Damage = {
     amount: number;
     damageSurfaceArc: Tuple2;
     damageDurationSeconds: number;
+    // 'Collision' for generic kinetic hits (collisions, GM-spawned explosions)
+    damageType: SpaceDamageType;
 };
 
 type NoOrder = {
@@ -476,7 +479,7 @@ export class SpaceManager implements Updateable {
 
     private explodeProjectile(projectile: Projectile) {
         projectile.destroyed = true;
-        const explosion = projectile._explosion || new Explosion();
+        const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
         this.insert(explosion);
@@ -600,11 +603,12 @@ export class SpaceManager implements Updateable {
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
             ];
-            const damage = {
+            const damage: Damage = {
                 id: object.id,
                 amount: damageAmount,
                 damageSurfaceArc: shipLocalDamageAngles,
                 damageDurationSeconds: deltaSeconds,
+                damageType: object.damageType,
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {

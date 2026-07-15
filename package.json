@@ -55,6 +55,12 @@
         "pkg": "node scripts/pkg.js",
         "release": "bash ./scripts/release.sh"
     },
+    "importSort": {
+        ".ts, .tsx": {
+            "parser": "typescript",
+            "style": "eslint"
+        }
+    },
     "lint-staged": {
         "./modules/*/{src,test}/**/*.{ts,tsx}": [
             "prettier --write",
@@ -104,8 +110,8 @@
         "html-webpack-plugin": "^5.6.7",
         "husky": "^9.1.7",
         "jest": "^30.4.2",
-        "knip": "^5.66.2",
         "jest-junit": "^17.0.0",
+        "knip": "^5.66.2",
         "lint-staged": "^16.4.0",
         "ncp": "^2.0.0",
         "node-red": "^4.1.11",
