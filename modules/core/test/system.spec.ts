@@ -44,6 +44,14 @@ describe('SystemState', () => {
         const target = new Target();
         expect(target.power).to.equal(PowerLevel.NORMAL);
     });
+
+    it('isInternal reads from the design state', () => {
+        const target = new Target();
+        target.design = new (class extends DesignState {})();
+        expect(target.isInternal).to.equal(false);
+        target.design.isInternal = true;
+        expect(target.isInternal).to.equal(true);
+    });
 });
 
 describe('defectible', () => {

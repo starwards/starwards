@@ -296,6 +296,52 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         });
     });
 
+    describe('isInternal as a per-ship design property (issue #1954)', () => {
+        it('a ship config can override radar to isInternal via ShipDesign', () => {
+            const ship = new Spaceship();
+            ship.id = 'test-ship-radar-internal';
+            const state = makeShipState(ship.id, {
+                ...dragonflySF22,
+                radar: { ...dragonflySF22.radar, isInternal: true },
+            });
+            expect(state.radar.isInternal).to.equal(true);
+            expect(state.thrusters[0].isInternal).to.equal(false);
+        });
+
+        it('a default-config ship keeps radar external — surface effect scrapes it', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
+            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+        });
+
+        it('a radar overridden to internal is not scraped by a blocked surface-effect hit', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
+            state.radar.design.isInternal = true;
+            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
+
+        it('a radar overridden to internal is never reached by penetrating Frag', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            state.radar.design.isInternal = true;
+            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+                plate.health = 0;
+            }
+            damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
+
+        it('a radar overridden to internal is still damaged by penetrating HiExp', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            state.radar.design.isInternal = true;
+            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+                plate.health = 0;
+            }
+            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+        });
+    });
+
     describe('non-projectile damage path', () => {
         it('Collision damage takes the flat-damage flow', () => {
             const { state, damageManager } = setUpShip(compositeArmor);

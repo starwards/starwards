@@ -36,6 +36,13 @@ export abstract class DesignState extends Schema {
      */
     @gameField('string') modelName = '';
 
+    /**
+     * is this system mounted deep inside the hull (protected from surface-effect scrape and
+     * from `hitsInternal: false` damage profiles) or externally (hull-mounted, exposed to
+     * scrape)? Per-ship design choice; see `SystemState.isInternal`.
+     */
+    @gameField('boolean') isInternal = false;
+
     keys() {
         // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
         /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
@@ -79,9 +86,13 @@ export abstract class SystemState extends Schema {
      */
     abstract readonly broken: boolean;
 
-    // damage classification (not synced). Systems are external by default;
-    // internal systems sit deeper and are only hit through exposure or penetration.
-    readonly isInternal: boolean = false;
+    // damage classification. Systems are external by default; internal systems sit deeper
+    // and are only hit through exposure or penetration. Mounting is a per-ship design choice
+    // (see `DesignState.isInternal`); `isElectronics` stays a class constant — it describes
+    // what a system *is*, not where the ship mounts it.
+    get isInternal(): boolean {
+        return this.design.isInternal;
+    }
     // vulnerable to Elec (electronic warfare) damage
     readonly isElectronics: boolean = false;
 

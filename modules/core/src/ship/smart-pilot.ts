@@ -7,6 +7,7 @@ import { tweakable } from '../tweakable';
 
 export type SmartPilotDesign = {
     modelName?: string;
+    isInternal?: boolean;
     maxTargetAimOffset: number;
     aimOffsetSpeed: number;
     maxTurnSpeed: number;
@@ -38,7 +39,6 @@ export class SmartPilot extends SystemState {
     };
 
     public readonly type = 'SmartPilot';
-    override readonly isInternal = true;
     override readonly isElectronics = true;
     public readonly name = 'Smart pilot';
 

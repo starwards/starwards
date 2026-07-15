@@ -6,6 +6,7 @@ import { tweakable } from '../tweakable';
 
 export type WarpDesign = {
     modelName?: string;
+    isInternal?: boolean;
     damage50: number;
     maxProximity: number;
     chargeTime: number;
@@ -43,7 +44,6 @@ export class Warp extends SystemState {
     };
 
     public readonly type = 'Warp';
-    override readonly isInternal = true;
     override readonly isElectronics = true;
     public readonly name = 'Warp';
 

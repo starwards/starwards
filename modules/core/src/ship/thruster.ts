@@ -30,6 +30,14 @@ export class Thruster extends SystemState {
 
     public readonly type = 'Thruster';
 
+    /**
+     * pinned external: no ship config can move thrusters internal. Frag/Cluster's
+     * mobility-kill role and pilot-felt damage depend on thrusters always being exposed.
+     */
+    override get isInternal(): boolean {
+        return false;
+    }
+
     get name() {
         return `Thruster ${this.index} (${getDirectionConfigFromAngle(this.angle)})`;
     }

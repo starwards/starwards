@@ -15,6 +15,7 @@ export type ChaingunDesign = {
     [T in AmmoType as `use_${T}`]: boolean;
 } & {
     modelName?: string;
+    isInternal?: boolean;
     bulletsPerSecond: number;
     bulletSpeed: number;
     bulletDegreesDeviation: number;

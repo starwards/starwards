@@ -6,6 +6,7 @@ import { ArraySchema } from '@colyseus/schema';
 import { range } from '../range';
 
 export type SignalsDesign = {
+    isInternal?: boolean;
     damage50: number;
     maxJobs: number;
     maxTrackedTargets: number;
