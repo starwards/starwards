@@ -19,6 +19,7 @@ import {
     concatinateArchs,
 } from '../src';
 
+import { Circle } from 'detect-collisions';
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
@@ -498,6 +499,48 @@ describe('SpaceManager', () => {
         const found = [...spaceMgr.state.getAll('Spaceship')].find((s) => s.id === 'pos-test');
         expect(found!.position.x).to.equal(100);
         expect(found!.position.y).to.equal(200);
+    });
+
+    describe('collision body isStatic optimization', () => {
+        function getCollisionBody(spaceMgr: SpaceManager, object: SpaceObject) {
+            const bodies = spaceMgr.collisions.all() as Circle[];
+            return bodies.find(
+                (body) => body.x === object.position.x && body.y === object.position.y && body.r === object.radius,
+            );
+        }
+
+        it('marks a frozen object collision body as static, and unmarks it when unfrozen', () => {
+            const spaceMgr = new SpaceManager();
+            const asteroid = new Asteroid();
+            asteroid.id = 'static-test-asteroid';
+            asteroid.position = Vec2.make({ x: 1234, y: 4321 });
+            spaceMgr.insert(asteroid);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)?.isStatic).to.equal(false);
+
+            asteroid.freeze = true;
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)?.isStatic).to.equal(true);
+
+            asteroid.freeze = false;
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)?.isStatic).to.equal(false);
+        });
+
+        it('removes a destroyed object collision body outright (no need to mark it static)', () => {
+            const spaceMgr = new SpaceManager();
+            const asteroid = new Asteroid();
+            asteroid.id = 'static-test-destroyed';
+            asteroid.position = Vec2.make({ x: 5678, y: 8765 });
+            spaceMgr.insert(asteroid);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.destroyObject(asteroid.id);
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)).to.equal(undefined);
+        });
     });
 
     it('insertBulk adds multiple objects', () => {
