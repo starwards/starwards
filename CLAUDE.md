@@ -162,6 +162,7 @@ All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scr
 
 ## Working Style
 
+- Code standards live in [`docs/standards/`](docs/standards/) (structure, style, naming, and the principles behind them) — read before writing or reviewing core/config code; they are contracts, not suggestions.
 - Prefer a tool's own idiomatic mechanism over overriding it (e.g. Node-RED dependencies belong in its `data/package.json` manifest, not ad-hoc installs).
 - When a claim is challenged, settle it with evidence (git history, logs, a live test) — not argument.
 - Test after every change, including cosmetic refactors — exercise the affected flow end-to-end.
@@ -203,6 +204,13 @@ Node.js >= 22.11.0, npm >= 10.9.0
 
 - [`docs/design/README.md`](docs/design/README.md) - Product hub: vision, roadmap, station specs, decisions
 - [`docs/design/CLAUDE.md`](docs/design/CLAUDE.md) - Folder-scoped guide for the design KB
+
+**Standards:**
+
+- [`docs/standards/standards-code-structure.md`](docs/standards/standards-code-structure.md) - Code structure contracts (unions, configs, single edit points)
+- [`docs/standards/standards-code-structure-principles.md`](docs/standards/standards-code-structure-principles.md) - The motivations behind them
+- [`docs/standards/standards-code-style.md`](docs/standards/standards-code-style.md) - Code style
+- [`docs/standards/standards-naming.md`](docs/standards/standards-naming.md) - Naming
 
 **Core:**
 

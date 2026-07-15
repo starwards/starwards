@@ -20,6 +20,8 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 **Starwards-specific:** Test state sync, decorators, multiplayer scenarios, and UI interactions.
 
+**Before writing implementation code**, read the code standards in `docs/standards/` (structure, style, naming) — they are contracts, not suggestions.
+
 ## When to Use
 
 **Always:**
