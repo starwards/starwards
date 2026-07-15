@@ -9,6 +9,7 @@ import {
     IdleStrategy,
     ScanLevel,
     ShipDriver,
+    SmartPilotMode,
     SpaceDriver,
     SpaceObject,
     SpaceState,
@@ -64,7 +65,11 @@ const singleSelectionDetails = async (
     cleanup: (d: Destructor) => void,
 ) => {
     guiFolder.addBinding(subject, 'id', { readonly: true });
-    addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
+    // For ships, velocity is rendered separately below (see `Spaceship.isInstance`) so the
+    // GM edit can also disengage the smart pilot's velocity hold — otherwise it thrusts the
+    // manually-set velocity away again within a tick or two.
+    const genericExclude = Spaceship.isInstance(subject) ? new Set(['velocity']) : undefined;
+    addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup, genericExclude);
 
     // Scan Levels folder
     const scanLevelsFolder = guiFolder.addFolder({
@@ -104,6 +109,28 @@ const singleSelectionDetails = async (
     }
 
     if (Spaceship.isInstance(subject)) {
+        const shipDriver = await driver.getShipDriver(subject.id);
+        const velocityProp = readWriteVec2Prop(spaceDriver, `/${subject.type}/${subject.id}/velocity`);
+        addInputBlade(
+            guiFolder,
+            {
+                ...velocityProp,
+                setValue: (v: { x: number; y: number }) => {
+                    velocityProp.setValue(v);
+                    // A GM-forced velocity is otherwise thrust away again within a tick or
+                    // two by the smart pilot's velocity hold / anti-drift / breaks, since
+                    // those actively steer the ship back towards their own target speed.
+                    shipDriver.sendJsonCmd('/smartPilot/maneuveringMode', SmartPilotMode.DIRECT);
+                    shipDriver.sendJsonCmd('/smartPilot/maneuvering/x', 0);
+                    shipDriver.sendJsonCmd('/smartPilot/maneuvering/y', 0);
+                    shipDriver.sendJsonCmd('/antiDrift', 0);
+                    shipDriver.sendJsonCmd('/breaks', 0);
+                },
+            },
+            { label: 'velocity' },
+            cleanup,
+        );
+
         addTextBlade(
             guiFolder,
             readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/radarRange`),
@@ -127,8 +154,6 @@ const singleSelectionDetails = async (
                 isPlayerShip: !isPlayerShip,
             });
         });
-
-        const shipDriver = await driver.getShipDriver(subject.id);
 
         const targetIdProp = readWriteProp<string | null>(shipDriver, `/weaponsTarget/targetId`);
         addTextBlade(guiFolder, targetIdProp, { label: 'targetId' }, cleanup);
@@ -207,10 +232,14 @@ function addTweakables(
     guiFolder: FolderApi,
     pointer: string,
     cleanup: (d: Destructor) => void,
+    exclude?: ReadonlySet<string>,
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
     if (!state) return;
     for (const tweakable of getTweakables(state)) {
+        if (exclude?.has(tweakable.field)) {
+            continue;
+        }
         if (tweakable.config === 'number') {
             const prop = readWriteNumberProp(driver, `${pointer}/${tweakable.field}`);
             addSliderBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
