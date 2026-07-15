@@ -104,4 +104,38 @@ test.describe('GM Screen', () => {
         // in DOM order since it's wired up before the per-system folders loop.
         await expect(tweakPanel.getByText('targetId', { exact: true }).first()).toBeVisible();
     });
+
+    test('velocity set via the tweak panel persists (does not get thrusted away by the smart pilot)', async ({
+        page,
+    }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const velocityLabel = tweakPanel.getByText('velocity', { exact: true });
+        await expect(velocityLabel).toBeVisible({ timeout: 5000 });
+        const velocityInputs = velocityLabel.locator('..').locator('input');
+
+        await velocityInputs.nth(0).fill('50');
+        await velocityInputs.nth(0).press('Enter');
+        await velocityInputs.nth(1).fill('-30');
+        await velocityInputs.nth(1).press('Enter');
+
+        // The ship's own smart pilot (velocity-hold by default) would otherwise thrust a
+        // GM-forced velocity away again within a tick or two; give it ample time to prove
+        // the value sticks instead of just checking immediately after the write.
+        const [ship] = gameDriver.gameManager.spaceManager.state.getAll('Spaceship');
+        await expect(() => {
+            expect(ship.velocity.x).toBeCloseTo(50, 0);
+            expect(ship.velocity.y).toBeCloseTo(-30, 0);
+        }).toPass({ timeout: 2000 });
+        // ...and stays put a bit longer, ruling out a slow decay back towards zero.
+        await page.waitForTimeout(1000);
+        expect(ship.velocity.x).toBeCloseTo(50, 0);
+        expect(ship.velocity.y).toBeCloseTo(-30, 0);
+    });
 });
