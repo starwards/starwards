@@ -1,12 +1,4 @@
-import {
-    BladeGuiApi,
-    addBarCellToRow,
-    addTextCellToRow,
-    configSliderBlade,
-    configTextBlade,
-    createPane,
-    wireBlade,
-} from '../panel';
+import { addBarCellToRow, addTextCellToRow, configTextBlade, createPane } from '../panel';
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
 import { RowApi, plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { abstractOnChange, aggregate, readNumberProp, readProp } from '../property-wrappers';
@@ -110,12 +102,7 @@ export function drawFullSystemsStatus(
         for (const d of system.defectibles) {
             const defectibleProp = readNumberProp(shipDriver, `${d.systemPointer}/${d.field}`);
             defectiblesRowApi.addCell({ ...configTextBlade({}, () => d.name), width: `${defectibleWidth}px` });
-            const valueBlade = defectiblesRowApi.addCell({
-                ...configSliderBlade({}, defectibleProp.range, defectibleProp.getValue),
-                width: `${defectibleWidth}px`,
-            }) as unknown as BladeGuiApi<number>;
-            valueBlade.element.classList.add('sw-bar');
-            wireBlade(valueBlade, defectibleProp, panelCleanup.add);
+            addBarCellToRow(defectiblesRowApi, defectibleProp, { width: `${defectibleWidth}px` }, panelCleanup.add);
         }
         pane.addBlade({ view: 'separator' });
     }

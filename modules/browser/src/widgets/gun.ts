@@ -1,5 +1,5 @@
 import { Destructors, ShipDriver } from '@starwards/core';
-import { addInputBlade, addSliderBlade, addTextBlade, createPane } from '../panel/blades';
+import { addBarBlade, addInputBlade, addTextBlade, createPane } from '../panel/blades';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -20,12 +20,7 @@ export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver
         { label: 'loaded projectile' },
         panelCleanup.add,
     );
-    addSliderBlade(
-        pane,
-        readNumberProp(shipDriver, '/chainGun/loading'),
-        { label: 'loading', disabled: true },
-        panelCleanup.add,
-    );
+    addBarBlade(pane, readNumberProp(shipDriver, '/chainGun/loading'), { label: 'loading' }, panelCleanup.add);
     addInputBlade(pane, readProp(shipDriver, '/chainGun/loadAmmo'), { label: 'auto load' }, panelCleanup.add);
 }
 
