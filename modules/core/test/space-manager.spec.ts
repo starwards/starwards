@@ -62,7 +62,9 @@ describe('SpaceManager', () => {
                     target.radius = Spaceship.radius;
                     const explosion = new Explosion();
                     const explosionInit = jest.spyOn(explosion, 'init');
-                    const shell = new Projectile();
+                    // proximity-fuzed and untargeted: flies straight like a dumb shell,
+                    // detonates only on actual contact (no in-flight proximity trigger)
+                    const shell = new Projectile('FragMissile');
                     shell._explosion = explosion;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     shell.velocity = Vec2.make(velocity);
