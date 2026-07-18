@@ -88,7 +88,7 @@ differently, so most mechanics in this document belong to one side or the other.
 A future **EMP-explosion** variant (area denial, several ships at once) is possible; the model
 supports it. Today's ElecMissile is deliberately impact (see section 8).
 
-## 4. System damage: rolls, defects, concentration, victim selection, rationing
+## 4. System damage: rolls, defects, spillover, victim selection, rationing
 
 **General explanation:** systems are never destroyed in one blow. Each damage event gives the
 affected systems **defect rolls**; each successful roll causes one **defect**, a small,
@@ -99,15 +99,19 @@ is, and how often a system can be hurt are the three mechanics below.
 **Terms:**
 
 - **Defect roll**: a probability check against the system's `damage50` — the event amount
-  (times factors) at which a roll is a coin flip. Strong hits are near-certain, weak hits are
-  rare. One success = one defect, always the same size. A stronger hit raises the chance, not
-  the defect size. The probability curve's shape is a tuning choice.
+  (times factors) at which a roll is a coin flip. Chance is linear in the amount,
+  `p = amount / (2 x damage50)`, **capped at 50%**: no single roll is ever more likely to
+  succeed than fail. One success = one defect, always the same size. A stronger hit buys more
+  dice (spillover), never surer dice and never a bigger defect.
 - **Defect**: one fixed-size malfunction step (per-system effects table in section 7).
-- **Concentration**: **scales how many defects a damage event can inflict on its target.** A
-  property of the round (own column in the ammo tables, section 8). Default 1. The expected
-  defect count grows linearly with concentration: an 8-concentration hit at near-certain
-  strength cripples its victim with ~8 defects at once. Whether that comes from independent
-  rolls or an equivalent draw is an implementation choice.
+- **Spillover**: when the event amount exceeds the 50% cap (one `damage50`), the excess spills
+  into another roll with the remaining amount, and so on — overkill converts into extra rolls
+  instead of saturating. Expected defects per event = `amount / (2 x damage50)`, so defect
+  count follows the damage number linearly; armor attenuation reduces it the same way.
+  Whether that comes from independent rolls or an equivalent draw is an implementation choice.
+  There is no per-round defect column: how many malfunctions a round inflicts is fully
+  determined by its damage number, its type's system damage factor, and the target's
+  `damage50`.
 - **Victim selection**: for `single`-scope rounds only. The damage event picks one victim
   system at random among the eligible systems in the hit area, **at event time**; all of the
   event's defects land on it. One rod, one victim. If the victim breaks before all defects
@@ -122,7 +126,7 @@ is, and how often a system can be hurt are the three mechanics below.
 
 | Mechanic | Applies to | Effect |
 | --- | --- | --- |
-| Concentration | every round (default 1) | scales expected defects per target per damage event |
+| Spillover | every damage event | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
 | Victim selection | `single` scope only | one victim per event, picked at event time |
 | Defect rationing | explosion delivery only | max one application per system per 0.15s |
 
@@ -257,33 +261,39 @@ Breaking a system takes roughly 10-20 defects (varies per system); repair is ECR
 
 **General explanation:** nine ammo types (three chain-gun shells, six missiles; the
 ClusterMissile is one magazine slot with two selectable warhead modes; the tube chooses the
-mode, switchable until detonation). **Concentration** column = defect scaling per damage event
-(section 4). Impact rounds carry a flat **damage**
-number; explosion rounds carry a per-second `damageFactor` plus blast size/linger. All damage
-numbers are proposed values pending playtest.
+mode, switchable until detonation). Impact rounds carry a flat **damage**
+number; explosion rounds carry a per-second `damageFactor` plus blast size/linger. Defect
+output per event follows the damage number via spillover (section 4) — there is no separate
+defect column. All damage numbers are proposed values pending playtest, and the impact
+numbers in particular need a spillover retune (damage now drives both plate erosion and
+defect count).
 
 **Warhead table:**
 
-| Ammo | Type | Delivery | Scope | Concentration | Damage | Blast |
-| --- | --- | --- | --- | --- | --- | --- |
-| HiExpShell | HiExp | explosion | multi | 1 | 20/s | 200m x 1s |
-| ArmPenShell | ArmPen | impact | single | **1** | 30 | none |
-| FragShell | Frag | explosion | multi ext. | 1 | 10/s | 250m x 1s |
-| HiExpMissile | HiExp | explosion | multi | 1 | 50/s | 350m x 0.35s |
-| ArmPenMissile | ArmPen | impact | single | **8** | 60 | none |
-| FragMissile | Frag | explosion | multi ext. | 1 | 10/s | 800m x 1.6s |
-| Cluster, Frag mode | Frag | explosion | multi ext. | 1 | 10/s | 750m x 1s |
-| Cluster, AP mode | ArmPen | impact | **multi** | **3** | 30 | none |
-| TandemMissile | Tandem | impact | single | **5** | 50 | none |
-| ElecMissile | Elec | impact | electronics | 1 | 25 | none |
+| Ammo | Type | Delivery | Scope | Damage | Blast |
+| --- | --- | --- | --- | --- | --- |
+| HiExpShell | HiExp | explosion | multi | 20/s | 200m x 1s |
+| ArmPenShell | ArmPen | impact | single | 30 | none |
+| FragShell | Frag | explosion | multi ext. | 10/s | 250m x 1s |
+| HiExpMissile | HiExp | explosion | multi | 50/s | 350m x 0.35s |
+| ArmPenMissile | ArmPen | impact | single | **60** | none |
+| FragMissile | Frag | explosion | multi ext. | 10/s | 800m x 1.6s |
+| Cluster, Frag mode | Frag | explosion | multi ext. | 10/s | 750m x 1s |
+| Cluster, AP mode | ArmPen | impact | **multi** | 30 | none |
+| TandemMissile | Tandem | impact | single | **50** | none |
+| ElecMissile | Elec | impact | electronics | 25 | none |
 
-Reading the concentration column: the ArmPen missile is the assassin, ~8 defects
-into one system per hit. Tandem is its slightly weaker sibling (5) whose value is the armor
-matchups. Cluster-AP peppers every internal in the area with ~3 defects each. The ArmPen
-**shell** is concentration 1 on purpose: its power is anti-armor (plate erosion at 2x vs
-Composite), you get hit by 10-20 in a row, and their system damage stays occasional jabs.
+Reading the damage column through spillover: the ArmPen missile is the assassin — its big
+amount (x1.5 factor) spills into a burst of rolls, several defects into one system per hit.
+Tandem is its slightly weaker sibling whose value is the armor matchups. Cluster-AP hits
+every internal in the struck area with a moderate roll stack each. The ArmPen **shell**'s
+power is anti-armor (plate erosion at 2x vs Composite): you get hit by 10-20 in a row, and
+each one's system damage stays an occasional jab — its per-shell amount must stay near one
+`damage50`, a spillover retune constraint on the shell/missile damage ratio.
 All frag warheads share one intensity (10/s) and differ only by cloud size and linger; the
-dedicated FragMissile out-clouds the cluster's frag mode on both.
+dedicated FragMissile out-clouds the cluster's frag mode on both. Cluster-AP and ArmPenShell
+share their per-event numbers deliberately — they differ as projectiles and inventory (a
+homing multi-scope missile in a missile slot vs a cheap mass-fired shell), not per event.
 
 **Missile flight table** (explosion missiles detonate at 100m proximity or at end of flight;
 impact missiles are contact-fuzed, can be dodged, and dud on timeout). Shells follow the same
@@ -309,8 +319,9 @@ struck plate erodes 120; exposure 0 (plates intact, no penetration), so **no sys
 Armor did its job; repeat hits break the plate, then the assassin gets in.
 
 **ArmPen missile vs breached Composite section:** exposure 1, a victim system is picked, and an
-amount of 60 x 1.5 is near-certain against typical `damage50` values, so concentration 8 lands
-**~8 defects into one system**: crippled or broken. Everything else in the section: untouched.
+amount of 60 x 1.5 spills into a stack of coin-flip rolls against typical `damage50` values,
+landing **several defects into one system**: crippled or broken. Everything else in the
+section: untouched.
 
 **HiExp missile vs the same breach:** a 0.35s engulfment, rationed to
 ~2-3 applications per system, so **every internal in the section takes ~2-3 defects**, plus the
@@ -339,7 +350,7 @@ Frag sands the externals the entire time regardless of the stack.
 | --- | --- | --- |
 | armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts` | every armor x type matchup |
 | profile scope/layer/factors, scrape strengths | `space/damage-profile.ts` | per-type behavior |
-| per-round: delivery, damage, concentration, blast, homing, heat | `space/projectile.ts` | every ammo number |
+| per-round: delivery, damage, blast, homing, heat | `space/projectile.ts` | every ammo number |
 | scrape constant (0.05) | `ship/damage-manager.ts` | global scrape calibration |
 | rationing window (0.15s) | `ship/damage-manager.ts` | explosion flood rationing |
 | `damage50`, defect sizes | per-system designs | system toughness |
@@ -350,12 +361,12 @@ change is a deliberate pin update.
 ## 11. Future and open items
 
 1. **Replan PR #1932 around this document**: impact delivery (Amir, in progress), layered
-   armor stacks, concentration + event-time victim selection, explosion defect rationing; then retune damage
+   armor stacks, spillover + event-time victim selection, explosion defect rationing; then retune damage
    numbers.
 2. **Pierce delivery**: the railgun's overpenetration line. Reserved, not designed.
 3. **EMP-explosion variant**: area-denial EMP (multi-ship) as a future GM tool or mine; the
    delivery flag supports it without new mechanics.
-4. **Play-test calibration**: all damage numbers, concentration values, rationing window, frag
+4. **Play-test calibration**: all damage numbers (now also setting defect counts via spillover), rationing window, frag
    scrape rates, Hardened grind pace, Reactive attrition pace.
 5. **Weapons-station UI**: cluster mode toggle on the tube widget (state/commands exist).
 6. **Per-ship system mounting**: [#1954](https://github.com/starwards/starwards/issues/1954).
