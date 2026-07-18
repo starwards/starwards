@@ -88,7 +88,7 @@ differently, so most mechanics in this document belong to one side or the other.
 A future **EMP-explosion** variant (area denial, several ships at once) is possible; the model
 supports it. Today's ElecMissile is deliberately impact (see section 8).
 
-## 4. System damage: rolls, defects, concentration, sticky victim, rationing
+## 4. System damage: rolls, defects, concentration, victim selection, rationing
 
 **General explanation:** systems are never destroyed in one blow. Each damage event gives the
 affected systems **defect rolls**; each successful roll causes one **defect**, a small,
@@ -108,10 +108,12 @@ is, and how often a system can be hurt are the three mechanics below.
   defect count grows linearly with concentration: an 8-concentration hit at near-certain
   strength cripples its victim with ~8 defects at once. Whether that comes from independent
   rolls or an equivalent draw is an implementation choice.
-- **Sticky victim**: for `single`-scope rounds only. The victim system is picked randomly
-  **once per projectile** and every defect from that projectile lands on it. One rod, one
-  victim. Replaying the same engagement must pick the same victim. Multi-scope rounds have no
-  victim to pick; everyone in the area rolls.
+- **Victim selection**: for `single`-scope rounds only. The damage event picks one victim
+  system at random among the eligible systems in the hit area, **at event time**; all of the
+  event's defects land on it. One rod, one victim. If the victim breaks before all defects
+  apply, the remainder dissipates. Every `single`-scope round is impact delivery — exactly one
+  event per round — so no victim persistence across events is needed. Multi-scope rounds have
+  no victim to pick; everyone in the area rolls.
 - **Defect rationing**: **explosion delivery only.** A system accepts at most one damage-event
   application per rationing window (**0.15s** baseline, tunable). Without it, a lingering blast
   would flood a breached section with a defect roll every event; with it, a full HiExp missile
@@ -121,7 +123,7 @@ is, and how often a system can be hurt are the three mechanics below.
 | Mechanic | Applies to | Effect |
 | --- | --- | --- |
 | Concentration | every round (default 1) | scales expected defects per target per damage event |
-| Sticky victim | `single` scope only | all of a projectile's defects hit the same system |
+| Victim selection | `single` scope only | one victim per event, picked at event time |
 | Defect rationing | explosion delivery only | max one application per system per 0.15s |
 
 **Resulting doctrine:** one HE = everything in the section bleeds; one AP = one system dies.
@@ -136,7 +138,7 @@ channel.
 
 **Terms:**
 
-- **Scope**: `single` = one system (the sticky victim). `multi` = every matching system in the
+- **Scope**: `single` = one system (one victim picked at event time). `multi` = every matching system in the
   hit area. `electronics` = every electronics system **ship-wide**, ignoring the hit arc; the
   discharge travels the ship's grid.
 - **Layer (`hitsInternal`)**: `internal` = the penetrating damage reaches internally-mounted
@@ -144,19 +146,16 @@ channel.
 - **Surface channel (scrape)**: HiExp and Frag damage hull-mounted systems in the arc on
   **every hit, regardless of armor**, because the equipment sits outside the plates. Strength =
   `amount x 0.05 x surfaceDamageFactor` (Frag 2, a purpose-built shredder; HiExp 0.25, a wash).
-- **Deflectable**: a deflecting armor (Reactive) pushes the round away before its blast
-  develops, cancelling the scrape. **Everything is deflectable except Tandem** (its precursor
-  defeats the deflection) **and Frag** (a cloud is not a round, there is nothing to push away).
 - **System damage factor**: multiplier on the penetrating channel's roll amounts (for example
   ArmPen x1.5 concentrated punch, Elec x2).
 
-| Type | Scope | Layer | Factor | Scrape | Deflectable |
-| --- | --- | --- | --- | --- | --- |
-| HiExp | multi | internal | 1 | yes x0.25 | yes |
-| ArmPen | single | internal | 1.5 | no | yes |
-| Frag | multi | external | 0.5 | yes x2 | **no** |
-| Tandem | single | internal | 1 | no | **no** |
-| Elec | electronics | (all electronics) | 2 | no | yes |
+| Type | Scope | Layer | Factor | Scrape |
+| --- | --- | --- | --- | --- |
+| HiExp | multi | internal | 1 | yes x0.25 |
+| ArmPen | single | internal | 1.5 | no |
+| Frag | multi | external | 0.5 | yes x2 |
+| Tandem | single | internal | 1 | no |
+| Elec | electronics | (all electronics) | 2 | no |
 
 Exception to memorize: Cluster-AP mode is ArmPen-type but **multi**. The carrier penetrates
 and its bomblets pepper every internal system in the struck area (section 8).
@@ -192,13 +191,13 @@ stack **outside-in**; the same rules apply identically to impact and explosion e
   `max(penetration, brokenPlateRatio)`. **Exposure chains multiplicatively across the stack**:
   what reaches the systems is scaled by the product of every layer's exposure in that arc. One
   intact blocking layer zeroes it; a breached layer stops mattering.
-- **Single-use cells (`singleUsePlates`)**: Reactive. An engaging hit **pops** the cells in the
-  arc (they go to zero and never heal) and is **defeated** (exposure is measured before the
-  pop). Follow-up hits on the bared section pass to the next layer. Every defeated warhead
-  costs a cell: sustained cheap fire strips ERA off the stack.
-- **`deflectsSurfaceEffect`**: cancels the scrape of deflectable types, but only while the
-  deflecting layer is the **outermost intact layer** in the hit arc. Stripped Reactive deflects
-  nothing.
+- **Single-use cells (`singleUsePlates`)**: Reactive. The cells trigger on **impact delivery
+  only** — a contact-fuzed round presents a body for the cells to defeat; a blast washing over
+  them does not. An engaging impact hit **pops** the cells in the arc (they go to zero and
+  never heal) and is **defeated** (exposure is measured before the pop). Follow-up hits on the
+  bared section pass to the next layer. Every defeated warhead costs a cell: sustained cheap
+  fire strips ERA off the stack. Explosion damage erodes the cells like ordinary plates (no
+  pop, no defeat — and the cells still never heal).
 - **Repair**: the shipyard repairs all layers (future option: repairing layers separately).
   Reactive cells never heal anywhere.
 
@@ -211,7 +210,7 @@ Cell values below are `plateDamage / penetration`, per layer:
 
 | vs | Composite | Whipple | Hardened | Reactive | Faraday |
 | --- | --- | --- | --- | --- | --- |
-| HiExp | 1 / 0 | 0.25 / 0 | 0.5 / 0 | 1 / 0 pop | 0 / 1 |
+| HiExp | 1 / 0 | 0.25 / 0 | 0.5 / 0 | 1 / 0 (erode, no pop) | 0 / 1 |
 | ArmPen | **2 / 0** | **0 / 1** | 1 / 0 | 1 / 0 pop | 0 / 1 |
 | Frag | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 (no pop) | 0 / 0 |
 | Tandem | 1 / 0 | **0 / 0** | **2 / 0** | **1 / 1** pop | 0 / 1 |
@@ -224,11 +223,11 @@ Cell values below are `plateDamage / penetration`, per layer:
 | Composite | the mandatory base hull layer | ArmPen (2x) | no walls, no gaps |
 | Whipple | standoff screen | ArmPen ignores it (0/1) | blunts blast, pre-detonates shaped charges |
 | Hardened | thick slab | Tandem jet (2x) | the only armor that stops kinetic rounds |
-| Reactive | one-shot cells | Tandem (pop + full force); attrition | defeats every warhead once per cell; blocks Elec; deflects HiExp scrape |
+| Reactive | one-shot cells | Tandem (pop + full force); HiExp grind (cells never heal); attrition | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
 | Faraday | EM cage | any physical round (transparent) | kills Elec; Frag still can't penetrate it |
 
 Frag interacts with no armor at all: its row is 0/0 everywhere and it never activates ERA; its
-entire output is the surface scrape, which no armor (deflection included) stops.
+entire output is the surface scrape, which no armor stops.
 `withFaradayLayer(model)` overlays Elec-blocking on any other model.
 
 ## 7. Ship systems: classification and defects
@@ -259,24 +258,24 @@ Breaking a system takes roughly 10-20 defects (varies per system); repair is ECR
 **General explanation:** nine ammo types (three chain-gun shells, six missiles; the
 ClusterMissile is one magazine slot with two selectable warhead modes; the tube chooses the
 mode, switchable until detonation). **Concentration** column = defect scaling per damage event
-(section 4). **Sticky** = single-scope victim locking. Impact rounds carry a flat **damage**
+(section 4). Impact rounds carry a flat **damage**
 number; explosion rounds carry a per-second `damageFactor` plus blast size/linger. All damage
 numbers are proposed values pending playtest.
 
 **Warhead table:**
 
-| Ammo | Type | Delivery | Scope | Sticky | Concentration | Damage | Blast |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| HiExpShell | HiExp | explosion | multi | no | 1 | 20/s | 200m x 1s |
-| ArmPenShell | ArmPen | impact | single | per shell | **1** | 30 | none |
-| FragShell | Frag | explosion | multi ext. | no | 1 | 10/s | 250m x 1s |
-| HiExpMissile | HiExp | explosion | multi | no | 1 | 50/s | 350m x 0.35s |
-| ArmPenMissile | ArmPen | impact | single | yes | **8** | 60 | none |
-| FragMissile | Frag | explosion | multi ext. | no | 1 | 10/s | 800m x 1.6s |
-| Cluster, Frag mode | Frag | explosion | multi ext. | no | 1 | 10/s | 750m x 1s |
-| Cluster, AP mode | ArmPen | impact | **multi** | no | **3** | 30 | none |
-| TandemMissile | Tandem | impact | single | yes | **5** | 50 | none |
-| ElecMissile | Elec | impact | electronics | no | 1 | 25 | none |
+| Ammo | Type | Delivery | Scope | Concentration | Damage | Blast |
+| --- | --- | --- | --- | --- | --- | --- |
+| HiExpShell | HiExp | explosion | multi | 1 | 20/s | 200m x 1s |
+| ArmPenShell | ArmPen | impact | single | **1** | 30 | none |
+| FragShell | Frag | explosion | multi ext. | 1 | 10/s | 250m x 1s |
+| HiExpMissile | HiExp | explosion | multi | 1 | 50/s | 350m x 0.35s |
+| ArmPenMissile | ArmPen | impact | single | **8** | 60 | none |
+| FragMissile | Frag | explosion | multi ext. | 1 | 10/s | 800m x 1.6s |
+| Cluster, Frag mode | Frag | explosion | multi ext. | 1 | 10/s | 750m x 1s |
+| Cluster, AP mode | ArmPen | impact | **multi** | **3** | 30 | none |
+| TandemMissile | Tandem | impact | single | **5** | 50 | none |
+| ElecMissile | Elec | impact | electronics | 1 | 25 | none |
 
 Reading the concentration column: the ArmPen missile is the assassin, ~8 defects
 into one system per hit. Tandem is its slightly weaker sibling (5) whose value is the armor
@@ -309,7 +308,7 @@ Shells: 5 heat per shot; missiles: 25. Dragonfly magazine: 2400 / 1200 / 2000 sh
 struck plate erodes 120; exposure 0 (plates intact, no penetration), so **no system damage**.
 Armor did its job; repeat hits break the plate, then the assassin gets in.
 
-**ArmPen missile vs breached Composite section:** exposure 1, sticky victim picked, and an
+**ArmPen missile vs breached Composite section:** exposure 1, a victim system is picked, and an
 amount of 60 x 1.5 is near-certain against typical `damage50` values, so concentration 8 lands
 **~8 defects into one system**: crippled or broken. Everything else in the section: untouched.
 
@@ -330,16 +329,16 @@ electronics system ship-wide rolls once at x2.
 the Reactive cells in the target arc (Whipple beneath would pre-detonate them, so switch ammo
 once the cells are gone). ArmPen was the wrong opener (each round costs a Reactive cell) but
 becomes the right finisher: with the cells stripped it passes the Whipple screen untouched
-(0/1) and erodes the Composite core at 2x. HiExp is nearly useless here until the end (deflected
-scrape while Reactive stands, then 0.25x grind on the screen), while Frag sands the externals
-the entire time regardless of the stack.
+(0/1) and erodes the Composite core at 2x. HiExp scrapes the externals from the first hit and
+slowly grinds the Reactive cells (which never heal), then the Whipple screen at 0.25x, while
+Frag sands the externals the entire time regardless of the stack.
 
 ## 10. Tuning knobs
 
 | Knob | Where | Governs |
 | --- | --- | --- |
 | armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts` | every armor x type matchup |
-| profile scope/layer/factors, scrape strengths, deflectable | `space/damage-profile.ts` | per-type behavior |
+| profile scope/layer/factors, scrape strengths | `space/damage-profile.ts` | per-type behavior |
 | per-round: delivery, damage, concentration, blast, homing, heat | `space/projectile.ts` | every ammo number |
 | scrape constant (0.05) | `ship/damage-manager.ts` | global scrape calibration |
 | rationing window (0.15s) | `ship/damage-manager.ts` | explosion flood rationing |
@@ -351,9 +350,8 @@ change is a deliberate pin update.
 ## 11. Future and open items
 
 1. **Replan PR #1932 around this document**: impact delivery (Amir, in progress), layered
-   armor stacks, concentration + sticky victim, explosion defect rationing; then retune damage
-   numbers. Also fix Reactive's pop rate to once per hit — today a surviving explosion (Tandem)
-   pops one cell per damage tick ([011](../decisions/011-armor-table-rebalance.md) item 3).
+   armor stacks, concentration + event-time victim selection, explosion defect rationing; then retune damage
+   numbers.
 2. **Pierce delivery**: the railgun's overpenetration line. Reserved, not designed.
 3. **EMP-explosion variant**: area-denial EMP (multi-ship) as a future GM tool or mine; the
    delivery flag supports it without new mechanics.
@@ -363,4 +361,4 @@ change is a deliberate pin update.
 6. **Per-ship system mounting**: [#1954](https://github.com/starwards/starwards/issues/1954).
 7. **Ammo widget grouping**: 9 flat rows may read poorly at the weapons station.
 8. **Tandem surface realism**: real shaped charges also blast on contact; currently zero
-   surface effect for role clarity. A token deflectable scrape is a two-number change if wanted.
+   surface effect for role clarity. A token scrape is a two-number change if wanted.
