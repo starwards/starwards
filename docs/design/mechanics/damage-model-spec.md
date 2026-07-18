@@ -62,12 +62,17 @@ differently, so most mechanics in this document belong to one side or the other.
 - **Impact**: the round must **physically hit the ship** (contact fuze; no proximity
   detonation; it can be dodged or shot down). A hit produces **exactly one damage event** at the
   contact point: narrow arc, so one armor plate and one ship area. The event's amount is the
-  round's **damage** number.
+  round's **damage** number. An impact round that reaches the end of its lifetime without
+  hitting anything expires as a **dud** — no detonation.
 - **Explosion**: the round detonates into a blast object that grows over time. While the blast
   overlaps a ship it deals `damageFactor` damage **per second** (scaled by overlap), delivered
   as a stream of small damage events — how the stream is chopped up is an implementation
   choice; total damage over the overlap must not depend on it. Big, lingering blasts therefore
   deliver **many small events**; wide blasts can cover both ship areas and several ships at once.
+- **Fuze**: the implementation of delivery — the two correlate strictly. Impact rounds carry a
+  **contact fuze**. Explosion rounds carry a **proximity fuze (100m)** — every explosion
+  warhead, unguided shells included — plus the round's lifetime timer as a **backup time fuze**:
+  at end of flight the round detonates where it is instead of vanishing.
 - **Blast size**: the explosion's maximum radius, `expansionSpeed x secondsToLive`. Its
   `secondsToLive` is also how long the danger zone persists (ships can fly into it).
 - **Knockback**: explosions also shove the target (`blastFactor`). Not a damage number.
@@ -76,8 +81,8 @@ differently, so most mechanics in this document belong to one side or the other.
 
 | Delivery | Trigger | Events per round | Arc | Dodgeable | Used by |
 | --- | --- | --- | --- | --- | --- |
-| Impact | contact only | exactly 1 | one plate, one area | yes | ArmPenShell, ArmPenMissile, TandemMissile, Cluster-AP mode, ElecMissile |
-| Explosion | detonation (proximity for missiles, contact/range for shells) | a stream while overlapping | grows with blast, can span areas/ships | only by distance | HiExpShell, HiExpMissile, FragShell, FragMissile, Cluster-Frag mode |
+| Impact | contact only (dud on timeout) | exactly 1 | one plate, one area | yes | ArmPenShell, ArmPenMissile, TandemMissile, Cluster-AP mode, ElecMissile |
+| Explosion | proximity (100m) or time fuze at end of flight | a stream while overlapping | grows with blast, can span areas/ships | only by distance | HiExpShell, HiExpMissile, FragShell, FragMissile, Cluster-Frag mode |
 | Pierce | TBA | TBA | line across areas | TBA | future railgun |
 
 A future **EMP-explosion** variant (area denial, several ships at once) is possible; the model
@@ -281,8 +286,10 @@ Composite), you get hit by 10-20 in a row, and their system damage stays occasio
 All frag warheads share one intensity (10/s) and differ only by cloud size and linger; the
 dedicated FragMissile out-clouds the cluster's frag mode on both.
 
-**Missile flight table** (explosion missiles detonate at 100m proximity; impact missiles are
-contact-fuzed and can be dodged):
+**Missile flight table** (explosion missiles detonate at 100m proximity or at end of flight;
+impact missiles are contact-fuzed, can be dodged, and dud on timeout). Shells follow the same
+rule: explosion shells (HiExp, Frag) carry the 100m proximity fuze and detonate at end of
+flight; the ArmPenShell is contact-fuzed.
 
 | Missile | Max speed | Turn rate | Flight time | Fuze |
 | --- | --- | --- | --- | --- |
