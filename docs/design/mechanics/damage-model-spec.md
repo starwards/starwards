@@ -36,18 +36,13 @@ a property of the warhead, so the ClusterMissile switches type with its selected
 - **Damage profile**: the per-type behavior bundle defined in sections 3-5 (scope, layer,
   factors, surface behavior).
 
-| Type | Fiction | Short version |
-| --- | --- | --- |
-| HiExp | high-explosive blast wave | breaches armor over time, washes the deck |
-| ArmPen | kinetic penetrator (sabot) | punches one deep channel, nothing outside |
-| Frag | shrapnel cloud | shreds hull-mounted equipment, cannot get inside |
+| Type   | Fiction                     | Short version                                      |
+| ------ | --------------------------- | -------------------------------------------------- |
+| HiExp  | high-explosive blast wave   | breaches armor over time, washes the deck          |
+| ArmPen | kinetic penetrator (sabot)  | punches one deep channel, nothing outside          |
+| Frag   | shrapnel cloud              | shreds hull-mounted equipment, cannot get inside   |
 | Tandem | tandem shaped charge (HEAT) | slightly weaker ArmPen that defeats reactive armor |
-| Elec | EMP discharge | hits electronics wherever they are mounted |
-
-Damage events that come from no round — ship/asteroid collisions and bare (GM-spawned)
-explosions — carry the **Collision** type. It is not one of the five weapon types and has no
-damage profile or armor-table row: it erodes plates flat, and reaches systems only through
-plates that were already broken.
+| Elec   | EMP discharge               | hits electronics wherever they are mounted         |
 
 ## 3. Delivery: impact, explosion, pierce (TBA)
 
@@ -79,11 +74,11 @@ differently, so most mechanics in this document belong to one side or the other.
 - **Pierce (TBA)**: reserved future delivery for the railgun. Overpenetration, a line through
   the ship that can damage systems in both areas along its path. Not designed yet.
 
-| Delivery | Trigger | Events per round | Arc | Dodgeable | Used by |
-| --- | --- | --- | --- | --- | --- |
-| Impact | contact only (dud on timeout) | exactly 1 | one plate, one area | yes | ArmPenShell, ArmPenMissile, TandemMissile, Cluster-AP mode, ElecMissile |
-| Explosion | proximity (100m) or time fuze at end of flight | a stream while overlapping | grows with blast, can span areas/ships | only by distance | HiExpShell, HiExpMissile, FragShell, FragMissile, Cluster-Frag mode |
-| Pierce | TBA | TBA | line across areas | TBA | future railgun |
+| Delivery  | Trigger                                        | Events per round           | Arc                                    | Dodgeable        | Used by                                                                 |
+| --------- | ---------------------------------------------- | -------------------------- | -------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| Impact    | contact only (dud on timeout)                  | exactly 1                  | one plate, one area                    | yes              | ArmPenShell, ArmPenMissile, TandemMissile, Cluster-AP mode, ElecMissile |
+| Explosion | proximity (100m) or time fuze at end of flight | a stream while overlapping | grows with blast, can span areas/ships | only by distance | HiExpShell, HiExpMissile, FragShell, FragMissile, Cluster-Frag mode     |
+| Pierce    | TBA                                            | TBA                        | line across areas                      | TBA              | future railgun                                                          |
 
 A future **EMP-explosion** variant (area denial, several ships at once) is possible; the model
 supports it. Today's ElecMissile is deliberately impact (see section 8).
@@ -124,11 +119,11 @@ is, and how often a system can be hurt are the three mechanics below.
   engulfment lands ~2-3 applications per system. Impact needs no rationing: one event per
   round, and its rate limit is the weapon's rate of fire.
 
-| Mechanic | Applies to | Effect |
-| --- | --- | --- |
-| Spillover | every damage event | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
-| Victim selection | `single` scope only | one victim per event, picked at event time |
-| Defect rationing | explosion delivery only | max one application per system per 0.15s |
+| Mechanic         | Applies to              | Effect                                                                   |
+| ---------------- | ----------------------- | ------------------------------------------------------------------------ |
+| Spillover        | every damage event      | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
+| Victim selection | `single` scope only     | one victim per event, picked at event time                               |
+| Defect rationing | explosion delivery only | max one application per system per 0.15s                                 |
 
 **Resulting doctrine:** one HE = everything in the section bleeds; one AP = one system dies.
 
@@ -153,13 +148,13 @@ channel.
 - **System damage factor**: multiplier on the penetrating channel's roll amounts (for example
   ArmPen x1.5 concentrated punch, Elec x2).
 
-| Type | Scope | Layer | Factor | Scrape |
-| --- | --- | --- | --- | --- |
-| HiExp | multi | internal | 1 | yes x0.25 |
-| ArmPen | single | internal | 1.5 | no |
-| Frag | multi | external | 0.5 | yes x2 |
-| Tandem | single | internal | 1 | no |
-| Elec | electronics | (all electronics) | 2 | no |
+| Type   | Scope       | Layer             | Factor | Scrape    |
+| ------ | ----------- | ----------------- | ------ | --------- |
+| HiExp  | multi       | internal          | 1      | yes x0.25 |
+| ArmPen | single      | internal          | 1.5    | no        |
+| Frag   | multi       | external          | 0.5    | yes x2    |
+| Tandem | single      | internal          | 1      | no        |
+| Elec   | electronics | (all electronics) | 2      | no        |
 
 Exception to memorize: Cluster-AP mode is ArmPen-type but **multi**. The carrier penetrates
 and its bomblets pepper every internal system in the struck area (section 8).
@@ -212,23 +207,23 @@ design chooses the coat stack.
 
 Cell values below are `plateDamage / penetration`, per layer:
 
-| vs | Composite | Whipple | Hardened | Reactive | Faraday |
-| --- | --- | --- | --- | --- | --- |
-| HiExp | 1 / 0 | 0.25 / 0 | 0.5 / 0 | 1 / 0 (erode, no pop) | 0 / 1 |
-| ArmPen | **2 / 0** | **0 / 1** | 1 / 0 | 1 / 0 pop | 0 / 1 |
-| Frag | 0 / 0 | 0 / 0 | 0 / 0 | 0 / 0 (no pop) | 0 / 0 |
-| Tandem | 1 / 0 | **0 / 0** | **2 / 0** | **1 / 1** pop | 0 / 1 |
-| Elec | 0 / 1 | 0 / 1 | 0 / 1 | 1 / 0 pop | **0 / 0** |
+| vs     | Composite | Whipple   | Hardened  | Reactive              | Faraday   |
+| ------ | --------- | --------- | --------- | --------------------- | --------- |
+| HiExp  | 1 / 0     | 0.25 / 0  | 0.5 / 0   | 1 / 0 (erode, no pop) | 0 / 1     |
+| ArmPen | **2 / 0** | **0 / 1** | 1 / 0     | 1 / 0 pop             | 0 / 1     |
+| Frag   | 0 / 0     | 0 / 0     | 0 / 0     | 0 / 0 (no pop)        | 0 / 0     |
+| Tandem | 1 / 0     | **0 / 0** | **2 / 0** | **1 / 1** pop         | 0 / 1     |
+| Elec   | 0 / 1     | 0 / 1     | 0 / 1     | 1 / 0 pop             | **0 / 0** |
 
 **Armor identities** (as layers in a stack):
 
-| Model | One-liner | Nightmare | Specialty |
-| --- | --- | --- | --- |
-| Composite | the mandatory base hull layer | ArmPen (2x) | no walls, no gaps |
-| Whipple | standoff screen | ArmPen ignores it (0/1) | blunts blast, pre-detonates shaped charges |
-| Hardened | thick slab | Tandem jet (2x) | the only armor that stops kinetic rounds |
-| Reactive | one-shot cells | Tandem (pop + full force); HiExp grind (cells never heal); attrition | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
-| Faraday | EM cage | any physical round (transparent) | kills Elec; Frag still can't penetrate it |
+| Model     | One-liner                     | Nightmare                                                            | Specialty                                                                                 |
+| --------- | ----------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Composite | the mandatory base hull layer | ArmPen (2x)                                                          | no walls, no gaps                                                                         |
+| Whipple   | standoff screen               | ArmPen ignores it (0/1)                                              | blunts blast, pre-detonates shaped charges                                                |
+| Hardened  | thick slab                    | Tandem jet (2x)                                                      | the only armor that stops kinetic rounds                                                  |
+| Reactive  | one-shot cells                | Tandem (pop + full force); HiExp grind (cells never heal); attrition | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
+| Faraday   | EM cage                       | any physical round (transparent)                                     | kills Elec; Frag still can't penetrate it                                                 |
 
 Frag interacts with no armor at all: its row is 0/0 everywhere and it never activates ERA; its
 entire output is the surface scrape, which no armor stops.
@@ -242,18 +237,18 @@ decides scrape eligibility and which layer penetrating damage reaches) and by na
 per-ship mounting is future work ([#1954](https://github.com/starwards/starwards/issues/1954)).
 Each defect applies that system's own small malfunction.
 
-| System | Mounting | Electronics | One defect does |
-| --- | --- | --- | --- |
-| Thrusters | external | no | angle error 1-3 degrees or capacity -0.01..0.1 |
-| Chain gun / tubes | external | yes | aim offset 1-2 degrees or rate-of-fire x0.9 |
-| Radar | external | yes | malfunction range +5% |
-| Docking | external | yes | ranges -5% |
-| Signals | external | yes | job speed -5% or success -5% |
-| Reactor | internal | yes | energy x0.9 or efficiency -5% |
-| Magazine | internal | yes | lose ~10% of one ammo stock or capacity x0.9 |
-| Warp | internal | yes | damage factor +0.05 or velocity x0.9 |
-| Maneuvering | internal | no | efficiency -5% or afterburner fuel x0.9 |
-| Smart pilot | internal | yes | aim offset +0.01 |
+| System            | Mounting | Electronics | One defect does                                |
+| ----------------- | -------- | ----------- | ---------------------------------------------- |
+| Thrusters         | external | no          | angle error 1-3 degrees or capacity -0.01..0.1 |
+| Chain gun / tubes | external | yes         | aim offset 1-2 degrees or rate-of-fire x0.9    |
+| Radar             | external | yes         | malfunction range +5%                          |
+| Docking           | external | yes         | ranges -5%                                     |
+| Signals           | external | yes         | job speed -5% or success -5%                   |
+| Reactor           | internal | yes         | energy x0.9 or efficiency -5%                  |
+| Magazine          | internal | yes         | lose ~10% of one ammo stock or capacity x0.9   |
+| Warp              | internal | yes         | damage factor +0.05 or velocity x0.9           |
+| Maneuvering       | internal | no          | efficiency -5% or afterburner fuel x0.9        |
+| Smart pilot       | internal | yes         | aim offset +0.01                               |
 
 Breaking a system takes roughly 10-20 defects (varies per system); repair is ECR gameplay.
 
@@ -270,18 +265,18 @@ defect count).
 
 **Warhead table:**
 
-| Ammo | Type | Delivery | Scope | Damage | Blast |
-| --- | --- | --- | --- | --- | --- |
-| HiExpShell | HiExp | explosion | multi | 20/s | 200m x 1s |
-| ArmPenShell | ArmPen | impact | single | 30 | none |
-| FragShell | Frag | explosion | multi ext. | 10/s | 250m x 1s |
-| HiExpMissile | HiExp | explosion | multi | 50/s | 350m x 0.35s |
-| ArmPenMissile | ArmPen | impact | single | **60** | none |
-| FragMissile | Frag | explosion | multi ext. | 10/s | 800m x 1.6s |
-| Cluster, Frag mode | Frag | explosion | multi ext. | 10/s | 750m x 1s |
-| Cluster, AP mode | ArmPen | impact | **multi** | 30 | none |
-| TandemMissile | Tandem | impact | single | **50** | none |
-| ElecMissile | Elec | impact | electronics | 25 | none |
+| Ammo               | Type   | Delivery  | Scope       | Damage | Blast        |
+| ------------------ | ------ | --------- | ----------- | ------ | ------------ |
+| HiExpShell         | HiExp  | explosion | multi       | 20/s   | 200m x 1s    |
+| ArmPenShell        | ArmPen | impact    | single      | 30     | none         |
+| FragShell          | Frag   | explosion | multi ext.  | 10/s   | 250m x 1s    |
+| HiExpMissile       | HiExp  | explosion | multi       | 50/s   | 350m x 0.35s |
+| ArmPenMissile      | ArmPen | impact    | single      | **60** | none         |
+| FragMissile        | Frag   | explosion | multi ext.  | 10/s   | 800m x 1.6s  |
+| Cluster, Frag mode | Frag   | explosion | multi ext.  | 10/s   | 750m x 1s    |
+| Cluster, AP mode   | ArmPen | impact    | **multi**   | 30     | none         |
+| TandemMissile      | Tandem | impact    | single      | **50** | none         |
+| ElecMissile        | Elec   | impact    | electronics | 25     | none         |
 
 Reading the damage column through spillover: the ArmPen missile is the assassin — its big
 amount (x1.5 factor) spills into a burst of rolls, several defects into one system per hit.
@@ -300,14 +295,14 @@ impact missiles are contact-fuzed, can be dodged, and dud on timeout). Shells fo
 rule: explosion shells (HiExp, Frag) carry the 100m proximity fuze and detonate at end of
 flight; the ArmPenShell is contact-fuzed.
 
-| Missile | Max speed | Turn rate | Flight time | Fuze |
-| --- | --- | --- | --- | --- |
-| HiExpMissile | 600 | 720 deg/s | 78s | proximity |
-| ArmPenMissile | 960 | 504 deg/s | 42s | **contact** |
-| FragMissile | 600 | 720 deg/s | 78s | proximity |
-| ClusterMissile | 600 | 720 deg/s | 78s | by mode: Frag proximity / AP **contact** |
-| TandemMissile | 420 | 936 deg/s | 60s | **contact** |
-| ElecMissile | 780 | 720 deg/s | 96s | **contact** |
+| Missile        | Max speed | Turn rate | Flight time | Fuze                                     |
+| -------------- | --------- | --------- | ----------- | ---------------------------------------- |
+| HiExpMissile   | 600       | 720 deg/s | 78s         | proximity                                |
+| ArmPenMissile  | 960       | 504 deg/s | 42s         | **contact**                              |
+| FragMissile    | 600       | 720 deg/s | 78s         | proximity                                |
+| ClusterMissile | 600       | 720 deg/s | 78s         | by mode: Frag proximity / AP **contact** |
+| TandemMissile  | 420       | 936 deg/s | 60s         | **contact**                              |
+| ElecMissile    | 780       | 720 deg/s | 96s         | **contact**                              |
 
 Shells: 5 heat per shot; missiles: 25. Dragonfly magazine: 2400 / 1200 / 2000 shells,
 12 / 6 / 8 / 6 / 4 / 4 missiles (HiExp / ArmPen / Frag / Cluster / Tandem / Elec).
@@ -346,14 +341,14 @@ Frag sands the externals the entire time regardless of the stack.
 
 ## 10. Tuning knobs
 
-| Knob | Where | Governs |
-| --- | --- | --- |
+| Knob                                                 | Where                            | Governs                    |
+| ---------------------------------------------------- | -------------------------------- | -------------------------- |
 | armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts` | every armor x type matchup |
-| profile scope/layer/factors, scrape strengths | `space/damage-profile.ts` | per-type behavior |
-| per-round: delivery, damage, blast, homing, heat | `space/projectile.ts` | every ammo number |
-| scrape constant (0.05) | `ship/damage-manager.ts` | global scrape calibration |
-| rationing window (0.15s) | `ship/damage-manager.ts` | explosion flood rationing |
-| `damage50`, defect sizes | per-system designs | system toughness |
+| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`        | per-type behavior          |
+| per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`            | every ammo number          |
+| scrape constant (0.05)                               | `ship/damage-manager.ts`         | global scrape calibration  |
+| rationing window (0.15s)                             | `ship/damage-manager.ts`         | explosion flood rationing  |
+| `damage50`, defect sizes                             | per-system designs               | system toughness           |
 
 Regression pins in `modules/core/test/` restate the whole design as assertions; every tuning
 change is a deliberate pin update.
