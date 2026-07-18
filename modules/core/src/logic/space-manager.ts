@@ -15,6 +15,7 @@ import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { SWResponse } from './collisions-utils';
+import { DamageDelivery } from '../space/projectile';
 import { SpaceDamageType } from '../space/damage-profile';
 import { createLogger } from '../logger';
 
@@ -30,6 +31,9 @@ export type Damage = {
     damageDurationSeconds: number;
     // 'Collision' for generic kinetic hits (collisions, GM-spawned explosions)
     damageType: SpaceDamageType;
+    // impact: one event from a physical hit. explosion: one event of a blast-overlap stream.
+    // solid collisions are tagged impact (inert — the Collision type routes past weapon logic).
+    delivery: DamageDelivery;
 };
 
 type NoOrder = {
@@ -328,7 +332,11 @@ export class SpaceManager implements Updateable {
             }
             const queryArea = new Circle(XY.clone(projectile.position), fuze.range);
             for (const object of this.spatialIndex.selectPotentials(queryArea)) {
-                if ((Spaceship.isInstance(object) || Asteroid.isInstance(object)) && !object.destroyed) {
+                if (
+                    (Spaceship.isInstance(object) || Asteroid.isInstance(object)) &&
+                    !object.destroyed &&
+                    object.id !== projectile.shipId // never detonate on the ship that fired it
+                ) {
                     this.explodeProjectile(projectile);
                     break;
                 }
@@ -517,7 +525,11 @@ export class SpaceManager implements Updateable {
     // contact-fuzed warhead: exactly one damage event at the point of impact, no explosion object
     private resolveProjectileContactDamage(projectile: Projectile, hit: SpaceObject, deltaSeconds: number) {
         projectile.destroyed = true;
-        const flatDamage = projectile.warheadDesign.explosion.damageFactor;
+        const warhead = projectile.warheadDesign;
+        if (warhead.delivery !== 'impact') {
+            return;
+        }
+        const flatDamage = warhead.damage;
         if (Spaceship.isInstance(hit)) {
             const damageBoundries = circlesIntersection(hit, projectile);
             if (damageBoundries) {
@@ -535,6 +547,7 @@ export class SpaceManager implements Updateable {
                     damageSurfaceArc: hitLocalDamageAngles,
                     damageDurationSeconds: deltaSeconds,
                     damageType: projectile.damageType,
+                    delivery: 'impact',
                 };
                 const objectDamage = this.objectDamage.get(hit.id);
                 if (objectDamage === undefined) {
@@ -676,6 +689,7 @@ export class SpaceManager implements Updateable {
                 damageSurfaceArc: shipLocalDamageAngles,
                 damageDurationSeconds: deltaSeconds,
                 damageType: object.damageType,
+                delivery: Explosion.isInstance(object) ? 'explosion' : 'impact',
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {
