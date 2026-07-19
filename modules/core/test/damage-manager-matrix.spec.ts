@@ -35,7 +35,9 @@ function setUpShip(armorStats: ArmorModelStats = compositeArmor): Fixture {
     const ship = new Spaceship();
     ship.id = 'test-ship';
     const state = makeShipState(ship.id, dragonflySF22);
-    state.armor.layerDesigns[0].assign(armorStats);
+    for (const plate of state.armor.armorPlates) {
+        plate.layers[0].design.assign(armorStats);
+    }
     const spaceManager = new SpaceManager();
     spaceManager.insert(ship);
     const damageManager = new DamageManager(ship, state, spaceManager, new MockDie());

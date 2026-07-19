@@ -146,77 +146,65 @@ export class DamageManager {
     /**
      * Spec §6 resolution walk: the hit meets every armor layer outermost-in and each layer's
      * response to the damage type decides the outcome — transparent layers are skipped, an
-     * intact blocking layer stops the walk, engaging layers erode (scaled by the chain so far)
-     * and leak inward through their exposure. Exposure per layer is
-     * max(penetration, brokenLayerRatio) and chains multiplicatively across the stack; the
-     * final chain scales system damage for the area.
+     * intact blocking layer stops that plate's chain, engaging layers erode (scaled by the
+     * chain so far) and leak inward through their exposure. Each plate in the hit area keeps
+     * its own chain, since plates may carry heterogeneous layer stacks; exposure per layer is
+     * max(penetration, brokenRatio) and chains multiplicatively down that plate's stack. The
+     * area's final exposure is the average of the per-plate chains.
      *
-     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell pops and
-     * the hit is defeated (exposure measured pre-pop) unless the round fully penetrates
-     * (Tandem). Explosions erode the cells like ordinary plates — no pop, no defeat.
+     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell in the area
+     * pops per depth and the hit is defeated (exposure measured pre-pop) unless the round
+     * fully penetrates (Tandem). Explosions erode the cells like ordinary plates — no pop, no
+     * defeat.
      */
     private walkArmorLayers(damage: AttackDamage, areaHitRangeAngles: RTuple2, areaArc: RTuple2): number {
         const armor = this.state.armor;
         const platesInArea = armor.numberOfPlatesInRange(areaArc);
-        let chain = 1;
-        for (let i = 0; i < armor.layerDesigns.length && chain > 0; i++) {
-            const design = armor.layerDesigns[i];
-            const response = design.response(damage.damageType);
-            if (response.kind === 'bypass') {
-                continue;
-            }
-            if (response.kind === 'block') {
-                chain *= this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea);
-                continue;
-            }
-            if (design.singleUsePlates && damage.delivery === 'impact') {
-                const preRatio = this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea);
-                const popped = this.popSingleUseCell(i, areaHitRangeAngles);
-                chain *= Math.max(response.penetration, preRatio);
-                if (popped && response.penetration < 1) {
-                    // the cell defeats the hit: only sections already bare before the pop
-                    // leak damage, and deeper layers never see this round. With no cell left
-                    // to pop nothing defeats it — the round continues the walk inward.
-                    return chain;
-                }
-                continue;
-            }
-            this.erodeLayer(i, damage.amount * response.plateFactor * chain, areaHitRangeAngles);
-            chain *= Math.max(response.penetration, this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea));
-        }
-        return chain;
-    }
-
-    private brokenLayerRatio(layerIdx: number, areaHitRangeAngles: RTuple2, platesInArea: number): number {
         if (platesInArea <= 0) {
             return 0;
         }
-        let broken = 0;
-        for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
-            if (plate.layers[layerIdx].health <= 0) {
-                broken++;
+        const plates = [...armor.platesInRange(areaHitRangeAngles)].map(([, plate]) => plate);
+        const chains = plates.map(() => 1);
+        const maxDepth = plates.reduce((deepest, plate) => Math.max(deepest, plate.layers.length), 0);
+        for (let depth = 0; depth < maxDepth; depth++) {
+            let cellPopped = false;
+            let hitDefeated = false;
+            for (const [p, plate] of plates.entries()) {
+                const layer = plate.layers[depth];
+                if (chains[p] <= 0 || !layer) {
+                    continue;
+                }
+                const response = layer.design.response(damage.damageType);
+                if (response.kind === 'bypass') {
+                    continue;
+                }
+                if (response.kind === 'block') {
+                    chains[p] *= layer.broken ? 1 : 0;
+                    continue;
+                }
+                if (layer.design.singleUsePlates && damage.delivery === 'impact') {
+                    const bareBeforePop = layer.broken ? 1 : 0;
+                    if (!cellPopped && !layer.broken) {
+                        // a single reactive cell sacrifices itself to defeat the whole hit
+                        layer.health = 0;
+                        cellPopped = true;
+                        hitDefeated = response.penetration < 1;
+                    }
+                    chains[p] *= Math.max(response.penetration, bareBeforePop);
+                    continue;
+                }
+                layer.health = Math.max(layer.health - damage.amount * response.plateFactor * chains[p], 0);
+                chains[p] *= Math.max(response.penetration, layer.broken ? 1 : 0);
+            }
+            if (hitDefeated) {
+                // exposure measured pre-pop; deeper layers never see this round
+                break;
+            }
+            if (chains.every((chain) => chain <= 0)) {
+                break;
             }
         }
-        return broken / platesInArea;
-    }
-
-    private erodeLayer(layerIdx: number, erosion: number, areaHitRangeAngles: RTuple2) {
-        for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
-            const layer = plate.layers[layerIdx];
-            layer.health = Math.max(layer.health - erosion, 0);
-        }
-    }
-
-    /** a single reactive cell sacrifices itself to defeat the whole hit */
-    private popSingleUseCell(layerIdx: number, areaHitRangeAngles: RTuple2): boolean {
-        for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
-            const layer = plate.layers[layerIdx];
-            if (layer.health > 0) {
-                layer.health = 0;
-                return true;
-            }
-        }
-        return false;
+        return chains.reduce((sum, chain) => sum + chain, 0) / platesInArea;
     }
 
     /**

@@ -2,7 +2,6 @@ import { ArmorModelName, ArmorModelStats, RTuple2, toPositiveDegreesDelta } from
 import { ArraySchema, Schema } from '@colyseus/schema';
 
 import { DesignState } from './system';
-import { MAX_SAFE_FLOAT } from '../logic';
 import { WeaponDamageType } from '../space/damage-profile';
 import { gameField } from '../game-field';
 import { range } from '../range';
@@ -68,17 +67,24 @@ export class ArmorDesignState extends DesignState {
 }
 
 export class ArmorLayer extends Schema {
-    @range((t: ArmorLayer) => [0, t.maxHealth])
-    @gameField('float32')
-    health!: number;
+    @gameField(ArmorLayerDesignState)
+    design = new ArmorLayerDesignState();
 
-    @range([0, MAX_SAFE_FLOAT])
+    @range((t: ArmorLayer) => [0, t.design.plateMaxHealth])
     @gameField('float32')
-    maxHealth!: number;
+    health = 0;
+
+    get maxHealth(): number {
+        return this.design.plateMaxHealth;
+    }
+
+    get broken(): boolean {
+        return this.health <= 0;
+    }
 }
 
 export class ArmorPlate extends Schema {
-    // outermost first, indexed in lockstep with Armor.layerDesigns
+    // outermost first
     @gameField([ArmorLayer])
     layers = new ArraySchema<ArmorLayer>();
 
@@ -106,10 +112,6 @@ export class ArmorPlate extends Schema {
 export class Armor extends Schema {
     @gameField([ArmorPlate])
     armorPlates!: ArraySchema<ArmorPlate>;
-
-    // outermost first, indexed in lockstep with ArmorPlate.layers
-    @gameField([ArmorLayerDesignState])
-    layerDesigns!: ArraySchema<ArmorLayerDesignState>;
 
     @gameField(ArmorDesignState)
     design = new ArmorDesignState();
