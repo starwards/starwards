@@ -314,10 +314,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const [firstAngle, firstDesign] = dragonflySF22.thrusters[0];
             const state = makeShipState(ship.id, {
                 ...dragonflySF22,
-                thrusters: [
-                    [firstAngle, { ...firstDesign, isInternal: true }],
-                    ...dragonflySF22.thrusters.slice(1),
-                ],
+                thrusters: [[firstAngle, { ...firstDesign, isInternal: true }], ...dragonflySF22.thrusters.slice(1)],
             });
             expect(state.thrusters[0].isInternal).to.equal(true);
             expect(state.thrusters[1].isInternal).to.equal(false);
