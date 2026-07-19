@@ -184,6 +184,13 @@ export const Lobby = (p: Props) => {
                             >
                                 Colyseus Monitor
                             </Button>
+                            <Button
+                                key="gallery"
+                                palette="secondary"
+                                onClick={() => window.location.assign('gallery.html')}
+                            >
+                                Widgets Gallery
+                            </Button>
                         </pre>
                     </div>
                     <div
