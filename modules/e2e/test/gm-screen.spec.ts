@@ -138,4 +138,28 @@ test.describe('GM Screen', () => {
         expect(ship.velocity.x).toBeCloseTo(50, 0);
         expect(ship.velocity.y).toBeCloseTo(-30, 0);
     });
+
+    test('radius set via the tweak panel takes effect', async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        // 'radius' is a plain numeric input (not the angle-oriented `cameraring` dial), so it
+        // has a single input, same shape as the label lookup used for velocity's x/y pair.
+        const radiusLabel = tweakPanel.getByText('radius', { exact: true }).first();
+        await expect(radiusLabel).toBeVisible({ timeout: 5000 });
+        const radiusInput = radiusLabel.locator('..').locator('input').first();
+
+        await radiusInput.fill('120');
+        await radiusInput.press('Enter');
+
+        const [ship] = gameDriver.gameManager.spaceManager.state.getAll('Spaceship');
+        await expect(() => {
+            expect(ship.radius).toBeCloseTo(120, 0);
+        }).toPass({ timeout: 2000 });
+    });
 });
