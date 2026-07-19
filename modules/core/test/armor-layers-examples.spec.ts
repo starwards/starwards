@@ -124,6 +124,19 @@ describe('spec §9 worked examples', () => {
             expect(state.warp.velocityFactor).to.equal(1);
         });
 
+        // §9 / design intent: fighter-class plates are sized so a standard ArmPen missile
+        // breaches a plate in one direct hit — 60 flat × plateDamage_ArmPen 2 = 120 erosion
+        // vs the dragonfly's plateMaxHealth 100
+        it('one ArmPen missile direct hit breaches a fighter plate', () => {
+            const { state, damageManager } = setUpLayeredShip([...dragonflySF22.armor.layers]);
+            const damaged = damageManager.takeWeaponDamage(frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'));
+            for (const plate of frontPlates(state)) {
+                expect(plate.layers[0].health).to.equal(0);
+            }
+            // the breach opens within the same event — the assassin gets straight in
+            expect(damaged).to.equal(true);
+        });
+
         // §9: "landing several defects into one system: crippled or broken" — once the victim
         // breaks mid-application the remainder dissipates; no other system picks it up
         it('remainder dissipates when the victim breaks mid-application', () => {

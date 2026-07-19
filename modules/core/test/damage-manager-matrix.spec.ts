@@ -195,7 +195,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('HiExp vs Reactive: the scrape lands on externals while cells erode, nothing penetrates', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
             const before = state.armor.armorPlates[0].layers[0].health;
-            const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            // amount below plateMaxHealth (100) — the cells erode but hold
+            const damaged = damageManager.takeWeaponDamage(frontDamage(90, 'HiExp'));
             expect(damaged).to.equal(true);
             expect(state.armor.armorPlates[0].layers[0].health).to.be.lessThan(before);
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
@@ -251,7 +252,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
 
         it('surface-effect hit with plates intact damages only external systems', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            // 300 × plateDamage_HiExp 0.25 = 75 erosion — below plateMaxHealth (100), plates hold
+            damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
             // while plates hold, only the surface scrape lands — and it targets externals
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
             // internal systems untouched
@@ -275,7 +277,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
 
         it('blocked non-surface-effect hit (ArmPen vs Hardened, plates intact) leaves systems untouched', () => {
             const { state, damageManager } = setUpShip(hardenedArmor);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(100, 'ArmPen'));
+            // 50 erosion at plateDamage_ArmPen 1 — below plateMaxHealth (100), plates hold
+            const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
             expect(damaged).to.equal(false);
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
             expect(state.smartPilot.offsetFactor).to.equal(0);

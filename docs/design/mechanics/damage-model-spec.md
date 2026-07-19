@@ -117,10 +117,10 @@ target is are the two mechanics below.
   apply, the remainder dissipates. Every `single`-scope round is impact delivery — exactly one
   event per round — so no victim persistence across events is needed. Multi-scope rounds have
   no victim to pick; everyone in the area rolls.
-| Mechanic         | Applies to          | Effect                                                                   |
-| ---------------- | ------------------- | ------------------------------------------------------------------------ |
-| Spillover        | every damage event  | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
-| Victim selection | `single` scope only | one victim per event, picked at event time                               |
+  | Mechanic | Applies to | Effect |
+  | ---------------- | ------------------- | ------------------------------------------------------------------------ |
+  | Spillover | every damage event | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
+  | Victim selection | `single` scope only | one victim per event, picked at event time |
 
 **Resulting doctrine:** one HE = everything in the section bleeds; one AP = one system dies.
 
@@ -219,13 +219,13 @@ Cell values below are `plateDamage / penetration`, per layer:
 
 **Armor identities** (as layers in a stack):
 
-| Model     | One-liner                     | Nightmare                                                            | Specialty                                                                                 |
-| --------- | ----------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Composite | the mandatory base hull layer | ArmPen (2x)                                                          | no walls, no gaps                                                                         |
-| Whipple   | standoff screen               | ArmPen ignores it (0/1)                                              | blunts blast, pre-detonates shaped charges                                                |
-| Hardened  | thick slab                    | Tandem jet (2x)                                                      | the only armor that stops kinetic rounds                                                  |
-| Reactive  | one-shot cells                | Tandem (pop + full force); HiExp grind; attrition                    | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
-| Faraday   | EM cage                       | any physical round (transparent)                                     | kills Elec; Frag still can't penetrate it                                                 |
+| Model     | One-liner                     | Nightmare                                         | Specialty                                                                                 |
+| --------- | ----------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Composite | the mandatory base hull layer | ArmPen (2x)                                       | no walls, no gaps                                                                         |
+| Whipple   | standoff screen               | ArmPen ignores it (0/1)                           | blunts blast, pre-detonates shaped charges                                                |
+| Hardened  | thick slab                    | Tandem jet (2x)                                   | the only armor that stops kinetic rounds                                                  |
+| Reactive  | one-shot cells                | Tandem (pop + full force); HiExp grind; attrition | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
+| Faraday   | EM cage                       | any physical round (transparent)                  | kills Elec; Frag still can't penetrate it                                                 |
 
 Frag interacts with no armor at all: its row is 0/0 everywhere and it never activates ERA; its
 entire output is the surface scrape, which no armor stops.
@@ -312,8 +312,11 @@ Shells: 5 heat per shot; missiles: 25. Dragonfly magazine: 2400 / 1200 / 2000 sh
 ## 9. Worked examples
 
 **ArmPen missile vs intact Composite:** contact, one event, amount 60. Armor row 2/0: the
-struck plate erodes 120; exposure 0 (plates intact, no penetration), so **no system damage**.
-Armor did its job; repeat hits break the plate, then the assassin gets in.
+struck plate erodes 120; on a capital-grade plate (1000 HP) exposure stays 0 (plates intact,
+no penetration), so **no system damage** — armor did its job; repeat hits break the plate,
+then the assassin gets in. On a fighter-class plate (the dragonfly's 100 HP composite) the
+same 120 erosion **breaches the plate in one direct hit**, and the exposure opens within the
+same event.
 
 **ArmPen missile vs breached Composite section:** exposure 1, a victim system is picked, and an
 amount of 60 x 1.5 spills into a stack of coin-flip rolls against typical `damage50` values,
@@ -344,15 +347,20 @@ Frag sands the externals the entire time regardless of the stack.
 
 ## 10. Tuning knobs
 
-| Knob                                                 | Where                                   | Governs                    |
-| ---------------------------------------------------- | --------------------------------------- | -------------------------- |
-| armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts`        | every armor x type matchup |
-| per-layer `plateMaxHealth`, layer order              | ship design (`ArmorDesign.layers`)      | armor stack durability     |
-| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`               | per-type behavior          |
-| per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`                   | every ammo number          |
-| `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/damage-manager.ts`                | global scrape calibration  |
-| `MAX_SPILLOVER_ROLLS` (20)                           | `ship/damage-manager.ts`                | spillover overkill guard   |
-| `damage50`, defect sizes                             | per-system designs                      | system toughness           |
+| Knob                                                 | Where                              | Governs                    |
+| ---------------------------------------------------- | ---------------------------------- | -------------------------- |
+| armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts`   | every armor x type matchup |
+| per-layer `plateMaxHealth`, layer order              | ship design (`ArmorDesign.layers`) | armor stack durability     |
+| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`          | per-type behavior          |
+| per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`              | every ammo number          |
+| `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/damage-manager.ts`           | global scrape calibration  |
+| `MAX_SPILLOVER_ROLLS` (20)                           | `ship/damage-manager.ts`           | spillover overkill guard   |
+| `damage50`, defect sizes                             | per-system designs                 | system toughness           |
+
+Fighter-class plates are sized so a standard ArmPen missile breaches a plate in one direct
+hit: the dragonfly's composite `plateMaxHealth` is 100, against ArmPenMissile erosion of
+60 × 2 = 120 — while ArmPenShell (30 × 2 = 60) and Tandem (50 × 1 = 50) need two hits, and a
+full HiExpMissile blast (~17.5 × 1 per plate) about six.
 
 Regression pins in `modules/core/test/` restate the whole design as assertions; every tuning
 change is a deliberate pin update.

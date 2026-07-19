@@ -2,7 +2,9 @@ import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
     numberOfPlates: 12,
-    layers: [{ type: 'composite' as const, plateMaxHealth: 1500 }],
+    // fighter-class plates: sized so a standard ArmPen missile (60 flat × plateDamage_ArmPen 2
+    // = 120 erosion) breaches a plate in one direct hit
+    layers: [{ type: 'composite' as const, plateMaxHealth: 100 }],
 };
 
 export const dragonflyThruster = {
