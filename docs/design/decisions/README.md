@@ -17,7 +17,7 @@ Key product decisions and their rationale. Not every choice needs a record — o
 | 9 | Frag never deflects/penetrates; Cluster becomes a dual-mode warhead | 2026-07 | [009-frag-mechanics-and-cluster-modes.md](009-frag-mechanics-and-cluster-modes.md) |
 | 10 | Differentiated blast sizes; Frag is the strongest surface scraper | 2026-07 | [010-blast-size-and-surface-factors.md](010-blast-size-and-surface-factors.md) |
 | 11 | Armor table rebalance — AP hierarchy, reactive pops on any warhead | 2026-07 | [011-armor-table-rebalance.md](011-armor-table-rebalance.md) |
-| 12 | System mounting (`isInternal`) is a per-ship design property | 2026-07 | [012-per-ship-system-mounting.md](012-per-ship-system-mounting.md) |
+| 12 | System mounting (`isInternal`) and electronics (`isElectronics`) are per-ship, per-model design properties | 2026-07 | [012-per-ship-system-mounting.md](012-per-ship-system-mounting.md) |
 
 ## Template
 

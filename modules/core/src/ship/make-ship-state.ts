@@ -111,21 +111,18 @@ function makeDocking(design: DockingDesign) {
 }
 function makeManeuvering(design: ManeuveringDesign) {
     const maneuvering = new Maneuvering();
-    maneuvering.design.isInternal = true;
     maneuvering.design.assign(design);
     return maneuvering;
 }
 
 function makeWarp(design: WarpDesign) {
     const warp = new Warp();
-    warp.design.isInternal = true;
     warp.design.assign(design);
     return warp;
 }
 
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
-    magazine.design.isInternal = true;
     magazine.design.assign(design);
     for (const projectileModel of ammoTypes) {
         magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
@@ -141,7 +138,6 @@ function makeTargeting(design: TargetingDesign) {
 
 function makeReactor(design: ReactorDesign) {
     const reactor = new Reactor();
-    reactor.design.isInternal = true;
     reactor.design.assign(design);
     return reactor;
 }
@@ -154,7 +150,6 @@ function makeSignals(design: SignalsDesign) {
 
 function makeSmartPilot(design: SmartPilotDesign) {
     const smartPilot = new SmartPilot();
-    smartPilot.design.isInternal = true;
     smartPilot.design.assign(design);
     return smartPilot;
 }

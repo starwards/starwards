@@ -9,7 +9,8 @@ export type MagazineDesign = {
     [T in AmmoType as `max_${T}`]: number;
 } & {
     modelName?: string;
-    isInternal?: boolean;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     capacityBrokenThreshold: number;
     capacityDamageFactor: number;
@@ -36,7 +37,6 @@ export class Magazine extends SystemState {
     };
 
     public readonly type = 'Magazine';
-    override readonly isElectronics = true;
     public readonly name = 'Magazine';
 
     @gameField(MagazineDesignState)

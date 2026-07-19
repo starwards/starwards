@@ -14,7 +14,8 @@ export enum DockingMode {
 
 export type DockingDesign = {
     modelName?: string;
-    isInternal?: boolean;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     maxDockingDistance: number;
     maxDockedDistance: number;
@@ -37,7 +38,6 @@ export class Docking extends SystemState {
     };
 
     public readonly type = 'Docking';
-    override readonly isElectronics = true;
     public readonly name = 'Docking';
 
     @gameField(DockingDesignState)

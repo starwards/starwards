@@ -9,6 +9,8 @@ import { range } from '../range';
 
 export type ThrusterDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     maxAngleError: number;
     capacity: number;
     energyCost: number;
@@ -29,14 +31,6 @@ export class Thruster extends SystemState {
     };
 
     public readonly type = 'Thruster';
-
-    /**
-     * pinned external: no ship config can move thrusters internal. Frag/Cluster's
-     * mobility-kill role and pilot-felt damage depend on thrusters always being exposed.
-     */
-    override get isInternal(): boolean {
-        return false;
-    }
 
     get name() {
         return `Thruster ${this.index} (${getDirectionConfigFromAngle(this.angle)})`;

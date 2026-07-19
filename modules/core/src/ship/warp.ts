@@ -6,7 +6,8 @@ import { tweakable } from '../tweakable';
 
 export type WarpDesign = {
     modelName?: string;
-    isInternal?: boolean;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     maxProximity: number;
     chargeTime: number;
@@ -44,7 +45,6 @@ export class Warp extends SystemState {
     };
 
     public readonly type = 'Warp';
-    override readonly isElectronics = true;
     public readonly name = 'Warp';
 
     @gameField(WarpDesignState)

@@ -6,7 +6,8 @@ import { range } from '../range';
 
 export type RadarDesign = {
     modelName?: string;
-    isInternal?: boolean;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     range: number;
     /**
@@ -33,7 +34,6 @@ export class Radar extends SystemState {
     };
 
     public readonly type = 'Radar';
-    override readonly isElectronics = true;
     public readonly name = 'Radar';
 
     @gameField(RadarDesignState)
