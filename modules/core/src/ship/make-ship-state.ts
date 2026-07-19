@@ -56,7 +56,6 @@ function makeArmor(design: ArmorDesign): Armor {
         layerDesign.assign(layer.withFaradayLayer ? withFaradayLayer(stats) : stats);
         layerDesign.assign({
             modelName: layer.type,
-            healRate: layer.healRate,
             plateMaxHealth: layer.plateMaxHealth,
         });
         armor.layerDesigns.push(layerDesign);

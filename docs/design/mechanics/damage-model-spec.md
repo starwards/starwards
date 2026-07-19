@@ -161,7 +161,7 @@ and its bomblets pepper every internal system in the struck area (section 8).
 **General explanation:** a ship's armor is a **stack of layers**, modeled **inside each
 plate**: a single Armor system holds one ring of plates, and each plate carries an ordered
 array of layers (outermost first), each with its own health/maxHealth. Per-layer design (the
-armor model's stats row, `plateMaxHealth`, `healRate`) lives in a parallel synced array on the
+armor model's stats row, `plateMaxHealth`) lives in a parallel synced array on the
 Armor system, indexed by layer position, so arcs align across layers by construction. Every
 ship has a mandatory **Composite base layer** (the hull itself, always innermost — validated at
 ship construction); the ship design may add any number of layers outside it, in any order (for
@@ -192,13 +192,13 @@ same rules apply identically to impact and explosion events.
   intact blocking layer zeroes it; a breached layer stops mattering.
 - **Single-use cells (`singleUsePlates`)**: Reactive. The cells trigger on **impact delivery
   only** — a contact-fuzed round presents a body for the cells to defeat; a blast washing over
-  them does not. An engaging impact hit **pops** the cells in the arc (they go to zero and
-  never heal) and is **defeated** (exposure is measured before the pop). Follow-up hits on the
-  bared section pass to the next layer. Every defeated warhead costs a cell: sustained cheap
-  fire strips ERA off the stack. Explosion damage erodes the cells like ordinary plates (no
-  pop, no defeat — and the cells still never heal).
-- **Repair**: the shipyard repairs all layers (future option: repairing layers separately).
-  Reactive cells never heal anywhere.
+  them does not. An engaging impact hit **pops** the cells in the arc (they go to zero) and is
+  **defeated** (exposure is measured before the pop). Follow-up hits on the bared section pass
+  to the next layer. Every defeated warhead costs a cell: sustained cheap fire strips ERA off
+  the stack. Explosion damage erodes the cells like ordinary plates (no pop, no defeat).
+- **Repair**: armor does not heal — plates are restored only by explicit repair. The shipyard
+  repairs all layers, including spent single-use cells (future option: repairing layers
+  separately).
 - **Collisions**: a collision erodes the outermost layer that still has health, per plate; a
   plate exposes the internal systems behind it only when **all** of its layers are broken.
 
@@ -224,7 +224,7 @@ Cell values below are `plateDamage / penetration`, per layer:
 | Composite | the mandatory base hull layer | ArmPen (2x)                                                          | no walls, no gaps                                                                         |
 | Whipple   | standoff screen               | ArmPen ignores it (0/1)                                              | blunts blast, pre-detonates shaped charges                                                |
 | Hardened  | thick slab                    | Tandem jet (2x)                                                      | the only armor that stops kinetic rounds                                                  |
-| Reactive  | one-shot cells                | Tandem (pop + full force); HiExp grind (cells never heal); attrition | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
+| Reactive  | one-shot cells                | Tandem (pop + full force); HiExp grind; attrition                    | defeats every impact warhead once per cell; blocks Elec; blasts erode it but never pop it |
 | Faraday   | EM cage                       | any physical round (transparent)                                     | kills Elec; Frag still can't penetrate it                                                 |
 
 Frag interacts with no armor at all: its row is 0/0 everywhere and it never activates ERA; its
@@ -339,7 +339,7 @@ the Reactive cells in the target arc (Whipple beneath would pre-detonate them, s
 once the cells are gone). ArmPen was the wrong opener (each round costs a Reactive cell) but
 becomes the right finisher: with the cells stripped it passes the Whipple screen untouched
 (0/1) and erodes the Composite core at 2x. HiExp scrapes the externals from the first hit and
-slowly grinds the Reactive cells (which never heal), then the Whipple screen at 0.25x, while
+slowly grinds the Reactive cells, then the Whipple screen at 0.25x, while
 Frag sands the externals the entire time regardless of the stack.
 
 ## 10. Tuning knobs
@@ -347,7 +347,7 @@ Frag sands the externals the entire time regardless of the stack.
 | Knob                                                 | Where                                   | Governs                    |
 | ---------------------------------------------------- | --------------------------------------- | -------------------------- |
 | armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts`        | every armor x type matchup |
-| per-layer `plateMaxHealth`, `healRate`, layer order  | ship design (`ArmorDesign.layers`)      | armor stack durability     |
+| per-layer `plateMaxHealth`, layer order              | ship design (`ArmorDesign.layers`)      | armor stack durability     |
 | profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`               | per-type behavior          |
 | per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`                   | every ammo number          |
 | `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/damage-manager.ts`                | global scrape calibration  |

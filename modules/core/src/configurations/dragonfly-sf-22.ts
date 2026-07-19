@@ -2,7 +2,7 @@ import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
     numberOfPlates: 12,
-    layers: [{ type: 'composite' as const, plateMaxHealth: 1500, healRate: 3 }],
+    layers: [{ type: 'composite' as const, plateMaxHealth: 1500 }],
 };
 
 export const dragonflyThruster = {

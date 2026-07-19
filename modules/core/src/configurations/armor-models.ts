@@ -12,7 +12,7 @@ export type ArmorModelStats = {
     // are meaningful — fractional penetration applies to engaging hits only (validated in armor-models.spec).
     [T in WeaponDamageType as `penetration_${T}`]: number;
 } & {
-    // reactive cells: an engaging hit zeroes the plate and it does not heal.
+    // reactive cells: an engaging hit zeroes the plate.
     singleUsePlates?: boolean;
 };
 

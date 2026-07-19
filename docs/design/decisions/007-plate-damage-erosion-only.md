@@ -24,7 +24,7 @@ _time to breach_, not scale what a round does after the breach.
    never scaled by the armor factor. `0` still means "the armor does not engage the hit".
 2. **Reactive vs Tandem loses the ×4 system damage** (supersedes the ×4 in 006 item 8;
    `plateDamage_Tandem` is now `1`). The "critical" outcome is preserved structurally: the
-   precursor pops the cells permanently (`singleUsePlates`, no heal) and `penetration_Tandem: 1`
+   precursor pops the cells permanently (`singleUsePlates`) and `penetration_Tandem: 1`
    lands the main charge at full force — already the strongest outcome in the model.
 3. **Hardened is resistant (not immune) to HiExp: `plateDamage_HiExp: 0.5`.** Blast grinds the
    slab down at half rate; ArmPen (2) remains the fast counter. This differentiates Hardened

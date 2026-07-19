@@ -1,6 +1,5 @@
-import { ShipManagerNpc, SpaceManager, Spaceship, makeShipState, resetShipState, shipConfigurations } from '../src';
+import { makeShipState, resetShipState, shipConfigurations } from '../src';
 
-import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
@@ -8,8 +7,8 @@ const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 const layeredArmor = {
     numberOfPlates: 12,
     layers: [
-        { type: 'reactive' as const, plateMaxHealth: 100, healRate: 5 },
-        { type: 'composite' as const, plateMaxHealth: 1000, healRate: 10 },
+        { type: 'reactive' as const, plateMaxHealth: 100 },
+        { type: 'composite' as const, plateMaxHealth: 1000 },
     ],
 };
 
@@ -22,7 +21,7 @@ describe('armor layer stacks', () => {
         expect(() =>
             makeShipState('test-ship', {
                 ...dragonflyConfig,
-                armor: { numberOfPlates: 12, layers: [{ type: 'reactive', plateMaxHealth: 100, healRate: 5 }] },
+                armor: { numberOfPlates: 12, layers: [{ type: 'reactive', plateMaxHealth: 100 }] },
             }),
         ).to.throw();
     });
@@ -55,21 +54,6 @@ describe('armor layer stacks', () => {
         expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
         plate.layers[1].health = 0;
         expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates - 1);
-    });
-
-    it('healing skips single-use layers and heals each layer at its own rate', () => {
-        const state = makeLayeredState();
-        const shipObj = new Spaceship();
-        shipObj.id = state.id;
-        const spaceMgr = new SpaceManager();
-        spaceMgr.insert(shipObj);
-        const shipMgr = new ShipManagerNpc(shipObj, state, spaceMgr, new MockDie());
-        const plate = state.armor.armorPlates[0];
-        plate.layers[0].health = 0;
-        plate.layers[1].health = 0;
-        shipMgr.update({ deltaSeconds: 1, deltaSecondsAvg: 1, totalSeconds: 1 });
-        expect(plate.layers[0].health).to.equal(0);
-        expect(plate.layers[1].health).to.be.closeTo(10, 0.5);
     });
 
     it('fixArmor restores every layer, including single-use cells', () => {

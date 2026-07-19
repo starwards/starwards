@@ -11,7 +11,6 @@ import { tweakable } from '../tweakable';
 export type ArmorLayerDesign = {
     type: ArmorModelName;
     plateMaxHealth: number;
-    healRate: number;
     withFaradayLayer?: boolean;
 };
 
@@ -31,7 +30,6 @@ export type ArmorResponse =
     | { kind: 'engage'; plateFactor: number; penetration: number };
 
 export class ArmorLayerDesignState extends DesignState implements ArmorModelStats {
-    @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;
     @gameField('float32') plateDamage_HiExp = 0;
     @gameField('float32') plateDamage_ArmPen = 0;

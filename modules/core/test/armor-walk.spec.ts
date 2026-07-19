@@ -56,18 +56,18 @@ function countBrokenLayer(state: ShipState, layerIdx: number): number {
 }
 
 const reactiveOverComposite: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100, healRate: 0 },
-    { type: 'composite', plateMaxHealth: 1000, healRate: 0 },
+    { type: 'reactive', plateMaxHealth: 100 },
+    { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 const whippleOverComposite: ArmorLayerDesign[] = [
-    { type: 'whipple', plateMaxHealth: 500, healRate: 0 },
-    { type: 'composite', plateMaxHealth: 1000, healRate: 0 },
+    { type: 'whipple', plateMaxHealth: 500 },
+    { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 const hardenedOverComposite: ArmorLayerDesign[] = [
-    { type: 'hardened', plateMaxHealth: 1000, healRate: 0 },
-    { type: 'composite', plateMaxHealth: 1000, healRate: 0 },
+    { type: 'hardened', plateMaxHealth: 1000 },
+    { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 describe('layered armor resolution walk', () => {

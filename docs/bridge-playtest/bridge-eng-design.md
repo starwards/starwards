@@ -124,7 +124,7 @@ per-system files (`thruster.ts`, `chain-gun.ts`, `radar.ts`, `warp.ts`,
 | D3 decision-making | 🟡 emergent in current widget — engineer sees a list, but with no cost or constraint, "decision" collapses to "do them all in parallel". Depends on D4/D5/resource model. | requires a constraint (one-at-a-time, resource cost, or time pressure) |
 | D4 mental challenge | ❌ none — no repair UI exists at all | full design needed: form of challenge, success/failure semantics |
 | D5 action correlated with damage type | ❌ no action concept exists | requires mapping table between (system, defectible, severity) → (action archetype) |
-| repair effect on state | ❌ **no repair logic in code at all**. The ONLY restorative path today is the GM tweak panel writing the value back to `normal`. Armor plates self-heal (`healRate` in `dragonfly-sf-22.ts`); **system defectibles do not.** | server-side command `repairDefectible(systemPointer, field)` (or similar) that resets the defectible — needs design re: instant vs gradual, success/fail effect |
+| repair effect on state | ❌ **no repair logic in code at all**. The ONLY restorative path today is the GM tweak panel writing the value back to `normal`. | server-side command `repairDefectible(systemPointer, field)` (or similar) that resets the defectible — needs design re: instant vs gradual, success/fail effect |
 
 ### 2.4 Adjacent UI already on engineering
 

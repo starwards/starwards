@@ -46,7 +46,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         spaceMgr,
                         die,
                     );
-                    shipMgr.state.armor.layerDesigns[0].healRate = 0;
                     die.expectedRoll = 1;
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);

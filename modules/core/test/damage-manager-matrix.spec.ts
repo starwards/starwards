@@ -99,7 +99,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
         });
 
-        it('a follow-up hit on the bared section gets through (cells do not heal)', () => {
+        it('a follow-up hit on the bared section gets through', () => {
             const { damageManager } = setUpShip(reactiveArmor);
             damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
             const damaged = damageManager.takeWeaponDamage({ ...frontDamage(50, 'ArmPen'), id: 'd-2' });

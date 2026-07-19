@@ -41,7 +41,7 @@ during the rework and are recorded here for review by the original author.
    blocks Elec and lets all physical types bypass.
 8. **Old "critical" (Tandem vs Reactive) encoded as `plateDamage_Tandem=4, penetration_Tandem=1`
    plus `singleUsePlates`** — preserves the old ×4 system damage and full exposure; cells pop
-   and do not heal (`healPlates` skips `singleUsePlates` armor).
+   permanently.
 9. **Heat-per-shot moved to `ProjectileDesign.heatPerShot`** (5 shells / 25 missiles),
    replacing the 8 `heat_*` fields per weapon design added in #1930. Heat is a property of
    the round, not the launcher; a per-weapon override can be reintroduced if needed.

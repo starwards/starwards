@@ -77,17 +77,17 @@ function breachLayer(state: ShipState, layerIdx: number) {
     }
 }
 
-const compositeOnly: ArmorLayerDesign[] = [{ type: 'composite', plateMaxHealth: 1000, healRate: 0 }];
+const compositeOnly: ArmorLayerDesign[] = [{ type: 'composite', plateMaxHealth: 1000 }];
 
 const reactiveOverComposite: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100, healRate: 0 },
-    { type: 'composite', plateMaxHealth: 1000, healRate: 0 },
+    { type: 'reactive', plateMaxHealth: 100 },
+    { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 const fullStack: ArmorLayerDesign[] = [
-    { type: 'reactive', plateMaxHealth: 100, healRate: 0 },
-    { type: 'whipple', plateMaxHealth: 500, healRate: 0 },
-    { type: 'composite', plateMaxHealth: 1000, healRate: 0 },
+    { type: 'reactive', plateMaxHealth: 100 },
+    { type: 'whipple', plateMaxHealth: 500 },
+    { type: 'composite', plateMaxHealth: 1000 },
 ];
 
 describe('spec §9 worked examples', () => {
@@ -274,34 +274,19 @@ describe('spec §9 worked examples', () => {
             }
         });
 
-        // §9: "HiExp ... slowly grinds the Reactive cells (which never heal)"
-        it('(c) HiExp erodes cells without popping them, and spent erosion never heals back', () => {
-            const layers: ArmorLayerDesign[] = [
-                { type: 'reactive', plateMaxHealth: 100, healRate: 5 },
-                { type: 'whipple', plateMaxHealth: 500, healRate: 5 },
-                { type: 'composite', plateMaxHealth: 1000, healRate: 5 },
-            ];
-            const { ship, state, spaceManager } = setUpLayeredShip(layers);
-            // expose the protected heal path (ship-manager-abstract.healPlates, called every tick)
-            class HealExposedShipManager extends ShipManagerPc {
-                heal(deltaSeconds: number) {
-                    this.healPlates(deltaSeconds);
-                }
-                takeWeaponDamage(damage: AttackDamage) {
-                    this.damageManager.takeWeaponDamage(damage);
-                }
-            }
-            const manager = new HealExposedShipManager(ship, state, spaceManager, new MockDie());
-            manager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
+        // §9: "HiExp ... slowly grinds the Reactive cells"
+        it('(c) HiExp erodes cells without popping them, and armor damage persists across update ticks', () => {
+            const { ship, state, spaceManager, damageManager } = setUpLayeredShip(fullStack);
+            const manager = new ShipManagerPc(ship, state, spaceManager, new MockDie());
+            damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
             for (const plate of frontPlates(state)) {
                 expect(plate.layers[0].health).to.be.closeTo(60, 0.001); // eroded, not popped
             }
-            // scratch the whipple screen so the heal tick has something to repair
+            // scratch the whipple screen too, then run the ship update loop
             frontPlates(state)[0].layers[1].health = 490;
-            manager.heal(10);
-            // whipple heals back (healRate 5 × 10s, capped at max)...
-            expect(frontPlates(state)[0].layers[1].health).to.equal(500);
-            // ...but the single-use reactive cells never do
+            manager.update({ deltaSeconds: 10, deltaSecondsAvg: 10, totalSeconds: 10 });
+            // armor does not heal — every layer stays at its damaged value until explicit repair
+            expect(frontPlates(state)[0].layers[1].health).to.equal(490);
             for (const plate of frontPlates(state)) {
                 expect(plate.layers[0].health).to.be.closeTo(60, 0.001);
             }

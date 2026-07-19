@@ -228,7 +228,6 @@ export abstract class ShipManager implements Updateable {
     update(id: IterationData) {
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
-        this.healPlates(id.deltaSeconds);
         this.damageManager.update();
         this.heatManager.update(id);
         this.automationManager.update(id);
@@ -287,22 +286,6 @@ export abstract class ShipManager implements Updateable {
             );
         } else {
             return this.state.radar.design.range * this.state.radar.effectiveness;
-        }
-    }
-
-    protected healPlates(deltaSeconds: number) {
-        const layerDesigns = this.state.armor.layerDesigns;
-        for (const plate of this.state.armor.armorPlates) {
-            for (let i = 0; i < plate.layers.length; i++) {
-                const design = layerDesigns[i];
-                if (design.singleUsePlates) {
-                    continue;
-                }
-                const layer = plate.layers[i];
-                if (layer.health < design.plateMaxHealth) {
-                    layer.health = Math.min(layer.health + design.healRate * deltaSeconds, design.plateMaxHealth);
-                }
-            }
         }
     }
 

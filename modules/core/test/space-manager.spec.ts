@@ -177,8 +177,6 @@ describe('SpaceManager', () => {
                 shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
                 shipMgr.state.afterBurnerCommand = 1; // afterburner
 
-                shipMgr.state.armor.layerDesigns[0].healRate = 0;
-
                 sim.simulateUntilTime(shellSecondsToLive * 10, (_spaceMgr) => {
                     shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
                 });
