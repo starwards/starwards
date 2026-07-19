@@ -139,7 +139,55 @@ test.describe('GM Screen', () => {
         expect(ship.velocity.y).toBeCloseTo(-30, 0);
     });
 
-    test('radius set via the tweak panel takes effect', async ({ page }) => {
+    test('velocity set by dragging the point2d pad persists', async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const velocityLabel = tweakPanel.getByText('velocity', { exact: true });
+        await expect(velocityLabel).toBeVisible({ timeout: 5000 });
+        const parent = velocityLabel.locator('..');
+
+        // the point2d blade's draggable pad is hidden behind a toggle button until clicked
+        await parent.locator('.tp-p2dv_b').click();
+        const pad = parent.locator('.tp-p2dpv_p');
+        await expect(pad).toBeVisible({ timeout: 2000 });
+        const padBox = await pad.boundingBox();
+        if (!padBox) throw new Error('velocity pad has no bounding box');
+
+        const centerX = padBox.x + padBox.width / 2;
+        const centerY = padBox.y + padBox.height / 2;
+        await page.mouse.move(centerX, centerY);
+        await page.mouse.down();
+        await page.mouse.move(centerX + 60, centerY - 40, { steps: 10 });
+        await page.mouse.up();
+
+        const [ship] = gameDriver.gameManager.spaceManager.state.getAll('Spaceship');
+        // A multi-step drag fires one 'change' event (and JSON-pointer command) per mouse-move
+        // step, so wait for the flurry of commands to fully round-trip and settle on a single
+        // value before treating it as "the" post-drag velocity.
+        let settled: { x: number; y: number } | undefined;
+        await expect(() => {
+            const sample = { x: ship.velocity.x, y: ship.velocity.y };
+            const isZero = sample.x === 0 && sample.y === 0;
+            const matchesLastSample = settled && sample.x === settled.x && sample.y === settled.y;
+            settled = sample;
+            expect(isZero || !matchesLastSample).toBe(false);
+        }).toPass({ timeout: 2000, intervals: [100] });
+        const xAfterDrag = settled!.x;
+        const yAfterDrag = settled!.y;
+
+        // must not decay back towards zero the way it did before the smart-pilot-disengage fix.
+        await page.waitForTimeout(1000);
+        expect(ship.velocity.x).toBeCloseTo(xAfterDrag, 0);
+        expect(ship.velocity.y).toBeCloseTo(yAfterDrag, 0);
+    });
+
+    test('radius set via the tweak panel persists', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
 
@@ -161,5 +209,8 @@ test.describe('GM Screen', () => {
         await expect(() => {
             expect(ship.radius).toBeCloseTo(120, 0);
         }).toPass({ timeout: 2000 });
+        // radius has no ongoing physics correcting it, unlike velocity — confirm it holds.
+        await page.waitForTimeout(1000);
+        expect(ship.radius).toBeCloseTo(120, 0);
     });
 });
