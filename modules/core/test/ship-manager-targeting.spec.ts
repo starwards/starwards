@@ -248,11 +248,12 @@ describe('ShipManager housekeeping', () => {
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
         flush();
         const armor = mgr.state.armor;
-        const plate = armor.armorPlates[0];
-        plate.health = 0;
+        const layer = armor.armorPlates[0].layers[0];
+        layer.health = 0;
         runTick(mgr); // one second of healing
-        const expected = Math.min(armor.design.healRate, armor.design.plateMaxHealth);
-        expect(plate.health).to.be.closeTo(expected, 0.5);
+        const layerDesign = armor.layerDesigns[0];
+        const expected = Math.min(layerDesign.healRate, layerDesign.plateMaxHealth);
+        expect(layer.health).to.be.closeTo(expected, 0.5);
     });
 
     it('radar malfunction reduces radar range toward the malfunction range', () => {

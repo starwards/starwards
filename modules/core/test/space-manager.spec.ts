@@ -39,7 +39,7 @@ function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number)
 function* getHitPlatesArch(armor: Armor, range: RTuple2) {
     const degreesPerPlate = armor.degreesPerPlate;
     for (const [i, plate] of armor.platesInRange(range)) {
-        if (plate.health < armor.design.plateMaxHealth) {
+        if (plate.healthRatio < 1) {
             const start = i * degreesPerPlate;
             yield [start, start + degreesPerPlate] as const;
         }
@@ -177,7 +177,7 @@ describe('SpaceManager', () => {
                 shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
                 shipMgr.state.afterBurnerCommand = 1; // afterburner
 
-                shipMgr.state.armor.design.healRate = 0;
+                shipMgr.state.armor.layerDesigns[0].healRate = 0;
 
                 sim.simulateUntilTime(shellSecondsToLive * 10, (_spaceMgr) => {
                     shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;

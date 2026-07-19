@@ -8,13 +8,17 @@ import { gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
-export type ArmorDesign = {
-    modelName?: string;
-    numberOfPlates: number;
-    healRate: number;
-    plateMaxHealth: number;
+export type ArmorLayerDesign = {
     type: ArmorModelName;
-    withFaradayLayer: boolean;
+    plateMaxHealth: number;
+    healRate: number;
+    withFaradayLayer?: boolean;
+};
+
+export type ArmorDesign = {
+    numberOfPlates: number;
+    // outermost first; the innermost layer must be composite
+    layers: ArmorLayerDesign[];
 };
 
 // how the armor engages an incoming damage type
@@ -26,8 +30,7 @@ export type ArmorResponse =
     // plates take the hit; damage leaks through broken sections and inherent penetration
     | { kind: 'engage'; plateFactor: number; penetration: number };
 
-export class ArmorDesignState extends DesignState implements ArmorModelStats {
-    @gameField('float32') numberOfPlates = 0;
+export class ArmorLayerDesignState extends DesignState implements ArmorModelStats {
     @gameField('float32') healRate = 0;
     @gameField('float32') plateMaxHealth = 0;
     @gameField('float32') plateDamage_HiExp = 0;
@@ -43,10 +46,6 @@ export class ArmorDesignState extends DesignState implements ArmorModelStats {
     @tweakable('boolean')
     @gameField('boolean')
     singleUsePlates = false;
-
-    @tweakable('boolean')
-    @gameField('boolean')
-    deflectsSurfaceEffect = false;
 
     plateDamage(t: WeaponDamageType): number {
         return this[`plateDamage_${t}`];
@@ -66,8 +65,12 @@ export class ArmorDesignState extends DesignState implements ArmorModelStats {
     }
 }
 
-export class ArmorPlate extends Schema {
-    @range((t: ArmorPlate) => [0, t.maxHealth])
+export class ArmorDesignState extends DesignState {
+    @gameField('float32') numberOfPlates = 0;
+}
+
+export class ArmorLayer extends Schema {
+    @range((t: ArmorLayer) => [0, t.maxHealth])
     @gameField('float32')
     health!: number;
 
@@ -76,9 +79,39 @@ export class ArmorPlate extends Schema {
     maxHealth!: number;
 }
 
+export class ArmorPlate extends Schema {
+    // outermost first, indexed in lockstep with Armor.layerDesigns
+    @gameField([ArmorLayer])
+    layers = new ArraySchema<ArmorLayer>();
+
+    get healthRatio(): number {
+        let health = 0;
+        let maxHealth = 0;
+        for (const layer of this.layers) {
+            health += layer.health;
+            maxHealth += layer.maxHealth;
+        }
+        return maxHealth > 0 ? health / maxHealth : 0;
+    }
+
+    // a plate is broken only when every one of its layers is down
+    get broken(): boolean {
+        for (const layer of this.layers) {
+            if (layer.health > 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 export class Armor extends Schema {
     @gameField([ArmorPlate])
     armorPlates!: ArraySchema<ArmorPlate>;
+
+    // outermost first, indexed in lockstep with ArmorPlate.layers
+    @gameField([ArmorLayerDesignState])
+    layerDesigns!: ArraySchema<ArmorLayerDesignState>;
 
     @gameField(ArmorDesignState)
     design = new ArmorDesignState();
@@ -88,7 +121,7 @@ export class Armor extends Schema {
     }
 
     get numberOfHealthyPlates(): number {
-        return this.armorPlates.reduce((r, plate) => r + Number(plate.health > 0), 0);
+        return this.armorPlates.reduce((r, plate) => r + Number(!plate.broken), 0);
     }
 
     get degreesPerPlate(): number {

@@ -1,12 +1,8 @@
 import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
-    modelName: 'Aegis-12 Plated Armor',
     numberOfPlates: 12,
-    healRate: 3,
-    plateMaxHealth: 1500,
-    type: 'composite' as const,
-    withFaradayLayer: false,
+    layers: [{ type: 'composite' as const, plateMaxHealth: 1500, healRate: 3 }],
 };
 
 export const dragonflyThruster = {

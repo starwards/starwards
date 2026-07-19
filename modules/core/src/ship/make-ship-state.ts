@@ -1,4 +1,4 @@
-import { Armor, ArmorDesign, ArmorPlate } from './armor';
+import { Armor, ArmorDesign, ArmorLayer, ArmorLayerDesignState, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
 import { Magazine, MagazineDesign } from './magazine';
@@ -44,19 +44,31 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
 }
 
 function makeArmor(design: ArmorDesign): Armor {
+    if (design.layers.at(-1)?.type !== 'composite') {
+        throw new Error('innermost (last) armor layer must be of type composite');
+    }
     const armor = new Armor();
+    armor.design.assign({ numberOfPlates: design.numberOfPlates });
+    armor.layerDesigns = new ArraySchema<ArmorLayerDesignState>();
+    for (const layer of design.layers) {
+        const stats = armorModels[layer.type];
+        const layerDesign = new ArmorLayerDesignState();
+        layerDesign.assign(layer.withFaradayLayer ? withFaradayLayer(stats) : stats);
+        layerDesign.assign({
+            modelName: layer.type,
+            healRate: layer.healRate,
+            plateMaxHealth: layer.plateMaxHealth,
+        });
+        armor.layerDesigns.push(layerDesign);
+    }
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    const stats = armorModels[design.type];
-    armor.design.assign(design.withFaradayLayer ? withFaradayLayer(stats) : stats);
-    armor.design.assign({
-        modelName: design.modelName ?? '',
-        numberOfPlates: design.numberOfPlates,
-        healRate: design.healRate,
-        plateMaxHealth: design.plateMaxHealth,
-    });
     for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = plate.maxHealth = design.plateMaxHealth;
+        for (const layer of design.layers) {
+            const armorLayer = new ArmorLayer();
+            armorLayer.health = armorLayer.maxHealth = layer.plateMaxHealth;
+            plate.layers.push(armorLayer);
+        }
         armor.armorPlates.push(plate);
     }
     return armor;

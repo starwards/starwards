@@ -14,8 +14,8 @@ import {
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
-import { SWResponse } from './collisions-utils';
 import { DamageDelivery } from '../space/projectile';
+import { SWResponse } from './collisions-utils';
 import { SpaceDamageType } from '../space/damage-profile';
 import { createLogger } from '../logger';
 

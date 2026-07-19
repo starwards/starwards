@@ -21,8 +21,7 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         }
     });
 
-    it('Frag is a shrapnel cloud: undeflectable, never penetrates, strongest surface shredder', () => {
-        expect(damageProfiles.Frag.deflectable).to.equal(false);
+    it('Frag is a shrapnel cloud: never penetrates, strongest surface shredder', () => {
         expect(damageProfiles.Frag.hitsInternal).to.equal(false);
         for (const type of weaponDamageTypes) {
             if (type === 'Frag') continue;
@@ -36,8 +35,7 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         }
     });
 
-    it('Tandem is a weaker ArmPen whose niche is defeating deflection', () => {
-        expect(damageProfiles.Tandem.deflectable).to.equal(false);
+    it('Tandem is a weaker ArmPen sharing its single-system scope', () => {
         expect(damageProfiles.Tandem.systemScope).to.equal(damageProfiles.ArmPen.systemScope);
         expect(damageProfiles.Tandem.systemDamageFactor).to.be.lessThan(damageProfiles.ArmPen.systemDamageFactor);
     });

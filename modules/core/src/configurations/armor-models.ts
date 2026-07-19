@@ -14,16 +14,13 @@ export type ArmorModelStats = {
 } & {
     // reactive cells: an engaging hit zeroes the plate and it does not heal.
     singleUsePlates?: boolean;
-    // pushes the round/missile away before the blast develops: surface-effect scrape does not apply.
-    deflectsSurfaceEffect?: boolean;
 };
 
 // plateDamage: multiplier on plate erosion only, 0 = armor does not engage the hit.
 // The armor is worn down until its plates are dead; system damage behind it is never scaled.
 // penetration: fraction of system damage bypassing the plates.
 // Surface-effect ammo (HiExp/Frag) always scrapes hull-mounted systems regardless of the armor
-// model — the equipment sits outside the plates. deflectsSurfaceEffect negates the scrape for
-// deflectable rounds; Frag shrapnel clouds are never deflectable and never penetrate plates.
+// model — the equipment sits outside the plates. Frag shrapnel clouds never penetrate plates.
 
 export const compositeArmor: ArmorModelStats = {
     plateDamage_HiExp: 1,
@@ -39,7 +36,6 @@ export const compositeArmor: ArmorModelStats = {
     penetration_Tandem: 0,
     penetration_Elec: 1,
     singleUsePlates: false,
-    deflectsSurfaceEffect: false,
 };
 
 export const whippleArmor: ArmorModelStats = {
@@ -57,7 +53,6 @@ export const whippleArmor: ArmorModelStats = {
     penetration_Tandem: 0,
     penetration_Elec: 1,
     singleUsePlates: false,
-    deflectsSurfaceEffect: false,
 };
 
 export const hardenedArmor: ArmorModelStats = {
@@ -75,7 +70,6 @@ export const hardenedArmor: ArmorModelStats = {
     penetration_Tandem: 0,
     penetration_Elec: 1,
     singleUsePlates: false,
-    deflectsSurfaceEffect: false,
 };
 
 export const reactiveArmor: ArmorModelStats = {
@@ -83,7 +77,7 @@ export const reactiveArmor: ArmorModelStats = {
     // nothing penetrates, but the cell is spent (exposure is measured before the pop)
     plateDamage_HiExp: 1,
     plateDamage_ArmPen: 1,
-    // shrapnel does not activate the reactive cells: no cell consumed, but the scrape lands (not deflectable)
+    // shrapnel does not activate the reactive cells: no cell consumed, but the scrape lands
     plateDamage_Frag: 0,
     // tandem precursor pops the cell and the main charge lands at full force
     plateDamage_Tandem: 1,
@@ -94,9 +88,6 @@ export const reactiveArmor: ArmorModelStats = {
     penetration_Tandem: 1,
     penetration_Elec: 0,
     singleUsePlates: true,
-    // the reactive charge pushes the round/missile away before its blast develops — no surface scrape
-    // (does not apply to Frag: there is no round to deflect, the shrapnel cloud arrives anyway)
-    deflectsSurfaceEffect: true,
 };
 
 export const faradayArmor: ArmorModelStats = {
@@ -112,7 +103,6 @@ export const faradayArmor: ArmorModelStats = {
     penetration_Tandem: 1,
     penetration_Elec: 0,
     singleUsePlates: false,
-    deflectsSurfaceEffect: false,
 };
 
 // A Faraday cage layered over any other armor model: blocks Elec hits instead of letting them bypass.

@@ -86,22 +86,20 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
-        const armorResponse = this.state.armor.design.response(damage.damageType);
         const damagedExternals = this.applySurfaceEffect(damage);
-        switch (armorResponse.kind) {
-            case 'bypass': {
-                const fullExposure = [...shipAreasInRange(damage.damageSurfaceArc)].map((hitArea) => ({
-                    hitArea,
-                    exposure: 1,
-                }));
-                this.applyExposedSystemDamage(damage, fullExposure);
-                return true;
+        const exposures: AreaExposure[] = [];
+        for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
+            const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
+            const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
+            if (!areaHitRangeAngles) {
+                continue;
             }
-            case 'block':
-                return damagedExternals;
-            case 'engage':
-                return this.resolveArmorEngagement(damage, armorResponse) || damagedExternals;
+            const exposure = this.walkArmorLayers(damage, areaHitRangeAngles, areaArc);
+            if (exposure > 0) {
+                exposures.push({ hitArea, exposure });
+            }
         }
+        return this.applyExposedSystemDamage(damage, exposures) || damagedExternals;
     }
 
     public takeCollisionDamage(damage: Damage): boolean {
@@ -129,14 +127,11 @@ export class DamageManager {
 
     /**
      * hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
-     * regardless of the plates, unless the armor deflects the round before the blast develops
+     * regardless of the plates
      */
     private applySurfaceEffect(damage: AttackDamage): boolean {
         const { profile } = damage;
         if (!profile.surfaceEffect) {
-            return false;
-        }
-        if (profile.deflectable && this.state.armor.design.deflectsSurfaceEffect) {
             return false;
         }
         const scaled = { ...damage, amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor };
@@ -149,60 +144,77 @@ export class DamageManager {
     }
 
     /**
-     * systems take damage wherever a section is exposed — by broken plates or by
-     * inherent penetration
+     * Spec §6 resolution walk: the hit meets every armor layer outermost-in and each layer's
+     * response to the damage type decides the outcome — transparent layers are skipped, an
+     * intact blocking layer stops the walk, engaging layers erode (scaled by the chain so far)
+     * and leak inward through their exposure. Exposure per layer is
+     * max(penetration, brokenLayerRatio) and chains multiplicatively across the stack; the
+     * final chain scales system damage for the area.
+     *
+     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell pops and
+     * the hit is defeated (exposure measured pre-pop) unless the round fully penetrates
+     * (Tandem). Explosions erode the cells like ordinary plates — no pop, no defeat.
      */
-    private resolveArmorEngagement(damage: AttackDamage, armor: { plateFactor: number; penetration: number }): boolean {
-        const exposures: AreaExposure[] = [];
-        let cellPopped = false;
-        for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
-            const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
-            const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
-            if (!areaHitRangeAngles) {
+    private walkArmorLayers(damage: AttackDamage, areaHitRangeAngles: RTuple2, areaArc: RTuple2): number {
+        const armor = this.state.armor;
+        const platesInArea = armor.numberOfPlatesInRange(areaArc);
+        let chain = 1;
+        for (let i = 0; i < armor.layerDesigns.length && chain > 0; i++) {
+            const design = armor.layerDesigns[i];
+            const response = design.response(damage.damageType);
+            if (response.kind === 'bypass') {
                 continue;
             }
-            const engagement = this.engagePlatesInArea(
-                damage.amount * armor.plateFactor,
-                areaHitRangeAngles,
-                !cellPopped,
-            );
-            cellPopped = engagement.cellPopped || cellPopped;
-            const platesInArea = this.state.armor.numberOfPlatesInRange(areaArc);
-            const brokenRatio = platesInArea > 0 ? engagement.brokenPlates / platesInArea : 0;
-            const exposure = Math.max(armor.penetration, brokenRatio);
-            if (exposure > 0) {
-                exposures.push({ hitArea, exposure });
+            if (response.kind === 'block') {
+                chain *= this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea);
+                continue;
             }
+            if (design.singleUsePlates && damage.delivery === 'impact') {
+                const preRatio = this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea);
+                this.popSingleUseCell(i, areaHitRangeAngles);
+                chain *= Math.max(response.penetration, preRatio);
+                if (response.penetration < 1) {
+                    // the cell defeats the hit: only sections already bare before the pop
+                    // leak damage, and deeper layers never see this round
+                    return chain;
+                }
+                continue;
+            }
+            this.erodeLayer(i, damage.amount * response.plateFactor * chain, areaHitRangeAngles);
+            chain *= Math.max(response.penetration, this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea));
         }
-        const damagedInternals = this.applyExposedSystemDamage(damage, exposures);
-        if (cellPopped && armor.penetration < 1) {
-            // the popped cell consumes the blast/round — it must not keep dealing damage on
-            // subsequent ticks or to other ships. A full-penetration round (tandem warhead)
-            // survives the pop: the main charge lands.
-            this.spaceManager.destroyObject(damage.id);
-        }
-        return damagedInternals;
+        return chain;
     }
 
-    /**
-     * Ablative plates erode, and the hit leaks through whatever is bare after the erosion;
-     * a reactive cell pops to defeat this hit, so only sections already bare before the pop
-     * count as exposed. Intended: at most one cell per hit. Actual: one per damage tick —
-     * a full-penetration explosion (Tandem) survives the pop and pops another cell each tick
-     * it keeps dealing damage (see decision 011 item 3, known deviation).
-     */
-    private engagePlatesInArea(
-        erosion: number,
-        areaHitRangeAngles: RTuple2,
-        mayPopCell: boolean,
-    ): { brokenPlates: number; cellPopped: boolean } {
-        if (this.state.armor.design.singleUsePlates) {
-            const brokenPlates = this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles);
-            const cellPopped = mayPopCell && this.consumeSingleUsePlate(areaHitRangeAngles);
-            return { brokenPlates, cellPopped };
+    private brokenLayerRatio(layerIdx: number, areaHitRangeAngles: RTuple2, platesInArea: number): number {
+        if (platesInArea <= 0) {
+            return 0;
         }
-        this.applyDamageToArmor(erosion, areaHitRangeAngles);
-        return { brokenPlates: this.getNumberOfBrokenPlatesInRange(areaHitRangeAngles), cellPopped: false };
+        let broken = 0;
+        for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
+            if (plate.layers[layerIdx].health <= 0) {
+                broken++;
+            }
+        }
+        return broken / platesInArea;
+    }
+
+    private erodeLayer(layerIdx: number, erosion: number, areaHitRangeAngles: RTuple2) {
+        for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
+            const layer = plate.layers[layerIdx];
+            layer.health = Math.max(layer.health - erosion, 0);
+        }
+    }
+
+    /** a single reactive cell sacrifices itself to defeat the whole hit */
+    private popSingleUseCell(layerIdx: number, areaHitRangeAngles: RTuple2) {
+        for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
+            const layer = plate.layers[layerIdx];
+            if (layer.health > 0) {
+                layer.health = 0;
+                return;
+            }
+        }
     }
 
     /**
@@ -261,17 +273,6 @@ export class DamageManager {
             collected.push(...(this.state.systemsByAreas(hitArea) || []));
         }
         return collected;
-    }
-
-    /** a single reactive cell sacrifices itself to defeat the whole hit */
-    private consumeSingleUsePlate(localAngleHitRange: RTuple2): boolean {
-        for (const [_, plate] of this.state.armor.platesInRange(localAngleHitRange)) {
-            if (plate.health > 0) {
-                plate.health = 0;
-                return true;
-            }
-        }
-        return false;
     }
 
     damageAllSystems(damageObject: { id: string; amount: number }) {
@@ -421,7 +422,7 @@ export class DamageManager {
     private getNumberOfBrokenPlatesInRange(hitRange: RTuple2): number {
         let brokenPlates = 0;
         for (const [_, plate] of this.state.armor.platesInRange(hitRange)) {
-            if (plate.health <= 0) {
+            if (plate.broken) {
                 brokenPlates++;
             }
         }
@@ -430,9 +431,9 @@ export class DamageManager {
 
     private applyDamageToArmor(damageFactor: number, localAnglesHitRange: RTuple2) {
         for (const [_, plate] of this.state.armor.platesInRange(localAnglesHitRange)) {
-            if (plate.health > 0) {
-                const newHealth = plate.health - damageFactor;
-                plate.health = Math.max(newHealth, 0);
+            const layer = plate.layers.find((l) => l.health > 0);
+            if (layer) {
+                layer.health = Math.max(layer.health - damageFactor, 0);
             }
         }
     }
