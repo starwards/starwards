@@ -96,7 +96,6 @@ Future features discussed in the same talk (probes, railgun, torpedo) are drafte
 
 **Current state of the codebase (context for this decision).**
 - Damage and malfunctions are **only added** today — no repair code exists for system damage or broken systems.
-- Armor plates are the lone exception: passive auto-heal via `healRate`, no operator action.
 - This decision adds the missing repair side of the damage loop.
 
 **Same task-queue shape as Signals tier-2 scan** — the bridge gets a consistent "operator picks an operation, station executes it over time" idiom.

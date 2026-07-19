@@ -1,12 +1,10 @@
 import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
-    modelName: 'Aegis-12 Plated Armor',
     numberOfPlates: 12,
-    healRate: 3,
-    plateMaxHealth: 1500,
-    type: 'composite' as const,
-    withFaradayLayer: false,
+    // fighter-class plates: sized so a standard ArmPen missile (60 flat × plateDamage_ArmPen 2
+    // = 120 erosion) breaches a plate in one direct hit
+    layers: [{ type: 'composite' as const, plateMaxHealth: 100 }],
 };
 
 export const dragonflyThruster = {

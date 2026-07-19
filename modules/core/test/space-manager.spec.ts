@@ -39,7 +39,7 @@ function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number)
 function* getHitPlatesArch(armor: Armor, range: RTuple2) {
     const degreesPerPlate = armor.degreesPerPlate;
     for (const [i, plate] of armor.platesInRange(range)) {
-        if (plate.health < armor.design.plateMaxHealth) {
+        if (plate.healthRatio < 1) {
             const start = i * degreesPerPlate;
             yield [start, start + degreesPerPlate] as const;
         }
@@ -62,7 +62,9 @@ describe('SpaceManager', () => {
                     target.radius = Spaceship.radius;
                     const explosion = new Explosion();
                     const explosionInit = jest.spyOn(explosion, 'init');
-                    const shell = new Projectile();
+                    // proximity-fuzed and untargeted: flies straight like a dumb shell,
+                    // detonates only on actual contact (no in-flight proximity trigger)
+                    const shell = new Projectile('FragMissile');
                     shell._explosion = explosion;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     shell.velocity = Vec2.make(velocity);
@@ -174,8 +176,6 @@ describe('SpaceManager', () => {
                 const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
                 shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
                 shipMgr.state.afterBurnerCommand = 1; // afterburner
-
-                shipMgr.state.armor.design.healRate = 0;
 
                 sim.simulateUntilTime(shellSecondsToLive * 10, (_spaceMgr) => {
                     shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;

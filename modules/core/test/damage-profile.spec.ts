@@ -21,8 +21,7 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         }
     });
 
-    it('Frag is a shrapnel cloud: undeflectable, never penetrates, strongest surface shredder', () => {
-        expect(damageProfiles.Frag.deflectable).to.equal(false);
+    it('Frag is a shrapnel cloud: never penetrates, strongest surface shredder', () => {
         expect(damageProfiles.Frag.hitsInternal).to.equal(false);
         for (const type of weaponDamageTypes) {
             if (type === 'Frag') continue;
@@ -36,8 +35,7 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         }
     });
 
-    it('Tandem is a weaker ArmPen whose niche is defeating deflection', () => {
-        expect(damageProfiles.Tandem.deflectable).to.equal(false);
+    it('Tandem is a weaker ArmPen sharing its single-system scope', () => {
         expect(damageProfiles.Tandem.systemScope).to.equal(damageProfiles.ArmPen.systemScope);
         expect(damageProfiles.Tandem.systemDamageFactor).to.be.lessThan(damageProfiles.ArmPen.systemDamageFactor);
     });
@@ -75,12 +73,9 @@ describe('damage profiles and projectile designs (design invariants)', () => {
     });
 
     it('shrapnel clouds out-size any blast wave', () => {
-        const nonFragMissiles = ['HiExpMissile', 'ArmPenMissile', 'TandemMissile', 'ElecMissile'] as const;
         const fragBlasts = [ammoDesigns.FragMissile.explosion, ammoDesigns.ClusterMissile.warheads.Frag.explosion];
         for (const frag of fragBlasts) {
-            for (const model of nonFragMissiles) {
-                expect(blastSize(frag)).to.be.greaterThan(blastSize(ammoDesigns[model].explosion));
-            }
+            expect(blastSize(frag)).to.be.greaterThan(blastSize(ammoDesigns.HiExpMissile.explosion));
         }
     });
 
@@ -99,7 +94,12 @@ describe('damage profiles and projectile designs (design invariants)', () => {
         for (const at of ammoTypes) {
             const p = new Projectile(at);
             expect(p.damageType).to.equal(ammoDesigns[at].damageType);
-            expect(p.makeExplosion().damageType).to.equal(ammoDesigns[at].damageType);
+            if (ammoDesigns[at].delivery === 'explosion') {
+                expect(p.makeExplosion().damageType).to.equal(ammoDesigns[at].damageType);
+            } else {
+                // impact rounds resolve as a single damage event — there is no explosion to make
+                expect(() => p.makeExplosion()).to.throw();
+            }
         }
     });
 
@@ -120,19 +120,27 @@ describe('damage profiles and projectile designs (design invariants)', () => {
             const explosion = p.makeExplosion();
             for (const at of ammoTypes) {
                 if (at === 'ClusterMissile' || at === 'FragMissile') continue;
-                expect(blastSize(explosion)).to.be.greaterThan(blastSize(ammoDesigns[at].explosion));
+                const design = ammoDesigns[at];
+                if (design.delivery === 'explosion') {
+                    expect(blastSize(explosion)).to.be.greaterThan(blastSize(design.explosion));
+                }
             }
             expect(blastSize(explosion)).to.be.lessThan(blastSize(ammoDesigns.FragMissile.explosion));
         });
 
-        it('ArmPen mode: small blast, still bigger than a HiExp missile, weaker than a dedicated ArmPen missile', () => {
+        it('ArmPen mode: an impact warhead sharing its per-event numbers with the ArmPen shell', () => {
             const p = new Projectile('ClusterMissile');
             p.warhead = 'ArmPen';
             expect(p.damageType).to.equal('ArmPen');
-            const explosion = p.makeExplosion();
-            expect(blastSize(explosion)).to.be.greaterThan(blastSize(ammoDesigns.HiExpMissile.explosion));
-            expect(blastSize(explosion)).to.be.lessThan(blastSize(p.design.warheads!.Frag.explosion));
-            expect(explosion.damageFactor).to.be.lessThan(ammoDesigns.ArmPenMissile.explosion.damageFactor);
+            const clusterAP = p.warheadDesign;
+            const shell = ammoDesigns.ArmPenShell;
+            if (clusterAP.delivery !== 'impact' || shell.delivery !== 'impact') {
+                throw new Error('cluster ArmPen mode and ArmPenShell should be impact delivery');
+            }
+            expect(clusterAP.damage).to.equal(shell.damage);
+            expect(clusterAP.damage).to.be.lessThan(
+                ammoDesigns.ArmPenMissile.delivery === 'impact' ? ammoDesigns.ArmPenMissile.damage : 0,
+            );
         });
 
         it('warhead mode is ignored by single-warhead designs', () => {

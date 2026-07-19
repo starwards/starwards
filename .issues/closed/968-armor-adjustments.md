@@ -1,10 +1,10 @@
 ---
 id: 968
 title: Armor adjustments
-status: open
+status: closed
 labels: [enhancement, help wanted, core game logic]
 created: 2022-07-20
-updated: 2022-10-20
+updated: 2026-07-19
 assignee: 
 milestone: Mission in the Fringe Features
 blocked-by: []

@@ -33,7 +33,6 @@ Output: design spec docs in `docs/bridge-playtest/`.
 | B3 **[U]** | Engineering operations queue UX: queue order/priority, parallelism, cancel/resume, malfunction list display                                            | —          |
 | B4 **[U]** | Repair protocol catalog: count, coverage profile per protocol, cost per protocol                                                                       | B3         |
 | B5 **[U]** | Closed-transponder cost (comms? dock? friendly auto-routing?)                                                                                          | —          |
-| B6 **[U]** | Armor `healRate`: keep / remove / move under repair protocol                                                                                           | —          |
 | B7 **[U]** | Tier-1 timer reset rule on radar re-entry (reset / pause / persist)                                                                                    | —          |
 | B8 **[U]** | Drop `B`/`V` cycle keys or keep with `Shift` reverse                                                                                                   | —          |
 
@@ -81,7 +80,7 @@ Output: design notes captured to `docs/bridge-playtest/`.
 ## Recommended kickoff (parallel-friendly)
 
 **Right now, in parallel:**
-- **You** draft B1, B3 (most blocking). Cheap small ones any time: B5, B6, B7, B8.
+- **You** draft B1, B3 (most blocking). Cheap small ones any time: B5, B7, B8.
 - **Daniel** drafts A1, A2 (most blocking).
 - **Claude** executes C1.1, C1.3 — all agent-ready, can run in parallel.
 

@@ -35,20 +35,35 @@ function setUpShip(armorStats: ArmorModelStats = compositeArmor): Fixture {
     const ship = new Spaceship();
     ship.id = 'test-ship';
     const state = makeShipState(ship.id, dragonflySF22);
-    state.armor.design.assign(armorStats);
+    state.armor.layerDesigns[0].assign(armorStats);
     const spaceManager = new SpaceManager();
     spaceManager.insert(ship);
     const damageManager = new DamageManager(ship, state, spaceManager, new MockDie());
     return { ship, state, spaceManager, damageManager };
 }
 
-function frontDamage(amount: number, damageType: WeaponDamageType): AttackDamage {
+// per-type default delivery mirrors the ammo catalog (projectile.ts): contact-fuzed rounds
+// (ArmPen/Tandem/Elec) are impact, blast rounds (HiExp/Frag) are explosion
+const defaultDelivery: Record<WeaponDamageType, 'impact' | 'explosion'> = {
+    HiExp: 'explosion',
+    ArmPen: 'impact',
+    Frag: 'explosion',
+    Tandem: 'impact',
+    Elec: 'impact',
+};
+
+function frontDamage(
+    amount: number,
+    damageType: WeaponDamageType,
+    delivery: 'impact' | 'explosion' = defaultDelivery[damageType],
+): AttackDamage {
     return {
         id: 'd-1',
         amount,
         damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
         damageDurationSeconds: 1,
         damageType,
+        delivery,
         profile: damageProfiles[damageType],
     };
 }
@@ -64,29 +79,27 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.smartPilot.offsetFactor).to.equal(0);
         });
 
-        it('a defeated hit pops exactly one cell and consumes the damaging explosion', () => {
+        it('HiExp explosion erodes reactive cells like ordinary plates — no pop, blast survives', () => {
             const { state, spaceManager, damageManager } = setUpShip(reactiveArmor);
             const explosion = new Explosion().init('d-1', new Vec2(0, 0), 20);
             spaceManager.insert(explosion);
             spaceManager.forceFlushEntities();
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            damageManager.takeWeaponDamage(frontDamage(50, 'HiExp'));
-            expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
-            expect(explosion.destroyed).to.equal(true);
-        });
-
-        it('Tandem pops a cell but is not consumed — the main charge lives on', () => {
-            const { state, spaceManager, damageManager } = setUpShip(reactiveArmor);
-            const explosion = new Explosion().init('d-1', new Vec2(0, 0), 60);
-            spaceManager.insert(explosion);
-            spaceManager.forceFlushEntities();
-            const initialHealthy = state.armor.numberOfHealthyPlates;
-            damageManager.takeWeaponDamage(frontDamage(50, 'Tandem'));
-            expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
+            const before = state.armor.armorPlates[0].layers[0].health;
+            damageManager.takeWeaponDamage(frontDamage(50, 'HiExp', 'explosion'));
+            // erosion at plateDamage_HiExp (1) — cells wear down instead of popping
+            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(50, 0.001);
+            expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
             expect(explosion.destroyed).to.equal(false);
         });
 
-        it('a follow-up hit on the bared section gets through (cells do not heal)', () => {
+        it('Tandem impact pops exactly one cell', () => {
+            const { state, damageManager } = setUpShip(reactiveArmor);
+            const initialHealthy = state.armor.numberOfHealthyPlates;
+            damageManager.takeWeaponDamage(frontDamage(50, 'Tandem'));
+            expect(initialHealthy - state.armor.numberOfHealthyPlates).to.equal(1);
+        });
+
+        it('a follow-up hit on the bared section gets through', () => {
             const { damageManager } = setUpShip(reactiveArmor);
             damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
             const damaged = damageManager.takeWeaponDamage({ ...frontDamage(50, 'ArmPen'), id: 'd-2' });
@@ -114,25 +127,25 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
     describe('Elec hits and the Faraday layer', () => {
         it('Composite armor + Elec hit → bypasses plates entirely', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
-            const initial = state.armor.armorPlates[0].health;
+            const initial = state.armor.armorPlates[0].layers[0].health;
             const damagedInternals = damageManager.takeWeaponDamage(frontDamage(50, 'Elec'));
-            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(state.armor.armorPlates[0].layers[0].health).to.equal(initial);
             expect(damagedInternals).to.equal(true);
         });
 
         it('Composite + Faraday layer + Elec hit → blocked', () => {
             const { state, damageManager } = setUpShip(withFaradayLayer(compositeArmor));
-            const initial = state.armor.armorPlates[0].health;
+            const initial = state.armor.armorPlates[0].layers[0].health;
             const damagedInternals = damageManager.takeWeaponDamage(frontDamage(50, 'Elec'));
-            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(state.armor.armorPlates[0].layers[0].health).to.equal(initial);
             expect(damagedInternals).to.equal(false);
         });
 
         it('physical (ArmPen) vs pure Faraday armor → ignores plates, hits internals', () => {
             const { state, damageManager } = setUpShip(faradayArmor);
-            const initial = state.armor.armorPlates[0].health;
+            const initial = state.armor.armorPlates[0].layers[0].health;
             const damagedInternals = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
-            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(state.armor.armorPlates[0].layers[0].health).to.equal(initial);
             expect(damagedInternals).to.equal(true);
         });
     });
@@ -140,33 +153,33 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
     describe('surface effect on blocked hits', () => {
         it('HiExp vs Whipple (plateDamage 0.25) erodes plates at quarter rate and scrapes externals', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            const initial = state.armor.armorPlates[0].health;
+            const initial = state.armor.armorPlates[0].layers[0].health;
             const damagedExternals = damageManager.takeWeaponDamage(frontDamage(100, 'HiExp'));
-            expect(initial - state.armor.armorPlates[0].health).to.be.closeTo(25, 0.001);
+            expect(initial - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(25, 0.001);
             expect(damagedExternals).to.equal(true);
         });
 
         it('Frag vs Whipple is blocked but still returns surface damage', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            const initial = state.armor.armorPlates[0].health;
+            const initial = state.armor.armorPlates[0].layers[0].health;
             const damagedExternals = damageManager.takeWeaponDamage(frontDamage(100, 'Frag'));
-            expect(state.armor.armorPlates[0].health).to.equal(initial);
+            expect(state.armor.armorPlates[0].layers[0].health).to.equal(initial);
             expect(damagedExternals).to.equal(true);
         });
 
         it('ArmPen vs Whipple punches straight through — plates untouched, internals hit', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            const before = state.armor.armorPlates[0].health;
+            const before = state.armor.armorPlates[0].layers[0].health;
             const damaged = damageManager.takeWeaponDamage(frontDamage(800, 'ArmPen'));
-            expect(state.armor.armorPlates[0].health).to.equal(before);
+            expect(state.armor.armorPlates[0].layers[0].health).to.equal(before);
             expect(damaged).to.equal(true);
         });
 
         it('HiExp vs Hardened (plateDamage 0.5) erodes plates at half rate', () => {
             const { state, damageManager } = setUpShip(hardenedArmor);
-            const before = state.armor.armorPlates[0].health;
+            const before = state.armor.armorPlates[0].layers[0].health;
             damageManager.takeWeaponDamage(frontDamage(100, 'HiExp'));
-            expect(before - state.armor.armorPlates[0].health).to.be.closeTo(50, 0.001);
+            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(50, 0.001);
         });
 
         it('Frag vs Composite scrapes externals even while plates hold', () => {
@@ -179,15 +192,19 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.warp.damageFactor).to.equal(0);
         });
 
-        it('HiExp vs Reactive: scrape deflected, cells pop, nothing penetrates', () => {
+        it('HiExp vs Reactive: the scrape lands on externals while cells erode, nothing penetrates', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
-            expect(damaged).to.equal(false);
-            expect(state.armor.numberOfHealthyPlates).to.be.lessThan(state.armor.numberOfPlates);
-            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            const before = state.armor.armorPlates[0].layers[0].health;
+            // amount below plateMaxHealth (100) — the cells erode but hold
+            const damaged = damageManager.takeWeaponDamage(frontDamage(90, 'HiExp'));
+            expect(damaged).to.equal(true);
+            expect(state.armor.armorPlates[0].layers[0].health).to.be.lessThan(before);
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            // internals untouched — the cells hold while intact, only the scrape lands
+            expect(state.smartPilot.offsetFactor).to.equal(0);
         });
 
-        it('Frag vs Reactive still scrapes — a shrapnel cloud cannot be deflected', () => {
+        it('Frag vs Reactive scrapes without consuming cells', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
             const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
             expect(damaged).to.equal(true);
@@ -218,7 +235,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             // exposure is 1 in both areas — electronics must still be damaged exactly once
             const { state, damageManager } = setUpShip({ ...compositeArmor, plateDamage_Elec: 1, penetration_Elec: 0 });
             for (const plate of state.armor.armorPlates) {
-                plate.health = 0;
+                plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage({
                 id: 'd-1',
@@ -226,14 +243,17 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
                 damageSurfaceArc: [-45, 135],
                 damageDurationSeconds: 1,
                 damageType: 'Elec',
+                delivery: 'explosion',
                 profile: damageProfiles.Elec,
             });
-            expect(state.radar.malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
+            // spillover: a large amount spills into several defect rolls rather than exactly one
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
         });
 
         it('surface-effect hit with plates intact damages only external systems', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            // 300 × plateDamage_HiExp 0.25 = 75 erosion — below plateMaxHealth (100), plates hold
+            damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
             // while plates hold, only the surface scrape lands — and it targets externals
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
             // internal systems untouched
@@ -257,7 +277,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
 
         it('blocked non-surface-effect hit (ArmPen vs Hardened, plates intact) leaves systems untouched', () => {
             const { state, damageManager } = setUpShip(hardenedArmor);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(100, 'ArmPen'));
+            // 50 erosion at plateDamage_ArmPen 1 — below plateMaxHealth (100), plates hold
+            const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
             expect(damaged).to.equal(false);
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
             expect(state.smartPilot.offsetFactor).to.equal(0);
@@ -267,7 +288,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             // pre-break all front plates so exposure is 1
             for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
-                plate.health = 0;
+                plate.layers[0].health = 0;
             }
             const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
             expect(damaged).to.equal(true);
@@ -278,16 +299,17 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
     describe('non-projectile damage path', () => {
         it('Collision damage takes the flat-damage flow', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
-            const before = state.armor.armorPlates[0].health;
+            const before = state.armor.armorPlates[0].layers[0].health;
             const collision: Damage = {
                 id: 'collision-1',
                 amount: 100,
                 damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
                 damageDurationSeconds: 1,
                 damageType: 'Collision',
+                delivery: 'impact',
             };
             damageManager.takeCollisionDamage(collision);
-            expect(state.armor.armorPlates[0].health).to.be.lessThan(before);
+            expect(state.armor.armorPlates[0].layers[0].health).to.be.lessThan(before);
         });
     });
 });

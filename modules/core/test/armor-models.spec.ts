@@ -1,5 +1,5 @@
 import {
-    ArmorDesignState,
+    ArmorLayerDesignState,
     compositeArmor,
     faradayArmor,
     hardenedArmor,
@@ -23,8 +23,8 @@ describe('armor model stats validity', () => {
         }
     });
 
-    it('ArmorDesignState carries a synced field for every damage type', () => {
-        const design = new ArmorDesignState();
+    it('ArmorLayerDesignState carries a synced field for every damage type', () => {
+        const design = new ArmorLayerDesignState();
         for (const t of weaponDamageTypes) {
             expect(design.plateDamage(t), `plateDamage_${t}`).to.be.a('number');
             expect(design.penetration(t), `penetration_${t}`).to.be.a('number');
@@ -92,13 +92,6 @@ describe('armor model presets (issue #1929)', () => {
         // shrapnel does not activate the reactive cells
         expect(reactiveArmor.plateDamage_Frag).to.equal(0);
         expect(reactiveArmor.penetration_Frag).to.equal(0);
-    });
-
-    it('only Reactive deflects the surface-effect scrape', () => {
-        expect(reactiveArmor.deflectsSurfaceEffect).to.equal(true);
-        for (const model of [compositeArmor, whippleArmor, hardenedArmor, faradayArmor]) {
-            expect(model.deflectsSurfaceEffect).to.equal(false);
-        }
     });
 
     it('every non-Faraday passive model lets Elec hits bypass the plates', () => {

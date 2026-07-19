@@ -243,18 +243,6 @@ describe('ShipManager housekeeping', () => {
         expect(magazine.count_HiExpShell).to.be.lessThan(magazine.design.max_HiExpShell);
     });
 
-    it('damaged armor plates heal at the design heal rate', () => {
-        const { makeShipMgr, flush, runTick } = setup();
-        const { mgr } = makeShipMgr('a', Faction.Gravitas);
-        flush();
-        const armor = mgr.state.armor;
-        const plate = armor.armorPlates[0];
-        plate.health = 0;
-        runTick(mgr); // one second of healing
-        const expected = Math.min(armor.design.healRate, armor.design.plateMaxHealth);
-        expect(plate.health).to.be.closeTo(expected, 0.5);
-    });
-
     it('radar malfunction reduces radar range toward the malfunction range', () => {
         const { makeShipMgr, flush, runTick } = setup();
         const { obj, mgr } = makeShipMgr('a', Faction.Gravitas);

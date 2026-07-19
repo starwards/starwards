@@ -158,7 +158,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         const state = makeShipState('test', dragonflyConfig);
 
         expect(state.design.modelName).to.equal(dragonflyConfig.properties.modelName);
-        expect(state.armor.design.modelName).to.equal(dragonflyConfig.armor.modelName);
         expect(state.radar.design.modelName).to.equal(dragonflyConfig.radar.modelName);
         expect(state.reactor.design.modelName).to.equal(dragonflyConfig.reactor.modelName);
         expect(state.smartPilot.design.modelName).to.equal(dragonflyConfig.smartPilot.modelName);

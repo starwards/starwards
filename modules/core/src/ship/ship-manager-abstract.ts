@@ -39,9 +39,10 @@ import { sinWave } from '../logic';
 const { error: logError } = createLogger('ship-manager');
 
 function fixArmor(armor: Armor) {
-    const plateMaxHealth = armor.design.plateMaxHealth;
     for (const plate of armor.armorPlates) {
-        plate.health = plateMaxHealth;
+        for (const layer of plate.layers) {
+            layer.health = layer.maxHealth;
+        }
     }
 }
 
@@ -227,7 +228,6 @@ export abstract class ShipManager implements Updateable {
     update(id: IterationData) {
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
-        this.healPlates(id.deltaSeconds);
         this.damageManager.update();
         this.heatManager.update(id);
         this.automationManager.update(id);
@@ -286,20 +286,6 @@ export abstract class ShipManager implements Updateable {
             );
         } else {
             return this.state.radar.design.range * this.state.radar.effectiveness;
-        }
-    }
-
-    protected healPlates(deltaSeconds: number) {
-        if (this.state.armor.design.singleUsePlates) {
-            return;
-        }
-        for (const plate of this.state.armor.armorPlates) {
-            if (plate.health < this.state.armor.design.plateMaxHealth) {
-                plate.health = Math.min(
-                    plate.health + this.state.armor.design.healRate * deltaSeconds,
-                    this.state.armor.design.plateMaxHealth,
-                );
-            }
         }
     }
 

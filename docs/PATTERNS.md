@@ -210,6 +210,12 @@ const thrust = thruster.maxThrust * thruster.effectiveness;
 // (hacked is a HackLevel multiplier: DISABLED=0, COMPROMISED=0.5, OK=1; coolantFactor only affects heat reduction, not effectiveness)
 ```
 
+### Damage Loops Must Be Iteration-Bounded
+Test fixtures fire `Number.MAX_SAFE_INTEGER` damage (`modules/core/test/ship-manager.spec.ts`), so any loop that iterates proportionally to the damage amount (O(amount/step)) reads as an infinite hang. Bound such loops by iteration count — see `MAX_SPILLOVER_ROLLS` in `modules/core/src/ship/damage-manager.ts` (an overkill guard, not game balance).
+
+### ShipDie Event Rolls Are Deterministic Per Id
+`getRoll`/`getSuccess`/`getRollInRange` are pure hashes of (seed, id) — the same id returns the identical value forever (no time salt; drift rolls are the time-varying kind). Any repeated roll — per-tick explosion streams reusing one damage id, multiple rolls within one event — silently degenerates to a constant unless the key includes a counter or index (see the defect roll keys in `damageSystem`, `modules/core/src/ship/damage-manager.ts`). Details in the doc comment in `modules/core/src/ship/ship-die.ts`.
+
 ### JSON Pointer Paths
 ```typescript
 // ✗ Wrong

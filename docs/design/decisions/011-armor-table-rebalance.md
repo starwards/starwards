@@ -25,7 +25,7 @@ penetrator family and reactive armor.
    damage types stay readable for a bridge crew, and the niche is covered by this
    reinterpretation (a future HEAT round can slot in as a third cluster-missile warhead mode).
 3. **Reactive cells react to any warhead — HiExp, ArmPen, and Elec are `1/0`:** the cell pops
-   and defeats the hit (nothing penetrates), but the cell is spent and never heals. Mechanical
+   and defeats the hit (nothing penetrates), but the cell is spent. Mechanical
    fix: exposure is measured **before** the pop, so the popping hit cannot leak damage through
    its own freshly-bared section; follow-up hits on that section get through normally.
    Reactive now blocks Elec (was bypass) at the cost of cells.
