@@ -83,13 +83,13 @@ differently, so most mechanics in this document belong to one side or the other.
 A future **EMP-explosion** variant (area denial, several ships at once) is possible; the model
 supports it. Today's ElecMissile is deliberately impact (see section 8).
 
-## 4. System damage: rolls, defects, spillover, victim selection, rationing
+## 4. System damage: rolls, defects, spillover, victim selection
 
 **General explanation:** systems are never destroyed in one blow. Each damage event gives the
 affected systems **defect rolls**; each successful roll causes one **defect**, a small,
 fixed-size malfunction specific to that system (an aim offset, a capacity loss, and so on).
-Enough defects eventually make a system `broken`. How many rolls a target gets, who the target
-is, and how often a system can be hurt are the three mechanics below.
+Enough defects eventually make a system `broken`. How many rolls a target gets and who the
+target is are the two mechanics below.
 
 **Terms:**
 
@@ -106,24 +106,21 @@ is, and how often a system can be hurt are the three mechanics below.
   Whether that comes from independent rolls or an equivalent draw is an implementation choice.
   There is no per-round defect column: how many malfunctions a round inflicts is fully
   determined by its damage number, its type's system damage factor, and the target's
-  `damage50`.
+  `damage50`. Explosion streams simply roll every damage event: per-tick amounts are small,
+  and spillover's linearity keeps expected defects proportional to the total delivered damage
+  regardless of how the stream is chopped. Rolls per application are bounded
+  (`MAX_SPILLOVER_ROLLS = 20`) purely as an overkill guard — beyond it every roll sits at the
+  0.5 cap and any real system breaks first.
 - **Victim selection**: for `single`-scope rounds only. The damage event picks one victim
   system at random among the eligible systems in the hit area, **at event time**; all of the
   event's defects land on it. One rod, one victim. If the victim breaks before all defects
   apply, the remainder dissipates. Every `single`-scope round is impact delivery — exactly one
   event per round — so no victim persistence across events is needed. Multi-scope rounds have
   no victim to pick; everyone in the area rolls.
-- **Defect rationing**: **explosion delivery only.** A system accepts at most one damage-event
-  application per rationing window (**0.15s** baseline, tunable). Without it, a lingering blast
-  would flood a breached section with a defect roll every event; with it, a full HiExp missile
-  engulfment lands ~2-3 applications per system. Impact needs no rationing: one event per
-  round, and its rate limit is the weapon's rate of fire.
-
-| Mechanic         | Applies to              | Effect                                                                   |
-| ---------------- | ----------------------- | ------------------------------------------------------------------------ |
-| Spillover        | every damage event      | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
-| Victim selection | `single` scope only     | one victim per event, picked at event time                               |
-| Defect rationing | explosion delivery only | max one application per system per 0.15s                                 |
+| Mechanic         | Applies to          | Effect                                                                   |
+| ---------------- | ------------------- | ------------------------------------------------------------------------ |
+| Spillover        | every damage event  | overkill becomes extra rolls; expected defects = amount / (2 x damage50) |
+| Victim selection | `single` scope only | one victim per event, picked at event time                               |
 
 **Resulting doctrine:** one HE = everything in the section bleeds; one AP = one system dies.
 
@@ -161,17 +158,20 @@ and its bomblets pepper every internal system in the struck area (section 8).
 
 ## 6. Armor: layered models
 
-**General explanation:** a ship's armor is a **stack of layers**. Every ship has a mandatory
-**Composite base layer** (the hull itself, always innermost); the ship design may add any
-number of layers outside it, in any order (for example `Reactive > Whipple > Composite`).
-Each layer is a full ring of plates with its **own health pool per that armor model's
-parameters** (its own `plateMaxHealth`, `healRate`, and stats row). A hit resolves against the
-stack **outside-in**; the same rules apply identically to impact and explosion events.
+**General explanation:** a ship's armor is a **stack of layers**, modeled **inside each
+plate**: a single Armor system holds one ring of plates, and each plate carries an ordered
+array of layers (outermost first), each with its own health/maxHealth. Per-layer design (the
+armor model's stats row, `plateMaxHealth`, `healRate`) lives in a parallel synced array on the
+Armor system, indexed by layer position, so arcs align across layers by construction. Every
+ship has a mandatory **Composite base layer** (the hull itself, always innermost — validated at
+ship construction); the ship design may add any number of layers outside it, in any order (for
+example `Reactive > Whipple > Composite`). A hit resolves against the stack **outside-in**; the
+same rules apply identically to impact and explosion events.
 
 **Terms:**
 
-- **Layer**: one armor model in the stack, with its own plate ring (same sector geometry,
-  aligned arcs across layers) and its own per-type numbers below.
+- **Layer**: one armor model in the stack — one slot of every plate's layer array plus its
+  design entry — with its own health per plate and its own per-type numbers below.
 - **Resolution walk**: the round meets the outermost layer in the hit arc and resolves against
   that layer's numbers for its damage type. Three outcomes per layer:
   **Blocked** (`0/0`): stops there, deeper layers never see it.
@@ -199,6 +199,8 @@ stack **outside-in**; the same rules apply identically to impact and explosion e
   pop, no defeat — and the cells still never heal).
 - **Repair**: the shipyard repairs all layers (future option: repairing layers separately).
   Reactive cells never heal anywhere.
+- **Collisions**: a collision erodes the outermost layer that still has health, per plate; a
+  plate exposes the internal systems behind it only when **all** of its layers are broken.
 
 The emergent gameplay: counter-ammo **peels specific layers**. Tandem pops the Reactive coat,
 HiExp grinds the Whipple screen, and ArmPen skips the screen entirely and eats the Composite
@@ -318,12 +320,13 @@ amount of 60 x 1.5 spills into a stack of coin-flip rolls against typical `damag
 landing **several defects into one system**: crippled or broken. Everything else in the
 section: untouched.
 
-**HiExp missile vs the same breach:** a 0.35s engulfment, rationed to
-~2-3 applications per system, so **every internal in the section takes ~2-3 defects**, plus the
-externals take the (weak, x0.25) scrape. Whole section bleeds; ECR triage.
+**HiExp missile vs the same breach:** a 0.35s engulfment delivered as a stream of small
+events; the total delivered damage spills into a handful of rolls per system, so **every
+internal in the section takes a few defects**, plus the externals take the (weak, x0.25)
+scrape. Whole section bleeds; ECR triage.
 
 **Frag missile vs anyone:** armor row 0/0 everywhere. Plates never touched, ERA never wakes.
-The 800m cloud lingers 1.6s; every external in the arc takes rationed scrape rolls at x2:
+The 800m cloud lingers 1.6s; every external in the arc takes a stream of scrape rolls at x2:
 **thrusters, radar, guns get sanded no matter what armor the ship wears.** Counters: distance
 and repair, not armor.
 
@@ -341,14 +344,15 @@ Frag sands the externals the entire time regardless of the stack.
 
 ## 10. Tuning knobs
 
-| Knob                                                 | Where                            | Governs                    |
-| ---------------------------------------------------- | -------------------------------- | -------------------------- |
-| armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts` | every armor x type matchup |
-| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`        | per-type behavior          |
-| per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`            | every ammo number          |
-| scrape constant (0.05)                               | `ship/damage-manager.ts`         | global scrape calibration  |
-| rationing window (0.15s)                             | `ship/damage-manager.ts`         | explosion flood rationing  |
-| `damage50`, defect sizes                             | per-system designs               | system toughness           |
+| Knob                                                 | Where                                   | Governs                    |
+| ---------------------------------------------------- | --------------------------------------- | -------------------------- |
+| armor rows (`plateDamage_*`, `penetration_*`, flags) | `configurations/armor-models.ts`        | every armor x type matchup |
+| per-layer `plateMaxHealth`, `healRate`, layer order  | ship design (`ArmorDesign.layers`)      | armor stack durability     |
+| profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`               | per-type behavior          |
+| per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`                   | every ammo number          |
+| `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/damage-manager.ts`                | global scrape calibration  |
+| `MAX_SPILLOVER_ROLLS` (20)                           | `ship/damage-manager.ts`                | spillover overkill guard   |
+| `damage50`, defect sizes                             | per-system designs                      | system toughness           |
 
 Regression pins in `modules/core/test/` restate the whole design as assertions; every tuning
 change is a deliberate pin update.
@@ -356,13 +360,12 @@ change is a deliberate pin update.
 ## 11. Future and open items
 
 1. **Replan PR #1932 around this document**: impact delivery (Amir, in progress), layered
-   armor stacks, spillover + event-time victim selection, explosion defect rationing; then retune damage
-   numbers.
+   armor stacks, spillover + event-time victim selection; then retune damage numbers.
 2. **Pierce delivery**: the railgun's overpenetration line. Reserved, not designed.
 3. **EMP-explosion variant**: area-denial EMP (multi-ship) as a future GM tool or mine; the
    delivery flag supports it without new mechanics.
-4. **Play-test calibration**: all damage numbers (now also setting defect counts via spillover), rationing window, frag
-   scrape rates, Hardened grind pace, Reactive attrition pace.
+4. **Play-test calibration**: all damage numbers (now also setting defect counts via
+   spillover), frag scrape rates, Hardened grind pace, Reactive attrition pace.
 5. **Weapons-station UI**: cluster mode toggle on the tube widget (state/commands exist).
 6. **Per-ship system mounting**: [#1954](https://github.com/starwards/starwards/issues/1954).
 7. **Ammo widget grouping**: 9 flat rows may read poorly at the weapons station.
