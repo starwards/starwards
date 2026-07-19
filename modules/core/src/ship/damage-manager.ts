@@ -20,7 +20,6 @@ import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
-import NormalDistribution from 'normal-distribution';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
 import { ShipState } from './ship-state';
@@ -34,6 +33,13 @@ import { Warp } from './warp';
  */
 const SURFACE_EFFECT_FACTOR = 0.05;
 
+/**
+ * bound on spillover rolls per application: past this point every roll sits at the 0.5 cap and
+ * any real system breaks first, so extra iterations change nothing — but an absurd amount
+ * (GM overrides, test fixtures) would otherwise grind amount/damage50 steps
+ */
+const MAX_SPILLOVER_ROLLS = 20;
+
 export type AttackDamage = Damage & {
     damageType: WeaponDamageType;
     profile: DamageProfile;
@@ -42,6 +48,8 @@ export type AttackDamage = Damage & {
 type AreaExposure = { hitArea: ShipArea; exposure: number };
 
 export class DamageManager {
+    private applicationCounter = 0;
+
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         private state: ShipState,
@@ -272,34 +280,56 @@ export class DamageManager {
         }
     }
 
+    /**
+     * Spec §4: defects spill over rather than saturating a single roll. The event's damage
+     * is walked off in damage50-sized steps, each rolled independently (capped at 50% success),
+     * so expected defects scale linearly with the amount instead of flattening past one damage50.
+     */
     damageSystem(system: ShipSystem, damageObject: { id: string; amount: number }, percentageOfBrokenPlates: number) {
-        if (system.broken) {
+        const appIdx = this.applicationCounter++;
+        const damage50 = system.design.damage50;
+        let remaining = damageObject.amount * percentageOfBrokenPlates;
+        if (damage50 <= 0) {
+            // an unconfigured damage50 means this system isn't meant to take defects this way;
+            // treat any hit as a guaranteed single defect rather than looping forever at p=Infinity
+            if (remaining > 0 && !system.broken) {
+                this.applyDefect(system, `defect:${damageObject.id}:${appIdx}:${system.name}:0`);
+            }
             return;
         }
-        const dist = new NormalDistribution(system.design.damage50, system.design.damage50 / 2);
-        const normalizedDamageProbability = dist.cdf(damageObject.amount * percentageOfBrokenPlates);
-        if (this.die.getRoll('damageSystem:' + damageObject.id) < normalizedDamageProbability) {
-            if (Thruster.isInstance(system)) {
-                this.damageThruster(system, damageObject.id);
-            } else if (ChainGun.isInstance(system)) {
-                this.damageChainGun(system, damageObject.id);
-            } else if (Radar.isInstance(system)) {
-                this.damageRadar(system);
-            } else if (SmartPilot.isInstance(system)) {
-                this.damageSmartPilot(system);
-            } else if (Reactor.isInstance(system)) {
-                this.damageReactor(system, damageObject.id);
-            } else if (Magazine.isInstance(system)) {
-                this.damageMagazine(system, damageObject.id);
-            } else if (Warp.isInstance(system)) {
-                this.damageWarp(system, damageObject.id);
-            } else if (Docking.isInstance(system)) {
-                this.damageDocking(system);
-            } else if (Maneuvering.isInstance(system)) {
-                this.damageManeuvering(system, damageObject.id);
-            } else if (Signals.isInstance(system)) {
-                this.damageSignals(system, damageObject.id);
+        let rollIdx = 0;
+        while (remaining > 0 && !system.broken && rollIdx < MAX_SPILLOVER_ROLLS) {
+            const p = Math.min(0.5, remaining / (2 * damage50));
+            const defectId = `defect:${damageObject.id}:${appIdx}:${system.name}:${rollIdx}`;
+            if (this.die.getSuccess(defectId, p)) {
+                this.applyDefect(system, defectId);
             }
+            remaining -= damage50;
+            rollIdx++;
+        }
+    }
+
+    private applyDefect(system: ShipSystem, defectId: string) {
+        if (Thruster.isInstance(system)) {
+            this.damageThruster(system, defectId);
+        } else if (ChainGun.isInstance(system)) {
+            this.damageChainGun(system, defectId);
+        } else if (Radar.isInstance(system)) {
+            this.damageRadar(system);
+        } else if (SmartPilot.isInstance(system)) {
+            this.damageSmartPilot(system);
+        } else if (Reactor.isInstance(system)) {
+            this.damageReactor(system, defectId);
+        } else if (Magazine.isInstance(system)) {
+            this.damageMagazine(system, defectId);
+        } else if (Warp.isInstance(system)) {
+            this.damageWarp(system, defectId);
+        } else if (Docking.isInstance(system)) {
+            this.damageDocking(system);
+        } else if (Maneuvering.isInstance(system)) {
+            this.damageManeuvering(system, defectId);
+        } else if (Signals.isInstance(system)) {
+            this.damageSignals(system, defectId);
         }
     }
 

@@ -228,7 +228,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
                 damageType: 'Elec',
                 profile: damageProfiles.Elec,
             });
-            expect(state.radar.malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
+            // spillover: a large amount spills into several defect rolls rather than exactly one
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
         });
 
         it('surface-effect hit with plates intact damages only external systems', () => {
