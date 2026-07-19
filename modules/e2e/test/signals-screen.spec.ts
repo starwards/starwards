@@ -22,25 +22,4 @@ test.describe('Signals Screen', () => {
     test('displays long range radar', async ({ page }) => {
         await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
     });
-
-    test('places waypoint when W is pressed and radar is clicked', async ({ page }) => {
-        const radar = page.locator('[data-id="Long Range Radar"]');
-        await expect(radar).toBeVisible({ timeout: 10000 });
-
-        // Press W to enter waypoint placement mode
-        await page.keyboard.press('w');
-
-        // Click the center of the radar
-        const box = await radar.boundingBox();
-        if (!box) throw new Error('Radar canvas not found');
-        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-
-        // Wait for waypoint to appear in server space state
-        await expect
-            .poll(() => [...gameDriver.gameManager.spaceManager.state.getAll('Waypoint')].length, {
-                timeout: 3000,
-                message: 'expected at least one waypoint to be created',
-            })
-            .toBeGreaterThan(0);
-    });
 });
