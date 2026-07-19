@@ -1,5 +1,7 @@
 # Bridge Playtest — Gap Analysis Notes
 
+> **Canonical gap tracking:** the playtest gap checklist lives in the design KB — [starwards-design/product/roadmap.md](https://github.com/starwards/starwards-design/blob/main/product/roadmap.md) ("Now: internal bridge playtest"). This folder holds the working notes behind it.
+
 Working folder for an internal-playtest gap analysis session.
 The user is doing a bridge-only test run with novice volunteer players and will
 make all design / scope decisions. This folder is **session continuity**, not a
@@ -64,13 +66,12 @@ mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 - `docs/MS3/PLAN.md` — full LARP roadmap (24-week scope, includes Navigator/Relay)
 - `docs/MS3/SCAN_LEVELS_DESIGN.md`
 - `docs/MS3/SIGNALS_JOBS_DESIGN.md`
-- `.issues/milestones/1-mission-in-the-fringe-features.md` — open/closed tally
-- `.issues/open/*.md` — per-ticket files
 
 ## Caveat: ticket-status staleness
 
-The `.issues/` folder is a markdown export from GitHub dated **2026-02-28**.
-PRs merged after that date may have closed tickets without the file being
-moved from `open/` to `closed/`. The per-station notes flag the ones I could
-verify — `#1187` and `#1204` ship in code but their files are still in
-`open/`. When in doubt, check GitHub directly.
+The `.issues/` folder (a stale 2026-02-28 markdown export of GitHub issues)
+was deleted in the 2026-07 planning cleanup; references to it in the
+per-station notes are historical. Check ticket state on GitHub directly
+(`gh issue view <n>`). Note most backlog issues were closed on 2026-07-19 —
+deferred ideas now live in
+[starwards-design/product/backlog.md](https://github.com/starwards/starwards-design/blob/main/product/backlog.md).
