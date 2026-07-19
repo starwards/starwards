@@ -6,6 +6,8 @@ import { tweakable } from '../tweakable';
 
 export type ReactorDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     energyPerSecond: number;
     maxEnergy: number;
     energyHeatEPMThreshold: number;
@@ -27,8 +29,6 @@ export class Reactor extends SystemState {
     };
 
     public readonly type = 'Reactor';
-    override readonly isInternal = true;
-    override readonly isElectronics = true;
     public readonly name = 'Reactor';
 
     @gameField(ReactorDesignState)

@@ -6,6 +6,8 @@ import { tweakable } from '../tweakable';
 
 export type ManeuveringDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxAfterBurnerFuel: number;
@@ -28,7 +30,6 @@ export class Maneuvering extends SystemState {
     };
 
     public readonly type = 'Maneuvering';
-    override readonly isInternal = true;
     public readonly name = 'Maneuvering';
 
     @gameField(ManeuveringDesignState)

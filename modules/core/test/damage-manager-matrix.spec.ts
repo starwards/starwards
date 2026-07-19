@@ -296,6 +296,84 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         });
     });
 
+    describe('isInternal / isElectronics as per-ship, per-model design properties (issue #1954)', () => {
+        it('a ship config can override radar to isInternal via ShipDesign', () => {
+            const ship = new Spaceship();
+            ship.id = 'test-ship-radar-internal';
+            const state = makeShipState(ship.id, {
+                ...dragonflySF22,
+                radar: { ...dragonflySF22.radar, isInternal: true },
+            });
+            expect(state.radar.isInternal).to.equal(true);
+            expect(state.thrusters[0].isInternal).to.equal(false);
+        });
+
+        it('a ship config can override a single thruster model to isInternal, leaving the rest external', () => {
+            const ship = new Spaceship();
+            ship.id = 'test-ship-thruster-internal';
+            const [firstAngle, firstDesign] = dragonflySF22.thrusters[0];
+            const state = makeShipState(ship.id, {
+                ...dragonflySF22,
+                thrusters: [[firstAngle, { ...firstDesign, isInternal: true }], ...dragonflySF22.thrusters.slice(1)],
+            });
+            expect(state.thrusters[0].isInternal).to.equal(true);
+            expect(state.thrusters[1].isInternal).to.equal(false);
+        });
+
+        it('a ship config can override a non-electronics system to isElectronics', () => {
+            const ship = new Spaceship();
+            ship.id = 'test-ship-maneuvering-electronics';
+            const state = makeShipState(ship.id, {
+                ...dragonflySF22,
+                maneuvering: { ...dragonflySF22.maneuvering, isElectronics: true },
+            });
+            expect(state.maneuvering.isElectronics).to.equal(true);
+            expect(state.thrusters[0].isElectronics).to.equal(false);
+        });
+
+        it('a default-config ship keeps radar external — surface effect scrapes it', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
+            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+        });
+
+        it('a radar overridden to internal is not scraped while plates hold (surface effect only)', () => {
+            const { state, damageManager } = setUpShip(whippleArmor);
+            state.radar.design.isInternal = true;
+            // 300 × plateDamage_HiExp 0.25 = 75 erosion — below plateMaxHealth (100), plates hold,
+            // so only the unconditional surface scrape is in play (isolates it from the exposure path)
+            damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
+
+        it('a radar overridden to internal is never reached by penetrating Frag', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            state.radar.design.isInternal = true;
+            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+                plate.layers[0].health = 0;
+            }
+            damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
+            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        });
+
+        it('a radar overridden to internal is still damaged by penetrating HiExp', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            state.radar.design.isInternal = true;
+            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+                plate.layers[0].health = 0;
+            }
+            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+        });
+
+        it('a rear system overridden to isElectronics is reached by an Elec hit fired from the front', () => {
+            const { state, damageManager } = setUpShip(compositeArmor);
+            state.maneuvering.design.isElectronics = true;
+            damageManager.takeWeaponDamage(frontDamage(1000, 'Elec'));
+            expect(state.maneuvering.efficiency).to.be.lessThan(1);
+        });
+    });
+
     describe('non-projectile damage path', () => {
         it('Collision damage takes the flat-damage flow', () => {
             const { state, damageManager } = setUpShip(compositeArmor);

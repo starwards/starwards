@@ -9,6 +9,8 @@ export const dragonflyArmor = {
 
 export const dragonflyThruster = {
     modelName: 'RT-150 Vectored Thruster',
+    isInternal: false,
+    isElectronics: false,
     maxAngleError: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -17,6 +19,8 @@ export const dragonflyThruster = {
 };
 export const dragonflyRadar = {
     modelName: 'Argus-10k Phased Radar',
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     range: 10_000,
     energyCost: 0.05,
@@ -25,6 +29,8 @@ export const dragonflyRadar = {
 };
 export const dragonflyChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
+    isInternal: false,
+    isElectronics: true,
     bulletsPerSecond: 20,
     bulletSpeed: 1000,
     bulletDegreesDeviation: 1,
@@ -45,6 +51,8 @@ export const dragonflyChaingun = {
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
+    isInternal: true,
+    isElectronics: true,
     energyPerSecond: 5,
     maxEnergy: 1000,
     energyHeatEPMThreshold: 20,
@@ -58,6 +66,8 @@ export const dragonflyProperties = {
 };
 export const dragonflyMagazine = {
     modelName: 'Hornet Mk-II Magazine',
+    isInternal: true,
+    isElectronics: true,
     max_HiExpShell: 2400,
     max_ArmPenShell: 1200,
     max_FragShell: 2000,
@@ -73,6 +83,8 @@ export const dragonflyMagazine = {
 };
 export const dragonflySmartPilot = {
     modelName: 'Nimbus-3 Smart Pilot',
+    isInternal: true,
+    isElectronics: true,
     maxTargetAimOffset: 30,
     aimOffsetSpeed: 15,
     maxTurnSpeed: 90,
@@ -83,6 +95,8 @@ export const dragonflySmartPilot = {
 };
 export const dragonflyTube = {
     modelName: 'Stinger Missile Tube',
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     bulletsPerSecond: 1,
     bulletSpeed: 1000,
@@ -109,6 +123,8 @@ export const dragonflyTargeting = {
 };
 export const dragonflyWarp = {
     modelName: 'Voyager-X Warp Drive',
+    isInternal: true,
+    isElectronics: true,
     damage50: 20,
     maxProximity: 10_000,
     chargeTime: 10,
@@ -121,6 +137,8 @@ export const dragonflyWarp = {
 };
 export const dragonflyDocking = {
     modelName: 'Gripper-1 Docking Clamp',
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     maxDockingDistance: 1_000,
     maxDockedDistance: 20,
@@ -130,6 +148,8 @@ export const dragonflyDocking = {
 };
 export const dragonflyManeuvering = {
     modelName: 'Pivot-25 Maneuvering Suite',
+    isInternal: true,
+    isElectronics: false,
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
     maxAfterBurnerFuel: 5000,
@@ -139,6 +159,8 @@ export const dragonflyManeuvering = {
 };
 
 export const dragonflySignals = {
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     maxJobs: 9,
     maxTrackedTargets: 3,

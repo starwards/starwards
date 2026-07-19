@@ -6,6 +6,8 @@ import { ArraySchema } from '@colyseus/schema';
 import { range } from '../range';
 
 export type SignalsDesign = {
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     maxJobs: number;
     maxTrackedTargets: number;
@@ -37,7 +39,6 @@ export class Signals extends SystemState {
     };
 
     public readonly type = 'Signals';
-    override readonly isElectronics = true;
     public readonly name = 'Signals';
 
     @gameField(SignalsDesignState)

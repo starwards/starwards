@@ -15,6 +15,8 @@ export type ChaingunDesign = {
     [T in AmmoType as `use_${T}`]: boolean;
 } & {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     bulletsPerSecond: number;
     bulletSpeed: number;
     bulletDegreesDeviation: number;
@@ -61,7 +63,6 @@ export class ChainGun extends SystemState {
     };
 
     public readonly type: string = 'ChainGun';
-    override readonly isElectronics = true;
     get name() {
         return 'Chain gun';
     }
