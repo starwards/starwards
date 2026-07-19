@@ -171,11 +171,12 @@ export class DamageManager {
             }
             if (design.singleUsePlates && damage.delivery === 'impact') {
                 const preRatio = this.brokenLayerRatio(i, areaHitRangeAngles, platesInArea);
-                this.popSingleUseCell(i, areaHitRangeAngles);
+                const popped = this.popSingleUseCell(i, areaHitRangeAngles);
                 chain *= Math.max(response.penetration, preRatio);
-                if (response.penetration < 1) {
+                if (popped && response.penetration < 1) {
                     // the cell defeats the hit: only sections already bare before the pop
-                    // leak damage, and deeper layers never see this round
+                    // leak damage, and deeper layers never see this round. With no cell left
+                    // to pop nothing defeats it — the round continues the walk inward.
                     return chain;
                 }
                 continue;
@@ -207,14 +208,15 @@ export class DamageManager {
     }
 
     /** a single reactive cell sacrifices itself to defeat the whole hit */
-    private popSingleUseCell(layerIdx: number, areaHitRangeAngles: RTuple2) {
+    private popSingleUseCell(layerIdx: number, areaHitRangeAngles: RTuple2): boolean {
         for (const [_, plate] of this.state.armor.platesInRange(areaHitRangeAngles)) {
             const layer = plate.layers[layerIdx];
             if (layer.health > 0) {
                 layer.health = 0;
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     /**
