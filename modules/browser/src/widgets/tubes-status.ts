@@ -1,5 +1,5 @@
 import { Destructors, ShipDriver } from '@starwards/core';
-import { addInputBlade, addSliderBlade, addTextBlade, createPane } from '../panel/blades';
+import { addBarBlade, addInputBlade, addTextBlade, createPane } from '../panel/blades';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -36,7 +36,7 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
         const loadedProjectile = readProp(shipDriver, `/tubes/${tube.index}/loadedProjectile`);
         addTextBlade(tubeFolder, loadedProjectile, { label: 'ammo loaded', disabled: true }, panelCleanup.add);
         const loading = readNumberProp(shipDriver, `/tubes/${tube.index}/loading`);
-        addSliderBlade(tubeFolder, loading, { label: 'loading', disabled: true }, panelCleanup.add);
+        addBarBlade(tubeFolder, loading, { label: 'loading' }, panelCleanup.add);
         addInputBlade(
             tubeFolder,
             readProp(shipDriver, `/tubes/${tube.index}/loadAmmo`),
