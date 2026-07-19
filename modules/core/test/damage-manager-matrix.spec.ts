@@ -337,10 +337,12 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
         });
 
-        it('a radar overridden to internal is not scraped by a blocked surface-effect hit', () => {
+        it('a radar overridden to internal is not scraped while plates hold (surface effect only)', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             state.radar.design.isInternal = true;
-            damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
+            // 300 × plateDamage_HiExp 0.25 = 75 erosion — below plateMaxHealth (100), plates hold,
+            // so only the unconditional surface scrape is in play (isolates it from the exposure path)
+            damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
         });
 
@@ -348,7 +350,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             state.radar.design.isInternal = true;
             for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
-                plate.health = 0;
+                plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
@@ -358,7 +360,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             state.radar.design.isInternal = true;
             for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
-                plate.health = 0;
+                plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
