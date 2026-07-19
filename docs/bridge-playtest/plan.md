@@ -3,7 +3,7 @@
 Concrete task breakdown for the next milestone, derived from [`decisions.md`](decisions.md). Three parallel tracks:
 
 - **[D]** = Daniel designs (armor / ammo)
-- **[U]** = User designs (damage control / scan beam control / closed-transponder cost)
+- **[U]** = User designs (damage control / scan beam control)
 - **[C]** = Claude executes (straightforward, agent-ready once spec'd)
 
 For deferred ideas, see [`proposals.md`](proposals.md).
@@ -32,7 +32,6 @@ Output: design spec docs in `docs/bridge-playtest/`.
 | B2 **[U]** | Tier-2 snapshot output: data fields, presentation, voice-only vs auto-propagate                                                                        | B1         |
 | B3 **[U]** | Engineering operations queue UX: queue order/priority, parallelism, cancel/resume, malfunction list display                                            | —          |
 | B4 **[U]** | Repair protocol catalog: count, coverage profile per protocol, cost per protocol                                                                       | B3         |
-| B5 **[U]** | Closed-transponder cost (comms? dock? friendly auto-routing?)                                                                                          | —          |
 | B6 **[U]** | Armor `healRate`: keep / remove / move under repair protocol                                                                                           | —          |
 | B7 **[U]** | Tier-1 timer reset rule on radar re-entry (reset / pause / persist)                                                                                    | —          |
 | B8 **[U]** | Drop `B`/`V` cycle keys or keep with `Shift` reverse                                                                                                   | —          |
@@ -74,14 +73,25 @@ Output: design notes captured to `docs/bridge-playtest/`.
 | C3.5 **[C]** | Repair execution engine (queue runtime + resource consumption + malfunction-clear)                                   | B3         |
 | C3.6 **[C]** | Repair protocol catalog data + lookup                                                                                | B4 + C3.5  |
 | C3.7 **[C]** | Engineering operations queue UI                                                                                      | B3 + C3.5  |
-| C3.8 **[C]** | Closed-transponder cost wiring                                                                                       | B5 + C1.2  |
+
+### Group C4 — station touch controllers (O-S-C)
+
+Physical controllers for every station in the bridge game, built on the working reactor-demo OSC bridge (`docker/`, see `docs/INTEGRATION.md` Touch Controllers section).
+
+| ID           | Task                                                                                     | Blocked on            |
+| ------------ | ---------------------------------------------------------------------------------------- | --------------------- |
+| C4.1 **[C]** | Pilot controller: layout + Node-RED flow (thrust, rotation, warp, maneuvering)          | —                     |
+| C4.2 **[C]** | Weapons controller: layout + flow (target cycle, ammo select, fire, tubes)              | C2.6 (ammo cycle UI)  |
+| C4.3 **[C]** | Signals controller: layout + flow (scan beam shape/orientation, snapshot trigger)       | B1 + C3.2             |
+| C4.4 **[C]** | Engineering controller: layout + flow (power/coolant, repair queue ops)                 | C3.7 (queue UI)       |
+| C4.5 **[C]** | Captain controller: layout + flow (scope TBD — likely status overview + comms controls) | —                     |
 
 ---
 
 ## Recommended kickoff (parallel-friendly)
 
 **Right now, in parallel:**
-- **You** draft B1, B3 (most blocking). Cheap small ones any time: B5, B6, B7, B8.
+- **You** draft B1, B3 (most blocking). Cheap small ones any time: B6, B7, B8.
 - **Daniel** drafts A1, A2 (most blocking).
 - **Claude** executes C1.1, C1.3 — all agent-ready, can run in parallel.
 
@@ -91,7 +101,8 @@ Output: design notes captured to `docs/bridge-playtest/`.
 - You work on B2, B4.
 
 **Third wave:**
-- Claude integrates: C2.3, C2.4, C2.6, C3.3, C3.4, C3.6, C3.7, C3.8.
+- Claude integrates: C2.3, C2.4, C2.6, C3.3, C3.4, C3.6, C3.7.
+- Claude builds controllers as their stations stabilize: C4.1 and C4.5 any time; C4.2–C4.4 after their blocking UI/mechanics land.
 - Tuning + playtest.
 
 ---
