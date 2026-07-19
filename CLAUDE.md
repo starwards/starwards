@@ -154,6 +154,8 @@ power = 1.0;
 | E2E panel selectors      | `page.locator('[data-id="Panel Name"]')`                                                                                                                                                 |
 | Multiple same labels     | `getPropertyValue(page, 'label', 'PanelTitle')` to scope                                                                                                                                 |
 | State not persisting     | Modify `spaceObject`, not `ship.state` (see sync pattern)                                                                                                                                |
+| Jest fails with Babel decorator/import syntax errors | Never run bare `npx jest` inside a module dir (misses root ts-jest config). Run from repo root: `npx jest --selectProjects=core --ci <pattern>` (or `npm test -- <pattern>`)                       |
+| Orphaned jest workers on Windows | Killing an `npm test`/jest parent orphans workers that burn CPU forever. Kill the tree: `taskkill /F /T /PID <pid>` (last resort: `Get-Process node \| Where CPU -gt 60 \| Stop-Process -Force`). Prefer bounded runs (`timeout`/`-TimeoutSec`) redirected to a file over piping through `tail` |
 | Port in use              | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 
 ## CI Rules

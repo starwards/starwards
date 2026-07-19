@@ -140,6 +140,15 @@ get damage() {
 
 **Why:** Less sync = better performance.
 
+## Nested ArraySchema (Two Levels Deep)
+
+An `ArraySchema<Child>` inside items of another `ArraySchema<Parent>` syncs correctly — nothing special is needed for depth two, just plain `@gameField([Child])` on the mid-level schema. Real example: `Armor.armorPlates[i].layers[j].health` in `modules/core/src/ship/armor.ts`.
+
+- colyseus-events emits leaf events with both indices (e.g. `/armor/armorPlates/3/layers/0/health`), and EventEmitter2 wildcard listeners (`/armor/armorPlates/*/layers/*/health`, delimiter `'/'`) match them.
+- Pushing a new nested child after `wireEvents` auto-wires it.
+
+Pinned by `modules/core/test/armor-layers-sync.spec.ts`.
+
 ## Float32 Precision Gotcha
 
 **Problem:** JavaScript numbers are 64-bit, Colyseus `float32` is 32-bit
