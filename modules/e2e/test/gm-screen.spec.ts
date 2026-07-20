@@ -187,6 +187,68 @@ test.describe('GM Screen', () => {
         expect(ship.velocity.y).toBeCloseTo(yAfterDrag, 0);
     });
 
+    test('velocity set via the tweak panel persists on a non-ship object (asteroid)', async ({ page }) => {
+        // Unlike a ship, an asteroid has no smart pilot / movement manager fighting the
+        // write — so a GM-set velocity should simply stick. It goes through the *generic*
+        // vec2 tweakable blade (tweak.ts addTweakables), not the ship-specific velocity
+        // handler, so this pins that path independently of the smart-pilot disengage fix.
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        // Place the asteroid 150px below the canvas centre (the origin ship): far enough that
+        // the later select-click resolves to the asteroid, not the ship, whatever the zoom.
+        const placeX = box.width / 2;
+        const placeY = box.height / 2 + 150;
+
+        // Create the asteroid through the GM UI (avoids constructing a core class in-test,
+        // which would be a different module instance than the server's and get rejected by
+        // the schema). 'Create Asteroid' enters placement mode; the next radar click places it.
+        const createTab = page.locator('.lm_title', { hasText: 'create' });
+        await createTab.click();
+        const createAsteroidButton = page.locator('button.tp-btnv_b', { hasText: 'Create Asteroid' });
+        await expect(createAsteroidButton).toBeVisible({ timeout: 5000 });
+        await createAsteroidButton.click();
+        await radarCanvas.click({ position: { x: placeX, y: placeY } });
+
+        await expect(() => {
+            expect([...gameDriver.gameManager.spaceManager.state.getAll('Asteroid')].length).toBe(1);
+        }).toPass({ timeout: 10000 });
+        const [asteroid] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
+
+        // Switch back to the tweak panel and select the asteroid by clicking it.
+        const tweakTab = page.locator('.lm_title', { hasText: 'tweak' });
+        await tweakTab.click();
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const velocityLabel = tweakPanel.getByText('velocity', { exact: true });
+        // Creating the asteroid can change the camera zoom (auto-fit), so a fixed offset no
+        // longer maps to the blip. Compute the click from the asteroid's actual position and
+        // the live zoom each attempt (camera stays centered on the world origin: zoom-only).
+        await expect(async () => {
+            const zoom = Number(await radarCanvas.getAttribute('data-zoom'));
+            const sx = box.width / 2 + asteroid.position.x * zoom;
+            const sy = box.height / 2 + asteroid.position.y * zoom;
+            await radarCanvas.click({ position: { x: sx, y: sy } });
+            await expect(velocityLabel).toBeVisible({ timeout: 1000 });
+        }).toPass({ timeout: 10000 });
+
+        const velocityInputs = velocityLabel.locator('..').locator('input');
+        await velocityInputs.nth(0).fill('50');
+        await velocityInputs.nth(0).press('Enter');
+        await velocityInputs.nth(1).fill('-30');
+        await velocityInputs.nth(1).press('Enter');
+
+        await expect(() => {
+            expect(asteroid.velocity.x).toBeCloseTo(50, 0);
+            expect(asteroid.velocity.y).toBeCloseTo(-30, 0);
+        }).toPass({ timeout: 2000 });
+        // no physics corrects an asteroid's velocity, so it must simply hold.
+        await page.waitForTimeout(1000);
+        expect(asteroid.velocity.x).toBeCloseTo(50, 0);
+        expect(asteroid.velocity.y).toBeCloseTo(-30, 0);
+    });
+
     test('radius set via the tweak panel persists', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
