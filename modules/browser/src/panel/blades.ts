@@ -179,6 +179,21 @@ export function addListBlade<T>(
 }
 
 /**
+ * Add a searchable select list (tweakpane4-search-list-plugin). `options` is a
+ * { displayText: value } map, matching the plugin's `search-list` view. The pane
+ * this is added to must have registered the plugin (see tweak.ts). Useful when the
+ * option set is large enough that a plain dropdown is unwieldy (e.g. target picking).
+ */
+export function addSearchListBlade(
+    guiFolder: FolderApi,
+    model: Model<string>,
+    params: { label: string; options: Record<string, string> } & Record<string, unknown>,
+    cleanup: (d: Destructor) => void,
+) {
+    return addInputBlade(guiFolder, model, { ...params, view: 'search-list' }, cleanup);
+}
+
+/**
  * add a blade for cameraring
  */
 export function addCameraRingBlade(

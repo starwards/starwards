@@ -1,4 +1,5 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
+import * as SearchListPlugin from 'tweakpane4-search-list-plugin';
 
 import {
     DesignState,
@@ -32,6 +33,7 @@ import {
     addEnumListBlade,
     addInputBlade,
     addListBlade,
+    addSearchListBlade,
     addSliderBlade,
     addTextBlade,
     createPane,
@@ -156,7 +158,23 @@ const singleSelectionDetails = async (
         });
 
         const targetIdProp = readWriteProp<string | null>(shipDriver, `/weaponsTarget/targetId`);
-        addTextBlade(guiFolder, targetIdProp, { label: 'targetId' }, cleanup);
+        // Searchable target picker instead of free-text id entry: enumerate the other ships as
+        // { id: id } options plus a "(none)" entry to clear the target. The plugin binds a plain
+        // string, so map the state's `string | null` through '' <-> null. Options are a snapshot
+        // of the current ships; the whole tweak panel is rebuilt when the ship roster changes
+        // (see the '/playerShipIds' listener in init), so they stay current.
+        const targetOptions: Record<string, string> = { '(none)': '' };
+        for (const ship of spaceDriver.state.getAll('Spaceship')) {
+            if (ship.id !== subject.id) {
+                targetOptions[ship.id] = ship.id;
+            }
+        }
+        const targetIdSearchModel = {
+            getValue: () => targetIdProp.getValue() ?? '',
+            setValue: (v: string) => targetIdProp.setValue(v || null),
+            onChange: targetIdProp.onChange,
+        };
+        addSearchListBlade(guiFolder, targetIdSearchModel, { label: 'targetId', options: targetOptions }, cleanup);
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
@@ -323,6 +341,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
         constructor(container: WidgetContainer, _: unknown) {
             this.pane = createPane({ title: 'Tweaks', container: container.getElement().get(0) });
             this.pane.registerPlugin(CamerakitPlugin);
+            this.pane.registerPlugin(SearchListPlugin);
             this.panelCleanup.add(() => {
                 this.pane.dispose();
             });

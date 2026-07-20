@@ -103,6 +103,10 @@ test.describe('GM Screen', () => {
         // folder further down the panel; the ship-level one we add is the first
         // in DOM order since it's wired up before the per-system folders loop.
         await expect(tweakPanel.getByText('targetId', { exact: true }).first()).toBeVisible();
+        // The ship-level targetId uses the searchable target picker (tweakpane4-search-list-plugin,
+        // registered on the pane), not a plain text field — assert its control rendered. Only this
+        // one blade in the panel is a search-list, so a panel-scoped lookup is unambiguous.
+        await expect(tweakPanel.locator('.tp-search-listv').first()).toBeVisible();
     });
 
     test('velocity set via the tweak panel persists (does not get thrusted away by the smart pilot)', async ({

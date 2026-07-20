@@ -35,6 +35,7 @@
         "react-dropzone": "^14.4.1",
         "tweakpane": "^4.0.5",
         "tweakpane-table": "^0.4.1",
+        "tweakpane4-search-list-plugin": "^2.0.3",
         "webfontloader": "^1.6.28"
     }
 }
