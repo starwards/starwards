@@ -270,14 +270,9 @@ function addTweakables(
                 logError('shipId tweak property found outside of space state');
             }
         } else if (tweakable.config.type === 'number') {
-            // Plain numeric input, not addCameraRingBlade: `cameraring` is a circular dial built
-            // for angle-like values (see PANEL_SPECIFICATIONS.md), and the fields that reach this
-            // branch (e.g. `radius`, `turnSpeed`) are open-ended magnitudes/rates, not angles — a
-            // ring can't meaningfully represent an unbounded value, so dragging/typing into it
-            // appeared to silently do nothing.
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
             const config = tweakable.config.number || {};
-            addInputBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
+            addCameraRingBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
         } else if (tweakable.config.type === 'enum') {
             const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
             addEnumListBlade(guiFolder, prop, tweakable.field, tweakable.config.enum, cleanup);
