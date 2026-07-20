@@ -27,4 +27,16 @@ describe('armor layers sync', () => {
         }, 3_000);
         expect(shipDriver.state.armor.numberOfHealthyPlates).toEqual(shipDriver.state.armor.numberOfPlates - 1);
     }, 20_000);
+
+    it('a plate layer syncs its own design to the client', async () => {
+        await gameDriver.gameManager.startGame(test_map_1);
+        gameDriver.pauseGameCommand();
+        const shipId = test_map_1.testShipId;
+        const shipDriver = await clientDriver.driver.getShipDriver(shipId);
+        await waitFor(() => {
+            const layer = shipDriver.state.armor.armorPlates[0].layers[0];
+            expect(layer.design.plateMaxHealth).toBeGreaterThan(0);
+            expect(layer.design.modelName).not.toEqual('');
+        }, 3_000);
+    }, 20_000);
 });

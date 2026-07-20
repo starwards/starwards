@@ -32,7 +32,7 @@ interface Fixture {
     damageManager: DamageManager;
 }
 
-const FRONT_HIT_ARC: [number, number] = [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1];
+const FRONT_HIT_ARC: [number, number] = [...FRONT_ARC];
 
 // real ammo numbers (§8 table): contact rounds carry a flat damage, blast rounds a damageFactor
 const ARM_PEN_MISSILE_DAMAGE = ammoDesigns.ArmPenMissile.damage; // 60
@@ -91,6 +91,10 @@ const fullStack: ArmorLayerDesign[] = [
 ];
 
 describe('spec §9 worked examples', () => {
+    // FRONT_HIT_ARC spans exactly 6 plates, so each plate's own share of a hit is 1/6 of the
+    // damage.amount unless a test narrows the arc to a single plate (see the direct-hit test below)
+    const FRONT_PLATE_COUNT = 6;
+
     describe('ArmPen missile vs Composite', () => {
         // §9: "contact, one event, amount 60. Armor row 2/0: the struck plate erodes 120;
         // exposure 0 (plates intact, no penetration), so no system damage."
@@ -98,8 +102,11 @@ describe('spec §9 worked examples', () => {
             const { state, damageManager } = setUpLayeredShip(compositeOnly);
             const damaged = damageManager.takeWeaponDamage(frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'));
             for (const plate of frontPlates(state)) {
-                // plateDamage_ArmPen 2 → 60 × 2 = 120
-                expect(plate.layers[0].health).to.be.closeTo(1000 - 120, 0.001);
+                // plateDamage_ArmPen 2 → each plate's own 1/6 share of the 60 damage × 2 = 20
+                expect(plate.layers[0].health).to.be.closeTo(
+                    1000 - (ARM_PEN_MISSILE_DAMAGE / FRONT_PLATE_COUNT) * 2,
+                    0.1,
+                );
             }
             expect(damaged).to.equal(false);
             expect(state.smartPilot.offsetFactor).to.equal(0);
@@ -126,13 +133,17 @@ describe('spec §9 worked examples', () => {
 
         // §9 / design intent: fighter-class plates are sized so a standard ArmPen missile
         // breaches a plate in one direct hit — 60 flat × plateDamage_ArmPen 2 = 120 erosion
-        // vs the dragonfly's plateMaxHealth 100
+        // vs the dragonfly's plateMaxHealth 100. A "direct hit" lands on a single plate, not
+        // spread across the whole front arc, so this narrows the hit to one plate's own width.
         it('one ArmPen missile direct hit breaches a fighter plate', () => {
             const { state, damageManager } = setUpLayeredShip([...dragonflySF22.armor.layers]);
-            const damaged = damageManager.takeWeaponDamage(frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'));
-            for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.equal(0);
-            }
+            const singlePlateArc: [number, number] = [FRONT_ARC[0], FRONT_ARC[0] + 20];
+            const damaged = damageManager.takeWeaponDamage({
+                ...frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'),
+                damageSurfaceArc: singlePlateArc,
+            });
+            const [directHitPlate] = [...state.armor.platesInRange(singlePlateArc)].map(([, plate]) => plate);
+            expect(directHitPlate.layers[0].health).to.equal(0);
             // the breach opens within the same event — the assassin gets straight in
             expect(damaged).to.equal(true);
         });
@@ -282,8 +293,12 @@ describe('spec §9 worked examples', () => {
             for (const plate of frontPlates(state)) {
                 // whipple is transparent to ArmPen (0/1)
                 expect(plate.layers[1].health).to.equal(500);
-                // composite core eroded at plateDamage_ArmPen 2 → 60 × 2 = 120
-                expect(plate.layers[2].health).to.be.closeTo(1000 - 120, 0.001);
+                // composite core eroded at plateDamage_ArmPen 2 → each plate's own 1/6 share of
+                // the 60 damage × 2 = 20
+                expect(plate.layers[2].health).to.be.closeTo(
+                    1000 - (ARM_PEN_MISSILE_DAMAGE / FRONT_PLATE_COUNT) * 2,
+                    0.1,
+                );
             }
         });
 
@@ -292,8 +307,9 @@ describe('spec §9 worked examples', () => {
             const { ship, state, spaceManager, damageManager } = setUpLayeredShip(fullStack);
             const manager = new ShipManagerPc(ship, state, spaceManager, new MockDie());
             damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
+            // each plate's own 1/6 share of the 40 damage erodes its reactive cells (eroded, not popped)
             for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.be.closeTo(60, 0.001); // eroded, not popped
+                expect(plate.layers[0].health).to.be.closeTo(100 - 40 / FRONT_PLATE_COUNT, 0.1);
             }
             // scratch the whipple screen too, then run the ship update loop
             frontPlates(state)[0].layers[1].health = 490;
@@ -301,7 +317,7 @@ describe('spec §9 worked examples', () => {
             // armor does not heal — every layer stays at its damaged value until explicit repair
             expect(frontPlates(state)[0].layers[1].health).to.equal(490);
             for (const plate of frontPlates(state)) {
-                expect(plate.layers[0].health).to.be.closeTo(60, 0.001);
+                expect(plate.layers[0].health).to.be.closeTo(100 - 40 / FRONT_PLATE_COUNT, 0.1);
             }
         });
 

@@ -26,13 +26,16 @@ describe('armor layer stacks', () => {
         ).to.throw();
     });
 
-    it('builds one layer design and one plate layer per config layer, outermost first', () => {
+    it('builds one self-designed layer per config layer on every plate, outermost first', () => {
         const state = makeLayeredState();
-        expect(state.armor.layerDesigns.length).to.equal(2);
-        expect(state.armor.layerDesigns[0].singleUsePlates).to.equal(true);
-        expect(state.armor.layerDesigns[1].singleUsePlates).to.equal(false);
         for (const plate of state.armor.armorPlates) {
             expect(plate.layers.length).to.equal(2);
+            expect(plate.layers[0].design.singleUsePlates).to.equal(true);
+            expect(plate.layers[1].design.singleUsePlates).to.equal(false);
+            expect(plate.layers[0].design.modelName).to.equal('reactive');
+            expect(plate.layers[1].design.modelName).to.equal('composite');
+            expect(plate.layers[0].design.plateMaxHealth).to.equal(100);
+            expect(plate.layers[1].design.plateMaxHealth).to.equal(1000);
             expect(plate.layers[0].maxHealth).to.equal(100);
             expect(plate.layers[1].maxHealth).to.equal(1000);
         }
