@@ -5,12 +5,12 @@ import { Schema } from '@colyseus/schema';
 
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { allColyseusProperties } from '../traverse';
-import { commandable, gameField } from '../game-field';
+import { DEFECTIBLE_METADATA, commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 /* eslint-enable sort-imports */
 
-const defectiblePropertyMetadataKey = Symbol('defectible:propertyMetadata');
+const defectiblePropertyMetadataKey = DEFECTIBLE_METADATA;
 
 export abstract class DesignState extends Schema {
     /**
