@@ -37,3 +37,4 @@ export * from './tweakable';
 export * from './updateable';
 export * from './utils';
 export * from './logger';
+export * from './version';

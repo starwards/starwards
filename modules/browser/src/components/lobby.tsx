@@ -1,10 +1,10 @@
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
+import { Driver, VERSION } from '@starwards/core';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
 import { useAdminDriver, useCanStartGame, useIsGameRunning, usePlayerShips } from '../react/hooks';
 
 import { AnimatorGeneralProvider } from './arwes-compat';
 import { BleepsProvider } from './arwes-compat';
-import { Driver } from '@starwards/core';
 import React from 'react';
 import WebFont from 'webfontloader';
 
@@ -184,7 +184,20 @@ export const Lobby = (p: Props) => {
                             >
                                 Colyseus Monitor
                             </Button>
+                            <Button
+                                key="gallery"
+                                palette="secondary"
+                                onClick={() => window.location.assign('gallery.html')}
+                            >
+                                Widgets Gallery
+                            </Button>
                         </pre>
+                    </div>
+                    <div
+                        data-id="version"
+                        style={{ position: 'fixed', bottom: 4, right: 8, fontSize: 12, opacity: 0.6 }}
+                    >
+                        v{VERSION}
                     </div>
                 </AnimatorGeneralProvider>
             </BleepsProvider>

@@ -6,6 +6,8 @@ import { tweakable } from '../tweakable';
 
 export type ReactorDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     energyPerSecond: number;
     maxEnergy: number;
     energyHeatEPMThreshold: number;

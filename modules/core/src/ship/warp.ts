@@ -6,6 +6,8 @@ import { tweakable } from '../tweakable';
 
 export type WarpDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     maxProximity: number;
     chargeTime: number;

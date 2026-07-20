@@ -73,8 +73,8 @@ export {
     Spaceship,
     Waypoint,
     getSectorName,
-    projectileDesigns,
-    projectileModels,
+    ammoDesigns,
+    ammoTypes,
     sectorSize,
     spaceCommands,
 } from './space';
@@ -92,6 +92,9 @@ export type { Destructor } from './utils';
 
 // --- logger ---
 export { createLogger } from './logger';
+
+// --- version ---
+export { VERSION } from './version';
 
 // --- space-object-base (re-exported via ./space) ---
 export { TypeFilter, filterObject } from './space';

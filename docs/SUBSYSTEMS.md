@@ -6,7 +6,7 @@ source_of_truth:
 related:
   - PHYSICS.md
   - API_REFERENCE.md
-last_verified: 2026-06-13
+last_verified: 2026-07-20
 ---
 
 # Ship Subsystems
@@ -50,11 +50,12 @@ last_verified: 2026-06-13
 | **ChainGun** | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | Rapid-fire kinetic |
 | **Tubes** | `tube.ts` | angle, index (inherits loading, rateOfFireFactor, loadedProjectile from ChainGun) | Missile launchers (array) |
 | **Magazine** | `magazine.ts` | capacity, missiles | Ammo storage |
-| **Armor** | `armor.ts` | armorPlates[], numberOfHealthyPlates, numberOfPlates | Sectional damage |
+| **Armor** | `armor.ts` | armorPlates[] (each: layers[] of health/maxHealth), layerDesigns[], numberOfHealthyPlates, numberOfPlates | Sectional damage, layered plate stacks |
 | **Targeting** | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | Weapon targeting |
 | **Warp** | `warp.ts` | currentLevel, desiredLevel, velocityFactor, damageFactor | FTL travel |
 | **Docking** | `docking.ts` | mode, targetId, rangesFactor | Ship-to-ship attach |
 | **SmartPilot** | `smart-pilot.ts` | rotationMode, maneuveringMode, rotation, maneuvering | Autopilot |
+| **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], trackedTargets[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | SCAN/HACK job queue, target tracking, scan levels |
 
 ## Pilot Controls
 **Location:** `modules/core/src/ship/ship-state.ts`
@@ -117,12 +118,16 @@ systems.forEach(sys => {
 
 ### Damage Propagation
 ```typescript
-armor.takeDamage(damage, hitAngle);
-
-if (armor.isBroken(hitAngle)) {
-    const internalDamage = damage × ARMOR_PENETRATION_FACTOR;
-    randomSystem.broken = true;
+// DamageManager.takeWeaponDamage (modules/core/src/ship/damage-manager.ts)
+for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {   // front / rear
+    // walk armor layers outermost-in; per damage type each layer bypasses,
+    // blocks, or engages (plates erode, damage leaks via max(penetration, brokenRatio))
+    exposure = walkArmorLayers(damage, areaHitRange);   // 0..1 leak-through
 }
+// systemScope picks targets: single random system, all in area, or ship-wide electronics
+applyExposedSystemDamage(damage, exposures);
+// → damageSystem(): amount × exposure walked off in damage50-sized steps,
+//   each a probabilistic @defectible roll (capped at 50%) — no direct "broken = true"
 ```
 
 ## Damage Philosophy

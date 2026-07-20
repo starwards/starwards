@@ -1,4 +1,4 @@
-import { Destructors, ShipDriver, projectileDesigns, projectileModels } from '@starwards/core';
+import { Destructors, ShipDriver, ammoDesigns, ammoTypes } from '@starwards/core';
 import { addTextBlade, createPane } from '../panel';
 import { aggregate, readProp } from '../property-wrappers';
 
@@ -23,7 +23,7 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
     const pane = createPane({ title: 'Ammunition', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
-    for (const projectileKey of projectileModels) {
+    for (const projectileKey of ammoTypes) {
         const countProp = readProp<number>(shipDriver, `/magazine/count_${projectileKey}`);
         const maxProp = readProp<number>(shipDriver, `/magazine/design/max_${projectileKey}`);
         const capacityProp = readProp<number>(shipDriver, `/magazine/capacity`);
@@ -32,6 +32,6 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
                 shipDriver.state.magazine[`max_${projectileKey}`]
             }`;
         const prop = aggregate([countProp, maxProp, capacityProp], getText);
-        addTextBlade(pane, prop, { label: projectileDesigns[projectileKey].name }, panelCleanup.add);
+        addTextBlade(pane, prop, { label: ammoDesigns[projectileKey].name }, panelCleanup.add);
     }
 }

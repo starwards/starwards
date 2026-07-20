@@ -20,6 +20,8 @@ Claiming work is complete without verification is dishonesty, not efficiency.
 
 **Starwards-specific:** Run project commands, check all module tests, verify E2E snapshots.
 
+Verification includes conformance to the code standards in `docs/standards/` (structure, style, naming) — review the diff against them before claiming completion.
+
 ## The Iron Law
 
 ```

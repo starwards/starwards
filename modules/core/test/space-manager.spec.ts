@@ -19,6 +19,7 @@ import {
     concatinateArchs,
 } from '../src';
 
+import { Circle } from 'detect-collisions';
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
@@ -38,7 +39,7 @@ function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number)
 function* getHitPlatesArch(armor: Armor, range: RTuple2) {
     const degreesPerPlate = armor.degreesPerPlate;
     for (const [i, plate] of armor.platesInRange(range)) {
-        if (plate.health < armor.design.plateMaxHealth) {
+        if (plate.healthRatio < 1) {
             const start = i * degreesPerPlate;
             yield [start, start + degreesPerPlate] as const;
         }
@@ -61,7 +62,9 @@ describe('SpaceManager', () => {
                     target.radius = Spaceship.radius;
                     const explosion = new Explosion();
                     const explosionInit = jest.spyOn(explosion, 'init');
-                    const shell = new Projectile();
+                    // proximity-fuzed and untargeted: flies straight like a dumb shell,
+                    // detonates only on actual contact (no in-flight proximity trigger)
+                    const shell = new Projectile('FragMissile');
                     shell._explosion = explosion;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     shell.velocity = Vec2.make(velocity);
@@ -138,7 +141,7 @@ describe('SpaceManager', () => {
                 shipMgr.state.chainGun!.design.maxShellRange = 10_000;
                 shipMgr.state.chainGun!.shellRange = 1;
                 shipMgr.state.chainGun!.loading = 1;
-                shipMgr.state.chainGun!.loadedProjectile = 'CannonShell';
+                shipMgr.state.chainGun!.loadedProjectile = 'HiExpShell';
                 shipMgr.state.chainGun!.isFiring = true;
                 switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
@@ -173,8 +176,6 @@ describe('SpaceManager', () => {
                 const { sim, shellSecondsToLive, shipMgr } = highSpeedShip(numIterationsPerSecond, speed);
                 shipMgr.state.smartPilot.maneuvering.x = 1; // fly forward
                 shipMgr.state.afterBurnerCommand = 1; // afterburner
-
-                shipMgr.state.armor.design.healRate = 0;
 
                 sim.simulateUntilTime(shellSecondsToLive * 10, (_spaceMgr) => {
                     shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
@@ -498,6 +499,48 @@ describe('SpaceManager', () => {
         const found = [...spaceMgr.state.getAll('Spaceship')].find((s) => s.id === 'pos-test');
         expect(found!.position.x).to.equal(100);
         expect(found!.position.y).to.equal(200);
+    });
+
+    describe('collision body isStatic optimization', () => {
+        function getCollisionBody(spaceMgr: SpaceManager, object: SpaceObject) {
+            const bodies = spaceMgr.collisions.all() as Circle[];
+            return bodies.find(
+                (body) => body.x === object.position.x && body.y === object.position.y && body.r === object.radius,
+            );
+        }
+
+        it('marks a frozen object collision body as static, and unmarks it when unfrozen', () => {
+            const spaceMgr = new SpaceManager();
+            const asteroid = new Asteroid();
+            asteroid.id = 'static-test-asteroid';
+            asteroid.position = Vec2.make({ x: 1234, y: 4321 });
+            spaceMgr.insert(asteroid);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)?.isStatic).to.equal(false);
+
+            asteroid.freeze = true;
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)?.isStatic).to.equal(true);
+
+            asteroid.freeze = false;
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)?.isStatic).to.equal(false);
+        });
+
+        it('removes a destroyed object collision body outright (no need to mark it static)', () => {
+            const spaceMgr = new SpaceManager();
+            const asteroid = new Asteroid();
+            asteroid.id = 'static-test-destroyed';
+            asteroid.position = Vec2.make({ x: 5678, y: 8765 });
+            spaceMgr.insert(asteroid);
+            spaceMgr.forceFlushEntities();
+
+            spaceMgr.destroyObject(asteroid.id);
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            expect(getCollisionBody(spaceMgr, asteroid)).to.equal(undefined);
+        });
     });
 
     it('insertBulk adds multiple objects', () => {

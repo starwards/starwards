@@ -26,6 +26,7 @@ jobs:
       release: ${{ steps.meta.outputs.release }}
       host: ${{ steps.meta.outputs.host }}
       image: ${{ steps.meta.outputs.image }}
+      compose_images: ${{ steps.compose.outputs.images }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +42,10 @@ jobs:
           echo "image=${IMAGE}:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v3
+
+      # exposes ACTIONS_RUNTIME_TOKEN etc. so raw `docker buildx build` in
+      # build-preview-images.sh can use the type=gha cache
+      - uses: crazy-max/ghaction-github-runtime@v3
 
       - uses: docker/login-action@v3
         with:
@@ -58,10 +63,36 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # node-red's /data manifest depends on file: tgz packages built from the
+      # branch — pack them into docker/node-red/data before the wrapper bake.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - run: bash scripts/prepare-node-red-data.sh
+
+      # Every service in docker/docker-compose.yml also runs in the preview.
+      # Bind mounts are baked into per-release wrapper images; `build:`
+      # services are built from the branch like the main image.
+      - name: Build & push compose service images
+        id: compose
+        env:
+          IMAGE_PREFIX: ${{ env.IMAGE }}/preview
+          TAGS: ${{ github.sha }} ${{ steps.meta.outputs.release }}
+          COMPOSE_DIR: docker
+        run: |
+          docker compose -f docker/docker-compose.yml config --format json > /tmp/compose-config.json
+          IMAGES=$(bash .github/k8s/build-preview-images.sh /tmp/compose-config.json)
+          echo "images=${IMAGES}" >> "$GITHUB_OUTPUT"
+
   deploy:
     needs: build-push
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
     environment:
       name: ${{ needs.build-push.outputs.release }}
       url: https://${{ needs.build-push.outputs.host }}
@@ -79,15 +110,73 @@ jobs:
           sudo mv kubectl /usr/local/bin/
 
       - name: Deploy to cluster
+        id: deploy
         env:
           RELEASE: ${{ needs.build-push.outputs.release }}
-          HOST: ${{ needs.build-push.outputs.host }}
-          IMAGE: ${{ needs.build-push.outputs.image }}
+          SERVER_IMAGE: ${{ needs.build-push.outputs.image }}
+          IMAGES: ${{ needs.build-push.outputs.compose_images }}
         run: |
           echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
-          envsubst < .github/k8s/template.yaml | kubectl apply -f -
-          kubectl -n starwards rollout status deployment/starwards-${RELEASE} --timeout=180s
+          NAMESPACE="starwards-${RELEASE}"
+
+          docker compose -f docker/docker-compose.yml config --format json \
+            | node .github/k8s/render-preview.js > /tmp/manifests.yaml
+
+          # --prune removes objects of compose services deleted by this branch
+          kubectl apply -f /tmp/manifests.yaml \
+            --prune -l app=starwards,release=${RELEASE} \
+            --prune-allowlist=apps/v1/Deployment \
+            --prune-allowlist=core/v1/Service \
+            --prune-allowlist=traefik.io/v1alpha1/IngressRoute
+
+          # Traefik needs the wildcard cert in the preview's own namespace
+          kubectl -n starwards get secret wildcard-starwards-tls -o json \
+            | jq 'del(.metadata.namespace, .metadata.uid, .metadata.resourceVersion,
+                      .metadata.creationTimestamp, .metadata.managedFields)' \
+            | kubectl -n "$NAMESPACE" apply -f -
+
+          for d in $(kubectl -n "$NAMESPACE" get deploy -l app=starwards -o name); do
+            kubectl -n "$NAMESPACE" rollout status "$d" --timeout=180s
+          done
+
+          {
+            echo 'hosts<<EOF'
+            docker compose -f docker/docker-compose.yml config --format json \
+              | node .github/k8s/render-preview.js --hosts
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # The job's `environment:` only reports the game server URL — register a
+      # GitHub deployment per additional exposed service (pr-N-<service>) so
+      # the PR shows every preview URL. Teardown deletes them by prefix.
+      - name: Report per-service deployments
+        uses: actions/github-script@v7
+        env:
+          RELEASE: ${{ needs.build-push.outputs.release }}
+          HOSTS: ${{ steps.deploy.outputs.hosts }}
+        with:
+          script: |
+            const { RELEASE, HOSTS } = process.env;
+            for (const host of HOSTS.split('\n').filter(Boolean)) {
+              const environment = host.split('.')[0];
+              if (environment === RELEASE) continue; // game server: already reported via `environment:`
+              const { data: deployment } = await github.rest.repos.createDeployment({
+                ...context.repo,
+                ref: context.payload.pull_request?.head.sha ?? context.sha,
+                environment,
+                transient_environment: true,
+                auto_merge: false,
+                required_contexts: [],
+              });
+              await github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: deployment.id,
+                state: 'success',
+                environment_url: `https://${host}`,
+                auto_inactive: true,
+              });
+            }
 
   teardown:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -110,32 +199,42 @@ jobs:
         run: |
           echo '${{ secrets.KUBECONFIG }}' > /tmp/kubeconfig
           export KUBECONFIG=/tmp/kubeconfig
-          kubectl -n starwards delete deployment,svc,ingressroute \
-            -l app=starwards,release=pr-${{ github.event.pull_request.number }} \
-            --ignore-not-found
+          # The whole preview (all compose services, ingress, TLS copy) lives
+          # in its own namespace — deleting it removes everything.
+          kubectl delete namespace "starwards-pr-${{ github.event.pull_request.number }}" \
+            --ignore-not-found --wait=false
 
       - name: Remove GitHub deployment environment
         uses: actions/github-script@v7
         with:
           script: |
-            const environment = `pr-${context.payload.pull_request.number}`;
-            const { data: deployments } = await github.rest.repos.listDeployments({
-              ...context.repo, environment, per_page: 100
+            // pr-<N> (game server) plus per-service environments pr-<N>-<service>
+            const prefix = `pr-${context.payload.pull_request.number}`;
+            const { data } = await github.rest.repos.getAllEnvironments({
+              ...context.repo, per_page: 100
             });
-            for (const d of deployments) {
-              await github.rest.repos.createDeploymentStatus({
-                ...context.repo, deployment_id: d.id, state: 'inactive'
+            const names = data.environments
+              .map((e) => e.name)
+              .filter((n) => n === prefix || n.startsWith(`${prefix}-`));
+            for (const environment of names) {
+              const { data: deployments } = await github.rest.repos.listDeployments({
+                ...context.repo, environment, per_page: 100
               });
-              await github.rest.repos.deleteDeployment({
-                ...context.repo, deployment_id: d.id
-              });
-            }
-            // Deleting the environment shell needs admin rights, which
-            // GITHUB_TOKEN may not have — best-effort only.
-            try {
-              await github.rest.repos.deleteAnEnvironment({
-                ...context.repo, environment_name: environment
-              });
-            } catch (e) {
-              core.warning(`Could not delete environment ${environment}: ${e.message}`);
+              for (const d of deployments) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo, deployment_id: d.id, state: 'inactive'
+                });
+                await github.rest.repos.deleteDeployment({
+                  ...context.repo, deployment_id: d.id
+                });
+              }
+              // Deleting the environment shell needs admin rights, which
+              // GITHUB_TOKEN may not have — best-effort only.
+              try {
+                await github.rest.repos.deleteAnEnvironment({
+                  ...context.repo, environment_name: environment
+                });
+              } catch (e) {
+                core.warning(`Could not delete environment ${environment}: ${e.message}`);
+              }
             }

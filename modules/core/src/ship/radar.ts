@@ -6,6 +6,8 @@ import { range } from '../range';
 
 export type RadarDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     range: number;
     /**

@@ -1,5 +1,5 @@
 import { EnergySource, HeatSink } from './ship-manager-abstract';
-import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, projectileModels } from '../space';
+import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, ammoDesigns, ammoTypes } from '../space';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
 import { Vec2, gaussianRandom } from '..';
@@ -28,8 +28,8 @@ type ShipManager = {
 
 export function switchToAvailableAmmo(chainGun: ChainGun, magazine: Magazine) {
     if (chainGun.projectile === 'None') {
-        chainGun.projectile = new Iterator(projectileModels)
-            .filter((p) => chainGun.design[`use_${p}`] && magazine[`count_${p}`] > 0)
+        chainGun.projectile = new Iterator(ammoTypes)
+            .filter((p) => chainGun.design.isAmmoEnabled(p) && magazine.getCount(p) > 0)
             .firstOr('None');
     }
 }
@@ -104,16 +104,16 @@ export class ChainGunManager implements Updateable {
 
     private updateChainGun(deltaSeconds: number) {
         const chainGun = this.chainGun;
-        if (chainGun.projectile !== 'None' && !chainGun.design[`use_${chainGun.projectile}`]) {
+        if (chainGun.projectile !== 'None' && !chainGun.design.isAmmoEnabled(chainGun.projectile)) {
             chainGun.changeProjectileCommand = true;
         }
         if (chainGun.changeProjectileCommand) {
             chainGun.changeProjectileCommand = false;
-            const ammoTypes = new Iterator(projectileModels).filter((p) => chainGun.design[`use_${p}`]);
+            const enabledAmmo = new Iterator(ammoTypes).filter((p) => chainGun.design.isAmmoEnabled(p));
             if (chainGun.projectile === 'None') {
-                chainGun.projectile = ammoTypes.firstOr('None');
+                chainGun.projectile = enabledAmmo.firstOr('None');
             } else {
-                chainGun.projectile = ammoTypes.elementAfter(chainGun.projectile);
+                chainGun.projectile = enabledAmmo.elementAfter(chainGun.projectile);
             }
         }
         if (!chainGun.effectiveness) {
@@ -125,7 +125,7 @@ export class ChainGunManager implements Updateable {
         const dontLoad =
             chainGun.projectile !== 'None' &&
             chainGun.loading === 0 &&
-            this.state.magazine[`count_${chainGun.projectile}`] < 1;
+            this.state.magazine.getCount(chainGun.projectile) < 1;
         const loadingDelta =
             chainGun.design.bulletsPerSecond * chainGun.rateOfFireFactor * chainGun.effectiveness * deltaSeconds;
         const loadingEnergy =
@@ -141,7 +141,10 @@ export class ChainGunManager implements Updateable {
                     chainGun.loading -= loadingDelta;
                     if (chainGun.loading <= 0) {
                         chainGun.loading = 0;
-                        this.state.magazine[`count_${chainGun.loadedProjectile}`] += 1;
+                        this.state.magazine.setCount(
+                            chainGun.loadedProjectile,
+                            this.state.magazine.getCount(chainGun.loadedProjectile) + 1,
+                        );
                         chainGun.loadedProjectile = 'None';
                     }
                 }
@@ -149,7 +152,10 @@ export class ChainGunManager implements Updateable {
                 // load
                 if (this.energyManager.trySpendEnergy(loadingEnergy, chainGun)) {
                     if (chainGun.loading === 0) {
-                        this.state.magazine[`count_${chainGun.projectile}`] -= 1;
+                        this.state.magazine.setCount(
+                            chainGun.projectile,
+                            this.state.magazine.getCount(chainGun.projectile) - 1,
+                        );
                         chainGun.loadedProjectile = chainGun.projectile;
                         chainGun.loading += this.loadingRemainder;
                         this.loadingRemainder = 0;
@@ -174,6 +180,8 @@ export class ChainGunManager implements Updateable {
         ) {
             const firedProjectileType = chainGun.loadedProjectile;
             const projectile = new Projectile(firedProjectileType);
+            // stamped on every projectile; only cluster munitions read it (see Projectile.warheadDesign)
+            projectile.warhead = chainGun.clusterWarhead;
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
             projectile.angle = gaussianRandom(
@@ -207,7 +215,7 @@ export class ChainGunManager implements Updateable {
                 projectile.secondsToLive = chainGun.shellSecondsToLive;
             }
             this.spaceManager.insert(projectile);
-            const heatPerShot = chainGun.design[`heat_${firedProjectileType}`] ?? 0;
+            const heatPerShot = ammoDesigns[firedProjectileType].heatPerShot;
             this.heatSink.addHeat(heatPerShot * chainGun.effectiveness, chainGun);
         }
     }

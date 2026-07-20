@@ -9,6 +9,8 @@ import { range } from '../range';
 
 export type ThrusterDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     maxAngleError: number;
     capacity: number;
     energyCost: number;

@@ -5,6 +5,7 @@ import {
     SmartPilotMode,
     SpaceManager,
     Spaceship,
+    ammoTypes,
     makeShipState,
     shipConfigurations,
 } from '../src';
@@ -34,7 +35,7 @@ describe('ChainGunManager', () => {
             const magazine = shipMgr.state.magazine;
 
             // Ensure magazine has ammo
-            expect(magazine.count_CannonShell).to.be.greaterThan(0);
+            expect(magazine.count_HiExpShell).to.be.greaterThan(0);
 
             chainGun.projectile = 'None';
             switchToAvailableAmmo(chainGun, magazine);
@@ -57,9 +58,9 @@ describe('ChainGunManager', () => {
             const magazine = shipMgr.state.magazine;
 
             // Deplete all ammo
-            magazine.count_CannonShell = 0;
-            magazine.count_BlastCannonShell = 0;
-            magazine.count_Missile = 0;
+            for (const at of ammoTypes) {
+                magazine.setCount(at, 0);
+            }
 
             chainGun.projectile = 'None';
             switchToAvailableAmmo(chainGun, magazine);
@@ -85,7 +86,7 @@ describe('ChainGunManager', () => {
             chainGun.loadAmmo = true;
             switchToAvailableAmmo(chainGun, shipMgr.state.magazine);
 
-            const initialCount = shipMgr.state.magazine.count_CannonShell;
+            const initialCount = shipMgr.state.magazine.count_HiExpShell;
 
             // Simulate enough time for loading and firing
             const i = makeIterationsData(2, 40);
@@ -94,7 +95,7 @@ describe('ChainGunManager', () => {
                 spaceMgr.update(id);
             }
 
-            expect(shipMgr.state.magazine.count_CannonShell).to.be.lessThan(initialCount);
+            expect(shipMgr.state.magazine.count_HiExpShell).to.be.lessThan(initialCount);
         });
 
         it('stamps fired projectiles with the firing ship id and advanced scan for its faction', () => {

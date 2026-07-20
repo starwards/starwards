@@ -39,6 +39,7 @@ node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 
 # Verification suite
 npm run test:types         # TypeScript check
 npm run test:format        # ESLint + Prettier
+npm run knip               # Dead code: unused files + dependencies (config in knip.jsonc)
 npm run lint:fix           # Auto-fix lint issues
 npm run test:all           # format + types + unit + e2e
 ```
@@ -153,11 +154,23 @@ power = 1.0;
 | E2E panel selectors      | `page.locator('[data-id="Panel Name"]')`                                                                                                                                                 |
 | Multiple same labels     | `getPropertyValue(page, 'label', 'PanelTitle')` to scope                                                                                                                                 |
 | State not persisting     | Modify `spaceObject`, not `ship.state` (see sync pattern)                                                                                                                                |
+| Jest fails with Babel decorator/import syntax errors | Never run bare `npx jest` inside a module dir (misses root ts-jest config). Run from repo root: `npx jest --selectProjects=core --ci <pattern>` (or `npm test -- <pattern>`)                       |
+| Orphaned jest workers on Windows | Killing an `npm test`/jest parent orphans workers that burn CPU forever. Kill the tree: `taskkill /F /T /PID <pid>` (last resort: `Get-Process node \| Where CPU -gt 60 \| Stop-Process -Force`). Prefer bounded runs (`timeout`/`-TimeoutSec`) redirected to a file over piping through `tail` |
 | Port in use              | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 
 ## CI Rules
 
 All CI jobs must pass. No disabling tests, no skipping jobs, no modifying CI scripts.
+
+## Working Style
+
+- Code standards live in [`docs/standards/`](docs/standards/) (structure, style, naming, and the principles behind them) — read before writing or reviewing core/config code; they are contracts, not suggestions.
+- Prefer a tool's own idiomatic mechanism over overriding it (e.g. Node-RED dependencies belong in its `data/package.json` manifest, not ad-hoc installs).
+- When a claim is challenged, settle it with evidence (git history, logs, a live test) — not argument.
+- Test after every change, including cosmetic refactors — exercise the affected flow end-to-end.
+- Dead-code warnings come from tooling (`npm run knip`), not from review opinion. Knip structurally can't see empty lifecycle exports consumed by convention or inert JSON config keys — call those out explicitly instead of silently deleting.
+- Verify demo-affecting changes on the deployed preview environment (pr-N.dev.starwards.space + per-service hosts), not only on the local stack — local drifts (stale images; Windows bind mounts don't deliver file-change events, so O-S-C/Node-RED hot reload silently doesn't fire).
+- Keep responses concise: answer first, minimal words, no preamble.
 
 ## No Tombstones
 
@@ -193,6 +206,13 @@ Node.js >= 22.11.0, npm >= 10.9.0
 
 - [`docs/design/README.md`](docs/design/README.md) - Product hub: vision, roadmap, station specs, decisions
 - [`docs/design/CLAUDE.md`](docs/design/CLAUDE.md) - Folder-scoped guide for the design KB
+
+**Standards:**
+
+- [`docs/standards/standards-code-structure.md`](docs/standards/standards-code-structure.md) - Code structure contracts (unions, configs, single edit points)
+- [`docs/standards/standards-code-structure-principles.md`](docs/standards/standards-code-structure-principles.md) - The motivations behind them
+- [`docs/standards/standards-code-style.md`](docs/standards/standards-code-style.md) - Code style
+- [`docs/standards/standards-naming.md`](docs/standards/standards-naming.md) - Naming
 
 **Core:**
 

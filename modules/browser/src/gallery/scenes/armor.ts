@@ -8,7 +8,9 @@ import { drawArmorStatus } from '../../widgets/armor';
 function createShipWithArmor(id: string, healthFactors: number[]) {
     const state = makeShipState(id, dragonflySF22);
     for (let i = 0; i < state.armor.armorPlates.length && i < healthFactors.length; i++) {
-        state.armor.armorPlates[i].health = state.armor.armorPlates[i].maxHealth * healthFactors[i];
+        for (const layer of state.armor.armorPlates[i].layers) {
+            layer.health = layer.maxHealth * healthFactors[i];
+        }
     }
     return state;
 }

@@ -62,3 +62,19 @@
 :root .tp-grlv_g {
     width: 160px; /* cut off monitor cell */
 }
+
+/* non-interactive "bar" display for read-only values within a range (see addBarCellToRow):
+   reuses the slider view but hides the drag handle and fills the track so it reads as a
+   solid level bar rather than a draggable control */
+.sw-bar .tp-sldv.tp-v-disabled {
+    opacity: 1;
+}
+.sw-bar .tp-sldv_t {
+    cursor: default;
+}
+.sw-bar .tp-sldv_k::after {
+    display: none;
+}
+.sw-bar .tp-sldv_k::before {
+    height: 100%;
+}

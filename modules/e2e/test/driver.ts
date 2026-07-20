@@ -217,3 +217,16 @@ export async function waitForPropertyFloatValue(
     );
     return parseFloat(value);
 }
+
+/**
+ * Asserts a `.sw-bar` element (see addBarBlade/addBarCellToRow) renders as a non-interactive
+ * level bar: the underlying slider's drag handle must be hidden.
+ */
+export async function expectNonInteractiveBar(bar: Locator): Promise<void> {
+    await expect(bar).toBeVisible();
+    const knobDisplay = await bar.evaluate((el) => {
+        const knob = el.querySelector('.tp-sldv_k');
+        return knob && getComputedStyle(knob, '::after').display;
+    });
+    expect(knobDisplay).toBe('none');
+}

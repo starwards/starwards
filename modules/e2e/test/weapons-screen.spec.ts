@@ -1,6 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
-import { getPropertyValue, makeDriver } from './driver';
+import { expectNonInteractiveBar, getPropertyValue, makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
 
@@ -32,5 +32,17 @@ test.describe('Weapons Screen', () => {
         const ammoToUse = await getPropertyValue(page, 'ammo to use', 'Tube 0');
         expect(ammoToUse).toBeDefined();
         expect(ammoToUse.length).toBeGreaterThan(0);
+    });
+
+    test('tube and chain gun loading readouts render as non-interactive bars, not draggable sliders', async ({
+        page,
+    }) => {
+        const tubesPanel = page.locator('[data-id="Tubes Status"]');
+        await expect(tubesPanel).toBeVisible({ timeout: 10000 });
+        await expectNonInteractiveBar(tubesPanel.locator('.sw-bar').first());
+
+        const gunPanel = page.locator('[data-id="Chain Gun"]');
+        await expect(gunPanel).toBeVisible();
+        await expectNonInteractiveBar(gunPanel.locator('.sw-bar').first());
     });
 });

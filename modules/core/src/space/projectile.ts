@@ -3,58 +3,232 @@ import { Explosion } from './explosion';
 import { ShipDirection } from '../ship';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
+import { WeaponDamageType } from './damage-profile';
 import { gameField } from '../game-field';
-import { getKeys } from '../utils';
 import { tweakable } from '../tweakable';
 
-// currently projectiles config is hard-coded. should move to a more dynamic solution in the future.
-// when adding new Projectile types, also add relevent fields to the Magazine and chaingun systems
+export const shellAmmoTypes = ['HiExpShell', 'ArmPenShell', 'FragShell'] as const;
+export const missileAmmoTypes = [
+    'HiExpMissile',
+    'ArmPenMissile',
+    'FragMissile',
+    'ClusterMissile',
+    'TandemMissile',
+    'ElecMissile',
+] as const;
+export const ammoTypes = [...shellAmmoTypes, ...missileAmmoTypes] as const;
+export type ShellAmmoType = (typeof shellAmmoTypes)[number];
+export type MissileAmmoType = (typeof missileAmmoTypes)[number];
+export type AmmoType = (typeof ammoTypes)[number];
 
-export const projectileDesigns = {
-    CannonShell: {
-        name: 'cannon shell',
+export const clusterWarheadModes = ['Frag', 'ArmPen'] as const;
+export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
+
+// contact: a single damage event at the point of impact, no explosion object.
+// proximity: detonates into a growing Explosion, either on approach to a target
+// (within `range`) or on contact — also the backup time-fuze on lifetime expiry.
+export type Fuze = { type: 'contact' } | { type: 'proximity'; range: number };
+
+// the fuze decides the delivery: contact rounds are impact delivery and carry a flat
+// damage number; proximity rounds are explosion delivery and carry a blast block
+export type DamageDelivery = 'impact' | 'explosion';
+
+export type WarheadDesign = { damageType: WeaponDamageType } & (
+    | {
+          delivery: 'impact';
+          fuze: { type: 'contact' };
+          damage: number;
+      }
+    | {
+          delivery: 'explosion';
+          fuze: { type: 'proximity'; range: number };
+          explosion: {
+              secondsToLive: number;
+              expansionSpeed: number;
+              damageFactor: number;
+              blastFactor: number;
+          };
+      }
+);
+
+// how far a warhead's blast reaches; impact rounds have no blast
+export function blastRadius(warhead: WarheadDesign): number {
+    return warhead.delivery === 'explosion' ? warhead.explosion.secondsToLive * warhead.explosion.expansionSpeed : 0;
+}
+
+export type ProjectileDesign = WarheadDesign & {
+    name: string;
+    radius: number;
+    heatPerShot: number;
+    homing: null | {
+        secondsToLive: number;
+        rotationCapacity: number;
+        velocityCapacity: number;
+        maxSpeed: number;
+    };
+    // selectable warheads (cluster munitions): overrides the whole warhead per mode
+    warheads?: Record<ClusterWarheadMode, WarheadDesign>;
+};
+
+export type MissileDesign = ProjectileDesign & {
+    homing: NonNullable<ProjectileDesign['homing']>;
+};
+
+export const ammoDesigns = {
+    HiExpShell: {
+        name: '30mm HiExp shell',
         radius: 1,
+        damageType: 'HiExp',
+        delivery: 'explosion',
+        fuze: { type: 'proximity', range: 100 },
+        heatPerShot: 5,
         homing: null,
-        explosion: {
-            secondsToLive: 1,
-            expansionSpeed: 100,
-            damageFactor: 20,
-            blastFactor: 1,
-        },
+        explosion: { secondsToLive: 1, expansionSpeed: 200, damageFactor: 20, blastFactor: 2 },
     },
-    BlastCannonShell: {
-        name: 'blast cannon shell',
+    ArmPenShell: {
+        name: '30mm ArmPen shell',
         radius: 1,
+        damageType: 'ArmPen',
+        delivery: 'impact',
+        fuze: { type: 'contact' },
+        heatPerShot: 5,
         homing: null,
-        explosion: {
-            secondsToLive: 1,
-            expansionSpeed: 200,
-            damageFactor: 5,
-            blastFactor: 5,
-        },
+        // anti-armor jab: its power is plate erosion (2x vs Composite), system damage stays occasional
+        damage: 30,
     },
-    Missile: {
-        name: 'missile',
+    FragShell: {
+        name: '30mm Frag shell',
+        radius: 1,
+        damageType: 'Frag',
+        delivery: 'explosion',
+        fuze: { type: 'proximity', range: 100 },
+        heatPerShot: 5,
+        homing: null,
+        explosion: { secondsToLive: 1, expansionSpeed: 250, damageFactor: 10, blastFactor: 4 },
+    },
+    HiExpMissile: {
+        name: 'HiExp missile',
         radius: 2,
+        damageType: 'HiExp',
+        delivery: 'explosion',
+        fuze: { type: 'proximity', range: 100 },
+        heatPerShot: 25,
         homing: {
-            secondsToLive: 60,
+            secondsToLive: 78,
             rotationCapacity: 720,
             velocityCapacity: 600,
             maxSpeed: 600,
-            proximityDetonation: 100,
         },
-        explosion: {
-            secondsToLive: 0.5,
-            expansionSpeed: 1_000,
-            damageFactor: 50,
-            blastFactor: 1,
+        // sharp 350m blast (blast size = expansionSpeed * secondsToLive)
+        explosion: { secondsToLive: 0.35, expansionSpeed: 1_000, damageFactor: 50, blastFactor: 1 },
+    },
+    ArmPenMissile: {
+        name: 'ArmPen missile',
+        radius: 2,
+        damageType: 'ArmPen',
+        delivery: 'impact',
+        fuze: { type: 'contact' },
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 42,
+            rotationCapacity: 504,
+            velocityCapacity: 960,
+            maxSpeed: 960,
+        },
+        // the assassin: a big amount that spills into a burst of defect rolls on one victim
+        damage: 60,
+    },
+    FragMissile: {
+        name: 'Frag missile',
+        radius: 2,
+        damageType: 'Frag',
+        delivery: 'explosion',
+        fuze: { type: 'proximity', range: 100 },
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 78,
+            rotationCapacity: 720,
+            velocityCapacity: 600,
+            maxSpeed: 600,
+        },
+        // dedicated shrapnel warhead. All frag warheads share the same intensity (damageFactor 10);
+        // the missile's edge over the cluster frag mode is size and time: an 800m cloud lingering 1.6s
+        explosion: { secondsToLive: 1.6, expansionSpeed: 500, damageFactor: 10, blastFactor: 1 },
+    },
+    ClusterMissile: {
+        name: 'Cluster missile',
+        radius: 2,
+        // default warhead mode; the tube can switch modes before launch
+        damageType: 'Frag',
+        delivery: 'explosion',
+        fuze: { type: 'proximity', range: 100 },
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 78,
+            rotationCapacity: 720,
+            velocityCapacity: 600,
+            maxSpeed: 600,
+        },
+        explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
+        warheads: {
+            // big lingering 750m shrapnel cloud — sands external systems over a large area
+            Frag: {
+                damageType: 'Frag',
+                delivery: 'explosion',
+                fuze: { type: 'proximity', range: 100 },
+                explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
+            },
+            // focused submunitions — the carrier penetrates and its bomblets pepper every
+            // internal system in the struck area; shares its per-event numbers with ArmPenShell
+            ArmPen: {
+                damageType: 'ArmPen',
+                delivery: 'impact',
+                fuze: { type: 'contact' },
+                damage: 30,
+            },
         },
     },
-} as const;
+    TandemMissile: {
+        name: 'Tandem missile',
+        radius: 2,
+        damageType: 'Tandem',
+        delivery: 'impact',
+        fuze: { type: 'contact' },
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 60,
+            rotationCapacity: 936,
+            velocityCapacity: 420,
+            maxSpeed: 420,
+        },
+        // ArmPen's slightly weaker sibling — its value is the armor matchups
+        damage: 50,
+    },
+    ElecMissile: {
+        name: 'Elec missile',
+        radius: 2,
+        damageType: 'Elec',
+        delivery: 'impact',
+        fuze: { type: 'contact' },
+        heatPerShot: 25,
+        homing: {
+            secondsToLive: 96,
+            rotationCapacity: 720,
+            velocityCapacity: 780,
+            maxSpeed: 780,
+        },
+        // one dart, one discharge — every electronics system ship-wide rolls once
+        damage: 25,
+    },
+} as const satisfies Record<AmmoType, ProjectileDesign | MissileDesign>;
 
-export const projectileModels = getKeys(projectileDesigns);
-export type ProjectileModel = keyof typeof projectileDesigns;
-export type ProjectileDesign = (typeof projectileDesigns)[ProjectileModel];
+export function isShellAmmo(ammo: AmmoType): ammo is ShellAmmoType {
+    return ammoDesigns[ammo].homing === null;
+}
+
+export function isMissileAmmo(ammo: AmmoType): ammo is MissileAmmoType {
+    return ammoDesigns[ammo].homing !== null;
+}
 
 export class Projectile extends SpaceObjectBase implements Craft {
     public static isInstance = (o: unknown): o is Projectile => {
@@ -69,6 +243,8 @@ export class Projectile extends SpaceObjectBase implements Craft {
 
     @gameField('uint16')
     public health = 10;
+    // manual override for the detonation explosion (tests/GM); normally built
+    // from the warhead design at detonation time — see makeExplosion()
     public _explosion?: Explosion;
 
     /**
@@ -82,16 +258,20 @@ export class Projectile extends SpaceObjectBase implements Craft {
     @gameField('string')
     public targetId: string | null = null;
 
-    @tweakable({ type: 'string enum', enum: projectileModels })
+    @tweakable({ type: 'string enum', enum: ammoTypes })
     @gameField('string')
-    public model: ProjectileModel = 'CannonShell';
+    public model: AmmoType = 'HiExpShell';
 
-    constructor(model?: ProjectileModel) {
+    // warhead mode for cluster munitions — ignored by single-warhead designs.
+    // Can be switched until detonation; the explosion is built from the mode in effect.
+    @tweakable({ type: 'string enum', enum: clusterWarheadModes })
+    @gameField('string')
+    public warhead: ClusterWarheadMode = 'Frag';
+
+    constructor(model?: AmmoType) {
         super();
         if (model) {
             this.model = model;
-            this._explosion = new Explosion();
-            this._explosion.assign(this.design.explosion);
             this.radius = this.design.radius;
         }
     }
@@ -102,8 +282,38 @@ export class Projectile extends SpaceObjectBase implements Craft {
         return this;
     }
 
-    get design() {
-        return projectileDesigns[this.model];
+    get design(): ProjectileDesign {
+        return ammoDesigns[this.model];
+    }
+
+    get warheadDesign(): WarheadDesign {
+        return this.design.warheads?.[this.warhead] ?? this.design;
+    }
+
+    get damageType(): WeaponDamageType {
+        return this.warheadDesign.damageType;
+    }
+
+    get fuze(): Fuze {
+        return this.warheadDesign.fuze;
+    }
+
+    get delivery(): DamageDelivery {
+        return this.warheadDesign.delivery;
+    }
+
+    makeExplosion(): Explosion {
+        if (this._explosion) {
+            return this._explosion;
+        }
+        const warhead = this.warheadDesign;
+        if (warhead.delivery !== 'explosion') {
+            throw new Error(`contact-fuzed warhead ${this.model} resolves as an impact, not an explosion`);
+        }
+        const explosion = new Explosion();
+        explosion.assign(warhead.explosion);
+        explosion.damageType = warhead.damageType;
+        return explosion;
     }
 
     get capacity() {

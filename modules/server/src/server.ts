@@ -45,6 +45,9 @@ export async function server(
         transport: new WebSocketTransport({ server: httpServer, ...wsTransportOverrides }),
         greet: false,
         presence: new CleanLocalPresence(),
+        ...(process.env.JEST_WORKER_ID
+            ? { logger: { debug: () => {}, error: () => {}, info: () => {}, trace: () => {}, warn: () => {} } }
+            : {}),
     });
 
     gameServer.define('space', SpaceRoom);

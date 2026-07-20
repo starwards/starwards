@@ -23,3 +23,18 @@ export function mix(a: number, b: number): number {
     h ^= h >>> 16;
     return h >>> 0;
 }
+
+/**
+ * Scramble a single 32-bit integer into a new, well-avalanched 32-bit integer.
+ * The MurmurHash3 finalizer: a single-bit change in the input flips roughly
+ * half the output bits.
+ */
+export function scramble(x: number): number {
+    let h = x >>> 0;
+    h ^= h >>> 16;
+    h = Math.imul(h, 0x85ebca6b) >>> 0;
+    h ^= h >>> 13;
+    h = Math.imul(h, 0xc2b2ae35) >>> 0;
+    h ^= h >>> 16;
+    return h >>> 0;
+}

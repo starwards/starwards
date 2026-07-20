@@ -1,22 +1,18 @@
 # CLAUDE.md
 
-This folder is the **product / PM knowledge base** for Starwards — what to build and why.
+This folder is **code-grounded design reference** for Starwards. Strategic planning (roadmap, feature status, backlog, milestones) lives in the [starwards-design](https://github.com/starwards/starwards-design) KB (`product/`); GitHub issues are dispatch tickets only (see starwards-design `governance/decisions/0003-github-as-dispatch-only.md`).
 The codebase lives in this repo (root is two levels up at `../../`). Technical implementation docs live alongside this folder under `docs/` (e.g., `../PHYSICS.md`, `../SUBSYSTEMS.md`, `../ARCHITECTURE.md`, `../MS3/`).
 
 ## Document Structure
 
-Three discovery layers:
-
-1. **Orientation:** `README.md` → `vision.md` → `roadmap.md` → `stakeholders.md`
-2. **Dashboards:** `status.md` (feature table), `ee-gap-analysis.md`, `event-readiness.md`, `issue-review.md`
-3. **Detail:** `stations/`, `mechanics/`, `infrastructure/`, `decisions/`
+1. **Orientation:** `README.md` → `vision.md` → `stakeholders.md` (roadmap/status: see starwards-design `product/`)
+2. **Reference:** `ee-gap-analysis.md`, `stations/`, `mechanics/`, `infrastructure/`, `decisions/`
 
 ## Conventions
 
 - GitHub issues are referenced as `[#NNN](https://github.com/starwards/starwards/issues/NNN)`
-- Status values: Done, Partial, Designed, Planned, Deferred, Skip
 - Decision records follow the template in `decisions/TEMPLATE.md`
-- `status.md` is the most frequently updated file — update it when feature status changes
+- Feature status changes go to starwards-design `product/status.md` (a G1 surface, changed by PR there)
 - Keep documents factual — content is derived from GitHub issues, dev blog, and starwards repo docs, not invented
 
 ## Key Context

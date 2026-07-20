@@ -17,7 +17,7 @@
 ## Supporting Libraries
 - **colyseus-events:** Event-driven bridge for Colyseus state sync; enables Node-RED integration
 - **tweakpane-table:** Tweakpane v4 plugin for table UI components (debug/control interfaces)
-- **arwes fork:** `@arwes-amir/*` packages — sci-fi UI framework (React 19 compatible)
+- **arwes:** `@arwes/react` (upstream package, next-channel prerelease) — sci-fi UI framework, used with React 18; version in code repo `modules/browser/package.json`
 - **JSON Schema:** schema/ (sibling folder) — shared data schemas
 
 ## Key Issue Labels

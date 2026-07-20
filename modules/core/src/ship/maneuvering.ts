@@ -6,6 +6,8 @@ import { tweakable } from '../tweakable';
 
 export type ManeuveringDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     rotationCapacity: number;
     rotationEnergyCost: number;
     maxAfterBurnerFuel: number;
