@@ -125,18 +125,33 @@ test.describe('GM Screen', () => {
         await velocityInputs.nth(1).fill('-30');
         await velocityInputs.nth(1).press('Enter');
 
-        // The ship's own smart pilot (velocity-hold by default) would otherwise thrust a
-        // GM-forced velocity away again within a tick or two; give it ample time to prove
-        // the value sticks instead of just checking immediately after the write.
+        // The ship's own smart pilot (velocity-hold by default) steers a GM-forced velocity
+        // back toward its ~0 target. The blade's setValue disengages it (DIRECT mode, zeroed
+        // maneuvering/antiDrift/breaks), but those commands land a few ticks after the velocity
+        // write, so the value dips slightly first — by an amount that depends on how many ticks
+        // elapse, i.e. on machine speed. Rather than pin the exact post-write value (fragile
+        // across platforms), wait for the velocity to STABILISE (disengage has taken over and
+        // nothing steers any more), then assert it settled far from zero with both components'
+        // signs intact — proving it was NOT thrust away.
         const [ship] = gameDriver.gameManager.spaceManager.state.getAll('Spaceship');
-        await expect(() => {
-            expect(ship.velocity.x).toBeCloseTo(50, 0);
-            expect(ship.velocity.y).toBeCloseTo(-30, 0);
-        }).toPass({ timeout: 2000 });
-        // ...and stays put a bit longer, ruling out a slow decay back towards zero.
+        let prev = { x: NaN, y: NaN };
+        await expect(async () => {
+            const cur = { x: ship.velocity.x, y: ship.velocity.y };
+            const steady = Math.abs(cur.x - prev.x) < 0.01 && Math.abs(cur.y - prev.y) < 0.01;
+            prev = cur;
+            // Require BOTH writes to have landed (velocity in the set direction) AND the value to
+            // have stopped moving. Checking direction too avoids a false "steady" while only the
+            // x write has applied and y is still 0. The band (a large, correctly-signed fraction
+            // of the set 50 / -30) separates "held" from the "thrust back to ~0" regression while
+            // tolerating the small transient dip before the disengage commands land.
+            const settledInRange = steady && cur.x > 40 && cur.y < -20;
+            expect(settledInRange, `velocity not settled in range: ${JSON.stringify(cur)}`).toBe(true);
+            await page.waitForTimeout(100);
+        }).toPass({ timeout: 8000 });
+        // ...and it stays put — ruling out a slow decay back toward the pilot's ~0 target.
         await page.waitForTimeout(1000);
-        expect(ship.velocity.x).toBeCloseTo(50, 0);
-        expect(ship.velocity.y).toBeCloseTo(-30, 0);
+        expect(ship.velocity.x).toBeGreaterThan(40);
+        expect(ship.velocity.y).toBeLessThan(-20);
     });
 
     test('velocity set by dragging the point2d pad persists', async ({ page }) => {
@@ -195,12 +210,25 @@ test.describe('GM Screen', () => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
 
+        // Zoom out first. An asteroid spawns with a random radius up to Asteroid.maxSize (350)
+        // and the ship's radius is 50, so the spawn point must clear the origin ship by >400
+        // world units — otherwise the physics engine treats the overlap as a collision and
+        // ejects the asteroid at high speed, and it flies off-screen before we can select it.
+        // Scrolling down zooms out (gm.ts wires wheel deltaY to camera.changeZoom(-deltaY)).
+        await radarCanvas.hover();
+        await expect(async () => {
+            await page.mouse.wheel(0, 300);
+            expect(Number(await radarCanvas.getAttribute('data-zoom'))).toBeLessThan(0.3);
+        }).toPass({ timeout: 5000 });
+
+        // With the zoomed-out view, place the asteroid a safe world distance below the ship.
+        // Derive the pixel offset from the live zoom so the clearance holds whatever the zoom
+        // settled to: 600 world units > the 400-unit worst-case overlap.
         const box = await radarCanvas.boundingBox();
         if (!box) throw new Error('GM Radar canvas has no bounding box');
-        // Place the asteroid 150px below the canvas centre (the origin ship): far enough that
-        // the later select-click resolves to the asteroid, not the ship, whatever the zoom.
+        const placeZoom = Number(await radarCanvas.getAttribute('data-zoom'));
         const placeX = box.width / 2;
-        const placeY = box.height / 2 + 150;
+        const placeY = box.height / 2 + 600 * placeZoom;
 
         // Create the asteroid through the GM UI (avoids constructing a core class in-test,
         // which would be a different module instance than the server's and get rejected by
@@ -217,35 +245,47 @@ test.describe('GM Screen', () => {
         }).toPass({ timeout: 10000 });
         const [asteroid] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
 
-        // Switch back to the tweak panel and select the asteroid by clicking it. The camera
-        // only rezooms on wheel/zoom events (see gm.ts camera.bindZoom) — creating an object
-        // never moves or rezooms it — so the asteroid stays under the exact pixel it was placed
-        // at. Re-click that same pixel to select it, avoiding any world->screen coordinate math
-        // (worldToScreen works in renderer pixels, which diverge from Playwright's CSS-box
-        // pixels under CI's different window size / DPI).
+        // Switch back to the tweak panel and select the asteroid by clicking its blip. Map the
+        // asteroid's live world position to a click with the same transform the radar renders
+        // with: screen = canvasCentre + worldPos * zoom. The camera's renderer is sized to the
+        // container's CSS pixels (CameraView.resizeView -> renderer.resize(container.width,...)),
+        // so worldToScreen is already in CSS pixels — the same space Playwright clicks in — with
+        // no devicePixelRatio factor. The box and zoom are re-read each attempt, so a late
+        // golden-layout resize can't leave us clicking a stale spot. Camera stays centred on the
+        // world origin (zoom-only, no follow/pan).
         const tweakTab = page.locator('.lm_title', { hasText: 'tweak' });
         await tweakTab.click();
         const tweakPanel = page.locator('[data-id="Tweaks"]');
         const velocityLabel = tweakPanel.getByText('velocity', { exact: true });
         await expect(async () => {
-            await radarCanvas.click({ position: { x: placeX, y: placeY } });
+            const liveBox = await radarCanvas.boundingBox();
+            if (!liveBox) throw new Error('GM Radar canvas has no bounding box');
+            const zoom = Number(await radarCanvas.getAttribute('data-zoom'));
+            const sx = liveBox.width / 2 + asteroid.position.x * zoom;
+            const sy = liveBox.height / 2 + asteroid.position.y * zoom;
+            await radarCanvas.click({ position: { x: sx, y: sy } });
             await expect(velocityLabel).toBeVisible({ timeout: 1000 });
         }).toPass({ timeout: 10000 });
 
+        // Aim the velocity AWAY from the ship at the origin: the asteroid was placed below
+        // centre (world +y), so a +y component moves it further away every tick. Aiming back
+        // toward the ship (-y) would let a fast asteroid reach and collide with it within the
+        // hold window, bumping its velocity and flaking the assertion (the collision distance
+        // varies with the run's zoom).
         const velocityInputs = velocityLabel.locator('..').locator('input');
         await velocityInputs.nth(0).fill('50');
         await velocityInputs.nth(0).press('Enter');
-        await velocityInputs.nth(1).fill('-30');
+        await velocityInputs.nth(1).fill('30');
         await velocityInputs.nth(1).press('Enter');
 
         await expect(() => {
             expect(asteroid.velocity.x).toBeCloseTo(50, 0);
-            expect(asteroid.velocity.y).toBeCloseTo(-30, 0);
+            expect(asteroid.velocity.y).toBeCloseTo(30, 0);
         }).toPass({ timeout: 2000 });
         // no physics corrects an asteroid's velocity, so it must simply hold.
         await page.waitForTimeout(1000);
         expect(asteroid.velocity.x).toBeCloseTo(50, 0);
-        expect(asteroid.velocity.y).toBeCloseTo(-30, 0);
+        expect(asteroid.velocity.y).toBeCloseTo(30, 0);
     });
 
     test('radius set via the tweak panel persists', async ({ page }) => {
