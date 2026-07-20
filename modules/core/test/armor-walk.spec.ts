@@ -23,7 +23,7 @@ interface Fixture {
     damageManager: DamageManager;
 }
 
-const FRONT_HIT_ARC: [number, number] = [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1];
+const FRONT_HIT_ARC: [number, number] = [...FRONT_ARC];
 
 function setUpLayeredShip(layers: ArmorLayerDesign[]): Fixture {
     const ship = new Spaceship();
@@ -82,13 +82,18 @@ describe('layered armor resolution walk', () => {
         expect(state.smartPilot.offsetFactor).to.equal(0);
     });
 
+    // FRONT_HIT_ARC spans exactly 6 plates, so each plate's own share of a hit is 1/6 of the
+    // damage.amount — none of these hits is confined to a single plate
+    const FRONT_PLATE_COUNT = 6;
+
     it('Tandem impact vs Reactive over Composite: pops a cell AND continues into the composite', () => {
         const { state, damageManager } = setUpLayeredShip(reactiveOverComposite);
         damageManager.takeWeaponDamage(frontDamage(50, 'Tandem', 'impact'));
         expect(countBrokenLayer(state, 0)).to.equal(1);
-        // penetration_Tandem 1 vs reactive → chain stays 1; composite erodes at its Tandem plateFactor (1)
+        // penetration_Tandem 1 vs reactive → chain stays 1; composite erodes at its Tandem
+        // plateFactor (1) using each plate's own 1/6 share of the 50 damage
         for (const plate of frontPlates(state)) {
-            expect(plate.layers[1].health).to.be.closeTo(950, 0.001);
+            expect(plate.layers[1].health).to.be.closeTo(1000 - 50 / FRONT_PLATE_COUNT, 0.1);
         }
     });
 
@@ -97,7 +102,7 @@ describe('layered armor resolution walk', () => {
         const damaged = damageManager.takeWeaponDamage(frontDamage(40, 'HiExp', 'explosion'));
         expect(countBrokenLayer(state, 0)).to.equal(0);
         for (const plate of frontPlates(state)) {
-            expect(plate.layers[0].health).to.be.closeTo(60, 0.001);
+            expect(plate.layers[0].health).to.be.closeTo(100 - 40 / FRONT_PLATE_COUNT, 0.1);
             expect(plate.layers[1].health).to.equal(1000);
         }
         // intact cells, penetration 0 → chain 0 → no internal damage; the surface scrape lands
@@ -110,7 +115,7 @@ describe('layered armor resolution walk', () => {
         const damaged = damageManager.takeWeaponDamage(frontDamage(100, 'ArmPen', 'impact'));
         for (const plate of frontPlates(state)) {
             expect(plate.layers[0].health).to.equal(500);
-            expect(plate.layers[1].health).to.be.closeTo(800, 0.001);
+            expect(plate.layers[1].health).to.be.closeTo(1000 - (100 / FRONT_PLATE_COUNT) * 2, 0.1);
         }
         expect(damaged).to.equal(false);
     });
@@ -119,7 +124,7 @@ describe('layered armor resolution walk', () => {
         const { state, damageManager } = setUpLayeredShip(whippleOverComposite);
         damageManager.takeWeaponDamage(frontDamage(100, 'HiExp', 'explosion'));
         for (const plate of frontPlates(state)) {
-            expect(plate.layers[0].health).to.be.closeTo(475, 0.001);
+            expect(plate.layers[0].health).to.be.closeTo(500 - (100 / FRONT_PLATE_COUNT) * 0.25, 0.1);
             expect(plate.layers[1].health).to.equal(1000);
         }
     });

@@ -1,4 +1,4 @@
-import { Armor, ArmorDesign, ArmorLayer, ArmorLayerDesignState, ArmorPlate } from './armor';
+import { Armor, ArmorDesign, ArmorLayer, ArmorLayerDesign, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
 import { Magazine, MagazineDesign } from './magazine';
@@ -43,30 +43,29 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
     return thruster;
 }
 
+function makeArmorLayer(layer: ArmorLayerDesign): ArmorLayer {
+    const stats = armorModels[layer.type];
+    const armorLayer = new ArmorLayer();
+    armorLayer.design.assign(layer.withFaradayLayer ? withFaradayLayer(stats) : stats);
+    armorLayer.design.assign({
+        modelName: layer.type,
+        plateMaxHealth: layer.plateMaxHealth,
+    });
+    armorLayer.health = layer.plateMaxHealth;
+    return armorLayer;
+}
+
 function makeArmor(design: ArmorDesign): Armor {
     if (design.layers.at(-1)?.type !== 'composite') {
         throw new Error('innermost (last) armor layer must be of type composite');
     }
     const armor = new Armor();
     armor.design.assign({ numberOfPlates: design.numberOfPlates });
-    armor.layerDesigns = new ArraySchema<ArmorLayerDesignState>();
-    for (const layer of design.layers) {
-        const stats = armorModels[layer.type];
-        const layerDesign = new ArmorLayerDesignState();
-        layerDesign.assign(layer.withFaradayLayer ? withFaradayLayer(stats) : stats);
-        layerDesign.assign({
-            modelName: layer.type,
-            plateMaxHealth: layer.plateMaxHealth,
-        });
-        armor.layerDesigns.push(layerDesign);
-    }
     armor.armorPlates = new ArraySchema<ArmorPlate>();
     for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
         for (const layer of design.layers) {
-            const armorLayer = new ArmorLayer();
-            armorLayer.health = armorLayer.maxHealth = layer.plateMaxHealth;
-            plate.layers.push(armorLayer);
+            plate.layers.push(makeArmorLayer(layer));
         }
         armor.armorPlates.push(plate);
     }
