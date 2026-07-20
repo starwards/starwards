@@ -16,6 +16,7 @@ import { DamageProfile, WeaponDamageType, damageProfiles, isWeaponDamageType } f
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
 
+import { ArmorPlate } from './armor';
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
 import { Magazine } from './magazine';
@@ -144,18 +145,22 @@ export class DamageManager {
     }
 
     /**
-     * Spec §6 resolution walk: the hit meets every armor layer outermost-in and each layer's
-     * response to the damage type decides the outcome — transparent layers are skipped, an
-     * intact blocking layer stops that plate's chain, engaging layers erode (scaled by the
-     * chain so far) and leak inward through their exposure. Each plate in the hit area keeps
-     * its own chain, since plates may carry heterogeneous layer stacks; exposure per layer is
-     * max(penetration, brokenRatio) and chains multiplicatively down that plate's stack. The
-     * area's final exposure is the average of the per-plate chains.
+     * Spec §6 resolution walk, one plate at a time: each plate in the hit arc is walked
+     * independently through its own layer stack, using only its own share of the hit — the
+     * fraction of that specific plate's angular width the hit arc actually covers (1 when the
+     * plate sits fully within the hit, less at a clipped edge). Plates are exclusive to each
+     * other: one plate's outcome (block, erosion, chain) never depends on another plate's
+     * state. The hit meets each layer outermost-in; transparent layers are skipped, an intact
+     * blocking layer stops that plate's chain, engaging layers erode (scaled by the chain so
+     * far and the plate's own share) and leak inward through their exposure —
+     * max(penetration, broken) — chaining multiplicatively down the stack. The area's final
+     * exposure is the plates' chains, each weighted by its own share, averaged over every plate
+     * the area holds (including plates outside this particular hit).
      *
-     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell in the area
-     * pops per depth and the hit is defeated (exposure measured pre-pop) unless the round
-     * fully penetrates (Tandem). Explosions erode the cells like ordinary plates — no pop, no
-     * defeat.
+     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell across the
+     * whole hit pops and the hit is defeated for that plate (exposure measured pre-pop) unless
+     * the round fully penetrates (Tandem). Explosions erode the cells like ordinary plates — no
+     * pop, no defeat.
      */
     private walkArmorLayers(damage: AttackDamage, areaHitRangeAngles: RTuple2, areaArc: RTuple2): number {
         const armor = this.state.armor;
@@ -163,48 +168,55 @@ export class DamageManager {
         if (platesInArea <= 0) {
             return 0;
         }
-        const plates = [...armor.platesInRange(areaHitRangeAngles)].map(([, plate]) => plate);
-        const chains = plates.map(() => 1);
-        const maxDepth = plates.reduce((deepest, plate) => Math.max(deepest, plate.layers.length), 0);
-        for (let depth = 0; depth < maxDepth; depth++) {
-            let cellPopped = false;
-            let hitDefeated = false;
-            for (const [p, plate] of plates.entries()) {
-                const layer = plate.layers[depth];
-                if (chains[p] <= 0 || !layer) {
-                    continue;
-                }
-                const response = layer.design.response(damage.damageType);
-                if (response.kind === 'bypass') {
-                    continue;
-                }
-                if (response.kind === 'block') {
-                    chains[p] *= layer.broken ? 1 : 0;
-                    continue;
-                }
-                if (layer.design.singleUsePlates && damage.delivery === 'impact') {
-                    const bareBeforePop = layer.broken ? 1 : 0;
-                    if (!cellPopped && !layer.broken) {
-                        // a single reactive cell sacrifices itself to defeat the whole hit
-                        layer.health = 0;
-                        cellPopped = true;
-                        hitDefeated = response.penetration < 1;
-                    }
-                    chains[p] *= Math.max(response.penetration, bareBeforePop);
-                    continue;
-                }
-                layer.health = Math.max(layer.health - damage.amount * response.plateFactor * chains[p], 0);
-                chains[p] *= Math.max(response.penetration, layer.broken ? 1 : 0);
-            }
-            if (hitDefeated) {
-                // exposure measured pre-pop; deeper layers never see this round
-                break;
-            }
-            if (chains.every((chain) => chain <= 0)) {
-                break;
-            }
+        const cellBudget = { popped: false };
+        let exposureSum = 0;
+        for (const [plate, share] of armor.plateHitShares(areaHitRangeAngles)) {
+            const chain = this.walkPlateLayers(plate, damage, damage.amount * share, cellBudget);
+            exposureSum += chain * share;
         }
-        return chains.reduce((sum, chain) => sum + chain, 0) / platesInArea;
+        return exposureSum / platesInArea;
+    }
+
+    /** walks a single plate's own layer stack, independent of every other plate in the hit */
+    private walkPlateLayers(
+        plate: ArmorPlate,
+        damage: AttackDamage,
+        amount: number,
+        cellBudget: { popped: boolean },
+    ): number {
+        let chain = 1;
+        for (const layer of plate.layers) {
+            if (chain <= 0) {
+                break;
+            }
+            const response = layer.design.response(damage.damageType);
+            if (response.kind === 'bypass') {
+                continue;
+            }
+            if (response.kind === 'block') {
+                chain *= layer.broken ? 1 : 0;
+                continue;
+            }
+            if (layer.design.singleUsePlates && damage.delivery === 'impact') {
+                const bareBeforePop = layer.broken ? 1 : 0;
+                if (!cellBudget.popped && !layer.broken) {
+                    // a single reactive cell sacrifices itself to defeat the whole hit
+                    layer.health = 0;
+                    cellBudget.popped = true;
+                    chain *= Math.max(response.penetration, bareBeforePop);
+                    if (response.penetration < 1) {
+                        // exposure measured pre-pop; deeper layers on this plate never see this round
+                        return chain;
+                    }
+                    continue;
+                }
+                chain *= Math.max(response.penetration, bareBeforePop);
+                continue;
+            }
+            layer.health = Math.max(layer.health - amount * response.plateFactor * chain, 0);
+            chain *= Math.max(response.penetration, layer.broken ? 1 : 0);
+        }
+        return chain;
     }
 
     /**

@@ -62,7 +62,7 @@ function frontDamage(
     return {
         id: 'd-1',
         amount,
-        damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
+        damageSurfaceArc: [...FRONT_ARC],
         damageDurationSeconds: 1,
         damageType,
         delivery,
@@ -289,7 +289,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('broken plates expose area systems on engaging hits (Composite + HiExp)', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             // pre-break all front plates so exposure is 1
-            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+            for (const [, plate] of state.armor.platesInRange(FRONT_ARC)) {
                 plate.layers[0].health = 0;
             }
             const damaged = damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
@@ -351,7 +351,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('a radar overridden to internal is never reached by penetrating Frag', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             state.radar.design.isInternal = true;
-            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+            for (const [, plate] of state.armor.platesInRange(FRONT_ARC)) {
                 plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
@@ -361,7 +361,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('a radar overridden to internal is still damaged by penetrating HiExp', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             state.radar.design.isInternal = true;
-            for (const [, plate] of state.armor.platesInRange([FRONT_ARC[0] + 1, FRONT_ARC[1] - 1])) {
+            for (const [, plate] of state.armor.platesInRange(FRONT_ARC)) {
                 plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
@@ -383,7 +383,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const collision: Damage = {
                 id: 'collision-1',
                 amount: 100,
-                damageSurfaceArc: [FRONT_ARC[0] + 1, FRONT_ARC[1] - 1],
+                damageSurfaceArc: [...FRONT_ARC],
                 damageDurationSeconds: 1,
                 damageType: 'Collision',
                 delivery: 'impact',

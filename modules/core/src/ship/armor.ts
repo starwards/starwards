@@ -142,4 +142,24 @@ export class Armor extends Schema {
             yield [plateIdx, this.armorPlates[plateIdx]];
         }
     }
+
+    /**
+     * yields each plate touched by the hit range together with the fraction of that specific
+     * plate's own angular width that falls inside the hit (1 when the plate sits fully within
+     * the hit, less at its clipped edges). Each plate's fraction depends only on its own
+     * coverage, not on how many sibling plates are also in range.
+     */
+    public *plateHitShares(localAngleHitRange: RTuple2): IterableIterator<[ArmorPlate, number]> {
+        const firstPlateIdx = Math.floor(toPositiveDegreesDelta(localAngleHitRange[0]) / this.degreesPerPlate);
+        let offsetIntoPlate = toPositiveDegreesDelta(localAngleHitRange[0]) % this.degreesPerPlate;
+        let remaining = toPositiveDegreesDelta(localAngleHitRange[1] - localAngleHitRange[0]);
+        const count = this.numberOfPlatesInRange(localAngleHitRange);
+        for (let i = 0; i < count; i++) {
+            const plateIdx = (i + firstPlateIdx) % this.armorPlates.length;
+            const overlap = Math.min(this.degreesPerPlate - offsetIntoPlate, remaining);
+            yield [this.armorPlates[plateIdx], overlap / this.degreesPerPlate];
+            remaining -= overlap;
+            offsetIntoPlate = 0;
+        }
+    }
 }
