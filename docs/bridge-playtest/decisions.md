@@ -6,7 +6,7 @@ Confirmed decisions only. Candidates and drafts live in [`proposals.md`](proposa
 
 Agreed order of upcoming work (Amir + Daniel, 2026-07-04):
 
-1. **Merge the ammo-type × armor-type damage metrics.** Land the new per-pair damage mechanic (see the 2026-05-03 armor×ammo decision below). Daniel's concrete draft is [#1929](https://github.com/starwards/starwards/issues/1929) (5 armor types × 8 ammo types, full damage matrix); implementation is pending in [PR #1932](https://github.com/starwards/starwards/pull/1932). Merging that PR is the immediate next step.
+1. **Merge the ammo-type × armor-type damage metrics.** Land the new per-pair damage mechanic (see the 2026-05-03 armor×ammo decision below). Daniel's concrete draft is [#1929](https://github.com/starwards/starwards/issues/1929) (5 armor types × 8 ammo types, full damage matrix); implementation is pending in [PR #1932](https://github.com/starwards/starwards/pull/1932). Merging that PR is the immediate next step. *Status 2026-07-15: PR #1932 merged — 5 armor models and 9 ammo types (3 shells + 6 missiles) shipped, with per-layer damage resolution, per-ammo heat, and per-ammo magazine capacity.*
 2. **Design the player ship — the corvette (Gravitas).** Make it interesting and durable for play: it must survive and stay engaging across a full session, not just a dogfight.
 3. **Add the Signals radar beam.** The directional beam at the Signals station (see the tier-2 EW scan beam in the 2026-05-03 scan-tiers decision below).
 
@@ -39,7 +39,7 @@ Future features discussed in the same talk (probes, railgun, torpedo) are drafte
 - **Weapons**: receives the call, selects matching ammo, fires.
 - Replaces the "shield frequency equivalent" slot in the gap-closing plan.
 
-**Counts.** Multiple armor types and multiple ammo types (missiles + cannon shells). Concrete counts owned by Daniel — draft landed as [#1929](https://github.com/starwards/starwards/issues/1929) (5 armor types, 8 ammo types, Resist/Normal/Vulnerable/Critical/Ignores matrix). Intent: asymmetric ammo↔armor mapping (no clean 1:1) so some ammo is strong vs. multiple armors and weak vs. others, forcing real Weapons judgment rather than lookup.
+**Counts.** Multiple armor types and multiple ammo types (missiles + cannon shells). Concrete counts owned by Daniel — draft landed as [#1929](https://github.com/starwards/starwards/issues/1929) (5 armor types, 8 ammo types, Resist/Normal/Vulnerable/Critical/Ignores matrix); shipped as 5 armor models × **9** ammo types via PR #1932 (merged 2026-07-15). Intent: asymmetric ammo↔armor mapping (no clean 1:1) so some ammo is strong vs. multiple armors and weak vs. others, forcing real Weapons judgment rather than lookup.
 
 **Status.** Direction agreed (Daniel, 2026-05-03). Open: full per-pair damage matrix, partial-match curve shape, per-ammo magazine slot allocation, in-flight reload swap rules.
 
@@ -69,7 +69,7 @@ Future features discussed in the same talk (probes, railgun, torpedo) are drafte
 
 **Decision.** Firing weapons produces **significant heat in the weapon subsystem**. Heat is the primary DPS limiter — sustained fire forces a cooldown beat or risks self-damage.
 
-**Chain.** `fire → heat → (if unchecked) overheat damage → malfunction`. Reuses the existing heat→damage→malfunction infrastructure (`HeatManager.addHeat`, overheat damages the system above `MAX_SYSTEM_HEAT = 100`, which then becomes broken/malfunctioning). Today `chain-gun.ts` does not call `addHeat`; this decision adds that call (and an analogous one for missiles).
+**Chain.** `fire → heat → (if unchecked) overheat damage → malfunction`. Reuses the existing heat→damage→malfunction infrastructure (`HeatManager.addHeat`, overheat damages the system above `MAX_SYSTEM_HEAT = 100`, which then becomes broken/malfunctioning). This call has since landed (#1923, merged via #1930): `chain-gun-manager.ts` calls `addHeat(heatPerShot * effectiveness, chainGun)` on fire.
 
 **Per-shot heat values.** Should differ by ammo type — heavier rounds run hotter. Specific values TBD.
 

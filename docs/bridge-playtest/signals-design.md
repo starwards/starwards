@@ -68,7 +68,7 @@ Source of facts: `docs/bridge-playtest/signals.md`. Tabular delta:
 |---|---|---|
 | C1 long-range radar with zoom | ✅ `longRangeRadar` widget, 50km default, presets up to 250km, mouse wheel + header + `=`/`-` keys | none |
 | C2 target selection | ✅ `]` / `[` cycle, `'` clear; client-side `SelectionContainer` (independent of `/weaponsTarget`) | filters not implemented (unknown-only / enemy-only) |
-| C3 scan as mini-game | 🟡 a queue-job scan mechanic exists in core (Signals.jobs queue + SignalsJobManager: JobType.SCAN jobs with duration/progress that advance scan level UFO→BASIC→ADVANCED), but it is NOT wired to the signals station UI — no client sends submitJobCommand, so in practice scan level is still GM-controlled via the tweak panel | wire the existing core scan-job mechanic to the signals station UI; no mini-game form exists yet |
+| C3 scan as mini-game | 🟡 a queue-job scan mechanic exists in core (Signals.jobs queue + SignalsJobManager: JobType.SCAN jobs with duration/progress that advance scan level UFO→BASIC→ADVANCED), but it is NOT wired to the signals station UI — no client sends submitJobCommand. Tier-1 (UFO→BASIC) now auto-promotes after 5s of radar dwell with an open transponder (#1925); tier-2 (BASIC→ADVANCED) is still GM-controlled via the tweak panel | wire the existing core scan-job mechanic to the signals station UI; no mini-game form exists yet |
 | C4 read scan results | 🟡 radar blip rendering is gated by scan level (`fc54991`/#1205): UFO = gray dot, BASIC/ADVANCED = sprite + ID. **`targetInfo` widget on signals does NOT gate by scan level** — it always shows Type + Faction + Distance + Bearing. No "model" field. No tactical intel for weapons. | scan-level gating in `targetInfo`; add model and intel fields; potentially expose intel to weapons station |
 | C5 cyber attack | 🟡 the **effect side** of hacking systems exists (#1207 closed) — `SystemState.hacked` is in the data model and reduces effectiveness via `power × coolantFactor × (1 - hacked)`. **No way for the signals officer to initiate a hack**; it is GM-controlled today. | initiation flow + system-selection UI + mini-game (or whatever interaction model is chosen) |
 
@@ -136,10 +136,13 @@ For a bridge playtest where signals is supposed to be the eyes-and-cyber
 seat, the effective outcome today is:
 
 - The signals officer can **see further** than weapons and **point at
-  things**, but cannot **find out what they are** or **interfere with
-  them** without GM intervention.
-- The "feed weapons" loop works only insofar as the GM advances scan
-  levels; otherwise weapons sees the same anonymous gray dots as signals.
+  things**. Tier-1 identification (UFO→BASIC) now happens automatically
+  after 5s of radar dwell on an open transponder (#1925), but the officer
+  still cannot **dig deeper** (tier-2) or **interfere with targets**
+  without GM intervention.
+- The "feed weapons" loop works for basic identification via the tier-1
+  auto-promotion; anything beyond BASIC still requires the GM to advance
+  scan levels.
 
 ## 5. Tickets relevant to closing the gap
 
