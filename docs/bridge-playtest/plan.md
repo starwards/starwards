@@ -6,21 +6,13 @@ Concrete task breakdown for the next milestone, derived from [`decisions.md`](de
 - **[U]** = User designs (damage control / scan beam control / closed-transponder cost)
 - **[C]** = Claude executes (straightforward, agent-ready once spec'd)
 
-For deferred ideas, see [`proposals.md`](proposals.md).
+For deferred ideas, see [`proposals.md`](proposals.md). For work already shipped, see [Delivered](#delivered) at the foot of this doc.
 
 ---
 
 ## Track A — Daniel-designed (armor + ammo)
 
-| ID         | Task                                                     | Blocked on |
-| ---------- | -------------------------------------------------------- | ---------- |
-| ~~A1~~     | ~~Armor plate types: names, properties, visual identity~~ — **done** (shipped via PR #1932, 2026-07; 5 armor models in `armor-models.ts`)         | —          |
-| ~~A2~~     | ~~Ammo types (missiles + cannon shells): names, properties~~ — **done** (shipped via PR #1932, 2026-07; 3 shells + 6 missiles in `projectile.ts`) | —          |
-| ~~A3~~     | ~~Full armor × ammo damage matrix~~ — **done** (shipped via PR #1932, 2026-07; resolved per-layer in `damage-manager.ts`)                         | —          |
-| ~~A4~~     | ~~Per-ammo heat-per-shot values~~ — **done** (shipped via PR #1932, 2026-07; `heatPerShot` per ammo design)                                       | —          |
-| ~~A5~~     | ~~Per-ammo magazine capacity rules (per-ship-design)~~ — **done** (shipped via PR #1932, 2026-07; `max_*` fields in `magazine.ts`)                | —          |
-
-Output: design spec docs in `docs/bridge-playtest/`.
+Fully delivered — see [Delivered](#delivered).
 
 ---
 
@@ -42,25 +34,13 @@ Output: design notes captured to `docs/bridge-playtest/`.
 
 ## Track C — Claude executes
 
-### Group C1 — independent, ready to start
+Group C1 (independent) and C2.1–C2.5 (armor + ammo integration) are fully delivered — see [Delivered](#delivered). Remaining Claude work:
 
-| ID           | Task                                                                                                     | GitHub                                                      |
-| ------------ | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| ~~C1.1~~     | ~~Wire `addHeat()` calls into chain-gun + missile firing path~~ — **done** (merged via #1930)            | [#1923](https://github.com/starwards/starwards/issues/1923) |
-| ~~C1.2~~     | ~~Add `callsign` + `transponderOpen` fields to `Spaceship`, default open~~ — **done** (merged via #1927) | [#1924](https://github.com/starwards/starwards/issues/1924) |
-| ~~C1.3~~     | ~~5-second in-range timer for ScanLevel.UFO→BASIC promotion; gate on `transponderOpen`~~ — **done** (merged via #1933) | [#1925](https://github.com/starwards/starwards/issues/1925) |
-| ~~C1.4~~     | ~~Ammo selection UI audit~~ — **done** (resolved by screenshot review on 2026-05-03)                     | —                                                           |
-
-### Group C2 — needs Daniel (Track A)
+### Group C2 — weapons UI
 
 | ID           | Task                                                                                                            | Blocked on   |
 | ------------ | --------------------------------------------------------------------------------------------------------------- | ------------ |
-| ~~C2.1~~     | ~~`ArmorType` enum + per-plate type assignment in schema~~ — **done** (PR #1932 lineage; landed as layered `ArmorPlate`/`ArmorLayer` + `armor-models.ts`) | —            |
-| ~~C2.2~~     | ~~Add new ammo types to `ammoDesigns`, `Magazine` (`max_*`/`count_*`), `chain-gun` (`use_*`)~~ — **done** (PR #1932 lineage; 9 ammo types)       | —            |
-| ~~C2.3~~     | ~~Armor-type-aware damage matrix in `damage-manager.ts`~~ — **done** (PR #1932 lineage; per-layer resolution walk)                               | —            |
-| ~~C2.4~~     | ~~Per-ammo heat values from A4 wired into C1.1~~ — **done** (PR #1932 lineage; `heatPerShot` consumed in `chain-gun-manager.ts`)                 | —            |
-| ~~C2.5~~     | ~~Magazine capacity per A5~~ — **done** (PR #1932 lineage; per-ammo `max_*` in `magazine.ts`)                                                    | —            |
-| C2.6 **[C]** | Cycle UI improvements (persistent strip, magazine counts, next-preview, optional `Shift+B` / `Shift+V` reverse) | — (A2 done)  |
+| C2.6 **[C]** | Cycle UI improvements (persistent strip, magazine counts, next-preview, optional `Shift+B` / `Shift+V` reverse) | — (ready)    |
 
 ### Group C3 — needs User (Track B)
 
@@ -77,13 +57,10 @@ Output: design notes captured to `docs/bridge-playtest/`.
 
 ---
 
-## Recommended kickoff (parallel-friendly)
+## Recommended sequence
 
-*Updated 2026-07-20: the first and second waves are largely delivered — Track A (A1–A5) and C2.1–C2.5 shipped via PR #1932; C1.1 and C1.3 landed via #1930 / #1933.*
-
-**Remaining work:**
 - **You** draft the B-track designs: B1, B3 (most blocking). Cheap small ones any time: B5, B7, B8. Then B2, B4.
-- **Claude** executes C2.6 (cycle UI, [#1969](https://github.com/starwards/starwards/issues/1969)) — unblocked now.
+- **Claude** executes C2.6 (cycle UI, [#1969](https://github.com/starwards/starwards/issues/1969)) — ready now.
 - **Claude** executes C3.x as the B designs land: C3.1+C3.2 (scan geometry), C3.5 (repair engine), then C3.3, C3.4, C3.6, C3.7, C3.8.
 - Tuning + playtest.
 
@@ -96,3 +73,16 @@ Output: design notes captured to `docs/bridge-playtest/`.
 - **Repair logic is greenfield.** No repair code exists for system damage. C3.5 is the largest single-feature cost in the milestone.
 - **Tier-2 scan is a partial rewrite.** Existing `signals-job-manager.ts` is probabilistic + range-based; new spec is deterministic + geometric. Hack branch is co-located but out of milestone scope — leave behaviour intact.
 - **`ammoDesigns` is hard-coded.** The 9-type integration has landed (PR #1932) across chain-gun, magazine, projectile, damage-manager, and ship configs; the const itself remains hard-coded in `projectile.ts`.
+
+---
+
+## Delivered
+
+Completed tasks, collapsed to unblock the tables above. Detail lives in git history and the linked PRs.
+
+- **Track A (A1–A5)** — armor plate types, ammo types, full armor × ammo damage matrix, per-ammo heat-per-shot, per-ammo magazine capacity. Shipped via **PR #1932** (2026-07): 5 armor models (`armor-models.ts`), 3 shells + 6 missiles (`projectile.ts`), per-layer resolution (`damage-manager.ts`), `heatPerShot` per design, `max_*` capacity (`magazine.ts`).
+- **C1.1** — weapons-fire heat wiring. **#1930** (closes #1923); `chain-gun-manager.ts` calls `addHeat`.
+- **C1.2** — `callsign` + `transponderOpen` on `Spaceship`. **#1927** (closes #1924).
+- **C1.3** — 5s in-range UFO→BASIC scan promotion, transponder-gated. **#1933** (closes #1925); `TIER1_DWELL_SECONDS` in `signals-job-manager.ts`.
+- **C1.4** — ammo selection UI audit. Resolved by screenshot review 2026-05-03.
+- **C2.1–C2.5** — armor/ammo integration (PR #1932 lineage): layered `ArmorPlate`/`ArmorLayer` schema, 9 ammo types across `ammoDesigns`/`Magazine`, armor-type-aware matrix, per-ammo heat, magazine capacity.
