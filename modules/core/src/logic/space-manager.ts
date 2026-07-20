@@ -1,6 +1,5 @@
 import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
-import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
     EPSILON,
     FieldOfView,
@@ -12,6 +11,7 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
+import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
