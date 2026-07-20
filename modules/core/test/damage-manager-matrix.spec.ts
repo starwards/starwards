@@ -71,6 +71,9 @@ function frontDamage(
 }
 
 describe('damage-manager × armor design stats (issue #1929)', () => {
+    // FRONT_ARC spans exactly 6 plates, so each plate's own share of a hit is 1/6 of the damage.amount
+    const FRONT_PLATE_COUNT = 6;
+
     describe('Reactive armor (single-use cells)', () => {
         it('ArmPen pops cells but is defeated — no system damage on the popping hit', () => {
             const { state, damageManager } = setUpShip(reactiveArmor);
@@ -88,8 +91,9 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             spaceManager.forceFlushEntities();
             const before = state.armor.armorPlates[0].layers[0].health;
             damageManager.takeWeaponDamage(frontDamage(50, 'HiExp', 'explosion'));
-            // erosion at plateDamage_HiExp (1) — cells wear down instead of popping
-            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(50, 0.001);
+            // erosion at plateDamage_HiExp (1) — cells wear down instead of popping, using this
+            // plate's own 1/6 share of the 50 damage
+            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(50 / FRONT_PLATE_COUNT, 0.001);
             expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
             expect(explosion.destroyed).to.equal(false);
         });
@@ -157,7 +161,11 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             const initial = state.armor.armorPlates[0].layers[0].health;
             const damagedExternals = damageManager.takeWeaponDamage(frontDamage(100, 'HiExp'));
-            expect(initial - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(25, 0.001);
+            // this plate's own 1/6 share of the 100 damage, at quarter rate
+            expect(initial - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(
+                (100 / FRONT_PLATE_COUNT) * 0.25,
+                0.001,
+            );
             expect(damagedExternals).to.equal(true);
         });
 
@@ -181,7 +189,11 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(hardenedArmor);
             const before = state.armor.armorPlates[0].layers[0].health;
             damageManager.takeWeaponDamage(frontDamage(100, 'HiExp'));
-            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(50, 0.001);
+            // this plate's own 1/6 share of the 100 damage, at half rate
+            expect(before - state.armor.armorPlates[0].layers[0].health).to.be.closeTo(
+                (100 / FRONT_PLATE_COUNT) * 0.5,
+                0.001,
+            );
         });
 
         it('Frag vs Composite scrapes externals even while plates hold', () => {
@@ -254,7 +266,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
 
         it('surface-effect hit with plates intact damages only external systems', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            // 300 × plateDamage_HiExp 0.25 = 75 erosion — below plateMaxHealth (100), plates hold
+            // each plate's own 1/6 share of 300 × plateDamage_HiExp 0.25 = 12.5 erosion —
+            // below plateMaxHealth (100), plates hold
             damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
             // while plates hold, only the surface scrape lands — and it targets externals
             expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
@@ -279,7 +292,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
 
         it('blocked non-surface-effect hit (ArmPen vs Hardened, plates intact) leaves systems untouched', () => {
             const { state, damageManager } = setUpShip(hardenedArmor);
-            // 50 erosion at plateDamage_ArmPen 1 — below plateMaxHealth (100), plates hold
+            // each plate's own 1/6 share of 50 × plateDamage_ArmPen 1 ≈ 8.3 erosion —
+            // below plateMaxHealth (100), plates hold
             const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
             expect(damaged).to.equal(false);
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
@@ -342,8 +356,9 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('a radar overridden to internal is not scraped while plates hold (surface effect only)', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             state.radar.design.isInternal = true;
-            // 300 × plateDamage_HiExp 0.25 = 75 erosion — below plateMaxHealth (100), plates hold,
-            // so only the unconditional surface scrape is in play (isolates it from the exposure path)
+            // each plate's own 1/6 share of 300 × plateDamage_HiExp 0.25 = 12.5 erosion —
+            // below plateMaxHealth (100), plates hold, so only the unconditional surface scrape
+            // is in play (isolates it from the exposure path)
             damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
             expect(state.radar.malfunctionRangeFactor).to.equal(0);
         });

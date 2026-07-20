@@ -147,15 +147,16 @@ export class DamageManager {
     /**
      * Spec §6 resolution walk, one plate at a time: each plate in the hit arc is walked
      * independently through its own layer stack, using only its own share of the hit — the
-     * fraction of that specific plate's angular width the hit arc actually covers (1 when the
-     * plate sits fully within the hit, less at a clipped edge). Plates are exclusive to each
-     * other: one plate's outcome (block, erosion, chain) never depends on another plate's
-     * state. The hit meets each layer outermost-in; transparent layers are skipped, an intact
-     * blocking layer stops that plate's chain, engaging layers erode (scaled by the chain so
-     * far and the plate's own share) and leak inward through their exposure —
-     * max(penetration, broken) — chaining multiplicatively down the stack. The area's final
-     * exposure is the plates' chains, each weighted by its own share, averaged over every plate
-     * the area holds (including plates outside this particular hit).
+     * fraction of the hit's own angular width that lands on that specific plate (1 when the
+     * entire hit sits within that one plate, less when the hit is spread across several
+     * plates). Plates are exclusive to each other: one plate's outcome (block, erosion, chain)
+     * never depends on another plate's state. The hit meets each layer outermost-in;
+     * transparent layers are skipped, an intact blocking layer stops that plate's chain,
+     * engaging layers erode (scaled by the chain so far and the plate's own share of the hit)
+     * and leak inward through their exposure — max(penetration, broken) — chaining
+     * multiplicatively down the stack. The area's final exposure is each plate's chain weighted
+     * by how many of the hit's degrees landed on it, averaged over the area's full angular
+     * width (including any of its plates outside this particular hit).
      *
      * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell across the
      * whole hit pops and the hit is defeated for that plate (exposure measured pre-pop) unless
@@ -168,13 +169,20 @@ export class DamageManager {
         if (platesInArea <= 0) {
             return 0;
         }
+        const totalAreaDegrees = platesInArea * armor.degreesPerPlate;
+        const hits = [...armor.plateHitOverlaps(areaHitRangeAngles)];
+        const hitSize = hits.reduce((sum, [, overlap]) => sum + overlap, 0);
+        if (hitSize <= 0) {
+            return 0;
+        }
         const cellBudget = { popped: false };
         let exposureSum = 0;
-        for (const [plate, share] of armor.plateHitShares(areaHitRangeAngles)) {
+        for (const [plate, overlap] of hits) {
+            const share = overlap / hitSize;
             const chain = this.walkPlateLayers(plate, damage, damage.amount * share, cellBudget);
-            exposureSum += chain * share;
+            exposureSum += chain * overlap;
         }
-        return exposureSum / platesInArea;
+        return exposureSum / totalAreaDegrees;
     }
 
     /** walks a single plate's own layer stack, independent of every other plate in the hit */
