@@ -217,19 +217,18 @@ test.describe('GM Screen', () => {
         }).toPass({ timeout: 10000 });
         const [asteroid] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
 
-        // Switch back to the tweak panel and select the asteroid by clicking it.
+        // Switch back to the tweak panel and select the asteroid by clicking it. The camera
+        // only rezooms on wheel/zoom events (see gm.ts camera.bindZoom) — creating an object
+        // never moves or rezooms it — so the asteroid stays under the exact pixel it was placed
+        // at. Re-click that same pixel to select it, avoiding any world->screen coordinate math
+        // (worldToScreen works in renderer pixels, which diverge from Playwright's CSS-box
+        // pixels under CI's different window size / DPI).
         const tweakTab = page.locator('.lm_title', { hasText: 'tweak' });
         await tweakTab.click();
         const tweakPanel = page.locator('[data-id="Tweaks"]');
         const velocityLabel = tweakPanel.getByText('velocity', { exact: true });
-        // Creating the asteroid can change the camera zoom (auto-fit), so a fixed offset no
-        // longer maps to the blip. Compute the click from the asteroid's actual position and
-        // the live zoom each attempt (camera stays centered on the world origin: zoom-only).
         await expect(async () => {
-            const zoom = Number(await radarCanvas.getAttribute('data-zoom'));
-            const sx = box.width / 2 + asteroid.position.x * zoom;
-            const sy = box.height / 2 + asteroid.position.y * zoom;
-            await radarCanvas.click({ position: { x: sx, y: sy } });
+            await radarCanvas.click({ position: { x: placeX, y: placeY } });
             await expect(velocityLabel).toBeVisible({ timeout: 1000 });
         }).toPass({ timeout: 10000 });
 
