@@ -94,8 +94,11 @@ exists today:
 - `#1205` scan levels mechanic — ✅ **closed**; visibility gating +
   per-faction scan-level state shipped via `fc54991`. The **scan-progression**
   rules (active scanning that lifts UFO → BASIC → ADVANCED via player action)
-  are explicitly out of scope for #1205 — they belong to #1206. Today scan
-  level is GM-tweak-driven.
+  are explicitly out of scope for #1205 — they belong to #1206. Tier-1
+  (UFO→BASIC) now auto-promotes after 5 seconds of continuous radar dwell,
+  gated on an open transponder (#1925, via `signals-job-manager.ts`);
+  tier-2 (BASIC→ADVANCED) is still GM-tweak-driven pending the scan-beam
+  work.
 - `#1206` signals jobs system — core implemented (PR #1878): `SignalsJobManager`
   runs scan/hack jobs and promotes scan levels server-side. No player-facing UI
   wires the queue/submit commands yet, so jobs are not yet reachable from the
@@ -112,8 +115,9 @@ exists today:
 - No "model" readout (would need scan-level BASIC).
 - No filter UI — cannot reduce target-cycle list to "unknown only" or
   "enemy only" as #1208 requires.
-- No way to issue a scan job from the signals seat — scan levels can only
-  be changed via GM tweak panel today.
+- No way to issue a scan job from the signals seat — tier-1 (UFO→BASIC)
+  auto-promotes after 5s in radar range with an open transponder (#1925),
+  but tier-2 (BASIC→ADVANCED) can only be changed via GM tweak panel today.
 - `targetInfo` polls every 200ms via `EmitterLoop` — distance/bearing are
   smooth-ish but not synced with the radar tick.
 - Help modal lists 6 hotkeys + SPACE; no on-screen affordance for filters

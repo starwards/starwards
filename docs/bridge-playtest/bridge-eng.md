@@ -75,8 +75,8 @@ time can change power/coolant.
 
 | Ticket | Status | Title | Bridge-Eng relevance |
 |---|---|---|---|
-| #1233 | open | broken status in damage report widget | `fullSystemsStatus` already shows `broken` via `statusChangeProps`; ticket may apply to a separate damage-report widget not used here — verify |
-| #968 | open | Armor adjustments | binary plate state + degenerate armor model — would change `armorStatus` rendering |
+| #1233 | ✅ closed (PR #1974) | broken status in damage report widget | `damage-report.tsx` now renders broken systems via `getBrokenSystems`; `fullSystemsStatus` already showed `broken` via `statusChangeProps` |
+| #968 | open | Armor adjustments | armor is now layered continuous per-plate/per-layer health (`ArmorPlate`/`ArmorLayer` in `armor.ts`, PR #1932) — would change `armorStatus` rendering |
 | #788 | open | QA armor behavior | testing/validation only |
 | #1239 | open | composition vs inheritance refactor | architectural; no direct UI change but flagged as high risk in MS3 PLAN |
 

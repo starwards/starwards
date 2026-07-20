@@ -150,7 +150,7 @@ or gate this back-door.
 |---|---|---|
 | #1228 malfunction API | ✅ closed | Built the `@defectible` annotation infrastructure that the user's repair UI would consume. Ticket body explicitly listed "logic / measurement for fixing damage? (for future repair station, #547)" — i.e., the foundation was laid for #547 but never used. |
 | #1232 (referenced by #1233) | not in repo | Predecessor that introduced the damage-report widget. |
-| #1233 add broken status to damage-report widget | ❌ open | Trivial addition: surface the `broken` (DISABLED) attribute alongside defectibles in the existing widget. Compatible with the user's D1 — would land naturally as part of the engineering-station mount. |
+| #1233 add broken status to damage-report widget | ✅ closed (PR #1974) | `damage-report.tsx` now surfaces broken systems via `getBrokenSystems` alongside defectibles. Compatible with the user's D1 — would land naturally as part of the engineering-station mount. |
 | #547 repair station | ❌ open (was blocked by #1228, now unblocked) | **Direct overlap with user intent.** Ticket text: *"repair widgets / minigames. preferably behind a network API (IoT?)."* The ticket assumes a **separate** ship station; user is proposing to put repair on the **bridge engineering** station instead. |
 | #543 Fighters field repair | ✅ closed (2026-04-13) | Different scope (fighters, GM-button-press). Not relevant to the bridge proposal. |
 | #545 Fighters in-station repair | ✅ closed (2026-04-13) | Different scope. Not relevant. |
@@ -220,8 +220,8 @@ prioritization pressure, no failure mode.
 
 ## 5. Tickets relevant to closing the gap
 
-- **#1233** open — surface `broken` status in damage-report widget.
-  Trivial; lands first regardless of larger decision.
+- **#1233** ✅ closed (PR #1974) — `broken` status now surfaced in the
+  damage-report widget.
 - **#547** open (now unblocked) — central decision: keep as a
   separate post-bridge station, or re-scope onto bridge engineering.
 - New ticket(s) likely needed for:

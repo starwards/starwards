@@ -49,8 +49,9 @@ their tracer fire even past sensor range).
   widget passes `shipDriver.state.faction` to `ObjectsLayer`, so this gating
   is active here. *Caveat:* the **scan-level upgrade mechanism** (signals
   jobs that lift a target from UFO → BASIC → ADVANCED) is **not** part of
-  this ticket — that's #1206 (still open). Today scan level is GM-controlled
-  via tweak panel.
+  this ticket — that's #1206 (still open). Today tier-1 (UFO → BASIC)
+  auto-promotes after a 5s dwell on an open transponder (#1925); further
+  promotion is GM-controlled via tweak panel.
 - `3010cca` — chaingun widget wired into weapons station screen.
 - `ba492f8` — interactive hotkey help modal (SPACE).
 
@@ -60,7 +61,7 @@ their tracer fire even past sensor range).
 |---|---|---|---|
 | #745 | open (partial) | target view when out of radar range | server-side targeting clear shipped (`bb379fa`); ticket file still open — verify residual scope on GitHub |
 | #833 | open, **no milestone** | combine armor plates with tactical radar (single-pilot) | optional — would render armor as a tactical-radar overlay so weapons officer sees self-armor without a separate widget |
-| #1233 | open (MS3) | broken status in damage report widget | adds offline indicator; affects `systemsStatus` (visible top-right) and any other damage-report widget if used |
+| #1233 | ✅ closed (PR #1974) | broken status in damage report widget | done — `damage-report.tsx` now shows broken systems via `getBrokenSystems`; not a widget on this screen |
 | #1206 | open (MS3, blocks #1208) | signals jobs system | indirect: when implemented, target scan-level is no longer GM-controlled — what weapons can identify will change dynamically |
 | #1208 | open (MS3) | signals station | indirect — same as #1206; the dependency chain is the relevant part |
 
