@@ -10,6 +10,7 @@ import { InputManager } from '../input/input-manager';
 import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
+import { drawRadarLayers } from '../widgets/radar-layers';
 import { drawRelayRadar } from '../widgets/relay-radar';
 import { drawWaypointList } from '../widgets/waypoint-list';
 import { setupHotkeyHelp } from '../input/hotkey-help';
@@ -53,11 +54,10 @@ async function initScreen(driver: Driver, shipId: string) {
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const radarView = await drawRelayRadar(
+    const { root: radarView, layers } = await drawRelayRadar(
         spaceDriver,
         shipDriver,
         container,
-        { range: 50_000 },
         zoomEvents,
         stationTarget,
     );
@@ -76,6 +76,10 @@ async function initScreen(driver: Driver, shipId: string) {
     );
     radarView.addLayer(waypointsLayer.renderRoot);
 
+    drawRadarLayers(container.subContainer(VPos.TOP, HPos.RIGHT), {
+        ...layers,
+        waypoints: waypointsLayer.renderRoot,
+    });
     drawWaypointList(container.subContainer(VPos.BOTTOM, HPos.LEFT), spaceDriver, shipId);
     wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
 }
