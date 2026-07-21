@@ -37,7 +37,7 @@ export class WaypointGroupLayers {
         private shipId: string,
         private selection: SelectionContainer,
         private onGroupShown: (name: string, layer: ObjectsLayer<'Waypoint'>, collection: string) => void,
-        private onGroupHidden: (name: string) => void,
+        private onGroupHidden: (name: string, collection: string) => void,
     ) {
         for (const wp of this.ownWaypoints()) {
             this.watchCollection(wp.id);
@@ -99,7 +99,7 @@ export class WaypointGroupLayers {
         for (const collection of [...this.activeGroups]) {
             if (!groups.has(collection)) {
                 this.activeGroups.delete(collection);
-                this.onGroupHidden(groupDisplayName(collection));
+                this.onGroupHidden(groupDisplayName(collection), collection);
             }
         }
     }

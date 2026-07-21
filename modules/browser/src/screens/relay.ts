@@ -17,6 +17,7 @@ import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
 
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
+import { drawWaypointGroups } from '../widgets/waypoint-groups';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
 const { error: logError } = createLogger('screen:relay');
@@ -65,6 +66,17 @@ async function initScreen(driver: Driver, shipId: string) {
         layersPanel.addLayer(name, layer);
     }
     const placementSettings = drawPlacementSettings(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipId);
+    const focus = (position: XY) => {
+        follow.setFollow(false);
+        radarView.camera.set(position);
+    };
+    const groupsPanel = drawWaypointGroups(
+        container.subContainer(VPos.BOTTOM, HPos.RIGHT),
+        spaceDriver,
+        shipId,
+        waypointSelection,
+        focus,
+    );
     new WaypointGroupLayers(
         radarView,
         spaceDriver,
@@ -72,6 +84,7 @@ async function initScreen(driver: Driver, shipId: string) {
         waypointSelection,
         (name, layer, collection) => {
             placementSettings.refreshGroups();
+            groupsPanel.addGroup(collection);
             layersPanel.addLayer(name, layer.renderRoot, (visible) => {
                 if (!visible) {
                     // hiding a group layer drops its waypoints from the selection
@@ -82,8 +95,9 @@ async function initScreen(driver: Driver, shipId: string) {
                 }
             });
         },
-        (name) => {
+        (name, collection) => {
             placementSettings.refreshGroups();
+            groupsPanel.removeGroup(collection);
             layersPanel.removeLayer(name);
         },
     );
@@ -101,10 +115,6 @@ async function initScreen(driver: Driver, shipId: string) {
     const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId, placementSettings.getSettings);
     radarView.addLayer(waypointLayer.renderRoot);
 
-    const focus = (position: XY) => {
-        follow.setFollow(false);
-        radarView.camera.set(position);
-    };
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection, focus);
     wireInput(radarView, follow, zoomEvents, waypointLayer);
 }

@@ -167,6 +167,67 @@ test.describe('Relay Screen', () => {
         await expect(editPane).toBeHidden();
     });
 
+    test('groups pane renames, recolors, selects and deletes a whole group', async ({ page }) => {
+        // two waypoints in the default group
+        await placeWaypoint(page);
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.keyboard.press('w');
+        await page.mouse.click(box.x + box.width / 2 + 80, box.y + box.height / 2);
+        await page.keyboard.press('Escape');
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
+
+        const groupsPane = page.locator('[data-id="Groups"]');
+        await expect(groupsPane).toBeVisible();
+        await groupsPane.getByText('waypoints').first().click(); // expand the folder
+
+        // rename the group — both waypoints move, and the folder/layer follow
+        const renameInput = groupsPane.locator('input[type="text"]').first();
+        await renameInput.fill('gamma');
+        await renameInput.press('Enter');
+        await expect
+            .poll(
+                () =>
+                    serverWaypoints()
+                        .map((wp) => wp.collection)
+                        .join(','),
+                { timeout: 3000 },
+            )
+            .toBe('gamma,gamma');
+        await expect(groupsPane.getByText('waypoints: gamma')).toBeVisible();
+        await expect(page.locator('[data-id="Layers"]').getByText('waypoints: gamma')).toBeVisible();
+
+        // recolor the group
+        await groupsPane.getByText('waypoints: gamma').click(); // expand the new folder
+        const colorInput = groupsPane
+            .locator('.tp-lblv')
+            .filter({ has: page.locator('.tp-lblv_l', { hasText: /^color$/ }) })
+            .locator('input')
+            .first();
+        await colorInput.fill('#0000ff');
+        await colorInput.press('Enter');
+        await expect
+            .poll(
+                () =>
+                    serverWaypoints()
+                        .map((wp) => wp.color)
+                        .join(','),
+                { timeout: 3000 },
+            )
+            .toBe(`${0x0000ff},${0x0000ff}`);
+
+        // select all members
+        await groupsPane.getByRole('button', { name: 'Select all' }).click();
+        await expect(page.locator('[data-id="Edit Waypoint"]')).toBeVisible();
+        await expect(page.locator('[data-id="Edit Waypoint"]').getByText('Edit 2 Waypoints')).toBeVisible();
+
+        // delete the whole group
+        await groupsPane.getByRole('button', { name: 'Delete group' }).click();
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(0);
+        await expect(groupsPane.getByText('waypoints: gamma')).toBeHidden();
+    });
+
     test('drag-and-drop moves a waypoint', async ({ page }) => {
         await placeWaypoint(page);
         const [wp] = serverWaypoints();
