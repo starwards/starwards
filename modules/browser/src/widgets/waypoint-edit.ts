@@ -59,7 +59,10 @@ export function drawWaypointEdit(
                     folder.title = wpTitle(titleProp.getValue(), wp.id);
                 }),
             );
-            addInputBlade<string>(folder, titleProp, { label: 'name' }, currentSession.add);
+            const nameBlade = addInputBlade<string>(folder, titleProp, { label: 'name' }, currentSession.add);
+            // an unnamed waypoint has an empty title — hint at the id-prefix fallback shown on the radar
+            const nameInput = nameBlade.element.querySelector('input');
+            if (nameInput) nameInput.placeholder = wp.id.slice(0, 6);
 
             addButton(
                 folder,

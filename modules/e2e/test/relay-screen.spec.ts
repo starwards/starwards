@@ -72,6 +72,17 @@ test.describe('Relay Screen', () => {
         await nameInput.press('Enter');
         await expect.poll(() => serverWaypoints()[0]?.title, { timeout: 3000 }).toBe('Alpha');
 
+        // Re-selecting shows the current name in the input
+        await page.keyboard.press('Escape');
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.click(box.x + 20, box.y + box.height - 20); // empty corner clears selection
+        await expect(editPane).toBeHidden();
+        await clickRadarCenter(page);
+        await expect(editPane).toBeVisible();
+        await expect(editPane.locator('input[type="text"]').first()).toHaveValue('Alpha');
+
         // Delete via the edit pane
         await editPane.getByRole('button', { name: 'Delete' }).click();
         await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(0);
