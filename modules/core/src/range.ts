@@ -158,14 +158,17 @@ export function tryGetRange(root: Schema, pointer: JsonPointer): undefined | RTu
             throw new Error(`Unexpected! ${ancestorPath} is an illegal json pointer`);
         }
         const ancestor = ancestorPointer.get(root);
-        if (!(ancestor instanceof Object) || typeof ancestorPropertyName !== 'string') {
+        if (!(ancestor instanceof Object)) {
             throw new Error(
                 `pointer ${pointer.pointer} does not point at a legal location: ancestor=${JSON.stringify(
                     ancestor,
                 )}, ancestorPropertyName=${JSON.stringify(ancestorPropertyName)}`,
             );
         }
-        if (ancestor instanceof Schema) {
+        // A numeric ancestorPropertyName is a legal navigation state (a MapSchema/ArraySchema
+        // key, e.g. an asteroid's numeric id) that simply carries no @range descendant metadata
+        // — skip the lookup for it rather than throwing (mirrors json-ptr.ts's admission walk).
+        if (ancestor instanceof Schema && typeof ancestorPropertyName === 'string') {
             r = getRangeFromAncestor(ancestor, ancestorPropertyName, descendantPath);
         }
     }

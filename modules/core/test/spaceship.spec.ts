@@ -1,4 +1,6 @@
 import { Faction, Spaceship, Vec2 } from '../src';
+import { JsonPointer } from '../src/json-ptr';
+import { getTweakables } from '../src/tweakable';
 
 describe('Spaceship', () => {
     describe('callsign field', () => {
@@ -24,6 +26,22 @@ describe('Spaceship', () => {
         test('defaults to true', () => {
             const ship = new Spaceship();
             expect(ship.transponderOpen).toBe(true);
+        });
+    });
+
+    describe('velocity field', () => {
+        test('is exposed to the GM tweak panel as a vec2 blade', () => {
+            const ship = new Spaceship();
+            const velocityTweakable = getTweakables(ship).find((t) => t.field === 'velocity');
+            expect(velocityTweakable?.config).toBe('vec2');
+        });
+
+        test('x and y are writable via JSON Pointer (GM direct-control surface)', () => {
+            const ship = new Spaceship();
+            JsonPointer.create('/velocity/x').set(ship, 12);
+            JsonPointer.create('/velocity/y').set(ship, -7);
+            expect(ship.velocity.x).toBeCloseTo(12, 2);
+            expect(ship.velocity.y).toBeCloseTo(-7, 2);
         });
     });
 });

@@ -5,11 +5,12 @@ import {
     gameField,
     isCommandableFromAncestor,
 } from '../src/game-field';
+import { DesignState, SystemState, defectible } from '../src/ship/system';
 import { JsonPointer, getJsonPointer, isJsonPointer } from '../src/json-ptr';
 
-import { DesignState } from '../src/ship/system';
 import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
+import { range } from '../src/range';
 import { tweakable } from '../src/tweakable';
 
 // These tests lock in the @commandable whitelist behavior.
@@ -134,6 +135,42 @@ describe('JsonPointer GM direct-control surface', () => {
     it('does NOT treat a non-DesignState sibling as a DesignState', () => {
         const t = new Imposter();
         expect(() => JsonPointer.create('/bareField').set(t, 2)).to.throw(/non-@commandable/);
+        expect(t.bareField).to.equal(0);
+    });
+});
+
+// The GM tweak panel (`modules/browser/src/widgets/tweak.ts`) renders a
+// writable slider for every @defectible factor of every ship system, so
+// @defectible fields are implicitly part of the command surface — the
+// whitelist must admit them the same way it admits @tweakable fields.
+describe('JsonPointer @defectible admission', () => {
+    class MyDesign extends DesignState {}
+
+    class MySystem extends SystemState {
+        readonly name = 'my system';
+        @gameField(MyDesign) design = new MyDesign();
+        get broken() {
+            return false;
+        }
+
+        @range([0, 1])
+        @defectible({ normal: 1, name: 'my factor' })
+        @gameField('float32')
+        factor = 1;
+
+        @gameField('float32')
+        bareField = 0;
+    }
+
+    it('accepts writes to @defectible fields even without @commandable()', () => {
+        const t = new MySystem();
+        JsonPointer.create('/factor').set(t, 0.5);
+        expect(t.factor).to.be.closeTo(0.5, 0.01);
+    });
+
+    it('still rejects bare @gameField properties on a system (regression guard)', () => {
+        const t = new MySystem();
+        expect(() => JsonPointer.create('/bareField').set(t, 9)).to.throw(/non-@commandable/);
         expect(t.bareField).to.equal(0);
     });
 });

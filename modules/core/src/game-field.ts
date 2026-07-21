@@ -16,6 +16,16 @@ import { hasTweakableMetadata } from './tweakable';
  */
 export const COMMANDABLE_FIELDS = Symbol.for('starwards.commandable');
 
+/**
+ * Reflect-metadata key under which `@defectible` (`ship/system.ts`) stores its
+ * per-field config. Defined here — rather than in `system.ts` where the
+ * decorator lives — so `isCommandable` can recognize `@defectible` fields
+ * without importing `system.ts` (which would close a dependency cycle, the
+ * same reason `DesignState` is detected via a static marker). `system.ts`
+ * imports this key for its `defectible` decorator.
+ */
+export const DEFECTIBLE_METADATA = Symbol.for('starwards.defectible');
+
 const commandableDescendantMetadataKey = Symbol('commandable:descendantMetadata');
 
 /** Shape of the `commandable(descendants)` and `commandableSchema(r)` argument. */
@@ -160,7 +170,7 @@ function isDesignStateInstance(instance: object): boolean {
 
 /**
  * Returns true if `field` may be written via the JSON Pointer command
- * surface (`JsonPointer.set` / `handleJsonPointerCommand`). Three
+ * surface (`JsonPointer.set` / `handleJsonPointerCommand`). Four
  * independent categories qualify:
  *
  *   1. `@commandable()` — explicit player command surface. Grep-able catalog
@@ -169,6 +179,9 @@ function isDesignStateInstance(instance: object): boolean {
  *      widgets/tweak.ts`) wires every `@tweakable` field to a write handle,
  *      so every `@tweakable` field is implicitly part of the command
  *      surface.
+ *   2b. `@defectible` metadata — the same GM tweak panel renders a writable
+ *      slider for every defectible factor of every ship system, so those
+ *      fields are implicitly part of the command surface as well.
  *   3. `DesignState` subclasses — the GM design-state panel
  *      (`modules/browser/src/widgets/design-state.ts`) walks every field of
  *      any `DesignState` instance dynamically, so every such field is
@@ -200,6 +213,13 @@ export function isCommandable(instance: object, field: string | number | symbol)
 
     // Clause 2: @tweakable metadata — the GM tweak panel enumerates these.
     if (hasTweakableMetadata(instance, fieldStr)) {
+        return true;
+    }
+
+    // Clause 2b: @defectible metadata — the GM tweak panel renders a writable
+    // slider for every defectible factor of every ship system, so these are
+    // implicitly part of the command surface too.
+    if (Reflect.getMetadata(DEFECTIBLE_METADATA, instance, fieldStr) != null) {
         return true;
     }
 

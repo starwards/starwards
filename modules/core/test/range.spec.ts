@@ -110,3 +110,48 @@ describe('ArraySchema JSON pointer support', () => {
         expect(pointer.get(root)).to.equal(2);
     });
 });
+
+describe('MapSchema with numeric-looking keys', () => {
+    // Mirrors the production shape of a space object's `velocity` (a nested Vec2 with no
+    // @range anywhere): tryGetRange finds no range on the property or its schema parent, so
+    // the ancestor walk climbs up to the MapSchema keyed by the object's id. For a numeric-
+    // looking id ('0') JsonPointer.decode coerces the key to a number, which used to make the
+    // walk throw instead of simply reporting "no range". It should return undefined, no throw.
+    class Inner extends Schema {
+        @gameField('float32') x = 0;
+    }
+    class Item extends Schema {
+        @gameField(Inner)
+        vec = new Inner();
+    }
+    class Root extends Schema {
+        @gameField({ map: Item })
+        items = new MapSchema<Item>();
+    }
+
+    it('tryGetRange does not throw for a numeric-looking MapSchema key', () => {
+        const root = new Root();
+        root.items.set('0', new Item());
+        const pointer = JsonPointer.create('/items/0/vec/x');
+        expect(tryGetRange(root, pointer)).to.equal(undefined);
+    });
+
+    it('tryGetRange does not throw for a non-numeric MapSchema key', () => {
+        // Control case: an id like 'asteroid-1' stays a string through JsonPointer.decode, so
+        // this path was never affected by the bug — pinned to prove the fix is scoped to the
+        // numeric-key coercion and doesn't regress the common (string-id) path.
+        const root = new Root();
+        root.items.set('asteroid-1', new Item());
+        const pointer = JsonPointer.create('/items/asteroid-1/vec/x');
+        expect(tryGetRange(root, pointer)).to.equal(undefined);
+    });
+
+    it('tryGetRange does not throw for a leading-alpha numeric-suffix key', () => {
+        // Control case: an id like 'foo123' starts with a letter, so parseInt yields NaN and
+        // the round-trip check keeps it a string — another id shape never affected by the bug.
+        const root = new Root();
+        root.items.set('foo123', new Item());
+        const pointer = JsonPointer.create('/items/foo123/vec/x');
+        expect(tryGetRange(root, pointer)).to.equal(undefined);
+    });
+});

@@ -1,4 +1,5 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
+import * as SearchListPlugin from 'tweakpane4-search-list-plugin';
 
 import {
     DesignState,
@@ -9,6 +10,7 @@ import {
     IdleStrategy,
     ScanLevel,
     ShipDriver,
+    SmartPilotMode,
     SpaceDriver,
     SpaceObject,
     SpaceState,
@@ -18,12 +20,20 @@ import {
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
-import { OnChange, abstractOnChange, readProp, readWriteNumberProp, readWriteProp } from '../property-wrappers';
+import {
+    OnChange,
+    abstractOnChange,
+    readProp,
+    readWriteNumberProp,
+    readWriteProp,
+    readWriteVec2Prop,
+} from '../property-wrappers';
 import {
     addCameraRingBlade,
     addEnumListBlade,
     addInputBlade,
     addListBlade,
+    addSearchListBlade,
     addSliderBlade,
     addTextBlade,
     createPane,
@@ -57,7 +67,11 @@ const singleSelectionDetails = async (
     cleanup: (d: Destructor) => void,
 ) => {
     guiFolder.addBinding(subject, 'id', { readonly: true });
-    addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup);
+    // For ships, velocity is rendered separately below (see `Spaceship.isInstance`) so the
+    // GM edit can also disengage the smart pilot's velocity hold — otherwise it thrusts the
+    // manually-set velocity away again within a tick or two.
+    const genericExclude = Spaceship.isInstance(subject) ? new Set(['velocity']) : undefined;
+    addTweakables(spaceDriver, guiFolder, `/${subject.type}/${subject.id}`, cleanup, genericExclude);
 
     // Scan Levels folder
     const scanLevelsFolder = guiFolder.addFolder({
@@ -97,6 +111,35 @@ const singleSelectionDetails = async (
     }
 
     if (Spaceship.isInstance(subject)) {
+        const shipDriver = await driver.getShipDriver(subject.id);
+        const velocityProp = readWriteVec2Prop(spaceDriver, `/${subject.type}/${subject.id}/velocity`);
+        addInputBlade(
+            guiFolder,
+            {
+                ...velocityProp,
+                setValue: (v: { x: number; y: number }) => {
+                    velocityProp.setValue(v);
+                    // A GM-forced velocity is otherwise thrust away again within a tick or
+                    // two by the smart pilot's velocity hold / anti-drift / breaks, since
+                    // those actively steer the ship back towards their own target speed.
+                    shipDriver.sendJsonCmd('/smartPilot/maneuveringMode', SmartPilotMode.DIRECT);
+                    shipDriver.sendJsonCmd('/smartPilot/maneuvering/x', 0);
+                    shipDriver.sendJsonCmd('/smartPilot/maneuvering/y', 0);
+                    shipDriver.sendJsonCmd('/antiDrift', 0);
+                    shipDriver.sendJsonCmd('/breaks', 0);
+                },
+            },
+            { label: 'velocity' },
+            cleanup,
+        );
+
+        addTextBlade(
+            guiFolder,
+            readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/radarRange`),
+            { label: 'radarRange', disabled: true },
+            cleanup,
+        );
+
         const adminDriver = await driver.getAdminDriver();
         const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 
@@ -114,7 +157,24 @@ const singleSelectionDetails = async (
             });
         });
 
-        const shipDriver = await driver.getShipDriver(subject.id);
+        const targetIdProp = readWriteProp<string | null>(shipDriver, `/weaponsTarget/targetId`);
+        // Searchable target picker instead of free-text id entry: enumerate the other ships as
+        // { id: id } options plus a "(none)" entry to clear the target. The plugin binds a plain
+        // string, so map the state's `string | null` through '' <-> null. Options are a snapshot
+        // of the current ships; the whole tweak panel is rebuilt when the ship roster changes
+        // (see the '/playerShipIds' listener in init), so they stay current.
+        const targetOptions: Record<string, string> = { '(none)': '' };
+        for (const ship of spaceDriver.state.getAll('Spaceship')) {
+            if (ship.id !== subject.id) {
+                targetOptions[ship.id] = ship.id;
+            }
+        }
+        const targetIdSearchModel = {
+            getValue: () => targetIdProp.getValue() ?? '',
+            setValue: (v: string) => targetIdProp.setValue(v || null),
+            onChange: targetIdProp.onChange,
+        };
+        addSearchListBlade(guiFolder, targetIdSearchModel, { label: 'targetId', options: targetOptions }, cleanup);
 
         const currentTaskProp = readProp(shipDriver, `/currentTask`);
         addTextBlade(guiFolder, currentTaskProp, { label: 'Current Task', disabled: true }, cleanup);
@@ -190,10 +250,14 @@ function addTweakables(
     guiFolder: FolderApi,
     pointer: string,
     cleanup: (d: Destructor) => void,
+    exclude?: ReadonlySet<string>,
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
     if (!state) return;
     for (const tweakable of getTweakables(state)) {
+        if (exclude?.has(tweakable.field)) {
+            continue;
+        }
         if (tweakable.config === 'number') {
             const prop = readWriteNumberProp(driver, `${pointer}/${tweakable.field}`);
             addSliderBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
@@ -203,6 +267,9 @@ function addTweakables(
         } else if (tweakable.config === 'string') {
             const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
             addTextBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
+        } else if (tweakable.config === 'vec2') {
+            const prop = readWriteVec2Prop(driver, `${pointer}/${tweakable.field}`);
+            addInputBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
         } else if (tweakable.config === 'shipId') {
             const rootState = driver.state;
             if (rootState instanceof SpaceState) {
@@ -274,6 +341,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
         constructor(container: WidgetContainer, _: unknown) {
             this.pane = createPane({ title: 'Tweaks', container: container.getElement().get(0) });
             this.pane.registerPlugin(CamerakitPlugin);
+            this.pane.registerPlugin(SearchListPlugin);
             this.panelCleanup.add(() => {
                 this.pane.dispose();
             });

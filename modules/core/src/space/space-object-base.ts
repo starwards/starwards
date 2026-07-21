@@ -66,6 +66,8 @@ export abstract class SpaceObjectBase extends Schema {
     @tweakable({ type: 'number', number: { min: 0.05 } })
     @gameField('float32')
     public radius = 0.05;
+    @tweakable('vec2')
+    @commandable({ '/x': true, '/y': true })
     @gameField(Vec2)
     public velocity: Vec2 = new Vec2(0, 0);
 
