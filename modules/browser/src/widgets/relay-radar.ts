@@ -24,10 +24,15 @@ const DEFAULT_RANGE = 50_000;
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
+export type FollowController = {
+    isFollowing: () => boolean;
+    setFollow: (follow: boolean) => void;
+};
+
 export type RelayRadar = {
     root: CameraView;
     layers: Record<string, Container>;
-    stopFollowingShip: () => void;
+    follow: FollowController;
 };
 
 export async function drawRelayRadar(
@@ -93,21 +98,32 @@ export async function drawRelayRadar(
 
     let unfollow: (() => void) | null = null;
     let following = true;
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
-        const stop = camera.followSpaceObject(tracked, spaceDriver.events);
-        if (following) {
-            unfollow = stop;
-        } else {
-            stop();
+    let trackedShip: SpaceObject | null = null;
+    const applyFollow = () => {
+        root.canvas.setAttribute('data-following', `${following}`);
+        if (!trackedShip) return;
+        if (following && !unfollow) {
+            camera.set(trackedShip.position);
+            unfollow = camera.followSpaceObject(trackedShip, spaceDriver.events);
+        } else if (!following && unfollow) {
+            unfollow();
+            unfollow = null;
         }
+    };
+    applyFollow();
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        trackedShip = tracked;
+        applyFollow();
     });
 
     return {
         root,
-        stopFollowingShip: () => {
-            following = false;
-            unfollow?.();
-            unfollow = null;
+        follow: {
+            isFollowing: () => following,
+            setFollow: (follow: boolean) => {
+                following = follow;
+                applyFollow();
+            },
         },
         layers: {
             'sensor range': sensorRangeLayer.renderRoot,

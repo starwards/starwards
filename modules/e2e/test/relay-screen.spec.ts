@@ -209,6 +209,12 @@ test.describe('Relay Screen', () => {
         // The waypoint is no longer at the screen center — clicking there clears the selection
         await clickRadarCenter(page);
         await expect(editPane).toBeHidden();
+
+        // panning disengaged ship-follow; F re-engages it and re-centers on the ship
+        const radar = page.locator('[data-id="Relay Radar"]');
+        await expect(radar).toHaveAttribute('data-following', 'false');
+        await page.keyboard.press('f');
+        await expect(radar).toHaveAttribute('data-following', 'true');
     });
 
     test('hiding a waypoint-group layer drops its waypoints from the selection', async ({ page }) => {

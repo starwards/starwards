@@ -13,8 +13,9 @@ import { SelectionContainer } from '../radar/selection-container';
 import { WaypointGroupLayers } from '../radar/waypoint-group-layers';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
+import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
+
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
-import { drawRelayRadar } from '../widgets/relay-radar';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
@@ -55,11 +56,7 @@ async function initScreen(driver: Driver, shipId: string) {
 
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const {
-        root: radarView,
-        layers,
-        stopFollowingShip,
-    } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents);
+    const { root: radarView, layers, follow } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
     const waypointSelection = new SelectionContainer().init(spaceDriver);
@@ -97,7 +94,7 @@ async function initScreen(driver: Driver, shipId: string) {
         waypointSelection,
         shipId,
         undefined,
-        stopFollowingShip,
+        () => follow.setFollow(false),
     );
     radarView.addLayer(selectionLayer.renderRoot);
 
@@ -105,19 +102,19 @@ async function initScreen(driver: Driver, shipId: string) {
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection);
-    wireInput(radarView, stopFollowingShip, zoomEvents, waypointLayer);
+    wireInput(radarView, follow, zoomEvents, waypointLayer);
 }
 
 const PAN_SCREEN_FRACTION = 0.1;
 
 function wireInput(
     radarView: CameraView,
-    stopFollowingShip: () => void,
+    follow: FollowController,
     zoomEvents: EventEmitter<ZoomEvent>,
     waypointLayer: WaypointPlacementLayer,
 ) {
     function pan(direction: XY) {
-        stopFollowingShip();
+        follow.setFollow(false);
         const step = Math.min(radarView.renderer.width, radarView.renderer.height) * PAN_SCREEN_FRACTION;
         radarView.camera.set(XY.add(radarView.camera, XY.scale(direction, step / radarView.camera.zoom)));
     }
@@ -130,6 +127,7 @@ function wireInput(
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
     input.addClickAction(() => waypointLayer.toggle(), 'w', 'Place Waypoint');
+    input.addClickAction(() => follow.setFollow(!follow.isFollowing()), 'f', 'Follow Ship');
     input.init();
     setupHotkeyHelp(input);
 }
