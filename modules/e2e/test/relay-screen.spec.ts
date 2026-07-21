@@ -78,40 +78,33 @@ test.describe('Relay Screen', () => {
         await expect(editPane).toBeHidden();
     });
 
-    test('waypoint list: select via dropdown and delete via ✕', async ({ page }) => {
-        await placeWaypoint(page);
-        const waypointsPane = page.locator('[data-id="Waypoints"]');
-        await expect(waypointsPane.locator('.tp-itemlistv_row')).toHaveCount(1);
-
-        // Picking the waypoint from the dropdown selects it, opening the edit pane
-        await waypointsPane.locator('.tp-itemlistv_trigger').click();
-        await waypointsPane.locator('.tp-itemlistv_option').first().click();
-        await expect(page.locator('[data-id="Edit Waypoint"]')).toBeVisible();
-
-        // Delete via the item row's remove (✕) button
-        await waypointsPane.locator('.tp-itemlistv_remove-btn').click();
-        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(0);
-        await expect(waypointsPane.locator('.tp-itemlistv_row')).toHaveCount(0);
-    });
-
-    test('clone to group creates a copy and a new waypoint-group layer toggle', async ({ page }) => {
+    test('clone creates an offset copy in the waypoint group', async ({ page }) => {
         await placeWaypoint(page);
         await clickRadarCenter(page);
         const editPane = page.locator('[data-id="Edit Waypoint"]');
         await expect(editPane).toBeVisible();
 
-        // The group name input is the text input after the name input
-        await editPane.locator('input[type="text"]').nth(1).fill('patrol');
         await editPane.getByRole('button', { name: 'Clone' }).click();
 
         await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
-        const clone = serverWaypoints().find((wp) => wp.collection === 'patrol');
-        expect(clone).toBeTruthy();
-        expect(clone?.owner).toBe(shipId);
+        const [original, clone] = serverWaypoints();
+        expect(clone.owner).toBe(shipId);
+        expect(clone.collection).toBe(original.collection);
+        expect(clone.position.x).not.toBe(original.position.x);
+    });
 
-        // A layer toggle for the new group appears in the Layers pane
+    test('hiding a waypoint-group layer drops its waypoints from the selection', async ({ page }) => {
+        await placeWaypoint(page);
+        await clickRadarCenter(page);
+        const editPane = page.locator('[data-id="Edit Waypoint"]');
+        await expect(editPane).toBeVisible();
+
+        // Uncheck the waypoints group layer (4th toggle: sensor range, grid, objects, waypoints)
         const layersPane = page.locator('[data-id="Layers"]');
-        await expect(layersPane.getByText('waypoints: patrol')).toBeVisible();
+        await layersPane.locator('.tp-ckbv_w').nth(3).click();
+
+        // Selection is cleared, closing the edit pane
+        await expect(editPane).toBeHidden();
     });
 
     test('layers pane has a boolean toggle per layer, including dynamic waypoint groups', async ({ page }) => {

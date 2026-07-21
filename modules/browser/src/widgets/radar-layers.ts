@@ -21,12 +21,13 @@ export class RadarLayersPanel {
         cleanup.add(() => this.pane.dispose());
     }
 
-    addLayer(name: string, layer: Container) {
+    addLayer(name: string, layer: Container, onToggle?: (visible: boolean) => void) {
         if (this.bindings.has(name)) return;
         this.params[name] = layer.visible;
         const binding = this.pane.addBinding(this.params, name);
         binding.on('change', (ev) => {
             layer.visible = ev.value;
+            onToggle?.(ev.value);
         });
         this.bindings.set(name, binding);
     }

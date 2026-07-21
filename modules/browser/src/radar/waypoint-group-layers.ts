@@ -28,7 +28,7 @@ export class WaypointGroupLayers {
         private spaceDriver: SpaceDriver,
         private shipId: string,
         private selection: SelectionContainer,
-        private onGroupShown: (name: string, layer: ObjectsLayer<'Waypoint'>) => void,
+        private onGroupShown: (name: string, layer: ObjectsLayer<'Waypoint'>, collection: string) => void,
         private onGroupHidden: (name: string) => void,
     ) {
         for (const wp of this.ownWaypoints()) {
@@ -85,7 +85,7 @@ export class WaypointGroupLayers {
         for (const collection of groups) {
             if (!this.activeGroups.has(collection)) {
                 this.activeGroups.add(collection);
-                this.onGroupShown(groupDisplayName(collection), this.getOrCreateLayer(collection));
+                this.onGroupShown(groupDisplayName(collection), this.getOrCreateLayer(collection), collection);
             }
         }
         for (const collection of [...this.activeGroups]) {

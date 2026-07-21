@@ -1,29 +1,20 @@
 import { Destructors, SpaceDriver, Waypoint, spaceCommands } from '@starwards/core';
 import { addButton, addInputBlade, createPane } from '../panel';
-import { blue, green, red, white, yellow } from '../colors';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 import { readWriteProp } from '../property-wrappers';
 
-const GROUP_PALETTE = [white, yellow, red, blue, green];
+const CLONE_OFFSET = 500;
 
-function groupColor(spaceDriver: SpaceDriver, shipId: string, collection: string): number {
-    for (const wp of spaceDriver.state.getAll('Waypoint')) {
-        if (wp.owner === shipId && !wp.destroyed && wp.collection === collection) {
-            return wp.color;
-        }
-    }
-    let hash = 0;
-    for (const char of collection) {
-        hash = (hash * 31 + char.charCodeAt(0)) | 0;
-    }
-    return GROUP_PALETTE[Math.abs(hash) % GROUP_PALETTE.length];
+function wpTitle(title: string | undefined, id: string): string {
+    return title || id.slice(0, 6);
 }
 
 /**
  * Edit pane for the waypoints currently selected on the relay radar (a limited form of the
- * GM tweak pane): rename (single selection), delete, and clone the selection into a group.
+ * GM tweak pane): one subsection per selected waypoint with rename, clone (a copy in the
+ * waypoint's own group, slightly offset) and delete.
  */
 export function drawWaypointEdit(
     container: WidgetContainer,
@@ -58,40 +49,39 @@ export function drawWaypointEdit(
         session = currentSession;
         pane.title = waypoints.length === 1 ? 'Edit Waypoint' : `Edit ${waypoints.length} Waypoints`;
 
-        if (waypoints.length === 1) {
-            const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${waypoints[0].id}/title`);
-            addInputBlade<string>(pane, titleProp, { label: 'name' }, currentSession.add);
-        }
+        for (const wp of waypoints) {
+            const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded: true });
+            currentSession.add(() => folder.dispose());
 
-        const cloneParams = { group: '' };
-        const groupBinding = pane.addBinding(cloneParams, 'group');
-        currentSession.add(() => groupBinding.dispose());
-        addButton(
-            pane,
-            () => {
-                const group = cloneParams.group.trim();
-                if (!group) return;
-                const color = groupColor(spaceDriver, shipId, group);
-                for (const wp of selectedWaypoints()) {
+            const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wp.id}/title`);
+            currentSession.add(
+                titleProp.onChange(() => {
+                    folder.title = wpTitle(titleProp.getValue(), wp.id);
+                }),
+            );
+            addInputBlade<string>(folder, titleProp, { label: 'name' }, currentSession.add);
+
+            addButton(
+                folder,
+                () =>
                     spaceDriver.command(spaceCommands.createWaypointOrder, {
-                        position: { x: wp.position.x, y: wp.position.y },
+                        position: { x: wp.position.x + CLONE_OFFSET, y: wp.position.y + CLONE_OFFSET },
                         owner: shipId,
                         title: wp.title,
-                        collection: group,
-                        color,
-                    });
-                }
-            },
-            { label: 'Clone to group', title: 'Clone' },
-            currentSession.add,
-        );
+                        collection: wp.collection,
+                        color: wp.color,
+                    }),
+                { label: 'Clone', title: 'Clone' },
+                currentSession.add,
+            );
 
-        addButton(
-            pane,
-            () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: waypoints.map((wp) => wp.id) }),
-            { label: 'Delete', title: 'Delete' },
-            currentSession.add,
-        );
+            addButton(
+                folder,
+                () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: [wp.id] }),
+                { label: 'Delete', title: 'Delete' },
+                currentSession.add,
+            );
+        }
     }
 
     render();

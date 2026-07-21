@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, SpaceDriver, Status, createLogger } from '@starwards/core';
+import { ClientStatus, Driver, SpaceDriver, Status, Waypoint, createLogger } from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 
 import $ from 'jquery';
@@ -14,7 +14,6 @@ import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 import { drawRelayRadar } from '../widgets/relay-radar';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
-import { drawWaypointList } from '../widgets/waypoint-list';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
 const { error: logError } = createLogger('screen:relay');
@@ -73,7 +72,16 @@ async function initScreen(driver: Driver, shipId: string) {
         spaceDriver,
         shipId,
         waypointSelection,
-        (name, layer) => layersPanel.addLayer(name, layer.renderRoot),
+        (name, layer, collection) =>
+            layersPanel.addLayer(name, layer.renderRoot, (visible) => {
+                if (!visible) {
+                    // hiding a group layer drops its waypoints from the selection
+                    const hidden = [...waypointSelection.selectedItems].filter(
+                        (o) => Waypoint.isInstance(o) && o.collection === collection,
+                    );
+                    waypointSelection.remove(hidden);
+                }
+            }),
         (name) => layersPanel.removeLayer(name),
     );
 
@@ -84,7 +92,6 @@ async function initScreen(driver: Driver, shipId: string) {
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection);
-    drawWaypointList(container.subContainer(VPos.BOTTOM, HPos.LEFT), spaceDriver, shipId, waypointSelection);
     wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
 }
 
