@@ -1,5 +1,5 @@
-import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { Page, expect, test } from '@playwright/test';
+import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
