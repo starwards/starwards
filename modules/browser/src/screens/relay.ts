@@ -1,9 +1,10 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, SpaceDriver, Status, Waypoint, createLogger } from '@starwards/core';
+import { ClientStatus, Driver, Status, Waypoint, XY, createLogger } from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 
 import $ from 'jquery';
+import { CameraView } from '../radar/camera-view';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
@@ -51,14 +52,13 @@ async function initScreen(driver: Driver, shipId: string) {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
-    const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
     const {
         root: radarView,
         layers,
         stopFollowingShip,
-    } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents, stationTarget);
+    } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
 
     const waypointSelection = new SelectionContainer().init(spaceDriver);
@@ -98,49 +98,28 @@ async function initScreen(driver: Driver, shipId: string) {
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection);
-    wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
+    wireInput(radarView, stopFollowingShip, zoomEvents, waypointLayer);
 }
 
+const PAN_SCREEN_FRACTION = 0.1;
+
 function wireInput(
-    spaceDriver: SpaceDriver,
-    shipId: string,
-    stationTarget: SelectionContainer,
+    radarView: CameraView,
+    stopFollowingShip: () => void,
     zoomEvents: EventEmitter<ZoomEvent>,
     waypointLayer: WaypointPlacementLayer,
 ) {
-    let currentIndex = -1;
-
-    function getTargets() {
-        return [...spaceDriver.state.getAll('Spaceship')].filter((s) => s.id !== shipId);
-    }
-
-    function cycleTarget(direction: 1 | -1) {
-        const targets = getTargets();
-        if (targets.length === 0) {
-            stationTarget.clear();
-            currentIndex = -1;
-            return;
-        }
-        currentIndex += direction;
-        if (currentIndex >= targets.length) {
-            currentIndex = 0;
-        } else if (currentIndex < 0) {
-            currentIndex = targets.length - 1;
-        }
-        stationTarget.set([targets[currentIndex]]);
+    function pan(direction: XY) {
+        stopFollowingShip();
+        const step = Math.min(radarView.renderer.width, radarView.renderer.height) * PAN_SCREEN_FRACTION;
+        radarView.camera.set(XY.add(radarView.camera, XY.scale(direction, step / radarView.camera.zoom)));
     }
 
     const input = new InputManager();
-    input.addClickAction(() => cycleTarget(1), ']', 'Next Target');
-    input.addClickAction(() => cycleTarget(-1), '[', 'Prev Target');
-    input.addClickAction(
-        () => {
-            stationTarget.clear();
-            currentIndex = -1;
-        },
-        "'",
-        'Clear Target',
-    );
+    input.addClickAction(() => pan({ x: 0, y: -1 }), 'up', 'Pan Up');
+    input.addClickAction(() => pan({ x: 0, y: 1 }), 'down', 'Pan Down');
+    input.addClickAction(() => pan({ x: -1, y: 0 }), 'left', 'Pan Left');
+    input.addClickAction(() => pan({ x: 1, y: 0 }), 'right', 'Pan Right');
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
     input.addClickAction(() => waypointLayer.toggle(), 'w', 'Place Waypoint');

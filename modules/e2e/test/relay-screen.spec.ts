@@ -26,6 +26,8 @@ test.describe('Relay Screen', () => {
     async function placeWaypoint(page: Page) {
         const radar = page.locator('[data-id="Relay Radar"]');
         await expect(radar).toBeVisible({ timeout: 10000 });
+        // the hotkey help root is created at the end of input wiring — hotkeys are live after it appears
+        await page.locator('#hotkey-help-root').waitFor({ state: 'attached', timeout: 10000 });
 
         // Press W to enter waypoint placement mode, then click the center of the radar
         await page.keyboard.press('w');
@@ -142,6 +144,21 @@ test.describe('Relay Screen', () => {
         await page.mouse.down({ button: 'right' });
         await page.mouse.move(center.x + 200, center.y, { steps: 5 });
         await page.mouse.up({ button: 'right' });
+
+        // The waypoint is no longer at the screen center — clicking there clears the selection
+        await clickRadarCenter(page);
+        await expect(editPane).toBeHidden();
+    });
+
+    test('arrow keys pan the camera', async ({ page }) => {
+        await placeWaypoint(page);
+        await clickRadarCenter(page);
+        const editPane = page.locator('[data-id="Edit Waypoint"]');
+        await expect(editPane).toBeVisible();
+
+        for (let i = 0; i < 3; i++) {
+            await page.keyboard.press('ArrowRight');
+        }
 
         // The waypoint is no longer at the screen center — clicking there clears the selection
         await clickRadarCenter(page);

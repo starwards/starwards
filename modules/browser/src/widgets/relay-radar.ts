@@ -1,7 +1,7 @@
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
 import { blue, radarFogOfWar, radarVisibleBg, red, yellow } from '../colors';
-import { dradisDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
+import { dradisNoRadiusDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -35,7 +35,6 @@ export async function drawRelayRadar(
     shipDriver: ShipDriver,
     container: WidgetContainer,
     zoomEvents?: EventEmitter<ZoomEvent>,
-    stationTarget?: SelectionContainer,
 ): Promise<RelayRadar> {
     const camera = new Camera();
     const root = new CameraView(camera);
@@ -83,8 +82,8 @@ export async function drawRelayRadar(
         spaceDriver,
         64,
         getColor,
-        dradisDrawFunctions,
-        stationTarget ?? new SelectionContainer().init(spaceDriver),
+        dradisNoRadiusDrawFunctions,
+        new SelectionContainer().init(spaceDriver),
         rangeFilter.isInRange,
         undefined,
         undefined,
