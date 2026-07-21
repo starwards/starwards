@@ -1,9 +1,12 @@
-import { Destructors, SpaceDriver, Waypoint, spaceCommands } from '@starwards/core';
-import { addButton, addInputBlade, createPane } from '../panel';
+import * as SearchListPlugin from 'tweakpane4-search-list-plugin';
+
+import { DEFAULT_GROUP_NAME, groupDisplayName, listOwnGroups } from '../radar/waypoint-group-layers';
+import { Destructors, SpaceDriver, Waypoint, XY, spaceCommands } from '@starwards/core';
+import { addButton, addColorBlade, addInputBlade, addSearchListBlade, createPane } from '../panel';
+import { readProp, readWriteProp } from '../property-wrappers';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
-import { readWriteProp } from '../property-wrappers';
 
 const CLONE_OFFSET = 500;
 
@@ -13,19 +16,22 @@ function wpTitle(title: string | undefined, id: string): string {
 
 /**
  * Edit pane for the waypoints currently selected on the relay radar (a limited form of the
- * GM tweak pane): one subsection per selected waypoint with rename, clone (a copy in the
- * waypoint's own group, slightly offset) and delete.
+ * GM tweak pane): one subsection per selected waypoint with rename, group (move to an
+ * existing group or a newly typed one), color, exact position, focus (center the camera on
+ * it), clone (a copy in the waypoint's own group, slightly offset) and delete.
  */
 export function drawWaypointEdit(
     container: WidgetContainer,
     spaceDriver: SpaceDriver,
     shipId: string,
     selection: SelectionContainer,
+    focus: (position: XY) => void,
 ) {
     const cleanup = new Destructors();
     container.on('destroy', cleanup.destroy);
 
     const pane = createPane({ title: 'Edit Waypoint', container: container.getElement().get(0) });
+    pane.registerPlugin(SearchListPlugin);
     cleanup.add(() => pane.dispose());
 
     let session: Destructors | null = null;
@@ -49,6 +55,13 @@ export function drawWaypointEdit(
         session = currentSession;
         pane.title = waypoints.length === 1 ? 'Edit Waypoint' : `Edit ${waypoints.length} Waypoints`;
 
+        const groupOptions = Object.fromEntries([
+            [DEFAULT_GROUP_NAME, ''],
+            ...listOwnGroups(spaceDriver, shipId)
+                .filter(Boolean)
+                .map((g) => [groupDisplayName(g), g]),
+        ]) as Record<string, string>;
+
         for (const wp of waypoints) {
             const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded: true });
             currentSession.add(() => folder.dispose());
@@ -63,6 +76,37 @@ export function drawWaypointEdit(
             // an unnamed waypoint has an empty title — hint at the id-prefix fallback shown on the radar
             const nameInput = nameBlade.element.querySelector('input');
             if (nameInput) nameInput.placeholder = wp.id.slice(0, 6);
+
+            const collectionProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wp.id}/collection`);
+            addInputBlade<string>(folder, collectionProp, { label: 'group' }, currentSession.add);
+            addSearchListBlade(folder, collectionProp, { label: 'move to', options: groupOptions }, currentSession.add);
+
+            addColorBlade(
+                folder,
+                readWriteProp<number>(spaceDriver, `/Waypoint/${wp.id}/color`),
+                { label: 'color' },
+                currentSession.add,
+            );
+
+            for (const axis of ['x', 'y'] as const) {
+                const axisProp = readProp<number>(spaceDriver, `/Waypoint/${wp.id}/position/${axis}`);
+                addInputBlade<number>(
+                    folder,
+                    {
+                        getValue: axisProp.getValue,
+                        onChange: axisProp.onChange,
+                        setValue: (v: number) => {
+                            const current = axisProp.getValue() ?? 0;
+                            const delta = { x: 0, y: 0, [axis]: v - current };
+                            spaceDriver.command(spaceCommands.bulkMove, { ids: [wp.id], delta });
+                        },
+                    },
+                    { label: axis },
+                    currentSession.add,
+                );
+            }
+
+            addButton(folder, () => focus(wp.position), { label: 'Focus', title: 'Focus' }, currentSession.add);
 
             addButton(
                 folder,
@@ -82,6 +126,15 @@ export function drawWaypointEdit(
                 folder,
                 () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: [wp.id] }),
                 { label: 'Delete', title: 'Delete' },
+                currentSession.add,
+            );
+        }
+
+        if (waypoints.length > 1) {
+            addButton(
+                pane,
+                () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: waypoints.map((w) => w.id) }),
+                { label: `${waypoints.length} waypoints`, title: 'Delete all' },
                 currentSession.add,
             );
         }

@@ -109,6 +109,64 @@ test.describe('Relay Screen', () => {
         expect(clone.position.x).not.toBe(original.position.x);
     });
 
+    function editRow(page: Page, label: string) {
+        return page
+            .locator('[data-id="Edit Waypoint"] .tp-lblv')
+            .filter({ has: page.locator('.tp-lblv_l', { hasText: new RegExp(`^${label}$`) }) });
+    }
+
+    test('edit pane sets group, color and exact position; focus recenters the camera', async ({ page }) => {
+        await placeWaypoint(page);
+        await clickRadarCenter(page);
+        const editPane = page.locator('[data-id="Edit Waypoint"]');
+        await expect(editPane).toBeVisible();
+
+        const groupInput = editRow(page, 'group').locator('input').first();
+        await groupInput.fill('beta');
+        await groupInput.press('Enter');
+        await expect.poll(() => serverWaypoints()[0]?.collection, { timeout: 3000 }).toBe('beta');
+        await expect(page.locator('[data-id="Layers"]').getByText('waypoints: beta')).toBeVisible();
+
+        const colorInput = editRow(page, 'color').locator('input').first();
+        await colorInput.fill('#00ff00');
+        await colorInput.press('Enter');
+        await expect.poll(() => serverWaypoints()[0]?.color, { timeout: 3000 }).toBe(0x00ff00);
+
+        const xInput = editRow(page, 'x').locator('input').first();
+        await xInput.fill('12345');
+        await xInput.press('Enter');
+        await expect.poll(() => Math.round(serverWaypoints()[0]?.position.x ?? 0), { timeout: 3000 }).toBe(12345);
+
+        await editPane.getByRole('button', { name: 'Focus' }).click();
+        const radar = page.locator('[data-id="Relay Radar"]');
+        await expect(radar).toHaveAttribute('data-following', 'false');
+    });
+
+    test('delete all removes every selected waypoint', async ({ page }) => {
+        await placeWaypoint(page);
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        // place a second waypoint near the first
+        await page.keyboard.press('w');
+        await page.mouse.click(center.x + 80, center.y);
+        await page.keyboard.press('Escape');
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
+
+        // rectangle-select both waypoints
+        await page.mouse.move(center.x - 150, center.y - 150);
+        await page.mouse.down();
+        await page.mouse.move(center.x + 150, center.y + 150, { steps: 5 });
+        await page.mouse.up();
+
+        const editPane = page.locator('[data-id="Edit Waypoint"]');
+        await expect(editPane).toBeVisible();
+        await editPane.getByRole('button', { name: 'Delete all' }).click();
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(0);
+        await expect(editPane).toBeHidden();
+    });
+
     test('drag-and-drop moves a waypoint', async ({ page }) => {
         await placeWaypoint(page);
         const [wp] = serverWaypoints();

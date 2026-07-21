@@ -101,7 +101,11 @@ async function initScreen(driver: Driver, shipId: string) {
     const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId, placementSettings.getSettings);
     radarView.addLayer(waypointLayer.renderRoot);
 
-    drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection);
+    const focus = (position: XY) => {
+        follow.setFollow(false);
+        radarView.camera.set(position);
+    };
+    drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection, focus);
     wireInput(radarView, follow, zoomEvents, waypointLayer);
 }
 
