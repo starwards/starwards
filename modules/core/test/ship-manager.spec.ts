@@ -14,11 +14,13 @@ import {
     makeShipState,
     padArch,
     shipConfigurations,
+    toPositiveDegreesDelta,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
 import { degree, float } from './properties';
 
 import { DockingMode } from '../src/ship/docking';
+import { ammoDesigns } from '../src/space/projectile';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
@@ -30,11 +32,13 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         fc.assert(
             fc.property(
                 degree(),
+                degree(),
                 fc.integer({ min: 15, max: 20 }),
-                (explosionAngleToShip: number, numIterationsPerSecond: number) => {
+                (explosionAngleToShip: number, shipAngle: number, numIterationsPerSecond: number) => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
+                    shipObj.angle = shipAngle;
                     const die = new MockDie();
                     const shipMgr = new shipManagerCtor(
                         shipObj,
@@ -42,7 +46,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         spaceMgr,
                         die,
                     );
-                    shipMgr.state.armor.design.healRate = 0;
                     die.expectedRoll = 1;
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -66,8 +69,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         shipMgr.update(id);
                         spaceMgr.update(id);
                     }
+                    // damage arc is expressed in ship-local frame; account for ship's world rotation
+                    const explosionLocalAngle = toPositiveDegreesDelta(explosionAngleToShip - shipAngle);
                     const expectedHitPlatesRange = padArch(
-                        [explosionAngleToShip, explosionAngleToShip],
+                        [explosionLocalAngle, explosionLocalAngle],
                         sizeOfPlate + EPSILON,
                     );
                     //@ts-ignore : access private property
@@ -116,8 +121,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
                     1,
                 );
-                expect(shipMgr.state.magazine.count_CannonShell).to.equal(
-                    shipMgr.state.magazine.design.max_CannonShell - cannonShells.length,
+                expect(shipMgr.state.magazine.count_HiExpShell).to.equal(
+                    shipMgr.state.magazine.design.max_HiExpShell - cannonShells.length,
                 );
             }),
         );
@@ -143,11 +148,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
                     shipMgr.state.chainGun!.power = PowerLevel.MAX;
                     shipMgr.state.chainGun!.rateOfFireFactor = 1;
-                    shipMgr.state.chainGun!.design.use_BlastCannonShell = false;
-                    shipMgr.state.chainGun!.design.use_Missile = false;
-                    shipMgr.state.chainGun!.design.use_CannonShell = true;
-                    shipMgr.state.magazine.count_CannonShell = availableAmmo;
-                    shipMgr.state.chainGun!.projectile = 'CannonShell';
+                    shipMgr.state.chainGun!.design.use_FragShell = false;
+                    shipMgr.state.chainGun!.design.use_HiExpMissile = false;
+                    shipMgr.state.chainGun!.design.use_HiExpShell = true;
+                    shipMgr.state.magazine.count_HiExpShell = availableAmmo;
+                    shipMgr.state.chainGun!.projectile = 'HiExpShell';
                     shipMgr.state.chainGun!.isFiring = true;
                     switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
 
@@ -158,7 +163,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     }
                     const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                     expect(cannonShells.length).to.equal(availableAmmo);
-                    expect(shipMgr.state.magazine.count_CannonShell).to.equal(0);
+                    expect(shipMgr.state.magazine.count_HiExpShell).to.equal(0);
                 },
             ),
         );
@@ -221,7 +226,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipMgr.state.design.totalCoolant = 0;
                 shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
                 switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
-                const heatPerShell = shipMgr.state.chainGun!.design.heat_CannonShell;
+                const heatPerShell = ammoDesigns.HiExpShell.heatPerShot;
 
                 const i = makeIterationsData(1, numIterationsPerSecond);
                 for (const id of i) {
@@ -256,7 +261,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         tube.power = PowerLevel.MAX;
         tube.isFiring = true;
         switchToAvailableAmmo(tube, shipMgr.state.magazine);
-        const heatPerMissile = tube.design.heat_Missile;
+        const heatPerMissile = ammoDesigns.HiExpMissile.heatPerShot;
 
         const numIterationsPerSecond = 20;
         const i = makeIterationsData(2, numIterationsPerSecond * 2);

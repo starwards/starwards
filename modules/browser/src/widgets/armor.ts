@@ -72,8 +72,7 @@ export async function drawArmorStatus(
             const angleStart = 0 - Math.PI / 2 + plateIdx * plateSize + plateMarginRadians / 2;
             const angle = angleStart + plateSize - plateMarginRadians;
             const draw = () => {
-                const health =
-                    shipDriver.state.armor.armorPlates[plateIdx].health / shipDriver.state.armor.design.plateMaxHealth;
+                const health = shipDriver.state.armor.armorPlates[plateIdx].healthRatio;
                 sprite.tint = rgb2hex([1 - health, health, 0]);
                 sprite.height = size();
                 sprite.width = size();

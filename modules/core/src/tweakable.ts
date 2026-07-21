@@ -9,6 +9,7 @@ export type TweakableConfig =
     | 'number'
     | 'string'
     | 'shipId'
+    | 'vec2'
     | {
           type: 'enum';
           enum: {

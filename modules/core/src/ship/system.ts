@@ -5,12 +5,12 @@ import { Schema } from '@colyseus/schema';
 
 import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { allColyseusProperties } from '../traverse';
-import { commandable, gameField } from '../game-field';
+import { DEFECTIBLE_METADATA, commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 /* eslint-enable sort-imports */
 
-const defectiblePropertyMetadataKey = Symbol('defectible:propertyMetadata');
+const defectiblePropertyMetadataKey = DEFECTIBLE_METADATA;
 
 export abstract class DesignState extends Schema {
     /**
@@ -35,6 +35,19 @@ export abstract class DesignState extends Schema {
      * system is installed on a ship. Empty string means "not named".
      */
     @gameField('string') modelName = '';
+
+    /**
+     * is this system mounted deep inside the hull (protected from surface-effect scrape and
+     * from `hitsInternal: false` damage profiles) or externally (hull-mounted, exposed to
+     * scrape)? Per-ship (and per-model) design choice; see `SystemState.isInternal`.
+     */
+    @gameField('boolean') isInternal = false;
+
+    /**
+     * is this system vulnerable to Elec (electronic warfare) damage? A per-model design
+     * choice, not a physical constant of the system type — see `SystemState.isElectronics`.
+     */
+    @gameField('boolean') isElectronics = false;
 
     keys() {
         // In Colyseus schema v3, use Symbol.metadata to access schema property definitions
@@ -78,6 +91,18 @@ export abstract class SystemState extends Schema {
      * should only be updated as result of changes to defectible properties
      */
     abstract readonly broken: boolean;
+
+    // damage classification. Systems are external by default; internal systems sit deeper
+    // and are only hit through exposure or penetration. Both mounting and electronics
+    // vulnerability are per-ship-design (really per-model) choices, not physical constants of
+    // the system type — see `DesignState.isInternal` / `DesignState.isElectronics`.
+    get isInternal(): boolean {
+        return this.design.isInternal;
+    }
+    // vulnerable to Elec (electronic warfare) damage
+    get isElectronics(): boolean {
+        return this.design.isElectronics;
+    }
 
     @gameField('float32')
     public energyPerMinute = 0;

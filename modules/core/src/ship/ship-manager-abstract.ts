@@ -12,9 +12,9 @@ import {
     Spaceship,
     TargetedStatus,
     XY,
+    ammoTypes,
     capToRange,
     lerp,
-    projectileModels,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
@@ -39,9 +39,10 @@ import { sinWave } from '../logic';
 const { error: logError } = createLogger('ship-manager');
 
 function fixArmor(armor: Armor) {
-    const plateMaxHealth = armor.design.plateMaxHealth;
     for (const plate of armor.armorPlates) {
-        plate.health = plateMaxHealth;
+        for (const layer of plate.layers) {
+            layer.health = layer.maxHealth;
+        }
     }
 }
 
@@ -59,7 +60,9 @@ export function resetShipState(state: ShipState) {
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
     state.signals.trackedTargets.splice(0);
-    state.magazine.count_CannonShell = state.magazine.max_CannonShell;
+    for (const at of ammoTypes) {
+        state.magazine.setCount(at, state.magazine.getMax(at));
+    }
     // Reset non-@gameField command properties that Schema.clone() does not copy.
     // Without this, cloned states have these as undefined, causing NaN propagation.
     state.afterBurnerCommand = 0;
@@ -225,7 +228,6 @@ export abstract class ShipManager implements Updateable {
     update(id: IterationData) {
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
-        this.healPlates(id.deltaSeconds);
         this.damageManager.update();
         this.heatManager.update(id);
         this.automationManager.update(id);
@@ -287,17 +289,6 @@ export abstract class ShipManager implements Updateable {
         }
     }
 
-    protected healPlates(deltaSeconds: number) {
-        for (const plate of this.state.armor.armorPlates) {
-            if (plate.health < this.state.armor.design.plateMaxHealth) {
-                plate.health = Math.min(
-                    plate.health + this.state.armor.design.healRate * deltaSeconds,
-                    this.state.armor.design.plateMaxHealth,
-                );
-            }
-        }
-    }
-
     protected calcTargetedStatus() {
         let status = TargetedStatus.NONE; // default state
         if (this.ships) {
@@ -350,10 +341,10 @@ export abstract class ShipManager implements Updateable {
     }
 
     protected updateAmmo() {
-        for (const projectileKey of projectileModels) {
-            this.state.magazine[`count_${projectileKey}`] = Math.min(
-                this.state.magazine[`count_${projectileKey}`],
-                this.state.magazine[`max_${projectileKey}`],
+        for (const at of ammoTypes) {
+            this.state.magazine[`count_${at}`] = Math.min(
+                this.state.magazine[`count_${at}`],
+                this.state.magazine[`max_${at}`],
             );
         }
     }

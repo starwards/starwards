@@ -3,6 +3,9 @@
 # node-red regenerates it on first run.
 docker/node-red/data/.config.runtime.json
 
+# node-red runtime backups — regenerated on every deploy
+docker/node-red/data/*.backup
+
 # build artifact folders
 dist
 cjs
@@ -11,6 +14,9 @@ umd
 
 # IDEs
 .idea
+
+# per-user Claude Code overrides
+.claude/settings.local.json
 
 # OS-specific
 .DS_Store

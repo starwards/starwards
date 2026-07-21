@@ -233,9 +233,9 @@ this.position.y = 20;
 
 ## Purpose
 Marks a `@gameField` as remotely writable through the JSON Pointer command surface. A bare
-`@gameField` without `@commandable()` (and without `@tweakable` / DesignState membership) is still
-synced to clients but the JSON Pointer setter rejects any client write to it (see
-`json-ptr.ts`).
+`@gameField` without `@commandable()` (and without `@tweakable` / `@defectible` / DesignState
+membership) is still synced to clients but the JSON Pointer setter rejects any client write to it
+(see `json-ptr.ts`).
 
 ## Signature
 ```typescript
@@ -635,6 +635,9 @@ value: number = 50;
 
 ## Purpose
 Marks SystemState properties as damageable. Tracked by damage system for repair/status display.
+Also admits the field to the JSON Pointer command surface (via `isCommandable`), because the GM
+tweak panel renders a writable slider for every defectible factor — so a `@defectible` field is
+remotely writable without needing a separate `@commandable()`.
 
 ## Signature
 ```typescript

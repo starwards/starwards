@@ -1,6 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
-import { getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
+import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
 
 import { maps } from '@starwards/server';
 
@@ -40,5 +40,17 @@ test.describe('ECR Screen', () => {
         const ship = gameDriver.getShip(shipId);
         ship.state.warp.currentLevel = 3;
         await waitForPropertyValue(page, 'Actual LVL', (v) => Math.abs(parseFloat(v) - 3) < 0.5, 'Warp');
+    });
+
+    test('coolant and defectible readouts render as non-interactive bars, not draggable sliders', async ({ page }) => {
+        const fullStatusPanel = page.locator('[data-id="Full Systems Status"]');
+        await expect(fullStatusPanel).toBeVisible({ timeout: 10000 });
+        await expectNonInteractiveBar(fullStatusPanel.locator('.sw-bar').first());
+    });
+
+    test('warp level readouts render as non-interactive bars, not draggable sliders', async ({ page }) => {
+        const warpPanel = page.locator('[data-id="Warp"]');
+        await expect(warpPanel).toBeVisible({ timeout: 10000 });
+        await expectNonInteractiveBar(warpPanel.locator('.sw-bar').first());
     });
 });

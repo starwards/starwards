@@ -124,7 +124,7 @@ per-system files (`thruster.ts`, `chain-gun.ts`, `radar.ts`, `warp.ts`,
 | D3 decision-making | 🟡 emergent in current widget — engineer sees a list, but with no cost or constraint, "decision" collapses to "do them all in parallel". Depends on D4/D5/resource model. | requires a constraint (one-at-a-time, resource cost, or time pressure) |
 | D4 mental challenge | ❌ none — no repair UI exists at all | full design needed: form of challenge, success/failure semantics |
 | D5 action correlated with damage type | ❌ no action concept exists | requires mapping table between (system, defectible, severity) → (action archetype) |
-| repair effect on state | ❌ **no repair logic in code at all**. The ONLY restorative path today is the GM tweak panel writing the value back to `normal`. Armor plates self-heal (`healRate` in `dragonfly-sf-22.ts`); **system defectibles do not.** | server-side command `repairDefectible(systemPointer, field)` (or similar) that resets the defectible — needs design re: instant vs gradual, success/fail effect |
+| repair effect on state | ❌ **no repair logic in code at all**. The ONLY restorative path today is the GM tweak panel writing the value back to `normal`. | server-side command `repairDefectible(systemPointer, field)` (or similar) that resets the defectible — needs design re: instant vs gradual, success/fail effect |
 
 ### 2.4 Adjacent UI already on engineering
 
@@ -150,7 +150,7 @@ or gate this back-door.
 |---|---|---|
 | #1228 malfunction API | ✅ closed | Built the `@defectible` annotation infrastructure that the user's repair UI would consume. Ticket body explicitly listed "logic / measurement for fixing damage? (for future repair station, #547)" — i.e., the foundation was laid for #547 but never used. |
 | #1232 (referenced by #1233) | not in repo | Predecessor that introduced the damage-report widget. |
-| #1233 add broken status to damage-report widget | ❌ open | Trivial addition: surface the `broken` (DISABLED) attribute alongside defectibles in the existing widget. Compatible with the user's D1 — would land naturally as part of the engineering-station mount. |
+| #1233 add broken status to damage-report widget | ✅ closed (PR #1974) | `damage-report.tsx` now surfaces broken systems via `getBrokenSystems` alongside defectibles. Compatible with the user's D1 — would land naturally as part of the engineering-station mount. |
 | #547 repair station | ❌ open (was blocked by #1228, now unblocked) | **Direct overlap with user intent.** Ticket text: *"repair widgets / minigames. preferably behind a network API (IoT?)."* The ticket assumes a **separate** ship station; user is proposing to put repair on the **bridge engineering** station instead. |
 | #543 Fighters field repair | ✅ closed (2026-04-13) | Different scope (fighters, GM-button-press). Not relevant to the bridge proposal. |
 | #545 Fighters in-station repair | ✅ closed (2026-04-13) | Different scope. Not relevant. |
@@ -220,8 +220,8 @@ prioritization pressure, no failure mode.
 
 ## 5. Tickets relevant to closing the gap
 
-- **#1233** open — surface `broken` status in damage-report widget.
-  Trivial; lands first regardless of larger decision.
+- **#1233** ✅ closed (PR #1974) — `broken` status now surfaced in the
+  damage-report widget.
 - **#547** open (now unblocked) — central decision: keep as a
   separate post-bridge station, or re-scope onto bridge engineering.
 - New ticket(s) likely needed for:

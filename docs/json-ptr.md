@@ -8,7 +8,7 @@ on the wire, but the actual write target (a `@gameField` somewhere on a
 `Schema` subclass) is **not** automatically remotely writable.
 
 `isCommandable` in `modules/core/src/game-field.ts` is the single
-admission predicate. A write is allowed if **any** of four categories
+admission predicate. A write is allowed if **any** of five categories
 match:
 
 1. **`@commandable()`** — an explicit, grep-able player-command surface.
@@ -18,7 +18,10 @@ match:
    "Descendant admission" below).
 3. **`@tweakable`** — any field annotated for the GM tweak panel is
    implicitly commandable (see "GM direct-control surface" below).
-4. **`DesignState` subclass** — every field on any `FooDesignState`
+4. **`@defectible`** — the GM tweak panel renders a writable slider for
+   every defectible system-health factor, so those fields are implicitly
+   commandable too (see "GM direct-control surface" below).
+5. **`DesignState` subclass** — every field on any `FooDesignState`
    class is implicitly commandable so the GM design-state panel can
    live-edit subsystem constants.
 
@@ -97,7 +100,9 @@ produce the writes:
   and wires every `@tweakable` field on the currently-selected schema
   subject to `readWriteProp` / `readWriteNumberProp`. Pointer strings
   look like `${systemPointer}/${field}`. Mounted only on
-  `modules/browser/src/screens/gm.ts`.
+  `modules/browser/src/screens/gm.ts`. The same widget also renders a
+  writable slider per `@defectible` factor of every ship system
+  (`system.defectibles`), so those fields must be admitted as well.
 - **`modules/browser/src/widgets/design-state.ts`** — for every
   subsystem that has a `design = new FooDesignState()` field, walks the
   `DesignState` subclass dynamically via `DesignState.keys()` and
@@ -105,15 +110,20 @@ produce the writes:
   `${system}/design/${constName}`. Mounted on `screens/gm.ts` and also
   on the `screens/ship.ts` "Empty Screen" dashboard.
 
-`isCommandable` admits both categories without requiring per-field
+`isCommandable` admits these categories without requiring per-field
 annotation. The `@tweakable` check reuses the existing
 `tweakablePropertyMetadataKey` symbol from
-`modules/core/src/tweakable.ts`. The `DesignState` check uses a static
-marker (`static readonly isStarwardsDesignState = true`) on the abstract
-base class; JavaScript inherits class statics through `extends`, so every
-concrete subclass carries it for free, and the marker avoids a dependency
-cycle (`range.ts` imports from `json-ptr.ts`, and `ship/system.ts` imports
-from `../range`).
+`modules/core/src/tweakable.ts`. The `@defectible` check reads the
+`DEFECTIBLE_METADATA` key — a registered symbol
+(`Symbol.for('starwards.defectible')`) defined in `game-field.ts` and
+imported by `ship/system.ts`'s `defectible` decorator; defining it in
+`game-field.ts` lets `isCommandable` read it without importing
+`ship/system.ts`. The `DesignState` check uses a static marker
+(`static readonly isStarwardsDesignState = true`) on the abstract base
+class; JavaScript inherits class statics through `extends`, so every
+concrete subclass carries it for free. Both indirections avoid a
+dependency cycle (`range.ts` imports from `json-ptr.ts`, and
+`ship/system.ts` imports from `../range` and `../game-field`).
 
 ### Limitation: shared room channel
 
@@ -143,9 +153,9 @@ GM's is a non-goal — see "Non-goal: malicious-player isolation" in
 
 Node-RED flows and external integrations write state through the same
 `handleJsonPointerCommand` path and are subject to the same whitelist.
-Target only `@commandable`, `@tweakable`, or `DesignState` fields. A
-write to an unannotated field will throw and the error will be logged
-by `ShipRoom`.
+Target only `@commandable`, `@tweakable`, `@defectible`, or `DesignState`
+fields. A write to an unannotated field will throw and the error will be
+logged by `ShipRoom`.
 
 ## Auditing send sites
 
@@ -158,7 +168,7 @@ grep -rn "sendJsonCmd" modules/node-red/src
 ```
 
 Each pointer string corresponds to a target field that must satisfy
-one of the four admission clauses above.
+one of the five admission clauses above.
 
 ## Why a whitelist instead of `Reflect.set` everywhere
 

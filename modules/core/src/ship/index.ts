@@ -1,5 +1,6 @@
 export * from './armor';
 export * from './chain-gun';
+export * from './damage-manager';
 export * from './docking';
 export * from './make-ship-state';
 export * from './radar';

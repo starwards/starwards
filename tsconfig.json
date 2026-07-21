@@ -89,6 +89,6 @@
         "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
         "incremental": true
     },
-    "include": ["modules", "./*.ts"],
+    "include": ["modules", ".github/k8s", "./*.ts"],
     "exclude": ["modules/*/cjs", "modules/*/dist"]
 }

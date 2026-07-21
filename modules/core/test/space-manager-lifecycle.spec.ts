@@ -183,7 +183,7 @@ describe('SpaceManager freeze semantics', () => {
         frozen.init('frozen-shell', Vec2.make({ x: 0, y: 0 }));
         frozen.secondsToLive = 5;
         frozen.freeze = true;
-        const active = new Projectile();
+        const active = new Projectile('FragShell'); // proximity-fuzed: still detonates (AoE) on timeout
         active.init('active-shell', Vec2.make({ x: 10_000, y: 0 }));
         active.secondsToLive = 0.5;
         spaceMgr.insertBulk([frozen, active]);

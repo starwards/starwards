@@ -7,6 +7,8 @@ import { tweakable } from '../tweakable';
 
 export type SmartPilotDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     maxTargetAimOffset: number;
     aimOffsetSpeed: number;
     maxTurnSpeed: number;

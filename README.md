@@ -24,13 +24,13 @@ Starwards emerged from years of extending EmptyEpsilon for space LARPs (2016-202
 
 Starwards is a space and starship simulator designed specifically for LARPs (Live Action Role-Playing games). Derived from the "Starship Bridge Simulator" genre, Starwards is designed to support long games where the players interact with the ship's system throughout the ship, not just in the bridge.
 
-# how to run and use it
+# Download & run
 
-Executables are built by CI on every change to master.
-Open the [CI workflow runs](https://github.com/starwards/starwards/actions/workflows/ci-cd.yml?query=branch%3Amaster), click the top-most run, scroll to the "Artifacts" section, and download the "Windows executable" (requires being signed in to GitHub).
-Run it, and open [this link](http://localhost/) in your browser.
+1. Go to the [Releases page](https://github.com/starwards/starwards/releases) and download `starwards.exe` from the latest release (Windows only).
+2. Run `starwards.exe` - it starts the game server on port 8080.
+3. Open [http://localhost:8080](http://localhost:8080) in your browser.
 
-This is not a solution we like. We are [open to improvements and suggestions](https://github.com/starwards/starwards/issues/832).
+If you'd rather build from source, or want a version that hasn't been released yet, see [developing](#developing) below - `npm run build && npm run pkg` produces the same executable at `dist/exec/starwards.exe`. Executables are also built by CI on every change to master: open the [CI workflow runs](https://github.com/starwards/starwards/actions/workflows/ci-cd.yml?query=branch%3Amaster), click the top-most run, and download the "Windows executable" artifact (requires being signed in to GitHub).
 
 # developing
 

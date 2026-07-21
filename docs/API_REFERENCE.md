@@ -8,7 +8,7 @@ source_of_truth:
 related:
   - TECHNICAL_REFERENCE.md
   - LLM_CONTEXT.md
-last_verified: 2026-06-13
+last_verified: 2026-07-20
 ---
 
 # API Reference
@@ -100,7 +100,7 @@ efficiency = 1;
 
 **AI:** `isPlayerShip|idleStrategy|order|orderTargetId|orderPosition|currentTask`
 
-**Systems:** `thrusters|tubes|chainGun|radar|reactor|smartPilot|armor|magazine|weaponsTarget|warp|docking|maneuvering`
+**Systems:** `thrusters|tubes|chainGun|radar|reactor|smartPilot|armor|magazine|weaponsTarget|warp|docking|maneuvering|signals`
 
 **Controls:** `rotation:[-1,1]|boost:[-1,1]|strafe:[-1,1]|antiDrift:[0,1]|breaks:[0,1]|afterBurner:[0,1]`
 

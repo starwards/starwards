@@ -1,5 +1,5 @@
 import { Destructors, ShipDriver, WarpFrequency } from '@starwards/core';
-import { addSliderBlade, addTextBlade, createPane } from '../panel';
+import { addBarBlade, addTextBlade, createPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -24,13 +24,8 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
     const pane = createPane({ title: 'Warp', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
-    addSliderBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual LVL' }, panelCleanup.add);
-    addSliderBlade(
-        pane,
-        readNumberProp(shipDriver, '/warp/desiredLevel'),
-        { label: 'Designated LVL' },
-        panelCleanup.add,
-    );
+    addBarBlade(pane, readNumberProp(shipDriver, '/warp/currentLevel'), { label: 'Actual LVL' }, panelCleanup.add);
+    addBarBlade(pane, readNumberProp(shipDriver, '/warp/desiredLevel'), { label: 'Designated LVL' }, panelCleanup.add);
     const jammedProp = readProp(shipDriver, '/warp/jammed');
     const jamBlade = addTextBlade(
         pane,
@@ -55,10 +50,5 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
         { format: (p: WarpFrequency) => WarpFrequency[p], label: 'Designated FRQ' },
         panelCleanup.add,
     );
-    addSliderBlade(
-        pane,
-        readNumberProp(shipDriver, '/warp/frequencyChange'),
-        { label: 'Calibration' },
-        panelCleanup.add,
-    );
+    addBarBlade(pane, readNumberProp(shipDriver, '/warp/frequencyChange'), { label: 'Calibration' }, panelCleanup.add);
 }

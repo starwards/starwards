@@ -1,13 +1,16 @@
 import { ShipDesign } from '../ship';
 
 export const dragonflyArmor = {
-    modelName: 'Aegis-12 Plated Armor',
     numberOfPlates: 12,
-    healRate: 3,
-    plateMaxHealth: 1500,
+    // fighter-class plates: sized so a standard ArmPen missile (60 flat × plateDamage_ArmPen 2
+    // = 120 erosion) breaches a plate in one direct hit
+    layers: [{ type: 'composite' as const, plateMaxHealth: 100 }],
 };
+
 export const dragonflyThruster = {
     modelName: 'RT-150 Vectored Thruster',
+    isInternal: false,
+    isElectronics: false,
     maxAngleError: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -16,6 +19,8 @@ export const dragonflyThruster = {
 };
 export const dragonflyRadar = {
     modelName: 'Argus-10k Phased Radar',
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     range: 10_000,
     energyCost: 0.05,
@@ -24,21 +29,30 @@ export const dragonflyRadar = {
 };
 export const dragonflyChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
+    isInternal: false,
+    isElectronics: true,
     bulletsPerSecond: 20,
     bulletSpeed: 1000,
     bulletDegreesDeviation: 1,
     maxShellRange: 5000,
     minShellRange: 1000,
     overrideSecondsToLive: 0,
-    use_CannonShell: true,
-    use_BlastCannonShell: true,
+    use_HiExpShell: true,
+    use_ArmPenShell: true,
+    use_FragShell: true,
+    use_HiExpMissile: false,
+    use_ArmPenMissile: false,
+    use_FragMissile: false,
+    use_ClusterMissile: false,
+    use_TandemMissile: false,
+    use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
-    heat_CannonShell: 5,
-    heat_BlastCannonShell: 5,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
+    isInternal: true,
+    isElectronics: true,
     energyPerSecond: 5,
     maxEnergy: 1000,
     energyHeatEPMThreshold: 20,
@@ -52,15 +66,25 @@ export const dragonflyProperties = {
 };
 export const dragonflyMagazine = {
     modelName: 'Hornet Mk-II Magazine',
-    max_CannonShell: 3600,
-    max_BlastCannonShell: 2000,
-    max_Missile: 20,
+    isInternal: true,
+    isElectronics: true,
+    max_HiExpShell: 2400,
+    max_ArmPenShell: 1200,
+    max_FragShell: 2000,
+    max_HiExpMissile: 12,
+    max_ArmPenMissile: 6,
+    max_FragMissile: 8,
+    max_ClusterMissile: 6,
+    max_TandemMissile: 4,
+    max_ElecMissile: 4,
     damage50: 20,
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,
 };
 export const dragonflySmartPilot = {
     modelName: 'Nimbus-3 Smart Pilot',
+    isInternal: true,
+    isElectronics: true,
     maxTargetAimOffset: 30,
     aimOffsetSpeed: 15,
     maxTurnSpeed: 90,
@@ -71,6 +95,8 @@ export const dragonflySmartPilot = {
 };
 export const dragonflyTube = {
     modelName: 'Stinger Missile Tube',
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     bulletsPerSecond: 1,
     bulletSpeed: 1000,
@@ -80,8 +106,15 @@ export const dragonflyTube = {
     minShellRange: 1_000_000,
     overrideSecondsToLive: 10,
     energyCost: 30,
-    use_Missile: true,
-    heat_Missile: 25,
+    use_HiExpShell: false,
+    use_ArmPenShell: false,
+    use_FragShell: false,
+    use_HiExpMissile: true,
+    use_ArmPenMissile: true,
+    use_FragMissile: true,
+    use_ClusterMissile: true,
+    use_TandemMissile: true,
+    use_ElecMissile: true,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',
@@ -90,6 +123,8 @@ export const dragonflyTargeting = {
 };
 export const dragonflyWarp = {
     modelName: 'Voyager-X Warp Drive',
+    isInternal: true,
+    isElectronics: true,
     damage50: 20,
     maxProximity: 10_000,
     chargeTime: 10,
@@ -102,6 +137,8 @@ export const dragonflyWarp = {
 };
 export const dragonflyDocking = {
     modelName: 'Gripper-1 Docking Clamp',
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     maxDockingDistance: 1_000,
     maxDockedDistance: 20,
@@ -111,6 +148,8 @@ export const dragonflyDocking = {
 };
 export const dragonflyManeuvering = {
     modelName: 'Pivot-25 Maneuvering Suite',
+    isInternal: true,
+    isElectronics: false,
     rotationCapacity: 25,
     rotationEnergyCost: 0.07,
     maxAfterBurnerFuel: 5000,
@@ -120,6 +159,8 @@ export const dragonflyManeuvering = {
 };
 
 export const dragonflySignals = {
+    isInternal: false,
+    isElectronics: true,
     damage50: 20,
     maxJobs: 9,
     maxTrackedTargets: 3,
@@ -132,7 +173,7 @@ export const dragonflySignals = {
     hackBaseSuccessRate: 0.6,
 };
 
-export const dragonflySF22: ShipDesign = {
+export const dragonflySF22 = {
     properties: dragonflyProperties,
     chainGun: dragonflyChaingun,
     thrusters: [
@@ -154,4 +195,4 @@ export const dragonflySF22: ShipDesign = {
     docking: dragonflyDocking,
     maneuvering: dragonflyManeuvering,
     signals: dragonflySignals,
-};
+} satisfies ShipDesign;

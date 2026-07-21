@@ -14,6 +14,8 @@ export enum DockingMode {
 
 export type DockingDesign = {
     modelName?: string;
+    isInternal: boolean;
+    isElectronics: boolean;
     damage50: number;
     maxDockingDistance: number;
     maxDockedDistance: number;

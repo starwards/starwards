@@ -28,6 +28,13 @@ describe('starwards-config', () => {
         expect(node.driver).toBeInstanceOf(Driver);
     });
 
+    it('auto-completes a missing protocol to http://', async () => {
+        const flows: Flows = [{ id: 'n1', type: 'starwards-config', url: '127.1.2.3:8080' }];
+        await helper.load(initNodes, flows);
+        const { node } = getNode<StarwardsConfigNode>('n1');
+        expect(node.driver.httpEndpoint).toEqual('http://127.1.2.3:8080');
+    });
+
     describe('integration with server', () => {
         const gameDriver = makeDriver();
 

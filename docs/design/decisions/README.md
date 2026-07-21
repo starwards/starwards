@@ -11,6 +11,13 @@ Key product decisions and their rationale. Not every choice needs a record — o
 | 3 | Adopt AI-assisted development as core workflow | 2025-10 | [003-ai-assisted-dev.md](003-ai-assisted-dev.md) |
 | 4 | Ship 4-station game first, expand later | 2026-04 | [004-ship-early-expand-later.md](004-ship-early-expand-later.md) |
 | 5 | TypeScript scenario files | 2026-04 | [005-typescript-scenarios.md](005-typescript-scenarios.md) |
+| 6 | Damage-profile unification for armor/ammo rework | 2026-07 | [006-damage-profile-unification.md](006-damage-profile-unification.md) |
+| 7 | plateDamage governs plate erosion only | 2026-07 | [007-plate-damage-erosion-only.md](007-plate-damage-erosion-only.md) |
+| 8 | Surface effect applies regardless of armor (Reactive deflects) | 2026-07 | [008-unconditional-surface-effect.md](008-unconditional-surface-effect.md) |
+| 9 | Frag never deflects/penetrates; Cluster becomes a dual-mode warhead | 2026-07 | [009-frag-mechanics-and-cluster-modes.md](009-frag-mechanics-and-cluster-modes.md) |
+| 10 | Differentiated blast sizes; Frag is the strongest surface scraper | 2026-07 | [010-blast-size-and-surface-factors.md](010-blast-size-and-surface-factors.md) |
+| 11 | Armor table rebalance — AP hierarchy, reactive pops on any warhead | 2026-07 | [011-armor-table-rebalance.md](011-armor-table-rebalance.md) |
+| 12 | System mounting (`isInternal`) and electronics (`isElectronics`) are per-ship, per-model design properties | 2026-07 | [012-per-ship-system-mounting.md](012-per-ship-system-mounting.md) |
 
 ## Template
 

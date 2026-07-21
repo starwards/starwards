@@ -1,7 +1,7 @@
 # Starwards SBS UI Specification
 
 **Version:** 1.0
-**Date:** 2025-10-22
+**Date:** 2026-07-20
 **Purpose:** Comprehensive specification of all UI screens and components
 
 ---
@@ -136,7 +136,7 @@ The Pilot screen provides flight controls, navigation instruments, and situation
   - Divided into plates (default 8 plates)
   - Real-time health updates
 - **Size**: 200px minimum width
-- **Data Source**: `/armor/armorPlates[*]/health`, `/armor/design/plateMaxHealth`
+- **Data Source**: `/armor/armorPlates[*]/layers[*]/health`, `/armor/layerDesigns[*]/plateMaxHealth`
 
 #### 5. Warp Status Panel (Middle-Right)
 - **Widget**: `drawWarpStatus()` - Tweakpane panel
@@ -417,7 +417,7 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 #### 3. Ammunition Panel (Middle-Left)
 - **Widget**: `drawAmmoStatus()` - Tweakpane panel
 - **Projectile Types Shown**:
-  - For each projectile type in `projectileModels`:
+  - For each projectile type in `ammoTypes`:
     - Display name (e.g., "cannon shell", "blast cannon shell", "missile")
     - Count format: `{current} / {max}`
 - **Data Source**: `/magazine/count_{type}`, `/magazine/max_{type}`, `/magazine/capacity`

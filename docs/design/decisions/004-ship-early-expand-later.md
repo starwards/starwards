@@ -1,6 +1,6 @@
 # Decision: Ship a 4-station game first, expand later
 
-> **See also:** [`docs/design/roadmap.md`](../roadmap.md) — current strategic roadmap reflecting this decision. [`docs/MS3/PLAN.md`](../../MS3/PLAN.md) — engineering plan for the full 6-station vision; retained as reference for phasing and risk analysis even though the strategic scope has narrowed.
+> **See also:** [starwards-design `product/roadmap.md`](https://github.com/starwards/starwards-design/blob/main/product/roadmap.md) — current strategic roadmap reflecting this decision. [`docs/MS3/PLAN.md`](../../MS3/PLAN.md) — engineering plan for the full 6-station vision; retained as reference for phasing and risk analysis even though the strategic scope has narrowed.
 
 **Date:** 2026-04
 **Status:** Accepted

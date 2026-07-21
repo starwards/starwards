@@ -1,4 +1,4 @@
-import { Armor, ArmorDesign, ArmorPlate } from './armor';
+import { Armor, ArmorDesign, ArmorLayer, ArmorLayerDesign, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
 import { Magazine, MagazineDesign } from './magazine';
@@ -12,10 +12,11 @@ import { SmartPilot, SmartPilotDesign } from './smart-pilot';
 import { Targeting, TargetingDesign } from './targeting';
 import { Thruster, ThrusterDesign } from './thruster';
 import { Warp, WarpDesign } from './warp';
+import { armorModels, withFaradayLayer } from '../configurations/armor-models';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
-import { projectileModels } from '../space/projectile';
+import { ammoTypes } from '../space/projectile';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
@@ -42,13 +43,30 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
     return thruster;
 }
 
+function makeArmorLayer(layer: ArmorLayerDesign): ArmorLayer {
+    const stats = armorModels[layer.type];
+    const armorLayer = new ArmorLayer();
+    armorLayer.design.assign(layer.withFaradayLayer ? withFaradayLayer(stats) : stats);
+    armorLayer.design.assign({
+        modelName: layer.type,
+        plateMaxHealth: layer.plateMaxHealth,
+    });
+    armorLayer.health = layer.plateMaxHealth;
+    return armorLayer;
+}
+
 function makeArmor(design: ArmorDesign): Armor {
+    if (design.layers.at(-1)?.type !== 'composite') {
+        throw new Error('innermost (last) armor layer must be of type composite');
+    }
     const armor = new Armor();
+    armor.design.assign({ numberOfPlates: design.numberOfPlates });
     armor.armorPlates = new ArraySchema<ArmorPlate>();
-    armor.design.assign(design);
     for (let i = 0; i < design.numberOfPlates; i++) {
         const plate = new ArmorPlate();
-        plate.health = plate.maxHealth = design.plateMaxHealth;
+        for (const layer of design.layers) {
+            plate.layers.push(makeArmorLayer(layer));
+        }
         armor.armorPlates.push(plate);
     }
     return armor;
@@ -105,7 +123,7 @@ function makeWarp(design: WarpDesign) {
 function makeMagazine(design: MagazineDesign) {
     const magazine = new Magazine();
     magazine.design.assign(design);
-    for (const projectileModel of projectileModels) {
+    for (const projectileModel of ammoTypes) {
         magazine[`count_${projectileModel}`] = magazine.design[`max_${projectileModel}`];
     }
     return magazine;

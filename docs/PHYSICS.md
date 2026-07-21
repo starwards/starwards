@@ -6,7 +6,7 @@ source_of_truth:
   - modules/core/src/logic/xy.ts
 related:
   - SUBSYSTEMS.md
-last_verified: 2026-06-13
+last_verified: 2026-07-20
 ---
 
 # Physics System
@@ -136,23 +136,32 @@ Weapons are designed for specific effectiveness ranges:
 ## Damage System
 
 ### Damage Application
-```typescript
-function applyDamage(target: Spaceship, damage: number, hitPos: Position) {
-    const hitAngle = angleFromCenter(target.position, hitPos);
-    const plate = findClosestArmorPlate(target.armor, hitAngle);
-    plate.health -= damage;
 
-    if (plate.health <= 0) {
-        plate.broken = true;
-        const penetration = -plate.health * PENETRATION_FACTOR;
-        damageRandomSystem(target, penetration);
+Weapon hits resolve in `DamageManager.takeWeaponDamage()` (`modules/core/src/ship/damage-manager.ts`):
+
+```typescript
+takeWeaponDamage(damage: AttackDamage) {
+    applySurfaceEffect(damage);          // hull-mounted (external) systems scraped regardless of armor
+    for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {  // front / rear
+        exposure = walkArmorLayers(damage, areaHitRange);  // 0..1 leak-through per area
     }
+    applyExposedSystemDamage(damage, exposures);  // post-armor system defects
 }
 ```
 
+`walkArmorLayers()` walks the armor stack outermost-in over `Armor.layerDesigns`. Each layer's response to the incoming damage type (`ArmorLayerDesignState.response()`) decides the outcome:
+
+- **bypass** — layer is transparent to this damage type; skipped
+- **block** — stops the walk; only already-broken sections leak inward
+- **engage** — plates erode (`damage.amount × plateFactor × chain`) and damage leaks through via `max(penetration, brokenLayerRatio)`
+
+Exposure chains multiplicatively across the stack; the final chain scales system damage for the area. Reactive layers (`singleUsePlates`) trigger on impact delivery only: one cell pops and defeats the whole hit (exposure measured pre-pop) unless the round fully penetrates (Tandem); explosions erode reactive cells like ordinary plates.
+
+Post-armor damage goes through `applyExposedSystemDamage()` → `damageSystem()`: the damage profile's `systemScope` picks targets (a single random system, all systems in the exposed area, or ship-wide electronics), and each application is walked off in `damage50`-sized steps of probabilistic `@defectible` rolls (each capped at 50%) — no direct health subtraction on systems.
+
 ### Sectional Armor
 
-Armor is modeled as N equal radial plates stored in an `ArraySchema<ArmorPlate>` (e.g. 12 plates for the dragonfly "Aegis-12" design). Each plate spans `360/numberOfPlates` degrees, with its angular position derived from its array index rather than a stored angle. Plates carry only `health` and `maxHealth` (no angle field) and share a uniform `plateMaxHealth` from the armor design config — not four fixed front/right/rear/left plates with distinct hardcoded health values (100/80/70/80).
+Armor is modeled as N equal radial plates stored in an `ArraySchema<ArmorPlate>` (`modules/core/src/ship/armor.ts`; e.g. 12 plates for the dragonfly design). Each plate spans `360/numberOfPlates` degrees, with its angular position derived from its array index rather than a stored angle. Each plate holds `layers = ArraySchema<ArmorLayer>` — outermost first, indexed in lockstep with `Armor.layerDesigns` — and each layer carries `health`/`maxHealth`, with `plateMaxHealth` set per layer by the matching `ArmorLayerDesignState`. `plate.broken` is a getter: true only when every layer of the plate is down.
 
 ## Explosion Propagation
 

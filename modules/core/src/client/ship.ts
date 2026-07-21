@@ -17,7 +17,7 @@ const emitter2Options = {
 export async function ShipDriver(shipRoom: Room<ShipState>) {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
     // wire commulative events
-    events.on('/armor/armorPlates/*/health', (e) => {
+    events.on('/armor/armorPlates/*/layers/*/health', (e) => {
         events.emit(`/armor/numberOfHealthyPlates`, e);
     });
     // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state

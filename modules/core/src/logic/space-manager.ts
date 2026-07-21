@@ -1,7 +1,7 @@
 import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
-import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
+    EPSILON,
     FieldOfView,
     Tuple2,
     circlesIntersection,
@@ -11,10 +11,13 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
+import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
+import { DamageDelivery } from '../space/projectile';
 import { SWResponse } from './collisions-utils';
+import { SpaceDamageType } from '../space/damage-profile';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -27,6 +30,11 @@ export type Damage = {
     amount: number;
     damageSurfaceArc: Tuple2;
     damageDurationSeconds: number;
+    // 'Collision' for generic kinetic hits (collisions, GM-spawned explosions)
+    damageType: SpaceDamageType;
+    // impact: one event from a physical hit. explosion: one event of a blast-overlap stream.
+    // solid collisions are tagged impact (inert — the Collision type routes past weapon logic).
+    delivery: DamageDelivery;
 };
 
 type NoOrder = {
@@ -241,6 +249,7 @@ export class SpaceManager implements Updateable {
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
+        this.checkUnguidedProximityFuzes();
         this.untrackDestroyedObjects();
         this.frozendAndAttachedDontMove();
         this.applyPhysics(deltaSeconds);
@@ -302,7 +311,37 @@ export class SpaceManager implements Updateable {
             if (!shell.freeze) {
                 shell.secondsToLive -= deltaSeconds;
                 if (shell.secondsToLive <= 0) {
-                    this.explodeProjectile(shell);
+                    if (shell.fuze.type === 'proximity') {
+                        this.explodeProjectile(shell);
+                    } else {
+                        // contact fuze never got its hit — expires as a dud
+                        shell.destroyed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // unguided rounds don't track a target, but a proximity fuze still detonates
+    // them when a hostile object passes within range as they fly by
+    private checkUnguidedProximityFuzes() {
+        for (const projectile of this.state.getAll('Projectile')) {
+            if (projectile.freeze || projectile.design.homing) {
+                continue;
+            }
+            const fuze = projectile.fuze;
+            if (fuze.type !== 'proximity') {
+                continue;
+            }
+            const queryArea = new Circle(XY.clone(projectile.position), fuze.range);
+            for (const object of this.spatialIndex.selectPotentials(queryArea)) {
+                if (
+                    (Spaceship.isInstance(object) || Asteroid.isInstance(object)) &&
+                    !object.destroyed &&
+                    object.id !== projectile.shipId // never detonate on the ship that fired it
+                ) {
+                    this.explodeProjectile(projectile);
+                    break;
                 }
             }
         }
@@ -315,10 +354,8 @@ export class SpaceManager implements Updateable {
                 if (target) {
                     const destination = target.position;
                     const relativeDestination = XY.difference(destination, projectile.position);
-                    if (
-                        XY.lengthOf(relativeDestination) - target.radius <
-                        projectile.design.homing.proximityDetonation
-                    ) {
+                    const fuze = projectile.fuze;
+                    if (fuze.type === 'proximity' && XY.lengthOf(relativeDestination) - target.radius < fuze.range) {
                         this.explodeProjectile(projectile);
                     } else {
                         const velocityDestinationDiff = toDegreesDelta(
@@ -433,6 +470,10 @@ export class SpaceManager implements Updateable {
             if (object.freeze || this.attachments.get(object.id)) {
                 object.velocity.x = object.velocity.y = object.turnSpeed = 0;
             }
+            const data = this.stateToExtraData.get(object);
+            if (data) {
+                data.body.isStatic = object.freeze;
+            }
         }
     }
 
@@ -478,10 +519,44 @@ export class SpaceManager implements Updateable {
 
     private explodeProjectile(projectile: Projectile) {
         projectile.destroyed = true;
-        const explosion = projectile._explosion || new Explosion();
+        const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
         this.insert(explosion);
+    }
+
+    // contact-fuzed warhead: exactly one damage event at the point of impact, no explosion object
+    private resolveProjectileContactDamage(projectile: Projectile, hit: SpaceObject, deltaSeconds: number) {
+        projectile.destroyed = true;
+        const warhead = projectile.warheadDesign;
+        if (warhead.delivery !== 'impact') {
+            return;
+        }
+        const flatDamage = warhead.damage;
+        if (Spaceship.isInstance(hit)) {
+            // impact is a single point: the bearing from the hull centre to the projectile centre.
+            // arc gets a minimal width so it lands on the one plate facing the hit (a zero-width
+            // arc is rejected by archIntersection).
+            const impactAngle = limitPercision(
+                XY.angleOf(hit.globalToLocal(XY.difference(projectile.position, hit.position))),
+            );
+            const damage: Damage = {
+                id: projectile.id,
+                amount: flatDamage,
+                damageSurfaceArc: [impactAngle, limitPercision(impactAngle + EPSILON)],
+                damageDurationSeconds: deltaSeconds,
+                damageType: projectile.damageType,
+                delivery: 'impact',
+            };
+            const objectDamage = this.objectDamage.get(hit.id);
+            if (objectDamage === undefined) {
+                this.objectDamage.set(hit.id, [damage]);
+            } else {
+                objectDamage.push(damage);
+            }
+        } else if (Asteroid.isInstance(hit)) {
+            hit.health -= flatDamage;
+        }
     }
 
     public *resolveObjectDamage(id: string): IterableIterator<Damage> {
@@ -526,7 +601,11 @@ export class SpaceManager implements Updateable {
             ) {
                 let positionChange: XY | null = null;
                 if (Projectile.isInstance(subject)) {
-                    this.explodeProjectile(subject);
+                    if (subject.fuze.type === 'proximity') {
+                        this.explodeProjectile(subject);
+                    } else {
+                        this.resolveProjectileContactDamage(subject, object, deltaSeconds);
+                    }
                 } else if (Explosion.isInstance(subject)) {
                     positionChange = this.handleExplosionCollision(subject, response);
                 } else {
@@ -602,11 +681,13 @@ export class SpaceManager implements Updateable {
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[0])),
                 limitPercision(XY.angleOf(shipLocalDamageBoundries[1])),
             ];
-            const damage = {
+            const damage: Damage = {
                 id: object.id,
                 amount: damageAmount,
                 damageSurfaceArc: shipLocalDamageAngles,
                 damageDurationSeconds: deltaSeconds,
+                damageType: object.damageType,
+                delivery: Explosion.isInstance(object) ? 'explosion' : 'impact',
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {

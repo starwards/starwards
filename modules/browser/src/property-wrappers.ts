@@ -97,6 +97,22 @@ export function readWriteNumberProp(driver: Driver, pointerStr: JsonStringPointe
     const api = readWriteProp<number>(driver, pointerStr);
     return { ...api, range: getRange(driver.state, api.pointer) };
 }
+
+export function readWriteVec2Prop(driver: Driver, pointerStr: JsonStringPointer) {
+    const xProp = readWriteProp<number>(driver, `${pointerStr}/x`);
+    const yProp = readWriteProp<number>(driver, `${pointerStr}/y`);
+    return {
+        ...aggregate([xProp, yProp], () => {
+            const x = xProp.getValue();
+            const y = yProp.getValue();
+            return x === undefined || y === undefined ? undefined : { x, y };
+        }),
+        setValue: (v: { x: number; y: number }) => {
+            xProp.setValue(v.x);
+            yProp.setValue(v.y);
+        },
+    };
+}
 export function readNumberProp(driver: Driver, pointerStr: JsonStringPointer) {
     const api = readProp<number>(driver, pointerStr);
     return { ...api, range: getRange(driver.state, api.pointer) };

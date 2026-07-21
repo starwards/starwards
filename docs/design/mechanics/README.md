@@ -7,6 +7,7 @@ Mechanics are the underlying systems that the game simulates. A mechanic like "a
 | Newtonian flight & thrusters | Done | [Movement](movement.md) |
 | Warp drive & frequency topology | Partial/Designed | [Movement](movement.md) |
 | Armor, damage & malfunctions | Done | [Armor & Damage](armor-and-damage.md) |
+| Damage model: armor × ammo profiles | Partial ([PR #1932](https://github.com/starwards/starwards/pull/1932) replanned around the spec) | [Damage Model Spec](damage-model-spec.md) |
 | Power, heat & coolant | Done | [Armor & Damage](armor-and-damage.md) |
 | Weapons (chaingun, torpedoes) | Done | [Armor & Damage](armor-and-damage.md) |
 | Scan levels & signals jobs | Partial | [Radar & Scanning](radar.md) |

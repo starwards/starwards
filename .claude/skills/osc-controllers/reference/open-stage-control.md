@@ -63,7 +63,7 @@ Alternative: `receive('/EDIT/GET', '<host>:<port>', 'root', {clientId})` makes a
 - URL query options do NOT include session selection (full list: `hdpi`, `forceHdpi`, `doubleTap`, `zoom`, `framerate`, `desyncCanvas`, `lang`, `consoleLength`, `id`, `usePercents`, `noFocus`, `clientSync`, `altTraversing`, `virtualKeyboard`, `notifications`, `title`, `noWarning`).
 - `--load session.json` loads that one session for ALL clients.
 - **Working pattern:** each tablet connects with a stable `?id=<station>`; the custom module maps id → session path and issues `receive('/SESSION/OPEN', path, {clientId: client.id})` on `app.on('open')`.
-- `--remote-root` confines file paths; `--read-only` disables editing; `--remote-saving <regex>` restricts saving hosts.
+- `--remote-root` confines file paths AND roots the in-app Session → Open dialog (which otherwise starts at the server's working dir — in Docker that's `$HOME`/`/root`, hiding a mounted sessions dir). Set it to the sessions mount (runtime-verified on v1.30.4); `--read-only` disables editing; `--remote-saving <regex>` restricts saving hosts.
 
 ## Inbound OSC matching & loops
 
