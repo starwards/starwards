@@ -1,35 +1,42 @@
-import * as ItemListPlugin from 'tweakpane4-item-list-plugin';
-
+import { BindingApi } from '@tweakpane/core';
 import { Container } from 'pixi.js';
 import { Destructors } from '@starwards/core';
+import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
 import { createPane } from '../panel';
 
 /**
- * A "Layers" pane using the tweakpane4-item-list-plugin blade: the item list holds the
- * visible radar layers. Removing an item (✕) hides that layer; re-adding it from the
- * dropdown shows it again.
+ * A "Layers" pane with one boolean blade per radar layer, toggling that layer's visibility.
+ * Layers can be added and removed at runtime (e.g. one layer per waypoint group).
  */
-export function drawRadarLayers(container: WidgetContainer, layers: Record<string, Container>) {
-    const cleanup = new Destructors();
-    container.on('destroy', cleanup.destroy);
+export class RadarLayersPanel {
+    private pane: Pane;
+    private params: Record<string, boolean> = {};
+    private bindings = new Map<string, BindingApi>();
 
-    const pane = createPane({ title: 'Layers', container: container.getElement().get(0) });
-    cleanup.add(() => pane.dispose());
-    pane.registerPlugin(ItemListPlugin);
+    constructor(container: WidgetContainer) {
+        const cleanup = new Destructors();
+        container.on('destroy', cleanup.destroy);
+        this.pane = createPane({ title: 'Layers', container: container.getElement().get(0) });
+        cleanup.add(() => this.pane.dispose());
+    }
 
-    const names = Object.keys(layers);
-    const params = { layers: [...names] };
-    const binding = pane.addBinding(params, 'layers', {
-        view: 'item-list',
-        options: names,
-        pickText: 'Show layer…',
-        emptyText: 'All layers hidden',
-    });
-    binding.on('change', () => {
-        for (const name of names) {
-            layers[name].visible = params.layers.includes(name);
+    addLayer(name: string, layer: Container) {
+        if (this.bindings.has(name)) return;
+        this.params[name] = layer.visible;
+        const binding = this.pane.addBinding(this.params, name);
+        binding.on('change', (ev) => {
+            layer.visible = ev.value;
+        });
+        this.bindings.set(name, binding);
+    }
+
+    removeLayer(name: string) {
+        const binding = this.bindings.get(name);
+        if (binding) {
+            binding.dispose();
+            this.bindings.delete(name);
+            delete this.params[name];
         }
-    });
-    return pane;
+    }
 }

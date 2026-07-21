@@ -7,14 +7,15 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
-import { ObjectsLayer } from '../radar/blips/objects-layer';
+import { RadarLayersPanel } from '../widgets/radar-layers';
 import { SelectionContainer } from '../radar/selection-container';
+import { WaypointGroupLayers } from '../radar/waypoint-group-layers';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
-import { drawRadarLayers } from '../widgets/radar-layers';
+import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 import { drawRelayRadar } from '../widgets/relay-radar';
+import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { drawWaypointList } from '../widgets/waypoint-list';
 import { setupHotkeyHelp } from '../input/hotkey-help';
-import { tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
 const { error: logError } = createLogger('screen:relay');
 
@@ -62,25 +63,28 @@ async function initScreen(driver: Driver, shipId: string) {
         stationTarget,
     );
 
+    const waypointSelection = new SelectionContainer().init(spaceDriver);
+    const layersPanel = new RadarLayersPanel(container.subContainer(VPos.TOP, HPos.RIGHT));
+    for (const [name, layer] of Object.entries(layers)) {
+        layersPanel.addLayer(name, layer);
+    }
+    new WaypointGroupLayers(
+        radarView,
+        spaceDriver,
+        shipId,
+        waypointSelection,
+        (name, layer) => layersPanel.addLayer(name, layer.renderRoot),
+        (name) => layersPanel.removeLayer(name),
+    );
+
+    const selectionLayer = new WaypointSelectionLayer(radarView, spaceDriver, waypointSelection, shipId);
+    radarView.addLayer(selectionLayer.renderRoot);
+
     const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
     radarView.addLayer(waypointLayer.renderRoot);
 
-    const waypointsLayer = new ObjectsLayer(
-        radarView,
-        spaceDriver,
-        32,
-        (w) => w.color,
-        tacticalDrawWaypoints,
-        undefined,
-        (w) => w.owner === shipId,
-    );
-    radarView.addLayer(waypointsLayer.renderRoot);
-
-    drawRadarLayers(container.subContainer(VPos.TOP, HPos.RIGHT), {
-        ...layers,
-        waypoints: waypointsLayer.renderRoot,
-    });
-    drawWaypointList(container.subContainer(VPos.BOTTOM, HPos.LEFT), spaceDriver, shipId);
+    drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection);
+    drawWaypointList(container.subContainer(VPos.BOTTOM, HPos.LEFT), spaceDriver, shipId, waypointSelection);
     wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
 }
 

@@ -44,6 +44,19 @@ describe('Waypoint management', () => {
             const waypoints = [...spaceMgr.state.getAll('Waypoint')];
             expect(waypoints[0].title).to.equal('Rendezvous Point');
         });
+
+        it('sets collection and color on created waypoint when provided', () => {
+            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
+                position: { x: 50, y: 50 },
+                collection: 'patrol',
+                color: 0xff6600,
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const waypoints = [...spaceMgr.state.getAll('Waypoint')];
+            expect(waypoints[0].collection).to.equal('patrol');
+            expect(waypoints[0].color).to.equal(0xff6600);
+        });
     });
 
     describe('waypoint title via JSON pointer', () => {

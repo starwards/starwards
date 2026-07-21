@@ -12,7 +12,9 @@ export class WaypointPlacementLayer {
         private spaceDriver: SpaceDriver,
         private shipId?: string,
     ) {
-        this.stage.interactive = true;
+        // only intercept pointer events while placement mode is on, so layers below
+        // (e.g. waypoint selection) get the clicks otherwise
+        this.stage.interactive = false;
         this.stage.hitArea = this.rectHitArea();
         parent.events.on('screenChanged', () => {
             this.stage.hitArea = this.rectHitArea();
@@ -30,11 +32,13 @@ export class WaypointPlacementLayer {
 
     activate() {
         this.active = true;
+        this.stage.interactive = true;
         this.stage.cursor = 'cell';
     }
 
     deactivate() {
         this.active = false;
+        this.stage.interactive = false;
         this.stage.cursor = 'default';
     }
 

@@ -2,11 +2,12 @@ import * as ItemListPlugin from 'tweakpane4-item-list-plugin';
 
 import { Add, Remove } from 'colyseus-events';
 import { Destructors, SpaceDriver, Waypoint, spaceCommands } from '@starwards/core';
-import { addButton, addInputBlade, createPane } from '../panel';
-import { readProp, readWriteProp } from '../property-wrappers';
 
 import { BindingApi } from '@tweakpane/core';
+import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
+import { createPane } from '../panel';
+import { readProp } from '../property-wrappers';
 
 function wpTitle(title: string | undefined, id: string): string {
     return title || id.slice(0, 6);
@@ -18,10 +19,15 @@ function wpLabel(title: string | undefined, id: string): string {
 
 /**
  * Waypoints pane built on the tweakpane4-item-list-plugin blade: every owned waypoint is an
- * item row (✕ deletes it), and picking a waypoint from the dropdown opens it in the Edit
- * section (rename / delete).
+ * item row (✕ deletes it), and picking a waypoint from the dropdown selects it on the radar
+ * (opening it in the Edit Waypoint pane).
  */
-export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceDriver, shipId: string) {
+export function drawWaypointList(
+    container: WidgetContainer,
+    spaceDriver: SpaceDriver,
+    shipId: string,
+    selection: SelectionContainer,
+) {
     const cleanup = new Destructors();
     container.on('destroy', cleanup.destroy);
 
@@ -31,48 +37,6 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
     const pane = createPane({ title: 'Waypoints', container: container.getElement().get(0) });
     cleanup.add(() => pane.dispose());
     pane.registerPlugin(ItemListPlugin);
-
-    // Shared edit section — hidden until a waypoint is selected
-    const editFolder = pane.addFolder({ title: 'Edit', expanded: true });
-    editFolder.hidden = true;
-    let editSession: Destructors | null = null;
-    let selectedWpId: string | null = null;
-
-    function closeEdit() {
-        if (editSession) {
-            editSession.destroy();
-            editSession = null;
-        }
-        for (const child of [...editFolder.children]) child.dispose();
-        editFolder.hidden = true;
-        selectedWpId = null;
-    }
-    cleanup.add(closeEdit);
-
-    function selectWaypoint(wpId: string) {
-        if (selectedWpId === wpId) return;
-        closeEdit();
-
-        selectedWpId = wpId;
-        const session = new Destructors();
-        editSession = session;
-
-        const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wpId}/title`);
-        const updateFolderTitle = () => {
-            editFolder.title = `Edit: ${wpTitle(titleProp.getValue(), wpId)}`;
-        };
-        updateFolderTitle();
-        session.add(titleProp.onChange(updateFolderTitle));
-        editFolder.hidden = false;
-
-        addInputBlade<string>(editFolder, titleProp, { label: 'name' }, session.add);
-        addButton(
-            editFolder,
-            () => spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids: [wpId] }),
-            { label: 'Delete', title: 'Delete' },
-            session.add,
-        );
-    }
 
     // The item-list blade holds a static option set, so it is rebuilt whenever the
     // owned-waypoint set or any waypoint title changes.
@@ -88,19 +52,14 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
         listBinding?.dispose();
         listSubscriptions.cleanup();
 
-        const labelToId = new Map<string, string>();
+        const labelToWp = new Map<string, Waypoint>();
         const labels: string[] = [];
         for (const wp of ownWaypoints()) {
             const titleProp = readProp<string>(spaceDriver, `/Waypoint/${wp.id}/title`);
             listSubscriptions.add(titleProp.onChange(rebuildList));
             const label = wpLabel(titleProp.getValue(), wp.id);
-            labelToId.set(label, wp.id);
+            labelToWp.set(label, wp);
             labels.push(label);
-        }
-
-        // keep selection only while the waypoint still exists
-        if (selectedWpId && ![...labelToId.values()].includes(selectedWpId)) {
-            closeEdit();
         }
 
         const params = { waypoints: [...labels] };
@@ -108,19 +67,21 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
             index: 0,
             view: 'item-list',
             options: labels,
-            pickText: 'Edit waypoint…',
+            pickText: 'Select waypoint…',
             emptyText: 'No waypoints',
             onOptionClick: (label: string) => {
-                const wpId = labelToId.get(label);
-                if (wpId) selectWaypoint(wpId);
+                const wp = labelToWp.get(label);
+                if (wp) selection.set([wp]);
                 return false; // selection only — never add duplicates to the list
             },
         });
         listBinding.on('change', () => {
             // an item removed via ✕ is a delete order for that waypoint
             const remaining = new Set(params.waypoints);
-            const removed = labels.filter((label) => !remaining.has(label));
-            const ids = removed.map((label) => labelToId.get(label)).filter((id): id is string => !!id);
+            const ids = labels
+                .filter((label) => !remaining.has(label))
+                .map((label) => labelToWp.get(label)?.id)
+                .filter((id): id is string => !!id);
             if (ids.length) {
                 spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids });
             }
@@ -135,10 +96,7 @@ export function drawWaypointList(container: WidgetContainer, spaceDriver: SpaceD
         if (waypointPath.test(e.path)) rebuildList();
     };
     const onRemove = (e: Remove) => {
-        const match = waypointPath.exec(e.path);
-        if (!match) return;
-        if (selectedWpId === match[1]) closeEdit();
-        rebuildList();
+        if (waypointPath.test(e.path)) rebuildList();
     };
 
     spaceDriver.events.on('$add', onAdd);
