@@ -54,13 +54,12 @@ async function initScreen(driver: Driver, shipId: string) {
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    const { root: radarView, layers } = await drawRelayRadar(
-        spaceDriver,
-        shipDriver,
-        container,
-        zoomEvents,
-        stationTarget,
-    );
+    const {
+        root: radarView,
+        layers,
+        stopFollowingShip,
+    } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents, stationTarget);
+    container.getElement().on('contextmenu', (e) => e.preventDefault());
 
     const waypointSelection = new SelectionContainer().init(spaceDriver);
     const layersPanel = new RadarLayersPanel(container.subContainer(VPos.TOP, HPos.RIGHT));
@@ -85,7 +84,14 @@ async function initScreen(driver: Driver, shipId: string) {
         (name) => layersPanel.removeLayer(name),
     );
 
-    const selectionLayer = new WaypointSelectionLayer(radarView, spaceDriver, waypointSelection, shipId);
+    const selectionLayer = new WaypointSelectionLayer(
+        radarView,
+        spaceDriver,
+        waypointSelection,
+        shipId,
+        undefined,
+        stopFollowingShip,
+    );
     radarView.addLayer(selectionLayer.renderRoot);
 
     const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);

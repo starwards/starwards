@@ -104,6 +104,50 @@ test.describe('Relay Screen', () => {
         expect(clone.position.x).not.toBe(original.position.x);
     });
 
+    test('drag-and-drop moves a waypoint', async ({ page }) => {
+        await placeWaypoint(page);
+        const [wp] = serverWaypoints();
+        const before = { x: wp.position.x, y: wp.position.y };
+
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+        // Drag the waypoint right and down
+        await page.mouse.move(center.x, center.y);
+        await page.mouse.down();
+        await page.mouse.move(center.x + 100, center.y + 60, { steps: 5 });
+        await page.mouse.up();
+
+        await expect
+            .poll(() => serverWaypoints()[0]?.position.x, { timeout: 3000, message: 'waypoint should move right' })
+            .toBeGreaterThan(before.x);
+        expect(serverWaypoints()[0]?.position.y).toBeGreaterThan(before.y);
+    });
+
+    test('right-button drag pans the camera', async ({ page }) => {
+        await placeWaypoint(page);
+        await clickRadarCenter(page);
+        const editPane = page.locator('[data-id="Edit Waypoint"]');
+        await expect(editPane).toBeVisible();
+
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+
+        // Pan the camera with a right-button drag
+        await page.mouse.move(center.x, center.y);
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(center.x + 200, center.y, { steps: 5 });
+        await page.mouse.up({ button: 'right' });
+
+        // The waypoint is no longer at the screen center — clicking there clears the selection
+        await clickRadarCenter(page);
+        await expect(editPane).toBeHidden();
+    });
+
     test('hiding a waypoint-group layer drops its waypoints from the selection', async ({ page }) => {
         await placeWaypoint(page);
         await clickRadarCenter(page);

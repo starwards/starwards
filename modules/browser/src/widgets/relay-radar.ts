@@ -27,6 +27,7 @@ type ZoomEvent = 'zoomIn' | 'zoomOut';
 export type RelayRadar = {
     root: CameraView;
     layers: Record<string, Container>;
+    stopFollowingShip: () => void;
 };
 
 export async function drawRelayRadar(
@@ -91,12 +92,24 @@ export async function drawRelayRadar(
     );
     root.addLayer(blipLayer.renderRoot);
 
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events),
-    );
+    let unfollow: (() => void) | null = null;
+    let following = true;
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        const stop = camera.followSpaceObject(tracked, spaceDriver.events);
+        if (following) {
+            unfollow = stop;
+        } else {
+            stop();
+        }
+    });
 
     return {
         root,
+        stopFollowingShip: () => {
+            following = false;
+            unfollow?.();
+            unfollow = null;
+        },
         layers: {
             'sensor range': sensorRangeLayer.renderRoot,
             grid: grid.renderRoot,
