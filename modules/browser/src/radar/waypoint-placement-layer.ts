@@ -6,6 +6,7 @@ import { CameraView } from './camera-view';
 export class WaypointPlacementLayer {
     private stage = new Container();
     private active = false;
+    private badge = document.createElement('div');
 
     constructor(
         private parent: CameraView,
@@ -21,6 +22,15 @@ export class WaypointPlacementLayer {
             this.stage.hitArea = this.rectHitArea();
         });
         this.stage.on('pointerup', this.onPointerup);
+
+        this.badge.dataset.id = 'placement-armed';
+        this.badge.textContent = 'PLACING WAYPOINTS — W / Esc to exit';
+        this.badge.style.cssText =
+            'position:absolute;top:8px;left:50%;transform:translateX(-50%);' +
+            'padding:2px 12px;color:#00ffff;border:1px solid #00ffff;background:rgba(0,0,0,0.6);' +
+            'font-family:Bebas,sans-serif;letter-spacing:2px;pointer-events:none;display:none;z-index:1;';
+        this.parent.canvas.parentElement?.appendChild(this.badge);
+        window.addEventListener('keydown', this.onKeydown);
     }
 
     private rectHitArea() {
@@ -35,12 +45,16 @@ export class WaypointPlacementLayer {
         this.active = true;
         this.stage.interactive = true;
         this.stage.cursor = 'cell';
+        this.badge.style.display = 'block';
+        this.parent.canvas.setAttribute('data-placement-active', 'true');
     }
 
     deactivate() {
         this.active = false;
         this.stage.interactive = false;
         this.stage.cursor = 'default';
+        this.badge.style.display = 'none';
+        this.parent.canvas.setAttribute('data-placement-active', 'false');
     }
 
     toggle() {
@@ -51,6 +65,12 @@ export class WaypointPlacementLayer {
         }
     }
 
+    private onKeydown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && this.active) {
+            this.deactivate();
+        }
+    };
+
     private onPointerup = (event: FederatedPointerEvent) => {
         if (!this.active) return;
         const position = this.parent.screenToWorld(event.global);
@@ -59,6 +79,5 @@ export class WaypointPlacementLayer {
             owner: this.shipId,
             ...this.getSettings?.(),
         });
-        this.deactivate();
     };
 }

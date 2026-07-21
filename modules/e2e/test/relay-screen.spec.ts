@@ -42,6 +42,9 @@ test.describe('Relay Screen', () => {
                 message: 'expected at least one waypoint to be created',
             })
             .toBeGreaterThan(0);
+
+        // placement mode stays armed for multiple placements — exit it
+        await page.keyboard.press('Escape');
     }
 
     async function clickRadarCenter(page: Page) {
@@ -169,6 +172,28 @@ test.describe('Relay Screen', () => {
         // the new group appears as a radar layer toggle
         const layersPane = page.locator('[data-id="Layers"]');
         await expect(layersPane.getByText('waypoints: alpha')).toBeVisible();
+    });
+
+    test('placement mode stays armed for multiple waypoints until Escape', async ({ page }) => {
+        const radar = page.locator('[data-id="Relay Radar"]');
+        await expect(radar).toBeVisible({ timeout: 10000 });
+        await page.locator('#hotkey-help-root').waitFor({ state: 'attached', timeout: 10000 });
+        const badge = page.locator('[data-id="placement-armed"]');
+        await expect(badge).toBeHidden();
+
+        await page.keyboard.press('w');
+        await expect(badge).toBeVisible();
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.click(box.x + box.width / 2 + 80, box.y + box.height / 2);
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
+
+        await page.keyboard.press('Escape');
+        await expect(badge).toBeHidden();
+        await page.mouse.click(box.x + box.width / 2 - 80, box.y + box.height / 2);
+        await page.waitForTimeout(500);
+        expect(serverWaypoints().length).toBe(2);
     });
 
     test('arrow keys pan the camera', async ({ page }) => {
