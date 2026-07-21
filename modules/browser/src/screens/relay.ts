@@ -13,6 +13,7 @@ import { SelectionContainer } from '../radar/selection-container';
 import { WaypointGroupLayers } from '../radar/waypoint-group-layers';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
+import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
 import { drawRelayRadar } from '../widgets/relay-radar';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { setupHotkeyHelp } from '../input/hotkey-help';
@@ -66,12 +67,14 @@ async function initScreen(driver: Driver, shipId: string) {
     for (const [name, layer] of Object.entries(layers)) {
         layersPanel.addLayer(name, layer);
     }
+    const placementSettings = drawPlacementSettings(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipId);
     new WaypointGroupLayers(
         radarView,
         spaceDriver,
         shipId,
         waypointSelection,
-        (name, layer, collection) =>
+        (name, layer, collection) => {
+            placementSettings.refreshGroups();
             layersPanel.addLayer(name, layer.renderRoot, (visible) => {
                 if (!visible) {
                     // hiding a group layer drops its waypoints from the selection
@@ -80,8 +83,12 @@ async function initScreen(driver: Driver, shipId: string) {
                     );
                     waypointSelection.remove(hidden);
                 }
-            }),
-        (name) => layersPanel.removeLayer(name),
+            });
+        },
+        (name) => {
+            placementSettings.refreshGroups();
+            layersPanel.removeLayer(name);
+        },
     );
 
     const selectionLayer = new WaypointSelectionLayer(
@@ -94,7 +101,7 @@ async function initScreen(driver: Driver, shipId: string) {
     );
     radarView.addLayer(selectionLayer.renderRoot);
 
-    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
+    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId, placementSettings.getSettings);
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection);

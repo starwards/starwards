@@ -11,6 +11,7 @@ export class WaypointPlacementLayer {
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
         private shipId?: string,
+        private getSettings?: () => { collection: string; color: number },
     ) {
         // only intercept pointer events while placement mode is on, so layers below
         // (e.g. waypoint selection) get the clicks otherwise
@@ -53,7 +54,11 @@ export class WaypointPlacementLayer {
     private onPointerup = (event: FederatedPointerEvent) => {
         if (!this.active) return;
         const position = this.parent.screenToWorld(event.global);
-        this.spaceDriver.command(spaceCommands.createWaypointOrder, { position, owner: this.shipId });
+        this.spaceDriver.command(spaceCommands.createWaypointOrder, {
+            position,
+            owner: this.shipId,
+            ...this.getSettings?.(),
+        });
         this.deactivate();
     };
 }

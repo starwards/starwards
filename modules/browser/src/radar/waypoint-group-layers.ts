@@ -13,6 +13,14 @@ export function groupDisplayName(collection: string) {
     return collection ? `waypoints: ${collection}` : DEFAULT_GROUP_NAME;
 }
 
+export function ownWaypoints(spaceDriver: SpaceDriver, shipId: string): Waypoint[] {
+    return [...spaceDriver.state.getAll('Waypoint')].filter((wp) => wp.owner === shipId && !wp.destroyed);
+}
+
+export function listOwnGroups(spaceDriver: SpaceDriver, shipId: string): string[] {
+    return [...new Set(ownWaypoints(spaceDriver, shipId).map((wp) => wp.collection))].sort();
+}
+
 /**
  * Maintains one radar layer per waypoint group (the waypoint `collection` field) for the
  * ship's own waypoints. Layers are created when a group first appears; when a group empties
@@ -47,7 +55,7 @@ export class WaypointGroupLayers {
     }
 
     private ownWaypoints(): Waypoint[] {
-        return [...this.spaceDriver.state.getAll('Waypoint')].filter((wp) => wp.owner === this.shipId && !wp.destroyed);
+        return ownWaypoints(this.spaceDriver, this.shipId);
     }
 
     private onAdd = (e: Add) => {

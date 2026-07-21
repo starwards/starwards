@@ -150,6 +150,27 @@ test.describe('Relay Screen', () => {
         await expect(editPane).toBeHidden();
     });
 
+    test('placement settings choose the group and color of new waypoints', async ({ page }) => {
+        const settingsPane = page.locator('[data-id="New Waypoint"]');
+        await expect(settingsPane).toBeVisible({ timeout: 10000 });
+
+        const groupInput = settingsPane.locator('input[type="text"]').first();
+        await groupInput.fill('alpha');
+        await groupInput.press('Enter');
+        const colorInput = settingsPane.locator('.tp-colswv + * input, .tp-txtv_i').nth(1);
+        await colorInput.fill('#ff0000');
+        await colorInput.press('Enter');
+        await colorInput.blur(); // hotkeys are suppressed while a text input has focus
+
+        await placeWaypoint(page);
+        await expect.poll(() => serverWaypoints()[0]?.collection, { timeout: 3000 }).toBe('alpha');
+        await expect.poll(() => serverWaypoints()[0]?.color, { timeout: 3000 }).toBe(0xff0000);
+
+        // the new group appears as a radar layer toggle
+        const layersPane = page.locator('[data-id="Layers"]');
+        await expect(layersPane.getByText('waypoints: alpha')).toBeVisible();
+    });
+
     test('arrow keys pan the camera', async ({ page }) => {
         await placeWaypoint(page);
         await clickRadarCenter(page);
