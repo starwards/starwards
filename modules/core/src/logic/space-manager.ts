@@ -1,7 +1,7 @@
 import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
-import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import {
+    EPSILON,
     FieldOfView,
     Tuple2,
     circlesIntersection,
@@ -11,6 +11,7 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
+import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
@@ -531,30 +532,25 @@ export class SpaceManager implements Updateable {
         }
         const flatDamage = warhead.damage;
         if (Spaceship.isInstance(hit)) {
-            const damageBoundries = circlesIntersection(hit, projectile);
-            if (damageBoundries) {
-                const hitLocalDamageBoundries: [XY, XY] = [
-                    hit.globalToLocal(XY.difference(damageBoundries[0], hit.position)),
-                    hit.globalToLocal(XY.difference(damageBoundries[1], hit.position)),
-                ];
-                const hitLocalDamageAngles: Tuple2 = [
-                    limitPercision(XY.angleOf(hitLocalDamageBoundries[0])),
-                    limitPercision(XY.angleOf(hitLocalDamageBoundries[1])),
-                ];
-                const damage: Damage = {
-                    id: projectile.id,
-                    amount: flatDamage,
-                    damageSurfaceArc: hitLocalDamageAngles,
-                    damageDurationSeconds: deltaSeconds,
-                    damageType: projectile.damageType,
-                    delivery: 'impact',
-                };
-                const objectDamage = this.objectDamage.get(hit.id);
-                if (objectDamage === undefined) {
-                    this.objectDamage.set(hit.id, [damage]);
-                } else {
-                    objectDamage.push(damage);
-                }
+            // impact is a single point: the bearing from the hull centre to the projectile centre.
+            // arc gets a minimal width so it lands on the one plate facing the hit (a zero-width
+            // arc is rejected by archIntersection).
+            const impactAngle = limitPercision(
+                XY.angleOf(hit.globalToLocal(XY.difference(projectile.position, hit.position))),
+            );
+            const damage: Damage = {
+                id: projectile.id,
+                amount: flatDamage,
+                damageSurfaceArc: [impactAngle, limitPercision(impactAngle + EPSILON)],
+                damageDurationSeconds: deltaSeconds,
+                damageType: projectile.damageType,
+                delivery: 'impact',
+            };
+            const objectDamage = this.objectDamage.get(hit.id);
+            if (objectDamage === undefined) {
+                this.objectDamage.set(hit.id, [damage]);
+            } else {
+                objectDamage.push(damage);
             }
         } else if (Asteroid.isInstance(hit)) {
             hit.health -= flatDamage;
