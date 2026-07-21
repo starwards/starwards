@@ -7,13 +7,15 @@ import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
+import { ObjectsLayer } from '../radar/blips/objects-layer';
 import { SelectionContainer } from '../radar/selection-container';
-import { drawLongRangeRadar } from '../widgets/long-range-radar';
-import { drawSystemsStatus } from '../widgets/system-status';
-import { drawTargetInfo } from '../widgets/target-info';
+import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
+import { drawRelayRadar } from '../widgets/relay-radar';
+import { drawWaypointList } from '../widgets/waypoint-list';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
-const { error: logError } = createLogger('screen:signals');
+const { error: logError } = createLogger('screen:relay');
 
 ElementQueries.listen();
 
@@ -51,15 +53,31 @@ async function initScreen(driver: Driver, shipId: string) {
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    await drawLongRangeRadar(spaceDriver, shipDriver, container, { range: 50_000 }, zoomEvents, stationTarget);
-
-    drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
-    drawSystemsStatus(
-        container.subContainer(VPos.TOP, HPos.RIGHT),
+    const radarView = await drawRelayRadar(
+        spaceDriver,
         shipDriver,
-        shipDriver.systems.filter((s) => s.pointer === '/radar'),
+        container,
+        { range: 50_000 },
+        zoomEvents,
+        stationTarget,
     );
-    wireInput(spaceDriver, shipId, stationTarget, zoomEvents);
+
+    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
+    radarView.addLayer(waypointLayer.renderRoot);
+
+    const waypointsLayer = new ObjectsLayer(
+        radarView,
+        spaceDriver,
+        32,
+        (w) => w.color,
+        tacticalDrawWaypoints,
+        undefined,
+        (w) => w.owner === shipId,
+    );
+    radarView.addLayer(waypointsLayer.renderRoot);
+
+    drawWaypointList(container.subContainer(VPos.BOTTOM, HPos.LEFT), spaceDriver, shipId);
+    wireInput(spaceDriver, shipId, stationTarget, zoomEvents, waypointLayer);
 }
 
 function wireInput(
@@ -67,6 +85,7 @@ function wireInput(
     shipId: string,
     stationTarget: SelectionContainer,
     zoomEvents: EventEmitter<ZoomEvent>,
+    waypointLayer: WaypointPlacementLayer,
 ) {
     let currentIndex = -1;
 
@@ -103,6 +122,7 @@ function wireInput(
     );
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
+    input.addClickAction(() => waypointLayer.toggle(), 'w', 'Place Waypoint');
     input.init();
     setupHotkeyHelp(input);
 }

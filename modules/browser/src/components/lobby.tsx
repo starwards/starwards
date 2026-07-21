@@ -129,6 +129,13 @@ function ShipOptions({ shipId }: { shipId: string }) {
                     >
                         Signals
                     </Button>
+                    <Button
+                        key={`relay-${shipId}`}
+                        palette="primary"
+                        onClick={() => window.location.assign(`relay.html?ship=${shipId}`)}
+                    >
+                        Relay
+                    </Button>
                 </>
             }
             style={{ maxWidth: 400, display: 'inline-block', padding: '10px' }}

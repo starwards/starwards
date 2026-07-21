@@ -1,4 +1,4 @@
-import { Circle, Container, FederatedPointerEvent } from 'pixi.js';
+import { Container, FederatedPointerEvent, Rectangle } from 'pixi.js';
 import { SpaceDriver, spaceCommands } from '@starwards/core';
 
 import { CameraView } from './camera-view';
@@ -13,15 +13,15 @@ export class WaypointPlacementLayer {
         private shipId?: string,
     ) {
         this.stage.interactive = true;
-        this.stage.hitArea = this.circleHitArea();
+        this.stage.hitArea = this.rectHitArea();
         parent.events.on('screenChanged', () => {
-            this.stage.hitArea = this.circleHitArea();
+            this.stage.hitArea = this.rectHitArea();
         });
         this.stage.on('pointerup', this.onPointerup);
     }
 
-    private circleHitArea() {
-        return new Circle(this.parent.renderer.width / 2, this.parent.renderer.height / 2, this.parent.radius);
+    private rectHitArea() {
+        return new Rectangle(0, 0, this.parent.renderer.width, this.parent.renderer.height);
     }
 
     get renderRoot(): Container {
