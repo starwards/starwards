@@ -1,9 +1,10 @@
 import * as SearchListPlugin from 'tweakpane4-search-list-plugin';
 
-import { DEFAULT_GROUP_NAME, groupDisplayName, listOwnGroups } from '../radar/waypoint-group-layers';
 import { Destructors, SpaceDriver, Waypoint, XY, spaceCommands } from '@starwards/core';
-import { addButton, addColorBlade, addInputBlade, addSearchListBlade, createPane } from '../panel';
+import { addButton, addColorBlade, addInputBlade, createPane } from '../panel';
 import { readProp, readWriteProp } from '../property-wrappers';
+
+import { addGroupPickerBlade } from './waypoint-group-picker';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
@@ -55,13 +56,6 @@ export function drawWaypointEdit(
         session = currentSession;
         pane.title = waypoints.length === 1 ? 'Edit Waypoint' : `Edit ${waypoints.length} Waypoints`;
 
-        const groupOptions = Object.fromEntries([
-            [DEFAULT_GROUP_NAME, ''],
-            ...listOwnGroups(spaceDriver, shipId)
-                .filter(Boolean)
-                .map((g) => [groupDisplayName(g), g]),
-        ]) as Record<string, string>;
-
         for (const wp of waypoints) {
             const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded: true });
             currentSession.add(() => folder.dispose());
@@ -79,7 +73,7 @@ export function drawWaypointEdit(
 
             const collectionProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wp.id}/collection`);
             addInputBlade<string>(folder, collectionProp, { label: 'group' }, currentSession.add);
-            addSearchListBlade(folder, collectionProp, { label: 'move to', options: groupOptions }, currentSession.add);
+            addGroupPickerBlade(folder, collectionProp, 'move to', spaceDriver, shipId, currentSession.add);
 
             addColorBlade(
                 folder,

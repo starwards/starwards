@@ -116,6 +116,8 @@ test.describe('Relay Screen', () => {
     }
 
     test('edit pane sets group, color and exact position; focus recenters the camera', async ({ page }) => {
+        const pageErrors: string[] = [];
+        page.on('pageerror', (e) => pageErrors.push(e.message));
         await placeWaypoint(page);
         await clickRadarCenter(page);
         const editPane = page.locator('[data-id="Edit Waypoint"]');
@@ -140,6 +142,9 @@ test.describe('Relay Screen', () => {
         await editPane.getByRole('button', { name: 'Focus' }).click();
         const radar = page.locator('[data-id="Relay Radar"]');
         await expect(radar).toHaveAttribute('data-following', 'false');
+
+        // typing a group name unknown to the picker must not blow the list-constraint binding
+        expect(pageErrors).toEqual([]);
     });
 
     test('delete all removes every selected waypoint', async ({ page }) => {

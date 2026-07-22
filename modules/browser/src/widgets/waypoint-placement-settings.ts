@@ -1,12 +1,12 @@
 import * as SearchListPlugin from 'tweakpane4-search-list-plugin';
 
-import { DEFAULT_GROUP_NAME, groupDisplayName, listOwnGroups } from '../radar/waypoint-group-layers';
-import { addColorBlade, addInputBlade, addSearchListBlade, createPane } from '../panel';
+import { addColorBlade, addInputBlade, createPane } from '../panel';
 
 import { Destructors } from '@starwards/core';
 import EventEmitter from 'eventemitter3';
 import { SpaceDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
+import { addGroupPickerBlade } from './waypoint-group-picker';
 
 export type PlacementSettings = {
     collection: string;
@@ -57,13 +57,7 @@ export function drawPlacementSettings(
         groupsPicker?.destroy();
         groupsPicker = new Destructors();
         cleanup.add(groupsPicker.destroy);
-        const options = Object.fromEntries([
-            [DEFAULT_GROUP_NAME, ''],
-            ...listOwnGroups(spaceDriver, shipId)
-                .filter(Boolean)
-                .map((g) => [groupDisplayName(g), g]),
-        ]) as Record<string, string>;
-        addSearchListBlade(pane, model('collection'), { label: 'existing', options }, groupsPicker.add);
+        addGroupPickerBlade(pane, model('collection'), 'existing', spaceDriver, shipId, groupsPicker.add);
     }
     refreshGroups();
 
