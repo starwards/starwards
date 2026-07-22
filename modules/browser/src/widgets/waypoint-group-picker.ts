@@ -1,20 +1,17 @@
-import { DEFAULT_GROUP_NAME, groupDisplayName, listOwnGroups } from '../radar/waypoint-group-layers';
-import { Model, addSearchListBlade } from '../panel';
+import { Destructor, SpaceDriver } from '@starwards/core';
+import { Model, addInputBlade } from '../panel';
 
-import { Destructor } from '@starwards/core';
 import { FolderApi } from 'tweakpane';
-import { SpaceDriver } from '@starwards/core';
+import { listOwnGroups } from '../radar/waypoint-group-layers';
 
-// shown (and never written) when the current group is not one of the options
-const PLACEHOLDER = '—';
+let nextListId = 0;
 
 /**
- * Searchable picker of the ship's existing waypoint groups, bound to a group ("collection")
- * model. The blade's value is clamped to its own option set: an unknown group is presented
- * as a placeholder instead of the raw value, because tweakpane's list constraint rewrites
- * values outside the options and fights the model binding into infinite recursion.
+ * Group ("collection") combo blade: a text input with a dropdown of the ship's existing
+ * waypoint groups (native datalist). Picking suggests, typing an unknown name implicitly
+ * creates a new group; an empty value is the default group.
  */
-export function addGroupPickerBlade(
+export function addGroupComboBlade(
     guiFolder: FolderApi,
     model: Model<string>,
     label: string,
@@ -22,25 +19,27 @@ export function addGroupPickerBlade(
     shipId: string,
     cleanup: (d: Destructor) => void,
 ) {
-    const options = Object.fromEntries([
-        [PLACEHOLDER, PLACEHOLDER],
-        [DEFAULT_GROUP_NAME, ''],
-        ...listOwnGroups(spaceDriver, shipId)
-            .filter(Boolean)
-            .map((g) => [groupDisplayName(g), g]),
-    ]) as Record<string, string>;
-    const values = Object.values(options);
-    const clamped: Model<string> = {
-        getValue: () => {
-            const value = model.getValue();
-            return value !== undefined && values.includes(value) ? value : PLACEHOLDER;
-        },
-        setValue: (value: string) => {
-            if (value !== PLACEHOLDER) {
-                model.setValue?.(value);
-            }
-        },
-        onChange: model.onChange,
-    };
-    return addSearchListBlade(guiFolder, clamped, { label, options }, cleanup);
+    const blade = addInputBlade<string>(guiFolder, model, { label }, cleanup);
+    const input = blade.element.querySelector('input');
+    if (input) {
+        const dataList = document.createElement('datalist');
+        dataList.id = `waypoint-groups-${nextListId++}`;
+        input.setAttribute('list', dataList.id);
+        input.after(dataList);
+        const refreshOptions = () => {
+            dataList.replaceChildren(
+                ...listOwnGroups(spaceDriver, shipId)
+                    .filter(Boolean)
+                    .map((g) => {
+                        const option = document.createElement('option');
+                        option.value = g;
+                        return option;
+                    }),
+            );
+        };
+        refreshOptions();
+        input.addEventListener('focus', refreshOptions);
+        cleanup(() => input.removeEventListener('focus', refreshOptions));
+    }
+    return blade;
 }

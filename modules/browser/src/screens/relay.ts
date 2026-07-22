@@ -83,7 +83,6 @@ async function initScreen(driver: Driver, shipId: string) {
         shipId,
         waypointSelection,
         (name, layer, collection) => {
-            placementSettings.refreshGroups();
             groupsPanel.addGroup(collection);
             layersPanel.addLayer(name, layer.renderRoot, (visible) => {
                 if (!visible) {
@@ -96,7 +95,6 @@ async function initScreen(driver: Driver, shipId: string) {
             });
         },
         (name, collection) => {
-            placementSettings.refreshGroups();
             groupsPanel.removeGroup(collection);
             layersPanel.removeLayer(name);
         },

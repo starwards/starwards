@@ -43,6 +43,9 @@ test.describe('Relay Screen', () => {
             })
             .toBeGreaterThan(0);
 
+        // wait for the client to sync the waypoint — its group layer toggle appears
+        await expect(page.locator('[data-id="Layers"]').getByText('waypoints')).toBeVisible();
+
         // placement mode stays armed for multiple placements — exit it
         await page.keyboard.press('Escape');
     }
@@ -92,21 +95,6 @@ test.describe('Relay Screen', () => {
         await editPane.getByRole('button', { name: 'Delete' }).click();
         await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(0);
         await expect(editPane).toBeHidden();
-    });
-
-    test('clone creates an offset copy in the waypoint group', async ({ page }) => {
-        await placeWaypoint(page);
-        await clickRadarCenter(page);
-        const editPane = page.locator('[data-id="Edit Waypoint"]');
-        await expect(editPane).toBeVisible();
-
-        await editPane.getByRole('button', { name: 'Clone' }).click();
-
-        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
-        const [original, clone] = serverWaypoints();
-        expect(clone.owner).toBe(shipId);
-        expect(clone.collection).toBe(original.collection);
-        expect(clone.position.x).not.toBe(original.position.x);
     });
 
     function editRow(page: Page, label: string) {

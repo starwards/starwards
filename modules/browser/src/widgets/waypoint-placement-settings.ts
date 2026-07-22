@@ -1,12 +1,10 @@
-import * as SearchListPlugin from 'tweakpane4-search-list-plugin';
-
-import { addColorBlade, addInputBlade, createPane } from '../panel';
+import { addColorBlade, createPane } from '../panel';
 
 import { Destructors } from '@starwards/core';
 import EventEmitter from 'eventemitter3';
 import { SpaceDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
-import { addGroupPickerBlade } from './waypoint-group-picker';
+import { addGroupComboBlade } from './waypoint-group-picker';
 
 export type PlacementSettings = {
     collection: string;
@@ -15,7 +13,6 @@ export type PlacementSettings = {
 
 export type PlacementSettingsPanel = {
     getSettings: () => PlacementSettings;
-    refreshGroups: () => void;
 };
 
 /**
@@ -45,21 +42,10 @@ export function drawPlacementSettings(
     });
 
     const pane = createPane({ title: 'New Waypoint', container: container.getElement().get(0) });
-    pane.registerPlugin(SearchListPlugin);
     cleanup.add(() => pane.dispose());
 
-    addInputBlade<string>(pane, model('collection'), { label: 'group' }, cleanup.add);
+    addGroupComboBlade(pane, model('collection'), 'group', spaceDriver, shipId, cleanup.add);
     addColorBlade(pane, model('color'), { label: 'color' }, cleanup.add);
 
-    // searchable picker of existing groups feeding the group field; rebuilt when the group set changes
-    let groupsPicker: Destructors | null = null;
-    function refreshGroups() {
-        groupsPicker?.destroy();
-        groupsPicker = new Destructors();
-        cleanup.add(groupsPicker.destroy);
-        addGroupPickerBlade(pane, model('collection'), 'existing', spaceDriver, shipId, groupsPicker.add);
-    }
-    refreshGroups();
-
-    return { getSettings: () => ({ ...settings }), refreshGroups };
+    return { getSettings: () => ({ ...settings }) };
 }
