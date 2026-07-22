@@ -22,13 +22,18 @@ export class RadarLayersPanel {
     }
 
     addLayer(name: string, layer: Container, onToggle?: (visible: boolean) => void) {
-        if (this.bindings.has(name)) return;
-        this.params[name] = layer.visible;
-        const binding = this.pane.addBinding(this.params, name);
-        binding.on('change', (ev) => {
-            layer.visible = ev.value;
-            onToggle?.(ev.value);
+        this.addToggle(name, layer.visible, (visible) => {
+            layer.visible = visible;
+            onToggle?.(visible);
         });
+    }
+
+    /** Adds a boolean blade not backed by a PixiJS layer (e.g. a filter-driven visibility toggle). */
+    addToggle(name: string, initialVisible: boolean, onToggle: (visible: boolean) => void) {
+        if (this.bindings.has(name)) return;
+        this.params[name] = initialVisible;
+        const binding = this.pane.addBinding(this.params, name);
+        binding.on('change', (ev) => onToggle(ev.value));
         this.bindings.set(name, binding);
     }
 

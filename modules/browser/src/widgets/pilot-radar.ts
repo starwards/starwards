@@ -1,5 +1,6 @@
 import { Container, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { ShipDriver, SpaceDriver, SpaceObject, XY, calcArcAngle, degToRad } from '@starwards/core';
+import { WaypointVisibilityStore, createWaypointVisibilityStore } from '../radar/waypoint-visibility-store';
 import { aggregate, readProp } from '../property-wrappers';
 import { azimuthCircle, speedLines } from '../radar/tactical-radar-layers';
 import { green, radarFogOfWar, radarVisibleBg } from '../colors';
@@ -39,7 +40,15 @@ export function pilotRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDrive
     };
 }
 
-export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipDriver, container: WidgetContainer) {
+export type PilotRadar = {
+    waypointVisibility: WaypointVisibilityStore;
+};
+
+export async function drawPilotRadar(
+    spaceDriver: SpaceDriver,
+    shipDriver: ShipDriver,
+    container: WidgetContainer,
+): Promise<PilotRadar> {
     const warpLevelProp = readProp<number>(shipDriver, '/warp/currentLevel');
     const isWarpProp = aggregate([warpLevelProp], () => {
         const warpLevel = warpLevelProp.getValue();
@@ -112,6 +121,11 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         shipDriver.state.faction,
     );
     contentElements.addChild(blipLayer.renderRoot);
+
+    const waypointVisibility = createWaypointVisibilityStore();
+    const isOwnVisibleWaypoint = (w: { owner: string | null; collection: string }) =>
+        w.owner === shipDriver.id && waypointVisibility.isVisible(w.collection);
+
     const waypointsInRange = new ObjectsLayer(
         root,
         spaceDriver,
@@ -119,7 +133,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) => XY.lengthOf(XY.difference(w.position, camera)) <= p.range,
+        (w) => isOwnVisibleWaypoint(w) && XY.lengthOf(XY.difference(w.position, camera)) <= p.range,
     );
     contentElements.addChild(waypointsInRange.renderRoot);
 
@@ -130,10 +144,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) =>
-            w.owner === shipDriver.id &&
-            w.collection === 'route' &&
-            XY.lengthOf(XY.difference(w.position, camera)) > p.range,
+        (w) => isOwnVisibleWaypoint(w) && XY.lengthOf(XY.difference(w.position, camera)) > p.range,
         (w) =>
             root.worldToScreen(
                 XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera)))),
@@ -193,4 +204,6 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
         camera.followSpaceObject(tracked, spaceDriver.events, true),
     );
+
+    return { waypointVisibility };
 }
