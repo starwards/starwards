@@ -233,6 +233,59 @@ test.describe('Relay Screen', () => {
         await expect(groupsPane.getByText('waypoints: gamma')).toBeHidden();
     });
 
+    test('dragging a waypoint still moves it on screen after focusing on it', async ({ page }) => {
+        await placeWaypoint(page);
+        await clickRadarCenter(page);
+        const editPane = page.locator('[data-id="Edit Waypoint"]');
+        await expect(editPane).toBeVisible();
+
+        // focus glues the camera to the waypoint's position unless the camera copies it
+        await editPane.getByRole('button', { name: 'Focus' }).click();
+
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        await page.mouse.move(center.x, center.y);
+        await page.mouse.down();
+        await page.mouse.move(center.x + 100, center.y + 60, { steps: 5 });
+        await page.mouse.up();
+
+        // the waypoint moved away from the screen center — clicking there clears the selection,
+        // and clicking its new screen position selects it again
+        await clickRadarCenter(page);
+        await expect(editPane).toBeHidden();
+        await page.mouse.click(center.x + 100, center.y + 60);
+        await expect(editPane).toBeVisible();
+    });
+
+    test('radar selection still works after focusing on a group', async ({ page }) => {
+        await placeWaypoint(page);
+        const radar = page.locator('[data-id="Relay Radar"]');
+        const box = await radar.boundingBox();
+        if (!box) throw new Error('Radar canvas not found');
+        const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        await page.keyboard.press('w');
+        await page.mouse.click(center.x + 80, center.y);
+        await page.keyboard.press('Escape');
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
+
+        // move the group far away from the ship (server-side, on the source of truth)
+        for (const wp of serverWaypoints()) {
+            wp.position.x += 300_000;
+            wp.position.y += 150_000;
+        }
+
+        const groupsPane = page.locator('[data-id="Groups"]');
+        await groupsPane.getByText('waypoints').first().click(); // expand the folder
+        await groupsPane.getByRole('button', { name: 'Focus' }).click();
+        await expect(radar).toHaveAttribute('data-following', 'false');
+
+        // the group centroid is now at the screen center; the waypoints sit 40px to either side
+        await page.mouse.click(center.x - 40, center.y);
+        await expect(page.locator('[data-id="Edit Waypoint"]')).toBeVisible();
+    });
+
     test('drag-and-drop moves a waypoint', async ({ page }) => {
         await placeWaypoint(page);
         const [wp] = serverWaypoints();

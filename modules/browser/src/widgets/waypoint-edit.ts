@@ -55,9 +55,9 @@ export function drawWaypointEdit(
         const currentSession = new Destructors();
         session = currentSession;
         pane.title = waypoints.length === 1 ? 'Edit Waypoint' : `Edit ${waypoints.length} Waypoints`;
-
+        const expanded = waypoints.length < 4;
         for (const wp of waypoints) {
-            const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded: true });
+            const folder = pane.addFolder({ title: wpTitle(wp.title, wp.id), expanded });
             currentSession.add(() => folder.dispose());
 
             const titleProp = readWriteProp<string>(spaceDriver, `/Waypoint/${wp.id}/title`);
