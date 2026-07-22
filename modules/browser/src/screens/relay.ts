@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, Status, Waypoint, XY, createLogger } from '@starwards/core';
+import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 
 import $ from 'jquery';
@@ -13,7 +14,6 @@ import { SelectionContainer } from '../radar/selection-container';
 import { WaypointGroupLayers } from '../radar/waypoint-group-layers';
 import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
-import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
 
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
