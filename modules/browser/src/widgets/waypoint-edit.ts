@@ -4,10 +4,10 @@ import { Destructors, SpaceDriver, Waypoint, XY, spaceCommands } from '@starward
 import { addButton, addColorBlade, addInputBlade, createPane } from '../panel';
 import { readProp, readWriteProp } from '../property-wrappers';
 
-import { addGroupPickerBlade } from './waypoint-group-picker';
-
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
+
+import { addGroupPickerBlade } from './waypoint-group-picker';
 
 const CLONE_OFFSET = 500;
 
