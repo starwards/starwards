@@ -194,6 +194,18 @@ export function addSearchListBlade(
 }
 
 /**
+ * Add a color picker for a numeric 0xRRGGBB value (tweakpane's built-in color view).
+ */
+export function addColorBlade(
+    guiFolder: FolderApi,
+    model: Model<number>,
+    params: { label: string },
+    cleanup: (d: Destructor) => void,
+) {
+    return addInputBlade(guiFolder, model, { ...params, view: 'color' }, cleanup);
+}
+
+/**
  * add a blade for cameraring
  */
 export function addCameraRingBlade(

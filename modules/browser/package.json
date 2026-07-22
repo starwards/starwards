@@ -13,10 +13,10 @@
     },
     "dependencies": {
         "@arwes/react": "1.0.0-next.25020502",
-        "@starwards/core": "0.5.1",
         "@emotion/react": "^11.14.0",
         "@maulingmonkey/gamepad": "^0.0.5",
         "@pangenerator/tweakpane-textarea-plugin": "^2.0.0",
+        "@starwards/core": "0.5.1",
         "@tweakpane/core": "^2.0.5",
         "@tweakpane/plugin-camerakit": "^0.3.0",
         "@tweakpane/plugin-essentials": "^0.2.1",

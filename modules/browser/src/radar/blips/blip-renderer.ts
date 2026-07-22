@@ -62,6 +62,7 @@ function blipSprite(t: keyof typeof textures, size: number, color: number) {
 }
 
 class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
+    protected readonly showRadius: boolean = true;
     private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
     private directionSprite = blipSprite('dradis_direction', this.blipSize, white);
     private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
@@ -96,15 +97,18 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
             this.fighterSprite.alpha = alpha;
         }
         this.collisionOutline.clear();
-        this.collisionOutline
-            .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: identified ? radar.collisionOutline : color, alpha: 0.5 });
+        if (this.showRadius) {
+            this.collisionOutline
+                .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+                .stroke({ width: 1, color: identified ? radar.collisionOutline : color, alpha: 0.5 });
+        }
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
     }
 }
 class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
+    protected readonly showRadius: boolean = true;
     private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
     private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
     private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
@@ -122,9 +126,11 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
     }
     redraw(spaceObject: Asteroid, { parent, isSelected, color, alpha }: BlipData): void {
         this.collisionOutline.clear();
-        this.collisionOutline
-            .circle(0, 0, parent.metersToPixles(spaceObject.radius))
-            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
+        if (this.showRadius) {
+            this.collisionOutline
+                .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+                .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
+        }
         this.selectionSprite.visible = isSelected;
         this.circleBevelSprite.tint = color;
         this.circleBevelSprite.alpha = alpha;
@@ -234,6 +240,18 @@ class RadarRangeRenderer implements BlipRenderer<SpaceObject> {
 export const dradisDrawFunctions = {
     Spaceship: DradisSpaceshipRenderer,
     Asteroid: DradisAsteroidRenderer,
+};
+
+class DradisNoRadiusSpaceshipRenderer extends DradisSpaceshipRenderer {
+    protected override readonly showRadius = false;
+}
+class DradisNoRadiusAsteroidRenderer extends DradisAsteroidRenderer {
+    protected override readonly showRadius = false;
+}
+
+export const dradisNoRadiusDrawFunctions = {
+    Spaceship: DradisNoRadiusSpaceshipRenderer,
+    Asteroid: DradisNoRadiusAsteroidRenderer,
 };
 
 export const tacticalDrawWaypoints = {

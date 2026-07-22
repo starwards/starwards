@@ -103,6 +103,10 @@ export const createExplosionOrder = {
 
 export type CreateWaypointOrderArg = {
     position: XY;
+    owner?: string | null;
+    title?: string;
+    collection?: string;
+    color?: number;
 };
 export const createWaypointOrder = {
     cmdName: 'createWaypointOrder',

@@ -60,7 +60,8 @@ export class Camera {
      * Sets the point to a new x and y position.
      */
     set(position: XY) {
-        this.point = position;
+        // copy — holding a caller's live object (e.g. a waypoint's position) would glue the camera to it
+        this.point = XY.clone(position);
         this.events.emit('view');
     }
 
