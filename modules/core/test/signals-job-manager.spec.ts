@@ -181,9 +181,9 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
-        it('should reject scan job if target already at ADVANCED scan level', () => {
+        it('should reject scan job if target already at BASIC+ scan level', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
 
             queueJob(shipMgr, JobType.SCAN, 'target1');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -191,7 +191,7 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
-        it('should reject hack job if target not at scan level 2', () => {
+        it('should reject hack job if target not at SNAPSHOT+ scan level', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
@@ -200,10 +200,10 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
-        it('should accept hack job when target is at scan level 2', () => {
+        it('should accept hack job when target is at SNAPSHOT scan level', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -214,7 +214,7 @@ describe('SignalsJobManager', () => {
 
         it('should reject hack job without valid system name', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'invalidSystem');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -323,12 +323,13 @@ describe('SignalsJobManager', () => {
             queueJob(shipMgr, JobType.SCAN, 'target1');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
-            runTicks(shipMgr, spaceMgr, 25, 20, 0.05);
+            // just over the 20s job duration; well under the 5s LOS promotion window past BASIC
+            runTicks(shipMgr, spaceMgr, 20.5, 20, 0.05);
 
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
-        it('should upgrade scan level BASIC -> ADVANCED on success', () => {
+        it('scan jobs top out at BASIC — a target already at BASIC cannot be scanned further', () => {
             const { shipMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0;
 
@@ -337,9 +338,8 @@ describe('SignalsJobManager', () => {
             queueJob(shipMgr, JobType.SCAN, 'target1');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
-            runTicks(shipMgr, spaceMgr, 45, 20, 0.05);
-
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
         it('should not change scan level on failure', () => {
@@ -362,7 +362,7 @@ describe('SignalsJobManager', () => {
             const { shipMgr, spaceMgr, die, targetMgr } = createTestSetup();
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -376,7 +376,7 @@ describe('SignalsJobManager', () => {
             const { shipMgr, targetMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -394,7 +394,7 @@ describe('SignalsJobManager', () => {
             const { shipMgr, targetMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -419,7 +419,7 @@ describe('SignalsJobManager', () => {
             const { shipMgr, spaceMgr, die, targetMgr } = createTestSetup();
             die.expectedRoll = 0.99;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -433,7 +433,7 @@ describe('SignalsJobManager', () => {
             const { shipMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
             tick(shipMgr, spaceMgr, 0.05, 0.05);

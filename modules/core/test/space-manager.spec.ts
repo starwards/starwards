@@ -205,10 +205,10 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.ADVANCED);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.SNAPSHOT);
             sim.spaceMgr.setScanLevel(target.id, Faction.Raiders, ScanLevel.UFO);
 
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
             expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
         });
 
@@ -229,12 +229,12 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.ADVANCED);
+            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             // Simulate time passing (10 minutes)
             sim.simulateUntilTime(600);
 
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
         });
 
         it('should allow scan if target in radar range', () => {

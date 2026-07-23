@@ -95,7 +95,8 @@ const singleSelectionDetails = async (
         const scanLevelOptions = [
             { value: ScanLevel.UFO, text: 'UFO' },
             { value: ScanLevel.BASIC, text: 'BASIC' },
-            { value: ScanLevel.ADVANCED, text: 'ADVANCED' },
+            { value: ScanLevel.SNAPSHOT, text: 'SNAPSHOT' },
+            { value: ScanLevel.FULL, text: 'FULL' },
         ];
 
         // Add list blade for this faction's scan level

@@ -101,13 +101,15 @@ export class SignalsJobManager implements Updateable {
         const scanLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
 
         if (validJobType === JobType.SCAN) {
-            if (scanLevel >= ScanLevel.ADVANCED) {
+            // scan jobs only take a target from UFO to BASIC; SNAPSHOT/FULL come from the
+            // line-of-sight promotion/demotion cycle (SpaceManager.updateScanPromotion)
+            if (scanLevel >= ScanLevel.BASIC) {
                 return;
             }
         }
 
         if (validJobType === JobType.HACK) {
-            if (scanLevel < ScanLevel.ADVANCED) {
+            if (scanLevel < ScanLevel.SNAPSHOT) {
                 return;
             }
 
@@ -127,7 +129,7 @@ export class SignalsJobManager implements Updateable {
         job.hackSystemName = validJobType === JobType.HACK ? hackSystemName : '';
         job.status = JobStatus.QUEUED;
         job.progress = 0;
-        job.duration = this.calculateJobDuration(validJobType, targetId);
+        job.duration = this.calculateJobDuration(validJobType);
 
         this.state.signals.jobs.push(job);
 
@@ -255,12 +257,8 @@ export class SignalsJobManager implements Updateable {
 
     private applyJobSuccess(job: SignalsJob, totalSeconds: number): void {
         if (job.jobType === JobType.SCAN) {
-            const currentLevel = this.spaceManager.getScanLevel(job.targetId, this.state.faction);
-            if (currentLevel === ScanLevel.UFO) {
-                this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.BASIC);
-            } else if (currentLevel === ScanLevel.BASIC) {
-                this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.ADVANCED);
-            }
+            // scan jobs top out at BASIC; submission is already gated on scanLevel < BASIC
+            this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.BASIC);
         } else if (job.jobType === JobType.HACK) {
             this.applyHack(job.targetId, job.hackSystemName, totalSeconds);
         }
@@ -350,15 +348,12 @@ export class SignalsJobManager implements Updateable {
         return getSystemByName(targetShipEntry.state, systemName) !== null;
     }
 
-    private calculateJobDuration(jobType: JobType, targetId: string): number {
-        if (jobType === JobType.SCAN) {
-            const currentLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
-            const baseDuration = this.state.signals.design.scanBaseDuration;
-            return currentLevel >= ScanLevel.BASIC
-                ? baseDuration * this.state.signals.design.scanAdvancedFactor
-                : baseDuration;
-        }
-        return this.state.signals.design.hackBaseDuration;
+    private calculateJobDuration(jobType: JobType): number {
+        // scan job submission is gated on scanLevel < BASIC, so a scan job is always
+        // starting from UFO — no need for a per-level duration factor here
+        return jobType === JobType.SCAN
+            ? this.state.signals.design.scanBaseDuration
+            : this.state.signals.design.hackBaseDuration;
     }
 
     private getSignalsEffectiveness(): number {

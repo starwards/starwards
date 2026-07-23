@@ -24,6 +24,7 @@ const { warn: logWarn, error: logError } = createLogger('space-manager');
 
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
+const SCAN_PROMOTION_SECONDS = 5;
 
 export type Damage = {
     id: string;
@@ -88,6 +89,9 @@ export class SpaceManager implements Updateable {
     private secondsSinceLastGC = 0;
     private trackedBy = new Map<string, Set<string>>();
     private trackedByFaction = new Map<number, Set<string>>();
+    // keyed by `${factionIndex}:${objectId}`
+    private scanPromotionTimers = new Map<string, number>();
+    private scanLosSeen = new Set<string>();
 
     public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
@@ -188,7 +192,7 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    update({ deltaSeconds }: IterationData) {
+    update({ deltaSeconds, totalSeconds }: IterationData) {
         this.calcAttachmentCliques();
         for (const cmd of this.state.createAsteroidCommands) {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);
@@ -257,6 +261,7 @@ export class SpaceManager implements Updateable {
         this.applyPhysics(deltaSeconds);
         this.updateFieldsOFView();
         this.updateCollisionBodies();
+        this.updateScanPromotion(deltaSeconds, totalSeconds);
         this.handleCollisions(deltaSeconds);
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
@@ -408,6 +413,7 @@ export class SpaceManager implements Updateable {
             }
             this.clearTracksForScanner(destroyed.id);
             this.clearTracksForTarget(destroyed.id);
+            this.clearScanPromotionState(destroyed.id);
         }
         for (const body of this.cleanupBodies) {
             this.collisions.remove(body);
@@ -715,6 +721,54 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    /**
+     * Per-faction line-of-sight promotion/demotion between SNAPSHOT and FULL scan levels.
+     * A target already scanned to BASIC+ that stays continuously in a faction's line of
+     * sight for SCAN_PROMOTION_SECONDS is promoted to FULL. Leaving line of sight while at
+     * FULL demotes back to SNAPSHOT, capturing the moment of demotion.
+     */
+    private updateScanPromotion(deltaSeconds: number, totalSeconds: number) {
+        for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
+            const visible = this.getFactionVisibleObjects(faction);
+            for (const object of this.state) {
+                const key = `${faction}:${object.id}`;
+                const isVisible = visible.has(object);
+                const wasVisible = this.scanLosSeen.has(key);
+                if (isVisible) {
+                    this.scanLosSeen.add(key);
+                } else {
+                    this.scanLosSeen.delete(key);
+                }
+
+                const level = this.getScanLevel(object.id, faction);
+                if (level >= ScanLevel.BASIC && level < ScanLevel.FULL && isVisible) {
+                    const elapsed = (this.scanPromotionTimers.get(key) ?? 0) + deltaSeconds;
+                    if (elapsed >= SCAN_PROMOTION_SECONDS) {
+                        this.setScanLevel(object.id, faction, ScanLevel.FULL);
+                        this.scanPromotionTimers.delete(key);
+                    } else {
+                        this.scanPromotionTimers.set(key, elapsed);
+                    }
+                } else {
+                    this.scanPromotionTimers.delete(key);
+                }
+
+                if (!isVisible && wasVisible && level === ScanLevel.FULL) {
+                    this.setScanLevel(object.id, faction, ScanLevel.SNAPSHOT);
+                    this.setScanSnapshotCapturedAt(object.id, faction, totalSeconds);
+                }
+            }
+        }
+    }
+
+    private clearScanPromotionState(objectId: string) {
+        for (let factionIndex = 0; factionIndex < Number(Faction.FACTION_COUNT); factionIndex++) {
+            const key = `${factionIndex}:${objectId}`;
+            this.scanPromotionTimers.delete(key);
+            this.scanLosSeen.delete(key);
+        }
+    }
+
     private updateCollisionBodies() {
         for (const object of this.toUpdateCollisions) {
             if (!object.destroyed) {
@@ -768,6 +822,27 @@ export class SpaceManager implements Updateable {
         }
 
         return storedLevel;
+    }
+
+    /**
+     * Timestamp (IterationData.totalSeconds) at which the faction's SNAPSHOT view of the
+     * target was captured. 0 if the target has never demoted from FULL for this faction.
+     */
+    public getScanSnapshotCapturedAt(targetId: string, faction: Faction): number {
+        const [target] = this.getObjectPtr(targetId);
+        const factionIndex = Number(faction);
+        if (!target || factionIndex < 0 || factionIndex >= Number(Faction.FACTION_COUNT)) {
+            return 0;
+        }
+        return target.scanSnapshotCapturedAt[factionIndex] ?? 0;
+    }
+
+    private setScanSnapshotCapturedAt(targetId: string, faction: Faction, atSeconds: number): void {
+        const [target] = this.getObjectPtr(targetId);
+        const factionIndex = Number(faction);
+        if (target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+            target.scanSnapshotCapturedAt[factionIndex] = atSeconds;
+        }
     }
 
     public setTrack(scannerShipId: string, scannerFaction: Faction, targetId: string, active: boolean): void {

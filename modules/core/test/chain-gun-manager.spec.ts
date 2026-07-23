@@ -125,7 +125,10 @@ describe('ChainGunManager', () => {
             expect(projectiles.length).to.be.greaterThan(0);
             for (const p of projectiles) {
                 expect(p.shipId).to.equal(shipObj.id);
-                expect(p.scanLevels[Faction.Gravitas]).to.equal(ScanLevel.ADVANCED);
+                // fired as FULL (live); may have since demoted to SNAPSHOT if it flew out of
+                // the firing ship's line of sight, but never below — always distinguishable
+                // from the UFO/unknown tint (blip-renderer treats >= BASIC as "identified")
+                expect(p.scanLevels[Faction.Gravitas]).to.be.at.least(ScanLevel.SNAPSHOT);
             }
         });
 

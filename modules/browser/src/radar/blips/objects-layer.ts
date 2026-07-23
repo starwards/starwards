@@ -21,7 +21,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
 
     private getScanLevel(o: SpaceObject): ScanLevel {
         if (this.playerFaction === undefined) {
-            return ScanLevel.ADVANCED;
+            return ScanLevel.FULL;
         }
         const factionIndex = Number(this.playerFaction);
         const rawLevel =
@@ -45,7 +45,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
             parent: this.parent,
             blipSize: this.blipSize,
             alpha: 1,
-            scanLevel: ScanLevel.ADVANCED,
+            scanLevel: ScanLevel.FULL,
         };
         this.updateBlip(spaceObject, [renderer, data]);
         this.stage.addChild(data.stage);

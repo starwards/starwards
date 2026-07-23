@@ -206,7 +206,7 @@ export class ChainGunManager implements Updateable {
             // of the UFO/unknown tint.
             const firingFactionIndex = Number(this.spaceObject.faction);
             if (firingFactionIndex !== Number(Faction.NONE) && firingFactionIndex < projectile.scanLevels.length) {
-                projectile.scanLevels[firingFactionIndex] = ScanLevel.ADVANCED;
+                projectile.scanLevels[firingFactionIndex] = ScanLevel.FULL;
             }
             if (projectile.design.homing) {
                 projectile.targetId = this.state.weaponsTarget.targetId;
