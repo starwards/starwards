@@ -57,6 +57,38 @@ describe('Waypoint management', () => {
             expect(waypoints[0].collection).to.equal('patrol');
             expect(waypoints[0].color).to.equal(0xff6600);
         });
+
+        it('visibleToPilot defaults to true when not provided', () => {
+            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
+                position: { x: 50, y: 50 },
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const waypoints = [...spaceMgr.state.getAll('Waypoint')];
+            expect(waypoints[0].visibleToPilot).to.equal(true);
+        });
+
+        it('sets visibleToPilot on created waypoint when provided', () => {
+            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
+                position: { x: 50, y: 50 },
+                visibleToPilot: false,
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            const waypoints = [...spaceMgr.state.getAll('Waypoint')];
+            expect(waypoints[0].visibleToPilot).to.equal(false);
+        });
+    });
+
+    describe('visibleToPilot via JSON pointer (relay-controlled)', () => {
+        it('is writable via JSON pointer (tweakable surface)', () => {
+            const wp = new Waypoint();
+            wp.id = 'wp-1';
+            wp.position = new Vec2(0, 0);
+
+            JsonPointer.create('/visibleToPilot').set(wp, false);
+            expect(wp.visibleToPilot).to.equal(false);
+        });
     });
 
     describe('waypoint title via JSON pointer', () => {

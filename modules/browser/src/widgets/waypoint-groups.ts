@@ -74,6 +74,21 @@ export function drawWaypointGroups(
             session.add,
         );
 
+        addInputBlade<boolean>(
+            folder,
+            {
+                getValue: () => members(collection)[0]?.visibleToPilot ?? true,
+                onChange: () => () => undefined,
+                setValue: (visible: boolean) => {
+                    for (const wp of members(collection)) {
+                        writeProp<boolean>(spaceDriver, `/Waypoint/${wp.id}/visibleToPilot`).setValue(visible);
+                    }
+                },
+            },
+            { label: 'visible to pilot' },
+            session.add,
+        );
+
         addButton(folder, () => selection.set(members(collection)), { label: '', title: 'Select all' }, session.add);
         addButton(
             folder,

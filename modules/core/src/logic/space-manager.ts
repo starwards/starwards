@@ -206,6 +206,7 @@ export class SpaceManager implements Updateable {
             if (cmd.title) waypoint.title = cmd.title;
             if (cmd.collection) waypoint.collection = cmd.collection;
             if (cmd.color !== undefined) waypoint.color = cmd.color;
+            if (cmd.visibleToPilot !== undefined) waypoint.visibleToPilot = cmd.visibleToPilot;
             this.insert(waypoint);
         }
         this.state.createWaypointCommands = [];

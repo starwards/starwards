@@ -4,12 +4,10 @@ import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwar
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
-import { groupDisplayName, watchOwnWaypointGroups } from '../radar/waypoint-group-layers';
 import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
-import { RadarLayersPanel } from '../widgets/radar-layers';
 import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
 import { drawPilotRadar } from '../widgets/pilot-radar';
@@ -50,7 +48,7 @@ async function initScreen(driver: Driver, shipId: string) {
     const container = wrapRootWidgetContainer($('#wrapper'));
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
-    const { waypointVisibility } = await drawPilotRadar(spaceDriver, shipDriver, container);
+    await drawPilotRadar(spaceDriver, shipDriver, container);
     wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
@@ -68,22 +66,6 @@ async function initScreen(driver: Driver, shipId: string) {
     drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
     drawDockingStatus(container.subContainer(VPos.BOTTOM, HPos.RIGHT), spaceDriver, shipDriver);
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
-
-    // created last so its DOM node stacks above the (unbounded-height) stats/armor panes at
-    // the same screen edge and stays clickable regardless of their content size
-    const waypointGroupsPanel = new RadarLayersPanel(container.subContainer(VPos.MIDDLE, HPos.LEFT));
-    const unwatchWaypointGroups = watchOwnWaypointGroups(
-        spaceDriver,
-        shipId,
-        (collection) =>
-            waypointGroupsPanel.addToggle(
-                groupDisplayName(collection),
-                waypointVisibility.isVisible(collection),
-                (visible) => waypointVisibility.setVisible(collection, visible),
-            ),
-        (collection) => waypointGroupsPanel.removeLayer(groupDisplayName(collection)),
-    );
-    container.on('destroy', unwatchWaypointGroups);
 }
 
 function wireInput(shipDriver: ShipDriver) {

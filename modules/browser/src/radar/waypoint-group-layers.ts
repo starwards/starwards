@@ -22,82 +22,14 @@ export function listOwnGroups(spaceDriver: SpaceDriver, shipId: string): string[
 }
 
 /**
- * Watches the ship's own waypoint groups (the waypoint `collection` field) and calls
- * `onGroupShown`/`onGroupHidden` as groups appear/empty. Backs `WaypointGroupLayers` below;
- * also used directly by consumers that don't need a dedicated radar layer per group.
- */
-export function watchOwnWaypointGroups(
-    spaceDriver: SpaceDriver,
-    shipId: string,
-    onGroupShown: (collection: string) => void,
-    onGroupHidden: (collection: string) => void,
-): Destructor {
-    const activeGroups = new Set<string>();
-    const collectionSubs = new Map<string, Destructor>();
-
-    function recompute() {
-        const groups = new Set(listOwnGroups(spaceDriver, shipId));
-        for (const collection of groups) {
-            if (!activeGroups.has(collection)) {
-                activeGroups.add(collection);
-                onGroupShown(collection);
-            }
-        }
-        for (const collection of [...activeGroups]) {
-            if (!groups.has(collection)) {
-                activeGroups.delete(collection);
-                onGroupHidden(collection);
-            }
-        }
-    }
-
-    function watchCollection(wpId: string) {
-        if (collectionSubs.has(wpId)) return;
-        const collectionProp = readProp<string>(spaceDriver, `/Waypoint/${wpId}/collection`);
-        collectionSubs.set(wpId, collectionProp.onChange(recompute));
-    }
-
-    for (const wp of ownWaypoints(spaceDriver, shipId)) {
-        watchCollection(wp.id);
-    }
-
-    const onAdd = (e: Add) => {
-        const match = /^\/Waypoint\/([^/]+)$/.exec(e.path);
-        if (!match) return;
-        watchCollection(match[1]);
-        recompute();
-    };
-    const onRemove = (e: Remove) => {
-        const match = /^\/Waypoint\/([^/]+)$/.exec(e.path);
-        if (!match) return;
-        const unsub = collectionSubs.get(match[1]);
-        if (unsub) {
-            unsub();
-            collectionSubs.delete(match[1]);
-        }
-        recompute();
-    };
-
-    spaceDriver.events.on('$add', onAdd);
-    spaceDriver.events.on('$remove', onRemove);
-    recompute();
-
-    return () => {
-        spaceDriver.events.off('$add', onAdd);
-        spaceDriver.events.off('$remove', onRemove);
-        for (const unsub of collectionSubs.values()) unsub();
-        collectionSubs.clear();
-    };
-}
-
-/**
  * Maintains one radar layer per waypoint group (the waypoint `collection` field) for the
  * ship's own waypoints. Layers are created when a group first appears; when a group empties
  * its layer stays (it renders nothing) but the panel is notified to drop its toggle.
  */
 export class WaypointGroupLayers {
     private layers = new Map<string, ObjectsLayer<'Waypoint'>>();
-    private unwatch: Destructor;
+    private activeGroups = new Set<string>();
+    private collectionSubs = new Map<string, Destructor>();
 
     constructor(
         private root: CameraView,
@@ -107,17 +39,69 @@ export class WaypointGroupLayers {
         private onGroupShown: (name: string, layer: ObjectsLayer<'Waypoint'>, collection: string) => void,
         private onGroupHidden: (name: string, collection: string) => void,
     ) {
-        this.unwatch = watchOwnWaypointGroups(
-            spaceDriver,
-            shipId,
-            (collection) =>
-                this.onGroupShown(groupDisplayName(collection), this.getOrCreateLayer(collection), collection),
-            (collection) => this.onGroupHidden(groupDisplayName(collection), collection),
-        );
+        for (const wp of this.ownWaypoints()) {
+            this.watchCollection(wp.id);
+        }
+        spaceDriver.events.on('$add', this.onAdd);
+        spaceDriver.events.on('$remove', this.onRemove);
+        this.recompute();
     }
 
     destroy() {
-        this.unwatch();
+        this.spaceDriver.events.off('$add', this.onAdd);
+        this.spaceDriver.events.off('$remove', this.onRemove);
+        for (const unsub of this.collectionSubs.values()) unsub();
+        this.collectionSubs.clear();
+    }
+
+    private ownWaypoints(): Waypoint[] {
+        return ownWaypoints(this.spaceDriver, this.shipId);
+    }
+
+    private onAdd = (e: Add) => {
+        const match = /^\/Waypoint\/([^/]+)$/.exec(e.path);
+        if (!match) return;
+        this.watchCollection(match[1]);
+        this.recompute();
+    };
+
+    private onRemove = (e: Remove) => {
+        const match = /^\/Waypoint\/([^/]+)$/.exec(e.path);
+        if (!match) return;
+        const unsub = this.collectionSubs.get(match[1]);
+        if (unsub) {
+            unsub();
+            this.collectionSubs.delete(match[1]);
+        }
+        this.recompute();
+    };
+
+    private watchCollection(wpId: string) {
+        if (this.collectionSubs.has(wpId)) return;
+        const collectionProp = readProp<string>(this.spaceDriver, `/Waypoint/${wpId}/collection`);
+        this.collectionSubs.set(
+            wpId,
+            collectionProp.onChange(() => this.recompute()),
+        );
+    }
+
+    private recompute() {
+        const groups = new Set<string>();
+        for (const wp of this.ownWaypoints()) {
+            groups.add(wp.collection);
+        }
+        for (const collection of groups) {
+            if (!this.activeGroups.has(collection)) {
+                this.activeGroups.add(collection);
+                this.onGroupShown(groupDisplayName(collection), this.getOrCreateLayer(collection), collection);
+            }
+        }
+        for (const collection of [...this.activeGroups]) {
+            if (!groups.has(collection)) {
+                this.activeGroups.delete(collection);
+                this.onGroupHidden(groupDisplayName(collection), collection);
+            }
+        }
     }
 
     private getOrCreateLayer(collection: string): ObjectsLayer<'Waypoint'> {

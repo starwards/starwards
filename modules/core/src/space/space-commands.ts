@@ -107,6 +107,7 @@ export type CreateWaypointOrderArg = {
     title?: string;
     collection?: string;
     color?: number;
+    visibleToPilot?: boolean;
 };
 export const createWaypointOrder = {
     cmdName: 'createWaypointOrder',

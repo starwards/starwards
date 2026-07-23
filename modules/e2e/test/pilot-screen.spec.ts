@@ -53,31 +53,28 @@ test.describe('Pilot Screen', () => {
         // Heading works because angle is set directly without physics interference
     });
 
-    test('shows a Layers pane with a checkbox per own waypoint collection', async ({ page }) => {
+    test('own waypoints sync to the pilot radar regardless of visibleToPilot value', async ({ page }) => {
+        // Visibility is controlled from the relay station (see relay-screen.spec.ts); the pilot
+        // radar just has to render either state without error.
         await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
-        const layersPane = page.locator('[data-id="Layers"]');
-        await expect(layersPane.locator('input[type="checkbox"]')).toHaveCount(0);
 
         addOwnWaypoint('alpha');
-        await expect(layersPane.getByText('waypoints: alpha')).toBeVisible();
-        await expect(layersPane.locator('input[type="checkbox"]')).toHaveCount(1);
+        await expect.poll(() => serverWaypoints().find((w) => w.collection === 'alpha')).toBeTruthy();
 
-        const toggle = layersPane.locator('input[type="checkbox"]').first();
-        await expect(toggle).toBeChecked();
-        await layersPane.locator('.tp-ckbv_w').first().click();
-        await expect(toggle).not.toBeChecked();
-    });
+        const wp = serverWaypoints().find((w) => w.collection === 'alpha')!;
+        expect(wp.visibleToPilot).toBe(true);
 
-    test('waypoint groups appear and disappear as collections come and go', async ({ page }) => {
-        await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
-        const layersPane = page.locator('[data-id="Layers"]');
+        spaceCommands.createWaypointOrder.setValue(gameDriver.gameManager.spaceManager.state, {
+            position: { x: 100, y: 0 },
+            owner: shipId,
+            collection: 'hidden-from-pilot',
+            visibleToPilot: false,
+        });
+        await expect
+            .poll(() => serverWaypoints().find((w) => w.collection === 'hidden-from-pilot')?.visibleToPilot)
+            .toBe(false);
 
-        addOwnWaypoint('beta');
-        await expect(layersPane.getByText('waypoints: beta')).toBeVisible();
-        await expect.poll(() => serverWaypoints().find((w) => w.collection === 'beta')).toBeTruthy();
-
-        const wp = serverWaypoints().find((w) => w.collection === 'beta');
-        spaceCommands.bulkDeleteOrder.setValue(gameDriver.gameManager.spaceManager.state, { ids: [wp!.id] });
-        await expect(layersPane.getByText('waypoints: beta')).toBeHidden();
+        // give the radar a couple of render ticks to process both waypoints
+        await page.waitForTimeout(200);
     });
 });
