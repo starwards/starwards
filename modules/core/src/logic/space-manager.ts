@@ -123,6 +123,7 @@ export class SpaceManager implements Updateable {
         if (subject) {
             subject.velocity.x += delta.x;
             subject.velocity.y += delta.y;
+            this.clampToAbsoluteMaxSpeed(subject);
         }
     }
     public setVelocity(id: string, velocity: XY) {
@@ -133,6 +134,14 @@ export class SpaceManager implements Updateable {
         const [subject] = this.getObjectPtr(id);
         if (subject) {
             subject.velocity.setValue(velocity);
+            this.clampToAbsoluteMaxSpeed(subject);
+        }
+    }
+
+    private clampToAbsoluteMaxSpeed(subject: SpaceObject) {
+        const cap = this.state.absoluteMaxSpeed;
+        if (XY.lengthOf(subject.velocity) > cap) {
+            subject.velocity.normalize(cap);
         }
     }
 
@@ -524,6 +533,7 @@ export class SpaceManager implements Updateable {
         const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
+        this.clampToAbsoluteMaxSpeed(explosion);
         this.insert(explosion);
     }
 
@@ -614,6 +624,7 @@ export class SpaceManager implements Updateable {
                     const res = this.calcSolidCollision(deltaSeconds, subject, object, response);
                     positionChange = res.positionChange;
                     Vec2.add(subject.velocity, res.velocityChange, subject.velocity);
+                    this.clampToAbsoluteMaxSpeed(subject);
                     if (Spaceship.isInstance(subject)) {
                         this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
                     } else {
