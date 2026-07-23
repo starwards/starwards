@@ -107,12 +107,23 @@ export type CreateWaypointOrderArg = {
     title?: string;
     collection?: string;
     color?: number;
-    visibleToPilot?: boolean;
 };
 export const createWaypointOrder = {
     cmdName: 'createWaypointOrder',
     setValue: (state: SpaceState, value: CreateWaypointOrderArg) => {
         state.createWaypointCommands.push(value);
+    },
+};
+
+export type SetWaypointGroupVisibilityArg = {
+    owner: string;
+    collection: string;
+    visibleToPilot: boolean;
+};
+export const setWaypointGroupVisibility = {
+    cmdName: 'setWaypointGroupVisibility',
+    setValue: (state: SpaceState, value: SetWaypointGroupVisibilityArg) => {
+        state.setWaypointGroupVisibilityCommands.push(value);
     },
 };
 

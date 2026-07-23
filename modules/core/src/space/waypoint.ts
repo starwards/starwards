@@ -37,11 +37,6 @@ export class Waypoint extends SpaceObjectBase {
     @gameField('uint32')
     public color = 0xffffff;
 
-    /** Whether this waypoint is shown on the pilot station radar. Set from the relay station. */
-    @tweakable('boolean')
-    @gameField('boolean')
-    public visibleToPilot = true;
-
     init(id: string, position: Vec2): this {
         this.id = id;
         this.position = position;

@@ -53,25 +53,24 @@ test.describe('Pilot Screen', () => {
         // Heading works because angle is set directly without physics interference
     });
 
-    test('own waypoints sync to the pilot radar regardless of visibleToPilot value', async ({ page }) => {
-        // Visibility is controlled from the relay station (see relay-screen.spec.ts); the pilot
-        // radar just has to render either state without error.
+    test('own waypoints sync to the pilot radar regardless of group visibility to pilot', async ({ page }) => {
+        // Visibility is a group-level flag controlled from the relay station (see
+        // relay-screen.spec.ts); the pilot radar just has to render either state without error.
         await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
 
         addOwnWaypoint('alpha');
         await expect.poll(() => serverWaypoints().find((w) => w.collection === 'alpha')).toBeTruthy();
+        expect(gameDriver.gameManager.spaceManager.state.isWaypointGroupVisible(shipId, 'alpha')).toBe(true);
 
-        const wp = serverWaypoints().find((w) => w.collection === 'alpha')!;
-        expect(wp.visibleToPilot).toBe(true);
-
-        spaceCommands.createWaypointOrder.setValue(gameDriver.gameManager.spaceManager.state, {
-            position: { x: 100, y: 0 },
+        addOwnWaypoint('hidden-from-pilot');
+        await expect.poll(() => serverWaypoints().find((w) => w.collection === 'hidden-from-pilot')).toBeTruthy();
+        spaceCommands.setWaypointGroupVisibility.setValue(gameDriver.gameManager.spaceManager.state, {
             owner: shipId,
             collection: 'hidden-from-pilot',
             visibleToPilot: false,
         });
         await expect
-            .poll(() => serverWaypoints().find((w) => w.collection === 'hidden-from-pilot')?.visibleToPilot)
+            .poll(() => gameDriver.gameManager.spaceManager.state.isWaypointGroupVisible(shipId, 'hidden-from-pilot'))
             .toBe(false);
 
         // give the radar a couple of render ticks to process both waypoints

@@ -57,37 +57,77 @@ describe('Waypoint management', () => {
             expect(waypoints[0].collection).to.equal('patrol');
             expect(waypoints[0].color).to.equal(0xff6600);
         });
+    });
 
-        it('visibleToPilot defaults to true when not provided', () => {
-            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
-                position: { x: 50, y: 50 },
-            });
-            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
-
-            const waypoints = [...spaceMgr.state.getAll('Waypoint')];
-            expect(waypoints[0].visibleToPilot).to.equal(true);
+    describe('waypoint group visibility to pilot (relay-controlled, group-level — not per-waypoint)', () => {
+        it('an unknown owner/collection pair defaults to visible', () => {
+            expect(spaceMgr.state.isWaypointGroupVisible('ship-1', 'patrol')).to.equal(true);
         });
 
-        it('sets visibleToPilot on created waypoint when provided', () => {
-            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
-                position: { x: 50, y: 50 },
+        it('setWaypointGroupVisibility hides a group for its owner', () => {
+            spaceCommands.setWaypointGroupVisibility.setValue(spaceMgr.state, {
+                owner: 'ship-1',
+                collection: 'patrol',
                 visibleToPilot: false,
             });
             spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
 
-            const waypoints = [...spaceMgr.state.getAll('Waypoint')];
-            expect(waypoints[0].visibleToPilot).to.equal(false);
+            expect(spaceMgr.state.isWaypointGroupVisible('ship-1', 'patrol')).to.equal(false);
         });
-    });
 
-    describe('visibleToPilot via JSON pointer (relay-controlled)', () => {
-        it('is writable via JSON pointer (tweakable surface)', () => {
-            const wp = new Waypoint();
-            wp.id = 'wp-1';
-            wp.position = new Vec2(0, 0);
+        it('setWaypointGroupVisibility(true) restores the default-visible state', () => {
+            spaceCommands.setWaypointGroupVisibility.setValue(spaceMgr.state, {
+                owner: 'ship-1',
+                collection: 'patrol',
+                visibleToPilot: false,
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+            spaceCommands.setWaypointGroupVisibility.setValue(spaceMgr.state, {
+                owner: 'ship-1',
+                collection: 'patrol',
+                visibleToPilot: true,
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
 
-            JsonPointer.create('/visibleToPilot').set(wp, false);
-            expect(wp.visibleToPilot).to.equal(false);
+            expect(spaceMgr.state.isWaypointGroupVisible('ship-1', 'patrol')).to.equal(true);
+        });
+
+        it('is a single value shared by every waypoint in the group, not duplicated per waypoint', () => {
+            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
+                position: { x: 0, y: 0 },
+                owner: 'ship-1',
+                collection: 'patrol',
+            });
+            spaceCommands.createWaypointOrder.setValue(spaceMgr.state, {
+                position: { x: 10, y: 0 },
+                owner: 'ship-1',
+                collection: 'patrol',
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            spaceCommands.setWaypointGroupVisibility.setValue(spaceMgr.state, {
+                owner: 'ship-1',
+                collection: 'patrol',
+                visibleToPilot: false,
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            // a third waypoint added to the same group afterwards picks up the current
+            // group state — there is nothing per-waypoint to have missed
+            expect(spaceMgr.state.isWaypointGroupVisible('ship-1', 'patrol')).to.equal(false);
+            expect([...spaceMgr.state.getAll('Waypoint')]).to.have.length(2);
+        });
+
+        it('the same collection name is independent across different owners', () => {
+            spaceCommands.setWaypointGroupVisibility.setValue(spaceMgr.state, {
+                owner: 'ship-1',
+                collection: 'route',
+                visibleToPilot: false,
+            });
+            spaceMgr.update({ deltaSeconds: 0.1, deltaSecondsAvg: 0.1, totalSeconds: 0.1 });
+
+            expect(spaceMgr.state.isWaypointGroupVisible('ship-1', 'route')).to.equal(false);
+            expect(spaceMgr.state.isWaypointGroupVisible('ship-2', 'route')).to.equal(true);
         });
     });
 

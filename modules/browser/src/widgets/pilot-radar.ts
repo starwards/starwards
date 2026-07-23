@@ -113,8 +113,8 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     );
     contentElements.addChild(blipLayer.renderRoot);
 
-    const isOwnVisibleWaypoint = (w: { owner: string | null; visibleToPilot: boolean }) =>
-        w.owner === shipDriver.id && w.visibleToPilot;
+    const isOwnVisibleWaypoint = (w: { owner: string | null; collection: string }) =>
+        w.owner === shipDriver.id && spaceDriver.state.isWaypointGroupVisible(shipDriver.id, w.collection);
 
     const waypointsInRange = new ObjectsLayer(
         root,

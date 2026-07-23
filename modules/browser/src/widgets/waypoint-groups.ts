@@ -50,9 +50,16 @@ export function drawWaypointGroups(
                 getValue: () => collection,
                 onChange: () => () => undefined,
                 setValue: (newName: string) => {
+                    const wasVisible = spaceDriver.state.isWaypointGroupVisible(shipId, collection);
                     for (const wp of members(collection)) {
                         writeProp<string>(spaceDriver, `/Waypoint/${wp.id}/collection`).setValue(newName);
                     }
+                    // the visibility flag is keyed by (owner, collection) — carry it to the new name
+                    spaceDriver.command(spaceCommands.setWaypointGroupVisibility, {
+                        owner: shipId,
+                        collection: newName,
+                        visibleToPilot: wasVisible,
+                    });
                 },
             },
             { label: 'rename' },
@@ -77,12 +84,14 @@ export function drawWaypointGroups(
         addInputBlade<boolean>(
             folder,
             {
-                getValue: () => members(collection)[0]?.visibleToPilot ?? true,
+                getValue: () => spaceDriver.state.isWaypointGroupVisible(shipId, collection),
                 onChange: () => () => undefined,
                 setValue: (visible: boolean) => {
-                    for (const wp of members(collection)) {
-                        writeProp<boolean>(spaceDriver, `/Waypoint/${wp.id}/visibleToPilot`).setValue(visible);
-                    }
+                    spaceDriver.command(spaceCommands.setWaypointGroupVisibility, {
+                        owner: shipId,
+                        collection,
+                        visibleToPilot: visible,
+                    });
                 },
             },
             { label: 'visible to pilot' },

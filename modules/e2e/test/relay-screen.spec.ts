@@ -222,9 +222,13 @@ test.describe('Relay Screen', () => {
     });
 
     test('groups pane toggles a group’s visibility to the pilot radar', async ({ page }) => {
+        // the flag is group-level (keyed by owner+collection), not duplicated per waypoint
+        const isGroupVisibleToPilot = (collection: string) =>
+            gameDriver.gameManager.spaceManager.state.isWaypointGroupVisible(shipId, collection);
+
         await placeWaypoint(page);
         await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(1);
-        expect(serverWaypoints()[0].visibleToPilot).toBe(true);
+        expect(isGroupVisibleToPilot(serverWaypoints()[0].collection)).toBe(true);
 
         const groupsPane = page.locator('[data-id="Groups"]');
         await expect(groupsPane).toBeVisible();
@@ -236,9 +240,9 @@ test.describe('Relay Screen', () => {
         await expect(visibleRow.locator('input[type="checkbox"]')).toBeChecked();
 
         // like rename/color above, the input doesn't reactively reflect the round-tripped
-        // server value — assert the actual effect (the synced field pilot's radar reads)
+        // server value — assert the actual effect (the synced flag pilot's radar reads)
         await visibleRow.locator('.tp-ckbv_w').click();
-        await expect.poll(() => serverWaypoints()[0]?.visibleToPilot, { timeout: 3000 }).toBe(false);
+        await expect.poll(() => isGroupVisibleToPilot(serverWaypoints()[0].collection), { timeout: 3000 }).toBe(false);
     });
 
     test('dragging a waypoint still moves it on screen after focusing on it', async ({ page }) => {
