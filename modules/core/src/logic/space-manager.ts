@@ -576,6 +576,15 @@ export class SpaceManager implements Updateable {
         }
     }
 
+    public changeShipScanBeam(id: string, direction: number, arc: number, radius: number) {
+        const ship = this.state.getShip(id);
+        if (ship && !ship.destroyed) {
+            ship.scanBeamDirection = direction;
+            ship.scanBeamArc = arc;
+            ship.scanBeamRadius = radius;
+        }
+    }
+
     public resolveObjectOrder(id: string) {
         const order = this.objectOrder.get(id);
         this.objectOrder.delete(id);

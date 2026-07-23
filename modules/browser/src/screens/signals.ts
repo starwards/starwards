@@ -1,7 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, SpaceDriver, Status, createLogger } from '@starwards/core';
-import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { ClientStatus, Destructors, Driver, ShipDriver, SpaceDriver, Status, createLogger } from '@starwards/core';
+import { HPos, VPos, WidgetContainer, wrapRootWidgetContainer } from '../container';
+import { addSliderBlade, createPane } from '../panel';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
@@ -11,6 +12,7 @@ import { SelectionContainer } from '../radar/selection-container';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
+import { readWriteNumberProp } from '../property-wrappers';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
 const { error: logError } = createLogger('screen:signals');
@@ -59,7 +61,22 @@ async function initScreen(driver: Driver, shipId: string) {
         shipDriver,
         shipDriver.systems.filter((s) => s.pointer === '/radar'),
     );
+    drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver);
     wireInput(spaceDriver, shipId, stationTarget, zoomEvents);
+}
+
+function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver) {
+    const panelCleanup = new Destructors();
+    const pane = createPane({ title: 'Scan Beam', container: container.getElement().get(0) });
+    panelCleanup.add(() => pane.dispose());
+    container.on('destroy', panelCleanup.destroy);
+    addSliderBlade(
+        pane,
+        readWriteNumberProp(shipDriver, '/radar/beamDirection'),
+        { label: 'direction' },
+        panelCleanup.add,
+    );
+    addSliderBlade(pane, readWriteNumberProp(shipDriver, '/radar/beamShape'), { label: 'shape' }, panelCleanup.add);
 }
 
 function wireInput(

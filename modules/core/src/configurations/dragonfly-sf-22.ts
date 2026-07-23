@@ -26,6 +26,7 @@ export const dragonflyRadar = {
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
     malfunctionRange: 5_000,
+    beamArea: 28_274_334, // sector area of a 90deg/6,000m beam; at shape=1 this is an ~8deg/20,000m beam
 };
 export const dragonflyChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',

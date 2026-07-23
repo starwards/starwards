@@ -3,6 +3,7 @@ import {
     MAX_SAFE_FLOAT,
     calcArcAngle,
     limitPercisionHard,
+    toDegreesDelta,
     toPositiveDegreesDelta,
     toStrictPositiveDegreesDelta,
 } from './formulas';
@@ -53,6 +54,18 @@ export class FieldOfView {
         this.isDirty = true;
     }
 
+    private get hasBeam(): boolean {
+        return this.object.scanBeamRadius > EPSILON && this.object.scanBeamArc > EPSILON;
+    }
+
+    private get maxRange(): number {
+        return this.hasBeam ? Math.max(this.object.radarRange, this.object.scanBeamRadius) : this.object.radarRange;
+    }
+
+    private isWithinBeam(bearing: number): boolean {
+        return Math.abs(toDegreesDelta(bearing - this.object.scanBeamDirection)) <= this.object.scanBeamArc / 2;
+    }
+
     private *visibleArcs(sortedEndPoints: Array<EndPoint>): Generator<VisibleArc> {
         // to avoid checking for empty data structures, we place a fake null object at the maximum distance at 360 degrees.
         // This serves as a marker for "nothing blocks the view"
@@ -76,7 +89,7 @@ export class FieldOfView {
                     // record previous nearest obstacle before starting new obstacle
                     yield {
                         object: closestObj.visible.object,
-                        distance: Math.min(closestObj.visible.distance, this.object.radarRange),
+                        distance: Math.min(closestObj.visible.distance, this.maxRange),
                         fromAngle: closestObj.fromAngle,
                         toAngle: ep.angle,
                     };
@@ -88,18 +101,21 @@ export class FieldOfView {
 
     private *visibilityEndpoints(): Generator<EndPoint> {
         // assumption: objects don't overlap
-        if (this.object.radarRange > EPSILON) {
-            const queryArea = new Circle(XY.clone(this.object.position), this.object.radarRange + EPSILON);
+        const maxRange = this.maxRange;
+        if (maxRange > EPSILON) {
+            const queryArea = new Circle(XY.clone(this.object.position), maxRange + EPSILON);
             for (const object of this.objects.selectPotentials(queryArea)) {
                 if (this.object !== object && object.isCorporal) {
                     const posDiff = XY.difference(object.position, this.object.position);
                     const distance = XY.lengthOf(posDiff);
-                    if (
-                        object.radius > MIN_RADAR_DETECT_FACTOR * Math.sqrt(distance) &&
-                        distance <= this.object.radarRange + object.radius
-                    ) {
+                    const centerAngle = XY.angleOf(posDiff);
+                    const inOmniRange = distance <= this.object.radarRange + object.radius;
+                    const inBeam =
+                        this.hasBeam &&
+                        distance <= this.object.scanBeamRadius + object.radius &&
+                        this.isWithinBeam(centerAngle);
+                    if (object.radius > MIN_RADAR_DETECT_FACTOR * Math.sqrt(distance) && (inOmniRange || inBeam)) {
                         const arcAngle = calcArcAngle(object.radius * 2, distance);
-                        const centerAngle = XY.angleOf(posDiff);
                         // in radar range
                         const visible = { object, distance };
                         const fromAngle = limitPercisionHard(toPositiveDegreesDelta(centerAngle - arcAngle / 2));

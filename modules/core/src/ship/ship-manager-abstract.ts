@@ -13,8 +13,10 @@ import {
     TargetedStatus,
     XY,
     ammoTypes,
+    calcScanBeamGeometry,
     capToRange,
     lerp,
+    toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
@@ -241,6 +243,7 @@ export abstract class ShipManager implements Updateable {
         this.calcTargetedStatus();
 
         this.updateRadarRange(id);
+        this.updateScanBeam();
         this.signalsJobManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
@@ -261,6 +264,12 @@ export abstract class ShipManager implements Updateable {
             this.spaceManager.changeShipRadarRange(this.spaceObject.id, 0);
         }
         this.state.spaceship.radarRange = this.spaceObject.radarRange;
+    }
+
+    protected updateScanBeam() {
+        const { arc, radius } = calcScanBeamGeometry(this.state.radar.design.beamArea, this.state.radar.beamShape);
+        const direction = toPositiveDegreesDelta(this.spaceObject.angle + this.state.radar.beamDirection);
+        this.spaceManager.changeShipScanBeam(this.spaceObject.id, direction, arc, radius);
     }
 
     private calcRadarRange(totalSeconds: number) {

@@ -21,6 +21,12 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('float32')
     public radarRange = 0;
 
+    // server-side only (not synced): consumed by FieldOfView for beam detection.
+    // Client-facing beam visualization is a deferred follow-up (see issue #1991).
+    public scanBeamDirection = 0;
+    public scanBeamArc = 0;
+    public scanBeamRadius = 0;
+
     @tweakable('string')
     @gameField('string')
     public model: ShipModel | null = null;

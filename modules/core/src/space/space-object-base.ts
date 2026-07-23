@@ -75,6 +75,12 @@ export abstract class SpaceObjectBase extends Schema {
     public readonly faction: Faction = Faction.NONE;
     public readonly radarRange: number = 0;
     /**
+     * directional scan beam (world-relative bearing, degrees), 0 arc/radius = no beam
+     */
+    public readonly scanBeamDirection: number = 0;
+    public readonly scanBeamArc: number = 0;
+    public readonly scanBeamRadius: number = 0;
+    /**
      * how much collision overlap turns into velocity (0-1)
      */
     public readonly collisionElasticity: number = 0.05;
