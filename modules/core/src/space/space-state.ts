@@ -15,7 +15,6 @@ import { Explosion } from './explosion';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
 import { gameField } from '../game-field';
-import { tweakable } from '../tweakable';
 
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
     return !!k;
@@ -37,13 +36,6 @@ export class SpaceState extends Schema {
 
     @gameField({ map: Waypoint })
     private readonly Waypoint = new MapSchema<Waypoint>();
-
-    // hard clamp on any object's speed, enforced at the physics layer after every velocity
-    // mutation (thrust, collision/blast impulse, explosion velocity-inheritance). Sits above the
-    // ship flight-computer's own (soft) maxSpeed and above projectile speeds.
-    @tweakable('number')
-    @gameField('float32')
-    absoluteMaxSpeed = 2000;
 
     // server only, used for commands
     // commands handled by space manager:

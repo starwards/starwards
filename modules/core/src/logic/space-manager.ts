@@ -25,6 +25,11 @@ const { warn: logWarn, error: logError } = createLogger('space-manager');
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
 
+// hard clamp on any object's speed, enforced at the physics layer after every velocity mutation
+// (thrust, collision/blast impulse, explosion velocity-inheritance). Sits above the ship
+// flight-computer's own (soft) maxSpeed and above projectile speeds.
+export const ABSOLUTE_MAX_SPEED = 2000;
+
 export type Damage = {
     id: string;
     amount: number;
@@ -139,9 +144,8 @@ export class SpaceManager implements Updateable {
     }
 
     private clampToAbsoluteMaxSpeed(subject: SpaceObject) {
-        const cap = this.state.absoluteMaxSpeed;
-        if (XY.lengthOf(subject.velocity) > cap) {
-            subject.velocity.normalize(cap);
+        if (XY.lengthOf(subject.velocity) > ABSOLUTE_MAX_SPEED) {
+            subject.velocity.normalize(ABSOLUTE_MAX_SPEED);
         }
     }
 
