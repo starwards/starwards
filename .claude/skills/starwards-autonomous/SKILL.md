@@ -98,7 +98,7 @@ Run `npm run lint:fix` if formatting fails — then re-verify.
 
 **If the gate cannot run at all** (npm blocked or node_modules unavailable): do not push silently. First state the exact blocker; then, only for trivial diffs (a removal, a rename) you have hand-reviewed for correctness and references, you may still open the PR — its body MUST open with "⚠️ Verification gate not run: <blocker>" so CI and the maintainer know to re-verify. For non-trivial diffs, follow Phase 6 (unassign + comment) instead.
 
-**PR evidence uploads:** the pr-media release-asset convention requires working `gh` auth; there is no MCP equivalent for asset uploads. If `gh` auth is unavailable, describe the evidence (what was on screen, which values changed) in the PR body instead — do not burn retries on token workarounds.
+**PR screenshots:** commit them to the branch under `.github/pr-screenshots/issue-NNN/` and embed in the PR body as `![alt](https://github.com/starwards/starwards/blob/<branch>/.github/pr-screenshots/issue-NNN/<name>.png?raw=true)`. This needs only `git push` — it works even when `gh` auth is broken (the pr-media release-asset path requires `gh` and has never succeeded from the sandbox; do not use it, and do not burn retries on token workarounds). If you can't produce screenshots at all, describe the evidence (what was on screen, which values changed) in the PR body.
 
 ## Phase 5: Ship
 
