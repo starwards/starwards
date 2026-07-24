@@ -57,11 +57,17 @@ else
 fi
 
 # gh auth: GH_TOKEN env var is enough; just report status.
+# Check via REST (`gh api user`), NOT `gh auth status` — the cloud sandbox's
+# GitHub proxy blocks GraphQL (except a pinned set of PR-review operations),
+# and `gh auth status` validates over GraphQL, so it reports valid tokens as
+# invalid. Same proxy limit means GraphQL-backed gh porcelain (`gh pr list`,
+# `gh issue list`, `gh pr view`) fails in the sandbox even with good auth —
+# agents should use `gh api` REST endpoints or MCP for those.
 if command -v gh >/dev/null 2>&1; then
-    if gh auth status >/dev/null 2>&1; then
-        note "gh-auth" "OK"
+    if login="$(gh api user -q .login 2>/dev/null)" && [ -n "$login" ]; then
+        note "gh-auth" "OK (REST, as $login; GraphQL porcelain may still fail — use gh api or MCP)"
     else
-        note "gh-auth" "FAIL (set GH_TOKEN; agent should fall back to MCP if unauthenticated)"
+        note "gh-auth" "FAIL (REST check; set GH_TOKEN, or fall back to MCP)"
     fi
 fi
 
