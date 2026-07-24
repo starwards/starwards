@@ -65,7 +65,9 @@ gh api repos/starwards/starwards/issues/NNN/labels -f 'labels[]=agent-in-progres
 
 **Stop exploring when you can describe:** what to change, where, and how to test it.
 
-**Scope narrowing is sanctioned.** If the issue's full ask exceeds the current architecture (e.g. requires per-faction state filtering that doesn't exist), implement the explicitly in-scope subset and flag the narrowing in the PR body. Do not silently narrow, and do not attempt an unscoped architectural change.
+**Definition of done: value in production.** An issue is done only when a player can trigger the new behavior in a real game — which means every issue implicitly includes ALL layers needed to deliver it: game logic, server/command surface, client wiring, UI controls, tests, and docs where conventions changed. Do NOT carve integral layers off into "follow-up" / "leftover" / "future work" notes — a mechanic without its UI, or a UI without its server wiring, delivers nothing and is not done. If you cannot complete the full slice, that is a Phase 6 outcome (unclaim + comment), not a partial PR presented as complete.
+
+**Scope narrowing is sanctioned** in exactly two cases: the issue explicitly marks something out of scope, or the full ask exceeds the current architecture (e.g. requires per-faction state filtering that doesn't exist) — implement the explicitly in-scope subset and flag the narrowing prominently in the PR body. Do not silently narrow, do not attempt an unscoped architectural change, and never use narrowing to skip a layer of an in-scope feature.
 
 ## Phase 3: Develop (TDD required)
 
