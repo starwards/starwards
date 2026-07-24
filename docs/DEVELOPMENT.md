@@ -18,7 +18,7 @@ npm test                   # Verify
 | `npm run build` | Build all modules |
 | `npm run build:core` | Core only |
 | `npm run clean` | Remove artifacts |
-| `npm run pkg` | Native executables (Linux/macOS/Win) |
+| `npm run pkg` | Native executable (Windows) |
 
 **Build order:** core → (server, browser, node-red in parallel), orchestrated by [Turborepo](https://turbo.build) (`turbo.json`). Repeat builds with no changes hit the local cache and complete in well under a second; `npm run build:core` etc. bypass turbo and always build.
 
@@ -74,7 +74,7 @@ node -r ts-node/register/transpile-only modules/server/src/dev.ts
 | `npm run test:format` | Format checking |
 | `npm run lint:fix` | Auto-fix linting |
 
-**Status:** 30+ unit test files, 200+ tests, all passing ✅
+**Status:** run `npm test` for the current suite; CI runs it on every PR.
 
 **See:** [testing/README.md](testing/README.md) for comprehensive guide
 
@@ -161,7 +161,7 @@ dashboard.registerWidget(myWidget(shipDriver));
 npm run clean
 npm ci
 npm run build
-npm run pkg      # → dist/exec/starwards-{linux,macos,win.exe}
+npm run pkg      # → dist/exec/starwards-win.exe (targets in scripts/post-build.js)
 ```
 
 ## Docker
@@ -194,7 +194,7 @@ docker-compose down                    # Stop
 |-------|----------|
 | Webpack fails (Node 17+) | `NODE_OPTIONS=--openssl-legacy-provider npm start` |
 | Core changes not reflected | Ensure `npm run build:watch` running |
-| Port in use | `lsof -ti:2567 \| xargs kill -9` |
+| Port in use | Dev server uses 8080 (override with `PORT`). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 | Type errors after update | `npm run clean && npm ci && npm run build` |
 | Webpack overlay shows `[object Object]` | **Known Issue:** Webpack dev server error overlay displays `[object Object]` instead of actual error message when errors are wrapped. Check browser console (F12) for the actual error message and stack trace. Enhanced logging is configured in `webpack.dev.js:42` |
 

@@ -18,7 +18,7 @@ A scheduled Claude Code remote agent that autonomously picks and resolves GitHub
 1. Queries `label:agent-ready` + `assignee:""` + `state:open`
 2. Filters out issues that already have an open PR referencing them
 3. Picks the oldest remaining issue (FIFO)
-4. Assigns Amir (`amirad`) to claim it
+4. Assigns Amir (`amir-arad`) to claim it
 
 ### Development Flow
 

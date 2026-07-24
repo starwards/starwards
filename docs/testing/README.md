@@ -315,17 +315,18 @@ harness.simulate(30, 100, () => {
 const stateAt5s = harness.getStateAt(5);
 ```
 
-### Test Factories
+### Combat Scenarios
 
-**Location:** `modules/core/test/test-factories.ts`
+**Location:** `modules/core/test/ship-test-harness.ts`
+
+Extra ships come from the harness itself — there is no separate factory module:
 
 ```typescript
-import { createTestShip } from './test-factories';
-
-const ship = createTestShip({ x: 10, y: 10 });
-
-// For combat scenarios, use the ShipTestHarness method:
 const harness = new ShipTestHarness();
+
+harness.shipObj.position = new Vec2(10, 10);
+
+// Additional ships around the harness ship:
 const ships = harness.createCombatScenario({ shipCount: 2 });
 ```
 
@@ -420,6 +421,8 @@ Outside Jest (dev/prod) these channels are always on, so this only affects test 
 
 - **Green e2e jobs can hide first-attempt failures.** `playwright.config.ts` sets `retries: 1` on CI, so a test that fails once and passes on retry is reported "flaky" and the job stays green. Check the "flaky" count in the run summary, not just the job conclusion.
 
-**See:** [UTILITIES.md](UTILITIES.md) for detailed test utilities reference
+**See:** [UTILITIES.md](UTILITIES.md) for detailed test utilities reference,
+[TESTING_STRATEGY.md](TESTING_STRATEGY.md) for the strategic approach and enhancement plan, and
+[UI_TESTING_INSIGHTS.md](UI_TESTING_INSIGHTS.md) for hard-won UI/E2E lessons
 
 **Related:** [DEVELOPMENT.md](../DEVELOPMENT.md) | [PATTERNS.md](../PATTERNS.md)

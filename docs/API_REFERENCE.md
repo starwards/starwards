@@ -39,7 +39,7 @@ last_verified: 2026-07-20
 ```typescript
 @tweakable('boolean') enabled = true;
 @tweakable('number') power = 1.0;
-@tweakable({ type: 'enum', enum: Faction }) faction = Faction.PLAYER;
+@tweakable({ type: 'enum', enum: Faction }) faction = Faction.NONE;
 @tweakable({ type: 'number', number: { min: 0, max: 100 } }) health = 100;
 ```
 

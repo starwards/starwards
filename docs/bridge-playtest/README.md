@@ -51,6 +51,8 @@ mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 - [proposals.md](proposals.md) — candidate gap-closing moves (drafts; not yet decided)
 - [plan.md](plan.md) — task plan for the next milestone (Daniel / user / Claude tracks; links agent-ready GitHub issues)
 - [interdependency-matrix.md](interdependency-matrix.md) — foundational principle: bridge stations must form a rock-paper-scissors web of dependencies + a physical-comms layer; current matrix mapped from code
+- [bridge-dynamics.md](bridge-dynamics.md) — how the bridge behaves in play: pacing, attention load, and cross-station pressure
+- [bridge-dynamics-table.md](bridge-dynamics-table.md) — the same dynamics in tabular form, for scanning
 
 ## Per-station notes
 

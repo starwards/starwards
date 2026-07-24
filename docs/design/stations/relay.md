@@ -1,8 +1,8 @@
 # Relay Station
 
-**Status:** Designed (not yet implemented)
+**Status:** Partial — the station has shipped ([PR #1934](https://github.com/starwards/starwards/pull/1934)): dradis radar, waypoint placement/selection/edit layers, waypoint collections with visibility toggles, and radar layer controls (see `modules/browser/src/screens/relay.ts`). Probes and inter-ship route coordination are not yet built.
 **Crew role:** Communications Officer — manages probes, routes, and inter-ship coordination.
-**Blocked by:** Probe system, Navigator station
+**Blocked by (remaining scope):** Probe system, Navigator station
 **Issues:** [#1211](https://github.com/starwards/starwards/issues/1211), [#1209](https://github.com/starwards/starwards/issues/1209)
 
 ## What it does

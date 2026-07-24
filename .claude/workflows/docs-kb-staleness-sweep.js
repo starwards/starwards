@@ -24,8 +24,7 @@ export const meta = {
 const ROOT = (args && args.root) || 'docs';
 const APPLY = !(args && args.apply === false);
 const TODAY = (args && args.today) || '';
-const EXCLUDE =
-    args && Array.isArray(args.exclude) ? args.exclude : ['docs/archive/', 'docs/reference/pixijs/', '/ee-reference/'];
+const EXCLUDE = args && Array.isArray(args.exclude) ? args.exclude : ['docs/reference/pixijs/', '/ee-reference/'];
 
 const DISCOVERY = {
     type: 'object',

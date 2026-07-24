@@ -539,11 +539,11 @@ enum Faction {
 enum Faction { }
 
 // Enum values: SCREAMING_SNAKE_CASE
-Faction.PLAYER
-Faction.ENEMY
+PowerLevel.SHUTDOWN
+PowerLevel.NORMAL
 
 // Variable: camelCase
-let currentFaction: Faction = Faction.PLAYER;
+let currentPower: PowerLevel = PowerLevel.NORMAL;
 ```
 
 ---

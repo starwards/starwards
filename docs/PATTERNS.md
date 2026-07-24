@@ -290,8 +290,9 @@ describe('SpaceManager', () => {
 
 ### Harness
 ```typescript
-import { createTestShip } from './test-factories';
-const ship = createTestShip({ position: new Vec2(10, 10) });
+import { ShipTestHarness } from './ship-test-harness';
+const harness = new ShipTestHarness();
+harness.shipObj.position = new Vec2(10, 10);
 ```
 
 ## File Organization

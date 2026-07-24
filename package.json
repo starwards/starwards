@@ -36,6 +36,7 @@
         "build": "turbo run build",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
+        "lint:docs": "node scripts/lint-docs.mjs",
         "xstate-typegen": "xstate typegen \"./modules/core/src/**/*.ts?(x)\"",
         "knip": "knip",
         "prettier": "prettier -c **/*.{js,ts,jsx,tsx}",

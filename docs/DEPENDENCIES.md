@@ -66,6 +66,8 @@ last_verified: 2026-07-04
 | Component | Version | Rationale |
 |-----------|---------|-----------|
 | open-stage-control | **1.30.4** (exact) | Not on npm; downloaded as `_node.zip` in `docker/osc/Dockerfile`. Pin via `ARG OSC_VERSION` in that file. Not available via Docker Hub image. |
+| eclipse-mosquitto | **1.6.10** (exact) | MQTT broker (port 1883). Image tag pinned in `docker/docker-compose.yml`. |
+| nodered/node-red | **3.0.2** (exact) | Node-RED runtime (port 1880). Image tag pinned in `docker/docker-compose.yml`. |
 
 ## Known Issues
 

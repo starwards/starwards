@@ -19,7 +19,10 @@ This folder holds **code-grounded design reference**. Strategic planning (roadma
 **Going deeper?** Browse by area:
 - [Stations](stations/) — crew position specs and status
 - [Mechanics](mechanics/) — game systems and physics
+- [Metrics](metrics/) — framework for quantifying bridge dynamics and comparing against EmptyEpsilon
 - [Infrastructure](infrastructure/) — deployment, networking, scenarios
 - [Decisions](decisions/) — key product decisions and their rationale
+- [UI specs](ui-specs/PANEL_SPECIFICATIONS.md) — lobby screen, panel, and visual-token specifications
+- [Bridge playtest](../bridge-playtest/README.md) — current playtest cycle: session notes, findings, and the decisions/proposals inflow
 
 **External resources:** See [Links](links.md) for GitHub issues, dev blog, lore site, and more.

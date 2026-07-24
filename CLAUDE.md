@@ -201,6 +201,7 @@ Node.js >= 22.11.0, npm >= 10.9.0
 
 **Start here (agents):**
 
+- [`docs/README.md`](docs/README.md) - Documentation index: every folder, its purpose, and whether it is Live/Reference/Historical
 - [`docs/LLM_CONTEXT.md`](docs/LLM_CONTEXT.md) - Quick reference: patterns, gotchas, task→docs routing
 - [`docs/AUTHORING.md`](docs/AUTHORING.md) - Rules for writing drift-resistant docs (read before editing docs)
 
@@ -226,6 +227,7 @@ Node.js >= 22.11.0, npm >= 10.9.0
 **Technical:**
 
 - [`docs/TECHNICAL_REFERENCE.md`](docs/TECHNICAL_REFERENCE.md) - @gameField, JSON Pointer, Input Config
+- [`docs/json-ptr.md`](docs/json-ptr.md) - JSON Pointer addressing scheme (referenced from ESLint config and core source)
 - [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Endpoints, commands, events
 - [`docs/SUBSYSTEMS.md`](docs/SUBSYSTEMS.md) - Ship systems, formulas, bot AI
 - [`docs/PHYSICS.md`](docs/PHYSICS.md) - Physics engine, collision, damage
