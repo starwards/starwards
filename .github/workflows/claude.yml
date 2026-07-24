@@ -30,6 +30,12 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
@@ -40,11 +46,8 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
-          # prompt: 'Update the pull request description to include a summary of changes.'
-
-          # Optional: Add claude_args to customize behavior and configuration
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
+          # The runner is ephemeral and the token scopes bound the blast radius, so
+          # grant the full dev toolchain — without it Claude cannot install deps or
+          # run the verification gate, and its commits land unverified.
+          claude_args: '--allowedTools "Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git:*),Bash(gh:*)"'
 
