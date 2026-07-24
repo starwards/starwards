@@ -84,6 +84,8 @@ async function loadScene() {
         return;
     }
 
+    document.title = `${currentSceneName} — Starwards Gallery`;
+
     try {
         const app = await scene.setup(container);
         window.__PIXI_SCENE__ = scene;
