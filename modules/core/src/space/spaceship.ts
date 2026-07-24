@@ -21,8 +21,11 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('float32')
     public radarRange = 0;
 
-    // server-side only (not synced): consumed by FieldOfView for beam detection.
-    // Client-facing beam visualization is a deferred follow-up (see issue #1991).
+    // Directional scan beam geometry (scanBeamDirection is a world bearing in degrees),
+    // computed each tick by the ship manager from the radar's beamDirection/beamShape
+    // controls and consumed by FieldOfView for detection. Not synced: the client reconstructs
+    // the identical sector from the synced radar controls via calcScanBeamGeometry, so these
+    // stay off the wire to keep the schema reflection within the handshake buffer.
     public scanBeamDirection = 0;
     public scanBeamArc = 0;
     public scanBeamRadius = 0;

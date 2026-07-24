@@ -1,6 +1,6 @@
 import { Graphics, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { green, radarFogOfWar, radarVisibleBg, white } from '../colors';
+import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, calcScanBeamGeometry, degToRad } from '@starwards/core';
+import { green, radarFogOfWar, radarVisibleBg, selectionColor, white } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import $ from 'jquery';
@@ -133,6 +133,35 @@ export async function drawLongRangeRadar(
     fovGraphics.mask = circleMask;
     root.stage.addChild(fovGraphics);
 
+    // Own-ship directional scan beam overlay
+    let ownShip: Spaceship | undefined;
+    const beamGraphics = new Graphics();
+    beamGraphics.mask = circleMask;
+    root.stage.addChild(beamGraphics);
+
+    function drawScanBeam() {
+        beamGraphics.clear();
+        if (!ownShip) {
+            return;
+        }
+        // Reconstruct the same sector the server derives for detection, from synced radar controls.
+        const radar = shipDriver.state.radar;
+        const { arc, radius } = calcScanBeamGeometry(radar.design.beamArea, radar.beamShape);
+        if (radius <= 0 || arc <= 0) {
+            return;
+        }
+        const worldDirection = ownShip.angle + radar.beamDirection;
+        const center = root.worldToScreen(ownShip.position);
+        const radiusPixels = root.metersToPixles(radius);
+        const fromAngle = degToRad * (worldDirection - arc / 2 - root.camera.angle);
+        const toAngle = degToRad * (worldDirection + arc / 2 - root.camera.angle);
+        beamGraphics.moveTo(center.x, center.y);
+        beamGraphics.arc(center.x, center.y, radiusPixels, fromAngle, toAngle);
+        beamGraphics.lineTo(center.x, center.y);
+        beamGraphics.fill({ color: selectionColor, alpha: 0.12 });
+        beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.5 });
+    }
+
     root.ticker.add(
         () => {
             rangeFilter.update();
@@ -141,6 +170,7 @@ export async function drawLongRangeRadar(
                 fov.draw(root, fovGraphics);
                 fovGraphics.fill({ color: radarVisibleBg, alpha: 1 });
             }
+            drawScanBeam();
         },
         null,
         UPDATE_PRIORITY.LOW,
@@ -218,9 +248,10 @@ export async function drawLongRangeRadar(
     updateRange();
     container.on('resize', updateRange);
 
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true),
-    );
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        ownShip = tracked;
+        camera.followSpaceObject(tracked, spaceDriver.events, true);
+    });
 
     return root;
 }

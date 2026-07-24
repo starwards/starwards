@@ -14,6 +14,7 @@ import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { readWriteNumberProp } from '../property-wrappers';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { shipInputConfig } from '../input/input-config';
 
 const { error: logError } = createLogger('screen:signals');
 
@@ -62,7 +63,7 @@ async function initScreen(driver: Driver, shipId: string) {
         shipDriver.systems.filter((s) => s.pointer === '/radar'),
     );
     drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver);
-    wireInput(spaceDriver, shipId, stationTarget, zoomEvents);
+    wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents);
 }
 
 function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver) {
@@ -81,6 +82,7 @@ function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver
 
 function wireInput(
     spaceDriver: SpaceDriver,
+    shipDriver: ShipDriver,
     shipId: string,
     stationTarget: SelectionContainer,
     zoomEvents: EventEmitter<ZoomEvent>,
@@ -120,6 +122,16 @@ function wireInput(
     );
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
+    input.addRangeAction(
+        readWriteNumberProp(shipDriver, '/radar/beamDirection'),
+        shipInputConfig.scanBeamDirection,
+        'Beam Direction',
+    );
+    input.addRangeAction(
+        readWriteNumberProp(shipDriver, '/radar/beamShape'),
+        shipInputConfig.scanBeamShape,
+        'Beam Shape',
+    );
     input.init();
     setupHotkeyHelp(input);
 }

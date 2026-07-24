@@ -72,6 +72,8 @@ export interface ShipInputConfig {
     strafeCommand?: RangeConfig;
     boostCommand?: RangeConfig;
     shellRange?: RangeConfig;
+    scanBeamDirection?: RangeConfig;
+    scanBeamShape?: RangeConfig;
 }
 
 export const shipInputConfig = {
@@ -106,6 +108,14 @@ export const shipInputConfig = {
         buttons: { center: new GamepadButtonConfig(0, 14) },
     },
     resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
+    scanBeamDirection: {
+        axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
+        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 5),
+    },
+    scanBeamShape: {
+        axis: new GamepadAxisConfig(0, 1, [-0.1, 0.1], true),
+        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
+    },
 };
 interface GmInputConfig {
     rotate?: KeysStepsConfig;
