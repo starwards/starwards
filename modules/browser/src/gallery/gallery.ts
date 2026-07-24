@@ -28,7 +28,7 @@ function buildSceneSelector() {
 
     const pane = createPane({ title: 'Gallery', container: panelContainer });
 
-    const sceneState = { scene: currentSceneName || sceneNames[0] };
+    const sceneState = { scene: currentSceneName && scenes[currentSceneName] ? currentSceneName : sceneNames[0] };
     const sceneList = pane.addBlade({
         view: 'list',
         label: 'Scene',

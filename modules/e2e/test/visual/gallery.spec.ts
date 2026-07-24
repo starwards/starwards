@@ -110,4 +110,15 @@ test.describe('Visual Gallery', () => {
         await page.goto(`${gameDriver.baseURL}/gallery.html?scene=nonexistent-scene`);
         await expect(page).toHaveTitle('Starwards Visual Gallery');
     });
+
+    test('scene selector falls back to first scene for an unknown scene param', async ({ page }) => {
+        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=nonexistent-scene`);
+
+        const error = page.locator('#error');
+        await expect(error).toBeVisible();
+        await expect(error).toContainText('Unknown scene');
+
+        const sceneSelect = page.locator('[data-id="Gallery"] select');
+        await expect(sceneSelect).toHaveValue('ammo-empty');
+    });
 });
