@@ -34,6 +34,8 @@ Do not retry MCP auth more than once.
 
 ## Phase 1: Issue Selection
 
+**Check the trigger context first.** If the run was fired by a GitHub webhook, the prompt carries a `<github-trigger-context>` block naming the exact issue (`Event: issues.labeled`, `Issue: #NNN`). That issue is your assignment — skip the scan below and just verify it is still available (no assignee, no `agent-in-progress` label, no open `agent/issue-NNN` PR, no claim comment newer than 24h). Scan only when there is no trigger issue or the named issue turns out to be taken.
+
 Use **two REST calls** to find an unclaimed issue with no open PR (`gh issue list`/`gh pr list` are GraphQL-backed and fail behind the sandbox proxy — use `gh api`, or the MCP equivalents if REST auth failed):
 
 ```bash
