@@ -1,10 +1,10 @@
-import { Destructors, SpaceDriver, XY, spaceCommands } from '@starwards/core';
+import { Destructors, ShipDriver, SpaceDriver, XY, spaceCommands } from '@starwards/core';
 import { addButton, addColorBlade, addInputBlade, createPane } from '../panel';
 import { groupDisplayName, ownWaypoints } from '../radar/waypoint-group-layers';
+import { readProp, writeProp } from '../property-wrappers';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
-import { writeProp } from '../property-wrappers';
 
 export type WaypointGroupsPanel = {
     addGroup: (collection: string) => void;
@@ -13,12 +13,13 @@ export type WaypointGroupsPanel = {
 
 /**
  * Group-level operations for the ship's waypoint groups (the waypoint `collection` field):
- * rename, recolor, select all, focus (center the camera on the group) and delete — each
- * applied to every waypoint in the group.
+ * rename, recolor, select all, focus (center the camera on the group), delete, and choosing
+ * which single group is shown on the pilot radar — each applied to every waypoint in the group.
  */
 export function drawWaypointGroups(
     container: WidgetContainer,
     spaceDriver: SpaceDriver,
+    shipDriver: ShipDriver,
     shipId: string,
     selection: SelectionContainer,
     focus: (position: XY) => void,
@@ -28,6 +29,10 @@ export function drawWaypointGroups(
 
     const pane = createPane({ title: 'Groups', container: container.getElement().get(0) });
     cleanup.add(() => pane.dispose());
+
+    // shared across every group's "visible to pilot" blade so selecting one reactively
+    // unchecks the others — the group panel's only exclusive (radio-style) control
+    const visiblePilotCollection = readProp<string | null>(shipDriver, '/visiblePilotWaypointCollection');
 
     const folders = new Map<string, Destructors>();
 
@@ -50,16 +55,14 @@ export function drawWaypointGroups(
                 getValue: () => collection,
                 onChange: () => () => undefined,
                 setValue: (newName: string) => {
-                    const wasVisible = spaceDriver.state.isWaypointGroupVisible(shipId, collection);
+                    const wasVisible = visiblePilotCollection.getValue() === collection;
                     for (const wp of members(collection)) {
                         writeProp<string>(spaceDriver, `/Waypoint/${wp.id}/collection`).setValue(newName);
                     }
-                    // the visibility flag is keyed by (owner, collection) — carry it to the new name
-                    spaceDriver.command(spaceCommands.setWaypointGroupVisibility, {
-                        owner: shipId,
-                        collection: newName,
-                        visibleToPilot: wasVisible,
-                    });
+                    // the visible-to-pilot selection is by name — carry it to the new name
+                    if (wasVisible) {
+                        writeProp<string | null>(shipDriver, '/visiblePilotWaypointCollection').setValue(newName);
+                    }
                 },
             },
             { label: 'rename' },
@@ -84,14 +87,13 @@ export function drawWaypointGroups(
         addInputBlade<boolean>(
             folder,
             {
-                getValue: () => spaceDriver.state.isWaypointGroupVisible(shipId, collection),
-                onChange: () => () => undefined,
+                // only one collection is visible to the pilot at a time
+                getValue: () => visiblePilotCollection.getValue() === collection,
+                onChange: visiblePilotCollection.onChange,
                 setValue: (visible: boolean) => {
-                    spaceDriver.command(spaceCommands.setWaypointGroupVisibility, {
-                        owner: shipId,
-                        collection,
-                        visibleToPilot: visible,
-                    });
+                    writeProp<string | null>(shipDriver, '/visiblePilotWaypointCollection').setValue(
+                        visible ? collection : null,
+                    );
                 },
             },
             { label: 'visible to pilot' },

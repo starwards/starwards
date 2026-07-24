@@ -6,7 +6,6 @@ import {
     CreateExplosionOrderArg,
     CreateSpaceshipOrderArg,
     CreateWaypointOrderArg,
-    SetWaypointGroupVisibilityArg,
 } from './space-commands';
 import { MapSchema, Schema } from '@colyseus/schema';
 import { SpaceObject, SpaceObjects, Waypoint } from '.';
@@ -19,14 +18,6 @@ import { gameField } from '../game-field';
 
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
     return !!k;
-}
-
-/**
- * Waypoint groups (the `collection` field) aren't a first-class entity — this key
- * disambiguates same-named collections belonging to different ships.
- */
-export function waypointGroupKey(owner: string, collection: string): string {
-    return `${owner}:${collection}`;
 }
 export class SpaceState extends Schema {
     // the names of each map is the type of the objects it contains
@@ -46,28 +37,6 @@ export class SpaceState extends Schema {
     @gameField({ map: Waypoint })
     private readonly Waypoint = new MapSchema<Waypoint>();
 
-    /**
-     * Per-(owner, collection) group-level flag, keyed by `waypointGroupKey`: whether the
-     * group is shown on the owner's pilot radar. Absent key = visible (the default); only
-     * explicitly hidden groups get an entry. Set from the relay station via
-     * `setWaypointGroupVisibility`, read by the pilot radar — never duplicated per waypoint.
-     */
-    @gameField({ map: 'boolean' })
-    private readonly waypointGroupVisibility = new MapSchema<boolean>();
-
-    public isWaypointGroupVisible(owner: string, collection: string): boolean {
-        return this.waypointGroupVisibility.get(waypointGroupKey(owner, collection)) !== false;
-    }
-
-    public setWaypointGroupVisible(owner: string, collection: string, visible: boolean): void {
-        const key = waypointGroupKey(owner, collection);
-        if (visible) {
-            this.waypointGroupVisibility.delete(key);
-        } else {
-            this.waypointGroupVisibility.set(key, false);
-        }
-    }
-
     // server only, used for commands
     // commands handled by space manager:
     public moveCommands = Array.of<BulkMoveArg>();
@@ -75,7 +44,6 @@ export class SpaceState extends Schema {
     public createAsteroidCommands = Array.of<CreateAsteroidOrderArg>();
     public createExplosionCommands = Array.of<CreateExplosionOrderArg>();
     public createWaypointCommands = Array.of<CreateWaypointOrderArg>();
-    public setWaypointGroupVisibilityCommands = Array.of<SetWaypointGroupVisibilityArg>();
     // commands handled by game manager:
     public createSpaceshipCommands = Array.of<CreateSpaceshipOrderArg>();
     public destroySpaceshipCommands = Array.of<string>();

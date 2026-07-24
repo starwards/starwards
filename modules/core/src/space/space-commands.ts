@@ -115,18 +115,6 @@ export const createWaypointOrder = {
     },
 };
 
-export type SetWaypointGroupVisibilityArg = {
-    owner: string;
-    collection: string;
-    visibleToPilot: boolean;
-};
-export const setWaypointGroupVisibility = {
-    cmdName: 'setWaypointGroupVisibility',
-    setValue: (state: SpaceState, value: SetWaypointGroupVisibilityArg) => {
-        state.setWaypointGroupVisibilityCommands.push(value);
-    },
-};
-
 export type SetScanLevelArg = {
     targetId: string;
     faction: Faction;

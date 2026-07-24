@@ -221,28 +221,50 @@ test.describe('Relay Screen', () => {
         await expect(groupsPane.getByText('waypoints: gamma')).toBeHidden();
     });
 
-    test('groups pane toggles a group’s visibility to the pilot radar', async ({ page }) => {
-        // the flag is group-level (keyed by owner+collection), not duplicated per waypoint
-        const isGroupVisibleToPilot = (collection: string) =>
-            gameDriver.gameManager.spaceManager.state.isWaypointGroupVisible(shipId, collection);
+    test('groups pane selects which single group is visible to the pilot radar', async ({ page }) => {
+        const shipState = gameDriver.gameManager.scriptApi.getShip(shipId)?.state;
+        if (!shipState) throw new Error('ship state not found');
 
+        const settingsPane = page.locator('[data-id="New Waypoint"]');
+        await expect(settingsPane).toBeVisible({ timeout: 10000 });
+        const groupInput = settingsPane.locator('input[type="text"]').first();
+
+        await groupInput.fill('course-a');
+        await groupInput.press('Enter');
+        await groupInput.blur(); // hotkeys are suppressed while a text input has focus
         await placeWaypoint(page);
         await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(1);
-        expect(isGroupVisibleToPilot(serverWaypoints()[0].collection)).toBe(true);
+
+        // new/unknown collections default to invisible — nothing is shown until relay picks one
+        expect(shipState.visiblePilotWaypointCollection).toBe(null);
 
         const groupsPane = page.locator('[data-id="Groups"]');
         await expect(groupsPane).toBeVisible();
-        await groupsPane.getByText('waypoints').first().click(); // expand the folder
+        await groupsPane.getByText('waypoints: course-a').click(); // expand the folder
 
-        const visibleRow = groupsPane
-            .locator('.tp-lblv')
-            .filter({ has: page.locator('.tp-lblv_l', { hasText: /^visible to pilot$/ }) });
-        await expect(visibleRow.locator('input[type="checkbox"]')).toBeChecked();
+        const visibleToggle = (name: string) =>
+            groupsPane
+                .locator('.tp-fldv')
+                .filter({ has: page.locator('.tp-fldv_t', { hasText: name }) })
+                .locator('.tp-lblv')
+                .filter({ has: page.locator('.tp-lblv_l', { hasText: /^visible to pilot$/ }) });
+        await expect(visibleToggle('waypoints: course-a').locator('input[type="checkbox"]')).not.toBeChecked();
 
-        // like rename/color above, the input doesn't reactively reflect the round-tripped
-        // server value — assert the actual effect (the synced flag pilot's radar reads)
-        await visibleRow.locator('.tp-ckbv_w').click();
-        await expect.poll(() => isGroupVisibleToPilot(serverWaypoints()[0].collection), { timeout: 3000 }).toBe(false);
+        await visibleToggle('waypoints: course-a').locator('.tp-ckbv_w').click();
+        await expect.poll(() => shipState.visiblePilotWaypointCollection, { timeout: 3000 }).toBe('course-a');
+
+        // a second, differently-named group appears independently — selecting it deselects
+        // the first, since only one collection is visible to the pilot at a time
+        await groupInput.fill('course-b');
+        await groupInput.press('Enter');
+        await groupInput.blur(); // hotkeys are suppressed while a text input has focus
+        await placeWaypoint(page);
+        await expect.poll(() => serverWaypoints().length, { timeout: 3000 }).toBe(2);
+
+        await groupsPane.getByText('waypoints: course-b').click(); // expand the new folder
+        await visibleToggle('waypoints: course-b').locator('.tp-ckbv_w').click();
+
+        await expect.poll(() => shipState.visiblePilotWaypointCollection, { timeout: 3000 }).toBe('course-b');
     });
 
     test('dragging a waypoint still moves it on screen after focusing on it', async ({ page }) => {

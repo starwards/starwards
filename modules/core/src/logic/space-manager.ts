@@ -209,10 +209,6 @@ export class SpaceManager implements Updateable {
             this.insert(waypoint);
         }
         this.state.createWaypointCommands = [];
-        for (const cmd of this.state.setWaypointGroupVisibilityCommands) {
-            this.state.setWaypointGroupVisible(cmd.owner, cmd.collection, cmd.visibleToPilot);
-        }
-        this.state.setWaypointGroupVisibilityCommands = [];
         this.handleToInsert();
         for (const moveCommand of this.state.moveCommands) {
             this.handleMoveCommand(moveCommand.ids, moveCommand.delta);

@@ -87,6 +87,15 @@ export class ShipState extends Schema {
     @gameField('string')
     currentTask = '';
 
+    /**
+     * Which of this ship's own waypoint collections (the `collection` field) is shown on the
+     * pilot station radar — only one at a time. Set from the relay station; `null` means none
+     * (new/unknown collections default to invisible, unlike relay's own always-shown view).
+     */
+    @tweakable('string')
+    @gameField('string')
+    visiblePilotWaypointCollection: string | null = null;
+
     @gameField([Thruster])
     thrusters!: ArraySchema<Thruster>;
 

@@ -73,6 +73,7 @@ async function initScreen(driver: Driver, shipId: string) {
     const groupsPanel = drawWaypointGroups(
         container.subContainer(VPos.BOTTOM, HPos.RIGHT),
         spaceDriver,
+        shipDriver,
         shipId,
         waypointSelection,
         focus,

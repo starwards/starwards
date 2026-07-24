@@ -113,8 +113,10 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     );
     contentElements.addChild(blipLayer.renderRoot);
 
+    // only one collection is shown at a time, chosen from the relay station; unknown/new
+    // collections (and the default null) are invisible until relay explicitly picks one
     const isOwnVisibleWaypoint = (w: { owner: string | null; collection: string }) =>
-        w.owner === shipDriver.id && spaceDriver.state.isWaypointGroupVisible(shipDriver.id, w.collection);
+        w.owner === shipDriver.id && w.collection === shipDriver.state.visiblePilotWaypointCollection;
 
     const waypointsInRange = new ObjectsLayer(
         root,

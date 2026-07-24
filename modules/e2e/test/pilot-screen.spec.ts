@@ -53,27 +53,24 @@ test.describe('Pilot Screen', () => {
         // Heading works because angle is set directly without physics interference
     });
 
-    test('own waypoints sync to the pilot radar regardless of group visibility to pilot', async ({ page }) => {
-        // Visibility is a group-level flag controlled from the relay station (see
+    test('own waypoints sync to the pilot radar regardless of which collection is selected', async ({ page }) => {
+        // Selection is a single ship-level field controlled from the relay station (see
         // relay-screen.spec.ts); the pilot radar just has to render either state without error.
         await expect(page.locator('[data-id="Pilot Radar"]')).toBeVisible({ timeout: 10000 });
+        const shipState = gameDriver.gameManager.scriptApi.getShip(shipId)?.state;
+        if (!shipState) throw new Error('ship state not found');
 
         addOwnWaypoint('alpha');
-        await expect.poll(() => serverWaypoints().find((w) => w.collection === 'alpha')).toBeTruthy();
-        expect(gameDriver.gameManager.spaceManager.state.isWaypointGroupVisible(shipId, 'alpha')).toBe(true);
+        addOwnWaypoint('beta');
+        await expect.poll(() => serverWaypoints().length).toBe(2);
 
-        addOwnWaypoint('hidden-from-pilot');
-        await expect.poll(() => serverWaypoints().find((w) => w.collection === 'hidden-from-pilot')).toBeTruthy();
-        spaceCommands.setWaypointGroupVisibility.setValue(gameDriver.gameManager.spaceManager.state, {
-            owner: shipId,
-            collection: 'hidden-from-pilot',
-            visibleToPilot: false,
-        });
-        await expect
-            .poll(() => gameDriver.gameManager.spaceManager.state.isWaypointGroupVisible(shipId, 'hidden-from-pilot'))
-            .toBe(false);
+        // defaults to no collection selected (nothing visible to the pilot)
+        expect(shipState.visiblePilotWaypointCollection).toBe(null);
 
-        // give the radar a couple of render ticks to process both waypoints
+        shipState.visiblePilotWaypointCollection = 'alpha';
+        await page.waitForTimeout(200);
+
+        shipState.visiblePilotWaypointCollection = 'beta';
         await page.waitForTimeout(200);
     });
 });
