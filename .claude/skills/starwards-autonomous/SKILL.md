@@ -18,7 +18,7 @@ You are running **unattended**. No human will read your narration. Execute direc
 
 **`gh` CLI is the primary GitHub interface** — but in the cloud sandbox, the GitHub proxy blocks GraphQL (except a pinned set of PR-review operations). Consequences:
 
-- **Never trust `gh auth status`** — it validates over GraphQL and falsely reports valid tokens as invalid. Verify auth with a REST call instead: `gh api user -q .login`.
+- **Never trust `gh auth status`** — it validates over GraphQL and falsely reports valid tokens as invalid. Verify access with a repo-scoped REST call: `gh api repos/starwards/starwards -q .full_name`. (A successful `gh api user` does NOT guarantee repo access — user auth can pass while every repo call 403s until the Claude GitHub App is connected for the org.)
 - **GraphQL-backed porcelain fails even with valid auth**: `gh pr list`, `gh issue list`, `gh pr view` and similar. Use `gh api` REST endpoints (e.g. `gh api 'repos/starwards/starwards/issues?labels=agent-ready&state=open'`) or the GitHub MCP tools for reads.
 - REST-backed operations (`gh api ...`, and locally `git push`) work normally.
 

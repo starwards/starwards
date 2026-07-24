@@ -63,11 +63,16 @@ fi
 # invalid. Same proxy limit means GraphQL-backed gh porcelain (`gh pr list`,
 # `gh issue list`, `gh pr view`) fails in the sandbox even with good auth —
 # agents should use `gh api` REST endpoints or MCP for those.
+# Probe a REPO endpoint, not /user: user-level auth can succeed while every
+# repo-scoped call 403s ("GitHub access is not enabled for this session")
+# until the Claude GitHub App is connected for the org.
 if command -v gh >/dev/null 2>&1; then
-    if login="$(gh api user -q .login 2>/dev/null)" && [ -n "$login" ]; then
-        note "gh-auth" "OK (REST, as $login; GraphQL porcelain may still fail — use gh api or MCP)"
+    if repo_name="$(gh api repos/starwards/starwards -q .full_name 2>/dev/null)" && [ -n "$repo_name" ]; then
+        note "gh-auth" "OK (REST repo access; GraphQL porcelain may still fail — use gh api or MCP)"
+    elif login="$(gh api user -q .login 2>/dev/null)" && [ -n "$login" ]; then
+        note "gh-auth" "PARTIAL (user auth OK as $login but repo REST blocked — use MCP; org admin must connect the Claude GitHub App)"
     else
-        note "gh-auth" "FAIL (REST check; set GH_TOKEN, or fall back to MCP)"
+        note "gh-auth" "FAIL (REST check; fall back to MCP)"
     fi
 fi
 
