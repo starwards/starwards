@@ -1,4 +1,4 @@
-import { Asteroid, FieldOfView, Projectile, Spaceship, SpatialIndex, Vec2 } from '../src';
+import { Asteroid, FieldOfView, Projectile, RadarSector, Spaceship, SpatialIndex, Vec2 } from '../src';
 
 import { expect } from 'chai';
 
@@ -157,6 +157,108 @@ describe('FieldOfView', () => {
             const fov = new FieldOfView(index, scanner);
 
             expect(findObject(fov, 'asteroid')).to.equal(false);
+        });
+    });
+
+    describe('FieldOfView — multi-radar sectors', () => {
+        function makeSector(direction: number, arc: number, range: number) {
+            const sector = new RadarSector();
+            sector.direction = direction;
+            sector.arc = arc;
+            sector.range = range;
+            return sector;
+        }
+
+        function makeScanner(...sectors: RadarSector[]) {
+            const ship = new Spaceship();
+            ship.id = 'scanner';
+            ship.position = new Vec2(0, 0);
+            for (const sector of sectors) {
+                ship.radarSectors.push(sector);
+            }
+            return ship;
+        }
+
+        function makeAsteroid(x: number, y: number, id = 'asteroid', radius = 50) {
+            const a = new Asteroid();
+            a.id = id;
+            a.position = new Vec2(x, y);
+            a.radius = radius;
+            return a;
+        }
+
+        function findObject(fov: FieldOfView, id: string) {
+            return fov.view.some((arc) => arc.object?.id === id);
+        }
+
+        // Distance of the free-space (object === null) arc that covers a given world bearing,
+        // or undefined when no free-space arc covers that bearing.
+        function freeSpaceDistanceAt(fov: FieldOfView, bearing: number): number | undefined {
+            const b = ((bearing % 360) + 360) % 360;
+            const arc = fov.view.find((a) => a.object === null && a.fromAngle <= b && b < a.toAngle);
+            return arc?.distance;
+        }
+
+        it('UNION detection: an object is visible if within ANY sector', () => {
+            const omni = () => makeSector(0, 360, 1000);
+            const beam = () => makeSector(0, 60, 5000);
+
+            // only in omni: bearing 90 degrees, distance 800
+            const inOmni = makeAsteroid(0, 800);
+            const fovOmni = new FieldOfView(makeSpatialIndex([inOmni]), makeScanner(omni(), beam()));
+            expect(findObject(fovOmni, 'asteroid')).to.equal(true);
+
+            // only in beam: bearing 0 degrees, distance 3000 (beyond the 1000 omni range)
+            const inBeam = makeAsteroid(3000, 0);
+            const fovBeam = new FieldOfView(makeSpatialIndex([inBeam]), makeScanner(omni(), beam()));
+            expect(findObject(fovBeam, 'asteroid')).to.equal(true);
+
+            // outside all sectors: bearing 90 degrees, distance 3000
+            const outside = makeAsteroid(0, 3000);
+            const fovOutside = new FieldOfView(makeSpatialIndex([outside]), makeScanner(omni(), beam()));
+            expect(findObject(fovOutside, 'asteroid')).to.equal(false);
+        });
+
+        it('PER-ARC free-space boundary: the null-object arc range follows the covering sector', () => {
+            const scanner = makeScanner(makeSector(0, 360, 1000), makeSector(0, 60, 5000));
+            const fov = new FieldOfView(makeSpatialIndex([scanner]), scanner);
+
+            // bearings inside the beam (within +-30 of direction 0) reach the beam range
+            expect(freeSpaceDistanceAt(fov, 15)).to.be.closeTo(5000, 1);
+            expect(freeSpaceDistanceAt(fov, 345)).to.be.closeTo(5000, 1);
+
+            // bearings outside the beam only reach the omni range
+            expect(freeSpaceDistanceAt(fov, 180)).to.be.closeTo(1000, 1);
+        });
+
+        it('OCCLUSION preserved inside a sector: a near object shadows a far one at the same bearing', () => {
+            const scanner = makeScanner(makeSector(0, 360, 6000));
+            const near = makeAsteroid(1000, 0, 'near');
+            const far = makeAsteroid(2000, 0, 'far');
+            const fov = new FieldOfView(makeSpatialIndex([scanner, near, far]), scanner);
+
+            expect(findObject(fov, 'near')).to.equal(true);
+            expect(findObject(fov, 'far')).to.equal(false);
+        });
+
+        it('OMNI-DEAD + BEAM-ALIVE: only beam bearings see, others are blind', () => {
+            const scanner = makeScanner(makeSector(0, 60, 5000));
+
+            // bearing 180, distance 500: no sector covers this bearing
+            const behind = makeAsteroid(-500, 0, 'behind');
+            const fovBehind = new FieldOfView(makeSpatialIndex([behind]), makeScanner(makeSector(0, 60, 5000)));
+            expect(findObject(fovBehind, 'behind')).to.equal(false);
+
+            // bearing 0, distance 3000: inside the beam sector
+            const ahead = makeAsteroid(3000, 0, 'ahead');
+            const fovAhead = new FieldOfView(makeSpatialIndex([ahead]), makeScanner(makeSector(0, 60, 5000)));
+            expect(findObject(fovAhead, 'ahead')).to.equal(true);
+
+            // free-space arcs exist only across the beam bearings
+            const fov = new FieldOfView(makeSpatialIndex([scanner]), scanner);
+            expect(freeSpaceDistanceAt(fov, 15)).to.be.closeTo(5000, 1);
+            const blind = freeSpaceDistanceAt(fov, 180);
+            expect(blind === undefined || blind === 0).to.equal(true);
         });
     });
 });
