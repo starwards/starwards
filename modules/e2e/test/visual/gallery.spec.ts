@@ -91,4 +91,14 @@ test.describe('Visual Gallery', () => {
         const panel = page.locator('[data-id="Gallery"]');
         await expect(panel).toBeVisible();
     });
+
+    test('page title reflects the loaded scene', async ({ page }) => {
+        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=pilot-dashboard-stationary`);
+        await expect(page).toHaveTitle('pilot-dashboard-stationary — Starwards Gallery');
+    });
+
+    test('page title stays static for an unknown scene', async ({ page }) => {
+        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=nonexistent-scene`);
+        await expect(page).toHaveTitle('Starwards Visual Gallery');
+    });
 });
