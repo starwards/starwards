@@ -21,7 +21,23 @@
             "Bash(git pull:*)",
             "Bash(gh auth status)",
             "Bash(gh issue list*)",
-            "Bash(gh issue view*)"
+            "Bash(gh issue view*)",
+            "Bash(npm ci)",
+            "Bash(npm run lint:fix)",
+            "Bash(npm run knip)",
+            "Bash(npx playwright install*)",
+            "Bash(git checkout -b agent/*)",
+            "Bash(git add*)",
+            "Bash(git commit*)",
+            "Bash(git push -u origin agent/*)",
+            "Bash(git push origin agent/*)",
+            "Bash(gh pr create*)",
+            "Bash(gh pr view*)",
+            "Bash(gh pr list*)",
+            "Bash(gh issue edit*)",
+            "Bash(gh issue comment*)",
+            "Bash(gh run view*)",
+            "Bash(gh run list*)"
         ]
     }
 }
