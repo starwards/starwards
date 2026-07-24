@@ -85,6 +85,15 @@ test.describe('Visual Gallery', () => {
         await expect(error).toContainText('Unknown scene');
     });
 
+    test('gallery unknown-scene error lists available scenes', async ({ page }) => {
+        await page.goto(`${gameDriver.baseURL}/gallery.html?scene=nonexistent-scene`);
+
+        const error = page.locator('#error');
+        await expect(error).toBeVisible();
+        await expect(error).toContainText('ammo-empty');
+        await expect(error).toContainText('warp-active');
+    });
+
     test('gallery auto-redirects to first scene when no scene specified', async ({ page }) => {
         await page.goto(`${gameDriver.baseURL}/gallery.html`);
         await page.waitForURL(/\?scene=ammo-empty/);

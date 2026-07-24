@@ -80,7 +80,8 @@ async function loadScene() {
 
     const scene = scenes[currentSceneName];
     if (!scene) {
-        showError(`Unknown scene: "${currentSceneName}". Select from the list.`);
+        const availableScenes = Object.keys(scenes).sort().join(', ');
+        showError(`Unknown scene: "${currentSceneName}". Available scenes: ${availableScenes}`);
         return;
     }
 
