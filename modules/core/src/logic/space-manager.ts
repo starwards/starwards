@@ -25,6 +25,11 @@ const { warn: logWarn, error: logError } = createLogger('space-manager');
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
 
+// hard clamp on any object's speed, enforced at the physics layer after every velocity mutation
+// (thrust, collision/blast impulse, explosion velocity-inheritance). Sits above the ship
+// flight-computer's own (soft) maxSpeed and above projectile speeds.
+export const ABSOLUTE_MAX_SPEED = 2000;
+
 export type Damage = {
     id: string;
     amount: number;
@@ -123,6 +128,7 @@ export class SpaceManager implements Updateable {
         if (subject) {
             subject.velocity.x += delta.x;
             subject.velocity.y += delta.y;
+            this.clampToAbsoluteMaxSpeed(subject);
         }
     }
     public setVelocity(id: string, velocity: XY) {
@@ -133,6 +139,13 @@ export class SpaceManager implements Updateable {
         const [subject] = this.getObjectPtr(id);
         if (subject) {
             subject.velocity.setValue(velocity);
+            this.clampToAbsoluteMaxSpeed(subject);
+        }
+    }
+
+    private clampToAbsoluteMaxSpeed(subject: SpaceObject) {
+        if (XY.lengthOf(subject.velocity) > ABSOLUTE_MAX_SPEED) {
+            subject.velocity.normalize(ABSOLUTE_MAX_SPEED);
         }
     }
 
@@ -524,6 +537,7 @@ export class SpaceManager implements Updateable {
         const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
+        this.clampToAbsoluteMaxSpeed(explosion);
         this.insert(explosion);
     }
 
@@ -623,6 +637,7 @@ export class SpaceManager implements Updateable {
                     const res = this.calcSolidCollision(deltaSeconds, subject, object, response);
                     positionChange = res.positionChange;
                     Vec2.add(subject.velocity, res.velocityChange, subject.velocity);
+                    this.clampToAbsoluteMaxSpeed(subject);
                     if (Spaceship.isInstance(subject)) {
                         this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
                     } else {

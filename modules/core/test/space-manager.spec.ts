@@ -1,4 +1,5 @@
 import {
+    ABSOLUTE_MAX_SPEED,
     Armor,
     Asteroid,
     Explosion,
@@ -559,5 +560,89 @@ describe('SpaceManager', () => {
         const asteroids = [...spaceMgr.state.getAll('Asteroid')];
         expect(ships).to.have.length.greaterThanOrEqual(2);
         expect(asteroids).to.have.length.greaterThanOrEqual(1);
+    });
+
+    describe('absolute speed cap', () => {
+        it('changeVelocity clamps the resultant speed to ABSOLUTE_MAX_SPEED, preserving direction', () => {
+            const spaceMgr = new SpaceManager();
+            const ship = new Spaceship();
+            ship.id = 'cap-change-velocity';
+            spaceMgr.insert(ship);
+            spaceMgr.forceFlushEntities();
+
+            const cap = ABSOLUTE_MAX_SPEED;
+            const direction = 37;
+            spaceMgr.changeVelocity(ship.id, XY.byLengthAndDirection(cap * 10, direction));
+
+            expect(XY.lengthOf(ship.velocity)).to.be.closeTo(cap, 0.01);
+            expect(XY.angleOf(ship.velocity)).to.be.closeTo(direction, 0.01);
+        });
+
+        it('setVelocity clamps the resultant speed to ABSOLUTE_MAX_SPEED, preserving direction', () => {
+            const spaceMgr = new SpaceManager();
+            const ship = new Spaceship();
+            ship.id = 'cap-set-velocity';
+            spaceMgr.insert(ship);
+            spaceMgr.forceFlushEntities();
+
+            const cap = ABSOLUTE_MAX_SPEED;
+            const direction = 123;
+            spaceMgr.setVelocity(ship.id, XY.byLengthAndDirection(cap * 10, direction));
+
+            expect(XY.lengthOf(ship.velocity)).to.be.closeTo(cap, 0.01);
+            expect(XY.angleOf(ship.velocity)).to.be.closeTo(direction, 0.01);
+        });
+
+        it('a velocity below the cap is left untouched', () => {
+            const spaceMgr = new SpaceManager();
+            const ship = new Spaceship();
+            ship.id = 'below-cap';
+            spaceMgr.insert(ship);
+            spaceMgr.forceFlushEntities();
+
+            const belowCap = ABSOLUTE_MAX_SPEED / 2;
+            spaceMgr.setVelocity(ship.id, XY.byLengthAndDirection(belowCap, 10));
+
+            expect(XY.lengthOf(ship.velocity)).to.be.closeTo(belowCap, 0.01);
+        });
+
+        it('a collision impulse beyond ABSOLUTE_MAX_SPEED is clamped, direction preserved', () => {
+            const numIterationsPerSecond = 20;
+            const timeInSeconds = 2;
+            const target = new Asteroid();
+            target.radius = Spaceship.radius;
+            const collider = new Asteroid();
+            collider.radius = Spaceship.radius;
+            const extremeSpeed = 1_000_000;
+            const { velocity, position } = calcCollider(timeInSeconds, target, extremeSpeed);
+            collider.velocity = Vec2.make(velocity);
+            collider.init('collider', Vec2.make(position));
+
+            const sim = new SpaceSimulator(numIterationsPerSecond).withObjects(target, collider);
+            sim.simulateUntilCondition(() => !XY.isZero(target.velocity, 0.01), timeInSeconds);
+
+            const cap = ABSOLUTE_MAX_SPEED;
+            expect(XY.lengthOf(target.velocity)).to.be.at.most(cap + 0.01);
+            expect(XY.lengthOf(collider.velocity)).to.be.at.most(cap + 0.01);
+        });
+
+        it("does not change the ship flight-computer's own (much lower) soft-brake speed limit", () => {
+            const sim = new SpaceSimulator(20);
+            const ship = new Spaceship();
+            ship.id = 'soft-brake-ship';
+            // start above the ship's own maxSpeed but well below the engine's ABSOLUTE_MAX_SPEED
+            ship.velocity = Vec2.make(XY.byLengthAndDirection(400, 0));
+            const shipMgr = sim.withShip(ship, new ShipDie(0), ShipManagerNpc);
+            shipMgr.state.spaceship.velocity = ship.velocity;
+
+            expect(shipMgr.state.maxSpeed).to.be.lessThan(ABSOLUTE_MAX_SPEED);
+
+            sim.simulateUntilTime(5);
+
+            // the ship's own soft-brake reins it back toward its own (much lower) maxSpeed,
+            // unaffected by the engine's ABSOLUTE_MAX_SPEED cap
+            expect(XY.lengthOf(ship.velocity)).to.be.lessThan(400);
+            expect(XY.lengthOf(ship.velocity)).to.be.at.most(ABSOLUTE_MAX_SPEED);
+        });
     });
 });

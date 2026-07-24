@@ -426,6 +426,25 @@ await waitForPropertyValue(page, 'heading', (v) => parseFloat(v) === 90);
 
 **Monitor displays:** Current helpers target `<input>` elements. Tweakpane monitors (read-only displays) use different DOM structure and aren't yet supported.
 
+### Creating Space Objects from the Test Process
+
+Do **not** construct schema instances in the e2e test process and hand them to the server:
+
+```typescript
+// ✗ Fails with: EncodeSchemaError: a 'Waypoint' was expected, but 'Waypoint' was provided
+gameDriver.gameManager.scriptApi.addObject(new Waypoint());
+```
+
+The test process and the server load separate copies of the schema classes, so `instanceof` identity breaks even though the class names match. Instead, send plain-data space commands and let the server construct the instance — the same path the UI uses:
+
+```typescript
+// ✓ Plain data crosses the process boundary; server builds the Waypoint
+spaceDriver.command(spaceCommands.createWaypointOrder, { position });
+spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids });
+```
+
+`scriptApi.addObject()` is safe only for instances constructed inside the server process (e.g. in a map's `init()`).
+
 ## Sleep Helper
 
 **Location**: [`modules/core/src/utils.ts`](../../modules/core/src/utils.ts)
