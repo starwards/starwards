@@ -19,6 +19,10 @@ Encoder.BUFFER_SIZE = 32 * 1024;
  *
  * Growing it by packing an oversized payload — rather than handing msgpackr a buffer of our own —
  * lets msgpackr allocate through its own platform allocator, which keeps the two in agreement.
+ *
+ * This only works while every colyseus package resolves the SAME @colyseus/msgpackr module
+ * instance (the buffer state is module-level). serialization-buffers.spec.ts locks that dedupe
+ * down; keep the version pin in package.json in step with colyseus's own.
  */
 function growSharedPackBuffer(bytes: number) {
     new Packr().encode(new Uint8Array(bytes));

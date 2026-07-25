@@ -37,8 +37,8 @@ function getSystemByName(state: ShipState, name: string): SystemState | null {
     if (!name) {
         return null;
     }
-    const [field, index] = name.split('/');
-    if (!Object.prototype.hasOwnProperty.call(state, field)) {
+    const [field, index, ...excess] = name.split('/');
+    if (excess.length > 0 || !Object.prototype.hasOwnProperty.call(state, field)) {
         return null;
     }
     const value = (state as unknown as Record<string, unknown>)[field];
