@@ -52,6 +52,8 @@ export interface RangeConfig {
     axis?: GamepadAxisConfig;
     buttons?: GamepadButtonsRangeConfig | GamepadButtonsCenterConfig;
     offsetKeys?: KeysRangeConfig;
+    /** the range wraps around instead of stopping at its edges — for bearings and other angles */
+    circular?: boolean;
 }
 export interface ShipInputConfig {
     tubeIsFiring?: string | GamepadButtonConfig;
@@ -108,20 +110,27 @@ export const shipInputConfig = {
         buttons: { center: new GamepadButtonConfig(0, 14) },
     },
     resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
+    // direction and arc are absolute settings, so they are stepped from wherever they currently
+    // are — an analog axis would instead drive them from zero, which is what `offSetonly` avoids
     radarDirection: {
-        axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
-        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 5),
-    },
-    // arc is an absolute setting, so it is stepped from wherever it currently is — an analog
-    // axis would instead drive it from zero, which is what `offSetonly` keys avoid
-    radarArc: {
+        circular: true,
         buttons: new GamepadButtonsRangeConfig(
-            new GamepadButtonConfig(0, 12),
-            new GamepadButtonConfig(0, 13),
+            new GamepadButtonConfig(0, 15),
             new GamepadButtonConfig(0, 14),
+            new GamepadButtonConfig(0, 11),
             5,
         ),
-        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 5),
+        offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 5),
+    },
+    // W narrows the beam (trading arc for reach), S widens it
+    radarArc: {
+        buttons: new GamepadButtonsRangeConfig(
+            new GamepadButtonConfig(0, 13),
+            new GamepadButtonConfig(0, 12),
+            new GamepadButtonConfig(0, 10),
+            5,
+        ),
+        offsetKeys: new KeysRangeConfig('s', 'w', 'w+s,s+w', 5),
     },
 };
 interface GmInputConfig {
