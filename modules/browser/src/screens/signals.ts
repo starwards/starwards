@@ -1,6 +1,15 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Destructors, Driver, ShipDriver, SpaceDriver, Status, createLogger } from '@starwards/core';
+import {
+    ClientStatus,
+    Destructors,
+    Driver,
+    Radar,
+    ShipDriver,
+    SpaceDriver,
+    Status,
+    createLogger,
+} from '@starwards/core';
 import { HPos, VPos, WidgetContainer, wrapRootWidgetContainer } from '../container';
 import { addSliderBlade, createPane } from '../panel';
 
@@ -57,27 +66,30 @@ async function initScreen(driver: Driver, shipId: string) {
     await drawLongRangeRadar(spaceDriver, shipDriver, container, { range: 50_000 }, zoomEvents, stationTarget);
 
     drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
-    drawSystemsStatus(
-        container.subContainer(VPos.TOP, HPos.RIGHT),
-        shipDriver,
-        shipDriver.systems.filter((s) => s.pointer === '/radar'),
+    const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
+    drawSystemsStatus(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver, radarSystems);
+    // the scan beam is the ship's steerable radar — the one whose arc has room to trade for reach
+    const scanBeam = radarSystems.find(
+        (s) => Radar.isInstance(s.state) && s.state.design.minArc < s.state.design.maxArc,
     );
-    drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver);
-    wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents);
+    if (scanBeam) {
+        drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver, scanBeam.pointer);
+    }
+    wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
 }
 
-function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver) {
+function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver, beamPointer: string) {
     const panelCleanup = new Destructors();
     const pane = createPane({ title: 'Scan Beam', container: container.getElement().get(0) });
     panelCleanup.add(() => pane.dispose());
     container.on('destroy', panelCleanup.destroy);
     addSliderBlade(
         pane,
-        readWriteNumberProp(shipDriver, '/radars/1/direction'),
+        readWriteNumberProp(shipDriver, `${beamPointer}/direction`),
         { label: 'direction' },
         panelCleanup.add,
     );
-    addSliderBlade(pane, readWriteNumberProp(shipDriver, '/radars/1/arc'), { label: 'arc' }, panelCleanup.add);
+    addSliderBlade(pane, readWriteNumberProp(shipDriver, `${beamPointer}/arc`), { label: 'arc' }, panelCleanup.add);
 }
 
 function wireInput(
@@ -86,6 +98,7 @@ function wireInput(
     shipId: string,
     stationTarget: SelectionContainer,
     zoomEvents: EventEmitter<ZoomEvent>,
+    beamPointer?: string,
 ) {
     let currentIndex = -1;
 
@@ -122,12 +135,18 @@ function wireInput(
     );
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
-    input.addRangeAction(
-        readWriteNumberProp(shipDriver, '/radars/1/direction'),
-        shipInputConfig.radarDirection,
-        'Beam Direction',
-    );
-    input.addRangeAction(readWriteNumberProp(shipDriver, '/radars/1/arc'), shipInputConfig.radarArc, 'Beam Arc');
+    if (beamPointer) {
+        input.addRangeAction(
+            readWriteNumberProp(shipDriver, `${beamPointer}/direction`),
+            shipInputConfig.radarDirection,
+            'Beam Direction',
+        );
+        input.addRangeAction(
+            readWriteNumberProp(shipDriver, `${beamPointer}/arc`),
+            shipInputConfig.radarArc,
+            'Beam Arc',
+        );
+    }
     input.init();
     setupHotkeyHelp(input);
 }

@@ -23,6 +23,13 @@ test.describe('Signals Screen', () => {
         await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
     });
 
+    test('systems status panel lists the radar systems', async ({ page }) => {
+        const statusPanel = page.locator('[data-id="Systems Status"]');
+        await expect(statusPanel).toBeVisible({ timeout: 10000 });
+        // one row per radar system (the ship carries an omni radar and a scan beam)
+        await expect(statusPanel.getByText('Radar')).toHaveCount(2);
+    });
+
     // --- Scan beam controls drive radars[1] (arc / direction) ---
     // The scan beam is the ship's second radar (radars[1]); its Signals-station
     // controls command /radars/1/direction and /radars/1/arc. The `d`/`a` keys
