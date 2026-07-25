@@ -24,6 +24,7 @@ export * from './projectile';
 export * from './explosion';
 export * from './waypoint';
 export * from './vec2';
+export * from './radar-sector';
 export * from './sectors';
 export * from './space-state';
 export * from './faction';

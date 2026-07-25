@@ -1,6 +1,7 @@
 import { Asteroid, Explosion, Faction, Projectile, ScanLevel, SpaceManager, Spaceship, Vec2, XY } from '../src';
 
 import { expect } from 'chai';
+import { setOmniRadarSector } from '../src';
 
 // Behavior tests for SpaceManager command processing, object lifecycle,
 // freeze semantics, attachments, and the faction tracking registry.
@@ -270,9 +271,9 @@ describe('SpaceManager faction tracking', () => {
     function trackingSetup() {
         const spaceMgr = new SpaceManager();
         const scanner1 = makeShip('scanner-1', 0, 0, Faction.Gravitas);
-        scanner1.radarRange = 5000;
+        setOmniRadarSector(scanner1, 5000);
         const scanner2 = makeShip('scanner-2', 100, 0, Faction.Gravitas);
-        scanner2.radarRange = 5000;
+        setOmniRadarSector(scanner2, 5000);
         const target = makeShip('target', 1000, 0, Faction.Raiders);
         spaceMgr.insertBulk([scanner1, scanner2, target]);
         spaceMgr.forceFlushEntities();
@@ -350,13 +351,17 @@ describe('SpaceManager damage resolution', () => {
         expect([...spaceMgr.resolveObjectDamage('ship')]).to.have.lengthOf(0);
     });
 
-    it('changeShipRadarRange updates live ships and ignores unknown ids', () => {
+    it('changeShipRadarSectors updates live ships and ignores unknown ids', () => {
         const spaceMgr = new SpaceManager();
         const ship = makeShip('ship');
         spaceMgr.insert(ship);
         spaceMgr.forceFlushEntities();
-        spaceMgr.changeShipRadarRange('ship', 1234);
+        const sectors = [
+            { direction: 0, arc: 360, range: 1234 },
+            { direction: 90, arc: 30, range: 900 },
+        ];
+        spaceMgr.changeShipRadarSectors('ship', sectors);
         expect(ship.radarRange).to.equal(1234);
-        expect(() => spaceMgr.changeShipRadarRange('ghost', 1)).to.not.throw();
+        expect(() => spaceMgr.changeShipRadarSectors('ghost', sectors)).to.not.throw();
     });
 });

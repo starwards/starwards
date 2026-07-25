@@ -1,5 +1,5 @@
 import { Graphics, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, calcScanBeamGeometry, degToRad } from '@starwards/core';
+import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, degToRad } from '@starwards/core';
 import { green, radarFogOfWar, radarVisibleBg, selectionColor, white } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
@@ -144,22 +144,21 @@ export async function drawLongRangeRadar(
         if (!ownShip) {
             return;
         }
-        // Reconstruct the same sector the server derives for detection, from synced radar controls.
-        const radar = shipDriver.state.radar;
-        const { arc, radius } = calcScanBeamGeometry(radar.design.beamArea, radar.beamShape);
-        if (radius <= 0 || arc <= 0) {
-            return;
-        }
-        const worldDirection = ownShip.angle + radar.beamDirection;
+        // The synced sectors are the same ones the server detects with; draw the directional ones.
         const center = root.worldToScreen(ownShip.position);
-        const radiusPixels = root.metersToPixles(radius);
-        const fromAngle = degToRad * (worldDirection - arc / 2 - root.camera.angle);
-        const toAngle = degToRad * (worldDirection + arc / 2 - root.camera.angle);
-        beamGraphics.moveTo(center.x, center.y);
-        beamGraphics.arc(center.x, center.y, radiusPixels, fromAngle, toAngle);
-        beamGraphics.lineTo(center.x, center.y);
-        beamGraphics.fill({ color: selectionColor, alpha: 0.12 });
-        beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.5 });
+        for (const sector of ownShip.radarSectors) {
+            if (sector.range <= 0 || sector.arc <= 0 || sector.arc >= 360) {
+                continue;
+            }
+            const radiusPixels = root.metersToPixles(sector.range);
+            const fromAngle = degToRad * (sector.direction - sector.arc / 2 - root.camera.angle);
+            const toAngle = degToRad * (sector.direction + sector.arc / 2 - root.camera.angle);
+            beamGraphics.moveTo(center.x, center.y);
+            beamGraphics.arc(center.x, center.y, radiusPixels, fromAngle, toAngle);
+            beamGraphics.lineTo(center.x, center.y);
+            beamGraphics.fill({ color: selectionColor, alpha: 0.12 });
+            beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.5 });
+        }
     }
 
     root.ticker.add(

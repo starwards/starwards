@@ -1,4 +1,4 @@
-import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
+import { Asteroid, Faction, RadarSectorValues, ScanLevel, Spaceship, Waypoint, applyRadarSectors } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import {
     EPSILON,
@@ -583,19 +583,10 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    public changeShipRadarRange(id: string, radarRange: number) {
+    public changeShipRadarSectors(id: string, sectors: readonly RadarSectorValues[]) {
         const ship = this.state.getShip(id);
         if (ship && !ship.destroyed) {
-            ship.radarRange = radarRange;
-        }
-    }
-
-    public changeShipScanBeam(id: string, direction: number, arc: number, radius: number) {
-        const ship = this.state.getShip(id);
-        if (ship && !ship.destroyed) {
-            ship.scanBeamDirection = direction;
-            ship.scanBeamArc = arc;
-            ship.scanBeamRadius = radius;
+            applyRadarSectors(ship.radarSectors, sectors);
         }
     }
 

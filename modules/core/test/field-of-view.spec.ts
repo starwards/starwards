@@ -11,13 +11,21 @@ function makeSpatialIndex(objects: Iterable<{ position: Vec2; radius: number }>)
     } as unknown as SpatialIndex;
 }
 
+function makeOmniSector(range: number) {
+    const sector = new RadarSector();
+    sector.direction = 0;
+    sector.arc = 360;
+    sector.range = range;
+    return sector;
+}
+
 describe('FieldOfView', () => {
     describe('distance-dependent detection', () => {
         function makeScanner(radarRange: number) {
             const ship = new Spaceship();
             ship.id = 'scanner';
             ship.position = new Vec2(0, 0);
-            ship.radarRange = radarRange;
+            ship.radarSectors.push(makeOmniSector(radarRange));
             return ship;
         }
 
@@ -92,11 +100,13 @@ describe('FieldOfView', () => {
             const ship = new Spaceship();
             ship.id = 'scanner';
             ship.position = new Vec2(0, 0);
-            ship.radarRange = radarRange;
+            ship.radarSectors.push(makeOmniSector(radarRange));
             if (beam) {
-                ship.scanBeamDirection = beam.direction;
-                ship.scanBeamArc = beam.arc;
-                ship.scanBeamRadius = beam.radius;
+                const sector = new RadarSector();
+                sector.direction = beam.direction;
+                sector.arc = beam.arc;
+                sector.range = beam.radius;
+                ship.radarSectors.push(sector);
             }
             return ship;
         }

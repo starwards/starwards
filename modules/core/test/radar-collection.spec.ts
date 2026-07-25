@@ -8,10 +8,10 @@ describe('radar collection (I1)', () => {
     it('makeShipState builds a radars collection with at least two radars', () => {
         const state = makeShipState('1', dragonflyConfig);
         // ArraySchema-like: indexable + has a numeric length
-        expect(state.radars).to.be.ok;
+        expect(state.radars).to.not.equal(undefined);
         expect(state.radars.length).to.be.at.least(2);
-        expect(state.radars.at(0)).to.be.ok;
-        expect(state.radars.at(1)).to.be.ok;
+        expect(state.radars.at(0)).to.not.equal(undefined);
+        expect(state.radars.at(1)).to.not.equal(undefined);
     });
 
     it('radars[0] is the 360 omni radar', () => {

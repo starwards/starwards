@@ -41,6 +41,7 @@ const scenes = [
     'long-range-radar-multiple-objects',
     'long-range-radar-zoomed-in',
     'long-range-radar-zoomed-out',
+    'long-range-radar-scan-beam',
     // Targeting
     'targeting-no-target',
     'targeting-ship-target',

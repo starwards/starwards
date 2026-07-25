@@ -573,16 +573,15 @@ class ThrustManager {
 ```typescript
 class RadarManager {
     update(deltaSeconds: number) {
-        const radar = this.state.radar;
-        
-        // Radar only works if powered
-        if (radar.effectiveness === 0) {
-            return;
+        for (const radar of this.state.radars) {
+            // Radar only works if powered
+            if (radar.effectiveness === 0) {
+                continue;
+            }
+
+            // Scan for contacts; range already accounts for effectiveness
+            this.scanContacts(radar.range);
         }
-        
-        // Scan for contacts
-        const range = radar.design.maxRange * radar.effectiveness;
-        this.scanContacts(range);
     }
 }
 ```

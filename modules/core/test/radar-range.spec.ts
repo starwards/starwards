@@ -63,7 +63,7 @@ describe('radarRangeFromArea', () => {
 });
 
 describe('Radar geometry', () => {
-    const beamDesign = { area: 3e8, minArc: 5, maxArc: 90, defaultArc: 20 };
+    const beamDesign = { range: 20_000, minArc: 5, maxArc: 90, defaultArc: 20 };
 
     function makeBeamRadar() {
         const radar = new Radar();
@@ -106,7 +106,7 @@ describe('Radar geometry', () => {
 });
 
 describe('Radar effectiveness scaling', () => {
-    const beamDesign = { area: 3e8, minArc: 5, maxArc: 90, defaultArc: 20 };
+    const beamDesign = { range: 20_000, minArc: 5, maxArc: 90, defaultArc: 20 };
 
     function makeBeamRadar() {
         const radar = new Radar();

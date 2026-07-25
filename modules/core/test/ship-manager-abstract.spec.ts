@@ -126,11 +126,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('resetShipState resets radar malfunctionRangeFactor', () => {
         const state = makeShipState('test', dragonflyConfig);
 
-        state.radar.malfunctionRangeFactor = 0.5;
+        state.radars[0].malfunctionRangeFactor = 0.5;
 
         resetShipState(state);
 
-        expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
     });
 
     it('resetShipState restores magazine count', () => {
@@ -158,7 +158,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         const state = makeShipState('test', dragonflyConfig);
 
         expect(state.design.modelName).to.equal(dragonflyConfig.properties.modelName);
-        expect(state.radar.design.modelName).to.equal(dragonflyConfig.radar.modelName);
+        expect(state.radars[0].design.modelName).to.equal(dragonflyConfig.radars[0].modelName);
         expect(state.reactor.design.modelName).to.equal(dragonflyConfig.reactor.modelName);
         expect(state.smartPilot.design.modelName).to.equal(dragonflyConfig.smartPilot.modelName);
         expect(state.magazine.design.modelName).to.equal(dragonflyConfig.magazine.modelName);
@@ -186,7 +186,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
             const reactor = state.reactor;
 
             // shut down all other systems so they don't consume energy
-            state.radar.power = PowerLevel.SHUTDOWN;
+            state.radars[0].power = PowerLevel.SHUTDOWN;
             state.warp.power = PowerLevel.SHUTDOWN;
             state.maneuvering.power = PowerLevel.SHUTDOWN;
             if (state.chainGun) state.chainGun.power = PowerLevel.SHUTDOWN;
@@ -219,7 +219,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
             const state = shipMgr.state;
 
             // shut down all other systems so they don't consume energy
-            state.radar.power = PowerLevel.SHUTDOWN;
+            state.radars[0].power = PowerLevel.SHUTDOWN;
             state.warp.power = PowerLevel.SHUTDOWN;
             state.maneuvering.power = PowerLevel.SHUTDOWN;
             if (state.chainGun) state.chainGun.power = PowerLevel.SHUTDOWN;

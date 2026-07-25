@@ -22,14 +22,14 @@ describe('spillover defect rolls (spec §4)', () => {
     it('expected defects grow linearly with the event amount', () => {
         const die = new ShipDie(1234);
         const { state, damageManager } = setUpDamageManager(die);
-        const damage50 = state.radar.design.damage50;
+        const damage50 = state.radars[0].design.damage50;
         const events = 200;
         let defects = 0;
         for (let i = 0; i < events; i++) {
-            state.radar.malfunctionRangeFactor = 0; // keep the system healthy; count via the die
-            damageManager.damageSystem(state.radar, { id: `event-${i}`, amount: 4 * damage50 }, 1);
-            expect(state.radar.malfunctionRangeFactor / 0.05).to.be.at.most(4.001);
-            defects += Math.round(state.radar.malfunctionRangeFactor / 0.05);
+            state.radars[0].malfunctionRangeFactor = 0; // keep the system healthy; count via the die
+            damageManager.damageSystem(state.radars[0], { id: `event-${i}`, amount: 4 * damage50 }, 1);
+            expect(state.radars[0].malfunctionRangeFactor / 0.05).to.be.at.most(4.001);
+            defects += Math.round(state.radars[0].malfunctionRangeFactor / 0.05);
         }
         // expected defects per event = amount / (2 × damage50) = 2; sd over 200 events ≈ 14
         expect(defects).to.be.closeTo(2 * events, 60);
@@ -39,31 +39,31 @@ describe('spillover defect rolls (spec §4)', () => {
         const die = new MockDie();
         die.expectedRoll = 0.6; // above the cap — every roll must fail no matter the amount
         const { state, damageManager } = setUpDamageManager(die);
-        damageManager.damageSystem(state.radar, { id: 'overkill', amount: 1_000_000 }, 1);
-        expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        damageManager.damageSystem(state.radars[0], { id: 'overkill', amount: 1_000_000 }, 1);
+        expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
     });
 
     it('below one damage50 the success chance is linear: p = amount / (2 × damage50)', () => {
         const die = new MockDie();
         die.expectedRoll = 0.4;
         const { state, damageManager } = setUpDamageManager(die);
-        const damage50 = state.radar.design.damage50;
+        const damage50 = state.radars[0].design.damage50;
         // p = 0.3 < 0.4 → no defect
-        damageManager.damageSystem(state.radar, { id: 'weak', amount: 0.6 * damage50 }, 1);
-        expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        damageManager.damageSystem(state.radars[0], { id: 'weak', amount: 0.6 * damage50 }, 1);
+        expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
         // p = 0.45 > 0.4 → one defect
-        damageManager.damageSystem(state.radar, { id: 'stronger', amount: 0.9 * damage50 }, 1);
-        expect(state.radar.malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
+        damageManager.damageSystem(state.radars[0], { id: 'stronger', amount: 0.9 * damage50 }, 1);
+        expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
     });
 
     it('overkill spills into extra defects instead of saturating', () => {
         const die = new MockDie();
         die.expectedRoll = 0; // every roll with p > 0 succeeds
         const { state, damageManager } = setUpDamageManager(die);
-        const damage50 = state.radar.design.damage50;
-        damageManager.damageSystem(state.radar, { id: 'burst', amount: 4 * damage50 }, 1);
+        const damage50 = state.radars[0].design.damage50;
+        damageManager.damageSystem(state.radars[0], { id: 'burst', amount: 4 * damage50 }, 1);
         // remaining walks 4·d50 → 0 in d50 steps: exactly 4 rolls, all successful
-        expect(state.radar.malfunctionRangeFactor).to.be.closeTo(4 * 0.05, 0.0001);
+        expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(4 * 0.05, 0.0001);
     });
 
     it('absurd overkill terminates promptly instead of grinding damage50-sized steps', () => {
@@ -73,29 +73,29 @@ describe('spillover defect rolls (spec §4)', () => {
         const die = new MockDie();
         die.expectedRoll = 1; // every roll fails — the system never breaks, the loop must still end
         const { state, damageManager } = setUpDamageManager(die);
-        damageManager.damageSystem(state.radar, { id: 'nuke', amount: Number.MAX_SAFE_INTEGER }, 1);
-        expect(state.radar.malfunctionRangeFactor).to.equal(0);
+        damageManager.damageSystem(state.radars[0], { id: 'nuke', amount: Number.MAX_SAFE_INTEGER }, 1);
+        expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
     });
 
     it('armor attenuation scales the roll stack the same way (exposure factor)', () => {
         const die = new MockDie();
         die.expectedRoll = 0;
         const { state, damageManager } = setUpDamageManager(die);
-        const damage50 = state.radar.design.damage50;
-        damageManager.damageSystem(state.radar, { id: 'attenuated', amount: 4 * damage50 }, 0.5);
-        expect(state.radar.malfunctionRangeFactor).to.be.closeTo(2 * 0.05, 0.0001);
+        const damage50 = state.radars[0].design.damage50;
+        damageManager.damageSystem(state.radars[0], { id: 'attenuated', amount: 4 * damage50 }, 0.5);
+        expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(2 * 0.05, 0.0001);
     });
 
     it('when the victim breaks mid-application the remainder dissipates', () => {
         const die = new MockDie();
         die.expectedRoll = 0;
         const { state, damageManager } = setUpDamageManager(die);
-        const damage50 = state.radar.design.damage50;
-        const breakThreshold = 1 - state.radar.design.rangeEaseFactor * 2;
-        state.radar.malfunctionRangeFactor = breakThreshold - 0.01; // one defect from broken
-        damageManager.damageSystem(state.radar, { id: 'overkill', amount: 100 * damage50 }, 1);
+        const damage50 = state.radars[0].design.damage50;
+        const breakThreshold = 1 - state.radars[0].design.rangeEaseFactor * 2;
+        state.radars[0].malfunctionRangeFactor = breakThreshold - 0.01; // one defect from broken
+        damageManager.damageSystem(state.radars[0], { id: 'overkill', amount: 100 * damage50 }, 1);
         // exactly one more defect lands, then the loop stops — no post-mortem pile-up
-        expect(state.radar.malfunctionRangeFactor).to.be.closeTo(breakThreshold - 0.01 + 0.05, 0.0001);
+        expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(breakThreshold - 0.01 + 0.05, 0.0001);
     });
 
     it('successive defects from one event draw independent branches', () => {
@@ -116,11 +116,11 @@ describe('spillover defect rolls (spec §4)', () => {
     it('replaying the same event sequence with the same seed yields identical defects', () => {
         const run = () => {
             const { state, damageManager } = setUpDamageManager(new ShipDie(7));
-            const damage50 = state.radar.design.damage50;
+            const damage50 = state.radars[0].design.damage50;
             for (let i = 0; i < 20; i++) {
-                damageManager.damageSystem(state.radar, { id: `event-${i}`, amount: 3 * damage50 }, 1);
+                damageManager.damageSystem(state.radars[0], { id: `event-${i}`, amount: 3 * damage50 }, 1);
             }
-            return state.radar.malfunctionRangeFactor;
+            return state.radars[0].malfunctionRangeFactor;
         };
         expect(run()).to.equal(run());
     });
@@ -130,12 +130,12 @@ describe('spillover defect rolls (spec §4)', () => {
         // counter must decorrelate them (a pure (seed,id) hash would repeat the same outcome)
         const die = new ShipDie(99);
         const { state, damageManager } = setUpDamageManager(die);
-        const damage50 = state.radar.design.damage50;
+        const damage50 = state.radars[0].design.damage50;
         const outcomes = new Set<number>();
         for (let i = 0; i < 30; i++) {
-            state.radar.malfunctionRangeFactor = 0;
-            damageManager.damageSystem(state.radar, { id: 'same-explosion', amount: damage50 }, 1);
-            outcomes.add(state.radar.malfunctionRangeFactor);
+            state.radars[0].malfunctionRangeFactor = 0;
+            damageManager.damageSystem(state.radars[0], { id: 'same-explosion', amount: damage50 }, 1);
+            outcomes.add(state.radars[0].malfunctionRangeFactor);
         }
         // p = 0.5 per application: over 30 applications both hit and miss must occur
         expect(outcomes.size).to.be.greaterThan(1);

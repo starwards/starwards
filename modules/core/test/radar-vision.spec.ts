@@ -4,8 +4,8 @@ import {
     FieldOfView,
     RadarSector,
     SpaceManager,
-    SpatialIndex,
     Spaceship,
+    SpatialIndex,
     Vec2,
     toPositiveDegreesDelta,
 } from '../src';

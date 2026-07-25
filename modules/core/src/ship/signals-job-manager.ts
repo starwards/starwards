@@ -2,6 +2,7 @@ import { HackLevel, SystemState } from './system';
 import { IterationData, Updateable } from '../updateable';
 import { JobStatus, JobType, SignalsJob } from './signals-job';
 
+import { ArraySchema } from '@colyseus/schema';
 import { Die } from './ship-manager-abstract';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
@@ -28,12 +29,24 @@ interface ShipManagerRef {
     signalsJobManager: SignalsJobManager;
 }
 
+/**
+ * Resolves a hack target name to a system. A name is either a ShipState field holding a single
+ * system (`'reactor'`) or a field holding a collection plus an index (`'radars/0'`).
+ */
 function getSystemByName(state: ShipState, name: string): SystemState | null {
-    if (!name || !Object.prototype.hasOwnProperty.call(state, name)) {
+    if (!name) {
         return null;
     }
-    const value = (state as unknown as Record<string, unknown>)[name];
-    return value instanceof SystemState ? value : null;
+    const [field, index] = name.split('/');
+    if (!Object.prototype.hasOwnProperty.call(state, field)) {
+        return null;
+    }
+    const value = (state as unknown as Record<string, unknown>)[field];
+    if (value instanceof ArraySchema) {
+        const item = index === undefined ? undefined : (value as ArraySchema<unknown>).at(Number(index));
+        return item instanceof SystemState ? item : null;
+    }
+    return index === undefined && value instanceof SystemState ? value : null;
 }
 
 export class SignalsJobManager implements Updateable {

@@ -24,7 +24,7 @@ export type ShipDesign = {
     tubes: [ShipDirectionConfig, ChaingunDesign][];
     thrusters: [ShipDirectionConfig, ThrusterDesign][];
     armor: ArmorDesign;
-    radar: RadarDesign;
+    radars: RadarDesign[];
     smartPilot: SmartPilotDesign;
     reactor: ReactorDesign;
     magazine: MagazineDesign;
@@ -168,7 +168,7 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.smartPilot = makeSmartPilot(design.smartPilot);
 
     state.armor = makeArmor(design.armor);
-    state.radar = makeRadar(design.radar);
+    state.radars = new ArraySchema(...design.radars.map(makeRadar));
     state.reactor = makeReactor(design.reactor);
     state.magazine = makeMagazine(design.magazine);
     state.weaponsTarget = makeTargeting(design.weaponsTarget);

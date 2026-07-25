@@ -25,6 +25,7 @@ import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { float } from './properties';
+import { setOmniRadarSector } from '../src';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 function calcCollider(timeInSeconds: number, target: SpaceObject, speed: number) {
@@ -242,7 +243,7 @@ describe('SpaceManager', () => {
             const sim = new SpaceSimulator(10);
             const scanner = new Spaceship();
             scanner.id = 'scanner';
-            scanner.radarRange = 5000;
+            setOmniRadarSector(scanner, 5000);
             scanner.position = Vec2.make({ x: 0, y: 0 });
 
             const target = new Spaceship();
@@ -260,7 +261,7 @@ describe('SpaceManager', () => {
             const sim = new SpaceSimulator(10);
             const scanner = new Spaceship();
             scanner.id = 'scanner';
-            scanner.radarRange = 5000;
+            setOmniRadarSector(scanner, 5000);
             scanner.position = Vec2.make({ x: 0, y: 0 });
 
             const target = new Spaceship();

@@ -1,4 +1,6 @@
+import { ArraySchema } from '@colyseus/schema';
 import { Faction } from './faction';
+import { RadarSector } from './radar-sector';
 import { ShipModel } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
@@ -18,17 +20,12 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('int8')
     public faction: Faction = Faction.NONE;
 
-    @gameField('float32')
-    public radarRange = 0;
-
-    // Directional scan beam geometry (scanBeamDirection is a world bearing in degrees),
-    // computed each tick by the ship manager from the radar's beamDirection/beamShape
-    // controls and consumed by FieldOfView for detection. Not synced: the client reconstructs
-    // the identical sector from the synced radar controls via calcScanBeamGeometry, so these
-    // stay off the wire to keep the schema reflection within the handshake buffer.
-    public scanBeamDirection = 0;
-    public scanBeamArc = 0;
-    public scanBeamRadius = 0;
+    /**
+     * One sector per radar the ship carries, refreshed each tick by the ship manager. Synced, so a
+     * client computes the same field of view the server does — including the directional scan beam.
+     */
+    @gameField([RadarSector])
+    public radarSectors = new ArraySchema<RadarSector>();
 
     @tweakable('string')
     @gameField('string')

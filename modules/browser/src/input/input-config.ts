@@ -72,8 +72,8 @@ export interface ShipInputConfig {
     strafeCommand?: RangeConfig;
     boostCommand?: RangeConfig;
     shellRange?: RangeConfig;
-    scanBeamDirection?: RangeConfig;
-    scanBeamShape?: RangeConfig;
+    radarDirection?: RangeConfig;
+    radarArc?: RangeConfig;
 }
 
 export const shipInputConfig = {
@@ -108,13 +108,20 @@ export const shipInputConfig = {
         buttons: { center: new GamepadButtonConfig(0, 14) },
     },
     resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
-    scanBeamDirection: {
+    radarDirection: {
         axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
         offsetKeys: new KeysRangeConfig('d', 'a', 'a+d,d+a', 5),
     },
-    scanBeamShape: {
-        axis: new GamepadAxisConfig(0, 1, [-0.1, 0.1], true),
-        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 0.05),
+    // arc is an absolute setting, so it is stepped from wherever it currently is — an analog
+    // axis would instead drive it from zero, which is what `offSetonly` keys avoid
+    radarArc: {
+        buttons: new GamepadButtonsRangeConfig(
+            new GamepadButtonConfig(0, 12),
+            new GamepadButtonConfig(0, 13),
+            new GamepadButtonConfig(0, 14),
+            5,
+        ),
+        offsetKeys: new KeysRangeConfig('w', 's', 'w+s,s+w', 5),
     },
 };
 interface GmInputConfig {

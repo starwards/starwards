@@ -1,39 +1,30 @@
-import { Asteroid, Faction, ScanLevel, ShipDie, ShipManagerPc, Spaceship, Vec2 } from '../src';
+import { Asteroid, Faction, ScanLevel, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
 
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
 
 /**
- * I3 — range gates honor the unioned radar vision (INTEGRATION, RED suite).
+ * I3 — range gates honor the unioned radar vision.
  *
- * Intended final API (not implemented yet — these tests are the RED):
- *   - ShipState.radars: ArraySchema<Radar>. radars[0] is the 360° omni radar,
- *     radars[1] is the steerable directional scan-beam radar.
- *   - Radar.arc (deg), Radar.direction (ship-relative bearing, deg), Radar.range getter,
- *     Radar.design.{area,minArc,maxArc,defaultArc,range}.
- *   - Each tick the ship manager mirrors the radar union onto
- *     Spaceship.radarSectors ({ direction: world-bearing deg, arc: deg, range: m }),
- *     and Spaceship.radarRange becomes a getter === MAX sector range (back-compat).
- *   - Range gates that used to hard-compare against the scalar omni radarRange must
- *     honor the union: a target inside a beam sector though beyond the omni radius is
- *     IN range / scannable / not-dropped.
+ * Each tick the ship manager mirrors the union of the ship's radars onto
+ * Spaceship.radarSectors ({ direction: world-bearing deg, arc: deg, range: m }), and
+ * Spaceship.radarRange is the widest reach across them. Range gates must honor that union:
+ * a target inside a beam sector though beyond the omni radius is IN range / scannable / not-dropped.
  *
  * Scenario shared by all three gates:
  *   scanner at origin, omni range small (1000 m). radars[1] beam aimed down world
- *   bearing 0 with arc 60° and a design area big enough to reach ~16.9 km. A target
- *   sits at (3000, 0): OUTSIDE the omni radius but INSIDE the beam sector.
+ *   bearing 0 with arc 60°, reaching far past the target. A target sits at (3000, 0):
+ *   OUTSIDE the omni radius but INSIDE the beam sector.
  */
 
 const OMNI_RANGE = 1000;
 const TARGET_DISTANCE = 3000; // beyond omni, inside the beam sector
 const BEAM_ARC = 60;
-// area chosen so beam range = sqrt(area / (arc * PI/180)) ≈ 16.9 km, comfortably > TARGET_DISTANCE
-const BEAM_DESIGN = { area: 3e8, minArc: 5, maxArc: 90, defaultArc: BEAM_ARC, range: 0 };
+// nominal reach at the fitted arc, comfortably > TARGET_DISTANCE even at partial effectiveness
+const BEAM_DESIGN = { range: 20_000, minArc: 5, maxArc: 90, defaultArc: BEAM_ARC };
 
 // Aim radars[0] (omni) short and radars[1] (beam) down world bearing 0 covering the target.
-// (Guessed accessors: radars[0].design.range for the omni radius, radars[1].design.assign / .arc / .direction
-//  for the beam. Mirrors the sibling red-suite usage in radar-collection.spec.ts / radar-range.spec.ts.)
-function configureRadars(shipMgr: ShipManagerPc): void {
+function configureRadars(shipMgr: { state: ShipState }): void {
     const omni = shipMgr.state.radars[0];
     omni.design.range = OMNI_RANGE;
 
@@ -132,7 +123,7 @@ describe('radar range gates honor the beam (I3)', () => {
         sim.withObjects(target);
         sim.spaceMgr.forceFlushEntities();
 
-        // assign the weapons target (beyond omni 1000, within beam range ~16.9 km)
+        // assign the weapons target (beyond omni 1000, well within the beam's reach)
         shipMgr.state.weaponsTarget.targetId = target.id;
 
         // validateWeaponsTargetId runs every tick and would null a target beyond spaceObject.radarRange;

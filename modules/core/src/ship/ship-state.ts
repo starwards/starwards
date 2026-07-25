@@ -96,8 +96,8 @@ export class ShipState extends Schema {
     @gameField(ChainGun)
     chainGun: ChainGun | null = null;
 
-    @gameField(Radar)
-    radar!: Radar;
+    @gameField([Radar])
+    radars = new ArraySchema<Radar>();
 
     @gameField(Reactor)
     reactor!: Reactor;
@@ -254,7 +254,7 @@ export class ShipState extends Schema {
             case ShipArea.front:
                 return [
                     this.chainGun,
-                    this.radar,
+                    ...this.radars.values(),
                     this.smartPilot,
                     this.magazine,
                     this.warp,

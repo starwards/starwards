@@ -73,11 +73,11 @@ function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver
     container.on('destroy', panelCleanup.destroy);
     addSliderBlade(
         pane,
-        readWriteNumberProp(shipDriver, '/radar/beamDirection'),
+        readWriteNumberProp(shipDriver, '/radars/1/direction'),
         { label: 'direction' },
         panelCleanup.add,
     );
-    addSliderBlade(pane, readWriteNumberProp(shipDriver, '/radar/beamShape'), { label: 'shape' }, panelCleanup.add);
+    addSliderBlade(pane, readWriteNumberProp(shipDriver, '/radars/1/arc'), { label: 'arc' }, panelCleanup.add);
 }
 
 function wireInput(
@@ -123,15 +123,11 @@ function wireInput(
     input.addClickAction(() => zoomEvents.emit('zoomIn'), '=', 'Zoom In');
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
     input.addRangeAction(
-        readWriteNumberProp(shipDriver, '/radar/beamDirection'),
-        shipInputConfig.scanBeamDirection,
+        readWriteNumberProp(shipDriver, '/radars/1/direction'),
+        shipInputConfig.radarDirection,
         'Beam Direction',
     );
-    input.addRangeAction(
-        readWriteNumberProp(shipDriver, '/radar/beamShape'),
-        shipInputConfig.scanBeamShape,
-        'Beam Shape',
-    );
+    input.addRangeAction(readWriteNumberProp(shipDriver, '/radars/1/arc'), shipInputConfig.radarArc, 'Beam Arc');
     input.init();
     setupHotkeyHelp(input);
 }

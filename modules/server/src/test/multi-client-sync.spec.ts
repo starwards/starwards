@@ -25,14 +25,14 @@ describe('multi-client @commandable sync', () => {
         await clientA.waitForSync(shipA);
         await clientB.waitForSync(shipB);
 
-        // Write a @commandable property (radar.power) from client A
-        await clientA.sendCommand(shipA, `/radar/power`, { value: 0.5 });
+        // Write a @commandable property (radars[0].power) from client A
+        await clientA.sendCommand(shipA, `/radars/0/power`, { value: 0.5 });
 
         // Client B should observe the change
-        await clientB.waitForSubsystemProperty(shipB, 'radar', 'power', 0.5, 0.1);
+        await clientB.waitForSubsystemProperty(shipB, 'radars/0', 'power', 0.5, 0.1);
 
         const stateB = clientB.getState(shipB);
-        expect(stateB.radar.power).toBeCloseTo(0.5, 1);
+        expect(stateB.radars[0].power).toBeCloseTo(0.5, 1);
     });
 
     it('space room command from one client is visible to another', async () => {

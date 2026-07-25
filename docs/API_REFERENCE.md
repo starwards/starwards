@@ -123,14 +123,14 @@ efficiency = 1;
 ### SpaceObjectBase (abstract)
 **Location:** `modules/core/src/space/space-object-base.ts`
 
-**Properties:** `type|destroyed|freeze|expendable|id|position|velocity|radius|angle|turnSpeed|faction|radarRange|collisionElasticity|collisionDamage|isCorporal`
+**Properties:** `type|destroyed|freeze|expendable|id|position|velocity|radius|angle|turnSpeed|faction|radarSectors|radarRange|collisionElasticity|collisionDamage|isCorporal`
 
 **Methods:**
 - `globalToLocal(xy): XY` | `localToGlobal(xy): XY`
 - `get directionAxis(): XY`
 
 ### Derived Types
-- **Spaceship** (`spaceship.ts`): `+faction|radarRange|model|callsign|transponderOpen`
+- **Spaceship** (`spaceship.ts`): `+faction|radarSectors|model|callsign|transponderOpen`
 - **Projectile** (`projectile.ts`): `+design|secondsToLive|health|shipId|targetId|model|_explosion`
 - **Explosion** (`explosion.ts`): `+secondsToLive|expansionSpeed|damageFactor|blastFactor`
 - **Asteroid** (`asteroid.ts`): `+health`

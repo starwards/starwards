@@ -1,5 +1,5 @@
+import { applyRadarSectors, dragonflySF22, makeShipState, setOmniRadarSector } from '@starwards/core';
 import { createMockAsteroid, createMockShip, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
-import { dragonflySF22, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -15,8 +15,10 @@ function createShipWithState(id: string, x = 0, y = 0, angle = 0, radarRange = R
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;
     state.spaceship.faction = 0;
-    state.spaceship.radarRange = radarRange;
-    state.radar.power = 1;
+    setOmniRadarSector(state.spaceship, radarRange);
+    for (const radar of state.radars) {
+        radar.power = 1;
+    }
     return state;
 }
 
@@ -198,6 +200,47 @@ export const longRangeRadarScenes: Record<string, Scene> = {
 
             return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: 250_000,
+            });
+        },
+    },
+
+    'long-range-radar-scan-beam': {
+        name: 'long-range-radar-scan-beam',
+        description: 'Long range radar with an active directional scan beam reaching past the omni ring',
+        async setup(container: HTMLElement) {
+            // short omni ring plus a narrow beam that sees much further along one bearing
+            const playerShip = createShipWithState('player', 0, 0, 0, 20_000);
+            applyRadarSectors(playerShip.spaceship.radarSectors, [
+                { direction: 0, arc: 360, range: 20_000 },
+                { direction: 45, arc: 20, range: 60_000 },
+            ]);
+
+            // inside the beam, far beyond the omni ring — visible only because of the beam
+            const inBeam = createMockAsteroid({
+                id: 'in-beam',
+                position: { x: 21_000, y: 21_000 },
+                radius: 900,
+            });
+
+            // same distance, outside the beam bearing — stays in the fog
+            const outOfBeam = createMockAsteroid({
+                id: 'out-of-beam',
+                position: { x: -21_000, y: 21_000 },
+                radius: 900,
+            });
+
+            const nearby = createMockAsteroid({
+                id: 'asteroid-1',
+                position: { x: 8_000, y: -6_000 },
+                radius: 400,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, inBeam, outOfBeam, nearby]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: DEFAULT_RANGE,
             });
         },
     },

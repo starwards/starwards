@@ -194,7 +194,7 @@ describe('SignalsJobManager', () => {
         it('should reject hack job if target not at scan level 2', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
@@ -205,7 +205,7 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(1);
@@ -364,12 +364,12 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.COMPROMISED);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
         });
 
         it('should expire hack after hackEffectDuration (managed by victim)', () => {
@@ -378,16 +378,16 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             let t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.COMPROMISED);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
 
             // Victim's manager should expire the hack
             t = runTicksBoth(shipMgr, targetMgr, spaceMgr, 160, 10, t);
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.OK);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
         it('should expire hack even if attacker ship no longer updates', () => {
@@ -396,11 +396,11 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             let t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.COMPROMISED);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
 
             // Only tick the TARGET (simulates attacker destroyed/gone)
             const iterations = Math.ceil(160 * 10);
@@ -412,7 +412,7 @@ describe('SignalsJobManager', () => {
                 spaceMgr.update(id);
             }
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.OK);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
         it('should not change target system on failure', () => {
@@ -421,12 +421,12 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.OK);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
         it('should enforce hack cooldown', () => {
@@ -435,11 +435,11 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
             const t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, t);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);

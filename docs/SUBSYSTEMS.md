@@ -46,7 +46,7 @@ last_verified: 2026-07-20
 | **Reactor** | `reactor.ts` | energy, effeciencyFactor | Primary energy generation |
 | **Maneuvering** | `maneuvering.ts` | afterBurnerFuel, efficiency (design: rotationCapacity, afterBurnerCharge) | Rotation + afterburner control |
 | **Thrusters** | `thruster.ts` | angle, active, afterBurnerActive, availableCapacity, angleError | Directional thrust (Fwd/Back/L/R array) |
-| **Radar** | `radar.ts` | range, malfunctionRangeFactor | Detection range |
+| **Radar** | `radar.ts` | arc, direction, malfunctionRangeFactor | One vision sector each; a ship carries a `radars` collection and sees their union |
 | **ChainGun** | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | Rapid-fire kinetic |
 | **Tubes** | `tube.ts` | angle, index (inherits loading, rateOfFireFactor, loadedProjectile from ChainGun) | Missile launchers (array) |
 | **Magazine** | `magazine.ts` | capacity, missiles | Ammo storage |

@@ -135,8 +135,10 @@ export class TestClient {
         await this.waitForSync(
             room,
             (state: ShipState) => {
+                // `subsystem` is either a ShipState field ('reactor') or a field plus an
+                // index into a collection of systems ('radars/0').
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-                const sys = (state as any)[subsystem];
+                const sys = subsystem.split('/').reduce<any>((acc, key) => acc?.[key] as unknown, state as any);
                 if (!sys) return false;
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                 const value = sys[property];

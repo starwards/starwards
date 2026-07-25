@@ -91,8 +91,9 @@ public turnSpeed: number = 0;
 // Faction (default: NONE)
 public readonly faction: Faction = Faction.NONE;
 
-// Radar range (default: 0)
-public readonly radarRange: number = 0;
+// Radar vision sectors (default: none) and the widest reach across them
+public readonly radarSectors: Iterable<RadarSectorValues> = [];
+public get radarRange(): number;
 
 // Collision elasticity (0-1)
 public readonly collisionElasticity: number = 0.05;
@@ -490,8 +491,8 @@ export class Spaceship extends SpaceObjectBase {
     @tweakable({ type: 'enum', enum: Faction })
     public faction: Faction = Faction.NONE;
     
-    @gameField('float32')
-    public radarRange: number = 0;
+    @gameField([RadarSector])
+    public radarSectors = new ArraySchema<RadarSector>();
     
     @gameField('string')
     @tweakable('string')
