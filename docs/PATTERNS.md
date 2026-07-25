@@ -118,6 +118,7 @@ syncShipProperties() runs every tick
 **Location:** `modules/core/src/ship/ship-manager-abstract.ts`
 
 ```typescript
+// mirrors: modules/core/src/ship/ship-manager-abstract.ts
 protected syncShipProperties() {
     this.state.spaceship.position.x = this.spaceObject.position.x;
     this.state.spaceship.position.y = this.spaceObject.position.y;

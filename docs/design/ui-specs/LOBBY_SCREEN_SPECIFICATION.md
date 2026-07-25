@@ -1,7 +1,5 @@
 # Starwards Lobby Screen Design Specification
 
-**Document Version:** 1.0
-**Date:** 2025-11-22
 **Target Audience:** Professional UI/UX Designers
 **Project:** Starwards - Multiplayer Space Combat LARP System
 

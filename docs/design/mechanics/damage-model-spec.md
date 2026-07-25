@@ -1,11 +1,17 @@
-# Damage Model, Design Specification
+# Damage Model — as implemented
 
-> **Status: design document.** This is the agreed target design for the armor x ammo damage
-> model, written to replan [PR #1932](https://github.com/starwards/starwards/pull/1932) /
-> [#1929](https://github.com/starwards/starwards/issues/1929). Nothing here is final or fully
-> implemented: the PR contains an earlier iteration, and the impact delivery mechanism is being
-> built separately. Decision records [006](../decisions/006-damage-profile-unification.md)-[011](../decisions/011-armor-table-rebalance.md)
-> hold the historical rationale; where they conflict with this document, this document wins.
+> **Status: as-built record.** This describes the armor × ammo damage model in the shape the
+> code implements today — spillover-based defect counts and victim selection. It is the
+> reference for reading `ship/damage-manager.ts` and `ship/armor.ts`.
+>
+> **The forward design lives in the design KB:**
+> [starwards-design `mechanics/damage-model-spec.md`](https://github.com/starwards/starwards-design/blob/main/mechanics/damage-model-spec.md).
+> That document supersedes this one on intent — notably it replaces the spillover-detail model
+> in §4 with a per-round **Concentration** value, which is **not implemented**. Where the two
+> differ, this page tells you what the code does; the design KB tells you where it is going.
+>
+> Decision records [006](../decisions/006-damage-profile-unification.md)-[011](../decisions/011-armor-table-rebalance.md)
+> hold the historical rationale.
 
 ## 1. The model at a glance
 

@@ -81,6 +81,17 @@ Every factual claim must be checkable against the current code with Read/Grep. U
 describe the past on purpose) — but if a doc presents a statement as *current* code state, it
 must hold today.
 
+### Rule 6 — new files are kebab-case
+
+Name new docs `lowercase-with-hyphens.md`, per
+[`standards/standards-naming.md`](standards/standards-naming.md) ("Make file and directory names
+lowercase… Use hyphens, not underscores"). Never use spaces — they break links on some
+platforms and make globbing awkward.
+
+Much of the KB predates this rule and uses `SCREAMING_SNAKE.md`. **Do not mass-rename** —
+inbound links from code comments, skills, and CI config would break for no functional gain.
+Legacy names are tolerated; only new files must conform.
+
 ## Frontmatter
 
 Entry-point and deep, code-mapped docs carry YAML frontmatter so agents and the staleness
