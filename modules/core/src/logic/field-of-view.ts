@@ -26,11 +26,6 @@ type VisibleArc = VisibleObject & {
     fromAngle: number;
     toAngle: number;
 };
-type CoverageInterval = {
-    from: number;
-    to: number;
-    range: number;
-};
 type EndPoint = {
     angle: number;
     visible: VisibleObject;
@@ -47,9 +42,7 @@ export class FieldOfView {
     get view() {
         if (this.isDirty) {
             this.isDirty = false;
-            const intervals = this.coverageIntervals();
-            const endPoints = [...this.visibilityEndpoints(intervals)];
-            this.archs = [...this.visibleArcs(endPoints, intervals)];
+            this.archs = [...this.visibleArcs([...this.visibilityEndpoints()])];
         }
         return this.archs;
     }
@@ -58,121 +51,108 @@ export class FieldOfView {
         this.isDirty = true;
     }
 
-    /**
-     * The object's radar sectors, flattened into disjoint angular intervals over [0, 360), each
-     * carrying the longest reach among the sectors that cover it.
-     *
-     * Overlapping sectors cannot be fed to the sweep as-is: the sweep keeps the *closest* entry, so
-     * overlapping free-space markers would collapse an overlap to its shortest range — the opposite
-     * of a union. Splitting into disjoint intervals first makes the union fall out of the existing
-     * closest-wins sweep unchanged.
-     */
-    private coverageIntervals(): CoverageInterval[] {
-        const boundaries = new Set([0, 360]);
-        const wedges: CoverageInterval[] = [];
+    private *validSectors() {
         for (const sector of this.object.radarSectors) {
-            if (sector.range <= EPSILON || sector.arc <= EPSILON) {
-                continue;
+            if (sector.range > EPSILON && sector.arc > EPSILON) {
+                yield sector;
             }
+        }
+    }
+
+    /**
+     * How far the radar reaches at a bearing: the longest range among the sectors covering it,
+     * 0 when none does.
+     */
+    private rangeAtBearing(bearing: number): number {
+        let range = 0;
+        for (const sector of this.validSectors()) {
+            const covered =
+                sector.arc >= 360 || toPositiveDegreesDelta(bearing - (sector.direction - sector.arc / 2)) < sector.arc;
+            if (covered && sector.range > range) {
+                range = sector.range;
+            }
+        }
+        return range;
+    }
+
+    /**
+     * Free-space marker endpoints, one marker per sector at that sector's reach. In the sweep the
+     * longest active marker sets the effective range: it is both the "nothing blocks the view"
+     * artifact and the range cutoff for objects at that bearing.
+     */
+    private *sectorEndpoints(): Generator<EndPoint> {
+        for (const sector of this.validSectors()) {
             if (sector.arc >= 360) {
-                wedges.push({ from: 0, to: 360, range: sector.range });
+                const marker: VisibleObject = { object: null, distance: sector.range };
+                yield { visible: marker, angle: 0, type: 'start' };
+                yield { visible: marker, angle: 360, type: 'stop' };
                 continue;
             }
             const from = toPositiveDegreesDelta(sector.direction - sector.arc / 2);
             const to = from + sector.arc;
-            // a wedge crossing 0 degrees becomes two, so every wedge stays within [0, 360)
+            // a sector crossing 0 degrees becomes two markers, so removal by identity stays valid
             if (to > 360) {
-                wedges.push({ from, to: 360, range: sector.range }, { from: 0, to: to - 360, range: sector.range });
-                boundaries.add(from).add(to - 360);
+                const head: VisibleObject = { object: null, distance: sector.range };
+                const tail: VisibleObject = { object: null, distance: sector.range };
+                yield { visible: head, angle: from, type: 'start' };
+                yield { visible: head, angle: 360, type: 'stop' };
+                yield { visible: tail, angle: 0, type: 'start' };
+                yield { visible: tail, angle: to - 360, type: 'stop' };
             } else {
-                wedges.push({ from, to, range: sector.range });
-                boundaries.add(from).add(to);
+                const marker: VisibleObject = { object: null, distance: sector.range };
+                yield { visible: marker, angle: from, type: 'start' };
+                yield { visible: marker, angle: to, type: 'stop' };
             }
         }
-        // snap boundaries closer than EPSILON into one, so no sub-EPSILON interval can form.
-        // Dropping such slivers instead would leave a gap in the tiling, and the sweep depends on
-        // the intervals covering [0, 360) completely. 360 is restored last in case it got snapped.
-        const sorted = [...boundaries]
-            .sort((a, b) => a - b)
-            .filter((boundary, i, all) => i === 0 || boundary - all[i - 1] >= EPSILON);
-        sorted[sorted.length - 1] = 360;
-        const intervals: CoverageInterval[] = [];
-        for (let i = 0; i < sorted.length - 1; i++) {
-            const from = sorted[i];
-            const to = sorted[i + 1];
-            const midAngle = (from + to) / 2;
-            let range = 0;
-            for (const wedge of wedges) {
-                if (wedge.from <= midAngle && midAngle < wedge.to && wedge.range > range) {
-                    range = wedge.range;
-                }
-            }
-            const previous = intervals.at(-1);
-            if (previous && previous.range === range) {
-                previous.to = to;
-            } else {
-                intervals.push({ from, to, range });
-            }
-        }
-        return intervals;
     }
 
-    private rangeAtBearing(intervals: CoverageInterval[], bearing: number): number {
-        const angle = toPositiveDegreesDelta(bearing);
-        for (const interval of intervals) {
-            if (interval.from <= angle && angle < interval.to) {
-                return interval.range;
-            }
-        }
-        return 0;
-    }
-
-    private *visibleArcs(endPoints: Array<EndPoint>, intervals: CoverageInterval[]): Generator<VisibleArc> {
-        // One free-space marker per coverage interval, at that interval's reach. It doubles as the
-        // "nothing blocks the view" artifact and as the range cutoff: an object farther than the
-        // interval's reach loses to the marker in the closest-wins sweep and stays invisible.
-        // Bearings no sector covers get a marker at distance 0, which shadows everything — blind.
-        // The intervals tile [0, 360) with no gaps, so the sweep always has a marker in hand.
-        for (const interval of intervals) {
-            const marker: VisibleObject = { object: null, distance: interval.range };
-            endPoints.push(
-                { visible: marker, angle: interval.from, type: 'start' },
-                { visible: marker, angle: interval.to, type: 'stop' },
-            );
-        }
-        // at a shared boundary the next interval must open before the previous one closes
+    private *visibleArcs(endPoints: Array<EndPoint>): Generator<VisibleArc> {
+        endPoints.push(...this.sectorEndpoints());
+        // at a shared boundary the next sector/object must open before the previous one closes
         endPoints.sort((a, b) => a.angle - b.angle || (a.type === b.type ? 0 : a.type === 'start' ? -1 : 1));
+        const activeMarkers: VisibleObject[] = []; // sector markers covering the current bearing
         const currObjsByDistance: VisibleObject[] = []; // objects the sweep line intersects (at current angle), sorted by distance
-        // sentinel: matches nothing, so the first real marker starts the first arc at angle 0
-        let closestObj = { visible: { object: null, distance: -1 } as VisibleObject, fromAngle: 0 };
+        // bearings no sector covers are blind: free space at distance 0, which shadows everything
+        let current: VisibleArc = { object: null, distance: 0, fromAngle: 0, toAngle: 0 };
         // sweep from angle 0 to 360
         // put in this.view objects that are nearest to the sweep line across the entire sweep
         for (const ep of endPoints) {
-            if (ep.type === 'start') {
-                // add a visible object and re-order by distance. On a distance tie a real object
-                // beats a free-space marker, so an object capped at exactly the sector range shows.
+            if (ep.visible.object === null) {
+                if (ep.type === 'start') {
+                    activeMarkers.push(ep.visible);
+                } else {
+                    activeMarkers.splice(activeMarkers.indexOf(ep.visible), 1);
+                }
+            } else if (ep.type === 'start') {
                 currObjsByDistance.push(ep.visible);
-                currObjsByDistance.sort((a, b) => a.distance - b.distance || (a.object ? 0 : 1) - (b.object ? 0 : 1));
+                currObjsByDistance.sort((a, b) => a.distance - b.distance);
             } else {
                 // ep.type === 'stop'
-                currObjsByDistance.splice(currObjsByDistance.indexOf(ep.visible), 1); // remove a visible object
+                currObjsByDistance.splice(currObjsByDistance.indexOf(ep.visible), 1);
             }
-            if (closestObj.visible !== currObjsByDistance[0]) {
-                if (closestObj.fromAngle < ep.angle) {
-                    // record previous nearest obstacle before starting new obstacle
-                    yield {
-                        object: closestObj.visible.object,
-                        distance: closestObj.visible.distance,
-                        fromAngle: closestObj.fromAngle,
-                        toAngle: ep.angle,
-                    };
+            // the longest active marker wins over the others: overlapping sectors union their reach.
+            // On a distance tie the closest object beats free space, so an object capped at exactly
+            // the sector range shows.
+            const effectiveRange = activeMarkers.reduce((max, marker) => Math.max(max, marker.distance), 0);
+            const closest = currObjsByDistance[0];
+            const visible: VisibleObject =
+                closest && closest.distance <= effectiveRange ? closest : { object: null, distance: effectiveRange };
+            if (visible.object !== current.object || visible.distance !== current.distance) {
+                if (current.fromAngle < ep.angle) {
+                    // record previous visible before starting a new arc
+                    current.toAngle = ep.angle;
+                    yield current;
                 }
-                closestObj = { visible: currObjsByDistance[0], fromAngle: ep.angle };
+                current = { object: visible.object, distance: visible.distance, fromAngle: ep.angle, toAngle: 0 };
             }
+        }
+        if (current.fromAngle < 360) {
+            current.toAngle = 360;
+            yield current;
         }
     }
 
-    private *visibilityEndpoints(intervals: CoverageInterval[]): Generator<EndPoint> {
+    private *visibilityEndpoints(): Generator<EndPoint> {
         // assumption: objects don't overlap
         const maxRange = this.object.radarRange;
         if (maxRange > EPSILON) {
@@ -184,12 +164,12 @@ export class FieldOfView {
                     const centerAngle = XY.angleOf(posDiff);
                     // approximation: the sector gate samples only the object's center bearing, so an
                     // object straddling a sector edge is all-or-nothing by where its center falls
-                    const rangeAtCenter = this.rangeAtBearing(intervals, centerAngle);
+                    const rangeAtCenter = this.rangeAtBearing(centerAngle);
                     const inSector = distance <= rangeAtCenter + object.radius;
                     if (object.radius > MIN_RADAR_DETECT_FACTOR * Math.sqrt(distance) && inSector) {
                         const arcAngle = calcArcAngle(object.radius * 2, distance);
                         // cap at the sector range: an object poking its edge past the range shows at
-                        // the range itself, and the tie against the free-space marker goes to it
+                        // the range itself, and the tie against free space goes to it
                         const visible = { object, distance: Math.min(distance, rangeAtCenter) };
                         const fromAngle = limitPercisionHard(toPositiveDegreesDelta(centerAngle - arcAngle / 2));
                         const toAngle = limitPercisionHard(toStrictPositiveDegreesDelta(centerAngle + arcAngle / 2));
