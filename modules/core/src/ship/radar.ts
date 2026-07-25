@@ -160,6 +160,13 @@ export class Radar extends SystemState {
      */
     public areaFactor = 1;
 
+    /**
+     * false while the reactor cannot feed this radar. An unpowered radar sees nothing at all —
+     * unlike a malfunctioning one, which degrades toward its floor. Not synced: clients read the
+     * resulting geometry off `Spaceship.radarSectors`.
+     */
+    public powered = true;
+
     get broken() {
         return this.malfunctionRangeFactor >= 1 - this.design.rangeEaseFactor * 2;
     }
@@ -169,6 +176,9 @@ export class Radar extends SystemState {
      * Scales with the square root of effectiveness, since effectiveness scales the swept area.
      */
     get range() {
+        if (!this.powered) {
+            return 0;
+        }
         const effectiveArea =
             lerp([0, 1], [this.design.malfunctionArea, this.design.area], this.areaFactor) * this.effectiveness;
         return radarRangeFromArea(effectiveArea, this.arc);

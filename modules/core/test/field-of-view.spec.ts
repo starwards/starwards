@@ -170,6 +170,68 @@ describe('FieldOfView', () => {
         });
     });
 
+    describe('sector boundary robustness', () => {
+        function makeSector(direction: number, arc: number, range: number) {
+            const sector = new RadarSector();
+            sector.direction = direction;
+            sector.arc = arc;
+            sector.range = range;
+            return sector;
+        }
+
+        it('survives two sector boundaries closer than EPSILON without crashing or going blind', () => {
+            const ship = new Spaceship();
+            ship.id = 'scanner';
+            ship.position = new Vec2(0, 0);
+            // sector A covers [30, 60); sector B starts at 60.005 — a 0.005-degree sliver
+            // between them, narrower than EPSILON (0.01)
+            ship.radarSectors.push(makeSector(45, 30, 5000));
+            ship.radarSectors.push(makeSector(75.01, 30.01, 4000));
+
+            const inA = new Asteroid();
+            inA.id = 'in-a';
+            inA.position = new Vec2(2121, 2121); // distance ~3000 at bearing 45
+            inA.radius = 50;
+
+            const fov = new FieldOfView(makeSpatialIndex([ship, inA]), ship);
+            expect(() => fov.view).to.not.throw();
+            expect(fov.view.some((arc) => arc.object?.id === 'in-a')).to.equal(true);
+        });
+    });
+
+    describe('edge-of-range detection', () => {
+        it('detects an object whose center is just beyond range but whose edge is within it', () => {
+            const ship = new Spaceship();
+            ship.id = 'scanner';
+            ship.position = new Vec2(0, 0);
+            ship.radarSectors.push(makeOmniSector(1000));
+
+            const grazing = new Asteroid();
+            grazing.id = 'grazing';
+            grazing.position = new Vec2(1050, 0); // center 50m past range, radius 100 → edge well inside
+            grazing.radius = 100;
+
+            const fov = new FieldOfView(makeSpatialIndex([ship, grazing]), ship);
+            expect(fov.view.some((arc) => arc.object?.id === 'grazing')).to.equal(true);
+        });
+
+        it('reports the detected edge-of-range object at the radar range, not beyond it', () => {
+            const ship = new Spaceship();
+            ship.id = 'scanner';
+            ship.position = new Vec2(0, 0);
+            ship.radarSectors.push(makeOmniSector(1000));
+
+            const grazing = new Asteroid();
+            grazing.id = 'grazing';
+            grazing.position = new Vec2(1050, 0);
+            grazing.radius = 100;
+
+            const fov = new FieldOfView(makeSpatialIndex([ship, grazing]), ship);
+            const arc = fov.view.find((a) => a.object?.id === 'grazing');
+            expect(arc?.distance).to.be.at.most(1000);
+        });
+    });
+
     describe('FieldOfView — multi-radar sectors', () => {
         function makeSector(direction: number, arc: number, range: number) {
             const sector = new RadarSector();

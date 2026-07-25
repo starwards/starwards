@@ -1,6 +1,7 @@
 import {
     Asteroid,
     Faction,
+    PowerLevel,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -259,6 +260,20 @@ describe('ShipManager housekeeping', () => {
         runTick(mgr);
         expect(radar.range).to.be.lessThan(healthyRange);
         expect(radar.range).to.be.at.least(radar.design.malfunctionRange * effectivenessRangeFactor - 1);
+    });
+
+    it('an energy-starved radar sees nothing, not even its malfunction floor', () => {
+        const { makeShipMgr, flush, runTick } = setup();
+        const { obj, mgr } = makeShipMgr('a', Faction.Gravitas);
+        flush();
+        const radar = mgr.state.radars[0];
+        // no energy and a dead reactor: trySpendEnergy must fail every tick
+        mgr.state.reactor.power = PowerLevel.SHUTDOWN;
+        mgr.state.reactor.energy = 0;
+        runTick(mgr);
+        expect(radar.effectiveness).to.be.greaterThan(0); // the radar itself is healthy and powered
+        expect(radar.range).to.equal(0);
+        expect(obj.radarRange).to.equal(0);
     });
 
     it('a fully malfunctioning radar is broken and its range drops to zero', () => {

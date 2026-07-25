@@ -259,11 +259,11 @@ export abstract class ShipManager implements Updateable {
     protected updateRadarSectors({ totalSeconds, deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
-            const powered = this.internalProxy.trySpendEnergy(
+            radar.powered = this.internalProxy.trySpendEnergy(
                 radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
-            radar.areaFactor = powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
+            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
             sectors.push({
                 direction: toPositiveDegreesDelta(this.spaceObject.angle + radar.direction),
                 arc: radar.arc,
