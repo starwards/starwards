@@ -73,10 +73,10 @@ describe('radar range gates honor the beam (I3)', () => {
         ).to.be.false;
     });
 
-    it('signals isTargetInRange honors the beam: a target beyond omni but within the sector union can be tracked', () => {
-        // isTargetInRange is private; assert its observable consequence — a same-faction target
+    it('signals visibility honors the beam: a target beyond omni but within the sector union can be tracked', () => {
+        // isTargetVisible is private; assert its observable consequence — a same-faction target
         // (scanLevel BASIC) beyond the omni radius but within the beam sector range can be added
-        // as a tracked target (track activation gates on isTargetInRange && scanLevel >= BASIC).
+        // as a tracked target (track activation gates on isTargetVisible && scanLevel >= BASIC).
         const sim = new SpaceSimulator(10);
         const scanner = new Spaceship();
         scanner.id = 'scanner';
@@ -105,6 +105,38 @@ describe('radar range gates honor the beam (I3)', () => {
             [...shipMgr.state.signals.trackedTargets],
             'target beyond omni but inside the beam sector should be trackable (isTargetInRange honors the union)',
         ).to.include(target.id);
+    });
+
+    it('signals visibility is directional: a target inside radarRange but on an uncovered bearing is not trackable', () => {
+        // radarRange is the widest reach across sectors, stripped of direction. The beam reaches
+        // 20 km down bearing 0, so a contact 3 km off at bearing 90 passes a bare distance test
+        // while no sector covers it. Line of sight must reject it.
+        const sim = new SpaceSimulator(10);
+        const scanner = new Spaceship();
+        scanner.id = 'scanner';
+        scanner.faction = Faction.Gravitas;
+        scanner.position = Vec2.make({ x: 0, y: 0 });
+        const shipMgr = sim.withShip(scanner, new ShipDie(0), ShipManagerPc);
+        configureRadars(shipMgr);
+
+        const target = new Spaceship();
+        target.id = 'off-bearing-target';
+        target.faction = Faction.Gravitas; // same faction => scanLevel BASIC without scanning
+        target.position = Vec2.make({ x: 0, y: TARGET_DISTANCE }); // bearing 90: beyond omni, outside the beam
+
+        sim.withObjects(target);
+        sim.spaceMgr.forceFlushEntities();
+
+        sim.simulateUntilTime(0.3);
+        expect(scanner.radarRange, 'radarRange alone would admit this target').to.be.greaterThan(TARGET_DISTANCE);
+
+        shipMgr.state.signals.activateTrackTargetId = target.id;
+        sim.simulateUntilTime(0.3);
+
+        expect(
+            [...shipMgr.state.signals.trackedTargets],
+            'a contact no sector covers must not be trackable, however close it is',
+        ).to.not.include(target.id);
     });
 
     it('weapons target is NOT dropped when it sits beyond omni but inside a beam sector', () => {

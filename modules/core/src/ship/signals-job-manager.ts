@@ -7,7 +7,6 @@ import { Die } from './ship-manager-abstract';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
-import { XY } from '../logic';
 import { makeId } from '../id';
 
 const TIER1_DWELL_SECONDS = 5;
@@ -170,7 +169,7 @@ export class SignalsJobManager implements Updateable {
             if (
                 this.state.signals.trackedTargets.length < this.state.signals.design.maxTrackedTargets &&
                 !this.state.signals.trackedTargets.includes(activateId) &&
-                this.isTargetInRange(activateId)
+                this.isTargetVisible(activateId)
             ) {
                 const scanLevel = this.spaceManager.getScanLevel(activateId, this.state.faction);
                 if (scanLevel >= ScanLevel.BASIC) {
@@ -309,7 +308,7 @@ export class SignalsJobManager implements Updateable {
     private validateTrackedTargets(): void {
         for (let i = this.state.signals.trackedTargets.length - 1; i >= 0; i--) {
             const targetId = this.state.signals.trackedTargets[i];
-            if (!this.isTargetInRange(targetId)) {
+            if (!this.isTargetVisible(targetId)) {
                 this.state.signals.trackedTargets.splice(i, 1);
                 this.spaceManager.setTrack(this.state.id, this.state.faction, targetId, false);
             }
@@ -320,7 +319,7 @@ export class SignalsJobManager implements Updateable {
         const seenIds = new Set<string>();
         for (const target of this.spaceManager.state.getAll('Spaceship')) {
             if (target.id === this.state.id) continue;
-            const inRange = this.isTargetInRange(target.id);
+            const inRange = this.isTargetVisible(target.id);
             const scanLevel = this.spaceManager.getScanLevel(target.id, this.state.faction);
             if (inRange && scanLevel === ScanLevel.UFO) {
                 seenIds.add(target.id);
@@ -341,13 +340,20 @@ export class SignalsJobManager implements Updateable {
         }
     }
 
-    private isTargetInRange(targetId: string): boolean {
+    /**
+     * Whether the ship can currently work this target: it must be in range *and* in a radar sector
+     * with a clear line of sight. Radar reach is directional, so a bare distance test would let the
+     * ship act on contacts behind it that no sector covers.
+     *
+     * A target the faction already tracks keeps line of sight for free (`canScan`), so an
+     * established lock survives the beam sweeping elsewhere; only leaving range drops it.
+     */
+    private isTargetVisible(targetId: string): boolean {
         const [target] = this.spaceManager.getObjectPtr(targetId);
         if (!target || target.destroyed) {
             return false;
         }
-        const distance = XY.lengthOf(XY.difference(this.state.position, target.position));
-        return distance <= this.state.radarRange;
+        return this.spaceManager.canScan(this.state.id, targetId);
     }
 
     private isValidHackTarget(targetId: string, systemName: string): boolean {

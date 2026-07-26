@@ -487,11 +487,16 @@ describe('SignalsJobManager', () => {
         it('should reject if already tracking max targets', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
+            // target1 sits at bearing 0; put the rest on their own bearings so none is occluded by
+            // another — tracking needs line of sight, and objects in a line hide behind the nearest
             for (let i = 2; i <= 4; i++) {
                 const obj = new Spaceship();
                 obj.id = `target${i}`;
                 obj.faction = Faction.Raiders;
-                obj.position = Vec2.make({ x: 500 * i, y: 0 });
+                obj.position = Vec2.make({
+                    x: 1000 * Math.cos(((i - 1) * Math.PI) / 2),
+                    y: 1000 * Math.sin(((i - 1) * Math.PI) / 2),
+                });
                 spaceMgr.insert(obj);
             }
 
