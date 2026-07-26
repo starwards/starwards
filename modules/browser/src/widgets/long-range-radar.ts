@@ -139,25 +139,31 @@ export async function drawLongRangeRadar(
     beamGraphics.mask = circleMask;
     root.stage.addChild(beamGraphics);
 
-    function drawScanBeam() {
+    /**
+     * Outlines where each steerable radar is being *asked* to point, not where it points now — the
+     * mount takes time to swing, and the coverage it currently has is already drawn as clear space
+     * by the field-of-view layer. The reach comes from the matching synced sector (sector index
+     * follows radar index), since widening the arc shortens the beam the moment the command lands.
+     */
+    function drawBeamTargets() {
         beamGraphics.clear();
         if (!ownShip) {
             return;
         }
-        // The synced sectors are the same ones the server detects with; draw the directional ones.
         const center = root.worldToScreen(ownShip.position);
-        for (const sector of ownShip.radarSectors) {
-            if (sector.range <= 0 || sector.arc <= 0 || sector.arc >= 360) {
+        for (const [index, radar] of shipDriver.state.radars.entries()) {
+            const sectorRange = ownShip.radarSectors.at(index)?.range ?? 0;
+            if (sectorRange <= 0 || radar.arc <= 0 || radar.arc >= 360) {
                 continue;
             }
-            const radiusPixels = root.metersToPixles(sector.range);
-            const fromAngle = degToRad * (sector.direction - sector.arc / 2 - root.camera.angle);
-            const toAngle = degToRad * (sector.direction + sector.arc / 2 - root.camera.angle);
+            const direction = ownShip.angle + radar.directionCommand;
+            const radiusPixels = root.metersToPixles(sectorRange);
+            const fromAngle = degToRad * (direction - radar.arc / 2 - root.camera.angle);
+            const toAngle = degToRad * (direction + radar.arc / 2 - root.camera.angle);
             beamGraphics.moveTo(center.x, center.y);
             beamGraphics.arc(center.x, center.y, radiusPixels, fromAngle, toAngle);
             beamGraphics.lineTo(center.x, center.y);
-            beamGraphics.fill({ color: selectionColor, alpha: 0.12 });
-            beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.5 });
+            beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.6 });
         }
     }
 
@@ -169,7 +175,7 @@ export async function drawLongRangeRadar(
                 fov.draw(root, fovGraphics);
                 fovGraphics.fill({ color: radarVisibleBg, alpha: 1 });
             }
-            drawScanBeam();
+            drawBeamTargets();
         },
         null,
         UPDATE_PRIORITY.LOW,
