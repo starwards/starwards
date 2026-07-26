@@ -17,15 +17,37 @@ export const dragonflyThruster = {
     afterBurnerCapacity: 300,
     damage50: 15,
 };
-export const dragonflyRadar = {
+export const dragonflyOmniRadar = {
     modelName: 'Argus-10k Phased Radar',
     isInternal: false,
     isElectronics: true,
     damage50: 20,
     range: 10_000,
+    // fixed omni sweep: the arc cannot be traded for reach
+    minArc: 360,
+    maxArc: 360,
+    defaultArc: 360,
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
     malfunctionRange: 5_000,
+    // the omni sweeps every bearing at once, so its mount has nothing to turn
+    turnSpeed: 0,
+};
+export const dragonflyScanBeam = {
+    modelName: 'Lancet-20 Directional Scan Beam',
+    isInternal: false,
+    isElectronics: true,
+    damage50: 20,
+    // 20,000m reach when fitted at its 20deg arc; widened to 90deg it reaches ~9,400m
+    range: 20_000,
+    minArc: 5,
+    maxArc: 90,
+    defaultArc: 20,
+    energyCost: 0.05,
+    rangeEaseFactor: 0.2,
+    malfunctionRange: 10_000,
+    // a full sweep from bow to stern takes 6 seconds at full effectiveness
+    turnSpeed: 30,
 };
 export const dragonflyChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
@@ -48,6 +70,8 @@ export const dragonflyChaingun = {
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
+    // bolted to the hull, facing forward: the ship is aimed by turning the ship
+    turnSpeed: 0,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -115,6 +139,8 @@ export const dragonflyTube = {
     use_ClusterMissile: true,
     use_TandemMissile: true,
     use_ElecMissile: true,
+    // fixed tube: it launches along the bearing it is fitted at
+    turnSpeed: 0,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',
@@ -163,7 +189,6 @@ export const dragonflySignals = {
     isElectronics: true,
     damage50: 20,
     maxJobs: 9,
-    maxTrackedTargets: 3,
     scanBaseDuration: 20,
     scanAdvancedFactor: 2,
     hackBaseDuration: 45,
@@ -186,7 +211,7 @@ export const dragonflySF22 = {
     ],
     tubes: [['AFT', dragonflyTube]],
     armor: dragonflyArmor,
-    radar: dragonflyRadar,
+    radars: [dragonflyOmniRadar, dragonflyScanBeam],
     smartPilot: dragonflySmartPilot,
     reactor: dragonflyReactor,
     magazine: dragonflyMagazine,

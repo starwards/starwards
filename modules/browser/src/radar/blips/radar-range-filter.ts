@@ -1,10 +1,10 @@
+import { DeepReadonly, noop } from 'ts-essentials';
 import { FieldOfView, SpaceDriver, SpaceObject, XY, degToRad } from '@starwards/core';
 
 import { CameraView } from '../camera-view';
 import { Graphics } from 'pixi.js';
 import { TrackObjects } from '../track-objects';
 import { getSpatialIndex } from '../spatial-index';
-import { noop } from 'ts-essentials';
 
 class DrawableFieldOfView extends FieldOfView {
     draw(parent: CameraView, fovGraphics: Graphics) {
@@ -31,7 +31,7 @@ class DrawableFieldOfView extends FieldOfView {
     }
 }
 export class RadarRangeFilter {
-    public visibleObjects = new Set<SpaceObject>();
+    public visibleObjects = new Set<DeepReadonly<SpaceObject>>();
     private spatial = getSpatialIndex(this.spaceDriver);
     private createFieldOfView = (o: SpaceObject) => new DrawableFieldOfView(this.spatial, o);
     private updateFieldOfView = (_: SpaceObject, r: DrawableFieldOfView) => r.setDirty();

@@ -4,6 +4,7 @@ import {
     Faction,
     Order,
     Radar,
+    RadarSectorValues,
     Reactor,
     ShipState,
     SmartPilot,
@@ -11,13 +12,14 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
-    XY,
     ammoTypes,
-    capToRange,
-    lerp,
+    applyRadarSectors,
+    malfunctionAreaFactor,
+    toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
+import { Turret, updateTurret } from './turret';
 
 import { Armor } from './armor';
 import { AutomationManager } from './automation-manager';
@@ -56,10 +58,11 @@ export function resetShipState(state: ShipState) {
     for (const thruster of state.thrusters) {
         resetThruster(thruster);
     }
-    state.radar.malfunctionRangeFactor = 0;
+    for (const radar of state.radars) {
+        radar.malfunctionRangeFactor = 0;
+    }
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
-    state.signals.trackedTargets.splice(0);
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));
     }
@@ -232,6 +235,10 @@ export abstract class ShipManager implements Updateable {
         this.heatManager.update(id);
         this.automationManager.update(id);
 
+        // mounts swing before anything reads where they point
+        this.updateTurrets(id);
+        // vision first: the target and signal gates below all read this tick's radar sectors
+        this.updateRadarSectors(id);
         this.validateWeaponsTargetId();
         this.chainGunManager?.update(id);
         for (const tubeManager of this.tubeManagers) {
@@ -240,53 +247,57 @@ export abstract class ShipManager implements Updateable {
         this.handleTargetCommands();
         this.calcTargetedStatus();
 
-        this.updateRadarRange(id);
         this.signalsJobManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
     }
 
-    protected updateRadarRange({ totalSeconds, deltaSeconds }: IterationData) {
-        if (
-            this.internalProxy.trySpendEnergy(
-                this.state.radar.design.range *
-                    this.state.radar.effectiveness *
-                    (this.state.radar.design.energyCost / 1000) *
-                    deltaSeconds,
-                this.state.radar,
-            )
-        ) {
-            this.spaceManager.changeShipRadarRange(this.spaceObject.id, this.calcRadarRange(totalSeconds));
-        } else {
-            this.spaceManager.changeShipRadarRange(this.spaceObject.id, 0);
+    /**
+     * Swings every system carried on a mount toward the bearing its crew asked for. Systems that
+     * are bolted in place have a `turnSpeed` of 0 and stay where they were fitted.
+     */
+    protected updateTurrets({ deltaSeconds }: IterationData) {
+        for (const system of this.state.systems()) {
+            if (system instanceof Turret) {
+                updateTurret(system, deltaSeconds);
+            }
         }
-        this.state.spaceship.radarRange = this.spaceObject.radarRange;
     }
 
-    private calcRadarRange(totalSeconds: number) {
-        if (this.state.radar.malfunctionRangeFactor && this.state.radar.effectiveness) {
-            const frequency = this.die.getDriftInRange(
-                'updateRadarRangeFrequency:' + this.spaceObject.id,
-                0.2,
-                1,
-                0.15,
+    /**
+     * Every radar contributes one vision sector to the ship's field of view. Each tick we charge
+     * each radar its energy, refresh its malfunction easing, and mirror the resulting geometry
+     * onto the space object so both the server and every client see the same union.
+     */
+    protected updateRadarSectors({ totalSeconds, deltaSeconds }: IterationData) {
+        const sectors: RadarSectorValues[] = [];
+        for (const [index, radar] of this.state.radars.entries()) {
+            radar.powered = this.internalProxy.trySpendEnergy(
+                radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
+                radar,
             );
-            const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
-            const factorEaseRange = [
-                this.state.radar.malfunctionRangeFactor,
-                this.state.radar.malfunctionRangeFactor + this.state.radar.design.rangeEaseFactor,
-            ] as const;
-            const cappedWave = capToRange(...factorEaseRange, wave);
-            return (
-                lerp(
-                    factorEaseRange,
-                    [this.state.radar.design.malfunctionRange, this.state.radar.design.range],
-                    cappedWave,
-                ) * this.state.radar.effectiveness
-            );
-        } else {
-            return this.state.radar.design.range * this.state.radar.effectiveness;
+            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
+            sectors.push({
+                direction: toPositiveDegreesDelta(this.spaceObject.angle + radar.direction),
+                arc: radar.arc,
+                range: radar.range,
+            });
         }
+        this.spaceManager.changeShipRadarSectors(this.spaceObject.id, sectors);
+    }
+
+    private calcRadarAreaFactor(radar: Radar, index: number, totalSeconds: number) {
+        if (!radar.malfunctionRangeFactor || !radar.effectiveness) {
+            return 1;
+        }
+        const frequency = this.die.getDriftInRange(
+            `updateRadarRangeFrequency:${this.spaceObject.id}:${index}`,
+            0.2,
+            1,
+            0.15,
+        );
+        const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
+        return malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, wave);
     }
 
     protected calcTargetedStatus() {
@@ -316,8 +327,7 @@ export abstract class ShipManager implements Updateable {
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
             } else {
-                const distance = XY.lengthOf(XY.difference(this.spaceObject.position, this.weaponsTarget.position));
-                if (distance > this.spaceObject.radarRange) {
+                if (!this.spaceManager.isVisible(this.spaceObject.id, this.state.weaponsTarget.targetId)) {
                     this.weaponsTarget = null;
                     this.state.weaponsTarget.targetId = null;
                 }
@@ -337,7 +347,7 @@ export abstract class ShipManager implements Updateable {
         this.state.spaceship.angle = this.spaceObject.angle;
         this.state.spaceship.faction = this.spaceObject.faction;
         this.state.spaceship.radius = this.spaceObject.radius;
-        this.state.spaceship.radarRange = this.spaceObject.radarRange;
+        applyRadarSectors(this.state.spaceship.radarSectors, [...this.spaceObject.radarSectors]);
     }
 
     protected updateAmmo() {

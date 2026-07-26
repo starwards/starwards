@@ -11,6 +11,7 @@ import { ObjectsLayer } from '../../radar/blips/objects-layer';
 import { RadarRangeFilter } from '../../radar/blips/radar-range-filter';
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
+import { setOmniRadarSector } from '@starwards/core';
 
 const ZOOM = 0.1;
 function getFactionColor(faction: Faction): number {
@@ -55,8 +56,10 @@ function createFactionShip(id: string, x: number, y: number, faction: Faction, a
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;
     state.spaceship.faction = faction;
-    state.spaceship.radarRange = 5000;
-    state.radar.power = 1;
+    setOmniRadarSector(state.spaceship, 5000);
+    for (const radar of state.radars) {
+        radar.power = 1;
+    }
     return state;
 }
 

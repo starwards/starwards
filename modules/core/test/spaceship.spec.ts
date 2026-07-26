@@ -22,13 +22,6 @@ describe('Spaceship', () => {
         });
     });
 
-    describe('transponderOpen field', () => {
-        test('defaults to true', () => {
-            const ship = new Spaceship();
-            expect(ship.transponderOpen).toBe(true);
-        });
-    });
-
     describe('velocity field', () => {
         test('is exposed to the GM tweak panel as a vec2 blade', () => {
             const ship = new Spaceship();

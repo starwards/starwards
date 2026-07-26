@@ -144,7 +144,7 @@ class SpaceManager {
   getScanLevel(targetId: string, faction: string): ScanLevel
 
   // Check if scan job can proceed (target in range, valid level)
-  canScan(scannerId: string, targetId: string): boolean
+  isVisible(scannerId: string, targetId: string): boolean
 }
 ```
 
@@ -289,17 +289,17 @@ describe('SpaceManager.setScanLevel', () => {
 
 *Scan Job Validation:*
 ```typescript
-describe('SpaceManager.canScan', () => {
+describe('SpaceManager.isVisible', () => {
   it('should allow scan if target in radar range', () => {
     const scanner = createTestShip({ radarRange: 5000 });
     const target = createTestShip({ position: { x: 3000, y: 0 } });
-    expect(spaceManager.canScan(scanner.id, target.id)).toBe(true);
+    expect(spaceManager.isVisible(scanner.id, target.id)).toBe(true);
   });
 
   it('should block scan if target out of range', () => {
     const scanner = createTestShip({ radarRange: 5000 });
     const target = createTestShip({ position: { x: 8000, y: 0 } });
-    expect(spaceManager.canScan(scanner.id, target.id)).toBe(false);
+    expect(spaceManager.isVisible(scanner.id, target.id)).toBe(false);
   });
 });
 ```
@@ -383,7 +383,7 @@ test('signals officer can scan unknown target to reveal intel', async ({ page })
 - Test faction independence
 
 **Phase 2: Integration with Jobs System (3-4 hours)**
-- Implement `canScan()` validation (range check)
+- Implement `isVisible()` validation (range check)
 - Add scan level upgrade logic to Scan job completion
 - Test job success/failure cases
 - Test range-based interruption

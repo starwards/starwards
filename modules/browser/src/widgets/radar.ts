@@ -1,6 +1,5 @@
 import { Faction, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { blue, radarFogOfWar, radarVisibleBg, red, yellow } from '../colors';
-import { dradisDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
+import { blue, radarFogOfWar, red, yellow } from '../colors';
 
 import $ from 'jquery';
 import { Camera } from '../radar/camera';
@@ -13,6 +12,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import { UPDATE_PRIORITY } from 'pixi.js';
 import WebFont from 'webfontloader';
+import { dradisDrawFunctions } from '../radar/blips/blip-renderer';
 import { waitForShip } from '../ship-logic';
 
 WebFont.load({
@@ -60,16 +60,6 @@ export function radarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): D
         private async init(root: CameraView, container: Container) {
             await root.initialize({ backgroundColor: radarFogOfWar }, container);
 
-            const radarRangeLayer = new ObjectsLayer(
-                root,
-                spaceDriver,
-                64,
-                () => radarVisibleBg,
-                rangeRangeDrawFunctions,
-                undefined,
-                (s: SpaceObject) => s.faction === shipDriver.state.faction,
-            );
-            root.addLayer(radarRangeLayer.renderRoot);
             const grid = new GridLayer(root);
             root.addLayer(grid.renderRoot);
             const rangeFilter = new RadarRangeFilter(

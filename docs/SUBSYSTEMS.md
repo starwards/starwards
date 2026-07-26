@@ -46,7 +46,8 @@ last_verified: 2026-07-20
 | **Reactor** | `reactor.ts` | energy, effeciencyFactor | Primary energy generation |
 | **Maneuvering** | `maneuvering.ts` | afterBurnerFuel, efficiency (design: rotationCapacity, afterBurnerCharge) | Rotation + afterburner control |
 | **Thrusters** | `thruster.ts` | angle, active, afterBurnerActive, availableCapacity, angleError | Directional thrust (Fwd/Back/L/R array) |
-| **Radar** | `radar.ts` | range, malfunctionRangeFactor | Detection range |
+| **Radar** | `radar.ts` | arc, direction, malfunctionRangeFactor | One vision sector each; a ship carries a `radars` collection and sees their union |
+| **Turret** | `turret.ts` | direction, directionCommand, turnSpeedFactor | The rotating mount shared by radars, chain guns and tubes. `turnSpeed = design.turnSpeed * effectiveness * turnSpeedFactor`; `turnSpeed: 0` is a fixed mount |
 | **ChainGun** | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | Rapid-fire kinetic |
 | **Tubes** | `tube.ts` | angle, index (inherits loading, rateOfFireFactor, loadedProjectile from ChainGun) | Missile launchers (array) |
 | **Magazine** | `magazine.ts` | capacity, missiles | Ammo storage |
@@ -55,7 +56,7 @@ last_verified: 2026-07-20
 | **Warp** | `warp.ts` | currentLevel, desiredLevel, velocityFactor, damageFactor | FTL travel |
 | **Docking** | `docking.ts` | mode, targetId, rangesFactor | Ship-to-ship attach |
 | **SmartPilot** | `smart-pilot.ts` | rotationMode, maneuveringMode, rotation, maneuvering | Autopilot |
-| **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], trackedTargets[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | SCAN/HACK job queue, target tracking, scan levels |
+| **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | SCAN/HACK job queue, scan levels |
 
 ## Pilot Controls
 **Location:** `modules/core/src/ship/ship-state.ts`

@@ -43,7 +43,7 @@ Implemented the scan levels mechanic for Starwards according to `docs/MS3/SCAN_L
 
 #### 4. **Line-of-Sight Validation**
 - **Feedback:** "need to check for radar visibility. meaning also the line-of-sight condition."
-- **Issue:** `canScan()` only checked distance, not field-of-view
+- **Issue:** `isVisible()` only checked distance, not field-of-view
 - **Solution:** Added FOV check using `stateToExtraData.get(scanner).fov.view`
 - **Lesson:** Consider all game mechanics when implementing validation logic
 - **Pattern:** Distance checks are insufficient - always consider occlusion/visibility
@@ -113,7 +113,7 @@ Implemented the scan levels mechanic for Starwards according to `docs/MS3/SCAN_L
 ## Testing Approach
 
 ### What Worked Well
-1. **Comprehensive test coverage:** Unit tests for all methods (set/get/canScan)
+1. **Comprehensive test coverage:** Unit tests for all methods (set/get/isVisible)
 2. **Test-driven development:** Tests written during implementation, not after
 3. **Edge cases covered:**
    - Unset faction scan levels

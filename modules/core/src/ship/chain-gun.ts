@@ -1,17 +1,17 @@
 import { AmmoType, ClusterWarheadMode, ammoTypes, clusterWarheadModes } from '../space/projectile';
-import { DesignState, SystemState, defectible } from './system';
+import { Turret, TurretDesign, TurretDesignState } from './turret';
 import { commandable, gameField } from '../game-field';
 
 import { SmartPilotMode } from './smart-pilot';
+import { defectible } from './system';
 import { range } from '../range';
-import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
 export type SelectedProjectileModel = 'None' | AmmoType;
 
 // some stats are mapped from AmmoType,
 // so adding a AmmoType fails compilation
-export type ChaingunDesign = {
+export type ChaingunDesign = TurretDesign & {
     [T in AmmoType as `use_${T}`]: boolean;
 } & {
     modelName?: string;
@@ -27,7 +27,7 @@ export type ChaingunDesign = {
     energyCost: number;
 };
 
-export class ChaingunDesignState extends DesignState implements ChaingunDesign {
+export class ChaingunDesignState extends TurretDesignState implements ChaingunDesign {
     @gameField('float32') bulletsPerSecond = 0;
     @gameField('float32') bulletSpeed = 0;
     @gameField('float32') bulletDegreesDeviation = 0;
@@ -57,7 +57,7 @@ export class ChaingunDesignState extends DesignState implements ChaingunDesign {
         return this.maxShellRange / this.bulletSpeed;
     }
 }
-export class ChainGun extends SystemState {
+export class ChainGun extends Turret {
     public static isInstance = (o: unknown): o is ChainGun => {
         return (o as ChainGun)?.type === 'ChainGun';
     };
@@ -66,13 +66,6 @@ export class ChainGun extends SystemState {
     get name() {
         return 'Chain gun';
     }
-
-    /*!
-     *The direction of the gun in relation to the ship. (in degrees, 0 is front)
-     */
-    @range(shipDirectionRange)
-    @gameField('float32')
-    angle = 0;
 
     @tweakable('boolean')
     @gameField('boolean')
