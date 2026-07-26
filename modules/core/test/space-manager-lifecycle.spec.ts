@@ -316,7 +316,7 @@ describe('SpaceManager damage resolution', () => {
             { direction: 90, arc: 30, range: 900 },
         ];
         spaceMgr.changeShipRadarSectors('ship', sectors);
-        expect(ship.maxRadarRange).to.equal(1234);
+        expect([...ship.radarSectors].map((s) => s.range)).to.deep.equal([1234, 900]);
         expect(() => spaceMgr.changeShipRadarSectors('ghost', sectors)).to.not.throw();
     });
 });

@@ -223,19 +223,6 @@ class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
         this.selectionSprite.width = blipSize;
     }
 }
-class RadarRangeRenderer implements BlipRenderer<SpaceObject> {
-    private range = new Graphics();
-    constructor(stage: Container) {
-        stage.addChild(this.range);
-    }
-    redraw(spaceObject: SpaceObject, { parent, color, alpha }: BlipData): void {
-        this.range.clear();
-        if (spaceObject.maxRadarRange) {
-            const radius = parent.metersToPixles(spaceObject.maxRadarRange);
-            this.range.circle(0, 0, radius).fill({ color, alpha });
-        }
-    }
-}
 
 export const dradisDrawFunctions = {
     Spaceship: DradisSpaceshipRenderer,
@@ -263,8 +250,4 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     Projectile: CircleRenderer,
     Explosion: CircleRenderer,
-};
-
-export const rangeRangeDrawFunctions = {
-    Spaceship: RadarRangeRenderer,
 };

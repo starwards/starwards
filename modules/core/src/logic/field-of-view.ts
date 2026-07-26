@@ -61,6 +61,20 @@ export class FieldOfView {
     }
 
     /**
+     * The widest reach across all sectors, regardless of bearing. Only good for bounding the
+     * broadphase query — every candidate it returns still has to pass `rangeAtBearing`.
+     */
+    private maxSectorRange(): number {
+        let max = 0;
+        for (const sector of this.validSectors()) {
+            if (sector.range > max) {
+                max = sector.range;
+            }
+        }
+        return max;
+    }
+
+    /**
      * How far the radar reaches at a bearing: the longest range among the sectors covering it,
      * 0 when none does.
      */
@@ -155,7 +169,7 @@ export class FieldOfView {
 
     private *visibilityEndpoints(): Generator<EndPoint> {
         // assumption: objects don't overlap
-        const maxRange = this.object.maxRadarRange;
+        const maxRange = this.maxSectorRange();
         if (maxRange > EPSILON) {
             const queryArea = new Circle(XY.clone(this.object.position), maxRange + EPSILON);
             for (const object of this.objects.selectPotentials(queryArea)) {

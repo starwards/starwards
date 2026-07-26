@@ -80,18 +80,6 @@ export abstract class SpaceObjectBase extends Schema {
     public readonly radarSectors: Iterable<RadarSectorValues> = [];
 
     /**
-     * how far this object can see at its best bearing: the widest reach across its sectors.
-     */
-    public get maxRadarRange(): number {
-        let max = 0;
-        for (const sector of this.radarSectors) {
-            if (sector.range > max) {
-                max = sector.range;
-            }
-        }
-        return max;
-    }
-    /**
      * how much collision overlap turns into velocity (0-1)
      */
     public readonly collisionElasticity: number = 0.05;

@@ -86,7 +86,7 @@ test.describe('GM Screen', () => {
         expect(zoomAfterShipAdded).toBeCloseTo(zoomAfterScroll, 2);
     });
 
-    test('tweak panel shows velocity, targetId and maxRadarRange for a selected spaceship', async ({ page }) => {
+    test('tweak panel shows velocity and targetId for a selected spaceship', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
 
@@ -98,7 +98,6 @@ test.describe('GM Screen', () => {
 
         const tweakPanel = page.locator('[data-id="Tweaks"]');
         await expect(tweakPanel.getByText('velocity', { exact: true })).toBeVisible({ timeout: 5000 });
-        await expect(tweakPanel.getByText('maxRadarRange', { exact: true })).toBeVisible();
         // 'targetId' also appears inside the (unrelated, collapsed) Docking system
         // folder further down the panel; the ship-level one we add is the first
         // in DOM order since it's wired up before the per-system folders loop.

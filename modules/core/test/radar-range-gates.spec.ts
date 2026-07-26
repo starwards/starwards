@@ -8,8 +8,8 @@ import { expect } from 'chai';
  *
  * Each tick the ship manager mirrors the union of the ship's radars onto
  * Spaceship.radarSectors ({ direction: world-bearing deg, arc: deg, range: m }), and
- * Spaceship.maxRadarRange is the widest reach across them. Range gates must honor that union:
- * a target inside a beam sector though beyond the omni radius is IN range / scannable / not-dropped.
+ * every gate reads its vision off that union: a target inside a beam sector though beyond the omni
+ * radius is IN range / scannable / not-dropped.
  *
  * Scenario shared by all three gates:
  *   scanner at origin, omni range small (1000 m). radars[1] beam aimed down world
@@ -112,10 +112,10 @@ describe('radar range gates honor the beam (I3)', () => {
         ).to.equal(1);
     });
 
-    it('signals visibility is directional: a target inside maxRadarRange but on an uncovered bearing is rejected', () => {
-        // maxRadarRange is the widest reach across sectors, stripped of direction. The beam reaches
-        // 20 km down bearing 0, so a contact 3 km off at bearing 90 passes a bare distance test
-        // while no sector covers it. Line of sight must reject it.
+    it('signals visibility is directional: a target within the beam reach but on an uncovered bearing is rejected', () => {
+        // The beam reaches 20 km down bearing 0, so a contact 3 km off at bearing 90 is well inside
+        // the ship's widest reach and passes a bare distance test, while no sector covers it.
+        // Line of sight must reject it.
         const sim = new SpaceSimulator(10);
         const scanner = new Spaceship();
         scanner.id = 'scanner';
@@ -133,7 +133,10 @@ describe('radar range gates honor the beam (I3)', () => {
         sim.spaceMgr.forceFlushEntities();
 
         sim.simulateUntilTime(0.3);
-        expect(scanner.maxRadarRange, 'maxRadarRange alone would admit this target').to.be.greaterThan(TARGET_DISTANCE);
+        expect(
+            Math.max(...[...scanner.radarSectors].map((s) => s.range)),
+            'a bare distance test would admit this target',
+        ).to.be.greaterThan(TARGET_DISTANCE);
 
         queueScanJob(shipMgr, target.id);
         sim.simulateUntilTime(0.3);

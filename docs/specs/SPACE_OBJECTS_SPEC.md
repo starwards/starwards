@@ -91,9 +91,8 @@ public turnSpeed: number = 0;
 // Faction (default: NONE)
 public readonly faction: Faction = Faction.NONE;
 
-// Radar vision sectors (default: none) and the widest reach across them
+// Radar vision sectors (default: none)
 public readonly radarSectors: Iterable<RadarSectorValues> = [];
-public get maxRadarRange(): number;
 
 // Collision elasticity (0-1)
 public readonly collisionElasticity: number = 0.05;
@@ -155,7 +154,7 @@ class Spaceship extends SpaceObjectBase {
 // Usage
 if (Spaceship.isInstance(object)) {
     // TypeScript knows object is Spaceship
-    console.log(object.maxRadarRange);
+    console.log(object.radarSectors);
 }
 ```
 

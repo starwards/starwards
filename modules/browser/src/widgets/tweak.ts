@@ -133,13 +133,6 @@ const singleSelectionDetails = async (
             cleanup,
         );
 
-        addTextBlade(
-            guiFolder,
-            readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/maxRadarRange`),
-            { label: 'maxRadarRange', disabled: true },
-            cleanup,
-        );
-
         const adminDriver = await driver.getAdminDriver();
         const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 

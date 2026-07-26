@@ -1,7 +1,6 @@
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { blue, radarFogOfWar, radarVisibleBg, red, yellow } from '../colors';
-import { dradisNoRadiusDrawFunctions, rangeRangeDrawFunctions } from '../radar/blips/blip-renderer';
+import { blue, radarFogOfWar, red, yellow } from '../colors';
 
 import { Camera } from '../radar/camera';
 import { CameraView } from '../radar/camera-view';
@@ -12,6 +11,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { SelectionContainer } from '../radar/selection-container';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
+import { dradisNoRadiusDrawFunctions } from '../radar/blips/blip-renderer';
 import { waitForShip } from '../ship-logic';
 
 WebFont.load({
@@ -59,17 +59,6 @@ export async function drawRelayRadar(
     camera.setRange(container.height / 2, DEFAULT_RANGE);
     root.canvas.setAttribute('data-zoom', `${camera.zoom}`);
     root.events.on('screenChanged', () => root.canvas.setAttribute('data-zoom', `${camera.zoom}`));
-
-    const sensorRangeLayer = new ObjectsLayer(
-        root,
-        spaceDriver,
-        64,
-        () => radarVisibleBg,
-        rangeRangeDrawFunctions,
-        undefined,
-        (s: SpaceObject) => s.faction === shipDriver.state.faction,
-    );
-    root.addLayer(sensorRangeLayer.renderRoot);
 
     const grid = new GridLayer(root);
     root.addLayer(grid.renderRoot);
@@ -126,7 +115,6 @@ export async function drawRelayRadar(
             },
         },
         layers: {
-            'sensor range': sensorRangeLayer.renderRoot,
             grid: grid.renderRoot,
             objects: blipLayer.renderRoot,
         },

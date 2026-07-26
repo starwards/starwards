@@ -83,23 +83,7 @@ describe('radar vision (beam adds visibility end-to-end)', () => {
         });
     });
 
-    // 2. maxRadarRange is derived: the widest reach across radarSectors.
-    //    Mirrors the state-sync idea in ship-manager-sync.spec.ts.
-    describe('maxRadarRange getter', () => {
-        it('equals the max sector range and is positive', () => {
-            const harness = new ShipTestHarness();
-            harness.simulate(1, 30);
-
-            const sectors = [...harness.shipObj.radarSectors];
-            expect(sectors.length).to.be.greaterThan(0);
-
-            const maxRange = Math.max(...sectors.map((s) => s.range));
-            expect(harness.shipObj.maxRadarRange).to.be.greaterThan(0);
-            expect(harness.shipObj.maxRadarRange).to.be.closeTo(maxRange, 1);
-        });
-    });
-
-    // 3. THE CRUX: a client receives only the synced Spaceship fields. Build a Spaceship with
+    // 2. THE CRUX: a client receives only the synced Spaceship fields. Build a Spaceship with
     //    ONLY radarSectors set (no server-only beam fields) and confirm the beam sector still
     //    grants vision. Today the beam is server-only, so a client sees ZERO beam vision.
     describe('client vision from synced-only state', () => {
@@ -130,7 +114,7 @@ describe('radar vision (beam adds visibility end-to-end)', () => {
         });
     });
 
-    // 4. The SpaceManager faction/GM shared view (space-manager.ts ~283) unions every ship's
+    // 3. The SpaceManager faction/GM shared view (space-manager.ts ~283) unions every ship's
     //    fov.view into the faction's visible set. A beam sector on ship A must push objects it
     //    covers into the faction set, even beyond A's omni range.
     describe('faction / GM shared view', () => {

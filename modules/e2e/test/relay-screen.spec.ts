@@ -388,9 +388,9 @@ test.describe('Relay Screen', () => {
         const editPane = page.locator('[data-id="Edit Waypoint"]');
         await expect(editPane).toBeVisible();
 
-        // Uncheck the waypoints group layer (4th toggle: sensor range, grid, objects, waypoints)
+        // Uncheck the waypoints group layer (3rd toggle: grid, objects, waypoints)
         const layersPane = page.locator('[data-id="Layers"]');
-        await layersPane.locator('.tp-ckbv_w').nth(3).click();
+        await layersPane.locator('.tp-ckbv_w').nth(2).click();
 
         // Selection is cleared, closing the edit pane
         await expect(editPane).toBeHidden();
@@ -399,18 +399,18 @@ test.describe('Relay Screen', () => {
     test('layers pane has a boolean toggle per layer, including dynamic waypoint groups', async ({ page }) => {
         const layersPane = page.locator('[data-id="Layers"]');
         await expect(layersPane).toBeVisible({ timeout: 10000 });
-        // static layers: sensor range, grid, objects
-        await expect(layersPane.locator('input[type="checkbox"]')).toHaveCount(3);
+        // static layers: grid, objects
+        await expect(layersPane.locator('input[type="checkbox"]')).toHaveCount(2);
 
         // placing a waypoint adds the default waypoints group layer
         await placeWaypoint(page);
-        await expect(layersPane.locator('input[type="checkbox"]')).toHaveCount(4);
+        await expect(layersPane.locator('input[type="checkbox"]')).toHaveCount(3);
         await expect(layersPane.getByText('waypoints')).toBeVisible();
 
         // toggling works
-        const gridToggle = layersPane.locator('input[type="checkbox"]').nth(1);
+        const gridToggle = layersPane.locator('input[type="checkbox"]').nth(0);
         await expect(gridToggle).toBeChecked();
-        await layersPane.locator('.tp-ckbv_w').nth(1).click();
+        await layersPane.locator('.tp-ckbv_w').nth(0).click();
         await expect(gridToggle).not.toBeChecked();
     });
 });
