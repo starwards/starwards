@@ -230,8 +230,8 @@ class RadarRangeRenderer implements BlipRenderer<SpaceObject> {
     }
     redraw(spaceObject: SpaceObject, { parent, color, alpha }: BlipData): void {
         this.range.clear();
-        if (spaceObject.radarRange) {
-            const radius = parent.metersToPixles(spaceObject.radarRange);
+        if (spaceObject.maxRadarRange) {
+            const radius = parent.metersToPixles(spaceObject.maxRadarRange);
             this.range.circle(0, 0, radius).fill({ color, alpha });
         }
     }

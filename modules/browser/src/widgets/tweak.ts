@@ -135,8 +135,8 @@ const singleSelectionDetails = async (
 
         addTextBlade(
             guiFolder,
-            readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/radarRange`),
-            { label: 'radarRange', disabled: true },
+            readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/maxRadarRange`),
+            { label: 'maxRadarRange', disabled: true },
             cleanup,
         );
 

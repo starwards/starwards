@@ -1,4 +1,4 @@
-import { Asteroid, Faction, ScanLevel, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
+import { Asteroid, Faction, JobType, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
 
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
@@ -8,7 +8,7 @@ import { expect } from 'chai';
  *
  * Each tick the ship manager mirrors the union of the ship's radars onto
  * Spaceship.radarSectors ({ direction: world-bearing deg, arc: deg, range: m }), and
- * Spaceship.radarRange is the widest reach across them. Range gates must honor that union:
+ * Spaceship.maxRadarRange is the widest reach across them. Range gates must honor that union:
  * a target inside a beam sector though beyond the omni radius is IN range / scannable / not-dropped.
  *
  * Scenario shared by all three gates:
@@ -34,12 +34,20 @@ function configureRadars(shipMgr: { state: ShipState }): void {
     beam.direction = 0; // ship angle is 0, so ship-relative 0 == world bearing 0 (toward the target)
 }
 
+// A scan job is only accepted for a target the ship can see, so the queue is the observable
+// stand-in for the private visibility gate.
+function queueScanJob(shipMgr: { state: ShipState }, targetId: string): void {
+    shipMgr.state.signals.queueJobType = JobType.SCAN;
+    shipMgr.state.signals.queueJobTargetId = targetId;
+    shipMgr.state.signals.submitJobCommand = true;
+}
+
 describe('radar range gates honor the beam (I3)', () => {
     afterEach(() => {
         jest.restoreAllMocks();
     });
 
-    it('canScan honors the beam: target beyond omni but inside the beam sector is scannable', () => {
+    it('isVisible honors the beam: target beyond omni but inside the beam sector is scannable', () => {
         const sim = new SpaceSimulator(10);
         const scanner = new Spaceship();
         scanner.id = 'scanner';
@@ -65,18 +73,17 @@ describe('radar range gates honor the beam (I3)', () => {
         sim.simulateUntilTime(0.3);
 
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        expect(sim.spaceMgr.canScan(scanner.id, inBeam.id), 'in-beam target should be scannable').to.be.true;
+        expect(sim.spaceMgr.isVisible(scanner.id, inBeam.id), 'in-beam target should be scannable').to.be.true;
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(
-            sim.spaceMgr.canScan(scanner.id, outOfBeam.id),
+            sim.spaceMgr.isVisible(scanner.id, outOfBeam.id),
             'target beyond omni and outside the beam bearing must NOT be scannable',
         ).to.be.false;
     });
 
-    it('signals visibility honors the beam: a target beyond omni but within the sector union can be tracked', () => {
-        // isTargetVisible is private; assert its observable consequence — a same-faction target
-        // (scanLevel BASIC) beyond the omni radius but within the beam sector range can be added
-        // as a tracked target (track activation gates on isTargetVisible && scanLevel >= BASIC).
+    it('signals visibility honors the beam: a scan job is accepted for a target beyond omni but inside the beam', () => {
+        // the visibility gate is private; assert its observable consequence — the signals station
+        // only accepts a job for a target it can see.
         const sim = new SpaceSimulator(10);
         const scanner = new Spaceship();
         scanner.id = 'scanner';
@@ -86,8 +93,8 @@ describe('radar range gates honor the beam (I3)', () => {
         configureRadars(shipMgr);
 
         const target = new Spaceship();
-        target.id = 'friendly-target';
-        target.faction = Faction.Gravitas; // same faction => scanLevel BASIC without scanning
+        target.id = 'in-beam-target';
+        target.faction = Faction.Raiders;
         target.position = Vec2.make({ x: TARGET_DISTANCE, y: 0 });
 
         sim.withObjects(target);
@@ -95,20 +102,18 @@ describe('radar range gates honor the beam (I3)', () => {
 
         // let sectors populate first
         sim.simulateUntilTime(0.3);
-        expect(sim.spaceMgr.getScanLevel(target.id, scanner.faction)).to.be.at.least(ScanLevel.BASIC);
 
-        // request a track, then tick to let SignalsJobManager process it
-        shipMgr.state.signals.activateTrackTargetId = target.id;
+        queueScanJob(shipMgr, target.id);
         sim.simulateUntilTime(0.3);
 
         expect(
-            [...shipMgr.state.signals.trackedTargets],
-            'target beyond omni but inside the beam sector should be trackable (isTargetInRange honors the union)',
-        ).to.include(target.id);
+            shipMgr.state.signals.jobs.length,
+            'a target beyond omni but inside the beam sector is workable',
+        ).to.equal(1);
     });
 
-    it('signals visibility is directional: a target inside radarRange but on an uncovered bearing is not trackable', () => {
-        // radarRange is the widest reach across sectors, stripped of direction. The beam reaches
+    it('signals visibility is directional: a target inside maxRadarRange but on an uncovered bearing is rejected', () => {
+        // maxRadarRange is the widest reach across sectors, stripped of direction. The beam reaches
         // 20 km down bearing 0, so a contact 3 km off at bearing 90 passes a bare distance test
         // while no sector covers it. Line of sight must reject it.
         const sim = new SpaceSimulator(10);
@@ -121,22 +126,22 @@ describe('radar range gates honor the beam (I3)', () => {
 
         const target = new Spaceship();
         target.id = 'off-bearing-target';
-        target.faction = Faction.Gravitas; // same faction => scanLevel BASIC without scanning
+        target.faction = Faction.Raiders;
         target.position = Vec2.make({ x: 0, y: TARGET_DISTANCE }); // bearing 90: beyond omni, outside the beam
 
         sim.withObjects(target);
         sim.spaceMgr.forceFlushEntities();
 
         sim.simulateUntilTime(0.3);
-        expect(scanner.radarRange, 'radarRange alone would admit this target').to.be.greaterThan(TARGET_DISTANCE);
+        expect(scanner.maxRadarRange, 'maxRadarRange alone would admit this target').to.be.greaterThan(TARGET_DISTANCE);
 
-        shipMgr.state.signals.activateTrackTargetId = target.id;
+        queueScanJob(shipMgr, target.id);
         sim.simulateUntilTime(0.3);
 
         expect(
-            [...shipMgr.state.signals.trackedTargets],
-            'a contact no sector covers must not be trackable, however close it is',
-        ).to.not.include(target.id);
+            shipMgr.state.signals.jobs.length,
+            'a contact no sector covers must not be workable, however close it is',
+        ).to.equal(0);
     });
 
     it('weapons target is NOT dropped when it sits beyond omni but inside a beam sector', () => {
@@ -158,8 +163,8 @@ describe('radar range gates honor the beam (I3)', () => {
         // assign the weapons target (beyond omni 1000, well within the beam's reach)
         shipMgr.state.weaponsTarget.targetId = target.id;
 
-        // validateWeaponsTargetId runs every tick and would null a target beyond spaceObject.radarRange;
-        // with radarRange === MAX sector range, the in-sector target must survive.
+        // validateWeaponsTargetId runs every tick and nulls a target the ship's field of view does
+        // not hold; a target inside the beam sector is in view, so the lock must survive.
         sim.simulateUntilTime(0.3);
 
         expect(

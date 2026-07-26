@@ -82,7 +82,7 @@ export abstract class SpaceObjectBase extends Schema {
     /**
      * how far this object can see at its best bearing: the widest reach across its sectors.
      */
-    public get radarRange(): number {
+    public get maxRadarRange(): number {
         let max = 0;
         for (const sector of this.radarSectors) {
             if (sector.range > max) {

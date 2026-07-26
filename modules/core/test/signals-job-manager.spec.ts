@@ -446,128 +446,6 @@ describe('SignalsJobManager', () => {
         });
     });
 
-    describe('track management', () => {
-        it('should add target to trackedTargets', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(1);
-            expect(shipMgr.state.signals.trackedTargets[0]).to.equal('target1');
-        });
-
-        it('should register tracked target in SpaceManager', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(spaceMgr.isTrackedByFaction('target1', Faction.Gravitas)).to.equal(true);
-        });
-
-        it('should remove target on deactivateTrack', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            shipMgr.state.signals.deactivateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(0);
-            expect(spaceMgr.isTrackedByFaction('target1', Faction.Gravitas)).to.equal(false);
-        });
-
-        it('should reject if already tracking max targets', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-
-            // target1 sits at bearing 0; put the rest on their own bearings so none is occluded by
-            // another — tracking needs line of sight, and objects in a line hide behind the nearest
-            for (let i = 2; i <= 4; i++) {
-                const obj = new Spaceship();
-                obj.id = `target${i}`;
-                obj.faction = Faction.Raiders;
-                obj.position = Vec2.make({
-                    x: 1000 * Math.cos(((i - 1) * Math.PI) / 2),
-                    y: 1000 * Math.sin(((i - 1) * Math.PI) / 2),
-                });
-                spaceMgr.insert(obj);
-            }
-
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            for (let i = 1; i <= 4; i++) {
-                spaceMgr.setScanLevel(`target${i}`, Faction.Gravitas, ScanLevel.BASIC);
-            }
-
-            for (let i = 1; i <= 3; i++) {
-                shipMgr.state.signals.activateTrackTargetId = `target${i}`;
-                tick(shipMgr, spaceMgr, 0.05, 0.15 + 0.05 * i);
-            }
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(3);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target4';
-            tick(shipMgr, spaceMgr, 0.05, 0.4);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(3);
-        });
-
-        it('should auto-remove tracked target if destroyed', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(1);
-
-            spaceMgr.destroyObject(targetObj.id);
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(0);
-        });
-
-        it('should auto-remove tracked target if out of range', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(1);
-
-            targetObj.position.x = 100_000;
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(0);
-        });
-
-        it('should make tracked target visible via canScan even without LOS', () => {
-            const { spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            // Register track directly (bypass command to test SpaceManager integration)
-            spaceMgr.setTrack('ship1', Faction.Gravitas, 'target1', true);
-
-            // canScan should return true for tracked target in range
-            expect(spaceMgr.canScan('ship1', 'target1')).to.equal(true);
-        });
-
-        it('should include tracked targets in getFactionVisibleObjects', () => {
-            const { spaceMgr } = createTestSetup();
-
-            spaceMgr.setTrack('ship1', Faction.Gravitas, 'target1', true);
-
-            const visible = spaceMgr.getFactionVisibleObjects(Faction.Gravitas);
-            const visibleIds = [...visible].map((o) => o.id);
-            expect(visibleIds).to.include('target1');
-        });
-    });
-
     describe('malfunction effects', () => {
         it('should slow job progress when effectiveness is reduced', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
@@ -637,7 +515,7 @@ describe('SignalsJobManager', () => {
     describe('tier-1 passive scan promotion', () => {
         it('promotes UFO contact to BASIC after 5 continuous seconds in range', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-            // target1 is at (1000, 0), within radarRange 10,000
+            // target1 is at (1000, 0), inside the omni sector's 10,000 reach
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
             // 4.9 seconds in range – not yet promoted

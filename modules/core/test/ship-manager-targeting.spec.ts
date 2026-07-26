@@ -273,7 +273,7 @@ describe('ShipManager housekeeping', () => {
         runTick(mgr);
         expect(radar.effectiveness).to.be.greaterThan(0); // the radar itself is healthy and powered
         expect(radar.range).to.equal(0);
-        expect(obj.radarRange).to.equal(0);
+        expect(obj.maxRadarRange).to.equal(0);
     });
 
     it('a fully malfunctioning radar is broken and its range drops to zero', () => {

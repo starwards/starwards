@@ -70,12 +70,10 @@ export class SignalsJobManager implements Updateable {
     update({ deltaSeconds, totalSeconds }: IterationData): void {
         this.processSubmitJobCommand(totalSeconds);
         this.processCancelJobCommand();
-        this.processTrackCommands();
         this.expireIncomingHacks(totalSeconds);
         this.expireHackCooldowns(totalSeconds);
         this.trimExcessJobs();
         this.processJobQueue(deltaSeconds, totalSeconds);
-        this.validateTrackedTargets();
         this.updateTier1ScanPromotion(deltaSeconds);
     }
 
@@ -105,7 +103,7 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        if (!this.spaceManager.canScan(this.state.id, targetId)) {
+        if (!this.spaceManager.isVisible(this.state.id, targetId)) {
             return;
         }
 
@@ -161,36 +159,6 @@ export class SignalsJobManager implements Updateable {
         }
     }
 
-    private processTrackCommands(): void {
-        const activateId = this.state.signals.activateTrackTargetId;
-        if (activateId) {
-            this.state.signals.activateTrackTargetId = '';
-
-            if (
-                this.state.signals.trackedTargets.length < this.state.signals.design.maxTrackedTargets &&
-                !this.state.signals.trackedTargets.includes(activateId) &&
-                this.isTargetVisible(activateId)
-            ) {
-                const scanLevel = this.spaceManager.getScanLevel(activateId, this.state.faction);
-                if (scanLevel >= ScanLevel.BASIC) {
-                    this.state.signals.trackedTargets.push(activateId);
-                    this.spaceManager.setTrack(this.state.id, this.state.faction, activateId, true);
-                }
-            }
-        }
-
-        const deactivateId = this.state.signals.deactivateTrackTargetId;
-        if (deactivateId) {
-            this.state.signals.deactivateTrackTargetId = '';
-
-            const idx = this.state.signals.trackedTargets.indexOf(deactivateId);
-            if (idx >= 0) {
-                this.state.signals.trackedTargets.splice(idx, 1);
-                this.spaceManager.setTrack(this.state.id, this.state.faction, deactivateId, false);
-            }
-        }
-    }
-
     private expireIncomingHacks(totalSeconds: number): void {
         this.incomingHacks = this.incomingHacks.filter((hack) => {
             if (totalSeconds >= hack.expiresAtSeconds) {
@@ -226,7 +194,7 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        if (!this.spaceManager.canScan(this.state.id, activeJob.targetId)) {
+        if (!this.spaceManager.isVisible(this.state.id, activeJob.targetId)) {
             this.removeJob(activeJob.id);
             this.promoteNextJob();
             return;
@@ -305,23 +273,13 @@ export class SignalsJobManager implements Updateable {
         });
     }
 
-    private validateTrackedTargets(): void {
-        for (let i = this.state.signals.trackedTargets.length - 1; i >= 0; i--) {
-            const targetId = this.state.signals.trackedTargets[i];
-            if (!this.isTargetVisible(targetId)) {
-                this.state.signals.trackedTargets.splice(i, 1);
-                this.spaceManager.setTrack(this.state.id, this.state.faction, targetId, false);
-            }
-        }
-    }
-
     private updateTier1ScanPromotion(deltaSeconds: number): void {
         const seenIds = new Set<string>();
         for (const target of this.spaceManager.state.getAll('Spaceship')) {
             if (target.id === this.state.id) continue;
-            const inRange = this.isTargetVisible(target.id);
+            const visible = this.spaceManager.isVisible(this.state.id, target.id);
             const scanLevel = this.spaceManager.getScanLevel(target.id, this.state.faction);
-            if (inRange && scanLevel === ScanLevel.UFO) {
+            if (visible && scanLevel === ScanLevel.UFO) {
                 seenIds.add(target.id);
                 const dwell = (this.tier1DwellTimers.get(target.id) ?? 0) + deltaSeconds;
                 if (dwell >= TIER1_DWELL_SECONDS) {
@@ -338,22 +296,6 @@ export class SignalsJobManager implements Updateable {
                 this.tier1DwellTimers.delete(id);
             }
         }
-    }
-
-    /**
-     * Whether the ship can currently work this target: it must be in range *and* in a radar sector
-     * with a clear line of sight. Radar reach is directional, so a bare distance test would let the
-     * ship act on contacts behind it that no sector covers.
-     *
-     * A target the faction already tracks keeps line of sight for free (`canScan`), so an
-     * established lock survives the beam sweeping elsewhere; only leaving range drops it.
-     */
-    private isTargetVisible(targetId: string): boolean {
-        const [target] = this.spaceManager.getObjectPtr(targetId);
-        if (!target || target.destroyed) {
-            return false;
-        }
-        return this.spaceManager.canScan(this.state.id, targetId);
     }
 
     private isValidHackTarget(targetId: string, systemName: string): boolean {

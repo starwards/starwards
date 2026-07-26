@@ -83,9 +83,9 @@ describe('radar vision (beam adds visibility end-to-end)', () => {
         });
     });
 
-    // 2. radarRange becomes a getter = the max range across radarSectors (replacing the old
-    //    synced scalar). Mirrors the state-sync idea in ship-manager-sync.spec.ts.
-    describe('radarRange getter', () => {
+    // 2. maxRadarRange is derived: the widest reach across radarSectors.
+    //    Mirrors the state-sync idea in ship-manager-sync.spec.ts.
+    describe('maxRadarRange getter', () => {
         it('equals the max sector range and is positive', () => {
             const harness = new ShipTestHarness();
             harness.simulate(1, 30);
@@ -94,8 +94,8 @@ describe('radar vision (beam adds visibility end-to-end)', () => {
             expect(sectors.length).to.be.greaterThan(0);
 
             const maxRange = Math.max(...sectors.map((s) => s.range));
-            expect(harness.shipObj.radarRange).to.be.greaterThan(0);
-            expect(harness.shipObj.radarRange).to.be.closeTo(maxRange, 1);
+            expect(harness.shipObj.maxRadarRange).to.be.greaterThan(0);
+            expect(harness.shipObj.maxRadarRange).to.be.closeTo(maxRange, 1);
         });
     });
 

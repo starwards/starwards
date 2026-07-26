@@ -123,7 +123,7 @@ efficiency = 1;
 ### SpaceObjectBase (abstract)
 **Location:** `modules/core/src/space/space-object-base.ts`
 
-**Properties:** `type|destroyed|freeze|expendable|id|position|velocity|radius|angle|turnSpeed|faction|radarSectors|radarRange|collisionElasticity|collisionDamage|isCorporal`
+**Properties:** `type|destroyed|freeze|expendable|id|position|velocity|radius|angle|turnSpeed|faction|radarSectors|maxRadarRange|collisionElasticity|collisionDamage|isCorporal`
 
 **Methods:**
 - `globalToLocal(xy): XY` | `localToGlobal(xy): XY`

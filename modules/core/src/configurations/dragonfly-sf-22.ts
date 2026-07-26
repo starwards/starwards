@@ -189,7 +189,6 @@ export const dragonflySignals = {
     isElectronics: true,
     damage50: 20,
     maxJobs: 9,
-    maxTrackedTargets: 3,
     scanBaseDuration: 20,
     scanAdvancedFactor: 2,
     hackBaseDuration: 45,

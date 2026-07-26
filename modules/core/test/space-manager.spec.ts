@@ -254,7 +254,7 @@ describe('SpaceManager', () => {
             sim.spaceMgr.forceFlushEntities();
 
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.true;
+            expect(sim.spaceMgr.isVisible(scanner.id, target.id)).to.be.true;
         });
 
         it('should block scan if target out of range', () => {
@@ -272,7 +272,7 @@ describe('SpaceManager', () => {
             sim.spaceMgr.forceFlushEntities();
 
             // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-            expect(sim.spaceMgr.canScan(scanner.id, target.id)).to.be.false;
+            expect(sim.spaceMgr.isVisible(scanner.id, target.id)).to.be.false;
         });
 
         it('should return at least BASIC for same-faction targets', () => {

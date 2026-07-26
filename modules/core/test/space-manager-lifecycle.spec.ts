@@ -267,71 +267,26 @@ describe('SpaceManager attachments', () => {
     });
 });
 
-describe('SpaceManager faction tracking', () => {
-    function trackingSetup() {
+describe('SpaceManager faction scan levels', () => {
+    function scanSetup() {
         const spaceMgr = new SpaceManager();
-        const scanner1 = makeShip('scanner-1', 0, 0, Faction.Gravitas);
-        setOmniRadarSector(scanner1, 5000);
-        const scanner2 = makeShip('scanner-2', 100, 0, Faction.Gravitas);
-        setOmniRadarSector(scanner2, 5000);
+        const scanner = makeShip('scanner-1', 0, 0, Faction.Gravitas);
+        setOmniRadarSector(scanner, 5000);
         const target = makeShip('target', 1000, 0, Faction.Raiders);
-        spaceMgr.insertBulk([scanner1, scanner2, target]);
+        spaceMgr.insertBulk([scanner, target]);
         spaceMgr.forceFlushEntities();
-        return { spaceMgr, scanner1, scanner2, target };
+        return { spaceMgr, scanner, target };
     }
 
-    it('setTrack registers and unregisters a target for the faction', () => {
-        const { spaceMgr } = trackingSetup();
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', true);
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Gravitas)).to.equal(true);
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Raiders)).to.equal(false);
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', false);
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Gravitas)).to.equal(false);
-    });
-
-    it('target stays tracked while at least one scanner of the faction still tracks it', () => {
-        const { spaceMgr } = trackingSetup();
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', true);
-        spaceMgr.setTrack('scanner-2', Faction.Gravitas, 'target', true);
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', false);
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Gravitas)).to.equal(true);
-        spaceMgr.setTrack('scanner-2', Faction.Gravitas, 'target', false);
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Gravitas)).to.equal(false);
-    });
-
-    it('clearTracksForTarget removes the target from all tracking', () => {
-        const { spaceMgr } = trackingSetup();
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', true);
-        spaceMgr.clearTracksForTarget('target');
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Gravitas)).to.equal(false);
-    });
-
-    it('destroying the target clears tracking on the next update', () => {
-        const { spaceMgr } = trackingSetup();
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', true);
-        spaceMgr.destroyObject('target');
-        tick(spaceMgr, 0.01);
-        expect(spaceMgr.isTrackedByFaction('target', Faction.Gravitas)).to.equal(false);
-    });
-
-    it('tracked targets are visible to the tracking faction', () => {
-        const { spaceMgr, target } = trackingSetup();
-        // target is far outside every Gravitas radar range
-        target.position.x = 1_000_000;
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', true);
-        const visible = spaceMgr.getFactionVisibleObjects(Faction.Gravitas);
-        expect(visible.has(target)).to.equal(true);
-    });
-
-    it('tracking does not bypass radar range in canScan', () => {
-        const { spaceMgr, target } = trackingSetup();
+    it('a target beyond the scanner reach is not visible', () => {
+        const { spaceMgr, target } = scanSetup();
         target.position.x = 8000; // outside scanner-1 radar range (5000)
-        spaceMgr.setTrack('scanner-1', Faction.Gravitas, 'target', true);
-        expect(spaceMgr.canScan('scanner-1', 'target')).to.equal(false);
+        tick(spaceMgr, 0.01);
+        expect(spaceMgr.isVisible('scanner-1', 'target')).to.equal(false);
     });
 
     it('setScanLevel ignores invalid faction indexes', () => {
-        const { spaceMgr } = trackingSetup();
+        const { spaceMgr } = scanSetup();
         spaceMgr.setScanLevel('target', Faction.NONE, ScanLevel.ADVANCED);
         expect(spaceMgr.getScanLevel('target', Faction.NONE)).to.equal(ScanLevel.UFO);
     });
@@ -361,7 +316,7 @@ describe('SpaceManager damage resolution', () => {
             { direction: 90, arc: 30, range: 900 },
         ];
         spaceMgr.changeShipRadarSectors('ship', sectors);
-        expect(ship.radarRange).to.equal(1234);
+        expect(ship.maxRadarRange).to.equal(1234);
         expect(() => spaceMgr.changeShipRadarSectors('ghost', sectors)).to.not.throw();
     });
 });

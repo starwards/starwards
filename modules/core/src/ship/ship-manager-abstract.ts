@@ -12,7 +12,6 @@ import {
     SpaceObject,
     Spaceship,
     TargetedStatus,
-    XY,
     ammoTypes,
     applyRadarSectors,
     malfunctionAreaFactor,
@@ -64,7 +63,6 @@ export function resetShipState(state: ShipState) {
     }
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
-    state.signals.trackedTargets.splice(0);
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));
     }
@@ -329,8 +327,7 @@ export abstract class ShipManager implements Updateable {
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
             } else {
-                const distance = XY.lengthOf(XY.difference(this.spaceObject.position, this.weaponsTarget.position));
-                if (distance > this.spaceObject.radarRange) {
+                if (!this.spaceManager.isVisible(this.spaceObject.id, this.state.weaponsTarget.targetId)) {
                     this.weaponsTarget = null;
                     this.state.weaponsTarget.targetId = null;
                 }

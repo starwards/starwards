@@ -56,7 +56,7 @@ last_verified: 2026-07-20
 | **Warp** | `warp.ts` | currentLevel, desiredLevel, velocityFactor, damageFactor | FTL travel |
 | **Docking** | `docking.ts` | mode, targetId, rangesFactor | Ship-to-ship attach |
 | **SmartPilot** | `smart-pilot.ts` | rotationMode, maneuveringMode, rotation, maneuvering | Autopilot |
-| **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], trackedTargets[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | SCAN/HACK job queue, target tracking, scan levels |
+| **Signals** | `signals.ts` (+ `signals-job.ts`, `signals-job-manager.ts`) | jobs[], jobSuccessFactor, jobSpeedFactor, currentMaxJobs | SCAN/HACK job queue, scan levels |
 
 ## Pilot Controls
 **Location:** `modules/core/src/ship/ship-state.ts`

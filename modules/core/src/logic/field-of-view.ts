@@ -7,6 +7,7 @@ import {
 } from './formulas';
 
 import { Circle } from 'detect-collisions';
+import { DeepReadonly } from 'ts-essentials';
 import { SpaceObject } from '../space';
 import { SpatialIndex } from './space-manager';
 import { XY } from './xy';
@@ -36,7 +37,7 @@ export class FieldOfView {
     private isDirty = true;
     constructor(
         private objects: SpatialIndex,
-        public object: SpaceObject,
+        public object: DeepReadonly<SpaceObject>,
     ) {}
 
     get view() {
@@ -154,7 +155,7 @@ export class FieldOfView {
 
     private *visibilityEndpoints(): Generator<EndPoint> {
         // assumption: objects don't overlap
-        const maxRange = this.object.radarRange;
+        const maxRange = this.object.maxRadarRange;
         if (maxRange > EPSILON) {
             const queryArea = new Circle(XY.clone(this.object.position), maxRange + EPSILON);
             for (const object of this.objects.selectPotentials(queryArea)) {
