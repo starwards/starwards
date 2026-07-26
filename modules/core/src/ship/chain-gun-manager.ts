@@ -185,7 +185,7 @@ export class ChainGunManager implements Updateable {
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
             projectile.angle = gaussianRandom(
-                this.spaceObject.angle + chainGun.angle + chainGun.angleOffset,
+                this.spaceObject.angle + chainGun.direction + chainGun.angleOffset,
                 chainGun.design.bulletDegreesDeviation,
             );
             projectile.velocity = Vec2.sum(

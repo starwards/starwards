@@ -32,11 +32,11 @@ test.describe('Signals Screen', () => {
 
     // --- Scan beam controls drive radars[1] (arc / direction) ---
     // The scan beam is the ship's second radar (radars[1]); its Signals-station
-    // controls command /radars/1/direction and /radars/1/arc. The `d`/`a` keys
-    // sweep direction all the way around (KeysRangeConfig step 5); `w` narrows the
-    // beam and `s` widens it.
+    // controls command /radars/1/directionCommand and /radars/1/arc. The `d`/`a` keys
+    // sweep the commanded bearing all the way around (KeysRangeConfig step 5), and the
+    // mount swings toward it at its turn speed; `w` narrows the beam and `s` widens it.
 
-    test('d key: radars[1].direction increases by one step', async ({ page }) => {
+    test('d key: the mount swings toward the commanded bearing', async ({ page }) => {
         await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
         // Ensure the page has received the ship state before pressing keys
         await page.waitForTimeout(500);
@@ -50,7 +50,7 @@ test.describe('Signals Screen', () => {
         );
     });
 
-    test('a key: radars[1].direction sweeps past the end of its range and around', async ({ page }) => {
+    test('a key: the commanded bearing sweeps past the end of its range and around', async ({ page }) => {
         await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
         // Ensure the page has received the ship state before pressing keys
         await page.waitForTimeout(500);
@@ -63,7 +63,7 @@ test.describe('Signals Screen', () => {
         }
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => Math.abs(ship.state.radars[1].direction - 160) < 1,
+            (ship) => Math.abs(ship.state.radars[1].directionCommand - 160) < 1,
             3000,
         );
     });

@@ -22,7 +22,7 @@ last_verified: 2026-07-20
 
 ```typescript
 @gameField('float32') speed = 0;                    // Primitives
-@gameField(Radar) radar!: Radar;                    // Nested
+@gameField(Signals) signals!: Signals;              // Nested
 @gameField([Thruster]) thrusters = new ArraySchema<Thruster>();  // Array
 @gameField({ map: Spaceship }) ships = new MapSchema<Spaceship>(); // Map
 ```
@@ -157,9 +157,9 @@ efficiency = 1;
 |--------|----------|----------------|----------|
 | Reactor | `reactor.ts` | energy, effeciencyFactor | energyPerSecond |
 | Thruster | `thruster.ts` | angle, active, availableCapacity | getVelocityCapacity() |
-| Radar | `radar.ts` | malfunctionRangeFactor | broken |
+| Radar | `radar.ts` | arc, malfunctionRangeFactor (turret: direction, directionCommand, turnSpeedFactor) | range, broken |
 | ChainGun | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | - |
-| Tube | `tube.ts` | index, angle (extends ChainGun: isFiring, loadAmmo, loading, loadedProjectile) | (none; firing/loading handled by chain-gun-manager) |
+| Tube | `tube.ts` | index, direction (extends ChainGun: isFiring, loadAmmo, loading, loadedProjectile) | (none; firing/loading handled by chain-gun-manager) |
 | Targeting | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | range, next/prev/clearTargetCommand |
 | Warp | `warp.ts` | damageFactor, currentLevel, desiredLevel, currentFrequency | - |
 | Armor | `armor.ts` | armorPlates[], design | numberOfPlates, numberOfHealthyPlates, degreesPerPlate |

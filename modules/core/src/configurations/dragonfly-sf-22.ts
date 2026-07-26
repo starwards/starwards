@@ -30,6 +30,8 @@ export const dragonflyOmniRadar = {
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
     malfunctionRange: 5_000,
+    // the omni sweeps every bearing at once, so its mount has nothing to turn
+    turnSpeed: 0,
 };
 export const dragonflyScanBeam = {
     modelName: 'Lancet-20 Directional Scan Beam',
@@ -44,6 +46,8 @@ export const dragonflyScanBeam = {
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
     malfunctionRange: 10_000,
+    // a full sweep from bow to stern takes 6 seconds at full effectiveness
+    turnSpeed: 30,
 };
 export const dragonflyChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
@@ -66,6 +70,8 @@ export const dragonflyChaingun = {
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
+    // bolted to the hull, facing forward: the ship is aimed by turning the ship
+    turnSpeed: 0,
 };
 export const dragonflyReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -133,6 +139,8 @@ export const dragonflyTube = {
     use_ClusterMissile: true,
     use_TandemMissile: true,
     use_ElecMissile: true,
+    // fixed tube: it launches along the bearing it is fitted at
+    turnSpeed: 0,
 };
 export const dragonflyTargeting = {
     modelName: 'Falcon Targeting Computer',

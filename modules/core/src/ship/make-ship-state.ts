@@ -92,7 +92,8 @@ function makeChainGun(design: ChaingunDesign) {
 function makeTube(design: ChaingunDesign, angle: ShipDirectionConfig, index: number) {
     const tube = new Tube();
     tube.index = index;
-    tube.angle = getDirectionFromConfig(angle);
+    // a mount starts out aimed where it is fitted, with nobody asking it to swing anywhere else
+    tube.direction = tube.directionCommand = getDirectionFromConfig(angle);
     tube.design.assign(design);
     return tube;
 }

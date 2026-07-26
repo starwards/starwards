@@ -77,9 +77,11 @@ describe('ShipRoom JSON pointer commands', () => {
     it('applies a @commandable write to the scan beam radar direction', async () => {
         const { client, room, shipId } = await connectShip('beam-director');
         const shipManager = driver.serverDriver.getShip(shipId);
-        await client.sendCommand(room, '/radars/1/direction', { value: 90 });
-        await waitForServer(() => Math.abs(shipManager.state.radars[1].direction - 90) < 0.01);
-        expect(shipManager.state.radars[1].direction).toBeCloseTo(90, 2);
+        // the game loop is paused here, so this covers the command landing; the mount swinging
+        // toward it over time is covered by turret.spec.ts and the signals screen e2e
+        await client.sendCommand(room, '/radars/1/directionCommand', { value: 20 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[1].directionCommand - 20) < 0.01);
+        expect(shipManager.state.radars[1].directionCommand).toBeCloseTo(20, 2);
     });
 
     it('caps the scan beam radar arc to the @range of the field', async () => {

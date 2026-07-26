@@ -1,13 +1,12 @@
-import { DesignState, SystemState } from './system';
+import { Turret, TurretDesign, TurretDesignState } from './turret';
 import { capToRange, degToRad, lerp } from '../logic/formulas';
 
 import { commandable, gameField } from '../game-field';
 import { defectible } from './system';
 import { range } from '../range';
-import { shipDirectionRange } from './ship-direction';
 import { tweakable } from '../tweakable';
 
-export type RadarDesign = {
+export type RadarDesign = TurretDesign & {
     modelName?: string;
     isInternal: boolean;
     isElectronics: boolean;
@@ -43,7 +42,7 @@ export type RadarDesign = {
     malfunctionRange: number;
 };
 
-export class RadarDesignState extends DesignState implements RadarDesign {
+export class RadarDesignState extends TurretDesignState implements RadarDesign {
     @gameField('float32') damage50 = 0;
     @gameField('float32') range = 0;
     @gameField('float32') minArc = 360;
@@ -103,7 +102,7 @@ export function malfunctionAreaFactor(malfunctionRangeFactor: number, rangeEaseF
     return capToRange(0, 1, lerp([easeFrom, easeTo], [0, 1], capToRange(easeFrom, easeTo, waveSample)));
 }
 
-export class Radar extends SystemState {
+export class Radar extends Turret {
     public static isInstance = (o: unknown): o is Radar => {
         return (o as Radar)?.type === 'Radar';
     };
@@ -121,15 +120,6 @@ export class Radar extends SystemState {
     @range((t: Radar) => [0, 1 - t.design.rangeEaseFactor * 2])
     @gameField('float32')
     malfunctionRangeFactor = 0;
-
-    /*!
-     * The bearing this radar sweeps, in relation to the ship. (in degrees, 0 is front)
-     */
-    @range(shipDirectionRange)
-    @tweakable('number')
-    @commandable()
-    @gameField('float32')
-    direction = 0;
 
     /**
      * backing store for `arc`. 0 means "as fitted", i.e. follow `design.defaultArc` — which is

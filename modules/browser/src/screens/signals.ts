@@ -85,7 +85,7 @@ function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver
     container.on('destroy', panelCleanup.destroy);
     addSliderBlade(
         pane,
-        readWriteNumberProp(shipDriver, `${beamPointer}/direction`),
+        readWriteNumberProp(shipDriver, `${beamPointer}/directionCommand`),
         { label: 'direction' },
         panelCleanup.add,
     );
@@ -137,7 +137,7 @@ function wireInput(
     input.addClickAction(() => zoomEvents.emit('zoomOut'), '-', 'Zoom Out');
     if (beamPointer) {
         input.addRangeAction(
-            readWriteNumberProp(shipDriver, `${beamPointer}/direction`),
+            readWriteNumberProp(shipDriver, `${beamPointer}/directionCommand`),
             shipInputConfig.radarDirection,
             'Beam Direction',
         );

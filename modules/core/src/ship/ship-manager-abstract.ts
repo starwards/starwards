@@ -20,6 +20,7 @@ import {
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
+import { Turret, updateTurret } from './turret';
 
 import { Armor } from './armor';
 import { AutomationManager } from './automation-manager';
@@ -236,6 +237,8 @@ export abstract class ShipManager implements Updateable {
         this.heatManager.update(id);
         this.automationManager.update(id);
 
+        // mounts swing before anything reads where they point
+        this.updateTurrets(id);
         // vision first: the target and signal gates below all read this tick's radar sectors
         this.updateRadarSectors(id);
         this.validateWeaponsTargetId();
@@ -249,6 +252,18 @@ export abstract class ShipManager implements Updateable {
         this.signalsJobManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
+    }
+
+    /**
+     * Swings every system carried on a mount toward the bearing its crew asked for. Systems that
+     * are bolted in place have a `turnSpeed` of 0 and stay where they were fitted.
+     */
+    protected updateTurrets({ deltaSeconds }: IterationData) {
+        for (const system of this.state.systems()) {
+            if (system instanceof Turret) {
+                updateTurret(system, deltaSeconds);
+            }
+        }
     }
 
     /**
