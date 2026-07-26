@@ -35,10 +35,6 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('string')
     public callsign = '';
 
-    @tweakable('boolean')
-    @gameField('boolean')
-    public transponderOpen = true;
-
     constructor() {
         super();
         this.radius = Spaceship.radius;

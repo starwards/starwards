@@ -7,7 +7,6 @@ import { Die } from './ship-manager-abstract';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
-import { Spaceship } from '../space/spaceship';
 import { XY } from '../logic';
 import { makeId } from '../id';
 
@@ -323,8 +322,7 @@ export class SignalsJobManager implements Updateable {
             if (target.id === this.state.id) continue;
             const inRange = this.isTargetInRange(target.id);
             const scanLevel = this.spaceManager.getScanLevel(target.id, this.state.faction);
-            const transponderOpen = Spaceship.isInstance(target) && target.transponderOpen;
-            if (inRange && transponderOpen && scanLevel === ScanLevel.UFO) {
+            if (inRange && scanLevel === ScanLevel.UFO) {
                 seenIds.add(target.id);
                 const dwell = (this.tier1DwellTimers.get(target.id) ?? 0) + deltaSeconds;
                 if (dwell >= TIER1_DWELL_SECONDS) {

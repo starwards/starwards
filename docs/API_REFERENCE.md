@@ -130,7 +130,7 @@ efficiency = 1;
 - `get directionAxis(): XY`
 
 ### Derived Types
-- **Spaceship** (`spaceship.ts`): `+faction|radarSectors|model|callsign|transponderOpen`
+- **Spaceship** (`spaceship.ts`): `+faction|radarSectors|model|callsign`
 - **Projectile** (`projectile.ts`): `+design|secondsToLive|health|shipId|targetId|model|_explosion`
 - **Explosion** (`explosion.ts`): `+secondsToLive|expansionSpeed|damageFactor|blastFactor`
 - **Asteroid** (`asteroid.ts`): `+health`

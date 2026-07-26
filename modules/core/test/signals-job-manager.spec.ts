@@ -324,21 +324,10 @@ describe('SignalsJobManager', () => {
         });
     });
 
+    // A scan job takes `scanBaseDuration` (20s) at best, while a contact in range self-promotes
+    // UFO -> BASIC after TIER1_DWELL_SECONDS (5s), so only the BASIC -> ADVANCED tier is reachable
+    // by a job. These cases start from BASIC, where passive promotion no longer applies.
     describe('scan job effects', () => {
-        it('should upgrade scan level UFO -> BASIC on success', () => {
-            const { shipMgr, spaceMgr, die, targetObj } = createTestSetup();
-            die.expectedRoll = 0;
-            // close transponder so passive tier-1 promotion does not promote during the job
-            targetObj.transponderOpen = false;
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            runTicks(shipMgr, spaceMgr, 25, 20, 0.05);
-
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
-        });
-
         it('should upgrade scan level BASIC -> ADVANCED on success', () => {
             const { shipMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0;
@@ -354,17 +343,17 @@ describe('SignalsJobManager', () => {
         });
 
         it('should not change scan level on failure', () => {
-            const { shipMgr, spaceMgr, die, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0.99;
-            // close transponder so passive tier-1 promotion does not interfere with this test
-            targetObj.transponderOpen = false;
+
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
 
             queueJob(shipMgr, JobType.SCAN, 'target1');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
-            runTicks(shipMgr, spaceMgr, 25, 20, 0.05);
+            runTicks(shipMgr, spaceMgr, 45, 20, 0.05);
 
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
     });
 
@@ -641,9 +630,9 @@ describe('SignalsJobManager', () => {
     });
 
     describe('tier-1 passive scan promotion', () => {
-        it('promotes UFO contact to BASIC after 5 continuous seconds in range with open transponder', () => {
+        it('promotes UFO contact to BASIC after 5 continuous seconds in range', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-            // targetObj.transponderOpen defaults to true; target1 is at (1000, 0), within radarRange 10,000
+            // target1 is at (1000, 0), within radarRange 10,000
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
             // 4.9 seconds in range – not yet promoted
@@ -653,15 +642,6 @@ describe('SignalsJobManager', () => {
             // 0.2 more seconds – crosses 5-second threshold
             runTicks(shipMgr, spaceMgr, 0.2, 20, 4.95);
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
-        });
-
-        it('does not promote if transponder is closed', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-            targetObj.transponderOpen = false;
-
-            // 6 seconds in range – transponder closed, promotion blocked
-            runTicks(shipMgr, spaceMgr, 6, 20, 0.05);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
         });
 
         it('resets dwell timer when contact leaves range', () => {
