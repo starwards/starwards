@@ -131,7 +131,7 @@ protected syncShipProperties() {
 }
 ```
 
-Note: `ShipState.position`/`velocity`/`angle`/`turnSpeed`/`faction`/`radius`/`radarRange` are read-only getters delegating to `ship.spaceship` (`ship-state.ts`), so assigning to `this.state.angle`/`faction`/etc. directly would not compile. `radarRange` is derived further still: it is the widest reach across `spaceship.radarSectors`.
+Note: `ShipState.position`/`velocity`/`angle`/`turnSpeed`/`faction`/`radius` are read-only getters delegating to `ship.spaceship` (`ship-state.ts`), so assigning to `this.state.angle`/`faction`/etc. directly would not compile.
 
 Called from `update()` method at start of every physics tick:
 ```typescript
