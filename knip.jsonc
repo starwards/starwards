@@ -4,7 +4,6 @@
     // "unlisted" is off until workspace cross-deps (@starwards/server in
     // e2e/node-red tests, etc.) are declared in each module's package.json.
     "rules": {
-        "duplicates": "off",
         "unlisted": "off",
         // custom-typings/ tsconfig path aliases that knip cannot resolve
         "unresolved": "off"
