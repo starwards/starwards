@@ -22,9 +22,13 @@ export type WarpDesign = {
 export const MAX_WARP_LVL = 4;
 export enum WarpFrequency {
     W770HZ,
+    /** @public used cross-workspace only in modules/browser/src/gallery/scenes/warp.ts; knip's per-workspace reference resolution doesn't see it */
     W780HZ,
+    /** @public used cross-workspace only in modules/browser/src/gallery/scenes/warp.ts; knip's per-workspace reference resolution doesn't see it */
     W790HZ,
+    /** @public used cross-workspace only in modules/browser/src/gallery/scenes/warp.ts; knip's per-workspace reference resolution doesn't see it */
     W800HZ,
+    /** @public used cross-workspace only in modules/browser/src/gallery/scenes/warp.ts; knip's per-workspace reference resolution doesn't see it */
     W810HZ,
     WARP_FREQUENCY_COUNT,
 }

@@ -69,13 +69,18 @@ export type DefectibleConfig = { normal: number; name: string };
 export type DefectibleValue = DefectibleConfig & { value: number; field: string; systemPointer: string };
 export const PowerLevelStep = 0.25;
 export enum PowerLevel {
+    /** @public used cross-workspace as a computed object key in modules/browser/src/widgets/system-status.ts; knip's per-workspace reference resolution doesn't see it */
     SHUTDOWN = 0,
+    /** @public used cross-workspace as a computed object key in modules/browser/src/widgets/system-status.ts; knip's per-workspace reference resolution doesn't see it */
     LOW = PowerLevelStep,
     NORMAL = PowerLevelStep * 2,
+    /** @public used cross-workspace as a computed object key in modules/browser/src/widgets/system-status.ts; knip's per-workspace reference resolution doesn't see it */
     HIGH = PowerLevelStep * 3,
+    /** @public used cross-workspace as a computed object key in modules/browser/src/widgets/system-status.ts; knip's per-workspace reference resolution doesn't see it */
     MAX = 1,
 }
 export enum HackLevel {
+    /** @public used cross-workspace as a computed object key in modules/browser/src/widgets/system-status.ts; knip's per-workspace reference resolution doesn't see it */
     DISABLED = 0,
     COMPROMISED = 0.5,
     OK = 1,
