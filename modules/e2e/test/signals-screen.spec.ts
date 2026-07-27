@@ -81,4 +81,41 @@ test.describe('Signals Screen', () => {
             3000,
         );
     });
+
+    // --- Signals Jobs panel: the station's view of the top of the job queue ---
+
+    test('signals jobs panel shows the auto-created scan job for a new contact', async ({ page }) => {
+        const panel = page.locator('[data-id="Signals Jobs"]');
+        await expect(panel).toBeVisible({ timeout: 10000 });
+
+        // a fresh contact in radar range gets an auto scan job, surfaced as the top of the queue
+        // (created via the server's own command queue — a test-constructed schema instance would
+        // fail colyseus' class-identity assertion)
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push({
+            position: { x: 1000, y: 0 },
+            radius: 50,
+        });
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length > 0,
+            5000,
+        );
+        const [rock] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
+        await expect(panel.getByText(`SCAN ${rock.id}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.getByText('progress')).toBeVisible();
+    });
+
+    test('paused toggle halts all jobs via /signals/jobsPaused', async ({ page }) => {
+        const panel = page.locator('[data-id="Signals Jobs"]');
+        await expect(panel).toBeVisible({ timeout: 10000 });
+
+        expect(gameDriver.getShip(shipId).state.signals.jobsPaused).toBe(false);
+        // the tweakpane checkbox input itself is invisible; click its styled wrapper
+        await panel.locator('.tp-ckbv_w').click();
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobsPaused,
+            3000,
+        );
+    });
 });

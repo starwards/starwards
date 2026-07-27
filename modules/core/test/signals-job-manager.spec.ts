@@ -367,6 +367,78 @@ describe('SignalsJobManager', () => {
         });
     });
 
+    describe('prioritized jobs', () => {
+        function setupWithRock() {
+            const setup = createTestSetup();
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            setup.spaceMgr.insert(rock);
+            setup.spaceMgr.forceFlushEntities();
+            tick(setup.shipMgr, setup.spaceMgr, 0.05, 0.1);
+            tick(setup.shipMgr, setup.spaceMgr, 0.05, 0.15);
+            return { ...setup, rock };
+        }
+
+        function prioritize(shipMgr: ShipManagerPc, spaceMgr: SpaceManager, targetId: string, totalSeconds: number) {
+            const job = scanJobs(shipMgr).find((j) => j.targetId === targetId);
+            shipMgr.state.signals.prioritizeJobId = job?.id ?? '';
+            tick(shipMgr, spaceMgr, 0.05, totalSeconds);
+        }
+
+        it('prioritizing on top of a prioritized job keeps its place but resets its progress', () => {
+            const { shipMgr, spaceMgr } = setupWithRock();
+
+            prioritize(shipMgr, spaceMgr, 'target1', 0.2);
+            runTicks(shipMgr, spaceMgr, 2, 20, 0.2);
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('target1');
+            expect(shipMgr.state.signals.jobs[0].progress).to.be.greaterThan(0);
+
+            prioritize(shipMgr, spaceMgr, 'rock1', 2.25);
+
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+            expect(shipMgr.state.signals.jobs[1].targetId).to.equal('target1');
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[1].progress).to.equal(0);
+        });
+
+        it('prioritized jobs survive sight loss dormant and resume in the same order', () => {
+            const { shipMgr, spaceMgr, targetObj, rock } = setupWithRock();
+
+            prioritize(shipMgr, spaceMgr, 'rock1', 0.2);
+            prioritize(shipMgr, spaceMgr, 'target1', 0.25);
+            expect([...shipMgr.state.signals.jobs].map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
+
+            targetObj.position.x = 100_000;
+            rock.position.y = 100_000;
+            const t = runTicks(shipMgr, spaceMgr, 1, 20, 0.25);
+
+            // both jobs lie dormant, in place
+            expect([...shipMgr.state.signals.jobs].map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
+
+            targetObj.position.x = 1000;
+            rock.position.y = 1000;
+            runTicks(shipMgr, spaceMgr, 0.5, 20, t);
+
+            expect([...shipMgr.state.signals.jobs].map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+        });
+
+        it('a dormant prioritized job does not block later jobs', () => {
+            const { shipMgr, spaceMgr, rock } = setupWithRock();
+
+            prioritize(shipMgr, spaceMgr, 'rock1', 0.2);
+            rock.position.y = 100_000;
+            runTicks(shipMgr, spaceMgr, 6, 20, 0.25);
+
+            // the dormant rock job holds its place at the top while the target1 scan works
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.QUEUED);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+    });
+
     describe('pause', () => {
         it('jobsPaused halts all job progress until cleared', () => {
             const { shipMgr, spaceMgr } = createTestSetup();

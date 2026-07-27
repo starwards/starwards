@@ -71,6 +71,7 @@ export class SignalsJobManager implements Updateable {
         this.expireHackCooldowns(totalSeconds);
         this.updateScanJobs();
         this.trimExcessJobs();
+        this.updateActiveJob();
         if (!this.state.signals.jobsPaused) {
             this.processJobQueue(deltaSeconds, totalSeconds);
         }
@@ -127,7 +128,6 @@ export class SignalsJobManager implements Updateable {
         job.duration = this.calculateJobDuration(jobType);
 
         this.state.signals.jobs.push(job);
-        this.promoteNextJob();
         return job;
     }
 
@@ -139,16 +139,15 @@ export class SignalsJobManager implements Updateable {
         this.state.signals.prioritizeJobId = '';
 
         const index = this.findJobIndex(jobId);
-        if (index <= 0) {
+        if (index < 0) {
             return;
         }
-        const active = this.getActiveJob();
-        if (active) {
-            active.status = JobStatus.QUEUED;
+        const job = this.state.signals.jobs[index];
+        job.prioritized = true;
+        if (index > 0) {
+            this.state.signals.jobs.splice(index, 1);
+            this.state.signals.jobs.unshift(job);
         }
-        const [job] = this.state.signals.jobs.splice(index, 1);
-        this.state.signals.jobs.unshift(job);
-        job.status = JobStatus.IN_PROGRESS;
     }
 
     private processCancelJobCommand(): void {
@@ -161,7 +160,6 @@ export class SignalsJobManager implements Updateable {
         const index = this.findJobIndex(cancelId);
         if (index >= 0) {
             this.state.signals.jobs.splice(index, 1);
-            this.promoteNextJob();
         }
     }
 
@@ -194,15 +192,57 @@ export class SignalsJobManager implements Updateable {
         }
     }
 
+    /**
+     * A job is workable when the station can make progress on it right now: the target is in the
+     * ship's field of view, and (for scans) still has something left to reveal. A prioritized job
+     * that is not workable lies dormant in place instead of being pruned.
+     */
+    private isJobWorkable(job: SignalsJob): boolean {
+        if (!this.spaceManager.isVisible(this.state.id, job.targetId)) {
+            return false;
+        }
+        if (
+            job.jobType === JobType.SCAN &&
+            this.spaceManager.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.FULL
+        ) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * The station always works the first workable job in the queue. A job that loses the working
+     * slot (displaced by a prioritized job, or its target slipping out of sight) loses all
+     * progress — progress only survives while a job stays active.
+     */
+    private updateActiveJob(): void {
+        const jobs = this.state.signals.jobs;
+        for (let i = jobs.length - 1; i >= 0; i--) {
+            const job = jobs[i];
+            if (
+                job.jobType === JobType.HACK &&
+                !job.prioritized &&
+                job.status === JobStatus.IN_PROGRESS &&
+                !this.spaceManager.isVisible(this.state.id, job.targetId)
+            ) {
+                jobs.splice(i, 1);
+            }
+        }
+        const next = [...jobs].find((job) => this.isJobWorkable(job));
+        for (const job of jobs) {
+            if (job !== next && job.status === JobStatus.IN_PROGRESS) {
+                job.status = JobStatus.QUEUED;
+                job.progress = 0;
+            }
+        }
+        if (next && next.status !== JobStatus.IN_PROGRESS) {
+            next.status = JobStatus.IN_PROGRESS;
+        }
+    }
+
     private processJobQueue(deltaSeconds: number, totalSeconds: number): void {
         const activeJob = this.getActiveJob();
         if (!activeJob) {
-            return;
-        }
-
-        if (!this.spaceManager.isVisible(this.state.id, activeJob.targetId)) {
-            this.removeJob(activeJob.id);
-            this.promoteNextJob();
             return;
         }
 
@@ -237,7 +277,7 @@ export class SignalsJobManager implements Updateable {
         }
 
         this.removeJob(job.id);
-        this.promoteNextJob();
+        this.updateActiveJob();
     }
 
     private applyScanPromotion(targetId: string): void {
@@ -279,28 +319,24 @@ export class SignalsJobManager implements Updateable {
     /**
      * Scan jobs are auto-managed: every space object in this ship's field of view whose faction
      * scan level is below FULL gets a scan job appended to the end of the queue. A scan job whose
-     * target left the field of view (or reached FULL) is dropped — scan progress only survives
-     * unbroken line of sight. Players prioritize by moving jobs to the top of the queue; a
-     * cancelled scan job re-enters at the end of the queue while its target stays visible.
+     * target left the field of view (or reached FULL) is dropped — unless it was prioritized, in
+     * which case it lies dormant in place so the queue order of prioritized jobs survives sight
+     * loss. Players prioritize by moving jobs to the top of the queue; a cancelled scan job
+     * re-enters at the end of the queue while its target stays visible.
      */
     private updateScanJobs(): void {
         const jobs = this.state.signals.jobs;
-        let activeRemoved = false;
         for (let i = jobs.length - 1; i >= 0; i--) {
             const job = jobs[i];
-            if (job.jobType !== JobType.SCAN) {
+            if (job.jobType !== JobType.SCAN || job.prioritized) {
                 continue;
             }
             if (
                 this.spaceManager.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.FULL ||
                 !this.spaceManager.isVisible(this.state.id, job.targetId)
             ) {
-                activeRemoved = activeRemoved || job.status === JobStatus.IN_PROGRESS;
                 jobs.splice(i, 1);
             }
-        }
-        if (activeRemoved) {
-            this.promoteNextJob();
         }
         for (const target of this.spaceManager.state) {
             if (jobs.length >= this.state.signals.currentMaxJobs) {
@@ -350,18 +386,6 @@ export class SignalsJobManager implements Updateable {
             }
         }
         return null;
-    }
-
-    private promoteNextJob(): void {
-        if (this.getActiveJob()) {
-            return;
-        }
-        for (const job of this.state.signals.jobs) {
-            if (job.status === JobStatus.QUEUED) {
-                job.status = JobStatus.IN_PROGRESS;
-                return;
-            }
-        }
     }
 
     private findJobIndex(jobId: string): number {

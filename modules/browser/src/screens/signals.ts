@@ -19,6 +19,7 @@ import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
+import { drawSignalsJobs } from '../widgets/signals-jobs';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { readWriteNumberProp } from '../property-wrappers';
@@ -75,6 +76,8 @@ async function initScreen(driver: Driver, shipId: string) {
     if (scanBeam) {
         drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver, scanBeam.pointer);
     }
+    // drawn last so its buttons stack above earlier fixed-position panes
+    drawSignalsJobs(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, spaceDriver, stationTarget);
     wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
 }
 
