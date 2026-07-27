@@ -571,5 +571,21 @@ describe('SignalsJobManager', () => {
 
             expect(shipMgr.state.signals.jobs.length).to.be.at.most(1);
         });
+
+        it('trimming evicts non-prioritized jobs before prioritized ones', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+
+            fillHackQueue(shipMgr, spaceMgr, 5);
+            const prioritizedJob = shipMgr.state.signals.jobs[2];
+            shipMgr.state.signals.prioritizeJobId = prioritizedJob.id;
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
+
+            shipMgr.state.signals.jobSuccessFactor = 0.3;
+            shipMgr.state.signals.jobSpeedFactor = 0.3;
+            tick(spaceMgr, 0.05, 0.25, shipMgr);
+
+            expect(shipMgr.state.signals.jobs.length).to.equal(1);
+            expect(shipMgr.state.signals.jobs[0].id).to.equal(prioritizedJob.id);
+        });
     });
 });

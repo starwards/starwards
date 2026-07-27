@@ -45,6 +45,15 @@ function getSystemByName(state: ShipState, name: string): SystemState | null {
     return index === undefined && value instanceof SystemState ? value : null;
 }
 
+function findLastIndex<T>(items: ArraySchema<T>, predicate: (item: T) => boolean): number | null {
+    for (let i = items.length - 1; i >= 0; i--) {
+        if (predicate(items[i])) {
+            return i;
+        }
+    }
+    return null;
+}
+
 export class SignalsJobManager implements Updateable {
     // Not persisted: lost on server restart (hacked systems stay COMPROMISED until manually reset)
     private incomingHacks: IncomingHack[] = [];
@@ -71,9 +80,9 @@ export class SignalsJobManager implements Updateable {
         this.expireHackCooldowns(totalSeconds);
         this.updateScanJobs();
         this.trimExcessJobs();
-        this.updateActiveJob();
-        if (!this.state.signals.jobsPaused) {
-            this.processJobQueue(deltaSeconds, totalSeconds);
+        const activeJob = this.updateActiveJob();
+        if (activeJob && !this.state.signals.jobsPaused) {
+            this.processJobQueue(activeJob, deltaSeconds, totalSeconds);
         }
     }
 
@@ -123,8 +132,6 @@ export class SignalsJobManager implements Updateable {
         job.jobType = jobType;
         job.targetId = targetId;
         job.hackSystemName = hackSystemName;
-        job.status = JobStatus.QUEUED;
-        job.progress = 0;
         job.duration = this.calculateJobDuration(jobType);
 
         this.state.signals.jobs.push(job);
@@ -180,15 +187,18 @@ export class SignalsJobManager implements Updateable {
         this.hackCooldowns = this.hackCooldowns.filter((cd) => totalSeconds < cd.expiresAtSeconds);
     }
 
+    /**
+     * When the queue shrinks (system damage), evict from the back: queued unprioritized jobs
+     * first, then queued prioritized ones, and the active job only as a last resort.
+     */
     private trimExcessJobs(): void {
-        const maxJobs = this.state.signals.currentMaxJobs;
-        while (this.state.signals.jobs.length > maxJobs) {
-            const lastIndex = this.findLastQueuedJobIndex();
-            if (lastIndex >= 0) {
-                this.state.signals.jobs.splice(lastIndex, 1);
-            } else {
-                this.state.signals.jobs.splice(this.state.signals.jobs.length - 1, 1);
-            }
+        const jobs = this.state.signals.jobs;
+        while (jobs.length > this.state.signals.currentMaxJobs) {
+            const evictIndex =
+                findLastIndex(jobs, (job) => !job.prioritized && job.status === JobStatus.QUEUED) ??
+                findLastIndex(jobs, (job) => job.status === JobStatus.QUEUED) ??
+                jobs.length - 1;
+            jobs.splice(evictIndex, 1);
         }
     }
 
@@ -215,7 +225,7 @@ export class SignalsJobManager implements Updateable {
      * slot (displaced by a prioritized job, or its target slipping out of sight) loses all
      * progress — progress only survives while a job stays active.
      */
-    private updateActiveJob(): void {
+    private updateActiveJob(): SignalsJob | undefined {
         const jobs = this.state.signals.jobs;
         const next = jobs.find((job) => this.isJobWorkable(job));
         for (const job of jobs) {
@@ -227,14 +237,10 @@ export class SignalsJobManager implements Updateable {
         if (next && next.status !== JobStatus.IN_PROGRESS) {
             next.status = JobStatus.IN_PROGRESS;
         }
+        return next;
     }
 
-    private processJobQueue(deltaSeconds: number, totalSeconds: number): void {
-        const activeJob = this.getActiveJob();
-        if (!activeJob) {
-            return;
-        }
-
+    private processJobQueue(activeJob: SignalsJob, deltaSeconds: number, totalSeconds: number): void {
         const effectiveness = this.getSignalsEffectiveness();
         if (effectiveness <= 0) {
             return;
@@ -362,21 +368,8 @@ export class SignalsJobManager implements Updateable {
         return this.state.signals.effectiveness * this.state.signals.jobSpeedFactor;
     }
 
-    private getActiveJob(): SignalsJob | null {
-        return this.state.signals.jobs.find((job) => job.status === JobStatus.IN_PROGRESS) ?? null;
-    }
-
     private findJobIndex(jobId: string): number {
         return this.state.signals.jobs.findIndex((job) => job.id === jobId);
-    }
-
-    private findLastQueuedJobIndex(): number {
-        for (let i = this.state.signals.jobs.length - 1; i >= 0; i--) {
-            if (this.state.signals.jobs[i].status === JobStatus.QUEUED) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private removeJob(jobId: string): void {
