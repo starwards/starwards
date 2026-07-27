@@ -24,7 +24,6 @@ const { warn: logWarn, error: logError } = createLogger('space-manager');
 
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
-const SCAN_PROMOTION_SECONDS = 5;
 
 // hard clamp on any object's speed, enforced at the physics layer after every velocity mutation
 // (thrust, collision/blast impulse, explosion velocity-inheritance). Sits above the ship
@@ -93,7 +92,6 @@ export class SpaceManager implements Updateable {
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
     // keyed by `${factionIndex}:${objectId}`
-    private scanPromotionTimers = new Map<string, number>();
     private scanLosSeen = new Set<string>();
 
     public spatialIndex = ((mgr: SpaceManager) => ({
@@ -272,7 +270,7 @@ export class SpaceManager implements Updateable {
         this.applyPhysics(deltaSeconds);
         // consume the fields-of-view as computed for this tick BEFORE marking them dirty below,
         // so the lazy FOV cache stays dirty for ship managers to recompute against fresh positions
-        this.updateScanPromotion(deltaSeconds, totalSeconds);
+        this.updateScanDemotion(totalSeconds);
         this.updateFieldsOFView();
         this.updateCollisionBodies();
         this.handleCollisions(deltaSeconds);
@@ -415,7 +413,7 @@ export class SpaceManager implements Updateable {
                 this.collisions.remove(data.body);
                 this.attachments.delete(destroyed.id);
             }
-            this.clearScanPromotionState(destroyed.id);
+            this.clearScanLosState(destroyed.id);
         }
         for (const body of this.cleanupBodies) {
             this.collisions.remove(body);
@@ -726,12 +724,11 @@ export class SpaceManager implements Updateable {
     }
 
     /**
-     * Per-faction line-of-sight promotion/demotion between SNAPSHOT and FULL scan levels.
-     * A target already scanned to BASIC+ that stays continuously in a faction's line of
-     * sight for SCAN_PROMOTION_SECONDS is promoted to FULL. Leaving line of sight while at
-     * FULL demotes back to SNAPSHOT, capturing the moment of demotion.
+     * Per-faction passive demotion: an object at FULL that leaves a faction's line of sight
+     * demotes to SNAPSHOT, capturing the moment of demotion. Promotion is driven by each
+     * ship's signals scan-job queue (SignalsJobManager).
      */
-    private updateScanPromotion(deltaSeconds: number, totalSeconds: number) {
+    private updateScanDemotion(totalSeconds: number) {
         for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
             const visible = this.getFactionVisibleObjects(faction);
             for (const object of this.state) {
@@ -744,20 +741,7 @@ export class SpaceManager implements Updateable {
                     this.scanLosSeen.delete(key);
                 }
 
-                const level = this.getScanLevel(object.id, faction);
-                if (level >= ScanLevel.BASIC && level < ScanLevel.FULL && isVisible) {
-                    const elapsed = (this.scanPromotionTimers.get(key) ?? 0) + deltaSeconds;
-                    if (elapsed >= SCAN_PROMOTION_SECONDS) {
-                        this.setScanLevel(object.id, faction, ScanLevel.FULL);
-                        this.scanPromotionTimers.delete(key);
-                    } else {
-                        this.scanPromotionTimers.set(key, elapsed);
-                    }
-                } else {
-                    this.scanPromotionTimers.delete(key);
-                }
-
-                if (!isVisible && wasVisible && level === ScanLevel.FULL) {
+                if (!isVisible && wasVisible && this.getScanLevel(object.id, faction) === ScanLevel.FULL) {
                     this.setScanLevel(object.id, faction, ScanLevel.SNAPSHOT);
                     this.setScanSnapshotCapturedAt(object.id, faction, totalSeconds);
                 }
@@ -765,11 +749,9 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    private clearScanPromotionState(objectId: string) {
+    private clearScanLosState(objectId: string) {
         for (let factionIndex = 0; factionIndex < Number(Faction.FACTION_COUNT); factionIndex++) {
-            const key = `${factionIndex}:${objectId}`;
-            this.scanPromotionTimers.delete(key);
-            this.scanLosSeen.delete(key);
+            this.scanLosSeen.delete(`${factionIndex}:${objectId}`);
         }
     }
 

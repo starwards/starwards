@@ -292,7 +292,7 @@ describe('SpaceManager faction scan levels', () => {
     });
 });
 
-describe('SpaceManager scan level promotion/demotion', () => {
+describe('SpaceManager scan level demotion', () => {
     function losSetup() {
         const spaceMgr = new SpaceManager();
         const scanner = makeShip('scanner', 0, 0, Faction.Gravitas);
@@ -303,47 +303,24 @@ describe('SpaceManager scan level promotion/demotion', () => {
         return { spaceMgr, scanner, target };
     }
 
-    it('promotes a BASIC+ target to FULL after 5 continuous seconds in line of sight', () => {
-        const { spaceMgr } = losSetup();
-        spaceMgr.setScanLevel('target', Faction.Gravitas, ScanLevel.BASIC);
-
-        tick(spaceMgr, 4.9);
-        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
-
-        tick(spaceMgr, 0.2);
-        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
-    });
-
-    it('accumulates line-of-sight time across multiple ticks', () => {
-        const { spaceMgr } = losSetup();
-        spaceMgr.setScanLevel('target', Faction.Gravitas, ScanLevel.BASIC);
-
-        tick(spaceMgr, 2);
-        tick(spaceMgr, 2);
-        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
-
-        tick(spaceMgr, 1.5);
-        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
-    });
-
-    it('does not promote a target that was never scanned (UFO), even if in line of sight', () => {
-        const { spaceMgr } = losSetup();
-
-        tick(spaceMgr, 10);
-        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.UFO);
-    });
-
     it('demotes FULL to SNAPSHOT and captures the timestamp when the target leaves line of sight', () => {
         const { spaceMgr, target } = losSetup();
-        spaceMgr.setScanLevel('target', Faction.Gravitas, ScanLevel.BASIC);
-        tick(spaceMgr, 5);
-        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+        spaceMgr.setScanLevel('target', Faction.Gravitas, ScanLevel.FULL);
+        tick(spaceMgr, 1); // register the target as seen by the faction
 
         target.position.x = 1_000_000; // leaves line of sight (and radar range)
         spaceMgr.update({ deltaSeconds: 1, deltaSecondsAvg: 1, totalSeconds: 42 });
 
         expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
         expect(spaceMgr.getScanSnapshotCapturedAt('target', Faction.Gravitas)).to.equal(42);
+    });
+
+    it('does not promote a target on its own — promotion is driven by signals scan jobs', () => {
+        const { spaceMgr } = losSetup();
+        spaceMgr.setScanLevel('target', Faction.Gravitas, ScanLevel.BASIC);
+
+        tick(spaceMgr, 10);
+        expect(spaceMgr.getScanLevel('target', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
     });
 
     it('leaving line of sight below FULL does not change level or capture a snapshot', () => {

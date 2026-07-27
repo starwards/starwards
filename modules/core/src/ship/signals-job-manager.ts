@@ -9,8 +9,6 @@ import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
 import { makeId } from '../id';
 
-const TIER1_DWELL_SECONDS = 5;
-
 type IncomingHack = {
     systemName: string;
     expiresAtSeconds: number;
@@ -51,8 +49,6 @@ export class SignalsJobManager implements Updateable {
     // Not persisted: lost on server restart (hacked systems stay COMPROMISED until manually reset)
     private incomingHacks: IncomingHack[] = [];
     private hackCooldowns: HackCooldown[] = [];
-    // Ephemeral per-target dwell timers for tier-1 passive scan promotion
-    private tier1DwellTimers = new Map<string, number>();
 
     constructor(
         private state: ShipState,
@@ -70,11 +66,14 @@ export class SignalsJobManager implements Updateable {
     update({ deltaSeconds, totalSeconds }: IterationData): void {
         this.processSubmitJobCommand(totalSeconds);
         this.processCancelJobCommand();
+        this.processPrioritizeJobCommand();
         this.expireIncomingHacks(totalSeconds);
         this.expireHackCooldowns(totalSeconds);
+        this.updateScanJobs();
         this.trimExcessJobs();
-        this.processJobQueue(deltaSeconds, totalSeconds);
-        this.updateTier1ScanPromotion(deltaSeconds);
+        if (!this.state.signals.jobsPaused) {
+            this.processJobQueue(deltaSeconds, totalSeconds);
+        }
     }
 
     private processSubmitJobCommand(totalSeconds: number): void {
@@ -83,18 +82,12 @@ export class SignalsJobManager implements Updateable {
         }
         this.state.signals.submitJobCommand = false;
 
-        const jobType = this.state.signals.queueJobType;
         const targetId = this.state.signals.queueJobTargetId;
         const hackSystemName = this.state.signals.queueJobHackSystemName;
 
-        this.state.signals.queueJobType = -1;
         this.state.signals.queueJobTargetId = '';
         this.state.signals.queueJobHackSystemName = '';
 
-        const validJobType = jobType;
-        if (validJobType !== JobType.SCAN && validJobType !== JobType.HACK) {
-            return;
-        }
         if (!targetId) {
             return;
         }
@@ -108,43 +101,54 @@ export class SignalsJobManager implements Updateable {
         }
 
         const scanLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
-
-        if (validJobType === JobType.SCAN) {
-            // scan jobs only take a target from UFO to BASIC; SNAPSHOT/FULL come from the
-            // line-of-sight promotion/demotion cycle (SpaceManager.updateScanPromotion)
-            if (scanLevel >= ScanLevel.BASIC) {
-                return;
-            }
+        if (scanLevel < ScanLevel.SNAPSHOT) {
+            return;
         }
 
-        if (validJobType === JobType.HACK) {
-            if (scanLevel < ScanLevel.SNAPSHOT) {
-                return;
-            }
-
-            if (!hackSystemName || !this.isValidHackTarget(targetId, hackSystemName)) {
-                return;
-            }
-
-            if (this.isOnHackCooldown(targetId, hackSystemName, totalSeconds)) {
-                return;
-            }
+        if (!hackSystemName || !this.isValidHackTarget(targetId, hackSystemName)) {
+            return;
         }
 
+        if (this.isOnHackCooldown(targetId, hackSystemName, totalSeconds)) {
+            return;
+        }
+
+        this.pushJob(JobType.HACK, targetId, hackSystemName);
+    }
+
+    private pushJob(jobType: JobType, targetId: string, hackSystemName: string): SignalsJob {
         const job = new SignalsJob();
         job.id = makeId();
-        job.jobType = validJobType;
+        job.jobType = jobType;
         job.targetId = targetId;
-        job.hackSystemName = validJobType === JobType.HACK ? hackSystemName : '';
+        job.hackSystemName = hackSystemName;
         job.status = JobStatus.QUEUED;
         job.progress = 0;
-        job.duration = this.calculateJobDuration(validJobType);
+        job.duration = this.calculateJobDuration(jobType);
 
         this.state.signals.jobs.push(job);
+        this.promoteNextJob();
+        return job;
+    }
 
-        if (this.state.signals.jobs.length === 1) {
-            job.status = JobStatus.IN_PROGRESS;
+    private processPrioritizeJobCommand(): void {
+        const jobId = this.state.signals.prioritizeJobId;
+        if (!jobId) {
+            return;
         }
+        this.state.signals.prioritizeJobId = '';
+
+        const index = this.findJobIndex(jobId);
+        if (index <= 0) {
+            return;
+        }
+        const active = this.getActiveJob();
+        if (active) {
+            active.status = JobStatus.QUEUED;
+        }
+        const [job] = this.state.signals.jobs.splice(index, 1);
+        this.state.signals.jobs.unshift(job);
+        job.status = JobStatus.IN_PROGRESS;
     }
 
     private processCancelJobCommand(): void {
@@ -217,29 +221,30 @@ export class SignalsJobManager implements Updateable {
     }
 
     private completeJob(job: SignalsJob, totalSeconds: number): void {
-        const baseSuccessRate =
-            job.jobType === JobType.SCAN
-                ? this.state.signals.design.scanBaseSuccessRate
-                : this.state.signals.design.hackBaseSuccessRate;
-        // effectiveness = power * hacked: if this ship's signals system is itself hacked, jobs succeed less
-        const actualSuccessRate =
-            baseSuccessRate * this.state.signals.jobSuccessFactor * this.state.signals.effectiveness;
-        const success = this.die.getRoll('signalsJob_' + job.id) < actualSuccessRate;
-
-        if (success) {
-            this.applyJobSuccess(job, totalSeconds);
+        if (job.jobType === JobType.SCAN) {
+            // scans are passive and deterministic: sustaining line of sight for the job's duration
+            // promotes the target one tier
+            this.applyScanPromotion(job.targetId);
+        } else if (job.jobType === JobType.HACK) {
+            // effectiveness = power * hacked: if this ship's signals system is itself hacked, jobs succeed less
+            const actualSuccessRate =
+                this.state.signals.design.hackBaseSuccessRate *
+                this.state.signals.jobSuccessFactor *
+                this.state.signals.effectiveness;
+            if (this.die.getRoll('signalsJob_' + job.id) < actualSuccessRate) {
+                this.applyHack(job.targetId, job.hackSystemName, totalSeconds);
+            }
         }
 
         this.removeJob(job.id);
         this.promoteNextJob();
     }
 
-    private applyJobSuccess(job: SignalsJob, totalSeconds: number): void {
-        if (job.jobType === JobType.SCAN) {
-            // scan jobs top out at BASIC; submission is already gated on scanLevel < BASIC
-            this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.BASIC);
-        } else if (job.jobType === JobType.HACK) {
-            this.applyHack(job.targetId, job.hackSystemName, totalSeconds);
+    private applyScanPromotion(targetId: string): void {
+        const level = this.spaceManager.getScanLevel(targetId, this.state.faction);
+        if (level < ScanLevel.FULL) {
+            const next = level === ScanLevel.UFO ? ScanLevel.BASIC : ScanLevel.FULL;
+            this.spaceManager.setScanLevel(targetId, this.state.faction, next);
         }
     }
 
@@ -271,28 +276,49 @@ export class SignalsJobManager implements Updateable {
         });
     }
 
-    private updateTier1ScanPromotion(deltaSeconds: number): void {
-        const seenIds = new Set<string>();
-        for (const target of this.spaceManager.state.getAll('Spaceship')) {
-            if (target.id === this.state.id) continue;
-            const visible = this.spaceManager.isVisible(this.state.id, target.id);
-            const scanLevel = this.spaceManager.getScanLevel(target.id, this.state.faction);
-            if (visible && scanLevel === ScanLevel.UFO) {
-                seenIds.add(target.id);
-                const dwell = (this.tier1DwellTimers.get(target.id) ?? 0) + deltaSeconds;
-                if (dwell >= TIER1_DWELL_SECONDS) {
-                    this.spaceManager.setScanLevel(target.id, this.state.faction, ScanLevel.BASIC);
-                    this.tier1DwellTimers.delete(target.id);
-                } else {
-                    this.tier1DwellTimers.set(target.id, dwell);
-                }
+    /**
+     * Scan jobs are auto-managed: every space object in this ship's field of view whose faction
+     * scan level is below FULL gets a scan job appended to the end of the queue. A scan job whose
+     * target left the field of view (or reached FULL) is dropped — scan progress only survives
+     * unbroken line of sight. Players prioritize by moving jobs to the top of the queue; a
+     * cancelled scan job re-enters at the end of the queue while its target stays visible.
+     */
+    private updateScanJobs(): void {
+        const jobs = this.state.signals.jobs;
+        let activeRemoved = false;
+        for (let i = jobs.length - 1; i >= 0; i--) {
+            const job = jobs[i];
+            if (job.jobType !== JobType.SCAN) {
+                continue;
+            }
+            if (
+                this.spaceManager.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.FULL ||
+                !this.spaceManager.isVisible(this.state.id, job.targetId)
+            ) {
+                activeRemoved = activeRemoved || job.status === JobStatus.IN_PROGRESS;
+                jobs.splice(i, 1);
             }
         }
-        // TODO B7: reset timer on leaving range (re-entry rule undecided)
-        for (const id of this.tier1DwellTimers.keys()) {
-            if (!seenIds.has(id)) {
-                this.tier1DwellTimers.delete(id);
+        if (activeRemoved) {
+            this.promoteNextJob();
+        }
+        for (const target of this.spaceManager.state) {
+            if (jobs.length >= this.state.signals.currentMaxJobs) {
+                break;
             }
+            if (target.id === this.state.id || target.destroyed) {
+                continue;
+            }
+            if (this.spaceManager.getScanLevel(target.id, this.state.faction) >= ScanLevel.FULL) {
+                continue;
+            }
+            if (jobs.some((job) => job.jobType === JobType.SCAN && job.targetId === target.id)) {
+                continue;
+            }
+            if (!this.spaceManager.isVisible(this.state.id, target.id)) {
+                continue;
+            }
+            this.pushJob(JobType.SCAN, target.id, '');
         }
     }
 
@@ -308,8 +334,6 @@ export class SignalsJobManager implements Updateable {
     }
 
     private calculateJobDuration(jobType: JobType): number {
-        // scan job submission is gated on scanLevel < BASIC, so a scan job is always
-        // starting from UFO — no need for a per-level duration factor here
         return jobType === JobType.SCAN
             ? this.state.signals.design.scanBaseDuration
             : this.state.signals.design.hackBaseDuration;
@@ -329,6 +353,9 @@ export class SignalsJobManager implements Updateable {
     }
 
     private promoteNextJob(): void {
+        if (this.getActiveJob()) {
+            return;
+        }
         for (const job of this.state.signals.jobs) {
             if (job.status === JobStatus.QUEUED) {
                 job.status = JobStatus.IN_PROGRESS;
