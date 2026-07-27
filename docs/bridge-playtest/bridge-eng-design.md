@@ -134,7 +134,7 @@ The current engineering screen (`screens/ecr.ts`) already shows:
   / EPM / Heat / Coolant / Hacked, **plus** per-defectible drag-slider
   rows. The slider lets you scrub a defectible value in real time —
   effectively a manual repair tool, but it is not gated, has no
-  challenge, and writes directly via `addSliderCellToRow`.
+  challenge, and writes directly via `addBarCellToRow`.
 
 This means: **a back-door manual repair already works on this screen
 via the defectible sliders**. There is no skill challenge gating it,
