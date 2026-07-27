@@ -774,12 +774,24 @@ export class SpaceManager implements Updateable {
 
     // Scan Level Management Methods
     /**
+     * Resolves a target + faction pair to the live object and its per-faction array index.
+     * Null when the target is gone or the faction has no slot (e.g. Faction.NONE = -1).
+     */
+    private getScanSlot(targetId: string, faction: Faction): readonly [SpaceObject, number] | null {
+        const [target] = this.getObjectPtr(targetId);
+        const factionIndex = Number(faction);
+        return target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)
+            ? [target, factionIndex]
+            : null;
+    }
+
+    /**
      * Set scan level for target (called by job completion)
      */
     public setScanLevel(targetId: string, faction: Faction, level: ScanLevel): void {
-        const [target] = this.getObjectPtr(targetId);
-        const factionIndex = Number(faction);
-        if (target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+        const slot = this.getScanSlot(targetId, faction);
+        if (slot) {
+            const [target, factionIndex] = slot;
             target.scanLevels[factionIndex] = level;
         }
     }
@@ -789,24 +801,16 @@ export class SpaceManager implements Updateable {
      * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
      */
     public getScanLevel(targetId: string, faction: Faction): ScanLevel {
-        const [target] = this.getObjectPtr(targetId);
-        if (!target) {
+        const slot = this.getScanSlot(targetId, faction);
+        if (!slot) {
             return ScanLevel.UFO;
         }
-
-        const factionIndex = Number(faction);
-
-        // Get stored scan level or default to UFO
-        const storedLevel =
-            factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)
-                ? target.scanLevels[factionIndex] || ScanLevel.UFO
-                : ScanLevel.UFO;
-
+        const [target, factionIndex] = slot;
+        const storedLevel = target.scanLevels[factionIndex] || ScanLevel.UFO;
         // Objects from same faction have at least BASIC scan level
-        if (target.faction === faction && faction !== Faction.NONE) {
+        if (target.faction === faction) {
             return Math.max(storedLevel, ScanLevel.BASIC);
         }
-
         return storedLevel;
     }
 
@@ -815,18 +819,18 @@ export class SpaceManager implements Updateable {
      * target was captured. 0 if the target has never demoted from FULL for this faction.
      */
     public getScanSnapshotCapturedAt(targetId: string, faction: Faction): number {
-        const [target] = this.getObjectPtr(targetId);
-        const factionIndex = Number(faction);
-        if (!target || factionIndex < 0 || factionIndex >= Number(Faction.FACTION_COUNT)) {
+        const slot = this.getScanSlot(targetId, faction);
+        if (!slot) {
             return 0;
         }
+        const [target, factionIndex] = slot;
         return target.scanSnapshotCapturedAt[factionIndex] ?? 0;
     }
 
     private setScanSnapshotCapturedAt(targetId: string, faction: Faction, atSeconds: number): void {
-        const [target] = this.getObjectPtr(targetId);
-        const factionIndex = Number(faction);
-        if (target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+        const slot = this.getScanSlot(targetId, faction);
+        if (slot) {
+            const [target, factionIndex] = slot;
             target.scanSnapshotCapturedAt[factionIndex] = atSeconds;
         }
     }

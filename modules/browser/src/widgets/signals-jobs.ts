@@ -28,7 +28,7 @@ export function drawSignalsJobs(
     container.on('destroy', panelCleanup.destroy);
 
     const jobs = () => shipDriver.state.signals.jobs;
-    const activeJobIndex = () => [...jobs()].findIndex((job) => job.status === JobStatus.IN_PROGRESS);
+    const activeJobIndex = () => jobs().findIndex((job) => job.status === JobStatus.IN_PROGRESS);
 
     addInputBlade<boolean>(
         pane,
@@ -41,7 +41,7 @@ export function drawSignalsJobs(
         pane,
         () => {
             const selected = stationTarget.getSingle();
-            const job = selected && [...jobs()].find((j) => j.targetId === selected.id);
+            const job = selected && jobs().find((j) => j.targetId === selected.id);
             if (job) {
                 writeProp(shipDriver, '/signals/prioritizeJobId').setValue(job.id);
             }
@@ -65,7 +65,7 @@ export function drawSignalsJobs(
         addTextBlade(
             pane,
             readProp<number>(shipDriver, `/signals/jobs/${index}/status`),
-            { label: jobLabel(spaceDriver, job), format: () => 'active' },
+            { label: jobLabel(spaceDriver, job), format: (s: number) => JobStatus[s] },
             session.add,
         );
         addBarBlade(
@@ -74,14 +74,11 @@ export function drawSignalsJobs(
             { label: 'progress', format: (p: number) => `${Math.round(p * 100)}%` },
             session.add,
         );
+        // this button is destroyed and rebuilt whenever the active job changes, so the captured
+        // job is always the one on display
         addButton(
             pane,
-            () => {
-                const current = activeJobIndex();
-                if (current >= 0) {
-                    writeProp(shipDriver, '/signals/cancelJobId').setValue(jobs()[current].id);
-                }
-            },
+            () => writeProp(shipDriver, '/signals/cancelJobId').setValue(job.id),
             { label: '', title: 'Cancel' },
             session.add,
         );
@@ -99,6 +96,9 @@ export function drawSignalsJobs(
             render();
         }
     };
+    // both subscriptions are needed: add/remove emits on the array's own pointer, while an
+    // in-place status flip emits only on the item's field pointer (and '**' does not match
+    // its own prefix)
     shipDriver.events.on('/signals/jobs', onJobsChange);
     shipDriver.events.on('/signals/jobs/**', onJobsChange);
     panelCleanup.add(() => {

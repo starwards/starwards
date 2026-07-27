@@ -1,5 +1,5 @@
+import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
-import { expect, test } from '@playwright/test';
 import { makeDriver, waitForShipCondition } from './driver';
 
 import { maps } from '@starwards/server';
@@ -7,6 +7,12 @@ import { maps } from '@starwards/server';
 const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
+
+async function waitForRadarReady(page: Page) {
+    await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
+    // Ensure the page has received the ship state before pressing keys
+    await page.waitForTimeout(500);
+}
 
 test.describe('Signals Screen', () => {
     test.beforeEach(async ({ page }) => {
@@ -37,9 +43,7 @@ test.describe('Signals Screen', () => {
     // mount swings toward it at its turn speed; `w` narrows the beam and `s` widens it.
 
     test('d key: the mount swings toward the commanded bearing', async ({ page }) => {
-        await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
-        // Ensure the page has received the ship state before pressing keys
-        await page.waitForTimeout(500);
+        await waitForRadarReady(page);
 
         const initial = gameDriver.getShip(shipId).state.radars[1].direction;
         await page.keyboard.press('d');
@@ -51,9 +55,7 @@ test.describe('Signals Screen', () => {
     });
 
     test('a key: the commanded bearing sweeps past the end of its range and around', async ({ page }) => {
-        await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
-        // Ensure the page has received the ship state before pressing keys
-        await page.waitForTimeout(500);
+        await waitForRadarReady(page);
 
         // 40 steps of 5 degrees each takes the bearing 200 degrees anticlockwise from 0: past the
         // -180 end of the range, coming back around to +160. A range that stopped at its end would
@@ -69,9 +71,7 @@ test.describe('Signals Screen', () => {
     });
 
     test('w key: radars[1].arc narrows by one step', async ({ page }) => {
-        await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
-        // Ensure the page has received the ship state before pressing keys
-        await page.waitForTimeout(500);
+        await waitForRadarReady(page);
 
         const initial = gameDriver.getShip(shipId).state.radars[1].arc;
         await page.keyboard.press('w');

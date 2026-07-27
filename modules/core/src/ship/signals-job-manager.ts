@@ -117,7 +117,7 @@ export class SignalsJobManager implements Updateable {
         this.pushJob(JobType.HACK, targetId, hackSystemName);
     }
 
-    private pushJob(jobType: JobType, targetId: string, hackSystemName: string): SignalsJob {
+    private pushJob(jobType: JobType, targetId: string, hackSystemName = ''): SignalsJob {
         const job = new SignalsJob();
         job.id = makeId();
         job.jobType = jobType;
@@ -217,18 +217,7 @@ export class SignalsJobManager implements Updateable {
      */
     private updateActiveJob(): void {
         const jobs = this.state.signals.jobs;
-        for (let i = jobs.length - 1; i >= 0; i--) {
-            const job = jobs[i];
-            if (
-                job.jobType === JobType.HACK &&
-                !job.prioritized &&
-                job.status === JobStatus.IN_PROGRESS &&
-                !this.spaceManager.isVisible(this.state.id, job.targetId)
-            ) {
-                jobs.splice(i, 1);
-            }
-        }
-        const next = [...jobs].find((job) => this.isJobWorkable(job));
+        const next = jobs.find((job) => this.isJobWorkable(job));
         for (const job of jobs) {
             if (job !== next && job.status === JobStatus.IN_PROGRESS) {
                 job.status = JobStatus.QUEUED;
@@ -328,13 +317,7 @@ export class SignalsJobManager implements Updateable {
         const jobs = this.state.signals.jobs;
         for (let i = jobs.length - 1; i >= 0; i--) {
             const job = jobs[i];
-            if (job.jobType !== JobType.SCAN || job.prioritized) {
-                continue;
-            }
-            if (
-                this.spaceManager.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.FULL ||
-                !this.spaceManager.isVisible(this.state.id, job.targetId)
-            ) {
+            if (job.jobType === JobType.SCAN && !job.prioritized && !this.isJobWorkable(job)) {
                 jobs.splice(i, 1);
             }
         }
@@ -354,7 +337,7 @@ export class SignalsJobManager implements Updateable {
             if (!this.spaceManager.isVisible(this.state.id, target.id)) {
                 continue;
             }
-            this.pushJob(JobType.SCAN, target.id, '');
+            this.pushJob(JobType.SCAN, target.id);
         }
     }
 
@@ -380,21 +363,11 @@ export class SignalsJobManager implements Updateable {
     }
 
     private getActiveJob(): SignalsJob | null {
-        for (const job of this.state.signals.jobs) {
-            if (job.status === JobStatus.IN_PROGRESS) {
-                return job;
-            }
-        }
-        return null;
+        return this.state.signals.jobs.find((job) => job.status === JobStatus.IN_PROGRESS) ?? null;
     }
 
     private findJobIndex(jobId: string): number {
-        for (let i = 0; i < this.state.signals.jobs.length; i++) {
-            if (this.state.signals.jobs[i].id === jobId) {
-                return i;
-            }
-        }
-        return -1;
+        return this.state.signals.jobs.findIndex((job) => job.id === jobId);
     }
 
     private findLastQueuedJobIndex(): number {
