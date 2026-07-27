@@ -19,11 +19,16 @@
     },
     "dependencies": {
         "@colyseus/core": "^0.16.23",
+        "@colyseus/schema": "^3.0.76",
         "@starwards/core": "0.5.1",
         "@colyseus/monitor": "^0.16.7",
         "@colyseus/ws-transport": "^0.16.5",
         "express": "^5.2.1",
         "express-async-handler": "^1.2.0",
         "express-basic-auth": "^1.2.1"
+    },
+    "devDependencies": {
+        "colyseus.js": "^0.16.22",
+        "eventemitter3": "^5.0.4"
     }
 }

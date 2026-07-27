@@ -1,10 +1,7 @@
 {
     "$schema": "https://unpkg.com/knip@5/schema.json",
-    // Dead-code detection. Remaining "off" rules below are pending triage;
-    // "unlisted" is off until workspace cross-deps (@starwards/server in
-    // e2e/node-red tests, etc.) are declared in each module's package.json.
+    // Dead-code detection. Remaining "off" rules below are pending triage.
     "rules": {
-        "unlisted": "off",
         // custom-typings/ tsconfig path aliases that knip cannot resolve
         "unresolved": "off"
     },
@@ -30,7 +27,12 @@
     ],
     "workspaces": {
         ".": {
-            "entry": ["scripts/*.{js,mjs,sh}", ".github/k8s/*.{js,ts}", "*.{js,mjs,ts}"]
+            "entry": ["scripts/*.{js,mjs,sh}", ".github/k8s/*.{js,ts}", "*.{js,mjs,ts}"],
+            "ignoreDependencies": [
+                // custom-typings/golden-layout is an ambient module augmentation; the
+                // real dependency lives in modules/browser
+                "golden-layout"
+            ]
         },
         "modules/node-red": {
             "entry": ["src/*/*.ts", "src/**/index.ts", "rollup.config*.mjs"]

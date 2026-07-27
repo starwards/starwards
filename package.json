@@ -73,8 +73,11 @@
     },
     "devDependencies": {
         "@colyseus/loadtest": "^0.16.1",
+        "@eslint/js": "^9.39.4",
         "@playwright/test": "^1.61.1",
         "@rollup/plugin-sucrase": "^5.1.0",
+        "@starwards/core": "0.5.1",
+        "@starwards/server": "0.0.0",
         "@types/chai": "^5.2.3",
         "@types/d3-selection": "^3.0.11",
         "@types/debug": "4.1.13",

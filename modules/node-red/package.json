@@ -40,6 +40,10 @@
         }
     },
     "dependencies": {
-        "@starwards/core": "0.5.1"
+        "@starwards/core": "0.5.1",
+        "colyseus-events": "^4.1.0"
+    },
+    "devDependencies": {
+        "@starwards/server": "0.0.0"
     }
 }
