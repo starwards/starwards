@@ -1,4 +1,4 @@
-export interface Coded {
+interface Coded {
     code: number;
 }
 export function isCoded(v: unknown): v is Coded {

@@ -29,7 +29,7 @@ export type FollowController = {
     setFollow: (follow: boolean) => void;
 };
 
-export type RelayRadar = {
+type RelayRadar = {
     root: CameraView;
     layers: Record<string, Container>;
     follow: FollowController;

@@ -30,5 +30,3 @@ export const scenes: Record<string, Scene> = {
     ...tubesStatusScenes,
     ...warpScenes,
 };
-
-export const sceneNames = Object.keys(scenes);

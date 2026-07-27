@@ -19,7 +19,7 @@ export async function stringToSchema<T extends Schema>(ctor: Constructor<T>, ser
     return await stringToSchemaObject(new ctor(), serialized);
 }
 
-export async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
+async function stringToSchemaObject<T extends Schema>(obj: T, serialized: string) {
     const unzipped = await do_unzip(Buffer.from(serialized, 'base64'));
     // In @colyseus/schema v3, use Decoder class
     const decoder = new Decoder(obj);

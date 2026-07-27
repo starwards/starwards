@@ -29,15 +29,6 @@ export const radar = {
 };
 
 // ============================================================================
-// Status Colors (matches tweakpane.css [data-status] values)
-// ============================================================================
-export const status = {
-    ok: 0x1a4d1a, // hsl(123, 61%, 18%)
-    warn: 0x4d4a1a, // hsl(52, 61%, 18%)
-    error: 0x4d1a1a, // hsl(0, 69%, 17%)
-};
-
-// ============================================================================
 // HSL Palette (Industrial Sci-Fi Theme - Pure Cyan/Orange)
 // Matches docs/reference/color-design-system.html
 // ============================================================================

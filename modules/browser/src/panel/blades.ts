@@ -38,11 +38,7 @@ export function createPane(params: { title?: string; container?: HTMLElement }):
     return pane;
 }
 
-export function configSliderBlade(
-    params: Partial<SliderBladeParams>,
-    range: RTuple2,
-    getValue: () => number | undefined,
-) {
+function configSliderBlade(params: Partial<SliderBladeParams>, range: RTuple2, getValue: () => number | undefined) {
     return {
         parse: (v: number) => String(v),
         ...params,
@@ -62,7 +58,7 @@ export function configTextBlade(params: Partial<TextBladeParams<unknown>> = {}, 
     };
 }
 
-export function configListBlade<T>(params: Partial<ListBladeParams<T>>, getValue: () => T | undefined) {
+function configListBlade<T>(params: Partial<ListBladeParams<T>>, getValue: () => T | undefined) {
     return {
         options: [],
         ...params,
@@ -71,12 +67,12 @@ export function configListBlade<T>(params: Partial<ListBladeParams<T>>, getValue
     };
 }
 
-export type BladeGuiApi<T> = {
+type BladeGuiApi<T> = {
     value: T;
     on(eventName: 'change', handler: (ev: { value: T }) => void): unknown;
 } & BladeApi<BladeController<View>>;
 
-export function wireBlade<T>(
+function wireBlade<T>(
     blade: BladeGuiApi<T>,
     { getValue, onChange, setValue }: Model<T>,
     cleanup: (d: Destructor) => void,
@@ -255,7 +251,7 @@ export function addGraph(
     });
 }
 
-export type InputBladeParams = { label: string } & Record<string, unknown>;
+type InputBladeParams = { label: string } & Record<string, unknown>;
 
 export function addInputBlade<T>(
     guiFolder: FolderApi,
@@ -313,20 +309,6 @@ export function addTextCellToRow<T>(
     const blade = row.addCell(
         configTextBlade(params as Partial<TextBladeParams<unknown>>, model.getValue),
     ) as BladeGuiApi<T>;
-    wireBlade(blade, model, cleanup);
-    return blade;
-}
-
-/**
- * Add a slider cell to a table row (tweakpane-table v0.4+)
- */
-export function addSliderCellToRow(
-    row: RowApi,
-    model: NumericModel,
-    params: Partial<SliderBladeParams>,
-    cleanup: (d: Destructor) => void,
-) {
-    const blade = row.addCell(configSliderBlade(params, model.range, model.getValue)) as BladeGuiApi<number>;
     wireBlade(blade, model, cleanup);
     return blade;
 }

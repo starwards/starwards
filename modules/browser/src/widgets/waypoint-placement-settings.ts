@@ -6,12 +6,12 @@ import { SpaceDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
 import { addGroupComboBlade } from './waypoint-group-picker';
 
-export type PlacementSettings = {
+type PlacementSettings = {
     collection: string;
     color: number;
 };
 
-export type PlacementSettingsPanel = {
+type PlacementSettingsPanel = {
     getSettings: () => PlacementSettings;
 };
 

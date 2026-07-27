@@ -1,13 +1,9 @@
 {
     "$schema": "https://unpkg.com/knip@5/schema.json",
-    // Dead-code detection. Currently enforces unused files and dependencies;
-    // the unused-exports rules are off until the ~130 findings are triaged
-    // (public API surface, ship model configurations, react hooks), and
+    // Dead-code detection. Remaining "off" rules below are pending triage;
     // "unlisted" is off until workspace cross-deps (@starwards/server in
     // e2e/node-red tests, etc.) are declared in each module's package.json.
     "rules": {
-        "exports": "off",
-        "types": "off",
         "nsExports": "off",
         "nsTypes": "off",
         "enumMembers": "off",

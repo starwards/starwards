@@ -9,7 +9,7 @@ export type TargetingDesign = {
     maxRange: number;
     shortRange: number;
 };
-export class TargetingDesignState extends DesignState implements TargetingDesign {
+class TargetingDesignState extends DesignState implements TargetingDesign {
     @gameField('uint32')
     maxRange = 0;
     @gameField('uint32')

@@ -2,7 +2,7 @@ import * as path from 'path';
 
 import { GameManager, server } from '@starwards/server';
 import { Locator, Page, expect, test } from '@playwright/test';
-import { ShipApi, limitPercision } from '@starwards/core';
+import { ShipApi } from '@starwards/core';
 
 async function expectServerHealthy(port: number) {
     const controller = new AbortController();
@@ -77,20 +77,6 @@ export function makeDriver(t: typeof test) {
     };
 }
 
-export class RadarDriver {
-    constructor(public canvas: Locator) {}
-
-    async getZoom() {
-        return limitPercision(Number(await this.canvas.getAttribute('data-zoom')));
-    }
-    async setZoom(target: number) {
-        const page = this.canvas.page();
-        await this.canvas.hover();
-        const f = 1000 * (target / (await this.getZoom()) - 1); // tightly coupled logic from Camera and radarWidget logic
-        await page.mouse.wheel(0, -f);
-        expect(await this.getZoom()).toEqual(target);
-    }
-}
 /**
  * Helper to wait for a condition on ship state
  */
@@ -108,19 +94,6 @@ export async function waitForShipCondition(
         await new Promise((resolve) => setTimeout(resolve, 50));
     }
     throw new Error(`Timeout waiting for ship condition`);
-}
-
-/**
- * Helper to setup multiple widgets at once
- * Reduces boilerplate and improves test readability
- * @param page Playwright page object
- * @param widgets Array of widget names (without 'menu-' prefix)
- */
-export async function setupWidgets(page: Page, ...widgets: string[]): Promise<void> {
-    const layoutContainer = page.locator('#layoutContainer');
-    for (const widget of widgets) {
-        await page.locator(`[data-id="menu-${widget}"]`).dragTo(layoutContainer);
-    }
 }
 
 /**
