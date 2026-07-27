@@ -1,10 +1,5 @@
 {
     "$schema": "https://unpkg.com/knip@5/schema.json",
-    // Dead-code detection. Remaining "off" rules below are pending triage.
-    "rules": {
-        // custom-typings/ tsconfig path aliases that knip cannot resolve
-        "unresolved": "off"
-    },
     "ignoreBinaries": [
         // system binary (docker compose v1 syntax in npm scripts)
         "docker-compose"
@@ -24,6 +19,13 @@
         "husky",
         // jest reporter, referenced by CLI flag in .github/workflows/ci-cd.yml
         "jest-junit"
+    ],
+    "ignoreUnresolved": [
+        // ambient type-only packages resolved via tsconfig typeRoots (custom-typings/),
+        // which knip does not follow the way it does compilerOptions.paths
+        "mini-signals",
+        "pixi__core",
+        "pixi__filter-noise"
     ],
     "workspaces": {
         ".": {
