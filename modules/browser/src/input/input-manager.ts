@@ -153,7 +153,7 @@ export class InputManager {
             const { axis, buttons, offsetKeys } = range;
             if (buttons || offsetKeys || axis?.velocity) {
                 const offSetonly = !axis;
-                const callbacks = new CombinedRangeCallbacks(property, offSetonly);
+                const callbacks = new CombinedRangeCallbacks(property, offSetonly, !!range.circular);
                 if (buttons) {
                     buttons.center && this.buttons.push({ button: buttons.center, onClick: callbacks.centerOffset });
                     if (isGamepadButtonsRangeConfig(buttons)) {
@@ -281,27 +281,36 @@ class CombinedRangeCallbacks {
     constructor(
         private property: RangeAction,
         offSetonly: boolean,
+        private circular = false,
     ) {
         this.offsetValue = (offSetonly && property.getValue()) || 0;
     }
     private onChange() {
         this.property.setValue(this.axisValue + this.offsetValue);
     }
+    /**
+     * a circular range has no ends: stepping past one edge continues from the other, so a bearing
+     * can be swept all the way around. Any other range stops at its edges.
+     */
+    private setOffset(value: number) {
+        const [min, max] = this.property.range;
+        if (this.circular) {
+            const span = max - min;
+            this.offsetValue = min + ((((value - min) % span) + span) % span);
+        } else {
+            this.offsetValue = capToRange(min, max, value);
+        }
+        this.onChange();
+    }
     centerOffset = () => {
         this.offsetValue = this.midRange;
         this.onChange();
     };
     upOffset(stepSize: number) {
-        return () => {
-            this.offsetValue = capToRange(this.property.range[0], this.property.range[1], this.offsetValue + stepSize);
-            this.onChange();
-        };
+        return () => this.setOffset(this.offsetValue + stepSize);
     }
     downOffset(stepSize: number) {
-        return () => {
-            this.offsetValue = capToRange(this.property.range[0], this.property.range[1], this.offsetValue - stepSize);
-            this.onChange();
-        };
+        return () => this.setOffset(this.offsetValue - stepSize);
     }
     axis = (v: number) => {
         this.axisValue = v;
@@ -312,12 +321,7 @@ class CombinedRangeCallbacks {
         let velocity = 0;
         loop.onLoop((deltaSeconds) => {
             if (velocity != 0) {
-                this.offsetValue = capToRange(
-                    this.property.range[0],
-                    this.property.range[1],
-                    this.offsetValue + velocity * deltaSeconds,
-                );
-                this.onChange();
+                this.setOffset(this.offsetValue + velocity * deltaSeconds);
             }
         });
         return (v: number) => {

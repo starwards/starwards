@@ -118,7 +118,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'Elec'));
             expect(state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthy);
             expect(damaged).to.equal(false);
-            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
         });
 
         it('Tandem consumes cells and exposes internals fully', () => {
@@ -200,7 +200,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             const damaged = damageManager.takeWeaponDamage(frontDamage(100, 'Frag'));
             expect(damaged).to.equal(true);
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internals untouched — the scrape only reaches hull-mounted systems
             expect(state.smartPilot.offsetFactor).to.equal(0);
             expect(state.warp.damageFactor).to.equal(0);
@@ -213,7 +213,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const damaged = damageManager.takeWeaponDamage(frontDamage(90, 'HiExp'));
             expect(damaged).to.equal(true);
             expect(state.armor.armorPlates[0].layers[0].health).to.be.lessThan(before);
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internals untouched — the cells hold while intact, only the scrape lands
             expect(state.smartPilot.offsetFactor).to.equal(0);
         });
@@ -224,7 +224,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(damaged).to.equal(true);
             // reactive cells do not react to shrapnel — no cell consumed
             expect(state.armor.numberOfHealthyPlates).to.equal(state.armor.numberOfPlates);
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
         });
     });
 
@@ -233,7 +233,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
             damageManager.takeWeaponDamage(frontDamage(1000, 'Elec'));
             // electronics defects appear (front AND rear electronics)
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             expect(state.smartPilot.offsetFactor).to.be.greaterThan(0);
             expect(state.warp.damageFactor).to.be.greaterThan(0);
             // non-electronics untouched
@@ -261,7 +261,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
                 profile: damageProfiles.Elec,
             });
             // spillover: a large amount spills into several defect rolls rather than exactly one
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
         });
 
         it('surface-effect hit with plates intact damages only external systems', () => {
@@ -270,7 +270,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             // below plateMaxHealth (100), plates hold
             damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
             // while plates hold, only the surface scrape lands — and it targets externals
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internal systems untouched
             expect(state.smartPilot.offsetFactor).to.equal(0);
             expect(state.warp.damageFactor).to.equal(0);
@@ -296,7 +296,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             // below plateMaxHealth (100), plates hold
             const damaged = damageManager.takeWeaponDamage(frontDamage(50, 'ArmPen'));
             expect(damaged).to.equal(false);
-            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
             expect(state.smartPilot.offsetFactor).to.equal(0);
         });
 
@@ -318,9 +318,9 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             ship.id = 'test-ship-radar-internal';
             const state = makeShipState(ship.id, {
                 ...dragonflySF22,
-                radar: { ...dragonflySF22.radar, isInternal: true },
+                radars: [{ ...dragonflySF22.radars[0], isInternal: true }, dragonflySF22.radars[1]],
             });
-            expect(state.radar.isInternal).to.equal(true);
+            expect(state.radars[0].isInternal).to.equal(true);
             expect(state.thrusters[0].isInternal).to.equal(false);
         });
 
@@ -350,37 +350,37 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('a default-config ship keeps radar external — surface effect scrapes it', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
             damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
         });
 
         it('a radar overridden to internal is not scraped while plates hold (surface effect only)', () => {
             const { state, damageManager } = setUpShip(whippleArmor);
-            state.radar.design.isInternal = true;
+            state.radars[0].design.isInternal = true;
             // each plate's own 1/6 share of 300 × plateDamage_HiExp 0.25 = 12.5 erosion —
             // below plateMaxHealth (100), plates hold, so only the unconditional surface scrape
             // is in play (isolates it from the exposure path)
             damageManager.takeWeaponDamage(frontDamage(300, 'HiExp'));
-            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
         });
 
         it('a radar overridden to internal is never reached by penetrating Frag', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
-            state.radar.design.isInternal = true;
+            state.radars[0].design.isInternal = true;
             for (const [, plate] of state.armor.platesInRange(FRONT_ARC)) {
                 plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage(frontDamage(1000, 'Frag'));
-            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
         });
 
         it('a radar overridden to internal is still damaged by penetrating HiExp', () => {
             const { state, damageManager } = setUpShip(compositeArmor);
-            state.radar.design.isInternal = true;
+            state.radars[0].design.isInternal = true;
             for (const [, plate] of state.armor.platesInRange(FRONT_ARC)) {
                 plate.layers[0].health = 0;
             }
             damageManager.takeWeaponDamage(frontDamage(1000, 'HiExp'));
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
         });
 
         it('a rear system overridden to isElectronics is reached by an Elec hit fired from the front', () => {

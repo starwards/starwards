@@ -18,31 +18,30 @@ last_verified: 2026-06-13
 - [Test Distribution](#test-distribution)
 - [ShipTestHarness](#shiptestharness)
 - [Multi-Client Driver](#multi-client-driver)
-- [Test Factories](#test-factories)
+- [Creating Test Ships](#creating-test-ships)
 - [Property-Based Testing](#property-based-testing)
 - [Best Practices](#best-practices)
 - [Known Limitations](#known-limitations)
 
 ## Test Distribution
 
-**Current Status** (as of 2025-10-01):
-- **41 test files**, **200+ tests passing**
-- Test execution time: ~15-20 seconds (unit), ~2 minutes (E2E)
+Run `npm test` for the current unit suite and `npm run test:e2e` for E2E; CI runs both on
+every PR. Rough execution time: ~15-20 seconds (unit), ~2 minutes (E2E).
 
 ### Breakdown by Category
 
 ```
-Unit Tests (23 files - modules/core/test/):
+Unit Tests (modules/core/test/):
   ├─ Physics & Math: formulas, xy, helm-assist, space-manager
   ├─ State Management: space-state, ship-manager, system
   ├─ Property Tests: formulas (fast-check, generators from properties)
   └─ Integration: ship-areas, range, traverse, thruster-ship-integration
 
-Multi-Client Tests (2 files - modules/server/src/test/):
+Multi-Client Tests (modules/server/src/test/):
   ├─ multi-client-sync.spec.ts (2 tests) - State synchronization
   └─ multi-client-concurrent.spec.ts (3 tests) - Concurrent commands
 
-E2E Tests (10 files - modules/e2e/test/):
+E2E Tests (modules/e2e/test/):
   ├─ integration.spec.ts - Core workflows
   ├─ pilot-screen.spec.ts / pilot-hotkeys.spec.ts - Helm UI & navigation
   ├─ weapons-screen.spec.ts / weapons-hotkeys.spec.ts - Gunner UI & combat
@@ -51,7 +50,7 @@ E2E Tests (10 files - modules/e2e/test/):
   ├─ signals-screen.spec.ts - Signals station
   └─ visual/gallery.spec.ts - Visual regression
 
-Node-RED Tests (4 files - modules/node-red/src/):
+Node-RED Tests (modules/node-red/src/):
   └─ Integration nodes: ship-read, ship-write, starwards-config, ship-node
 ```
 
@@ -426,6 +425,25 @@ await waitForPropertyValue(page, 'heading', (v) => parseFloat(v) === 90);
 
 **Monitor displays:** Current helpers target `<input>` elements. Tweakpane monitors (read-only displays) use different DOM structure and aren't yet supported.
 
+### Creating Space Objects from the Test Process
+
+Do **not** construct schema instances in the e2e test process and hand them to the server:
+
+```typescript
+// ✗ Fails with: EncodeSchemaError: a 'Waypoint' was expected, but 'Waypoint' was provided
+gameDriver.gameManager.scriptApi.addObject(new Waypoint());
+```
+
+The test process and the server load separate copies of the schema classes, so `instanceof` identity breaks even though the class names match. Instead, send plain-data space commands and let the server construct the instance — the same path the UI uses:
+
+```typescript
+// ✓ Plain data crosses the process boundary; server builds the Waypoint
+spaceDriver.command(spaceCommands.createWaypointOrder, { position });
+spaceDriver.command(spaceCommands.bulkDeleteOrder, { ids });
+```
+
+`scriptApi.addObject()` is safe only for instances constructed inside the server process (e.g. in a map's `init()`).
+
 ## Sleep Helper
 
 **Location**: [`modules/core/src/utils.ts`](../../modules/core/src/utils.ts)
@@ -656,41 +674,39 @@ describe('Multi-client state sync', () => {
 });
 ```
 
-## Test Factories
+## Creating Test Ships
 
-**Location**: [`modules/core/test/test-factories.ts`](../../modules/core/test/test-factories.ts)
+**Location**: [`modules/core/test/ship-test-harness.ts`](../../modules/core/test/ship-test-harness.ts)
 
-Factory functions for quickly creating test objects with sensible defaults.
+There is no standalone factory module — `ShipTestHarness` is the single entry
+point for building ships in tests. Constructing it gives you a ship, its
+manager, and the `SpaceManager` holding it, all wired together.
 
 ### API Reference
 
-#### Ship Creation
+#### Ship creation
 
 ```typescript
-// Create ship with defaults
-const ship = createTestShip();
+const harness = new ShipTestHarness();
 
-// Override specific properties
-const fastShip = createTestShip({
-    velocity: { x: 100, y: 0 },
-    angle: 45
-});
+harness.shipObj;   // the Spaceship under test (Spaceship)
+harness.shipMgr;   // its manager (ShipManagerPc)
+harness.spaceMgr;  // the SpaceManager it lives in
+```
 
-// Create ship with specific faction
-const enemy = createTestShip({
-    faction: 1,
-    x: 1000,
-    y: 500
-});
+Override properties on `shipObj` / `shipMgr` directly after construction:
+
+```typescript
+const harness = new ShipTestHarness();
+harness.shipObj.velocity = new Vec2(100, 0);
+harness.shipObj.angle = 45;
 ```
 
 #### Combat Scenarios
 
-`test-factories.ts` only exports `createTestShip`. For multi-ship combat,
-use the `ShipTestHarness.createCombatScenario(config)` method
-([`modules/core/test/ship-test-harness.ts`](../../modules/core/test/ship-test-harness.ts)),
-which takes a `CombatScenarioConfig` (`{ shipCount, teams?, positions?, rotations? }`)
-and returns a `Spaceship[]`:
+`createCombatScenario(config)` creates additional ships around the harness ship
+and returns them as `Spaceship[]`. `CombatScenarioConfig` is
+`{ shipCount, teams?, positions?, rotations? }`:
 
 ```typescript
 const harness = new ShipTestHarness();
@@ -705,15 +721,11 @@ const ships = harness.createCombatScenario({
 ### Complete Example
 
 ```typescript
-import { createTestShip } from '@starwards/core/test';
-import { ShipTestHarness } from '@starwards/core/test';
+import { ShipTestHarness } from './ship-test-harness';
 
 describe('Fleet combat', () => {
     it('harness ship engages enemy ships', () => {
         const harness = new ShipTestHarness();
-
-        // Create a player ship
-        const leader = createTestShip({ faction: 0 });
 
         // Create enemy ships positioned around the harness ship
         const enemies = harness.createCombatScenario({

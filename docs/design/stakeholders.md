@@ -1,52 +1,18 @@
 # Stakeholders
 
-## LARP Organizers
-**Need:** A simulator they can configure per event — choosing which stations exist, what ship models are available, what scenario to run.
-**Priorities:**
-- Event readiness (can I run a game with this?)
-- GM tools (can I control the narrative?)
-- Stability (will it crash mid-event?)
-- Setup simplicity (LAN deployment, minimal IT expertise)
-- Station flexibility (custom screen layouts per event)
+**Canonical: [starwards-design `product/stakeholders.md`](https://github.com/starwards/starwards-design/blob/main/product/stakeholders.md)** —
+who the project serves and what each group needs. Change it there; stakeholder needs are the
+"why" behind roadmap priorities, and the roadmap lives in that repo.
 
-**Pain with EmptyEpsilon:** Rigid station definitions, short session design, fork maintenance burden, limited GM narrative control.
+Summary, for orientation while reading code:
 
-## Game Masters (GMs)
-**Need:** Real-time control over the game world — spawning ships, issuing orders to NPCs, controlling pacing, preventing/causing dramatic moments.
-**Priorities:**
-- NPC ship control (tactical orders, movement)
-- Object lifecycle (create/destroy ships, asteroids, stations)
-- Scenario authoring (pre-designed encounters)
-- Player ship observation (see what crews are doing)
-- Narrative tools (trigger events, control damage)
+| Group | What they need |
+|---|---|
+| LARP organizers | Per-event configuration: which stations, ship models, scenario. Stability mid-event; LAN setup with minimal IT. |
+| Game Masters | Real-time world control — spawn ships, order NPCs, pace the game, narrative tools. |
+| Players (crew) | A meaningful station role with real decisions; clear feedback, teamwork dependency, low latency. |
+| Contributors | Clear entry points, documented codebase, responsive review. |
 
-## Players (Crew Members)
-**Need:** A meaningful role at their station with real decisions that affect the ship.
-**Priorities:**
-- Clear feedback (what is my action doing?)
-- Teamwork dependency (my role matters to others)
-- Depth without overwhelming complexity
-- Responsive controls (low latency)
-- Immersive aesthetic (sci-fi look and feel)
-
-**Station-specific needs:**
-- Pilot: responsive flight, drift physics, autopilot options
-- Weapons officer: targeting, fire control, ammo management
-- Engineer: power/heat/coolant balancing, damage response
-- Signals officer: scanning, hacking, tracking targets
-- Navigator: route plotting through warp topology
-- Relay: communications, probe management, route coordination
-
-## Contributors
-**Need:** Clear entry points for contribution, well-documented codebase, responsive maintainers.
-**Priorities:**
-- `good first issue` labels on GitHub
-- Architecture documentation (in starwards repo)
-- Local development setup that works
-- Code review turnaround
-
-## Core Team
-- **Amir** — primary developer, immigrated to Netherlands (2025). Using AI-assisted development as force multiplier.
-- **Daniel** — returning to active development. Both have day jobs; project adapted to distributed, lower-touch model.
-
-**Development philosophy:** "Describe what we want, review what gets produced, iterate quickly." Extensive documentation enables AI-assisted workflows.
+Per-station needs: Pilot (flight, drift, autopilot) · Weapons (targeting, fire control, ammo) ·
+Engineer (power/heat/coolant, damage) · Signals (scan/hack/track) · Navigator (warp routing) ·
+Relay (comms, probes, route coordination).

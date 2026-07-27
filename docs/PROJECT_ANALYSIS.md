@@ -34,17 +34,17 @@ last_verified: 2026-06-13
 **Root:** repository root (repo-relative paths throughout)
 
 **Modules (npm workspaces):**
-- [`modules/core/`](modules/core/) - Shared game logic, Colyseus schemas, state management
-- [`modules/browser/`](modules/browser/) - Web client (PixiJS graphics, React UI, Golden Layout)
-- [`modules/server/`](modules/server/) - Colyseus game server (Express API, room management)
-- [`modules/node-red/`](modules/node-red/) - Node-RED integration nodes
-- [`modules/e2e/`](modules/e2e/) - Playwright end-to-end tests
+- [`modules/core/`](../modules/core/) - Shared game logic, Colyseus schemas, state management
+- [`modules/browser/`](../modules/browser/) - Web client (PixiJS graphics, React UI, Golden Layout)
+- [`modules/server/`](../modules/server/) - Colyseus game server (Express API, room management)
+- [`modules/node-red/`](../modules/node-red/) - Node-RED integration nodes
+- [`modules/e2e/`](../modules/e2e/) - Playwright end-to-end tests
 
 **Supporting Directories:**
-- [`docker/`](docker/) - Docker Compose setup (MQTT, Node-RED)
-- [`scripts/`](scripts/) - Build utilities (pkg.js, post-build.js)
-- [`custom-typings/`](custom-typings/) - Custom TypeScript definitions
-- [`static/`](static/) - Static assets served by server
+- [`docker/`](../docker/) - Docker Compose setup (MQTT, Node-RED)
+- [`scripts/`](../scripts/) - Build utilities (pkg.js, post-build.js)
+- [`custom-typings/`](../custom-typings/) - Custom TypeScript definitions
+- [`static/`](../static/) - Static assets served by server
 
 ### 1.2 Build System
 
@@ -56,7 +56,7 @@ last_verified: 2026-06-13
 
 **Build Order:** Core must build first (dependency for all other modules)
 
-**Path Aliases:** [`tsconfig.json`](tsconfig.json)
+**Path Aliases:** [`tsconfig.json`](../tsconfig.json)
 ```typescript
 "@starwards/core/internal": ["modules/core/src/index.internal"],
 "@starwards/*": ["modules/*/src", "modules/*/cjs"]
@@ -74,15 +74,15 @@ last_verified: 2026-06-13
 ### 2.1 State Management System
 
 **Root State Classes:**
-- [`SpaceState`](modules/core/src/space/space-state.ts) - Space simulation container
-- [`ShipState`](modules/core/src/ship/ship-state.ts) - Individual ship state
-- [`AdminState`](modules/core/src/admin/index.ts) - Game management state
+- [`SpaceState`](../modules/core/src/space/space-state.ts) - Space simulation container
+- [`ShipState`](../modules/core/src/ship/ship-state.ts) - Individual ship state
+- [`AdminState`](../modules/core/src/admin/index.ts) - Game management state
 
 **State Synchronization:** Colyseus `@colyseus/schema` with automatic client sync
 
 ### 2.2 Decorator System
 
-**[@gameField](modules/core/src/game-field.ts)** - Colyseus schema field decorator
+**[@gameField](../modules/core/src/game-field.ts)** - Colyseus schema field decorator
 ```typescript
 @gameField('float32') speed = 0;
 @gameField(Radar) radar!: Radar;
@@ -92,16 +92,16 @@ last_verified: 2026-06-13
 - Rounds float32 to 2 decimal places
 - Supports primitives, nested schemas, arrays, maps
 
-**[@tweakable](modules/core/src/tweakable.ts)** - Runtime-adjustable properties
+**[@tweakable](../modules/core/src/tweakable.ts)** - Runtime-adjustable properties
 ```typescript
 @tweakable({ type: 'enum', enum: IdleStrategy })
 idleStrategy = IdleStrategy.PLAY_DEAD;
 ```
 - Used for GM controls and debugging
 - Supports: boolean, number, string, enums, shipId
-- Dynamic configuration via [`getTweakables()`](modules/core/src/tweakable.ts)
+- Dynamic configuration via [`getTweakables()`](../modules/core/src/tweakable.ts)
 
-**[@range](modules/core/src/range.ts)** - Value range constraints
+**[@range](../modules/core/src/range.ts)** - Value range constraints
 ```typescript
 @range([0, 1])
 @gameField('float32')
@@ -110,14 +110,14 @@ public power = PowerLevel.MAX;
 
 ### 2.3 Space Objects Hierarchy
 
-**Base:** [`SpaceObjectBase`](modules/core/src/space/space-object-base.ts)
+**Base:** [`SpaceObjectBase`](../modules/core/src/space/space-object-base.ts)
 
 **Types:**
-- [`Spaceship`](modules/core/src/space/spaceship.ts) - Player/NPC ships
-- [`Projectile`](modules/core/src/space/projectile.ts) - Bullets, missiles
-- [`Explosion`](modules/core/src/space/explosion.ts) - Blast effects
-- [`Asteroid`](modules/core/src/space/asteroid.ts) - Space debris
-- [`Waypoint`](modules/core/src/space/waypoint.ts) - Navigation markers
+- [`Spaceship`](../modules/core/src/space/spaceship.ts) - Player/NPC ships
+- [`Projectile`](../modules/core/src/space/projectile.ts) - Bullets, missiles
+- [`Explosion`](../modules/core/src/space/explosion.ts) - Blast effects
+- [`Asteroid`](../modules/core/src/space/asteroid.ts) - Space debris
+- [`Waypoint`](../modules/core/src/space/waypoint.ts) - Navigation markers
 
 **Common Properties:**
 - `id`, `position`, `velocity`, `angle`, `radius`
@@ -126,19 +126,19 @@ public power = PowerLevel.MAX;
 
 ### 2.4 Ship Subsystems
 
-**Ship Systems (all extend [`SystemState`](modules/core/src/ship/system.ts)):**
-- [`Reactor`](modules/core/src/ship/reactor.ts) - Energy generation
-- [`Maneuvering`](modules/core/src/ship/maneuvering.ts) - Rotation, afterburner
-- [`Thruster`](modules/core/src/ship/thruster.ts) - Directional thrust
-- [`Radar`](modules/core/src/ship/radar.ts) - Detection range
-- [`ChainGun`](modules/core/src/ship/chain-gun.ts) - Rapid-fire weapons
-- [`Tube`](modules/core/src/ship/tube.ts) - Missile launchers
-- [`Magazine`](modules/core/src/ship/magazine.ts) - Ammunition storage
-- [`Armor`](modules/core/src/ship/armor.ts) - Damage absorption
-- [`Targeting`](modules/core/src/ship/targeting.ts) - Weapon targeting
-- [`Warp`](modules/core/src/ship/warp.ts) - FTL travel
-- [`Docking`](modules/core/src/ship/docking.ts) - Ship docking
-- [`SmartPilot`](modules/core/src/ship/smart-pilot.ts) - Autopilot
+**Ship Systems (all extend [`SystemState`](../modules/core/src/ship/system.ts)):**
+- [`Reactor`](../modules/core/src/ship/reactor.ts) - Energy generation
+- [`Maneuvering`](../modules/core/src/ship/maneuvering.ts) - Rotation, afterburner
+- [`Thruster`](../modules/core/src/ship/thruster.ts) - Directional thrust
+- [`Radar`](../modules/core/src/ship/radar.ts) - Detection range
+- [`ChainGun`](../modules/core/src/ship/chain-gun.ts) - Rapid-fire weapons
+- [`Tube`](../modules/core/src/ship/tube.ts) - Missile launchers
+- [`Magazine`](../modules/core/src/ship/magazine.ts) - Ammunition storage
+- [`Armor`](../modules/core/src/ship/armor.ts) - Damage absorption
+- [`Targeting`](../modules/core/src/ship/targeting.ts) - Weapon targeting
+- [`Warp`](../modules/core/src/ship/warp.ts) - FTL travel
+- [`Docking`](../modules/core/src/ship/docking.ts) - Ship docking
+- [`SmartPilot`](../modules/core/src/ship/smart-pilot.ts) - Autopilot
 
 **System Properties:**
 - `power` (0-1) - Power allocation
@@ -150,9 +150,9 @@ public power = PowerLevel.MAX;
 
 ### 2.5 Physics & Collision System
 
-**Collision Detection:** [`detect-collisions`](modules/core/package.json) library
+**Collision Detection:** [`detect-collisions`](../modules/core/package.json) library
 
-**[SpaceManager](modules/core/src/logic/space-manager.ts)** - Core physics engine:
+**[SpaceManager](../modules/core/src/logic/space-manager.ts)** - Core physics engine:
 - Circle-based collision detection
 - Raycast for projectiles
 - Velocity/position updates
@@ -161,25 +161,25 @@ public power = PowerLevel.MAX;
 - Attachment system (docking)
 
 **Movement Calculations:**
-- Equation of motion: [`XY.equasionOfMotion()`](modules/core/src/logic/xy.ts)
-- Helm assist: [`modules/core/src/logic/helm-assist.ts`](modules/core/src/logic/helm-assist.ts)
-- Gunner assist: [`modules/core/src/logic/gunner-assist.ts`](modules/core/src/logic/gunner-assist.ts)
+- Equation of motion: [`XY.equasionOfMotion()`](../modules/core/src/logic/xy.ts)
+- Helm assist: [`modules/core/src/logic/helm-assist.ts`](../modules/core/src/logic/helm-assist.ts)
+- Gunner assist: [`modules/core/src/logic/gunner-assist.ts`](../modules/core/src/logic/gunner-assist.ts)
 
 ### 2.6 Command System
 
-**JSON Pointer Commands:** [`handleJsonPointerCommand()`](modules/core/src/commands.ts)
+**JSON Pointer Commands:** [`handleJsonPointerCommand()`](../modules/core/src/commands.ts)
 - RFC 6901 JSON Pointer paths
 - Direct state updates via paths like `/Spaceship/${id}/rotation`
 - Range validation and capping
 
-**Typed Commands:** [`StateCommand`](modules/core/src/commands.ts) interface
+**Typed Commands:** [`StateCommand`](../modules/core/src/commands.ts) interface
 - Type-safe command definitions
 - Automatic receiver generation
 - Used for space-wide operations
 
 ### 2.7 Event System
 
-**[EventEmitter](modules/core/src/events.ts)** - Type-safe event handling
+**[EventEmitter](../modules/core/src/events.ts)** - Type-safe event handling
 - Based on `colyseus-events`
 - Room-level event propagation
 - State change notifications
@@ -190,26 +190,26 @@ public power = PowerLevel.MAX;
 
 ### 3.1 Colyseus Rooms
 
-**[AdminRoom](modules/server/src/admin/room.ts)** - Game management
+**[AdminRoom](../modules/server/src/admin/room.ts)** - Game management
 - Single instance (autoDispose: false)
-- Manages [`AdminState`](modules/core/src/admin/index.ts)
+- Manages [`AdminState`](../modules/core/src/admin/index.ts)
 - Game loop via `setSimulationInterval()`
 
-**[SpaceRoom](modules/server/src/space/room.ts)** - Space simulation
+**[SpaceRoom](../modules/server/src/space/room.ts)** - Space simulation
 - Single instance per game
-- Manages [`SpaceState`](modules/core/src/space/space-state.ts)
+- Manages [`SpaceState`](../modules/core/src/space/space-state.ts)
 - Handles movement/bot commands
 - JSON Pointer command support
 
-**[ShipRoom](modules/server/src/ship/room.ts)** - Individual ships
+**[ShipRoom](../modules/server/src/ship/room.ts)** - Individual ships
 - One room per ship (roomId = shipId)
-- Manages [`ShipState`](modules/core/src/ship/ship-state.ts)
+- Manages [`ShipState`](../modules/core/src/ship/ship-state.ts)
 - JSON Pointer commands only
 - Realtime listing enabled
 
 ### 3.2 Game Manager
 
-**[GameManager](modules/server/src/admin/game-manager.ts)** - Central orchestrator:
+**[GameManager](../modules/server/src/admin/game-manager.ts)** - Central orchestrator:
 - Game lifecycle (start/stop/save/load)
 - Ship creation/destruction
 - Update loop coordination
@@ -224,21 +224,21 @@ public power = PowerLevel.MAX;
 
 ### 3.3 Ship Managers
 
-**[ShipManagerPc](modules/core/src/ship/ship-manager.ts)** - Player ships:
+**[ShipManagerPc](../modules/core/src/ship/ship-manager.ts)** - Player ships:
 - Energy management
 - Heat management
 - Movement control
 - Weapon systems
 - Smart pilot modes
 
-**[ShipManagerNpc](modules/core/src/ship/ship-manager.ts)** - AI ships:
+**[ShipManagerNpc](../modules/core/src/ship/ship-manager.ts)** - AI ships:
 - Bot orders (MOVE, ATTACK, FOLLOW)
 - Idle strategies (PLAY_DEAD, ROAM, STAND_GROUND)
 - Automated combat
 
 ### 3.4 API Endpoints
 
-**Express Routes:** [`modules/server/src/server.ts`](modules/server/src/server.ts)
+**Express Routes:** [`modules/server/src/server.ts`](../modules/server/src/server.ts)
 - `POST /start-game` - Start game with map
 - `POST /stop-game` - Stop current game
 - `POST /save-game` - Serialize game state
@@ -251,20 +251,20 @@ public power = PowerLevel.MAX;
 
 ### 4.1 Rendering System
 
-**[PixiJS](modules/browser/package.json)** - Canvas rendering:
-- [`CameraView`](modules/browser/src/radar/camera-view.ts) - Base renderer
+**[PixiJS](../modules/browser/package.json)** - Canvas rendering:
+- [`CameraView`](../modules/browser/src/radar/camera-view.ts) - Base renderer
 - 30 FPS cap to prevent overheating
 - Automatic resize handling
 - Context menu disabled
 
 **Radar Layers:**
-- [`GridLayer`](modules/browser/src/radar/grid-layer.ts) - Background grid
-- [`SpriteLayer`](modules/browser/src/radar/sprite-layer.ts) - Object sprites
-- [`LineLayer`](modules/browser/src/radar/line-layer.ts) - Connections
-- [`MovementAnchorLayer`](modules/browser/src/radar/movement-anchor-layer.ts) - Navigation aids
-- [`InteractiveLayer`](modules/browser/src/radar/interactive-layer.ts) - User interaction
+- [`GridLayer`](../modules/browser/src/radar/grid-layer.ts) - Background grid
+- [`SpriteLayer`](../modules/browser/src/radar/sprite-layer.ts) - Object sprites
+- [`LineLayer`](../modules/browser/src/radar/line-layer.ts) - Connections
+- [`MovementAnchorLayer`](../modules/browser/src/radar/movement-anchor-layer.ts) - Navigation aids
+- [`InteractiveLayer`](../modules/browser/src/radar/interactive-layer.ts) - User interaction
 
-**Blip Renderers:** [`modules/browser/src/radar/blips/blip-renderer.ts`](modules/browser/src/radar/blips/blip-renderer.ts)
+**Blip Renderers:** [`modules/browser/src/radar/blips/blip-renderer.ts`](../modules/browser/src/radar/blips/blip-renderer.ts)
 - Type-specific rendering (ships, projectiles, explosions, waypoints)
 - Selection indicators
 - Radar range visualization
@@ -272,56 +272,56 @@ public power = PowerLevel.MAX;
 
 ### 4.2 UI Framework
 
-**[Golden Layout](modules/browser/package.json)** - Panel system:
+**[Golden Layout](../modules/browser/package.json)** - Panel system:
 - Draggable/resizable panels
 - Persistent layouts
 - Custom station configurations
 
-**[Arwes](modules/browser/package.json)** (@arwes/react) - Sci-fi UI components:
+**[Arwes](../modules/browser/package.json)** (@arwes/react) - Sci-fi UI components:
 - Futuristic styling
 - Sound effects
 - Animations
 
-**[Tweakpane](modules/browser/package.json)** - Control panels:
+**[Tweakpane](../modules/browser/package.json)** - Control panels:
 - Real-time value editing
 - System monitoring
 - Debug controls
 
 ### 4.3 Widget System
 
-**[Dashboard](modules/browser/src/widgets/dashboard.ts)** - Widget container:
+**[Dashboard](../modules/browser/src/widgets/dashboard.ts)** - Widget container:
 - Widget registration
 - Layout management
 - Props handling
 
 **Core Widgets:**
-- [`tactical-radar`](modules/browser/src/widgets/tactical-radar.ts) - Main tactical view
-- [`pilot-radar`](modules/browser/src/widgets/pilot-radar.ts) - Pilot perspective
-- [`target-radar`](modules/browser/src/widgets/target-radar.ts) - Target tracking
-- [`radar`](modules/browser/src/widgets/radar.ts) - General radar
-- [`system-status`](modules/browser/src/widgets/system-status.ts) - System health
-- [`damage-report`](modules/browser/src/widgets/damage-report.tsx) - Damage visualization
-- [`ammo`](modules/browser/src/widgets/ammo.ts) - Ammunition status
-- [`targeting`](modules/browser/src/widgets/targeting.ts) - Weapon targeting
-- [`pilot`](modules/browser/src/widgets/pilot.ts) - Pilot controls
-- [`warp`](modules/browser/src/widgets/warp.ts) - Warp drive
-- [`docking`](modules/browser/src/widgets/docking.ts) - Docking interface
+- [`tactical-radar`](../modules/browser/src/widgets/tactical-radar.ts) - Main tactical view
+- [`pilot-radar`](../modules/browser/src/widgets/pilot-radar.ts) - Pilot perspective
+- [`target-radar`](../modules/browser/src/widgets/target-radar.ts) - Target tracking
+- [`radar`](../modules/browser/src/widgets/radar.ts) - General radar
+- [`system-status`](../modules/browser/src/widgets/system-status.ts) - System health
+- [`damage-report`](../modules/browser/src/widgets/damage-report.tsx) - Damage visualization
+- [`ammo`](../modules/browser/src/widgets/ammo.ts) - Ammunition status
+- [`targeting`](../modules/browser/src/widgets/targeting.ts) - Weapon targeting
+- [`pilot`](../modules/browser/src/widgets/pilot.ts) - Pilot controls
+- [`warp`](../modules/browser/src/widgets/warp.ts) - Warp drive
+- [`docking`](../modules/browser/src/widgets/docking.ts) - Docking interface
 
 ### 4.4 Screen Layouts
 
 **Predefined Screens:**
-- [`ship`](modules/browser/src/screens/ship.ts) - Main ship control
-- [`pilot`](modules/browser/src/screens/pilot.ts) - Pilot station
-- [`weapons`](modules/browser/src/screens/weapons.ts) - Weapons station
-- [`ecr`](modules/browser/src/screens/ecr.ts) - Engineering station
-- [`gm`](modules/browser/src/screens/gm.ts) - Game Master view
+- [`ship`](../modules/browser/src/screens/ship.ts) - Main ship control
+- [`pilot`](../modules/browser/src/screens/pilot.ts) - Pilot station
+- [`weapons`](../modules/browser/src/screens/weapons.ts) - Weapons station
+- [`ecr`](../modules/browser/src/screens/ecr.ts) - Engineering station
+- [`gm`](../modules/browser/src/screens/gm.ts) - Game Master view
 
 ### 4.5 Input System
 
-**[InputManager](modules/browser/src/input/input-manager.ts)** - Input handling:
+**[InputManager](../modules/browser/src/input/input-manager.ts)** - Input handling:
 - Keyboard bindings
-- Gamepad support ([@maulingmonkey/gamepad](modules/browser/package.json))
-- Hotkeys ([hotkeys-js](modules/browser/package.json))
+- Gamepad support ([@maulingmonkey/gamepad](../modules/browser/package.json))
+- Hotkeys ([hotkeys-js](../modules/browser/package.json))
 - Command mapping
 
 ---
@@ -330,24 +330,24 @@ public power = PowerLevel.MAX;
 
 ### 5.1 Custom Nodes
 
-**[starwards-config](modules/node-red/src/starwards-config/starwards-config.ts)** - Connection config:
+**[starwards-config](../modules/node-red/src/starwards-config/starwards-config.ts)** - Connection config:
 - Server URL configuration
 - Driver instance management
 - Shared across ship nodes
 
-**[ship-read](modules/node-red/src/ship-read/ship-read.ts)** - Read ship state:
+**[ship-read](../modules/node-red/src/ship-read/ship-read.ts)** - Read ship state:
 - Listen to state changes (pattern matching)
 - Query specific properties
 - Output: `{topic: pointer, payload: value}`
 
-**[ship-write](modules/node-red/src/ship-write/ship-write.ts)** - Write ship state:
+**[ship-write](../modules/node-red/src/ship-write/ship-write.ts)** - Write ship state:
 - Send commands to ship
 - Input: `{topic: pointer, payload: value}`
 - JSON Pointer paths
 
 ### 5.2 Integration Architecture
 
-**[Driver](modules/core/src/client/)** - Client connection:
+**[Driver](../modules/core/src/client/)** - Client connection:
 - WebSocket connection management
 - Room joining
 - State synchronization
@@ -382,7 +382,7 @@ public power = PowerLevel.MAX;
 
 ### 6.2 TypeScript Patterns
 
-**Strict Mode:** [`tsconfig.json`](tsconfig.json)
+**Strict Mode:** [`tsconfig.json`](../tsconfig.json)
 ```typescript
 "strict": true
 "noUnusedLocals": true
@@ -390,7 +390,7 @@ public power = PowerLevel.MAX;
 "noImplicitReturns": true
 ```
 
-**Decorators:** [`tsconfig.json`](tsconfig.json)
+**Decorators:** [`tsconfig.json`](../tsconfig.json)
 ```typescript
 "experimentalDecorators": true
 ```
@@ -427,8 +427,8 @@ type SpaceObject = Spaceship | Asteroid | Projectile | Explosion | Waypoint;
 
 ### 7.1 Unit Tests
 
-**Framework:** Jest with the `ts-jest` transform ([jest.config.js](jest.config.js))
-**Config:** [`jest.config.js`](jest.config.js)
+**Framework:** Jest with the `ts-jest` transform ([jest.config.js](../jest.config.js))
+**Config:** [`jest.config.js`](../jest.config.js)
 
 **Test Projects:**
 - `core` - Core logic tests
@@ -437,16 +437,16 @@ type SpaceObject = Spaceship | Asteroid | Projectile | Explosion | Waypoint;
 
 **Test Patterns:**
 - `*.spec.ts` files
-- Test harnesses: [`ship-test-harness.ts`](modules/core/test/ship-test-harness.ts)
-- Mock drivers: [`test-driver.ts`](modules/server/src/test/driver.ts)
+- Test harnesses: [`ship-test-harness.ts`](../modules/core/test/ship-test-harness.ts)
+- Mock drivers: [`test-driver.ts`](../modules/server/src/test/driver.ts)
 
 ### 7.2 E2E Tests
 
 **Framework:** Playwright
-**Config:** [`playwright.config.ts`](playwright.config.ts)
+**Config:** [`playwright.config.ts`](../playwright.config.ts)
 
 **Test Specs:**
-- [`integration.spec.ts`](modules/e2e/test/integration.spec.ts)
+- [`integration.spec.ts`](../modules/e2e/test/integration.spec.ts)
 - Visual regression (snapshots)
 - Browser: Chromium only
 
@@ -456,7 +456,7 @@ type SpaceObject = Spaceship | Asteroid | Projectile | Explosion | Waypoint;
 
 ### 7.3 Test Coverage
 
-**Coverage:** Limited (per [`CONTRIBUTING.md:111`](CONTRIBUTING.md:111))
+**Coverage:** Limited (per [`CONTRIBUTING.md:111`](../CONTRIBUTING.md))
 **Manual Testing:** Required for affected areas
 **Critical Paths:** Physics, collision, state sync
 
@@ -485,14 +485,14 @@ npm run postbuild      # Copy to ./dist
 npm run pkg            # Create native executables
 ```
 
-**Packaging:** [pkg](package.json) - Single executable
+**Packaging:** [pkg](../package.json) - Single executable
 **Output:** `./dist/` directory
 
 ### 8.3 Docker Deployment
 
-**[docker-compose.yml](docker/docker-compose.yml):**
-- **mqtt** - Eclipse Mosquitto 1.6.10 (port 1883)
-- **node-red** - Node-RED 3.0.2 (port 1880)
+**[docker-compose.yml](../docker/docker-compose.yml):**
+- **mqtt** - Eclipse Mosquitto (port 1883) — version in [DEPENDENCIES.md](DEPENDENCIES.md)
+- **node-red** - Node-RED (port 1880) — version in [DEPENDENCIES.md](DEPENDENCIES.md)
 
 **Volumes:**
 - MQTT: config, data, logs
@@ -552,7 +552,7 @@ the dependency groups, not version numbers, so it can't drift.
 
 ### 10.2 Common Gotchas
 
-**Float Precision:** [`game-field.ts`](modules/core/src/game-field.ts) rounds to 2 decimals
+**Float Precision:** [`game-field.ts`](../modules/core/src/game-field.ts) rounds to 2 decimals
 **Angle Wrapping:** Use `toPositiveDegreesDelta()` for 0-360 range
 **Velocity Zero:** Check with `XY.isZero(velocity, threshold)`
 **System Effectiveness:** `broken ? 0 : power * hacked` (see `SystemState.effectiveness` getter in modules/core/src/ship/system.ts). `efficiency` is not part of this generic formula; it is a per-system defectible property (e.g. Maneuvering) that can gate `broken`, not a universal multiplier.
@@ -596,8 +596,8 @@ the dependency groups, not version numbers, so it can't drift.
 - Node-RED flow examples
 
 **Well-Documented:**
-- [`CLAUDE.md`](CLAUDE.md) - Excellent developer guide
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) - Clear contribution process
+- [`CLAUDE.md`](../CLAUDE.md) - Excellent developer guide
+- [`CONTRIBUTING.md`](../CONTRIBUTING.md) - Clear contribution process
 - Code is generally self-documenting
 
 ---

@@ -96,8 +96,8 @@ export class ShipState extends Schema {
     @gameField(ChainGun)
     chainGun: ChainGun | null = null;
 
-    @gameField(Radar)
-    radar!: Radar;
+    @gameField([Radar])
+    radars = new ArraySchema<Radar>();
 
     @gameField(Reactor)
     reactor!: Reactor;
@@ -197,9 +197,6 @@ export class ShipState extends Schema {
     get radius(): number {
         return this.spaceship.radius;
     }
-    get radarRange(): number {
-        return this.spaceship.radarRange;
-    }
     globalToLocal(global: XY) {
         return this.spaceship.globalToLocal(global);
     }
@@ -254,7 +251,7 @@ export class ShipState extends Schema {
             case ShipArea.front:
                 return [
                     this.chainGun,
-                    this.radar,
+                    ...this.radars.values(),
                     this.smartPilot,
                     this.magazine,
                     this.warp,

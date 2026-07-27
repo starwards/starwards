@@ -43,13 +43,11 @@ Future features discussed in the same talk (probes, railgun, torpedo) are drafte
 
 **Status.** Direction agreed (Daniel, 2026-05-03). Open: full per-pair damage matrix, partial-match curve shape, per-ammo magazine slot allocation, in-flight reload swap rules.
 
-## 2026-05-03 — Scan tiers: transponder + EW beam
+## 2026-05-03 — Scan tiers: passive read + EW beam
 
-**Tier 1 — transponder read.** Passive read of the target's transponder. Reveals **faction, ship class, callsign**. Automatic on all radars (Pilot, Weapons, GM, Signals); no Signals action required.
-- Default state for all ships: transponder open → automatic tier 1.
-- **Promotion takes 5 seconds.** A contact enters radar range as `ScanLevel.UFO` (0). After **5 seconds of continuous time in radar range** (with transponder open), it auto-promotes to `ScanLevel.BASIC` (1). The delay adds suspense — the bridge sees an unknown contact for several seconds before identification.
+**Tier 1 — passive read.** Passive identification of a contact held on radar. Reveals **faction, ship class, callsign**. Automatic on all radars (Pilot, Weapons, GM, Signals); no Signals action required.
+- **Promotion takes 5 seconds.** A contact enters radar range as `ScanLevel.UFO` (0). After **5 seconds of continuous time in radar range** it auto-promotes to `ScanLevel.BASIC` (1). The delay adds suspense — the bridge sees an unknown contact for several seconds before identification.
 - Leaving and re-entering radar range presumably resets the timer (TBD).
-- Later feature: ships can close their transponder → contact never auto-promotes past UFO; tier 1 then requires an active scan. Closing own transponder is a stealth lever.
 
 **Tier 2 — active EW scan.** Reveals the target's **full design and state** — everything the target ship is and everything its current values are at the moment of scan (armor type and cover, weapons, subsystems, power/heat levels, malfunctions, ammo, etc.). Performed via a dedicated **EW scan beam**.
 - **Snapshot, not live.** Scan captures state at the moment of completion. Subsequent changes (armor damaged, weapons swapped, system broken, ammo expended, etc.) do not update the cached scan — a rescan is required.
@@ -63,7 +61,7 @@ Future features discussed in the same talk (probes, railgun, torpedo) are drafte
 
 **Tier 3+.** **Out of scope for MVP.** Scan system ships with tier 1 and tier 2 only. Tier 3+ may return later but is not part of the current bridge build.
 
-**Status.** Direction agreed (Daniel, 2026-05-03). Open: closed-transponder cost, beam orientation (fixed / gimballed / auto-track), parallel scans, failure cooldown, X-duration formula, jamming as Signals vs Engineering, antenna sharing with radar.
+**Status.** Direction agreed (Daniel, 2026-05-03). Open: beam orientation (fixed / gimballed / auto-track), parallel scans, failure cooldown, X-duration formula, jamming as Signals vs Engineering, antenna sharing with radar.
 
 ## 2026-05-03 — Weapons fire generates heat (DPS limiter, Engineering coupling)
 

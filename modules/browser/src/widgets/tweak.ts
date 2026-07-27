@@ -134,13 +134,6 @@ const singleSelectionDetails = async (
             cleanup,
         );
 
-        addTextBlade(
-            guiFolder,
-            readProp<number>(spaceDriver, `/${subject.type}/${subject.id}/radarRange`),
-            { label: 'radarRange', disabled: true },
-            cleanup,
-        );
-
         const adminDriver = await driver.getAdminDriver();
         const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
 

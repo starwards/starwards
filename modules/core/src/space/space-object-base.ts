@@ -2,6 +2,7 @@ import { ArraySchema, Schema } from '@colyseus/schema';
 import { commandable, gameField } from '../game-field';
 
 import { Faction } from './faction';
+import { RadarSectorValues } from './radar-sector';
 import { ScanLevel } from './scan-level';
 import { SpaceDamageType } from './damage-profile';
 import { SpaceObjects } from '.';
@@ -77,7 +78,11 @@ export abstract class SpaceObjectBase extends Schema {
 
     // default static placeholder for all space obejcts. children can replace with dynamic field.
     public readonly faction: Faction = Faction.NONE;
-    public readonly radarRange: number = 0;
+    /**
+     * the vision sectors this object sweeps. Empty for everything that carries no radar.
+     */
+    public readonly radarSectors: Iterable<RadarSectorValues> = [];
+
     /**
      * how much collision overlap turns into velocity (0-1)
      */

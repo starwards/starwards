@@ -128,7 +128,7 @@ Weapons are designed for specific effectiveness ranges:
 
 3. **Long Range:** Self-propelled torpedoes
    - Homing capability: 720°/s rotation
-   - 60-second flight time
+   - Flight time varies by warhead (see `secondsToLive` per missile in `modules/core/src/space/projectile.ts`)
    - Proximity detonation at 100m
 
 **Chaingun Selection:** External chain-powered for blowback-free operation, variable motor speed controls rate of fire, misfires don't jam (round ejects, new round loads).

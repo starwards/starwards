@@ -7,7 +7,7 @@ import { XY } from './xy';
 /*
 GPT suggester this:
 export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject, targetAccel: XY): XY {
-    const fireAngle = ship.angle + chainGun.angle;
+    const fireAngle = ship.angle + chainGun.direction;
     const bulletSpeed = chainGun.design.bulletSpeed;
     const bulletVelocity = XY.add(ship.velocity, XY.rotate({ x: bulletSpeed, y: 0 }, fireAngle));
 
@@ -44,7 +44,7 @@ export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: 
 export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject) {
     const maxIterations = 20;
     const maxSeconds = 100;
-    const fireAngle = ship.angle + chainGun.angle;
+    const fireAngle = ship.angle + chainGun.direction;
     const fireVelocity = Math.max(
         XY.lengthOf(XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle))),
         1,
@@ -97,7 +97,7 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
 }
 
 export function calcShellSecondsToLive(ship: ShipState, chainGun: ChainGun, distance: number) {
-    const fireAngle = ship.angle + chainGun.angle;
+    const fireAngle = ship.angle + chainGun.direction;
     const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle));
     return distance / XY.lengthOf(fireVelocity);
 }
@@ -107,7 +107,7 @@ export function getShellAimVelocityCompensation(ship: ShipState, chainGun: Chain
 }
 
 export function getShellExplosionLocation(ship: ShipState, chainGun: ChainGun): XY {
-    const fireAngle = ship.angle + chainGun.angle;
+    const fireAngle = ship.angle + chainGun.direction;
     const fireSource = XY.add(ship.position, XY.rotate({ x: ship.radius, y: 0 }, fireAngle));
     const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle));
     const fireTime = chainGun.shellSecondsToLive;

@@ -3,7 +3,7 @@
 Concrete task breakdown for the next milestone, derived from [`decisions.md`](decisions.md). Three parallel tracks:
 
 - **[D]** = Daniel designs (armor / ammo)
-- **[U]** = User designs (damage control / scan beam control / closed-transponder cost)
+- **[U]** = User designs (damage control / scan beam control)
 - **[C]** = Claude executes (straightforward, agent-ready once spec'd)
 
 For deferred ideas, see [`proposals.md`](proposals.md). For work already shipped, see [Delivered](#delivered) at the foot of this doc.
@@ -24,7 +24,6 @@ Fully delivered — see [Delivered](#delivered).
 | B2 **[U]** | Tier-2 snapshot output: data fields, presentation, voice-only vs auto-propagate                                                                        | B1         |
 | B3 **[U]** | Engineering operations queue UX: queue order/priority, parallelism, cancel/resume, malfunction list display                                            | —          |
 | B4 **[U]** | Repair protocol catalog: count, coverage profile per protocol, cost per protocol                                                                       | B3         |
-| B5 **[U]** | Closed-transponder cost (comms? dock? friendly auto-routing?)                                                                                          | —          |
 | B7 **[U]** | Tier-1 timer reset rule on radar re-entry (reset / pause / persist)                                                                                    | —          |
 | B8 **[U]** | Drop `B`/`V` cycle keys or keep with `Shift` reverse                                                                                                   | —          |
 
@@ -53,15 +52,14 @@ Group C1 (independent) and C2.1–C2.5 (armor + ammo integration) are fully deli
 | C3.5 **[C]** | Repair execution engine (queue runtime + resource consumption + malfunction-clear)                                   | B3         |
 | C3.6 **[C]** | Repair protocol catalog data + lookup                                                                                | B4 + C3.5  |
 | C3.7 **[C]** | Engineering operations queue UI                                                                                      | B3 + C3.5  |
-| C3.8 **[C]** | Closed-transponder cost wiring                                                                                       | B5 + C1.2  |
 
 ---
 
 ## Recommended sequence
 
-- **You** draft the B-track designs: B1, B3 (most blocking). Cheap small ones any time: B5, B7, B8. Then B2, B4.
+- **You** draft the B-track designs: B1, B3 (most blocking). Cheap small ones any time: B7, B8. Then B2, B4.
 - **Claude** executes C2.6 (cycle UI, [#1969](https://github.com/starwards/starwards/issues/1969)) — ready now.
-- **Claude** executes C3.x as the B designs land: C3.1+C3.2 (scan geometry), C3.5 (repair engine), then C3.3, C3.4, C3.6, C3.7, C3.8.
+- **Claude** executes C3.x as the B designs land: C3.1+C3.2 (scan geometry), C3.5 (repair engine), then C3.3, C3.4, C3.6, C3.7.
 - Tuning + playtest.
 
 ---
@@ -82,7 +80,7 @@ Completed tasks, collapsed to unblock the tables above. Detail lives in git hist
 
 - **Track A (A1–A5)** — armor plate types, ammo types, full armor × ammo damage matrix, per-ammo heat-per-shot, per-ammo magazine capacity. Shipped via **PR #1932** (2026-07): 5 armor models (`armor-models.ts`), 3 shells + 6 missiles (`projectile.ts`), per-layer resolution (`damage-manager.ts`), `heatPerShot` per design, `max_*` capacity (`magazine.ts`).
 - **C1.1** — weapons-fire heat wiring. **#1930** (closes #1923); `chain-gun-manager.ts` calls `addHeat`.
-- **C1.2** — `callsign` + `transponderOpen` on `Spaceship`. **#1927** (closes #1924).
-- **C1.3** — 5s in-range UFO→BASIC scan promotion, transponder-gated. **#1933** (closes #1925); `TIER1_DWELL_SECONDS` in `signals-job-manager.ts`.
+- **C1.2** — `callsign` on `Spaceship`. **#1927** (closes #1924).
+- **C1.3** — 5s in-range UFO→BASIC scan promotion. **#1933** (closes #1925); `TIER1_DWELL_SECONDS` in `signals-job-manager.ts`.
 - **C1.4** — ammo selection UI audit. Resolved by screenshot review 2026-05-03.
 - **C2.1–C2.5** — armor/ammo integration (PR #1932 lineage): layered `ArmorPlate`/`ArmorLayer` schema, 9 ammo types across `ammoDesigns`/`Magazine`, armor-type-aware matrix, per-ammo heat, magazine capacity.

@@ -182,7 +182,7 @@ describe('spec §9 worked examples', () => {
             expect(state.magazine.getCount('HiExpShell')).to.be.lessThan(state.magazine.max_HiExpShell);
             // externals take the weak scrape: 50 × SURFACE_EFFECT_FACTOR 0.05 × HiExp
             // surfaceDamageFactor 0.25 = 0.625 → one defect roll on the radar
-            expect(state.radar.malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(0.05, 0.0001);
         });
     });
 
@@ -198,7 +198,7 @@ describe('spec §9 worked examples', () => {
                 expect(plate.layers[2].health).to.equal(1000);
             }
             expect(damaged).to.equal(true);
-            expect(state.radar.malfunctionRangeFactor).to.be.greaterThan(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internals safe — frag never penetrates (hitsInternal false)
             expect(state.smartPilot.offsetFactor).to.equal(0);
             expect(state.warp.damageFactor).to.equal(0);
@@ -220,7 +220,7 @@ describe('spec §9 worked examples', () => {
             const popped = frontPlates(state).filter((plate) => plate.layers[0].health <= 0).length;
             expect(popped).to.equal(1);
             expect(damaged).to.equal(false);
-            expect(state.radar.malfunctionRangeFactor).to.equal(0);
+            expect(state.radars[0].malfunctionRangeFactor).to.equal(0);
             expect(state.smartPilot.offsetFactor).to.equal(0);
         });
 
@@ -235,7 +235,7 @@ describe('spec §9 worked examples', () => {
                 expect(plate.layers[0].health).to.equal(1000);
             }
             // 25 × systemDamageFactor 2 = 50: radar (damage50 20) → 3 rolls → 0.15 with MockDie
-            expect(state.radar.malfunctionRangeFactor).to.be.closeTo(0.15, 0.0001);
+            expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(0.15, 0.0001);
             // smartPilot (damage50 90) → 1 roll → 0.01; rear electronics (reactor) hit too
             expect(state.smartPilot.offsetFactor).to.be.closeTo(0.01, 0.0001);
             expect(state.reactor.energy).to.be.lessThan(state.reactor.design.maxEnergy);

@@ -2,10 +2,6 @@
 
 Integration architecture for sharing visual tokens (colors, borders, glows) across Arwes, PixiJS, and Tweakpane frameworks in Starwards.
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-23
-**Author:** Design System Documentation
-
 ---
 
 ## Table of Contents
@@ -120,7 +116,7 @@ Integration architecture for sharing visual tokens (colors, borders, glows) acro
 **Step 1: Add class in TypeScript**
 
 ```typescript
-// From modules/browser/src/widgets/system-status.ts:107-108
+// mirrors: modules/browser/src/widgets/system-status.ts
 blade.element.classList.add('heat', 'tp-rotv');
 // This allows overriding tweakpane theme for this blade
 
@@ -148,12 +144,12 @@ applyTheme(); // Apply immediately
 
 #### Usage Locations
 
-| File | Line | Context |
-|------|------|---------|
-| `system-status.ts` | 107 | System status cells |
-| `full-system-status.ts` | 72-73 | Full system status rows |
-| `warp.ts` | 41-42 | Warp jam indicator |
-| `tweak.ts` | 177-178 | System defectible folders |
+| File | Context |
+|------|---------|
+| `system-status.ts` | System status cells |
+| `full-system-status.ts` | Full system status rows |
+| `warp.ts` | Warp jam indicator |
+| `tweak.ts` | System defectible folders |
 
 #### Dynamic Application Pattern
 
@@ -187,7 +183,7 @@ applyThemeByStatus();
 **Manual Width Override (jQuery):**
 
 ```typescript
-// From full-system-status.ts:121-122
+// mirrors: modules/browser/src/widgets/full-system-status.ts
 container.getElement().find('.tp-lblv_v').css('min-width', 'fit-content');
 container.getElement().find('.tp-lblv_l').css('min-width', `${systemNameWidth}px`);
 ```
@@ -294,7 +290,7 @@ const getFactionColor = (faction: Faction) => {
 **For dynamic color computation (e.g., health gradients):**
 
 ```typescript
-// From modules/browser/src/widgets/armor.ts:10-14
+// mirrors: modules/browser/src/widgets/armor.ts
 const rgb2hex = (rgb: number[]) => {
     const r = Math.round(rgb[0] * 255);
     const g = Math.round(rgb[1] * 255);
@@ -312,7 +308,7 @@ sprite.tint = rgb2hex([1 - health, health, 0]);
 ### CSS Integration from PixiJS
 
 ```typescript
-// From modules/browser/src/screens/ecr.ts:69
+// mirrors: modules/browser/src/screens/ecr.ts
 import { radarFogOfWar, toCss } from '../colors'; // line 14
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
@@ -372,7 +368,7 @@ const stylesBaseline = {
 ### CSS Background Application
 
 ```typescript
-// From modules/browser/src/screens/ecr.ts:69 (import at line 14)
+// mirrors: modules/browser/src/screens/ecr.ts
 import { radarFogOfWar, toCss } from '../colors';
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
@@ -466,7 +462,7 @@ color: ${color}33;  // 20% opacity
 ```typescript
 import { AlphaFilter } from 'pixi.js';
 
-// From gm.ts:103 - Field of view overlay
+// mirrors: modules/browser/src/screens/gm.ts — field of view overlay
 fovGraphics.filters = [new AlphaFilter({ alpha: 0.1 })];
 
 // Typical pattern for semi-transparent overlays
@@ -786,6 +782,3 @@ export function setTheme(theme: Theme) {
 
 ## Change History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-11-23 | Initial integration architecture documentation |

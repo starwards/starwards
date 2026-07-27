@@ -1,6 +1,6 @@
 import { Graphics, Text, TextStyle, UPDATE_PRIORITY } from 'pixi.js';
-import { ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { green, radarFogOfWar, radarVisibleBg, white } from '../colors';
+import { ShipDriver, SpaceDriver, SpaceObject, Spaceship, degToRad } from '@starwards/core';
+import { green, radarFogOfWar, radarVisibleBg, selectionColor, white } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
 import $ from 'jquery';
@@ -133,6 +133,40 @@ export async function drawLongRangeRadar(
     fovGraphics.mask = circleMask;
     root.stage.addChild(fovGraphics);
 
+    // Own-ship directional scan beam overlay
+    let ownShip: Spaceship | undefined;
+    const beamGraphics = new Graphics();
+    beamGraphics.mask = circleMask;
+    root.stage.addChild(beamGraphics);
+
+    /**
+     * Outlines where each steerable radar is being *asked* to point, not where it points now — the
+     * mount takes time to swing, and the coverage it currently has is already drawn as clear space
+     * by the field-of-view layer. The reach comes from the matching synced sector (sector index
+     * follows radar index), since widening the arc shortens the beam the moment the command lands.
+     */
+    function drawBeamTargets() {
+        beamGraphics.clear();
+        if (!ownShip) {
+            return;
+        }
+        const center = root.worldToScreen(ownShip.position);
+        for (const [index, radar] of shipDriver.state.radars.entries()) {
+            const sectorRange = ownShip.radarSectors.at(index)?.range ?? 0;
+            if (sectorRange <= 0 || radar.arc <= 0 || radar.arc >= 360) {
+                continue;
+            }
+            const direction = ownShip.angle + radar.directionCommand;
+            const radiusPixels = root.metersToPixles(sectorRange);
+            const fromAngle = degToRad * (direction - radar.arc / 2 - root.camera.angle);
+            const toAngle = degToRad * (direction + radar.arc / 2 - root.camera.angle);
+            beamGraphics.moveTo(center.x, center.y);
+            beamGraphics.arc(center.x, center.y, radiusPixels, fromAngle, toAngle);
+            beamGraphics.lineTo(center.x, center.y);
+            beamGraphics.stroke({ width: 1, color: selectionColor, alpha: 0.6 });
+        }
+    }
+
     root.ticker.add(
         () => {
             rangeFilter.update();
@@ -141,6 +175,7 @@ export async function drawLongRangeRadar(
                 fov.draw(root, fovGraphics);
                 fovGraphics.fill({ color: radarVisibleBg, alpha: 1 });
             }
+            drawBeamTargets();
         },
         null,
         UPDATE_PRIORITY.LOW,
@@ -218,9 +253,10 @@ export async function drawLongRangeRadar(
     updateRange();
     container.on('resize', updateRange);
 
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true),
-    );
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        ownShip = tracked;
+        camera.followSpaceObject(tracked, spaceDriver.events, true);
+    });
 
     return root;
 }

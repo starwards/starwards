@@ -118,6 +118,7 @@ syncShipProperties() runs every tick
 **Location:** `modules/core/src/ship/ship-manager-abstract.ts`
 
 ```typescript
+// mirrors: modules/core/src/ship/ship-manager-abstract.ts
 protected syncShipProperties() {
     this.state.spaceship.position.x = this.spaceObject.position.x;
     this.state.spaceship.position.y = this.spaceObject.position.y;
@@ -127,11 +128,11 @@ protected syncShipProperties() {
     this.state.spaceship.angle = this.spaceObject.angle;
     this.state.spaceship.faction = this.spaceObject.faction;
     this.state.spaceship.radius = this.spaceObject.radius;
-    this.state.spaceship.radarRange = this.spaceObject.radarRange;
+    applyRadarSectors(this.state.spaceship.radarSectors, [...this.spaceObject.radarSectors]);
 }
 ```
 
-Note: `ShipState.position`/`velocity`/`angle`/`turnSpeed`/`faction`/`radius`/`radarRange` are now read-only getters delegating to `ship.spaceship` (`ship-state.ts`), so assigning to `this.state.angle`/`faction`/etc. directly would not compile.
+Note: `ShipState.position`/`velocity`/`angle`/`turnSpeed`/`faction`/`radius` are read-only getters delegating to `ship.spaceship` (`ship-state.ts`), so assigning to `this.state.angle`/`faction`/etc. directly would not compile.
 
 Called from `update()` method at start of every physics tick:
 ```typescript
@@ -290,8 +291,9 @@ describe('SpaceManager', () => {
 
 ### Harness
 ```typescript
-import { createTestShip } from './test-factories';
-const ship = createTestShip({ position: new Vec2(10, 10) });
+import { ShipTestHarness } from './ship-test-harness';
+const harness = new ShipTestHarness();
+harness.shipObj.position = new Vec2(10, 10);
 ```
 
 ## File Organization

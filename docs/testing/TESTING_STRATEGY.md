@@ -23,7 +23,7 @@ This guide provides practical strategies for enhancing Starwards' existing testi
 
 **Sophisticated Infrastructure:**
 
-**ShipTestHarness** ([`modules/core/test/ship-test-harness.ts`](../modules/core/test/ship-test-harness.ts)):
+**ShipTestHarness** ([`modules/core/test/ship-test-harness.ts`](../../modules/core/test/ship-test-harness.ts)):
 - Full physics simulation with time-stepping
 - PlotlyGraphBuilder for visualization
 - MockDie for deterministic randomness

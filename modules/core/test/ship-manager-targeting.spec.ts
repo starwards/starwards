@@ -1,6 +1,7 @@
 import {
     Asteroid,
     Faction,
+    PowerLevel,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -15,6 +16,7 @@ import { MockDie, makeIterationsData } from './ship-test-harness';
 
 import { ShipManager } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
+import { setOmniRadarSector } from '../src';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
@@ -30,7 +32,7 @@ function setup() {
         obj.faction = faction;
         obj.position.x = x;
         obj.position.y = y;
-        obj.radarRange = 10_000;
+        setOmniRadarSector(obj, 10_000);
         const die = new MockDie();
         die.expectedRoll = 1;
         const mgr = new ShipManagerPc(obj, makeShipState(id, dragonflyConfig), spaceMgr, die, ships);
@@ -245,29 +247,45 @@ describe('ShipManager housekeeping', () => {
 
     it('radar malfunction reduces radar range toward the malfunction range', () => {
         const { makeShipMgr, flush, runTick } = setup();
-        const { obj, mgr } = makeShipMgr('a', Faction.Gravitas);
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
         flush();
-        const radar = mgr.state.radar;
+        const radar = mgr.state.radars[0];
         runTick(mgr);
-        const healthyRange = obj.radarRange;
-        expect(healthyRange).to.be.closeTo(radar.design.range * radar.effectiveness, 1);
+        // effectiveness scales the swept area, so range scales with its square root
+        const effectivenessRangeFactor = Math.sqrt(radar.effectiveness);
+        const healthyRange = radar.range;
+        expect(healthyRange).to.be.closeTo(radar.design.range * effectivenessRangeFactor, 1);
         radar.malfunctionRangeFactor = 0.5;
         expect(radar.broken).to.equal(false); // guard: fluctuating, not broken
         runTick(mgr);
-        expect(obj.radarRange).to.be.lessThan(healthyRange);
-        expect(obj.radarRange).to.be.at.least(radar.design.malfunctionRange * radar.effectiveness - 1);
+        expect(radar.range).to.be.lessThan(healthyRange);
+        expect(radar.range).to.be.at.least(radar.design.malfunctionRange * effectivenessRangeFactor - 1);
+    });
+
+    it('an energy-starved radar sees nothing, not even its malfunction floor', () => {
+        const { makeShipMgr, flush, runTick } = setup();
+        const { obj, mgr } = makeShipMgr('a', Faction.Gravitas);
+        flush();
+        const radar = mgr.state.radars[0];
+        // no energy and a dead reactor: trySpendEnergy must fail every tick
+        mgr.state.reactor.power = PowerLevel.SHUTDOWN;
+        mgr.state.reactor.energy = 0;
+        runTick(mgr);
+        expect(radar.effectiveness).to.be.greaterThan(0); // the radar itself is healthy and powered
+        expect(radar.range).to.equal(0);
+        expect([...obj.radarSectors].map((s) => s.range)).to.deep.equal([0, 0]);
     });
 
     it('a fully malfunctioning radar is broken and its range drops to zero', () => {
         const { makeShipMgr, flush, runTick } = setup();
-        const { obj, mgr } = makeShipMgr('a', Faction.Gravitas);
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
         flush();
-        const radar = mgr.state.radar;
+        const radar = mgr.state.radars[0];
         radar.malfunctionRangeFactor = 1; // clamped by @range to the broken threshold
         expect(radar.broken).to.equal(true);
         expect(radar.effectiveness).to.equal(0);
         runTick(mgr);
-        expect(obj.radarRange).to.equal(0);
+        expect(radar.range).to.equal(0);
     });
 
     it('setSmartPilotManeuveringMode rejects TARGET when there is no weapons target', () => {

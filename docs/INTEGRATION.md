@@ -294,6 +294,7 @@ return msg;
 **File:** [`docker/docker-compose.yml`](../docker/docker-compose.yml)
 
 ```yaml
+# mirrors: docker/docker-compose.yml
 version: '3.9'
 
 services:

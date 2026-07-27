@@ -17,4 +17,5 @@ export * from './signals-job-manager';
 export * from './smart-pilot';
 export * from './system';
 export * from './thruster';
+export * from './turret';
 export * from './warp';

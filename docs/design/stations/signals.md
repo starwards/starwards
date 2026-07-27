@@ -2,7 +2,7 @@
 
 > **See also:** [`docs/bridge-playtest/signals.md`](../../bridge-playtest/signals.md) — what shipped vs the full #1208 spec. [`docs/bridge-playtest/signals-design.md`](../../bridge-playtest/signals-design.md) — user-stated design intent that **shifts away from the queued-jobs model summarized below** toward an active mini-game framing for scan and cyber-attack. [`docs/MS3/SIGNALS_JOBS_DESIGN.md`](../../MS3/SIGNALS_JOBS_DESIGN.md) — detailed technical spec for the original queued-jobs design.
 
-**Status:** Partial — a minimal first-cut Signals station has shipped (long-range radar, target info panel, /radar systems status, target cycling/zoom, waypoint placement; see `modules/browser/src/screens/signals.ts` and `docs/bridge-playtest/signals.md`). The full queued-jobs vision (#1208/#1206 scan/hack/track job engine, target filters, Lvl2 target details) is not yet built.
+**Status:** Partial — a minimal first-cut Signals station has shipped (long-range radar, target info panel, /radar systems status, target cycling/zoom; see `modules/browser/src/screens/signals.ts` and `docs/bridge-playtest/signals.md`). The full queued-jobs vision (#1208/#1206 scan/hack/track job engine, target filters, Lvl2 target details) is not yet built.
 **Crew role:** Intelligence Officer — scans, hacks, and tracks targets.
 **Blocked by:** Scan levels mechanic, Signals jobs engine
 **Issues:** [#1208](https://github.com/starwards/starwards/issues/1208), [#1206](https://github.com/starwards/starwards/issues/1206)

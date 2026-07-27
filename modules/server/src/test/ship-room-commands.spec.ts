@@ -39,17 +39,17 @@ describe('ShipRoom JSON pointer commands', () => {
     it('applies a @commandable write to the server ship state', async () => {
         const { client, room, shipId } = await connectShip('writer');
         const shipManager = driver.serverDriver.getShip(shipId);
-        await client.sendCommand(room, '/radar/power', { value: 0.25 });
-        await waitForServer(() => Math.abs(shipManager.state.radar.power - 0.25) < 0.01);
-        expect(shipManager.state.radar.power).toBeCloseTo(0.25, 2);
+        await client.sendCommand(room, '/radars/0/power', { value: 0.25 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.25) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(0.25, 2);
     });
 
     it('caps numeric writes to the @range of the field', async () => {
         const { client, room, shipId } = await connectShip('capper');
         const shipManager = driver.serverDriver.getShip(shipId);
-        await client.sendCommand(room, '/radar/power', { value: 999 });
-        await waitForServer(() => Math.abs(shipManager.state.radar.power - 1) < 0.01);
-        expect(shipManager.state.radar.power).toBeCloseTo(1, 2);
+        await client.sendCommand(room, '/radars/0/power', { value: 999 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 1) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(1, 2);
     });
 
     it('rejects writes to non-commandable fields', async () => {
@@ -59,8 +59,8 @@ describe('ShipRoom JSON pointer commands', () => {
         await client.sendCommand(room, '/targeted', { value: TargetedStatus.FIRED_UPON });
         // follow with a valid write — messages are processed in order, so once
         // it lands we know the rejected write was already handled
-        await client.sendCommand(room, '/radar/power', { value: 0.25 });
-        await waitForServer(() => Math.abs(shipManager.state.radar.power - 0.25) < 0.01);
+        await client.sendCommand(room, '/radars/0/power', { value: 0.25 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.25) < 0.01);
         expect(shipManager.state.targeted).toEqual(TargetedStatus.NONE);
     });
 
@@ -68,9 +68,28 @@ describe('ShipRoom JSON pointer commands', () => {
         const { client, room, shipId } = await connectShip('fuzzer');
         const shipManager = driver.serverDriver.getShip(shipId);
         await client.sendCommand(room, 'not a json pointer !', { value: 1 });
-        await client.sendCommand(room, '/radar/power', {}); // missing value
-        await client.sendCommand(room, '/radar/power', { value: 0.75 });
-        await waitForServer(() => Math.abs(shipManager.state.radar.power - 0.75) < 0.01);
-        expect(shipManager.state.radar.power).toBeCloseTo(0.75, 2);
+        await client.sendCommand(room, '/radars/0/power', {}); // missing value
+        await client.sendCommand(room, '/radars/0/power', { value: 0.75 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.75) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(0.75, 2);
+    });
+
+    it('applies a @commandable write to the scan beam radar direction', async () => {
+        const { client, room, shipId } = await connectShip('beam-director');
+        const shipManager = driver.serverDriver.getShip(shipId);
+        // the game loop is paused here, so this covers the command landing; the mount swinging
+        // toward it over time is covered by turret.spec.ts and the signals screen e2e
+        await client.sendCommand(room, '/radars/1/directionCommand', { value: 20 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[1].directionCommand - 20) < 0.01);
+        expect(shipManager.state.radars[1].directionCommand).toBeCloseTo(20, 2);
+    });
+
+    it('caps the scan beam radar arc to the @range of the field', async () => {
+        const { client, room, shipId } = await connectShip('beam-capper');
+        const shipManager = driver.serverDriver.getShip(shipId);
+        const maxArc = shipManager.state.radars[1].design.maxArc;
+        await client.sendCommand(room, '/radars/1/arc', { value: 9999 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[1].arc - maxArc) < 0.01);
+        expect(shipManager.state.radars[1].arc).toBeCloseTo(maxArc, 2);
     });
 });

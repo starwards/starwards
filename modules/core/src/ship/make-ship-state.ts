@@ -24,7 +24,7 @@ export type ShipDesign = {
     tubes: [ShipDirectionConfig, ChaingunDesign][];
     thrusters: [ShipDirectionConfig, ThrusterDesign][];
     armor: ArmorDesign;
-    radar: RadarDesign;
+    radars: RadarDesign[];
     smartPilot: SmartPilotDesign;
     reactor: ReactorDesign;
     magazine: MagazineDesign;
@@ -92,7 +92,8 @@ function makeChainGun(design: ChaingunDesign) {
 function makeTube(design: ChaingunDesign, angle: ShipDirectionConfig, index: number) {
     const tube = new Tube();
     tube.index = index;
-    tube.angle = getDirectionFromConfig(angle);
+    // a mount starts out aimed where it is fitted, with nobody asking it to swing anywhere else
+    tube.direction = tube.directionCommand = getDirectionFromConfig(angle);
     tube.design.assign(design);
     return tube;
 }
@@ -168,7 +169,7 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.smartPilot = makeSmartPilot(design.smartPilot);
 
     state.armor = makeArmor(design.armor);
-    state.radar = makeRadar(design.radar);
+    state.radars = new ArraySchema(...design.radars.map(makeRadar));
     state.reactor = makeReactor(design.reactor);
     state.magazine = makeMagazine(design.magazine);
     state.weaponsTarget = makeTargeting(design.weaponsTarget);

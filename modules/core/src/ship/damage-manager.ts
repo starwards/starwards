@@ -326,7 +326,7 @@ export class DamageManager {
         } else if (ChainGun.isInstance(system)) {
             this.damageChainGun(system, defectId);
         } else if (Radar.isInstance(system)) {
-            this.damageRadar(system);
+            this.damageRadar(system, defectId);
         } else if (SmartPilot.isInstance(system)) {
             this.damageSmartPilot(system);
         } else if (Reactor.isInstance(system)) {
@@ -402,8 +402,12 @@ export class DamageManager {
         smartPilot.offsetFactor += 0.01;
     }
 
-    private damageRadar(radar: Radar) {
-        radar.malfunctionRangeFactor += 0.05;
+    private damageRadar(radar: Radar, damageId: string) {
+        if (radar.design.turnSpeed <= 0 || this.die.getSuccess('damageRadarRange:' + damageId, 0.5)) {
+            radar.malfunctionRangeFactor += 0.05;
+        } else {
+            radar.turnSpeedFactor *= 0.9;
+        }
     }
 
     private damageThruster(thruster: Thruster, damageId: string) {

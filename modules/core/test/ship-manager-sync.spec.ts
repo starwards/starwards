@@ -2,6 +2,7 @@ import { ShipManagerNpc, SpaceManager, Spaceship, makeShipState, shipConfigurati
 
 import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
+import { setOmniRadarSector } from '../src';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
@@ -67,12 +68,15 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         expect(shipMgr.state.spaceship.position.y).to.be.closeTo(shipObj.position.y, 1);
     });
 
-    it('mirrors faction, radius and radarRange from the SpaceObject', () => {
+    it('mirrors faction, radius and radar sectors from the SpaceObject', () => {
         const { shipMgr, shipObj } = makeManager();
         shipObj.radius = 123;
-        shipObj.radarRange = 456;
+        setOmniRadarSector(shipObj, 456);
         shipMgr.update(tick(1 / 60));
         expect(shipMgr.state.spaceship.radius).to.equal(123);
-        expect(shipMgr.state.spaceship.radarRange).to.equal(456);
+        // the manager recomputes the sectors from the ship's radars, so the mirror tracks those
+        expect([...shipMgr.state.spaceship.radarSectors].map((s) => s.range)).to.deep.equal(
+            [...shipObj.radarSectors].map((s) => s.range),
+        );
     });
 });

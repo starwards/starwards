@@ -11,6 +11,7 @@ import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
 import { createMockShipDriver } from '../mocks/ship-driver';
 import { drawTacticalRadar } from '../../widgets/tactical-radar';
+import { setOmniRadarSector } from '@starwards/core';
 
 const RANGE = 5000;
 const RADAR_RANGE = 6000;
@@ -20,8 +21,10 @@ function createShipWithState(id: string, x = 0, y = 0, angle = 0, radarRange = R
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;
     state.spaceship.faction = 0;
-    state.spaceship.radarRange = radarRange;
-    state.radar.power = 1;
+    setOmniRadarSector(state.spaceship, radarRange);
+    for (const radar of state.radars) {
+        radar.power = 1;
+    }
     return state;
 }
 

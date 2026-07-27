@@ -154,9 +154,12 @@ power = 1.0;
 | E2E panel selectors      | `page.locator('[data-id="Panel Name"]')`                                                                                                                                                 |
 | Multiple same labels     | `getPropertyValue(page, 'label', 'PanelTitle')` to scope                                                                                                                                 |
 | State not persisting     | Modify `spaceObject`, not `ship.state` (see sync pattern)                                                                                                                                |
-| Jest fails with Babel decorator/import syntax errors | Never run bare `npx jest` inside a module dir (misses root ts-jest config). Run from repo root: `npx jest --selectProjects=core --ci <pattern>` (or `npm test -- <pattern>`)                       |
+| Jest fails with Babel decorator/import syntax errors, or "ts-jest module not found" | Both flavors of the same root causes: missing deps or wrong cwd. First check `node_modules` exists at repo root (`npm ci` if not). Never run bare `npx jest` inside a module dir (misses root ts-jest config). Run from repo root: `npx jest --selectProjects=core --ci <pattern>` (or `npm test -- <pattern>`)                       |
 | Orphaned jest workers on Windows | Killing an `npm test`/jest parent orphans workers that burn CPU forever. Kill the tree: `taskkill /F /T /PID <pid>` (last resort: `Get-Process node \| Where CPU -gt 60 \| Stop-Process -Force`). Prefer bounded runs (`timeout`/`-TimeoutSec`) redirected to a file over piping through `tail` |
+| E2E fails at import with `Cannot read properties of undefined (reading 'constructor')` in `@colyseus/schema` | The workspace was never built, so Playwright resolves `@starwards/*` to TS source via tsconfig `paths` and transpiles `@gameField` as a standard (2023-05) decorator — colyseus expects a legacy one. Build first, as CI does: `npm run build:core && npm run build:server && npm --prefix modules/browser run build` |
 | Port in use              | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
+| `room.send()` float values arrive as garbage (e.g. 0.25 → 1.08e-137) while ints and strings survive | `Packr.useBuffer()` in @colyseus/msgpackr swaps the module-level write buffer without refreshing the DataView floats are written through, and colyseus calls it from `getMessageBytes[JOIN_ROOM]` once the schema handshake outgrows the 8 KB packr buffer. `modules/core/src/serialization-buffers.ts` sizes that buffer up front to keep colyseus off the path; grow it there if the handshake ever exceeds it |
+| Tweakpane pane click times out, `tp-rotv_c` div intercepts pointer events | Fixed-position panes (e.g. `drawPilotStats`) have unbounded height and later-appended DOM covers earlier panes. Create the pane that must receive clicks **last** so it stacks on top |
 
 ## CI Rules
 
@@ -199,6 +202,7 @@ Node.js >= 22.11.0, npm >= 10.9.0
 
 **Start here (agents):**
 
+- [`docs/README.md`](docs/README.md) - Documentation index: every folder, its purpose, and whether it is Live/Reference/Historical
 - [`docs/LLM_CONTEXT.md`](docs/LLM_CONTEXT.md) - Quick reference: patterns, gotchas, task→docs routing
 - [`docs/AUTHORING.md`](docs/AUTHORING.md) - Rules for writing drift-resistant docs (read before editing docs)
 
@@ -224,6 +228,7 @@ Node.js >= 22.11.0, npm >= 10.9.0
 **Technical:**
 
 - [`docs/TECHNICAL_REFERENCE.md`](docs/TECHNICAL_REFERENCE.md) - @gameField, JSON Pointer, Input Config
+- [`docs/json-ptr.md`](docs/json-ptr.md) - JSON Pointer addressing scheme (referenced from ESLint config and core source)
 - [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) - Endpoints, commands, events
 - [`docs/SUBSYSTEMS.md`](docs/SUBSYSTEMS.md) - Ship systems, formulas, bot AI
 - [`docs/PHYSICS.md`](docs/PHYSICS.md) - Physics engine, collision, damage

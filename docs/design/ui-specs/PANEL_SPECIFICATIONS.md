@@ -2,9 +2,7 @@
 
 Comprehensive specification of all panel types in Starwards, including data types, hierarchies, semantics, and variations.
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-23
-**Author:** Design System Documentation
+**Sibling UI specs:** [Lobby screen](LOBBY_SCREEN_SPECIFICATION.md) · [Visual token integration](VISUAL_TOKEN_INTEGRATION.md)
 
 ---
 
@@ -623,6 +621,3 @@ HTML components for game lobby.
 
 ## Change History
 
-| Version | Date       | Changes                             |
-| ------- | ---------- | ----------------------------------- |
-| 1.0     | 2025-11-23 | Initial comprehensive specification |

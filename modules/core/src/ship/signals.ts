@@ -10,7 +10,6 @@ export type SignalsDesign = {
     isElectronics: boolean;
     damage50: number;
     maxJobs: number;
-    maxTrackedTargets: number;
     scanBaseDuration: number;
     scanAdvancedFactor: number;
     hackBaseDuration: number;
@@ -23,7 +22,6 @@ export type SignalsDesign = {
 export class SignalsDesignState extends DesignState implements SignalsDesign {
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxJobs = 9;
-    @gameField('float32') maxTrackedTargets = 3;
     @gameField('float32') scanBaseDuration = 20;
     @gameField('float32') scanAdvancedFactor = 2;
     @gameField('float32') hackBaseDuration = 45;
@@ -61,9 +59,6 @@ export class Signals extends SystemState {
     @gameField([SignalsJob])
     jobs = new ArraySchema<SignalsJob>();
 
-    @gameField(['string'])
-    trackedTargets = new ArraySchema<string>();
-
     // Command properties (set by client via JSON pointer, consumed by manager on tick)
     @commandable()
     public queueJobType: JobType | -1 = -1;
@@ -79,12 +74,6 @@ export class Signals extends SystemState {
 
     @commandable()
     public cancelJobId = '';
-
-    @commandable()
-    public activateTrackTargetId = '';
-
-    @commandable()
-    public deactivateTrackTargetId = '';
 
     // Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks
     get currentMaxJobs(): number {

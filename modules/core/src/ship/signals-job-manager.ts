@@ -2,12 +2,11 @@ import { HackLevel, SystemState } from './system';
 import { IterationData, Updateable } from '../updateable';
 import { JobStatus, JobType, SignalsJob } from './signals-job';
 
+import { ArraySchema } from '@colyseus/schema';
 import { Die } from './ship-manager-abstract';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
-import { Spaceship } from '../space/spaceship';
-import { XY } from '../logic';
 import { makeId } from '../id';
 
 const TIER1_DWELL_SECONDS = 5;
@@ -28,12 +27,24 @@ interface ShipManagerRef {
     signalsJobManager: SignalsJobManager;
 }
 
+/**
+ * Resolves a hack target name to a system. A name is either a ShipState field holding a single
+ * system (`'reactor'`) or a field holding a collection plus an index (`'radars/0'`).
+ */
 function getSystemByName(state: ShipState, name: string): SystemState | null {
-    if (!name || !Object.prototype.hasOwnProperty.call(state, name)) {
+    if (!name) {
         return null;
     }
-    const value = (state as unknown as Record<string, unknown>)[name];
-    return value instanceof SystemState ? value : null;
+    const [field, index, ...excess] = name.split('/');
+    if (excess.length > 0 || !Object.prototype.hasOwnProperty.call(state, field)) {
+        return null;
+    }
+    const value = (state as unknown as Record<string, unknown>)[field];
+    if (value instanceof ArraySchema) {
+        const item = index === undefined ? undefined : (value as ArraySchema<unknown>).at(Number(index));
+        return item instanceof SystemState ? item : null;
+    }
+    return index === undefined && value instanceof SystemState ? value : null;
 }
 
 export class SignalsJobManager implements Updateable {
@@ -59,12 +70,10 @@ export class SignalsJobManager implements Updateable {
     update({ deltaSeconds, totalSeconds }: IterationData): void {
         this.processSubmitJobCommand(totalSeconds);
         this.processCancelJobCommand();
-        this.processTrackCommands();
         this.expireIncomingHacks(totalSeconds);
         this.expireHackCooldowns(totalSeconds);
         this.trimExcessJobs();
         this.processJobQueue(deltaSeconds, totalSeconds);
-        this.validateTrackedTargets();
         this.updateTier1ScanPromotion(deltaSeconds);
     }
 
@@ -94,7 +103,7 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        if (!this.spaceManager.canScan(this.state.id, targetId)) {
+        if (!this.spaceManager.isVisible(this.state.id, targetId)) {
             return;
         }
 
@@ -152,36 +161,6 @@ export class SignalsJobManager implements Updateable {
         }
     }
 
-    private processTrackCommands(): void {
-        const activateId = this.state.signals.activateTrackTargetId;
-        if (activateId) {
-            this.state.signals.activateTrackTargetId = '';
-
-            if (
-                this.state.signals.trackedTargets.length < this.state.signals.design.maxTrackedTargets &&
-                !this.state.signals.trackedTargets.includes(activateId) &&
-                this.isTargetInRange(activateId)
-            ) {
-                const scanLevel = this.spaceManager.getScanLevel(activateId, this.state.faction);
-                if (scanLevel >= ScanLevel.BASIC) {
-                    this.state.signals.trackedTargets.push(activateId);
-                    this.spaceManager.setTrack(this.state.id, this.state.faction, activateId, true);
-                }
-            }
-        }
-
-        const deactivateId = this.state.signals.deactivateTrackTargetId;
-        if (deactivateId) {
-            this.state.signals.deactivateTrackTargetId = '';
-
-            const idx = this.state.signals.trackedTargets.indexOf(deactivateId);
-            if (idx >= 0) {
-                this.state.signals.trackedTargets.splice(idx, 1);
-                this.spaceManager.setTrack(this.state.id, this.state.faction, deactivateId, false);
-            }
-        }
-    }
-
     private expireIncomingHacks(totalSeconds: number): void {
         this.incomingHacks = this.incomingHacks.filter((hack) => {
             if (totalSeconds >= hack.expiresAtSeconds) {
@@ -217,7 +196,7 @@ export class SignalsJobManager implements Updateable {
             return;
         }
 
-        if (!this.spaceManager.canScan(this.state.id, activeJob.targetId)) {
+        if (!this.spaceManager.isVisible(this.state.id, activeJob.targetId)) {
             this.removeJob(activeJob.id);
             this.promoteNextJob();
             return;
@@ -292,24 +271,13 @@ export class SignalsJobManager implements Updateable {
         });
     }
 
-    private validateTrackedTargets(): void {
-        for (let i = this.state.signals.trackedTargets.length - 1; i >= 0; i--) {
-            const targetId = this.state.signals.trackedTargets[i];
-            if (!this.isTargetInRange(targetId)) {
-                this.state.signals.trackedTargets.splice(i, 1);
-                this.spaceManager.setTrack(this.state.id, this.state.faction, targetId, false);
-            }
-        }
-    }
-
     private updateTier1ScanPromotion(deltaSeconds: number): void {
         const seenIds = new Set<string>();
         for (const target of this.spaceManager.state.getAll('Spaceship')) {
             if (target.id === this.state.id) continue;
-            const inRange = this.isTargetInRange(target.id);
+            const visible = this.spaceManager.isVisible(this.state.id, target.id);
             const scanLevel = this.spaceManager.getScanLevel(target.id, this.state.faction);
-            const transponderOpen = Spaceship.isInstance(target) && target.transponderOpen;
-            if (inRange && transponderOpen && scanLevel === ScanLevel.UFO) {
+            if (visible && scanLevel === ScanLevel.UFO) {
                 seenIds.add(target.id);
                 const dwell = (this.tier1DwellTimers.get(target.id) ?? 0) + deltaSeconds;
                 if (dwell >= TIER1_DWELL_SECONDS) {
@@ -326,15 +294,6 @@ export class SignalsJobManager implements Updateable {
                 this.tier1DwellTimers.delete(id);
             }
         }
-    }
-
-    private isTargetInRange(targetId: string): boolean {
-        const [target] = this.spaceManager.getObjectPtr(targetId);
-        if (!target || target.destroyed) {
-            return false;
-        }
-        const distance = XY.lengthOf(XY.difference(this.state.position, target.position));
-        return distance <= this.state.radarRange;
     }
 
     private isValidHackTarget(targetId: string, systemName: string): boolean {

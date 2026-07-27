@@ -50,7 +50,7 @@ their tracer fire even past sensor range).
   is active here. *Caveat:* the **scan-level upgrade mechanism** (signals
   jobs that lift a target from UFO → BASIC → ADVANCED) is **not** part of
   this ticket — that's #1206 (still open). Today tier-1 (UFO → BASIC)
-  auto-promotes after a 5s dwell on an open transponder (#1925); further
+  auto-promotes after a 5s dwell (#1925); further
   promotion is GM-controlled via tweak panel.
 - `3010cca` — chaingun widget wired into weapons station screen.
 - `ba492f8` — interactive hotkey help modal (SPACE).

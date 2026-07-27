@@ -1,4 +1,4 @@
-import { Asteroid, Faction, ScanLevel, Spaceship, Waypoint } from '../space';
+import { Asteroid, Faction, RadarSectorValues, ScanLevel, Spaceship, Waypoint, applyRadarSectors } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import {
     EPSILON,
@@ -25,6 +25,11 @@ const { warn: logWarn, error: logError } = createLogger('space-manager');
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
 const SCAN_PROMOTION_SECONDS = 5;
+
+// hard clamp on any object's speed, enforced at the physics layer after every velocity mutation
+// (thrust, collision/blast impulse, explosion velocity-inheritance). Sits above the ship
+// flight-computer's own (soft) maxSpeed and above projectile speeds.
+export const ABSOLUTE_MAX_SPEED = 2000;
 
 export type Damage = {
     id: string;
@@ -87,8 +92,6 @@ export class SpaceManager implements Updateable {
     private cleanupBodies: Body[] = [];
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
-    private trackedBy = new Map<string, Set<string>>();
-    private trackedByFaction = new Map<number, Set<string>>();
     // keyed by `${factionIndex}:${objectId}`
     private scanPromotionTimers = new Map<string, number>();
     private scanLosSeen = new Set<string>();
@@ -127,6 +130,7 @@ export class SpaceManager implements Updateable {
         if (subject) {
             subject.velocity.x += delta.x;
             subject.velocity.y += delta.y;
+            this.clampToAbsoluteMaxSpeed(subject);
         }
     }
     public setVelocity(id: string, velocity: XY) {
@@ -137,6 +141,13 @@ export class SpaceManager implements Updateable {
         const [subject] = this.getObjectPtr(id);
         if (subject) {
             subject.velocity.setValue(velocity);
+            this.clampToAbsoluteMaxSpeed(subject);
+        }
+    }
+
+    private clampToAbsoluteMaxSpeed(subject: SpaceObject) {
+        if (XY.lengthOf(subject.velocity) > ABSOLUTE_MAX_SPEED) {
+            subject.velocity.normalize(ABSOLUTE_MAX_SPEED);
         }
     }
 
@@ -259,9 +270,11 @@ export class SpaceManager implements Updateable {
         this.untrackDestroyedObjects();
         this.frozendAndAttachedDontMove();
         this.applyPhysics(deltaSeconds);
+        // consume the fields-of-view as computed for this tick BEFORE marking them dirty below,
+        // so the lazy FOV cache stays dirty for ship managers to recompute against fresh positions
+        this.updateScanPromotion(deltaSeconds, totalSeconds);
         this.updateFieldsOFView();
         this.updateCollisionBodies();
-        this.updateScanPromotion(deltaSeconds, totalSeconds);
         this.handleCollisions(deltaSeconds);
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
@@ -281,15 +294,6 @@ export class SpaceManager implements Updateable {
                     }
                 } else {
                     logError(`object leak! ${object.id} has no extra data`);
-                }
-            }
-        }
-        const factionTracked = this.trackedByFaction.get(Number(faction));
-        if (factionTracked) {
-            for (const targetId of factionTracked) {
-                const [target] = this.getObjectPtr(targetId);
-                if (target && !target.destroyed) {
-                    visibleObjects.add(target);
                 }
             }
         }
@@ -411,8 +415,6 @@ export class SpaceManager implements Updateable {
                 this.collisions.remove(data.body);
                 this.attachments.delete(destroyed.id);
             }
-            this.clearTracksForScanner(destroyed.id);
-            this.clearTracksForTarget(destroyed.id);
             this.clearScanPromotionState(destroyed.id);
         }
         for (const body of this.cleanupBodies) {
@@ -530,6 +532,7 @@ export class SpaceManager implements Updateable {
         const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
         explosion.velocity = projectile.velocity.clone();
+        this.clampToAbsoluteMaxSpeed(explosion);
         this.insert(explosion);
     }
 
@@ -575,10 +578,10 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    public changeShipRadarRange(id: string, radarRange: number) {
+    public changeShipRadarSectors(id: string, sectors: readonly RadarSectorValues[]) {
         const ship = this.state.getShip(id);
         if (ship && !ship.destroyed) {
-            ship.radarRange = radarRange;
+            applyRadarSectors(ship.radarSectors, sectors);
         }
     }
 
@@ -620,6 +623,7 @@ export class SpaceManager implements Updateable {
                     const res = this.calcSolidCollision(deltaSeconds, subject, object, response);
                     positionChange = res.positionChange;
                     Vec2.add(subject.velocity, res.velocityChange, subject.velocity);
+                    this.clampToAbsoluteMaxSpeed(subject);
                     if (Spaceship.isInstance(subject)) {
                         this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
                     } else {
@@ -845,89 +849,16 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    public setTrack(scannerShipId: string, scannerFaction: Faction, targetId: string, active: boolean): void {
-        if (active) {
-            if (!this.trackedBy.has(scannerShipId)) {
-                this.trackedBy.set(scannerShipId, new Set());
-            }
-            this.trackedBy.get(scannerShipId)!.add(targetId);
-
-            const factionKey = Number(scannerFaction);
-            if (!this.trackedByFaction.has(factionKey)) {
-                this.trackedByFaction.set(factionKey, new Set());
-            }
-            this.trackedByFaction.get(factionKey)!.add(targetId);
-        } else {
-            const scannerTargets = this.trackedBy.get(scannerShipId);
-            if (scannerTargets) {
-                scannerTargets.delete(targetId);
-                if (scannerTargets.size === 0) {
-                    this.trackedBy.delete(scannerShipId);
-                }
-            }
-            this.rebuildFactionTrack(Number(scannerFaction));
-        }
-    }
-
-    public isTrackedByFaction(targetId: string, faction: Faction): boolean {
-        const factionTargets = this.trackedByFaction.get(Number(faction));
-        return !!factionTargets && factionTargets.has(targetId);
-    }
-
-    public clearTracksForScanner(scannerShipId: string): void {
-        const [scanner] = this.getObjectPtr(scannerShipId);
-        this.trackedBy.delete(scannerShipId);
-        if (scanner) {
-            this.rebuildFactionTrack(Number(scanner.faction));
-        }
-    }
-
-    public clearTracksForTarget(targetId: string): void {
-        for (const [, targets] of this.trackedBy) {
-            targets.delete(targetId);
-        }
-        for (const [, targets] of this.trackedByFaction) {
-            targets.delete(targetId);
-        }
-    }
-
-    private rebuildFactionTrack(factionKey: number): void {
-        const union = new Set<string>();
-        for (const [scannerId, targets] of this.trackedBy) {
-            const [scanner] = this.getObjectPtr(scannerId);
-            if (scanner && Number(scanner.faction) === factionKey) {
-                for (const t of targets) {
-                    union.add(t);
-                }
-            }
-        }
-        if (union.size > 0) {
-            this.trackedByFaction.set(factionKey, union);
-        } else {
-            this.trackedByFaction.delete(factionKey);
-        }
-    }
-
     /**
-     * Check if scan job can proceed (target in range and line-of-sight, or tracked)
+     * Whether the scanner currently holds the target in its field of view: inside a radar sector,
+     * within that sector's reach, and not hidden behind a nearer object.
      */
-    public canScan(scannerId: string, targetId: string): boolean {
+    public isVisible(scannerId: string, targetId: string): boolean {
         const [scanner] = this.getObjectPtr(scannerId);
         const [target] = this.getObjectPtr(targetId);
 
         if (!scanner || !target) {
             return false;
-        }
-
-        // Check if target is within scanner's radar range
-        const distance = XY.lengthOf(XY.difference(scanner.position, target.position));
-        if (distance > scanner.radarRange) {
-            return false;
-        }
-
-        // Tracked targets bypass LOS check (but range still enforced above)
-        if (this.isTrackedByFaction(targetId, scanner.faction)) {
-            return true;
         }
 
         // Check line-of-sight via field-of-view

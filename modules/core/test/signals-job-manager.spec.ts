@@ -1,4 +1,5 @@
 import {
+    Asteroid,
     Faction,
     HackLevel,
     PowerLevel,
@@ -191,10 +192,21 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
+        it('should reject a hack job whose system name has trailing segments', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
+
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0/hacked');
+            tick(shipMgr, spaceMgr, 0.05, 0.05);
+
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+        });
+
         it('should reject hack job if target not at SNAPSHOT+ scan level', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
@@ -205,7 +217,7 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(1);
@@ -313,12 +325,13 @@ describe('SignalsJobManager', () => {
         });
     });
 
+    // A scan job takes `scanBaseDuration` (20s) at best, while a contact in range self-promotes
+    // UFO -> BASIC after TIER1_DWELL_SECONDS (5s). Scan jobs only cover the UFO -> BASIC tier;
+    // levels beyond BASIC come exclusively from the line-of-sight promotion cycle.
     describe('scan job effects', () => {
         it('should upgrade scan level UFO -> BASIC on success', () => {
-            const { shipMgr, spaceMgr, die, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0;
-            // close transponder so passive tier-1 promotion does not promote during the job
-            targetObj.transponderOpen = false;
 
             queueJob(shipMgr, JobType.SCAN, 'target1');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
@@ -343,17 +356,22 @@ describe('SignalsJobManager', () => {
         });
 
         it('should not change scan level on failure', () => {
-            const { shipMgr, spaceMgr, die, targetObj } = createTestSetup();
+            // a non-ship target sits outside both passive promotion paths (tier-1 dwell is
+            // ships-only, line-of-sight promotion needs BASIC+), isolating the job's own effect
+            const { shipMgr, spaceMgr, die } = createTestSetup();
             die.expectedRoll = 0.99;
-            // close transponder so passive tier-1 promotion does not interfere with this test
-            targetObj.transponderOpen = false;
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            spaceMgr.insert(rock);
+            spaceMgr.forceFlushEntities();
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
-            runTicks(shipMgr, spaceMgr, 25, 20, 0.05);
+            queueJob(shipMgr, JobType.SCAN, 'rock1');
+            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            expect(shipMgr.state.signals.jobs.length).to.equal(1);
 
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            runTicks(shipMgr, spaceMgr, 45, 20, 0.1);
+
+            expect(spaceMgr.getScanLevel('rock1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
         });
     });
 
@@ -364,12 +382,12 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.COMPROMISED);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
         });
 
         it('should expire hack after hackEffectDuration (managed by victim)', () => {
@@ -378,16 +396,16 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             let t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.COMPROMISED);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
 
             // Victim's manager should expire the hack
             t = runTicksBoth(shipMgr, targetMgr, spaceMgr, 160, 10, t);
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.OK);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
         it('should expire hack even if attacker ship no longer updates', () => {
@@ -396,11 +414,11 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             let t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.COMPROMISED);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
 
             // Only tick the TARGET (simulates attacker destroyed/gone)
             const iterations = Math.ceil(160 * 10);
@@ -412,7 +430,7 @@ describe('SignalsJobManager', () => {
                 spaceMgr.update(id);
             }
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.OK);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
         it('should not change target system on failure', () => {
@@ -421,12 +439,12 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
 
             runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
 
-            expect(targetMgr.state.radar.hacked).to.equal(HackLevel.OK);
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
         it('should enforce hack cooldown', () => {
@@ -435,131 +453,14 @@ describe('SignalsJobManager', () => {
 
             spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, 0.05);
             const t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radar');
+            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
             tick(shipMgr, spaceMgr, 0.05, t);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
-        });
-    });
-
-    describe('track management', () => {
-        it('should add target to trackedTargets', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(1);
-            expect(shipMgr.state.signals.trackedTargets[0]).to.equal('target1');
-        });
-
-        it('should register tracked target in SpaceManager', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(spaceMgr.isTrackedByFaction('target1', Faction.Gravitas)).to.equal(true);
-        });
-
-        it('should remove target on deactivateTrack', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            shipMgr.state.signals.deactivateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(0);
-            expect(spaceMgr.isTrackedByFaction('target1', Faction.Gravitas)).to.equal(false);
-        });
-
-        it('should reject if already tracking max targets', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-
-            for (let i = 2; i <= 4; i++) {
-                const obj = new Spaceship();
-                obj.id = `target${i}`;
-                obj.faction = Faction.Raiders;
-                obj.position = Vec2.make({ x: 500 * i, y: 0 });
-                spaceMgr.insert(obj);
-            }
-
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            for (let i = 1; i <= 4; i++) {
-                spaceMgr.setScanLevel(`target${i}`, Faction.Gravitas, ScanLevel.BASIC);
-            }
-
-            for (let i = 1; i <= 3; i++) {
-                shipMgr.state.signals.activateTrackTargetId = `target${i}`;
-                tick(shipMgr, spaceMgr, 0.05, 0.15 + 0.05 * i);
-            }
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(3);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target4';
-            tick(shipMgr, spaceMgr, 0.05, 0.4);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(3);
-        });
-
-        it('should auto-remove tracked target if destroyed', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(1);
-
-            spaceMgr.destroyObject(targetObj.id);
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(0);
-        });
-
-        it('should auto-remove tracked target if out of range', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            shipMgr.state.signals.activateTrackTargetId = 'target1';
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(1);
-
-            targetObj.position.x = 100_000;
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.trackedTargets.length).to.equal(0);
-        });
-
-        it('should make tracked target visible via canScan even without LOS', () => {
-            const { spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            // Register track directly (bypass command to test SpaceManager integration)
-            spaceMgr.setTrack('ship1', Faction.Gravitas, 'target1', true);
-
-            // canScan should return true for tracked target in range
-            expect(spaceMgr.canScan('ship1', 'target1')).to.equal(true);
-        });
-
-        it('should include tracked targets in getFactionVisibleObjects', () => {
-            const { spaceMgr } = createTestSetup();
-
-            spaceMgr.setTrack('ship1', Faction.Gravitas, 'target1', true);
-
-            const visible = spaceMgr.getFactionVisibleObjects(Faction.Gravitas);
-            const visibleIds = [...visible].map((o) => o.id);
-            expect(visibleIds).to.include('target1');
         });
     });
 
@@ -630,9 +531,9 @@ describe('SignalsJobManager', () => {
     });
 
     describe('tier-1 passive scan promotion', () => {
-        it('promotes UFO contact to BASIC after 5 continuous seconds in range with open transponder', () => {
+        it('promotes UFO contact to BASIC after 5 continuous seconds in range', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-            // targetObj.transponderOpen defaults to true; target1 is at (1000, 0), within radarRange 10,000
+            // target1 is at (1000, 0), inside the omni sector's 10,000 reach
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
             // 4.9 seconds in range – not yet promoted
@@ -642,15 +543,6 @@ describe('SignalsJobManager', () => {
             // 0.2 more seconds – crosses 5-second threshold
             runTicks(shipMgr, spaceMgr, 0.2, 20, 4.95);
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
-        });
-
-        it('does not promote if transponder is closed', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-            targetObj.transponderOpen = false;
-
-            // 6 seconds in range – transponder closed, promotion blocked
-            runTicks(shipMgr, spaceMgr, 6, 20, 0.05);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
         });
 
         it('resets dwell timer when contact leaves range', () => {
