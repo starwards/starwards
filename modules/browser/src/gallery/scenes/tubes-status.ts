@@ -44,6 +44,28 @@ export const tubesStatusScenes: Record<string, Scene> = {
         },
     },
 
+    'tubes-status-cluster': {
+        name: 'tubes-status-cluster',
+        description: 'Tubes status panel with cluster missiles loaded and warhead modes picked',
+        setup(container: HTMLElement) {
+            const ship = makeShipState('player', dragonflySF22);
+            let armPen = true;
+            for (const tube of ship.tubes.values()) {
+                tube.projectile = 'ClusterMissile';
+                tube.loadedProjectile = 'ClusterMissile';
+                tube.loading = 1;
+                tube.loadAmmo = true;
+                tube.clusterWarhead = armPen ? 'ArmPen' : 'Frag';
+                armPen = !armPen;
+            }
+
+            const mockContainer = createMockContainer(container, 350, 400);
+            const mockShipDriver = createMockShipDriver(ship);
+
+            drawTubesStatus(mockContainer, mockShipDriver as never);
+        },
+    },
+
     'tubes-status-loading': {
         name: 'tubes-status-loading',
         description: 'Tubes status panel with loading in progress',

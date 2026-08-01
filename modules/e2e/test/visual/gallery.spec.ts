@@ -51,6 +51,7 @@ const scenes = [
     'tubes-status-empty',
     'tubes-status-loaded',
     'tubes-status-loading',
+    'tubes-status-cluster',
     // Warp
     'warp-idle',
     'warp-jammed',
