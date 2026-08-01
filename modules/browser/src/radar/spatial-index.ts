@@ -13,7 +13,7 @@ export function getSpatialIndex(driver: SpaceDriver): SpatialIndex {
     return index;
 }
 
-export class SpatialIndex {
+class SpatialIndex {
     private collisions = new System(1);
     private collisionToId = new WeakMap<Body, string>();
     private stateToCollisions = new Map<string, Body>();

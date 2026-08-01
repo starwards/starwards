@@ -165,7 +165,6 @@ test.describe('My Screen', () => {
 
         await gameDriver.gameManager.startGame(single_ship);
         await navigateToScreen(page, `/my-screen.html?ship=${shipId}`);
-        await waitForCriticalElement(page);
     });
 
     test.afterEach(async ({ page }) => {
@@ -180,7 +179,6 @@ test.describe('My Screen', () => {
 - **setupPageErrorHandlers()** - Detects page crashes and errors early, failing fast instead of hanging
 - **navigateToScreen()** - Navigates with proper timeout and error handling, detects ECONNREFUSED
 - **cleanupPageState()** - Removes listeners, clears timers/intervals between tests
-- **waitForCriticalElement()** - Waits with crash detection (optional, more robust than standard waits)
 
 **Configuration:**
 
@@ -197,7 +195,6 @@ test.describe('My Screen', () => {
 
 // test-infrastructure.ts defaults
 navigateToScreen: 5000ms         // Navigation should be fast
-waitForCriticalElement: 10000ms  // Critical elements
 ```
 
 **Why This Matters:**

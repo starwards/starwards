@@ -16,7 +16,7 @@ export type ManeuveringDesign = {
     damage50: number;
 };
 
-export class ManeuveringDesignState extends DesignState implements ManeuveringDesign {
+class ManeuveringDesignState extends DesignState implements ManeuveringDesign {
     @gameField('float32') rotationCapacity = 0;
     @gameField('float32') rotationEnergyCost = 0;
     @gameField('float32') maxAfterBurnerFuel = 0;

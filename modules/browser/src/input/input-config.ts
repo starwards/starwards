@@ -55,29 +55,6 @@ export interface RangeConfig {
     /** the range wraps around instead of stopping at its edges — for bearings and other angles */
     circular?: boolean;
 }
-export interface ShipInputConfig {
-    tubeIsFiring?: string | GamepadButtonConfig;
-    chainGunIsFiring?: string | GamepadButtonConfig;
-    target?: string | GamepadButtonConfig;
-    clearTarget?: string | GamepadButtonConfig;
-    afterBurner?: string | GamepadButtonConfig;
-    antiDrift?: string | GamepadButtonConfig;
-    breaks?: string | GamepadButtonConfig;
-    rotationMode?: string | GamepadButtonConfig;
-    maneuveringMode?: string | GamepadButtonConfig;
-    warpUp?: string | GamepadButtonConfig;
-    warpDown?: string | GamepadButtonConfig;
-    dock?: string | GamepadButtonConfig;
-    // ranges
-    rotationCommand?: RangeConfig;
-    resetRotatioTargetOffset?: string | GamepadButtonConfig;
-    strafeCommand?: RangeConfig;
-    boostCommand?: RangeConfig;
-    shellRange?: RangeConfig;
-    radarDirection?: RangeConfig;
-    radarArc?: RangeConfig;
-}
-
 export const shipInputConfig = {
     // buttons
     tubeIsFiring: 'x',

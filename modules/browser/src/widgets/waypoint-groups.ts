@@ -6,7 +6,7 @@ import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 import { writeProp } from '../property-wrappers';
 
-export type WaypointGroupsPanel = {
+type WaypointGroupsPanel = {
     addGroup: (collection: string) => void;
     removeGroup: (collection: string) => void;
 };

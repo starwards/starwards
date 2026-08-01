@@ -1,9 +1,9 @@
 import $ from 'jquery';
 import { EventEmitter } from 'eventemitter3';
 
-export type EventType = 'resize' | 'destroy';
+type EventType = 'resize' | 'destroy';
 
-export interface MockWidgetContainer {
+interface MockWidgetContainer {
     on(type: EventType, fn: () => unknown): void;
     off(type: EventType, fn: () => unknown): void;
     readonly width: number;

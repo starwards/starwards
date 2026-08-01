@@ -7,7 +7,7 @@ import { SelectionContainer } from './selection-container';
 import { readProp } from '../property-wrappers';
 import { tacticalDrawWaypoints } from './blips/blip-renderer';
 
-export const DEFAULT_GROUP_NAME = 'waypoints';
+const DEFAULT_GROUP_NAME = 'waypoints';
 
 export function groupDisplayName(collection: string) {
     return collection ? `waypoints: ${collection}` : DEFAULT_GROUP_NAME;

@@ -16,7 +16,7 @@ export type MagazineDesign = {
     capacityDamageFactor: number;
 };
 
-export class MagazineDesignState extends DesignState implements MagazineDesign {
+class MagazineDesignState extends DesignState implements MagazineDesign {
     @gameField('float32') damage50 = 0;
     @gameField('uint16') max_HiExpShell = 0;
     @gameField('uint16') max_ArmPenShell = 0;
