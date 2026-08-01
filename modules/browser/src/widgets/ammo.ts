@@ -21,7 +21,7 @@ export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Ammunition');
-    for (const group of ammoGroups) {
+    for (const group of ammoGroups(shipDriver.state.magazine.design)) {
         const groupFolder = pane.addFolder({ title: group.title, expanded: true });
         panelCleanup.add(() => groupFolder.dispose());
         for (const projectileKey of group.ammo) {
