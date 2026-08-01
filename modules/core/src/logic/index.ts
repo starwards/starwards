@@ -1,4 +1,5 @@
 export * from './docking-target';
+export * from './faction-intel-manager';
 export * from './field-of-view';
 export * from './formulas';
 export * from './hash';
