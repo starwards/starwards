@@ -61,7 +61,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Scan probes | Probes (Relay) | Designed | Mobile sensors extending vision |
 | Science database | — | Planned | Ship/object reference data |
 | Full spectrum scan | — | Skip | Scan levels provide sufficient depth |
-| — | Hack jobs | Partial | No EE equivalent; active cyber warfare |
+| — | Hack jobs | Planned | No EE equivalent; active cyber warfare ([#1899](https://github.com/starwards/starwards/issues/1899)) |
 | — | Track jobs | Designed | Persistent target following |
 
 ## Navigation & Movement
