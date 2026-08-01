@@ -1,4 +1,5 @@
 import {
+    Asteroid,
     Faction,
     HackLevel,
     PowerLevel,
@@ -19,7 +20,7 @@ import { expect } from 'chai';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
-function createTestSetup() {
+function createTestSetup(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     const spaceMgr = new SpaceManager();
     const shipObj = new Spaceship();
     shipObj.id = 'ship1';
@@ -31,7 +32,6 @@ function createTestSetup() {
     spaceMgr.insert(shipObj);
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-    shipMgr.state.signals.power = PowerLevel.MAX;
 
     // Create a target ship within radar range
     const targetObj = new Spaceship();
@@ -53,6 +53,9 @@ function createTestSetup() {
     shipMgr.state.signals.power = PowerLevel.MAX;
     // Flush entities so ships are in state before first update
     spaceMgr.forceFlushEntities();
+    if (targetScanLevel !== ScanLevel.UFO) {
+        spaceMgr.setScanLevel(targetObj.id, shipObj.faction, targetScanLevel);
+    }
     // Warmup tick to establish radar range and FOV
     const warmupId = { deltaSeconds: 0.05, deltaSecondsAvg: 0.05, totalSeconds: 0.05 };
     shipMgr.update(warmupId);
@@ -62,402 +65,465 @@ function createTestSetup() {
     return { spaceMgr, shipObj, shipMgr, die, targetObj, targetMgr, targetDie, ships };
 }
 
-function queueJob(shipMgr: ShipManagerPc, jobType: JobType, targetId: string, hackSystemName = '') {
-    shipMgr.state.signals.queueJobType = jobType;
+function submitHackJob(shipMgr: ShipManagerPc, targetId: string, hackSystemName: string) {
     shipMgr.state.signals.queueJobTargetId = targetId;
     shipMgr.state.signals.queueJobHackSystemName = hackSystemName;
     shipMgr.state.signals.submitJobCommand = true;
 }
 
-function tick(shipMgr: ShipManagerPc, spaceMgr: SpaceManager, deltaSeconds: number, totalSeconds: number) {
-    const id = { deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds };
-    shipMgr.update(id);
-    spaceMgr.update(id);
+function scanJobs(shipMgr: ShipManagerPc) {
+    return shipMgr.state.signals.jobs.filter((job) => job.jobType === JobType.SCAN);
 }
 
-function tickBoth(
-    shipMgr: ShipManagerPc,
-    targetMgr: ShipManagerPc,
-    spaceMgr: SpaceManager,
-    deltaSeconds: number,
-    totalSeconds: number,
-) {
+function hackJobs(shipMgr: ShipManagerPc) {
+    return shipMgr.state.signals.jobs.filter((job) => job.jobType === JobType.HACK);
+}
+
+function tick(spaceMgr: SpaceManager, deltaSeconds: number, totalSeconds: number, ...shipMgrs: ShipManagerPc[]) {
     const id = { deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds };
-    shipMgr.update(id);
-    targetMgr.update(id);
+    for (const shipMgr of shipMgrs) {
+        shipMgr.update(id);
+    }
     spaceMgr.update(id);
 }
 
 function runTicks(
-    shipMgr: ShipManagerPc,
     spaceMgr: SpaceManager,
     durationSeconds: number,
     ticksPerSecond: number,
-    startTotalSeconds = 0,
+    startTotalSeconds: number,
+    ...shipMgrs: ShipManagerPc[]
 ) {
     const iterations = Math.ceil(durationSeconds * ticksPerSecond);
     const dt = durationSeconds / iterations;
     for (let i = 0; i < iterations; i++) {
-        const totalSeconds = startTotalSeconds + (i + 1) * dt;
-        tick(shipMgr, spaceMgr, dt, totalSeconds);
+        tick(spaceMgr, dt, startTotalSeconds + (i + 1) * dt, ...shipMgrs);
     }
     return startTotalSeconds + durationSeconds;
 }
 
-function runTicksBoth(
-    shipMgr: ShipManagerPc,
-    targetMgr: ShipManagerPc,
-    spaceMgr: SpaceManager,
-    durationSeconds: number,
-    ticksPerSecond: number,
-    startTotalSeconds = 0,
-) {
-    const iterations = Math.ceil(durationSeconds * ticksPerSecond);
-    const dt = durationSeconds / iterations;
-    for (let i = 0; i < iterations; i++) {
-        const totalSeconds = startTotalSeconds + (i + 1) * dt;
-        tickBoth(shipMgr, targetMgr, spaceMgr, dt, totalSeconds);
+function fillHackQueue(shipMgr: ShipManagerPc, spaceMgr: SpaceManager, count: number) {
+    for (let i = 0; i < count; i++) {
+        submitHackJob(shipMgr, 'target1', 'radars/0');
+        tick(spaceMgr, 0.01, 0.1 + 0.01 * (i + 1), shipMgr);
     }
-    return startTotalSeconds + durationSeconds;
 }
 
 describe('SignalsJobManager', () => {
-    describe('queueJob', () => {
-        it('should queue a scan job successfully', () => {
+    describe('auto-managed scan jobs', () => {
+        it('auto-creates a scan job for a visible contact below FULL, active immediately', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(1);
-            expect(shipMgr.state.signals.jobs[0].jobType).to.equal(JobType.SCAN);
-            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('target1');
+            const jobs = scanJobs(shipMgr);
+            expect(jobs.length).to.equal(1);
+            expect(jobs[0].targetId).to.equal('target1');
+            expect(jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
         });
 
-        it('should set first job to in_progress immediately', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('does not create a scan job for a target already at FULL', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
-        it('should keep subsequent jobs as queued', () => {
+        it('does not duplicate the scan job for a target', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            runTicks(spaceMgr, 1, 20, 0.05, shipMgr);
+
+            expect(scanJobs(shipMgr).length).to.equal(1);
+        });
+
+        it('drops the scan job when the target leaves the field of view', () => {
+            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            expect(scanJobs(shipMgr).length).to.equal(1);
+
+            targetObj.position.x = 100_000;
+            tick(spaceMgr, 0.05, 0.15, shipMgr);
+
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+        });
+
+        it('climbs the ladder passively: UFO -> BASIC -> FULL, 5 seconds of unbroken sight per tier', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            runTicks(spaceMgr, 4.5, 20, 0.05, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            runTicks(spaceMgr, 1.5, 20, 4.55, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+
+            runTicks(spaceMgr, 6, 20, 6.05, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            // at FULL there is nothing left to scan
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+        });
+
+        it('re-promotes a SNAPSHOT target back to FULL after 5 seconds of sight', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
+
+            runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+        });
+
+        it('promotion is deterministic — succeeds even on the worst die roll', () => {
+            const { shipMgr, spaceMgr, die } = createTestSetup();
+            die.expectedRoll = 0.99;
+
+            runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+
+        it('losing sight resets scan progress — promotion needs 5 fresh seconds after re-entry', () => {
+            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+
+            let t = runTicks(spaceMgr, 3, 20, 0.05, shipMgr);
+            targetObj.position.x = 100_000;
+            t = runTicks(spaceMgr, 0.5, 20, t, shipMgr);
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+
+            targetObj.position.x = 1000;
+            t = runTicks(spaceMgr, 4, 20, t, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+
+            runTicks(spaceMgr, 2, 20, t, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+
+        it('scans non-ship contacts too', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            spaceMgr.insert(rock);
+            spaceMgr.forceFlushEntities();
+
+            runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
+            expect(spaceMgr.getScanLevel('rock1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+    });
+
+    describe('hack job submission', () => {
+        it('queues a hack behind the active scan job', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.15, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(2);
+            expect(shipMgr.state.signals.jobs[0].jobType).to.equal(JobType.SCAN);
             expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+            expect(shipMgr.state.signals.jobs[1].jobType).to.equal(JobType.HACK);
             expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
         });
 
-        it('should reject job if queue is full', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('rejects a hack when the queue is full', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
 
-            for (let i = 0; i < shipMgr.state.signals.design.maxJobs; i++) {
-                queueJob(shipMgr, JobType.SCAN, 'target1');
-                tick(shipMgr, spaceMgr, 0.01, 0.01 * (i + 1));
-            }
+            fillHackQueue(shipMgr, spaceMgr, shipMgr.state.signals.design.maxJobs);
             expect(shipMgr.state.signals.jobs.length).to.equal(9);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.01, 0.1);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.01, 0.3, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(9);
         });
 
-        it('should reject job if target does not exist', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('rejects a hack on a target that does not exist', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
 
-            queueJob(shipMgr, JobType.SCAN, 'nonexistent');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(0);
-        });
-
-        it('should reject scan job if target already at ADVANCED scan level', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            submitHackJob(shipMgr, 'nonexistent', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
-        it('should reject a hack job whose system name has trailing segments', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('rejects a hack whose system name has trailing segments', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0/hacked');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0/hacked');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+            expect(hackJobs(shipMgr).length).to.equal(0);
         });
 
-        it('should reject hack job if target not at scan level 2', () => {
+        it('rejects a hack if the target is not at SNAPSHOT+ scan level', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+            expect(hackJobs(shipMgr).length).to.equal(0);
         });
 
-        it('should accept hack job when target is at scan level 2', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('accepts a hack when the target is at SNAPSHOT scan level', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(1);
-            expect(shipMgr.state.signals.jobs[0].jobType).to.equal(JobType.HACK);
+            expect(hackJobs(shipMgr).length).to.equal(1);
         });
 
-        it('should reject hack job without valid system name', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+        it('rejects a hack without a valid system name', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'invalidSystem');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            submitHackJob(shipMgr, 'target1', 'invalidSystem');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+            expect(hackJobs(shipMgr).length).to.equal(0);
         });
 
-        it('should reset command fields after processing', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('resets command fields after processing', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             expect(shipMgr.state.signals.submitJobCommand).to.equal(false);
-            expect(shipMgr.state.signals.queueJobType).to.equal(-1);
             expect(shipMgr.state.signals.queueJobTargetId).to.equal('');
+            expect(shipMgr.state.signals.queueJobHackSystemName).to.equal('');
         });
     });
 
     describe('cancelJob', () => {
-        it('should remove a queued job by id', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('removes a queued hack job by id', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.15, shipMgr);
+            expect(hackJobs(shipMgr).length).to.equal(1);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            shipMgr.state.signals.cancelJobId = hackJobs(shipMgr)[0].id;
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
 
-            const secondJobId = shipMgr.state.signals.jobs[1].id;
-            shipMgr.state.signals.cancelJobId = secondJobId;
-            tick(shipMgr, spaceMgr, 0.05, 0.15);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(1);
+            expect(hackJobs(shipMgr).length).to.equal(0);
         });
 
-        it('should promote next job when active job is cancelled', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('cancelling the active scan job sends it to the back and activates the next job', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.15, shipMgr);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            shipMgr.state.signals.cancelJobId = scanJobs(shipMgr)[0].id;
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
 
-            const activeJobId = shipMgr.state.signals.jobs[0].id;
-            shipMgr.state.signals.cancelJobId = activeJobId;
-            tick(shipMgr, spaceMgr, 0.05, 0.15);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(1);
+            // the hack takes over; the scan job re-enters at the end of the queue with fresh progress
+            expect(shipMgr.state.signals.jobs[0].jobType).to.equal(JobType.HACK);
             expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+            expect(shipMgr.state.signals.jobs[1].jobType).to.equal(JobType.SCAN);
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[1].progress).to.equal(0);
         });
     });
 
-    describe('job execution', () => {
-        it('should advance progress over time', () => {
+    describe('prioritizeJob', () => {
+        it('moves a queued job to the top and makes it the active job', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            spaceMgr.insert(rock);
+            spaceMgr.forceFlushEntities();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            tick(spaceMgr, 0.05, 0.15, shipMgr);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            const rockJob = scanJobs(shipMgr).find((job) => job.targetId === 'rock1');
+            expect(rockJob?.status).to.equal(JobStatus.QUEUED);
 
-            const initialProgress = shipMgr.state.signals.jobs[0].progress;
+            shipMgr.state.signals.prioritizeJobId = rockJob?.id ?? '';
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
 
-            runTicks(shipMgr, spaceMgr, 5, 20, 0.05);
-
-            expect(shipMgr.state.signals.jobs[0].progress).to.be.greaterThan(initialProgress);
-        });
-
-        it('should complete job and start next in queue', () => {
-            const { shipMgr, spaceMgr, die } = createTestSetup();
-            die.expectedRoll = 0;
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(2);
-
-            runTicks(shipMgr, spaceMgr, 25, 20, 0.1);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(1);
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
             expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+            expect(shipMgr.state.signals.jobs[1].targetId).to.equal('target1');
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
+        });
+    });
+
+    describe('prioritized jobs', () => {
+        function setupWithRock() {
+            const setup = createTestSetup();
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            setup.spaceMgr.insert(rock);
+            setup.spaceMgr.forceFlushEntities();
+            tick(setup.spaceMgr, 0.05, 0.1, setup.shipMgr);
+            tick(setup.spaceMgr, 0.05, 0.15, setup.shipMgr);
+            return { ...setup, rock };
+        }
+
+        function prioritize(shipMgr: ShipManagerPc, spaceMgr: SpaceManager, targetId: string, totalSeconds: number) {
+            const job = scanJobs(shipMgr).find((j) => j.targetId === targetId);
+            shipMgr.state.signals.prioritizeJobId = job?.id ?? '';
+            tick(spaceMgr, 0.05, totalSeconds, shipMgr);
+        }
+
+        it('prioritizing on top of a prioritized job keeps its place but resets its progress', () => {
+            const { shipMgr, spaceMgr } = setupWithRock();
+
+            prioritize(shipMgr, spaceMgr, 'target1', 0.2);
+            runTicks(spaceMgr, 2, 20, 0.2, shipMgr);
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('target1');
+            expect(shipMgr.state.signals.jobs[0].progress).to.be.greaterThan(0);
+
+            prioritize(shipMgr, spaceMgr, 'rock1', 2.25);
+
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
+            expect(shipMgr.state.signals.jobs[1].targetId).to.equal('target1');
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[1].progress).to.equal(0);
         });
 
-        it('should remove job if target moves out of range', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+        it('prioritized jobs survive sight loss dormant and resume in the same order', () => {
+            const { shipMgr, spaceMgr, targetObj, rock } = setupWithRock();
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            expect(shipMgr.state.signals.jobs.length).to.equal(1);
+            prioritize(shipMgr, spaceMgr, 'rock1', 0.2);
+            prioritize(shipMgr, spaceMgr, 'target1', 0.25);
+            expect(shipMgr.state.signals.jobs.map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
 
             targetObj.position.x = 100_000;
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            rock.position.y = 100_000;
+            const t = runTicks(spaceMgr, 1, 20, 0.25, shipMgr);
 
-            expect(shipMgr.state.signals.jobs.length).to.equal(0);
-        });
-    });
+            // both jobs lie dormant, in place
+            expect(shipMgr.state.signals.jobs.map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
 
-    // A scan job takes `scanBaseDuration` (20s) at best, while a contact in range self-promotes
-    // UFO -> BASIC after TIER1_DWELL_SECONDS (5s), so only the BASIC -> ADVANCED tier is reachable
-    // by a job. These cases start from BASIC, where passive promotion no longer applies.
-    describe('scan job effects', () => {
-        it('should upgrade scan level BASIC -> ADVANCED on success', () => {
-            const { shipMgr, spaceMgr, die } = createTestSetup();
-            die.expectedRoll = 0;
+            targetObj.position.x = 1000;
+            rock.position.y = 1000;
+            runTicks(spaceMgr, 0.5, 20, t, shipMgr);
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            runTicks(shipMgr, spaceMgr, 45, 20, 0.05);
-
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.ADVANCED);
+            expect(shipMgr.state.signals.jobs.map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.IN_PROGRESS);
         });
 
-        it('should not change scan level on failure', () => {
-            const { shipMgr, spaceMgr, die } = createTestSetup();
-            die.expectedRoll = 0.99;
+        it('a dormant prioritized job does not block later jobs', () => {
+            const { shipMgr, spaceMgr, rock } = setupWithRock();
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
+            prioritize(shipMgr, spaceMgr, 'rock1', 0.2);
+            rock.position.y = 100_000;
+            runTicks(spaceMgr, 6, 20, 0.25, shipMgr);
 
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            runTicks(shipMgr, spaceMgr, 45, 20, 0.05);
-
+            // the dormant rock job holds its place at the top while the target1 scan works
+            expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.QUEUED);
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
     });
 
+    describe('pause', () => {
+        it('jobsPaused halts all job progress until cleared', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+
+            shipMgr.state.signals.jobsPaused = true;
+            const progressBefore = shipMgr.state.signals.jobs[0].progress;
+            runTicks(spaceMgr, 3, 20, 0.1, shipMgr);
+            expect(shipMgr.state.signals.jobs[0].progress).to.equal(progressBefore);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+
+            shipMgr.state.signals.jobsPaused = false;
+            runTicks(spaceMgr, 6, 20, 3.1, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+    });
+
+    describe('job execution', () => {
+        it('advances progress over time', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+
+            const initialProgress = shipMgr.state.signals.jobs[0].progress;
+            runTicks(spaceMgr, 2, 20, 0.1, shipMgr);
+
+            expect(shipMgr.state.signals.jobs[0].progress).to.be.greaterThan(initialProgress);
+        });
+    });
+
     describe('hack job effects', () => {
-        it('should set target system hacked to COMPROMISED on success', () => {
-            const { shipMgr, spaceMgr, die, targetMgr } = createTestSetup();
+        it('sets the target system hacked to COMPROMISED on success', () => {
+            const { shipMgr, spaceMgr, die, targetMgr } = createTestSetup(ScanLevel.FULL);
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
+            runTicks(spaceMgr, 50, 20, 0.1, shipMgr);
 
             expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
         });
 
-        it('should expire hack after hackEffectDuration (managed by victim)', () => {
-            const { shipMgr, targetMgr, spaceMgr, die } = createTestSetup();
+        it('expires the hack after hackEffectDuration (managed by victim)', () => {
+            const { shipMgr, targetMgr, spaceMgr, die } = createTestSetup(ScanLevel.FULL);
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            let t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
+            let t = runTicks(spaceMgr, 50, 20, 0.1, shipMgr);
             expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
 
             // Victim's manager should expire the hack
-            t = runTicksBoth(shipMgr, targetMgr, spaceMgr, 160, 10, t);
+            t = runTicks(spaceMgr, 160, 10, t, shipMgr, targetMgr);
 
             expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
-        it('should expire hack even if attacker ship no longer updates', () => {
-            const { shipMgr, targetMgr, spaceMgr, die } = createTestSetup();
+        it('expires the hack even if the attacker ship no longer updates', () => {
+            const { shipMgr, targetMgr, spaceMgr, die } = createTestSetup(ScanLevel.FULL);
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            let t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
+            const t = runTicks(spaceMgr, 50, 20, 0.1, shipMgr);
             expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
 
             // Only tick the TARGET (simulates attacker destroyed/gone)
-            const iterations = Math.ceil(160 * 10);
-            const dt = 160 / iterations;
-            for (let i = 0; i < iterations; i++) {
-                const totalSeconds = t + (i + 1) * dt;
-                const id = { deltaSeconds: dt, deltaSecondsAvg: dt, totalSeconds };
-                targetMgr.update(id);
-                spaceMgr.update(id);
-            }
+            runTicks(spaceMgr, 160, 10, t, targetMgr);
 
             expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
-        it('should not change target system on failure', () => {
-            const { shipMgr, spaceMgr, die, targetMgr } = createTestSetup();
+        it('does not change the target system on failure', () => {
+            const { shipMgr, spaceMgr, die, targetMgr } = createTestSetup(ScanLevel.FULL);
             die.expectedRoll = 0.99;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-
-            runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
+            runTicks(spaceMgr, 50, 20, 0.1, shipMgr);
 
             expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.OK);
         });
 
-        it('should enforce hack cooldown', () => {
-            const { shipMgr, spaceMgr, die } = createTestSetup();
+        it('enforces the hack cooldown', () => {
+            const { shipMgr, spaceMgr, die } = createTestSetup(ScanLevel.FULL);
             die.expectedRoll = 0;
 
-            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.ADVANCED);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            const t = runTicks(spaceMgr, 50, 20, 0.1, shipMgr);
 
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
-            const t = runTicks(shipMgr, spaceMgr, 50, 20, 0.05);
-
-            queueJob(shipMgr, JobType.HACK, 'target1', 'radars/0');
-            tick(shipMgr, spaceMgr, 0.05, t);
+            submitHackJob(shipMgr, 'target1', 'radars/0');
+            tick(spaceMgr, 0.05, t, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
     });
 
     describe('malfunction effects', () => {
-        it('should slow job progress when effectiveness is reduced', () => {
+        it('slows job progress when effectiveness is reduced', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.05);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
             const normalDuration = shipMgr.state.signals.jobs[0].duration;
 
             shipMgr.state.signals.power = 0.5;
 
             const progressBefore = shipMgr.state.signals.jobs[0].progress;
-            tick(shipMgr, spaceMgr, 1, 1.05);
+            tick(spaceMgr, 1, 1.1, shipMgr);
             const progressAfter = shipMgr.state.signals.jobs[0].progress;
 
             const progressPerSecond = progressAfter - progressBefore;
@@ -465,7 +531,7 @@ describe('SignalsJobManager', () => {
             expect(progressPerSecond).to.be.closeTo(expectedProgressPerSecond, 0.01);
         });
 
-        it('should reduce max queue size when damaged', () => {
+        it('reduces max queue size when damaged', () => {
             const { shipMgr } = createTestSetup();
 
             expect(shipMgr.state.signals.currentMaxJobs).to.equal(9);
@@ -476,78 +542,50 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.currentMaxJobs).to.equal(3);
         });
 
-        it('should halt progress when effectiveness is zero', () => {
+        it('halts progress when effectiveness is zero', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
-
-            queueJob(shipMgr, JobType.SCAN, 'target1');
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(1);
 
             shipMgr.state.signals.power = 0;
 
             const progressBefore = shipMgr.state.signals.jobs[0].progress;
-            tick(shipMgr, spaceMgr, 5, 5.1);
+            tick(spaceMgr, 3, 3.1, shipMgr);
             const progressAfter = shipMgr.state.signals.jobs[0].progress;
 
             expect(progressAfter).to.equal(progressBefore);
         });
 
-        it('should trim excess jobs when max queue decreases', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+        it('trims excess jobs when max queue decreases', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
 
-            for (let i = 0; i < 5; i++) {
-                queueJob(shipMgr, JobType.SCAN, 'target1');
-                tick(shipMgr, spaceMgr, 0.01, 0.01 * (i + 1));
-            }
+            fillHackQueue(shipMgr, spaceMgr, 5);
             expect(shipMgr.state.signals.jobs.length).to.equal(5);
 
             shipMgr.state.signals.jobSuccessFactor = 0.3;
             shipMgr.state.signals.jobSpeedFactor = 0.3;
             expect(shipMgr.state.signals.currentMaxJobs).to.equal(1);
 
-            tick(shipMgr, spaceMgr, 0.05, 0.1);
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.be.at.most(1);
         });
-    });
 
-    describe('tier-1 passive scan promotion', () => {
-        it('promotes UFO contact to BASIC after 5 continuous seconds in range', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-            // target1 is at (1000, 0), inside the omni sector's 10,000 reach
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+        it('trimming evicts non-prioritized jobs before prioritized ones', () => {
+            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
 
-            // 4.9 seconds in range – not yet promoted
-            runTicks(shipMgr, spaceMgr, 4.9, 20, 0.05);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            fillHackQueue(shipMgr, spaceMgr, 5);
+            const prioritizedJob = shipMgr.state.signals.jobs[2];
+            shipMgr.state.signals.prioritizeJobId = prioritizedJob.id;
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
 
-            // 0.2 more seconds – crosses 5-second threshold
-            runTicks(shipMgr, spaceMgr, 0.2, 20, 4.95);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
-        });
+            shipMgr.state.signals.jobSuccessFactor = 0.3;
+            shipMgr.state.signals.jobSpeedFactor = 0.3;
+            tick(spaceMgr, 0.05, 0.25, shipMgr);
 
-        it('resets dwell timer when contact leaves range', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
-
-            // 3 seconds in range – timer at 3, not yet promoted
-            runTicks(shipMgr, spaceMgr, 3, 20, 0.05);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
-
-            // move out of range – timer resets
-            targetObj.position.x = 20000;
-            tick(shipMgr, spaceMgr, 0.1, 3.15);
-
-            // move back in range
-            targetObj.position.x = 1000;
-
-            // 4.9 seconds since re-entry – timer reset, not yet promoted
-            runTicks(shipMgr, spaceMgr, 4.9, 20, 3.25);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
-
-            // 0.2 more seconds – completes 5 seconds of continuous in-range dwell
-            runTicks(shipMgr, spaceMgr, 0.2, 20, 8.15);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(shipMgr.state.signals.jobs.length).to.equal(1);
+            expect(shipMgr.state.signals.jobs[0].id).to.equal(prioritizedJob.id);
         });
     });
 });

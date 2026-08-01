@@ -1,7 +1,15 @@
-import { applyRadarSectors, dragonflySF22, makeShipState, setOmniRadarSector } from '@starwards/core';
+import {
+    JobStatus,
+    SignalsJob,
+    applyRadarSectors,
+    dragonflySF22,
+    makeShipState,
+    setOmniRadarSector,
+} from '@starwards/core';
 import { createMockAsteroid, createMockShip, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
 
 import { Scene } from './index';
+import { SignalsJobsLayer } from '../../radar/signals-jobs-layer';
 import { createMockContainer } from '../mocks/container';
 import { createMockShipDriver } from '../mocks/ship-driver';
 import { drawLongRangeRadar } from '../../widgets/long-range-radar';
@@ -201,6 +209,48 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             return await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: 250_000,
             });
+        },
+    },
+
+    'long-range-radar-job-indicators': {
+        name: 'long-range-radar-job-indicators',
+        description: 'Long range radar with a scan-progress ring on the active job target and queue-order markers',
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 0);
+
+            const scanned = createMockShip({
+                id: 'scanned-1',
+                position: { x: 20000, y: -10000 },
+                angle: 180,
+                faction: 1,
+            });
+            const next1 = createMockAsteroid({ id: 'next-1', position: { x: -15000, y: 15000 }, radius: 600 });
+            const next2 = createMockShip({ id: 'next-2', position: { x: 5000, y: 25000 }, angle: 90, faction: 1 });
+
+            const makeJob = (targetId: string, status: JobStatus, progress: number) => {
+                const job = new SignalsJob();
+                job.id = `job-${targetId}`;
+                job.targetId = targetId;
+                job.status = status;
+                job.progress = progress;
+                job.duration = 5;
+                return job;
+            };
+            playerShip.signals.jobs.push(
+                makeJob('scanned-1', JobStatus.IN_PROGRESS, 0.65),
+                makeJob('next-1', JobStatus.QUEUED, 0),
+                makeJob('next-2', JobStatus.QUEUED, 0),
+            );
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, scanned, next1, next2]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            const root = await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: DEFAULT_RANGE,
+            });
+            root.addLayer(new SignalsJobsLayer(root, mockSpaceDriver as never, mockShipDriver as never).renderRoot);
+            return root;
         },
     },
 

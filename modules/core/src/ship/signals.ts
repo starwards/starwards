@@ -1,8 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
-import { JobType, SignalsJob } from './signals-job';
 import { commandable, gameField } from '../game-field';
 
 import { ArraySchema } from '@colyseus/schema';
+import { SignalsJob } from './signals-job';
 import { range } from '../range';
 
 export type SignalsDesign = {
@@ -11,23 +11,19 @@ export type SignalsDesign = {
     damage50: number;
     maxJobs: number;
     scanBaseDuration: number;
-    scanAdvancedFactor: number;
     hackBaseDuration: number;
     hackEffectDuration: number;
     hackCooldown: number;
-    scanBaseSuccessRate: number;
     hackBaseSuccessRate: number;
 };
 
 export class SignalsDesignState extends DesignState implements SignalsDesign {
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxJobs = 9;
-    @gameField('float32') scanBaseDuration = 20;
-    @gameField('float32') scanAdvancedFactor = 2;
+    @gameField('float32') scanBaseDuration = 5;
     @gameField('float32') hackBaseDuration = 45;
     @gameField('float32') hackEffectDuration = 150;
     @gameField('float32') hackCooldown = 60;
-    @gameField('float32') scanBaseSuccessRate = 0.8;
     @gameField('float32') hackBaseSuccessRate = 0.6;
 }
 
@@ -59,10 +55,10 @@ export class Signals extends SystemState {
     @gameField([SignalsJob])
     jobs = new ArraySchema<SignalsJob>();
 
-    // Command properties (set by client via JSON pointer, consumed by manager on tick)
-    @commandable()
-    public queueJobType: JobType | -1 = -1;
-
+    /**
+     * Command properties (set by client via JSON pointer, consumed by manager on tick).
+     * Scan jobs are auto-managed; submission is for hack jobs only.
+     */
     @commandable()
     public queueJobTargetId = '';
 
@@ -75,7 +71,15 @@ export class Signals extends SystemState {
     @commandable()
     public cancelJobId = '';
 
-    // Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks
+    /** Move a job to the top of the queue, making it the active job. */
+    @commandable()
+    public prioritizeJobId = '';
+
+    /** Halts progress on all jobs while set (resource management); the queue itself keeps updating. */
+    @commandable()
+    public jobsPaused = false;
+
+    /** Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks. */
     get currentMaxJobs(): number {
         if (this.broken) {
             return 0;

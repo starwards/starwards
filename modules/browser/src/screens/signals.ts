@@ -18,7 +18,9 @@ import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
 import { SelectionContainer } from '../radar/selection-container';
+import { SignalsJobsLayer } from '../radar/signals-jobs-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
+import { drawSignalsJobs } from '../widgets/signals-jobs';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { readWriteNumberProp } from '../property-wrappers';
@@ -63,7 +65,15 @@ async function initScreen(driver: Driver, shipId: string) {
     const stationTarget = new SelectionContainer().init(spaceDriver);
     const zoomEvents = new EventEmitter<ZoomEvent>();
 
-    await drawLongRangeRadar(spaceDriver, shipDriver, container, { range: 50_000 }, zoomEvents, stationTarget);
+    const radar = await drawLongRangeRadar(
+        spaceDriver,
+        shipDriver,
+        container,
+        { range: 50_000 },
+        zoomEvents,
+        stationTarget,
+    );
+    radar.addLayer(new SignalsJobsLayer(radar, spaceDriver, shipDriver).renderRoot);
 
     drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
     const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
@@ -75,6 +85,8 @@ async function initScreen(driver: Driver, shipId: string) {
     if (scanBeam) {
         drawScanBeamControls(container.subContainer(VPos.BOTTOM, HPos.RIGHT), shipDriver, scanBeam.pointer);
     }
+    // drawn last so its buttons stack above earlier fixed-position panes
+    drawSignalsJobs(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, spaceDriver, stationTarget);
     wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
 }
 
