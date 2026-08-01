@@ -10,8 +10,9 @@ const gameDriver = makeDriver(test);
 
 async function waitForRadarReady(page: Page) {
     await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
-    // Ensure the page has received the ship state before pressing keys
-    await page.waitForTimeout(500);
+    // Scan Beam only renders once initScreen has awaited both drivers and wired input,
+    // so its visibility is proof the page is ready for keypresses (not an arbitrary sleep).
+    await expect(page.locator('[data-id="Scan Beam"]')).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Signals Screen', () => {
@@ -132,17 +133,33 @@ test.describe('Signals Screen', () => {
         expect(await getPropertyValue(page, 'Type', 'Target')).toEqual('UFO');
     });
 
-    test('paused toggle halts all jobs via /signals/jobsPaused', async ({ page }) => {
+    test('paused toggle halts job progress via /signals/jobsPaused', async ({ page }) => {
         const panel = page.locator('[data-id="Signals Jobs"]');
         await expect(panel).toBeVisible({ timeout: 10000 });
 
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push({
+            position: { x: 1000, y: 0 },
+            radius: 50,
+        });
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length > 0,
+            5000,
+        );
+
         expect(gameDriver.getShip(shipId).state.signals.jobsPaused).toBe(false);
-        // the tweakpane checkbox input itself is invisible; click its styled wrapper
-        await panel.locator('.tp-ckbv_w').click();
+        // the checkbox input itself is positioned off-screen by Tweakpane's styling; its
+        // clickable wrapper is the parent element. Anchoring on role="checkbox" (a stable
+        // web-platform selector) instead of a Tweakpane class name survives internal DOM changes
+        await panel.getByRole('checkbox').locator('..').click();
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
             (ship) => ship.state.signals.jobsPaused,
             3000,
         );
+
+        const progressAtPause = gameDriver.getShip(shipId).state.signals.jobs[0].progress;
+        await page.waitForTimeout(1000);
+        expect(gameDriver.getShip(shipId).state.signals.jobs[0].progress).toEqual(progressAtPause);
     });
 });

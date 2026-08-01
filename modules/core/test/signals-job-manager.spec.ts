@@ -20,7 +20,7 @@ import { expect } from 'chai';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
 
-function createTestSetup(targetScanLevel: ScanLevel = ScanLevel.UFO) {
+function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     const spaceMgr = new SpaceManager();
     const shipObj = new Spaceship();
     shipObj.id = 'ship1';
@@ -103,7 +103,7 @@ function fillQueueWithRocks(spaceMgr: SpaceManager, count: number) {
 describe('SignalsJobManager', () => {
     describe('auto-managed scan jobs', () => {
         it('auto-creates a scan job for a visible contact below FULL, active immediately', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             const jobs = scanJobs(shipMgr);
@@ -113,7 +113,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('does not create a scan job for a target already at FULL', () => {
-            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
             tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
@@ -123,8 +123,8 @@ describe('SignalsJobManager', () => {
         // so auto-discovery (unconditional, not time-scaled like the rest of this manager) must
         // be gated explicitly or crew "notice" new contacts while the simulation is frozen.
         it('does not auto-create a scan job while paused (deltaSeconds=0)', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
-            // the warmup tick in createTestSetup already discovers the visible target; drop it
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
+            // the warmup tick in shipWithContactInSight already discovers the visible target; drop it
             // to pin the "not yet discovered" state a paused tick must not re-discover it from
             shipMgr.state.signals.jobs.splice(0);
 
@@ -134,14 +134,14 @@ describe('SignalsJobManager', () => {
         });
 
         it('does not duplicate the scan job for a target', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             runTicks(spaceMgr, 1, 20, 0.05, shipMgr);
 
             expect(scanJobs(shipMgr).length).to.equal(1);
         });
 
         it('drops the scan job when the target leaves the field of view', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, targetObj } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             expect(scanJobs(shipMgr).length).to.equal(1);
 
@@ -152,7 +152,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('climbs the ladder passively: UFO -> BASIC -> FULL, 5 seconds of unbroken sight per tier', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
 
             runTicks(spaceMgr, 4.5, 20, 0.05, shipMgr);
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
@@ -167,14 +167,14 @@ describe('SignalsJobManager', () => {
         });
 
         it('re-promotes a SNAPSHOT target back to FULL after 5 seconds of sight', () => {
-            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.SNAPSHOT);
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
             expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
         });
 
         it('promotion is deterministic — succeeds even on the worst die roll', () => {
-            const { shipMgr, spaceMgr, die } = createTestSetup();
+            const { shipMgr, spaceMgr, die } = shipWithContactInSight();
             die.expectedRoll = 0.99;
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
@@ -182,7 +182,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('losing sight resets scan progress — promotion needs 5 fresh seconds after re-entry', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, targetObj } = shipWithContactInSight();
 
             let t = runTicks(spaceMgr, 3, 20, 0.05, shipMgr);
             targetObj.position.x = 100_000;
@@ -198,7 +198,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('scans non-ship contacts to BASIC and no further — a rock has no systems to reveal', () => {
-            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
             spaceMgr.insert(rock);
             spaceMgr.forceFlushEntities();
@@ -210,7 +210,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('does not let a field of rocks hold the queue — every slot frees up once identified', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             fillQueueWithRocks(spaceMgr, 3);
 
             runTicks(spaceMgr, 30, 20, 0.05, shipMgr);
@@ -221,7 +221,7 @@ describe('SignalsJobManager', () => {
 
     describe('dormant jobs', () => {
         it('marks a job whose target is out of sight DORMANT, so no client calls it next up', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, targetObj } = shipWithContactInSight();
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
             spaceMgr.insert(rock);
             spaceMgr.forceFlushEntities();
@@ -242,7 +242,7 @@ describe('SignalsJobManager', () => {
 
     describe('cancelJob', () => {
         it('cancelling the active job activates the next one and re-queues the cancelled job at the back', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
             spaceMgr.insert(rock);
             spaceMgr.forceFlushEntities();
@@ -261,7 +261,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('cancelling a job whose target is out of sight leaves the queue empty', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, targetObj } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             expect(scanJobs(shipMgr).length).to.equal(1);
 
@@ -275,7 +275,7 @@ describe('SignalsJobManager', () => {
 
     describe('prioritizeJob', () => {
         it('moves a queued job to the top and makes it the active job', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
             spaceMgr.insert(rock);
             spaceMgr.forceFlushEntities();
@@ -297,7 +297,7 @@ describe('SignalsJobManager', () => {
 
     describe('prioritized jobs', () => {
         function setupWithRock() {
-            const setup = createTestSetup();
+            const setup = shipWithContactInSight();
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
             setup.spaceMgr.insert(rock);
             setup.spaceMgr.forceFlushEntities();
@@ -367,7 +367,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('a prioritized scan is a standing order: it survives promotion and resumes on demotion', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup(ScanLevel.SNAPSHOT);
+            const { shipMgr, spaceMgr, targetObj } = shipWithContactInSight(ScanLevel.SNAPSHOT);
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             prioritize(shipMgr, spaceMgr, 'target1', 0.15);
 
@@ -388,7 +388,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('a standing order ends when its target is destroyed', () => {
-            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            const { shipMgr, spaceMgr, targetObj } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             prioritize(shipMgr, spaceMgr, 'target1', 0.15);
 
@@ -409,7 +409,7 @@ describe('SignalsJobManager', () => {
 
     describe('pause', () => {
         it('jobsPaused halts all job progress until cleared', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             shipMgr.state.signals.jobsPaused = true;
@@ -426,7 +426,7 @@ describe('SignalsJobManager', () => {
 
     describe('job execution', () => {
         it('advances progress over time', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             const initialProgress = shipMgr.state.signals.jobs[0].progress;
@@ -440,7 +440,7 @@ describe('SignalsJobManager', () => {
     // hand for a scripted event. The job pipeline must leave that value alone.
     describe('hacked systems', () => {
         it('leaves a hand-set hack level untouched while jobs run', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             shipMgr.state.radars[0].hacked = HackLevel.COMPROMISED;
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
@@ -452,7 +452,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('does not clear a hack level on the target of a job', () => {
-            const { shipMgr, spaceMgr, targetMgr } = createTestSetup();
+            const { shipMgr, spaceMgr, targetMgr } = shipWithContactInSight();
             targetMgr.state.radars[0].hacked = HackLevel.COMPROMISED;
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
@@ -463,7 +463,7 @@ describe('SignalsJobManager', () => {
 
     describe('malfunction effects', () => {
         it('slows job progress when effectiveness is reduced', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             const normalDuration = shipMgr.state.signals.jobs[0].duration;
 
@@ -479,7 +479,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('reduces max queue size when damaged', () => {
-            const { shipMgr } = createTestSetup();
+            const { shipMgr } = shipWithContactInSight();
 
             expect(shipMgr.state.signals.currentMaxJobs).to.equal(9);
 
@@ -490,7 +490,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('halts progress when effectiveness is zero', () => {
-            const { shipMgr, spaceMgr } = createTestSetup();
+            const { shipMgr, spaceMgr } = shipWithContactInSight();
             tick(spaceMgr, 0.05, 0.1, shipMgr);
 
             expect(shipMgr.state.signals.jobs.length).to.equal(1);
@@ -505,7 +505,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('trims excess jobs when max queue decreases', () => {
-            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
 
             fillQueueWithRocks(spaceMgr, 5);
             tick(spaceMgr, 0.05, 0.1, shipMgr);
@@ -521,7 +521,7 @@ describe('SignalsJobManager', () => {
         });
 
         it('trimming evicts non-prioritized jobs before prioritized ones', () => {
-            const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
 
             fillQueueWithRocks(spaceMgr, 5);
             tick(spaceMgr, 0.05, 0.1, shipMgr);
