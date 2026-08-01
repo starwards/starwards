@@ -20,6 +20,54 @@ const panelContainer = document.getElementById('panel-container')!;
 const params = new URLSearchParams(window.location.search);
 let currentSceneName = params.get('scene');
 
+/**
+ * Runs the scene's setup with `setInterval` disarmed. A gallery scene is a still frame of a frozen
+ * ship, but Tweakpane graph monitors poll their binding on an interval, so the trace they draw grows
+ * with the wall-clock time between building the pane and screenshotting it. Widgets that plot a value
+ * would render differently on every visit.
+ */
+async function setupStillFrame(scene: Scene) {
+    const liveSetInterval = window.setInterval;
+    window.setInterval = (() => 0) as unknown as typeof window.setInterval;
+    try {
+        return await scene.setup(container);
+    } finally {
+        window.setInterval = liveSetInterval;
+    }
+}
+
+/**
+ * Shrinks the container onto what the scene actually drew. The visual tests screenshot this element,
+ * so anything outside it is untestable and anything inside it that is not the widget only dilutes the
+ * comparison: a widget taller than its container had the overflow cropped out of the frame entirely,
+ * and every scene padded the rest of the 1000px-wide flex row with inert background.
+ */
+function fitContainerToRendering() {
+    const children = Array.from(container.children).map((child) => child.getBoundingClientRect());
+    if (!children.length) {
+        return;
+    }
+    const width = Math.max(...children.map((r) => r.right)) - Math.min(...children.map((r) => r.left));
+    const height = Math.max(...children.map((r) => r.bottom)) - Math.min(...children.map((r) => r.top));
+    container.style.flex = '0 0 auto';
+    container.style.width = `${Math.ceil(width)}px`;
+    container.style.height = `${Math.ceil(height)}px`;
+}
+
+/**
+ * Displaces the scene's rendered output by `?perturb=<pixels>`, so the visual tests can prove they
+ * detect a change in the widget they cover. Zero (the default) leaves the scene untouched.
+ */
+function perturbRendering() {
+    const offset = Number(params.get('perturb'));
+    if (!offset) {
+        return;
+    }
+    for (const child of Array.from(container.children)) {
+        (child as HTMLElement).style.transform = `translate(${offset}px, ${offset}px)`;
+    }
+}
+
 function buildSceneSelector() {
     sceneListDiv.style.display = 'none';
 
@@ -88,7 +136,9 @@ async function loadScene() {
     document.title = `${currentSceneName} — Starwards Gallery`;
 
     try {
-        const app = await scene.setup(container);
+        const app = await setupStillFrame(scene);
+        fitContainerToRendering();
+        perturbRendering();
         window.__PIXI_SCENE__ = scene;
         if (app) {
             window.__PIXI_APP__ = app;

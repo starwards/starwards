@@ -158,6 +158,10 @@ jobs:
               if: steps.changes.outputs.code == 'true'
             - run: xvfb-run npm run test:widgets
               if: steps.changes.outputs.code == 'true'
+            # Proves those snapshot assertions can still fail. Without it a scene can quietly stop
+            # testing anything and every run stays green.
+            - run: xvfb-run npm run test:widgets:sensitivity
+              if: steps.changes.outputs.code == 'true'
             - name: Upload snapshot diffs
               uses: actions/upload-artifact@v4
               if: failure()

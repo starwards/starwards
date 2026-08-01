@@ -59,12 +59,23 @@ const scenes = [
     'warp-active',
 ];
 
+// Set by scripts/check-gallery-sensitivity.mjs to displace every scene's rendering, proving these
+// assertions can fail. Unset in a normal run.
+const perturb = process.env.GALLERY_PERTURB;
+
+// The gallery renders deterministically: two consecutive runs of all 43 scenes differ by zero pixels
+// at threshold 0, so a scene may not differ from its baseline at all. The small threshold only
+// absorbs sub-perceptual colour drift between machines; it is far below the delta of real text and
+// artwork against these dark backgrounds, which the previous 0.2 discarded wholesale.
+const snapshotTolerance = { maxDiffPixels: 0, threshold: 0.05 };
+
 test.describe('Visual Gallery', () => {
     test.describe.configure({ mode: 'parallel' });
 
     for (const scene of scenes) {
         test(`${scene} renders correctly`, async ({ page }) => {
-            await page.goto(`${gameDriver.baseURL}/gallery.html?scene=${scene}`);
+            const perturbation = perturb ? `&perturb=${perturb}` : '';
+            await page.goto(`${gameDriver.baseURL}/gallery.html?scene=${scene}${perturbation}`);
             await page.waitForFunction(
                 () => (window as unknown as { __PIXI_READY__: boolean }).__PIXI_READY__ === true,
                 { timeout: 10000 },
@@ -72,11 +83,7 @@ test.describe('Visual Gallery', () => {
             await page.waitForTimeout(100);
             const container = page.locator('#container');
             await expect(container).toBeVisible();
-            const maxDiff = scene.includes('radar') ? 2000 : 200;
-            await expect(container).toHaveScreenshot(`${scene}.png`, {
-                maxDiffPixels: maxDiff,
-                threshold: 0.2,
-            });
+            await expect(container).toHaveScreenshot(`${scene}.png`, snapshotTolerance);
         });
     }
 

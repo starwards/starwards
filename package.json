@@ -45,6 +45,7 @@
         "test:all": "npm run test:format && npm run test:types && npm run test && npm run test:e2e",
         "test:e2e": "playwright test --project=chromium",
         "test:widgets": "playwright test modules/e2e/test/visual/gallery.spec.ts --project=chromium-headed",
+        "test:widgets:sensitivity": "node scripts/check-gallery-sensitivity.mjs --project=chromium-headed",
         "test:format": "npm run prettier && npm run lint",
         "test:types": "tsc --noEmit --skipLibCheck",
         "depcheck": "depcruise --config .dependency-cruiser.cjs modules",

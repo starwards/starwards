@@ -20,6 +20,7 @@ npm run test:e2e -- modules/e2e/test/visual/specific.spec.ts
 npm run test:e2e -- --update-snapshots   # Update snapshots locally
 npm run snapshots:ci                     # Update CI (linux) snapshots via docker — very slow
 npm run test:widgets                     # Gallery visual tests, headed chromium
+npm run test:widgets:sensitivity         # Prove every gallery scene still fails on a 1px change
 
 # Development — one command (cross-platform: core watch + server + browser via concurrently)
 npm run dev

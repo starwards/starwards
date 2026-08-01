@@ -921,11 +921,25 @@ expect(value).toBe(expected);  // Will fail for floats
 # Update locally
 npm run test:e2e -- --update-snapshots
 
-# Update for CI (Linux, Docker)
+# Update for CI (Linux, Docker) — regenerates both the chromium and chromium-headed baselines
 npm run snapshots:ci
 ```
 
 **Impact**: UI changes require extra snapshot update step.
+
+**Sensitivity guard**: gallery scenes are screenshotted with `maxDiffPixels: 0` and a small threshold,
+because a tolerant comparison silently stops testing anything — a regression that shifted every row of
+the Ammunition panel differed by 19,090 pixels and still passed under the old `threshold: 0.2`.
+
+```bash
+npm run test:widgets:sensitivity        # every scene must fail when its widget moves 1px
+```
+
+The check re-runs `gallery.spec.ts` with `GALLERY_PERTURB` set, which makes `gallery.html` displace the
+scene's rendering by that many pixels; a scene that still passes is reported as insensitive. Keeping it
+green depends on scenes rendering a **still frame**: the gallery disarms `setInterval` during scene
+setup so live Tweakpane graph monitors do not animate, and sizes the screenshot frame to what the scene
+actually drew so nothing is cropped out of the assertion.
 
 ### Multi-Client Warnings
 
