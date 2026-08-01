@@ -1,6 +1,6 @@
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
 
-import { Asteroid, Destructors, Faction, shipModels } from '@starwards/core';
+import { Asteroid, Faction, shipModels } from '@starwards/core';
 import {
     CreateAsteroidTemplate,
     CreateExplosionTemplate,
@@ -10,22 +10,17 @@ import {
 } from '../radar/interactive-layer-commands';
 
 import { DashboardWidget } from './dashboard';
+import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
-import { createPane } from '../panel';
+import { createWidgetPane } from '../panel';
 
 export function createWidget(createContainer: InteractiveLayerCommands): DashboardWidget {
     class CreateRoot {
-        private pane: ReturnType<typeof createPane>;
-        private panelCleanup = new Destructors();
+        private pane: Pane;
 
         constructor(container: WidgetContainer, _: unknown) {
-            this.pane = createPane({ title: 'Create Objects', container: container.getElement().get(0) });
+            this.pane = createWidgetPane(container, 'Create Objects').pane;
             this.pane.registerPlugin(EssentialsPlugin);
-
-            this.panelCleanup.add(() => {
-                this.pane.dispose();
-            });
-            container.on('destroy', this.panelCleanup.destroy);
             // Asteroid
             const makeAsteroidFolder = this.pane.addFolder({
                 title: 'Create Asteroid',

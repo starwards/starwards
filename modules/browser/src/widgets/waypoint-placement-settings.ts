@@ -1,6 +1,5 @@
-import { addColorBlade, createPane } from '../panel';
+import { addColorBlade, createWidgetPane } from '../panel';
 
-import { Destructors } from '@starwards/core';
 import EventEmitter from 'eventemitter3';
 import { SpaceDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
@@ -24,8 +23,7 @@ export function drawPlacementSettings(
     spaceDriver: SpaceDriver,
     shipId: string,
 ): PlacementSettingsPanel {
-    const cleanup = new Destructors();
-    container.on('destroy', cleanup.destroy);
+    const { pane, cleanup } = createWidgetPane(container, 'New Waypoint');
 
     const settings: PlacementSettings = { collection: '', color: 0xffffff };
     const events = new EventEmitter<'changed'>();
@@ -40,9 +38,6 @@ export function drawPlacementSettings(
             return () => events.off('changed', cb);
         },
     });
-
-    const pane = createPane({ title: 'New Waypoint', container: container.getElement().get(0) });
-    cleanup.add(() => pane.dispose());
 
     addGroupComboBlade(pane, model('collection'), 'group', spaceDriver, shipId, cleanup.add);
     addColorBlade(pane, model('color'), { label: 'color' }, cleanup.add);

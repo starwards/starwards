@@ -1,5 +1,5 @@
 import { Destructors, HackLevel, PowerLevel, ShipDriver } from '@starwards/core';
-import { Model, addTextCellToRow, createPane } from '../panel';
+import { Model, addTextCellToRow, createWidgetPane } from '../panel';
 import { RowApi, plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { aggregate, readProp } from '../property-wrappers';
 
@@ -25,14 +25,9 @@ export function systemsStatusWidget(shipDriver: ShipDriver): DashboardWidget {
 const totalWidth = 370;
 const cellWidth = 50;
 export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDriver, systems = shipDriver.systems) {
-    const panelCleanup = new Destructors();
-    const pane = createPane({ title: 'Systems Status', container: container.getElement().get(0) });
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Systems Status');
     container.getElement().width(`${totalWidth}px`);
     pane.registerPlugin(TweakpaneTablePlugin);
-    panelCleanup.add(() => {
-        pane.dispose();
-    });
-    container.on('destroy', panelCleanup.destroy);
     pane.addBlade({
         view: 'tableHead',
         label: '',

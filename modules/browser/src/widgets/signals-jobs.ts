@@ -1,5 +1,5 @@
 import { Destructors, JobStatus, ShipDriver, SignalsJob, SpaceDriver } from '@starwards/core';
-import { addBarBlade, addButton, addInputBlade, addTextBlade, createPane } from '../panel';
+import { addBarBlade, addButton, addInputBlade, addTextBlade, createWidgetPane } from '../panel';
 import { objectDisplayName, playerScanLevel } from '../space-object-intel';
 import { readNumberProp, readProp, readWriteProp, writeProp } from '../property-wrappers';
 
@@ -25,10 +25,7 @@ export function drawSignalsJobs(
     spaceDriver: SpaceDriver,
     stationTarget: SelectionContainer,
 ) {
-    const panelCleanup = new Destructors();
-    const pane = createPane({ title: 'Signals Jobs', container: container.getElement().get(0) });
-    panelCleanup.add(() => pane.dispose());
-    container.on('destroy', panelCleanup.destroy);
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Signals Jobs');
 
     const jobs = () => shipDriver.state.signals.jobs;
     const activeJobIndex = () => jobs().findIndex((job) => job.status === JobStatus.IN_PROGRESS);

@@ -20,6 +20,7 @@ import {
     getTweakables,
     spaceCommands,
 } from '@starwards/core';
+import { FolderApi, Pane } from 'tweakpane';
 import {
     OnChange,
     abstractOnChange,
@@ -36,11 +37,10 @@ import {
     addSearchListBlade,
     addSliderBlade,
     addTextBlade,
-    createPane,
+    createWidgetPane,
 } from '../panel';
 
 import { DashboardWidget } from './dashboard';
-import { FolderApi } from 'tweakpane';
 import { Schema } from '@colyseus/schema';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
@@ -327,19 +327,17 @@ function addDesignFolder(
 
 export function tweakWidget(driver: Driver, selectionContainer: SelectionContainer): DashboardWidget {
     class TweakRoot {
-        private pane: ReturnType<typeof createPane>;
+        private pane: Pane;
         private selectionCleanup = new Destructors();
         private spaceDriver: SpaceDriver | null = null;
-        private panelCleanup = new Destructors();
+        private panelCleanup: Destructors;
 
         constructor(container: WidgetContainer, _: unknown) {
-            this.pane = createPane({ title: 'Tweaks', container: container.getElement().get(0) });
+            const { pane, cleanup } = createWidgetPane(container, 'Tweaks');
+            this.pane = pane;
+            this.panelCleanup = cleanup;
             this.pane.registerPlugin(CamerakitPlugin);
             this.pane.registerPlugin(SearchListPlugin);
-            this.panelCleanup.add(() => {
-                this.pane.dispose();
-            });
-            container.on('destroy', this.panelCleanup.destroy);
             const optionsFolder = this.pane.addFolder({
                 title: 'Select Options',
                 expanded: true,

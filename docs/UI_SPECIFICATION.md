@@ -936,8 +936,8 @@ The Input screen provides real-time visualization of gamepad inputs. Used for te
 
 #### Panel Creation
 ```typescript
-const pane = createPane({ title: 'Panel Title', container: element });
-pane.element.dataset.id = 'Panel Title'; // For E2E testing
+const { pane, cleanup } = createWidgetPane(container, 'Panel Title');
+// the pane's element gets data-id="Panel Title" for E2E testing
 ```
 
 #### Property Binding
@@ -1034,10 +1034,9 @@ input.addMomentaryClickAction(writeProp(shipDriver, '/path'), 'key');
 
 #### Lifecycle
 ```typescript
-const cleanup = new Destructors();
-const pane = createPane({ title: 'Panel', container });
-cleanup.add(() => pane.dispose());
-container.on('destroy', cleanup.destroy);
+// cleanup runs when the container is destroyed; disposing the pane is already registered on it
+const { pane, cleanup } = createWidgetPane(container, 'Panel');
+cleanup.add(() => stopSomething());
 ```
 
 ---

@@ -187,7 +187,7 @@ Filter on scan level. Type filters are legitimate only above `BASIC`, where the 
 | Float precision in tests | `toBeCloseTo(expected, 1)`                                                                                                                                                               |
 | Angle wrapping           | `toPositiveDegreesDelta()`                                                                                                                                                               |
 | Zero velocity check      | `XY.isZero(velocity, 0.01)`                                                                                                                                                              |
-| Tweakpane panels         | `createPane({ title, container })` not `new Pane()`                                                                                                                                      |
+| Tweakpane panels         | `createWidgetPane(container, title)` not `new Pane()`                                                                                                                                    |
 | E2E panel selectors      | `page.locator('[data-id="Panel Name"]')`                                                                                                                                                 |
 | Multiple same labels     | `getPropertyValue(page, 'label', 'PanelTitle')` to scope                                                                                                                                 |
 | State not persisting     | Modify `spaceObject`, not `ship.state` (see sync pattern)                                                                                                                                |
@@ -230,7 +230,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/) for non-triv
 
 1. **New Objects**: Extend `SpaceObjectBase`
 2. **New Systems**: Extend `SystemState`, add `@gameField` to ShipState
-3. **New Widgets**: Use `createPane({ title, container })` for Tweakpane panels
+3. **New Widgets**: Use `createWidgetPane(container, title)` for Tweakpane panels
 4. **New Commands**: Define `StateCommand`, register in room, create sender
 
 ## Node Requirements

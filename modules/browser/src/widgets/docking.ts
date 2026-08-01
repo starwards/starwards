@@ -1,5 +1,5 @@
-import { Destructors, DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget } from '@starwards/core';
-import { addListBlade, addTextBlade, createPane } from '../panel';
+import { DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget } from '@starwards/core';
+import { addListBlade, addTextBlade, createWidgetPane } from '../panel';
 import { propertyStub, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -21,10 +21,7 @@ export function dockingWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver):
     };
 }
 export function drawDockingStatus(container: WidgetContainer, spaceDriver: SpaceDriver, shipDriver: ShipDriver) {
-    const cleanup = new Destructors();
-    const pane = createPane({ title: 'Docking', container: container.getElement().get(0) });
-    cleanup.add(() => pane.dispose());
-    container.on('destroy', cleanup.destroy);
+    const { pane, cleanup } = createWidgetPane(container, 'Docking');
     addTextBlade(pane, readProp(shipDriver, '/docking/targetId'), { label: 'Current Target' }, cleanup.add);
     const options = Object.values(DockingMode)
         .filter<number>((k): k is number => typeof k === 'number')

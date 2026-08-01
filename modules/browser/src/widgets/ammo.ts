@@ -1,5 +1,5 @@
-import { Destructors, ShipDriver, ammoDesigns, ammoTypes } from '@starwards/core';
-import { addTextBlade, createPane } from '../panel';
+import { ShipDriver, ammoDesigns, ammoTypes } from '@starwards/core';
+import { addTextBlade, createWidgetPane } from '../panel';
 import { aggregate, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -19,10 +19,7 @@ export function ammoWidget(shipDriver: ShipDriver): DashboardWidget {
     };
 }
 export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDriver) {
-    const panelCleanup = new Destructors();
-    const pane = createPane({ title: 'Ammunition', container: container.getElement().get(0) });
-    panelCleanup.add(() => pane.dispose());
-    container.on('destroy', panelCleanup.destroy);
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Ammunition');
     for (const projectileKey of ammoTypes) {
         const countProp = readProp<number>(shipDriver, `/magazine/count_${projectileKey}`);
         const maxProp = readProp<number>(shipDriver, `/magazine/design/max_${projectileKey}`);
