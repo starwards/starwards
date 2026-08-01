@@ -43,5 +43,8 @@
         "tweakpane4-search-list-plugin": "^2.0.3",
         "webfontloader": "^1.6.28",
         "xstate": "^5.32.4"
+    },
+    "devDependencies": {
+        "esbuild": "^0.25.12"
     }
 }

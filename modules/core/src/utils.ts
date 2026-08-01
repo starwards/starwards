@@ -1,3 +1,5 @@
+import { ArraySchema } from '@colyseus/schema';
+
 // https://stackoverflow.com/a/59459000/11813
 export const getKeys = Object.keys as <T extends object>(obj: T) => Array<keyof T>;
 interface EventEmitter<T extends string> {
@@ -84,13 +86,7 @@ export function printError(err: unknown): string {
     }
 }
 
-/**
- * `Array.prototype.findLastIndex` with its native signature, including the `-1` miss result.
- * Colyseus collections delegate the call to their backing array at runtime, but declare it as
- * `(...args: any[]) => any`, which erases both the callback argument and the result. This wrapper
- * restores the types for arrays and Colyseus collections alike.
- */
-export function findLastIndex<T>(items: ArrayLike<T>, predicate: (item: T) => boolean): number {
+export function findLastIndex<T>(items: readonly T[] | ArraySchema<T>, predicate: (item: T) => boolean): number {
     return (items as unknown as { findLastIndex(p: (item: T) => boolean): number }).findLastIndex(predicate);
 }
 

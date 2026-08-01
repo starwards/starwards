@@ -1,29 +1,12 @@
 import { IterationData, Updateable } from '../updateable';
 import { JobStatus, SignalsJob } from './signals-job';
 
-import { ArraySchema } from '@colyseus/schema';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
 import { Spaceship } from '../space';
 import { findLastIndex } from '../utils';
 import { makeId } from '../id';
-
-/**
- * The job to evict when the queue shrinks: the last waiting unprioritized job, then the last
- * waiting prioritized one, and the active job only when nothing else is left.
- */
-function evictionIndex(jobs: ArraySchema<SignalsJob>): number {
-    const waitingUnprioritized = findLastIndex(jobs, (job) => !job.prioritized && job.status !== JobStatus.IN_PROGRESS);
-    if (waitingUnprioritized >= 0) {
-        return waitingUnprioritized;
-    }
-    const waiting = findLastIndex(jobs, (job) => job.status !== JobStatus.IN_PROGRESS);
-    if (waiting >= 0) {
-        return waiting;
-    }
-    return jobs.length - 1;
-}
 
 export class SignalsJobManager implements Updateable {
     constructor(
@@ -91,7 +74,14 @@ export class SignalsJobManager implements Updateable {
     private trimExcessJobs(): void {
         const jobs = this.state.signals.jobs;
         while (jobs.length > this.state.signals.currentMaxJobs) {
-            jobs.splice(evictionIndex(jobs), 1);
+            const waitingUnprioritized = findLastIndex(
+                jobs,
+                (job) => !job.prioritized && job.status !== JobStatus.IN_PROGRESS,
+            );
+            const waiting = findLastIndex(jobs, (job) => job.status !== JobStatus.IN_PROGRESS);
+            const evictIndex =
+                waitingUnprioritized >= 0 ? waitingUnprioritized : waiting >= 0 ? waiting : jobs.length - 1;
+            jobs.splice(evictIndex, 1);
         }
     }
 

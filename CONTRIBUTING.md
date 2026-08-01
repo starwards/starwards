@@ -32,7 +32,7 @@ Utility scripts are stored in the `scripts` folder:
 
 ### Installing and running commands
 
-To install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installed. node.js should be at version 24.0.0 at least (see `.nvmrc`) and npm should be at version 10.9.0 at least (see `engines` in `package.json`).
+To install a development environment, you need to have [node.js](https://nodejs.org/en/download/), and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installed. node.js should be at the version pinned in `.nvmrc` (or newer) and npm should be at version 10.9.0 at least (see `engines` in `package.json`).
 Then, `git clone` this repository locally and make sure you can run the following:
 
 ```sh
