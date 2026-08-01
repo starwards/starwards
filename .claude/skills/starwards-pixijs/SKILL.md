@@ -775,22 +775,6 @@ const canvas = page.locator('[data-id="Tactical Radar"]');
 const zoom = await canvas.getAttribute('data-zoom');
 ```
 
-### RadarDriver Pattern
-
-```typescript
-class RadarDriver {
-  constructor(private canvas: Locator) {}
-
-  async getZoom() {
-    return Number(await this.canvas.getAttribute('data-zoom'));
-  }
-
-  async setZoom(target: number) {
-    await this.canvas.dispatchEvent('wheel', { deltaY: ... });
-  }
-}
-```
-
 ### Testing Considerations
 
 - No unit tests for PixiJS components (visual output)

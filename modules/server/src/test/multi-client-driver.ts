@@ -6,7 +6,7 @@ import { makeDriver } from './driver';
 /**
  * Represents a single test client connected to the game
  */
-export class TestClient {
+class TestClient {
     private client: Client;
     private adminRoom: Room<AdminState> | null = null;
     private spaceRoom: Room<SpaceState> | null = null;
@@ -175,7 +175,7 @@ export class TestClient {
 /**
  * Multi-client test driver that manages multiple clients for testing state synchronization
  */
-export class MultiClientDriver {
+class MultiClientDriver {
     private driver: ReturnType<typeof makeDriver>;
     private clients: TestClient[] = [];
 

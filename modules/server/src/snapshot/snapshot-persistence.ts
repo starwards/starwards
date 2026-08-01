@@ -12,9 +12,9 @@ const { info: logInfo, error: logError } = createLogger('server:snapshot');
 
 const mapsMap = new Map(Object.values(maps).map((m) => [m.name, m]));
 
-export const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
+const DEFAULT_SNAPSHOT_INTERVAL_MS = 5_000;
 // modules/server/.state-snapshot/ (gitignored) — works from both src/ (ts-node) and cjs/ (compiled)
-export const DEFAULT_SNAPSHOT_FILE = path.resolve(__dirname, '..', '..', '.state-snapshot', 'game-snapshot.b64');
+const DEFAULT_SNAPSHOT_FILE = path.resolve(__dirname, '..', '..', '.state-snapshot', 'game-snapshot.b64');
 
 type Env = Record<string, string | undefined>;
 

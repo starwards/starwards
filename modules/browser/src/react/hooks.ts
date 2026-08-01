@@ -1,26 +1,6 @@
 import { AdminDriver, DefectibleValue, Destructors, Driver, GameStatus, ShipDriver, TaskLoop } from '@starwards/core';
-import { DependencyList, useEffect, useRef, useState } from 'react';
+import { DependencyList, useEffect, useState } from 'react';
 import { abstractOnChange, readProp } from '../property-wrappers';
-
-export function useConstant<T>(init: () => T): T {
-    const ref = useRef<{ v: T } | null>(null);
-    if (!ref.current) {
-        ref.current = { v: init() };
-    }
-    return ref.current.v;
-}
-
-export function useSorted<T>(elements: T[]): [T[], (t: T) => void] {
-    const [sorted, setThrusters] = useState(elements);
-    const pushToEnd = useConstant(
-        () => (t: T) =>
-            setThrusters((s) => {
-                const idx = s.indexOf(t);
-                return [...s.slice(0, idx), ...s.slice(idx + 1), s[idx]];
-            }),
-    );
-    return [sorted, pushToEnd];
-}
 
 export function useAdminDriver(driver: Driver): AdminDriver | null {
     const [adminDriver, setAdminDriver] = useState<AdminDriver | null>(null);
@@ -46,7 +26,7 @@ export function usePlayerShips(driver: Driver): string[] {
     return ships;
 }
 
-export function useLoop(callback: () => unknown, intervalMs: number, deps: DependencyList) {
+function useLoop(callback: () => unknown, intervalMs: number, deps: DependencyList) {
     useEffect(() => {
         const loop = new TaskLoop(callback, intervalMs);
         loop.start();

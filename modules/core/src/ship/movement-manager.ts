@@ -29,7 +29,7 @@ type ShipManager = {
     setSmartPilotRotationMode(value: SmartPilotMode): void;
 };
 
-export const CHECK_JAM_INTERVAL_SECONDS = 5;
+const CHECK_JAM_INTERVAL_SECONDS = 5;
 export class MovementManager implements Updateable {
     private lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
     private calibrationGoal = WarpFrequency.WARP_FREQUENCY_COUNT;

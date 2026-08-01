@@ -3,6 +3,7 @@ import { EPSILON, RTuple2, archIntersection } from '../logic/formulas';
 export enum ShipArea {
     front,
     rear,
+    /** @public _COUNT sentinel — never delete (UI filters entries ending _COUNT; see addEnumListBlade) */
     SHIP_AREAS_COUNT,
 }
 

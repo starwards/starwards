@@ -39,7 +39,7 @@ node -r ts-node/register/transpile-only ./modules/server/src/dev.ts  # Terminal 
 # Verification suite
 npm run test:types         # TypeScript check
 npm run test:format        # ESLint + Prettier
-npm run knip               # Dead code: unused files + dependencies (config in knip.jsonc)
+npm run knip               # Dead code: unused files, dependencies, exports, types, enum members (config in knip.jsonc)
 npm run lint:fix           # Auto-fix lint issues
 npm run test:all           # format + types + unit + e2e
 ```

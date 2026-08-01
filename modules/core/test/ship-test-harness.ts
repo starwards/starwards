@@ -156,14 +156,14 @@ export function* makeIterationsData(
     }
 }
 
-export interface CombatScenarioConfig {
+interface CombatScenarioConfig {
     shipCount: number;
     teams?: number[];
     positions?: Array<{ x: number; y: number }>;
     rotations?: number[];
 }
 
-export interface StateSnapshot {
+interface StateSnapshot {
     time: number;
     ships: Array<{
         id: string;

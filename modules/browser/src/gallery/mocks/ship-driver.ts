@@ -1,7 +1,7 @@
 import EventEmitter2 from 'eventemitter2';
 import { ShipState } from '@starwards/core';
 
-export interface MockShipDriver {
+interface MockShipDriver {
     events: EventEmitter2;
     id: string;
     state: ShipState;

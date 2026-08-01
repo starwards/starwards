@@ -2,7 +2,7 @@ import $ from 'jquery';
 import { EventEmitter } from 'eventemitter3';
 import { ResizeSensor } from 'css-element-queries';
 
-export type EventType = 'resize' | 'destroy';
+type EventType = 'resize' | 'destroy';
 
 export type WidgetContainer = ReturnType<typeof wrapWidgetContainer>;
 type Size = { width: number; height: number };

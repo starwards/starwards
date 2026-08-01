@@ -1,21 +1,5 @@
 {
     "$schema": "https://unpkg.com/knip@5/schema.json",
-    // Dead-code detection. Currently enforces unused files and dependencies;
-    // the unused-exports rules are off until the ~130 findings are triaged
-    // (public API surface, ship model configurations, react hooks), and
-    // "unlisted" is off until workspace cross-deps (@starwards/server in
-    // e2e/node-red tests, etc.) are declared in each module's package.json.
-    "rules": {
-        "exports": "off",
-        "types": "off",
-        "nsExports": "off",
-        "nsTypes": "off",
-        "enumMembers": "off",
-        "duplicates": "off",
-        "unlisted": "off",
-        // custom-typings/ tsconfig path aliases that knip cannot resolve
-        "unresolved": "off"
-    },
     "ignoreBinaries": [
         // system binary (docker compose v1 syntax in npm scripts)
         "docker-compose"
@@ -36,9 +20,21 @@
         // jest reporter, referenced by CLI flag in .github/workflows/ci-cd.yml
         "jest-junit"
     ],
+    "ignoreUnresolved": [
+        // ambient type-only packages resolved via tsconfig typeRoots (custom-typings/),
+        // which knip does not follow the way it does compilerOptions.paths
+        "mini-signals",
+        "pixi__core",
+        "pixi__filter-noise"
+    ],
     "workspaces": {
         ".": {
-            "entry": ["scripts/*.{js,mjs,sh}", ".github/k8s/*.{js,ts}", "*.{js,mjs,ts}"]
+            "entry": ["scripts/*.{js,mjs,sh}", ".github/k8s/*.{js,ts}", "*.{js,mjs,ts}"],
+            "ignoreDependencies": [
+                // custom-typings/golden-layout is an ambient module augmentation; the
+                // real dependency lives in modules/browser
+                "golden-layout"
+            ]
         },
         "modules/node-red": {
             "entry": ["src/*/*.ts", "src/**/index.ts", "rollup.config*.mjs"]

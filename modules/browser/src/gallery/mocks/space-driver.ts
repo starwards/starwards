@@ -2,7 +2,7 @@ import { Asteroid, Projectile, SpaceObject, Spaceship, Waypoint, XY } from '@sta
 
 import EventEmitter2 from 'eventemitter2';
 
-export interface MockSpaceState {
+interface MockSpaceState {
     objects: Map<string, SpaceObject>;
     get(id: string): SpaceObject | undefined;
     getShip(id: string): Spaceship | undefined;
@@ -10,7 +10,7 @@ export interface MockSpaceState {
     [Symbol.iterator](): IterableIterator<SpaceObject>;
 }
 
-export interface MockSpaceDriver {
+interface MockSpaceDriver {
     events: EventEmitter2;
     state: MockSpaceState;
     command: () => void;
