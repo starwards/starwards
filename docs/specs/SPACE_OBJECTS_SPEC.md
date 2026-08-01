@@ -97,8 +97,8 @@ public readonly radarSectors: Iterable<RadarSectorValues> = [];
 // Collision elasticity (0-1)
 public readonly collisionElasticity: number = 0.05;
 
-// Collision damage (0-1)
-public readonly collisionDamage: number = 0.5;
+// Collision damage per second of overlap
+public readonly collisionDamage: number = 10;
 
 // Physical collision enabled
 public readonly isCorporal: boolean = true;
@@ -214,13 +214,12 @@ public readonly collisionElasticity: number = 0.05;
 
 ### collisionDamage
 @property: damage-factor
-@range: [0, 1]
-@default: 0.5
+@default: 10
 
 ```typescript
-// How much overlap converts to damage
-// 0 = no damage, 1 = full damage
-public readonly collisionDamage: number = 0.5;
+// Damage dealt per second of overlap (scaled by deltaSeconds each tick,
+// so total damage-per-second is independent of server tick rate)
+public readonly collisionDamage: number = 10;
 ```
 
 ## Collision Detection
@@ -409,12 +408,14 @@ private handleCollisions(deltaSeconds: number) {
 }
 
 private handleShipMyObjectCollision(
+    deltaSeconds: number,
     ship: Spaceship,
     myObject: MyObject,
     overlap: number
 ) {
-    // Handle collision
-    const damage = overlap * myObject.collisionDamage;
+    // Handle collision — scaled by deltaSeconds so damage-per-second
+    // stays independent of server tick rate
+    const damage = overlap * myObject.collisionDamage * deltaSeconds;
     ship.health -= damage;
     
     // Apply bounce
