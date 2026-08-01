@@ -1,4 +1,4 @@
-import { Asteroid, Faction, RadarSectorValues, ScanLevel, Spaceship, Waypoint, applyRadarSectors } from '../space';
+import { Asteroid, Faction, RadarSectorValues, Spaceship, Waypoint, applyRadarSectors } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import {
     EPSILON,
@@ -16,6 +16,7 @@ import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
 import { DamageDelivery } from '../space/projectile';
+import { FactionIntelManager } from './faction-intel-manager';
 import { SWResponse } from './collisions-utils';
 import { SpaceDamageType } from '../space/damage-profile';
 import { createLogger } from '../logger';
@@ -91,8 +92,7 @@ export class SpaceManager implements Updateable {
     private cleanupBodies: Body[] = [];
     private toUpdateCollisions = new Set<SpaceObject>();
     private secondsSinceLastGC = 0;
-    // keyed by `${factionIndex}:${objectId}`
-    private scanLosSeen = new Set<string>();
+    public readonly factionIntel = new FactionIntelManager(this.state);
 
     public spatialIndex = ((mgr: SpaceManager) => ({
         *selectPotentials(area: Body): Iterable<SpaceObject> {
@@ -270,7 +270,7 @@ export class SpaceManager implements Updateable {
         this.applyPhysics(deltaSeconds);
         // consume the fields-of-view as computed for this tick BEFORE marking them dirty below,
         // so the lazy FOV cache stays dirty for ship managers to recompute against fresh positions
-        this.updateScanDemotion(totalSeconds);
+        this.factionIntel.update(totalSeconds, this.getVisibleObjectsByFaction());
         this.updateFieldsOFView();
         this.updateCollisionBodies();
         this.handleCollisions(deltaSeconds);
@@ -278,6 +278,33 @@ export class SpaceManager implements Updateable {
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
             this.gc();
         }
+    }
+
+    /**
+     * The objects each faction sees, indexed by faction. One pass over the state, as opposed to
+     * one pass per faction in getFactionVisibleObjects.
+     */
+    public getVisibleObjectsByFaction(): ReadonlyArray<ReadonlySet<SpaceObject>> {
+        const byFaction: Set<SpaceObject>[] = [];
+        for (let faction = 0; faction < Number(Faction.FACTION_COUNT); faction++) {
+            byFaction.push(new Set<SpaceObject>());
+        }
+        for (const object of this.state) {
+            const visibleObjects = byFaction[Number(object.faction)];
+            if (!visibleObjects) {
+                continue; // object belongs to no faction (Faction.NONE = -1)
+            }
+            visibleObjects.add(object);
+            const data = this.stateToExtraData.get(object);
+            if (data) {
+                for (const visibleArc of data.fov.view) {
+                    visibleArc.object && visibleObjects.add(visibleArc.object);
+                }
+            } else {
+                logError(`object leak! ${object.id} has no extra data`);
+            }
+        }
+        return byFaction;
     }
 
     public getFactionVisibleObjects(faction: Faction) {
@@ -413,7 +440,6 @@ export class SpaceManager implements Updateable {
                 this.collisions.remove(data.body);
                 this.attachments.delete(destroyed.id);
             }
-            this.clearScanLosState(destroyed.id);
         }
         for (const body of this.cleanupBodies) {
             this.collisions.remove(body);
@@ -723,38 +749,6 @@ export class SpaceManager implements Updateable {
         }
     }
 
-    /**
-     * Per-faction passive demotion: an object at FULL that leaves a faction's line of sight
-     * demotes to SNAPSHOT, capturing the moment of demotion. Promotion is driven by each
-     * ship's signals scan-job queue (SignalsJobManager).
-     */
-    private updateScanDemotion(totalSeconds: number) {
-        for (let faction: Faction = 0; faction < Faction.FACTION_COUNT; faction++) {
-            const visible = this.getFactionVisibleObjects(faction);
-            for (const object of this.state) {
-                const key = `${faction}:${object.id}`;
-                const isVisible = visible.has(object);
-                const wasVisible = this.scanLosSeen.has(key);
-                if (isVisible) {
-                    this.scanLosSeen.add(key);
-                } else {
-                    this.scanLosSeen.delete(key);
-                }
-
-                if (!isVisible && wasVisible && this.getScanLevel(object.id, faction) === ScanLevel.FULL) {
-                    this.setScanLevel(object.id, faction, ScanLevel.SNAPSHOT);
-                    this.setScanSnapshotCapturedAt(object.id, faction, totalSeconds);
-                }
-            }
-        }
-    }
-
-    private clearScanLosState(objectId: string) {
-        for (let factionIndex = 0; factionIndex < Number(Faction.FACTION_COUNT); factionIndex++) {
-            this.scanLosSeen.delete(`${factionIndex}:${objectId}`);
-        }
-    }
-
     private updateCollisionBodies() {
         for (const object of this.toUpdateCollisions) {
             if (!object.destroyed) {
@@ -770,69 +764,6 @@ export class SpaceManager implements Updateable {
         this.collisions.update();
         // reset toUpdateCollisions
         this.toUpdateCollisions.clear();
-    }
-
-    // Scan Level Management Methods
-    /**
-     * Resolves a target + faction pair to the live object and its per-faction array index.
-     * Null when the target is gone or the faction has no slot (e.g. Faction.NONE = -1).
-     */
-    private getScanSlot(targetId: string, faction: Faction): readonly [SpaceObject, number] | null {
-        const [target] = this.getObjectPtr(targetId);
-        const factionIndex = Number(faction);
-        return target && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)
-            ? [target, factionIndex]
-            : null;
-    }
-
-    /**
-     * Set scan level for target (called by job completion)
-     */
-    public setScanLevel(targetId: string, faction: Faction, level: ScanLevel): void {
-        const slot = this.getScanSlot(targetId, faction);
-        if (slot) {
-            const [target, factionIndex] = slot;
-            target.scanLevels[factionIndex] = level;
-        }
-    }
-
-    /**
-     * Get scan level for target (used by radar widgets)
-     * Returns ScanLevel.UFO (0) if not set, or at least BASIC for same-faction targets
-     */
-    public getScanLevel(targetId: string, faction: Faction): ScanLevel {
-        const slot = this.getScanSlot(targetId, faction);
-        if (!slot) {
-            return ScanLevel.UFO;
-        }
-        const [target, factionIndex] = slot;
-        const storedLevel = target.scanLevels[factionIndex] || ScanLevel.UFO;
-        // Objects from same faction have at least BASIC scan level
-        if (target.faction === faction) {
-            return Math.max(storedLevel, ScanLevel.BASIC);
-        }
-        return storedLevel;
-    }
-
-    /**
-     * Timestamp (IterationData.totalSeconds) at which the faction's SNAPSHOT view of the
-     * target was captured. 0 if the target has never demoted from FULL for this faction.
-     */
-    public getScanSnapshotCapturedAt(targetId: string, faction: Faction): number {
-        const slot = this.getScanSlot(targetId, faction);
-        if (!slot) {
-            return 0;
-        }
-        const [target, factionIndex] = slot;
-        return target.scanSnapshotCapturedAt[factionIndex] ?? 0;
-    }
-
-    private setScanSnapshotCapturedAt(targetId: string, faction: Faction, atSeconds: number): void {
-        const slot = this.getScanSlot(targetId, faction);
-        if (slot) {
-            const [target, factionIndex] = slot;
-            target.scanSnapshotCapturedAt[factionIndex] = atSeconds;
-        }
     }
 
     /**
