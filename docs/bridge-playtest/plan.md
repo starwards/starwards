@@ -81,6 +81,6 @@ Completed tasks, collapsed to unblock the tables above. Detail lives in git hist
 - **Track A (A1–A5)** — armor plate types, ammo types, full armor × ammo damage matrix, per-ammo heat-per-shot, per-ammo magazine capacity. Shipped via **PR #1932** (2026-07): 5 armor models (`armor-models.ts`), 3 shells + 6 missiles (`projectile.ts`), per-layer resolution (`damage-manager.ts`), `heatPerShot` per design, `max_*` capacity (`magazine.ts`).
 - **C1.1** — weapons-fire heat wiring. **#1930** (closes #1923); `chain-gun-manager.ts` calls `addHeat`.
 - **C1.2** — `callsign` on `Spaceship`. **#1927** (closes #1924).
-- **C1.3** — 5s in-range UFO→BASIC scan promotion. **#1933** (closes #1925). Superseded by **#1992**: promotion now runs through the auto-managed scan-job queue.
+- **C1.3** — 5s in-range UFO→BASIC scan promotion. **#1933** (closes #1925).
 - **C1.4** — ammo selection UI audit. Resolved by screenshot review 2026-05-03.
 - **C2.1–C2.5** — armor/ammo integration (PR #1932 lineage): layered `ArmorPlate`/`ArmorLayer` schema, 9 ammo types across `ammoDesigns`/`Magazine`, armor-type-aware matrix, per-ammo heat, magazine capacity.
