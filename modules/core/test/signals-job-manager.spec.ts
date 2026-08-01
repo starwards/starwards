@@ -54,7 +54,7 @@ function createTestSetup(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     // Flush entities so ships are in state before first update
     spaceMgr.forceFlushEntities();
     if (targetScanLevel !== ScanLevel.UFO) {
-        spaceMgr.setScanLevel(targetObj.id, shipObj.faction, targetScanLevel);
+        spaceMgr.factionIntel.setScanLevel(targetObj.id, shipObj.faction, targetScanLevel);
     }
     // Warmup tick to establish radar range and FOV
     const warmupId = { deltaSeconds: 0.05, deltaSecondsAvg: 0.05, totalSeconds: 0.05 };
@@ -141,13 +141,13 @@ describe('SignalsJobManager', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
 
             runTicks(spaceMgr, 4.5, 20, 0.05, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
             runTicks(spaceMgr, 1.5, 20, 4.55, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
 
             runTicks(spaceMgr, 6, 20, 6.05, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
             // at FULL there is nothing left to scan
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
@@ -156,7 +156,7 @@ describe('SignalsJobManager', () => {
             const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.SNAPSHOT);
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
         });
 
         it('promotion is deterministic — succeeds even on the worst die roll', () => {
@@ -164,7 +164,7 @@ describe('SignalsJobManager', () => {
             die.expectedRoll = 0.99;
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
         it('losing sight resets scan progress — promotion needs 5 fresh seconds after re-entry', () => {
@@ -177,10 +177,10 @@ describe('SignalsJobManager', () => {
 
             targetObj.position.x = 1000;
             t = runTicks(spaceMgr, 4, 20, t, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
             runTicks(spaceMgr, 2, 20, t, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
         it('scans non-ship contacts to BASIC and no further — a rock has no systems to reveal', () => {
@@ -190,7 +190,7 @@ describe('SignalsJobManager', () => {
             spaceMgr.forceFlushEntities();
 
             runTicks(spaceMgr, 12, 20, 0.05, shipMgr);
-            expect(spaceMgr.getScanLevel('rock1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('rock1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
             // and it gives up its queue slot instead of burning tiers that reveal nothing
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
@@ -200,7 +200,7 @@ describe('SignalsJobManager', () => {
             fillQueueWithRocks(spaceMgr, 3);
 
             runTicks(spaceMgr, 30, 20, 0.05, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
             expect(scanJobs(shipMgr).length).to.equal(0);
         });
     });
@@ -349,7 +349,7 @@ describe('SignalsJobManager', () => {
             // the dormant rock job holds its place at the top while the target1 scan works
             expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
             expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.DORMANT);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
         it('a prioritized scan is a standing order: it survives promotion and resumes on demotion', () => {
@@ -358,7 +358,7 @@ describe('SignalsJobManager', () => {
             prioritize(shipMgr, spaceMgr, 'target1', 0.15);
 
             let t = runTicks(spaceMgr, 6, 20, 0.15, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
             expect(scanJobs(shipMgr).map((j) => j.targetId)).to.deep.equal(['target1']);
             expect(scanJobs(shipMgr)[0].status).to.equal(JobStatus.DORMANT);
             expect(scanJobs(shipMgr)[0].progress).to.equal(0);
@@ -366,7 +366,7 @@ describe('SignalsJobManager', () => {
             // sight loss demotes FULL -> SNAPSHOT, and the standing order picks the scan back up
             targetObj.position.x = 100_000;
             t = runTicks(spaceMgr, 0.5, 20, t, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
 
             targetObj.position.x = 1000;
             runTicks(spaceMgr, 0.5, 20, t, shipMgr);
@@ -402,11 +402,11 @@ describe('SignalsJobManager', () => {
             const progressBefore = shipMgr.state.signals.jobs[0].progress;
             runTicks(spaceMgr, 3, 20, 0.1, shipMgr);
             expect(shipMgr.state.signals.jobs[0].progress).to.equal(progressBefore);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.UFO);
 
             shipMgr.state.signals.jobsPaused = false;
             runTicks(spaceMgr, 6, 20, 3.1, shipMgr);
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
     });
 
@@ -431,7 +431,9 @@ describe('SignalsJobManager', () => {
 
             runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
 
-            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas), 'the job still ran').to.equal(ScanLevel.BASIC);
+            expect(spaceMgr.factionIntel.getScanLevel('target1', Faction.Gravitas), 'the job still ran').to.equal(
+                ScanLevel.BASIC,
+            );
             expect(shipMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
         });
 

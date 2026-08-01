@@ -116,7 +116,7 @@ export class SignalsJobManager implements Updateable {
         }
         return (
             !Spaceship.isInstance(target) &&
-            this.spaceManager.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.BASIC
+            this.spaceManager.factionIntel.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.BASIC
         );
     }
 
@@ -129,7 +129,10 @@ export class SignalsJobManager implements Updateable {
         if (!this.spaceManager.isVisible(this.state.id, job.targetId)) {
             return false;
         }
-        return this.spaceManager.getScanLevel(job.targetId, this.state.faction) < this.scanCeiling(job.targetId);
+        return (
+            this.spaceManager.factionIntel.getScanLevel(job.targetId, this.state.faction) <
+            this.scanCeiling(job.targetId)
+        );
     }
 
     /**
@@ -187,10 +190,10 @@ export class SignalsJobManager implements Updateable {
     }
 
     private applyScanPromotion(targetId: string): void {
-        const level = this.spaceManager.getScanLevel(targetId, this.state.faction);
+        const level = this.spaceManager.factionIntel.getScanLevel(targetId, this.state.faction);
         if (level < this.scanCeiling(targetId)) {
             const next = level === ScanLevel.UFO ? ScanLevel.BASIC : ScanLevel.FULL;
-            this.spaceManager.setScanLevel(targetId, this.state.faction, next);
+            this.spaceManager.factionIntel.setScanLevel(targetId, this.state.faction, next);
         }
     }
 
@@ -218,7 +221,10 @@ export class SignalsJobManager implements Updateable {
             if (target.id === this.state.id || target.destroyed) {
                 continue;
             }
-            if (this.spaceManager.getScanLevel(target.id, this.state.faction) >= this.scanCeiling(target.id)) {
+            if (
+                this.spaceManager.factionIntel.getScanLevel(target.id, this.state.faction) >=
+                this.scanCeiling(target.id)
+            ) {
                 continue;
             }
             if (jobs.some((job) => job.targetId === target.id)) {

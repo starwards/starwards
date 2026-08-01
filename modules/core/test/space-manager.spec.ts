@@ -196,8 +196,8 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.BASIC);
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            sim.spaceMgr.factionIntel.setScanLevel(target.id, Faction.Gravitas, ScanLevel.BASIC);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
         it('should keep scan levels independent per faction', () => {
@@ -207,11 +207,11 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.SNAPSHOT);
-            sim.spaceMgr.setScanLevel(target.id, Faction.Raiders, ScanLevel.UFO);
+            sim.spaceMgr.factionIntel.setScanLevel(target.id, Faction.Gravitas, ScanLevel.SNAPSHOT);
+            sim.spaceMgr.factionIntel.setScanLevel(target.id, Faction.Raiders, ScanLevel.UFO);
 
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
         });
 
         it('should return UFO level for unset faction', () => {
@@ -221,7 +221,7 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.UFO);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.UFO);
         });
 
         it('should persist scan levels (no decay)', () => {
@@ -231,12 +231,12 @@ describe('SpaceManager', () => {
             sim.withObjects(target);
             sim.spaceMgr.forceFlushEntities();
 
-            sim.spaceMgr.setScanLevel(target.id, Faction.Gravitas, ScanLevel.SNAPSHOT);
+            sim.spaceMgr.factionIntel.setScanLevel(target.id, Faction.Gravitas, ScanLevel.SNAPSHOT);
 
             // Simulate time passing (10 minutes)
             sim.simulateUntilTime(600);
 
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
         });
 
         it('should allow scan if target in radar range', () => {
@@ -284,10 +284,10 @@ describe('SpaceManager', () => {
             sim.spaceMgr.forceFlushEntities();
 
             // Same faction should get at least BASIC, even without scanning
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Gravitas)).to.equal(ScanLevel.BASIC);
 
             // Different faction should get UFO
-            expect(sim.spaceMgr.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
+            expect(sim.spaceMgr.factionIntel.getScanLevel(target.id, Faction.Raiders)).to.equal(ScanLevel.UFO);
         });
     });
 

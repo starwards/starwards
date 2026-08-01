@@ -17,10 +17,10 @@ npm run test:e2e -- modules/e2e/test/visual/specific.spec.ts
 # (testMatch lives in playwright.config.ts, so file filters work and it runs fine from PowerShell too)
 
 # E2E snapshots
-npm run test:e2e -- --update-snapshots   # Update snapshots locally (only rewrites baselines whose test fails)
-npm run test:e2e -- --update-snapshots=all   # Rewrite every baseline — needed when the comparator itself changed
-npm run snapshots:ci                     # Update CI (linux) snapshots via docker — very slow
-npm run test:widgets                     # Gallery visual tests, headed chromium (add xvfb-run on linux)
+npm run test:e2e -- --update-snapshots       # Update snapshots locally — defaults to mode "changed"
+npm run test:e2e -- --update-snapshots=all   # Rewrite every snapshot, needed when the comparator itself changed
+npm run snapshots:ci                         # Update CI (linux) snapshots via docker — very slow
+npm run test:widgets                         # Gallery visual tests, headed chromium (add xvfb-run on linux)
 # Gallery baselines exist per project — regenerate BOTH (test:e2e and test:widgets) or the other job fails.
 # Comparator settings and the per-scene sensitivity guard: docs/testing/README.md#gallery-visual-tests
 
@@ -199,6 +199,7 @@ Filter on scan level. Type filters are legitimate only above `BASIC`, where the 
 | E2E fails at import with `Cannot read properties of undefined (reading 'constructor')` in `@colyseus/schema` | The workspace was never built, so Playwright resolves `@starwards/*` to TS source via tsconfig `paths` and transpiles `@gameField` as a standard (2023-05) decorator — colyseus expects a legacy one. Build first, as CI does: `npm run build:core && npm run build:server && npm --prefix modules/browser run build` |
 | Port in use              | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 | `room.send()` float values arrive as garbage (e.g. 0.25 → 1.08e-137) while ints and strings survive | `Packr.useBuffer()` in @colyseus/msgpackr swaps the module-level write buffer without refreshing the DataView floats are written through, and colyseus calls it from `getMessageBytes[JOIN_ROOM]` once the schema handshake outgrows the 8 KB packr buffer. `modules/core/src/serialization-buffers.ts` sizes that buffer up front to keep colyseus off the path; grow it there if the handshake ever exceeds it |
+| `--update-snapshots` leaves the baseline untouched, so a real visual change looks like "my change is not rendering" | The flag's default mode is `changed`, which only rewrites snapshots whose comparison **failed**. The gallery tests pass with `maxDiffPixels` 200 (2000 for radar) and `threshold: 0.2` (`modules/e2e/test/visual/gallery.spec.ts`), so a change under those tolerances still passes and is never written. Use `--update-snapshots=all` to force a rewrite, then read the image diff |
 | Tweakpane pane click times out, `tp-rotv_c` div intercepts pointer events | Fixed-position panes (e.g. `drawPilotStats`) have unbounded height and later-appended DOM covers earlier panes. Create the pane that must receive clicks **last** so it stacks on top |
 
 ## CI Rules
