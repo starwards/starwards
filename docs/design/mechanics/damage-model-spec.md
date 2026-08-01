@@ -2,7 +2,10 @@
 
 > **Status: as-built record.** This describes the armor × ammo damage model in the shape the
 > code implements today — spillover-based defect counts and victim selection. It is the
-> reference for reading `ship/damage-manager.ts` and `ship/armor.ts`.
+> reference for reading `ship/attack-resolution-manager.ts`, `ship/damage-manager.ts` and
+> `ship/armor.ts`. Delivery, armor engagement and the penetration/surface channel split
+> (steps 1-3 below) live in `AttackResolutionManager`; `DamageManager` consumes its resolved
+> hits and handles only step 4, the post-armor defect rolls.
 >
 > **The forward design lives in the design KB:**
 > [starwards-design `mechanics/damage-model-spec.md`](https://github.com/starwards/starwards-design/blob/main/mechanics/damage-model-spec.md).
@@ -359,7 +362,7 @@ Frag sands the externals the entire time regardless of the stack.
 | per-layer `plateMaxHealth`, layer order              | ship design (`ArmorDesign.layers`) | armor stack durability     |
 | profile scope/layer/factors, scrape strengths        | `space/damage-profile.ts`          | per-type behavior          |
 | per-round: delivery, damage, blast, homing, heat     | `space/projectile.ts`              | every ammo number          |
-| `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/damage-manager.ts`           | global scrape calibration  |
+| `SURFACE_EFFECT_FACTOR` (0.05)                       | `ship/attack-resolution-manager.ts` | global scrape calibration  |
 | `MAX_SPILLOVER_ROLLS` (20)                           | `ship/damage-manager.ts`           | spillover overkill guard   |
 | `damage50`, defect sizes                             | per-system designs                 | system toughness           |
 

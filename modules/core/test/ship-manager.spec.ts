@@ -3,6 +3,7 @@ import {
     EPSILON,
     Explosion,
     PowerLevel,
+    RTuple2,
     ShipManagerNpc,
     ShipManagerPc,
     SmartPilotMode,
@@ -20,12 +21,23 @@ import { MockDie, makeIterationsData } from './ship-test-harness';
 import { degree, float } from './properties';
 
 import { DockingMode } from '../src/ship/docking';
+import { ShipState } from '../src/ship/ship-state';
 import { ammoDesigns } from '../src/space/projectile';
 import { expect } from 'chai';
 import fc from 'fast-check';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+
+function countBrokenPlatesInRange(state: ShipState, hitRange: RTuple2): number {
+    let broken = 0;
+    for (const [, plate] of state.armor.platesInRange(hitRange)) {
+        if (plate.broken) {
+            broken++;
+        }
+    }
+    return broken;
+}
 
 describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('explosion must damage only affected areas', () => {
@@ -75,13 +87,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                         [explosionLocalAngle, explosionLocalAngle],
                         sizeOfPlate + EPSILON,
                     );
-                    //@ts-ignore : access private property
-                    const brokenTotal = shipMgr.damageManager.getNumberOfBrokenPlatesInRange([EPSILON, 360]);
+                    const brokenTotal = countBrokenPlatesInRange(shipMgr.state, [EPSILON, 360]);
                     expect(brokenTotal).to.oneOf([2, 3]);
 
-                    const brokenInsideExplosion =
-                        //@ts-ignore : access private property
-                        shipMgr.damageManager.getNumberOfBrokenPlatesInRange(expectedHitPlatesRange);
+                    const brokenInsideExplosion = countBrokenPlatesInRange(shipMgr.state, expectedHitPlatesRange);
                     expect(brokenInsideExplosion).to.equal(brokenTotal);
                     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                     expect(shipMgr.state.chainGun!.broken).to.be.false;
