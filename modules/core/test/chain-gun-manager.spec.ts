@@ -125,10 +125,9 @@ describe('ChainGunManager', () => {
             expect(projectiles.length).to.be.greaterThan(0);
             for (const p of projectiles) {
                 expect(p.shipId).to.equal(shipObj.id);
-                // your own shells are always identifiable to you: whatever the scan cycle does
-                // to a shell after it is fired, it never drops below the level at which the
-                // radar shows it as identified rather than an unknown
-                expect(p.scanLevels[Faction.Gravitas]).to.be.at.least(ScanLevel.BASIC);
+                // your own shells are always identifiable to you, and never more than that: BASIC
+                // is a shell's ceiling, so it never demotes and never takes a scan queue slot
+                expect(p.scanLevels[Faction.Gravitas]).to.equal(ScanLevel.BASIC);
             }
         });
 

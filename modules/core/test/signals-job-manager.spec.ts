@@ -183,14 +183,46 @@ describe('SignalsJobManager', () => {
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
         });
 
-        it('scans non-ship contacts too', () => {
+        it('scans non-ship contacts to BASIC and no further — a rock has no systems to reveal', () => {
             const { shipMgr, spaceMgr } = createTestSetup(ScanLevel.FULL);
             const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
             spaceMgr.insert(rock);
             spaceMgr.forceFlushEntities();
 
-            runTicks(spaceMgr, 6, 20, 0.05, shipMgr);
+            runTicks(spaceMgr, 12, 20, 0.05, shipMgr);
             expect(spaceMgr.getScanLevel('rock1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            // and it gives up its queue slot instead of burning tiers that reveal nothing
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+        });
+
+        it('does not let a field of rocks hold the queue — every slot frees up once identified', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            fillQueueWithRocks(spaceMgr, 3);
+
+            runTicks(spaceMgr, 30, 20, 0.05, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            expect(scanJobs(shipMgr).length).to.equal(0);
+        });
+    });
+
+    describe('dormant jobs', () => {
+        it('marks a job whose target is out of sight DORMANT, so no client calls it next up', () => {
+            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            const rock = new Asteroid().init('rock1', Vec2.make({ x: 0, y: 1000 }), 10);
+            spaceMgr.insert(rock);
+            spaceMgr.forceFlushEntities();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            tick(spaceMgr, 0.05, 0.15, shipMgr);
+
+            const job = scanJobs(shipMgr).find((j) => j.targetId === 'target1');
+            shipMgr.state.signals.prioritizeJobId = job?.id ?? '';
+            tick(spaceMgr, 0.05, 0.2, shipMgr);
+            targetObj.position.x = 100_000;
+            tick(spaceMgr, 0.05, 0.25, shipMgr);
+
+            expect(scanJobs(shipMgr)[0].targetId).to.equal('target1');
+            expect(scanJobs(shipMgr)[0].status).to.equal(JobStatus.DORMANT);
+            expect(scanJobs(shipMgr)[1].status).to.equal(JobStatus.IN_PROGRESS);
         });
     });
 
@@ -296,8 +328,8 @@ describe('SignalsJobManager', () => {
 
             // both jobs lie dormant, in place
             expect(shipMgr.state.signals.jobs.map((j) => j.targetId)).to.deep.equal(['target1', 'rock1']);
-            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.QUEUED);
-            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.DORMANT);
+            expect(shipMgr.state.signals.jobs[1].status).to.equal(JobStatus.DORMANT);
 
             targetObj.position.x = 1000;
             rock.position.y = 1000;
@@ -316,8 +348,48 @@ describe('SignalsJobManager', () => {
 
             // the dormant rock job holds its place at the top while the target1 scan works
             expect(shipMgr.state.signals.jobs[0].targetId).to.equal('rock1');
-            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.QUEUED);
+            expect(shipMgr.state.signals.jobs[0].status).to.equal(JobStatus.DORMANT);
             expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+        });
+
+        it('a prioritized scan is a standing order: it survives promotion and resumes on demotion', () => {
+            const { shipMgr, spaceMgr, targetObj } = createTestSetup(ScanLevel.SNAPSHOT);
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            prioritize(shipMgr, spaceMgr, 'target1', 0.15);
+
+            let t = runTicks(spaceMgr, 6, 20, 0.15, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.FULL);
+            expect(scanJobs(shipMgr).map((j) => j.targetId)).to.deep.equal(['target1']);
+            expect(scanJobs(shipMgr)[0].status).to.equal(JobStatus.DORMANT);
+            expect(scanJobs(shipMgr)[0].progress).to.equal(0);
+
+            // sight loss demotes FULL -> SNAPSHOT, and the standing order picks the scan back up
+            targetObj.position.x = 100_000;
+            t = runTicks(spaceMgr, 0.5, 20, t, shipMgr);
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas)).to.equal(ScanLevel.SNAPSHOT);
+
+            targetObj.position.x = 1000;
+            runTicks(spaceMgr, 0.5, 20, t, shipMgr);
+            expect(scanJobs(shipMgr)[0].status).to.equal(JobStatus.IN_PROGRESS);
+        });
+
+        it('a standing order ends when its target is destroyed', () => {
+            const { shipMgr, spaceMgr, targetObj } = createTestSetup();
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            prioritize(shipMgr, spaceMgr, 'target1', 0.15);
+
+            targetObj.destroyed = true;
+            runTicks(spaceMgr, 0.5, 20, 0.15, shipMgr);
+            expect(scanJobs(shipMgr).length).to.equal(0);
+        });
+
+        it('a standing order on a rock ends when the rock reaches BASIC', () => {
+            const { shipMgr, spaceMgr } = setupWithRock();
+
+            prioritize(shipMgr, spaceMgr, 'rock1', 0.2);
+            runTicks(spaceMgr, 6, 20, 0.2, shipMgr);
+
+            expect(scanJobs(shipMgr).map((j) => j.targetId)).to.deep.equal(['target1']);
         });
     });
 

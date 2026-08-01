@@ -201,12 +201,12 @@ export class ChainGunManager implements Updateable {
             );
             projectile.init(uniqueId('shell'), shellPosition);
             projectile.shipId = this.spaceObject.id;
-            // Mark shells as advanced-scanned for the firing ship's faction so
-            // the weapons officer sees them with a distinct blip colour instead
-            // of the UFO/unknown tint.
+            // Your own shells are identified to you: the weapons officer sees them with a distinct
+            // blip colour instead of the UFO/unknown tint. BASIC is a projectile's scan ceiling, so
+            // this also keeps every shell in flight out of the scan queue and the demotion loop.
             const firingFactionIndex = Number(this.spaceObject.faction);
             if (firingFactionIndex !== Number(Faction.NONE) && firingFactionIndex < projectile.scanLevels.length) {
-                projectile.scanLevels[firingFactionIndex] = ScanLevel.FULL;
+                projectile.scanLevels[firingFactionIndex] = ScanLevel.BASIC;
             }
             if (projectile.design.homing) {
                 projectile.targetId = this.state.weaponsTarget.targetId;

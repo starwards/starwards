@@ -10,9 +10,9 @@ type QueuedIndicator = { targetId: string; order: number };
 
 /**
  * What the signals radar should mark: a progress ring on the job being worked (remaining
- * fraction of its time), and order markers on the next few queued targets. Jobs before the
- * active one are dormant (target out of sight) and stay hidden; with no active job every
- * queued job is dormant.
+ * fraction of its time), and order markers on the next few targets the station will actually
+ * work. A dormant job is one the station will skip, so it never gets an order marker — marking
+ * it would promise a scan that is not coming.
  */
 export function jobIndicators(source: Iterable<JobView>): {
     active: ActiveIndicator | null;

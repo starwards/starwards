@@ -20,6 +20,30 @@ export function playerScanLevel(o: SpaceObject, playerFaction: Faction | undefin
 }
 
 /**
+ * The contacts the signals station's target cycle steps through: every unidentified contact,
+ * whatever it turns out to be, plus the ships already identified.
+ *
+ * Membership keys on scan level, never on type below BASIC — a cycle that visited exactly the
+ * ships would tell the player which unidentified blips are ships just by being pressed. Above
+ * BASIC the player has already earned the type, so excluding identified non-ships leaks nothing:
+ * a rock at BASIC has nothing left to reveal, while a ship at SNAPSHOT can be marked and rescanned
+ * when it re-enters range.
+ */
+export function scanCycleTargets(
+    objects: Iterable<SpaceObject>,
+    playerFaction: Faction | undefined,
+    selfId: string,
+): SpaceObject[] {
+    return [...objects].filter((o) => {
+        if (o.id === selfId) {
+            return false;
+        }
+        const scanLevel = playerScanLevel(o, playerFaction);
+        return scanLevel === ScanLevel.UFO || Spaceship.isInstance(o);
+    });
+}
+
+/**
  * Human-facing name for a space object, for station panels and callouts.
  *
  * `makeId()` is a global incrementing counter, so ids are already short speakable integers that
