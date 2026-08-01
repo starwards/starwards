@@ -46,7 +46,7 @@ test.describe('Weapons Screen', () => {
         await expectNonInteractiveBar(gunPanel.locator('.sw-bar').first());
     });
 
-    test('picking a cluster warhead mode on a tube arms the next cluster launch with it', async ({ page }) => {
+    test('picking a cluster warhead mode on a tube sets it on the ship state', async ({ page }) => {
         const tubesPanel = page.locator('[data-id="Tubes Status"]');
         await expect(tubesPanel).toBeVisible({ timeout: 10000 });
 
