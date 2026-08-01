@@ -1,4 +1,4 @@
-import { Destructors, JobStatus, JobType, ShipDriver, SignalsJob, SpaceDriver } from '@starwards/core';
+import { Destructors, JobStatus, ShipDriver, SignalsJob, SpaceDriver } from '@starwards/core';
 import { addBarBlade, addButton, addInputBlade, addTextBlade, createWidgetPane } from '../panel';
 import { objectDisplayName, playerScanLevel } from '../space-object-intel';
 import { readNumberProp, readProp, readWriteProp, writeProp } from '../property-wrappers';
@@ -11,7 +11,7 @@ function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Signals
     const target = spaceDriver.state.get(job.targetId);
     const scanLevel = target && playerScanLevel(target, shipDriver.state.faction);
     const targetName = objectDisplayName(target, job.targetId, scanLevel);
-    return job.jobType === JobType.HACK ? `HACK ${job.hackSystemName} @ ${targetName}` : `SCAN ${targetName}`;
+    return `SCAN ${targetName}`;
 }
 
 /**

@@ -50,7 +50,6 @@ export {
     HackLevel,
     IdleStrategy,
     JobStatus,
-    JobType,
     PowerLevel,
     PowerLevelStep,
     ShipState,

@@ -1,4 +1,4 @@
-import { Asteroid, Faction, JobType, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
+import { Asteroid, Faction, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
 
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
@@ -37,7 +37,7 @@ function configureRadars(shipMgr: { state: ShipState }): void {
 // A scan job is only auto-created for a target the ship can see, so the queue is the observable
 // stand-in for the private visibility gate.
 function hasScanJob(shipMgr: { state: ShipState }, targetId: string): boolean {
-    return [...shipMgr.state.signals.jobs].some((job) => job.jobType === JobType.SCAN && job.targetId === targetId);
+    return [...shipMgr.state.signals.jobs].some((job) => job.targetId === targetId);
 }
 
 describe('radar range gates honor the beam (I3)', () => {

@@ -11,20 +11,12 @@ export type SignalsDesign = {
     damage50: number;
     maxJobs: number;
     scanBaseDuration: number;
-    hackBaseDuration: number;
-    hackEffectDuration: number;
-    hackCooldown: number;
-    hackBaseSuccessRate: number;
 };
 
 export class SignalsDesignState extends DesignState implements SignalsDesign {
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxJobs = 9;
     @gameField('float32') scanBaseDuration = 5;
-    @gameField('float32') hackBaseDuration = 45;
-    @gameField('float32') hackEffectDuration = 150;
-    @gameField('float32') hackCooldown = 60;
-    @gameField('float32') hackBaseSuccessRate = 0.6;
 }
 
 export class Signals extends SystemState {
@@ -55,19 +47,7 @@ export class Signals extends SystemState {
     @gameField([SignalsJob])
     jobs = new ArraySchema<SignalsJob>();
 
-    /**
-     * Command properties (set by client via JSON pointer, consumed by manager on tick).
-     * Scan jobs are auto-managed; submission is for hack jobs only.
-     */
-    @commandable()
-    public queueJobTargetId = '';
-
-    @commandable()
-    public queueJobHackSystemName = '';
-
-    @commandable()
-    public submitJobCommand = false;
-
+    /** Command properties (set by client via JSON pointer, consumed by manager on tick). */
     @commandable()
     public cancelJobId = '';
 

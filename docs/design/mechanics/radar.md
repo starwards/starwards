@@ -37,15 +37,11 @@ All visibility gates (signals job queueing/progress, scan promotion and demotion
 
 The Signals station operates through a job queue (up to `maxJobs`, 9 on the dragonfly). Execution is **first workable wins**, not FIFO: each tick the station works the first job whose target it can currently see and still has something to reveal, skipping the rest. Losing the working slot resets that job's progress to zero.
 
-The station's lever is order, not submission. Prioritizing a job moves it to the front of the queue and marks it, so trimming under damage evicts unprioritized jobs first.
+The station's lever is order. Prioritizing a job moves it to the front of the queue and marks it, so trimming under damage evicts unprioritized jobs first.
 
 **Scan:** Upgrade target scan level. Auto-managed — every object in the ship's field of view below the top tier gets a scan job appended, so the station prioritizes rather than submits. Deterministic: no die roll. One tier per `scanBaseDuration` (5s) of unbroken line of sight, divided by signals effectiveness, so a half-powered station takes 10s per tier. Losing sight of the target resets its progress.
 
-**Hack:** Halve a target system's effectiveness (`HackLevel.COMPROMISED`) for `hackEffectDuration` (150s). Requires Snapshot or better on the target. `hackBaseDuration` 45s, `hackBaseSuccessRate` 0.6 scaled by the attacker's own signals effectiveness — so a hacked signals station hacks worse — and `hackCooldown` 60s per target system. Expiry is tracked by the victim, so it lifts even if the attacker is gone.
-
-Hack is the only job type meant to be submitted by hand, but **no client currently writes the submission command**, so the path is unreachable in play.
-
-Two defectibles degrade the station, both normally 1: `jobSpeedFactor` scales progress per tick, and `jobSuccessFactor` scales the hack roll. The system counts as `broken` once `jobSpeedFactor` reaches 0, and damage also shrinks `currentMaxJobs` (9 → 3 → 1), so a damaged station tracks fewer contacts at once. Scans are unaffected by `jobSuccessFactor` — promotion is deterministic.
+Two defectibles degrade the station, both normally 1: `jobSpeedFactor` scales progress per tick, and both factors shrink `currentMaxJobs` (9 → 3 → 1), so a damaged station tracks fewer contacts at once. The system counts as `broken` once `jobSpeedFactor` reaches 0. Promotion itself is deterministic — no roll.
 
 ## Open Issues
 
