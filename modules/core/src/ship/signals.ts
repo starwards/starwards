@@ -1,8 +1,8 @@
 import { DesignState, SystemState, defectible } from './system';
-import { JobType, SignalsJob } from './signals-job';
 import { commandable, gameField } from '../game-field';
 
 import { ArraySchema } from '@colyseus/schema';
+import { SignalsJob } from './signals-job';
 import { range } from '../range';
 
 export type SignalsDesign = {
@@ -12,11 +12,6 @@ export type SignalsDesign = {
     maxJobs: number;
     scanBaseDuration: number;
     scanAdvancedFactor: number;
-    hackBaseDuration: number;
-    hackEffectDuration: number;
-    hackCooldown: number;
-    scanBaseSuccessRate: number;
-    hackBaseSuccessRate: number;
 };
 
 export class SignalsDesignState extends DesignState implements SignalsDesign {
@@ -24,11 +19,6 @@ export class SignalsDesignState extends DesignState implements SignalsDesign {
     @gameField('float32') maxJobs = 9;
     @gameField('float32') scanBaseDuration = 20;
     @gameField('float32') scanAdvancedFactor = 2;
-    @gameField('float32') hackBaseDuration = 45;
-    @gameField('float32') hackEffectDuration = 150;
-    @gameField('float32') hackCooldown = 60;
-    @gameField('float32') scanBaseSuccessRate = 0.8;
-    @gameField('float32') hackBaseSuccessRate = 0.6;
 }
 
 export class Signals extends SystemState {
@@ -60,18 +50,6 @@ export class Signals extends SystemState {
     jobs = new ArraySchema<SignalsJob>();
 
     // Command properties (set by client via JSON pointer, consumed by manager on tick)
-    @commandable()
-    public queueJobType: JobType | -1 = -1;
-
-    @commandable()
-    public queueJobTargetId = '';
-
-    @commandable()
-    public queueJobHackSystemName = '';
-
-    @commandable()
-    public submitJobCommand = false;
-
     @commandable()
     public cancelJobId = '';
 

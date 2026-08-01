@@ -191,11 +191,6 @@ export const dragonflySignals = {
     maxJobs: 9,
     scanBaseDuration: 20,
     scanAdvancedFactor: 2,
-    hackBaseDuration: 45,
-    hackEffectDuration: 150,
-    hackCooldown: 60,
-    scanBaseSuccessRate: 0.8,
-    hackBaseSuccessRate: 0.6,
 };
 
 export const dragonflySF22 = {

@@ -339,7 +339,7 @@ The Engineering Control Room (ECR) screen provides detailed system management, p
 #### Real-time State (Medium Frequency)
 - System status (OK/DAMAGED/DISABLED) - changes on damage
 - Energy Per Minute calculations - derived from power levels
-- Hacked status - changes on hacking events
+- Hacked status - changes when a system is compromised
 - Defectibles health - changes on damage to components
 
 #### Low Frequency / Event-driven

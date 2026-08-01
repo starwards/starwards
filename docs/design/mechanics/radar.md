@@ -35,11 +35,9 @@ All visibility gates (signals job queueing/progress, tier-1 promotion, weapons t
 
 The Signals station operates through a job queue (max 9 jobs, FIFO execution):
 
-**Scan:** Upgrade target scan level. 15-30s (Lvl0→1) or 30-60s (Lvl1→2). 70-90% success rate.
+**Scan:** Upgrade target scan level. 15-30s (Lvl0→1) or 30-60s (Lvl1→2).
 
-**Hack:** Reduce target system effectiveness by 50% for 2-3 minutes. Requires Lvl2 scan. 30-60s duration. 50-70% success rate. 1-minute cooldown per target system.
-
-System malfunctions degrade job performance: +25% duration, +20% fail chance per defect. At 3+ defects, 50% chance of alerting the target on failure.
+System malfunctions degrade job performance: a damaged Signals system works jobs more slowly and manages fewer of them at once.
 
 ## Open Issues
 

@@ -136,7 +136,7 @@ export abstract class ShipManager implements Updateable {
         this.internalProxy.addHeat = this.heatManager.addHeat.bind(this.heatManager);
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
-        this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager, this.die, this.ships);
+        this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         if (this.state.chainGun) {
             this.chainGunManager = new ChainGunManager(
                 this.state.chainGun,

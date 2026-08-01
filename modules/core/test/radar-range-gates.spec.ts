@@ -1,4 +1,4 @@
-import { Asteroid, Faction, JobType, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
+import { Asteroid, Faction, ScanLevel, ShipDie, ShipManagerPc, ShipState, Spaceship, Vec2 } from '../src';
 
 import { SpaceSimulator } from './simulator';
 import { expect } from 'chai';
@@ -34,13 +34,9 @@ function configureRadars(shipMgr: { state: ShipState }): void {
     beam.direction = 0; // ship angle is 0, so ship-relative 0 == world bearing 0 (toward the target)
 }
 
-// A scan job is only accepted for a target the ship can see, so the queue is the observable
-// stand-in for the private visibility gate.
-function queueScanJob(shipMgr: { state: ShipState }, targetId: string): void {
-    shipMgr.state.signals.queueJobType = JobType.SCAN;
-    shipMgr.state.signals.queueJobTargetId = targetId;
-    shipMgr.state.signals.submitJobCommand = true;
-}
+// Passive tier-1 promotion only runs for a target the ship can see, so the scan level a contact
+// reaches after a dwell is the observable stand-in for the private visibility gate.
+const TIER1_DWELL_SECONDS = 5;
 
 describe('radar range gates honor the beam (I3)', () => {
     afterEach(() => {
@@ -81,9 +77,9 @@ describe('radar range gates honor the beam (I3)', () => {
         ).to.be.false;
     });
 
-    it('signals visibility honors the beam: a scan job is accepted for a target beyond omni but inside the beam', () => {
+    it('signals visibility honors the beam: a target beyond omni but inside the beam is passively scanned', () => {
         // the visibility gate is private; assert its observable consequence — the signals station
-        // only accepts a job for a target it can see.
+        // only promotes the scan level of a target it can see.
         const sim = new SpaceSimulator(10);
         const scanner = new Spaceship();
         scanner.id = 'scanner';
@@ -103,13 +99,12 @@ describe('radar range gates honor the beam (I3)', () => {
         // let sectors populate first
         sim.simulateUntilTime(0.3);
 
-        queueScanJob(shipMgr, target.id);
-        sim.simulateUntilTime(0.3);
+        sim.simulateUntilTime(TIER1_DWELL_SECONDS + 1);
 
         expect(
-            shipMgr.state.signals.jobs.length,
+            sim.spaceMgr.getScanLevel(target.id, scanner.faction),
             'a target beyond omni but inside the beam sector is workable',
-        ).to.equal(1);
+        ).to.equal(ScanLevel.BASIC);
     });
 
     it('signals visibility is directional: a target within the beam reach but on an uncovered bearing is rejected', () => {
@@ -138,13 +133,12 @@ describe('radar range gates honor the beam (I3)', () => {
             'a bare distance test would admit this target',
         ).to.be.greaterThan(TARGET_DISTANCE);
 
-        queueScanJob(shipMgr, target.id);
-        sim.simulateUntilTime(0.3);
+        sim.simulateUntilTime(TIER1_DWELL_SECONDS + 1);
 
         expect(
-            shipMgr.state.signals.jobs.length,
+            sim.spaceMgr.getScanLevel(target.id, scanner.faction),
             'a contact no sector covers must not be workable, however close it is',
-        ).to.equal(0);
+        ).to.equal(ScanLevel.UFO);
     });
 
     it('weapons target is NOT dropped when it sits beyond omni but inside a beam sector', () => {

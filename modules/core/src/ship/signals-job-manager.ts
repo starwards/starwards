@@ -1,148 +1,27 @@
-import { HackLevel, SystemState } from './system';
 import { IterationData, Updateable } from '../updateable';
-import { JobStatus, JobType, SignalsJob } from './signals-job';
 
-import { ArraySchema } from '@colyseus/schema';
-import { Die } from './ship-manager-abstract';
+import { JobStatus, SignalsJob } from './signals-job';
+
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
-import { makeId } from '../id';
 
 const TIER1_DWELL_SECONDS = 5;
 
-type IncomingHack = {
-    systemName: string;
-    expiresAtSeconds: number;
-};
-
-type HackCooldown = {
-    targetShipId: string;
-    systemName: string;
-    expiresAtSeconds: number;
-};
-
-interface ShipManagerRef {
-    state: ShipState;
-    signalsJobManager: SignalsJobManager;
-}
-
-/**
- * Resolves a hack target name to a system. A name is either a ShipState field holding a single
- * system (`'reactor'`) or a field holding a collection plus an index (`'radars/0'`).
- */
-function getSystemByName(state: ShipState, name: string): SystemState | null {
-    if (!name) {
-        return null;
-    }
-    const [field, index, ...excess] = name.split('/');
-    if (excess.length > 0 || !Object.prototype.hasOwnProperty.call(state, field)) {
-        return null;
-    }
-    const value = (state as unknown as Record<string, unknown>)[field];
-    if (value instanceof ArraySchema) {
-        const item = index === undefined ? undefined : (value as ArraySchema<unknown>).at(Number(index));
-        return item instanceof SystemState ? item : null;
-    }
-    return index === undefined && value instanceof SystemState ? value : null;
-}
-
 export class SignalsJobManager implements Updateable {
-    // Not persisted: lost on server restart (hacked systems stay COMPROMISED until manually reset)
-    private incomingHacks: IncomingHack[] = [];
-    private hackCooldowns: HackCooldown[] = [];
     // Ephemeral per-target dwell timers for tier-1 passive scan promotion
     private tier1DwellTimers = new Map<string, number>();
 
     constructor(
         private state: ShipState,
         private spaceManager: SpaceManager,
-        private die: Die,
-        private ships?: Map<string, ShipManagerRef>,
     ) {}
 
-    // Last-writer-wins: if two ships hack the same system, the latest expiry replaces the earlier one
-    public registerIncomingHack(systemName: string, expiresAtSeconds: number): void {
-        this.incomingHacks = this.incomingHacks.filter((h) => h.systemName !== systemName);
-        this.incomingHacks.push({ systemName, expiresAtSeconds });
-    }
-
-    update({ deltaSeconds, totalSeconds }: IterationData): void {
-        this.processSubmitJobCommand(totalSeconds);
+    update({ deltaSeconds }: IterationData): void {
         this.processCancelJobCommand();
-        this.expireIncomingHacks(totalSeconds);
-        this.expireHackCooldowns(totalSeconds);
         this.trimExcessJobs();
-        this.processJobQueue(deltaSeconds, totalSeconds);
+        this.processJobQueue(deltaSeconds);
         this.updateTier1ScanPromotion(deltaSeconds);
-    }
-
-    private processSubmitJobCommand(totalSeconds: number): void {
-        if (!this.state.signals.submitJobCommand) {
-            return;
-        }
-        this.state.signals.submitJobCommand = false;
-
-        const jobType = this.state.signals.queueJobType;
-        const targetId = this.state.signals.queueJobTargetId;
-        const hackSystemName = this.state.signals.queueJobHackSystemName;
-
-        this.state.signals.queueJobType = -1;
-        this.state.signals.queueJobTargetId = '';
-        this.state.signals.queueJobHackSystemName = '';
-
-        const validJobType = jobType;
-        if (validJobType !== JobType.SCAN && validJobType !== JobType.HACK) {
-            return;
-        }
-        if (!targetId) {
-            return;
-        }
-
-        if (this.state.signals.jobs.length >= this.state.signals.currentMaxJobs) {
-            return;
-        }
-
-        if (!this.spaceManager.isVisible(this.state.id, targetId)) {
-            return;
-        }
-
-        const scanLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
-
-        if (validJobType === JobType.SCAN) {
-            if (scanLevel >= ScanLevel.ADVANCED) {
-                return;
-            }
-        }
-
-        if (validJobType === JobType.HACK) {
-            if (scanLevel < ScanLevel.ADVANCED) {
-                return;
-            }
-
-            if (!hackSystemName || !this.isValidHackTarget(targetId, hackSystemName)) {
-                return;
-            }
-
-            if (this.isOnHackCooldown(targetId, hackSystemName, totalSeconds)) {
-                return;
-            }
-        }
-
-        const job = new SignalsJob();
-        job.id = makeId();
-        job.jobType = validJobType;
-        job.targetId = targetId;
-        job.hackSystemName = validJobType === JobType.HACK ? hackSystemName : '';
-        job.status = JobStatus.QUEUED;
-        job.progress = 0;
-        job.duration = this.calculateJobDuration(validJobType, targetId);
-
-        this.state.signals.jobs.push(job);
-
-        if (this.state.signals.jobs.length === 1) {
-            job.status = JobStatus.IN_PROGRESS;
-        }
     }
 
     private processCancelJobCommand(): void {
@@ -159,23 +38,6 @@ export class SignalsJobManager implements Updateable {
         }
     }
 
-    private expireIncomingHacks(totalSeconds: number): void {
-        this.incomingHacks = this.incomingHacks.filter((hack) => {
-            if (totalSeconds >= hack.expiresAtSeconds) {
-                const system = getSystemByName(this.state, hack.systemName);
-                if (system) {
-                    system.hacked = HackLevel.OK;
-                }
-                return false;
-            }
-            return true;
-        });
-    }
-
-    private expireHackCooldowns(totalSeconds: number): void {
-        this.hackCooldowns = this.hackCooldowns.filter((cd) => totalSeconds < cd.expiresAtSeconds);
-    }
-
     private trimExcessJobs(): void {
         const maxJobs = this.state.signals.currentMaxJobs;
         while (this.state.signals.jobs.length > maxJobs) {
@@ -188,7 +50,7 @@ export class SignalsJobManager implements Updateable {
         }
     }
 
-    private processJobQueue(deltaSeconds: number, totalSeconds: number): void {
+    private processJobQueue(deltaSeconds: number): void {
         const activeJob = this.getActiveJob();
         if (!activeJob) {
             return;
@@ -210,67 +72,23 @@ export class SignalsJobManager implements Updateable {
         activeJob.progress = Math.min(1, activeJob.progress + progressIncrement);
 
         if (activeJob.progress >= 1) {
-            this.completeJob(activeJob, totalSeconds);
+            this.completeJob(activeJob);
         }
     }
 
-    private completeJob(job: SignalsJob, totalSeconds: number): void {
-        const baseSuccessRate =
-            job.jobType === JobType.SCAN
-                ? this.state.signals.design.scanBaseSuccessRate
-                : this.state.signals.design.hackBaseSuccessRate;
-        // effectiveness = power * hacked: if this ship's signals system is itself hacked, jobs succeed less
-        const actualSuccessRate =
-            baseSuccessRate * this.state.signals.jobSuccessFactor * this.state.signals.effectiveness;
-        const success = this.die.getRoll('signalsJob_' + job.id) < actualSuccessRate;
-
-        if (success) {
-            this.applyJobSuccess(job, totalSeconds);
-        }
-
+    private completeJob(job: SignalsJob): void {
+        this.applyJobSuccess(job);
         this.removeJob(job.id);
         this.promoteNextJob();
     }
 
-    private applyJobSuccess(job: SignalsJob, totalSeconds: number): void {
-        if (job.jobType === JobType.SCAN) {
-            const currentLevel = this.spaceManager.getScanLevel(job.targetId, this.state.faction);
-            if (currentLevel === ScanLevel.UFO) {
-                this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.BASIC);
-            } else if (currentLevel === ScanLevel.BASIC) {
-                this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.ADVANCED);
-            }
-        } else if (job.jobType === JobType.HACK) {
-            this.applyHack(job.targetId, job.hackSystemName, totalSeconds);
+    private applyJobSuccess(job: SignalsJob): void {
+        const currentLevel = this.spaceManager.getScanLevel(job.targetId, this.state.faction);
+        if (currentLevel === ScanLevel.UFO) {
+            this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.BASIC);
+        } else if (currentLevel === ScanLevel.BASIC) {
+            this.spaceManager.setScanLevel(job.targetId, this.state.faction, ScanLevel.ADVANCED);
         }
-    }
-
-    private applyHack(targetId: string, systemName: string, totalSeconds: number): void {
-        if (!this.ships) {
-            return;
-        }
-        const targetShipEntry = this.ships.get(targetId);
-        if (!targetShipEntry) {
-            return;
-        }
-
-        const targetSystem = getSystemByName(targetShipEntry.state, systemName);
-        if (!targetSystem) {
-            return;
-        }
-
-        targetSystem.hacked = HackLevel.COMPROMISED;
-
-        targetShipEntry.signalsJobManager.registerIncomingHack(
-            systemName,
-            totalSeconds + this.state.signals.design.hackEffectDuration,
-        );
-
-        this.hackCooldowns.push({
-            targetShipId: targetId,
-            systemName,
-            expiresAtSeconds: totalSeconds + this.state.signals.design.hackCooldown,
-        });
     }
 
     private updateTier1ScanPromotion(deltaSeconds: number): void {
@@ -296,28 +114,6 @@ export class SignalsJobManager implements Updateable {
                 this.tier1DwellTimers.delete(id);
             }
         }
-    }
-
-    private isValidHackTarget(targetId: string, systemName: string): boolean {
-        if (!this.ships) {
-            return false;
-        }
-        const targetShipEntry = this.ships.get(targetId);
-        if (!targetShipEntry) {
-            return false;
-        }
-        return getSystemByName(targetShipEntry.state, systemName) !== null;
-    }
-
-    private calculateJobDuration(jobType: JobType, targetId: string): number {
-        if (jobType === JobType.SCAN) {
-            const currentLevel = this.spaceManager.getScanLevel(targetId, this.state.faction);
-            const baseDuration = this.state.signals.design.scanBaseDuration;
-            return currentLevel >= ScanLevel.BASIC
-                ? baseDuration * this.state.signals.design.scanAdvancedFactor
-                : baseDuration;
-        }
-        return this.state.signals.design.hackBaseDuration;
     }
 
     private getSignalsEffectiveness(): number {
@@ -365,11 +161,5 @@ export class SignalsJobManager implements Updateable {
         if (index >= 0) {
             this.state.signals.jobs.splice(index, 1);
         }
-    }
-
-    private isOnHackCooldown(targetId: string, systemName: string, totalSeconds: number): boolean {
-        return this.hackCooldowns.some(
-            (cd) => cd.targetShipId === targetId && cd.systemName === systemName && totalSeconds < cd.expiresAtSeconds,
-        );
     }
 }
