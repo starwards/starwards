@@ -22,10 +22,11 @@ export function createPane(params: { title?: string; container: HTMLElement }): 
 }
 ```
 
-**Usage**:
+**Usage**: widgets go through `createWidgetPane`, which calls `createPane` and ties the pane's
+lifecycle to the container's.
 ```typescript
 // ✅ Automatically adds data-id="Targeting"
-const pane = createPane({ title: 'Targeting', container: container.getElement().get(0) });
+const { pane, cleanup } = createWidgetPane(container, 'Targeting');
 
 // ❌ Old pattern - no data-id
 const pane = new Pane({ title: 'Targeting', container: container.getElement().get(0) });
@@ -137,7 +138,7 @@ page.locator('[data-id="Tubes Status"]')
 ## Implementation Checklist
 
 When creating Tweakpane panels:
-- ✅ Use `createPane({ title: 'Panel Name', container })`
+- ✅ Use `createWidgetPane(container, 'Panel Name')`
 - ❌ Don't use `new Pane({ container })`
 
 When testing Tweakpane panels:

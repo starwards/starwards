@@ -1,5 +1,5 @@
 import { Destructors, SpaceDriver, Waypoint, XY, spaceCommands } from '@starwards/core';
-import { addButton, addColorBlade, addInputBlade, createPane } from '../panel';
+import { addButton, addColorBlade, addInputBlade, createWidgetPane } from '../panel';
 import { readProp, readWriteProp } from '../property-wrappers';
 
 import { SelectionContainer } from '../radar/selection-container';
@@ -23,11 +23,7 @@ export function drawWaypointEdit(
     selection: SelectionContainer,
     focus: (position: XY) => void,
 ) {
-    const cleanup = new Destructors();
-    container.on('destroy', cleanup.destroy);
-
-    const pane = createPane({ title: 'Edit Waypoint', container: container.getElement().get(0) });
-    cleanup.add(() => pane.dispose());
+    const { pane, cleanup } = createWidgetPane(container, 'Edit Waypoint');
 
     let session: Destructors | null = null;
 

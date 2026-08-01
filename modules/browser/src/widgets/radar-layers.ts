@@ -1,9 +1,8 @@
 import { BindingApi } from '@tweakpane/core';
 import { Container } from 'pixi.js';
-import { Destructors } from '@starwards/core';
 import { Pane } from 'tweakpane';
 import { WidgetContainer } from '../container';
-import { createPane } from '../panel';
+import { createWidgetPane } from '../panel';
 
 /**
  * A "Layers" pane with one boolean blade per radar layer, toggling that layer's visibility.
@@ -15,10 +14,7 @@ export class RadarLayersPanel {
     private bindings = new Map<string, BindingApi>();
 
     constructor(container: WidgetContainer) {
-        const cleanup = new Destructors();
-        container.on('destroy', cleanup.destroy);
-        this.pane = createPane({ title: 'Layers', container: container.getElement().get(0) });
-        cleanup.add(() => this.pane.dispose());
+        this.pane = createWidgetPane(container, 'Layers').pane;
     }
 
     addLayer(name: string, layer: Container, onToggle?: (visible: boolean) => void) {

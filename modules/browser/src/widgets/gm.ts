@@ -1,6 +1,6 @@
 import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
-import { Destructors, Driver, Faction, Projectile, SpaceObject, TypeFilter } from '@starwards/core';
-import { addEnumListBlade, createPane } from '../panel';
+import { Driver, Faction, Projectile, SpaceObject, TypeFilter } from '@starwards/core';
+import { addEnumListBlade, createWidgetPane } from '../panel';
 import { blue, radarVisibleBg, red, white, yellow } from '../colors';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../radar/blips/blip-renderer';
 
@@ -37,12 +37,7 @@ export class GmWidgets {
         const { selectionContainer, interactiveLayerCommands, viewFilter } = this;
         class GmRadarComponent {
             constructor(container: Container, state: RadarState) {
-                const pane = createPane({ title: 'GM Controls', container: container.getElement().get(0) });
-                const panelCleanup = new Destructors();
-                panelCleanup.add(() => {
-                    pane.dispose();
-                });
-                container.on('destroy', panelCleanup.destroy);
+                const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'GM Controls');
                 addEnumListBlade(pane, viewFilter, 'type', TypeFilter, panelCleanup.add);
 
                 const camera = new Camera();

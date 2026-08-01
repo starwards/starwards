@@ -1,18 +1,13 @@
-import { Destructors, ShipDriver } from '@starwards/core';
-import { addBarBlade, addInputBlade, addTextBlade, createPane } from '../panel/blades';
+import { PropertyPanel, createWidgetPane } from '../panel';
+import { addBarBlade, addInputBlade, addTextBlade } from '../panel/blades';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { PropertyPanel } from '../panel';
+import { ShipDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
 
 export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver) {
-    const panelCleanup = new Destructors();
-    const pane = createPane({ title: 'Chain Gun', container: container.getElement().get(0) });
-    panelCleanup.add(() => {
-        pane.dispose();
-    });
-    container.on('destroy', panelCleanup.destroy);
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Chain Gun');
     addTextBlade(pane, readProp(shipDriver, '/chainGun/projectile'), { label: 'projectile' }, panelCleanup.add);
     addTextBlade(
         pane,

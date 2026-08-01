@@ -1,17 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import {
-    ClientStatus,
-    Destructors,
-    Driver,
-    Radar,
-    ShipDriver,
-    SpaceDriver,
-    Status,
-    createLogger,
-} from '@starwards/core';
+import { ClientStatus, Driver, Radar, ShipDriver, SpaceDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos, WidgetContainer, wrapRootWidgetContainer } from '../container';
-import { addSliderBlade, createPane } from '../panel';
+import { addSliderBlade, createWidgetPane } from '../panel';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
@@ -79,10 +70,7 @@ async function initScreen(driver: Driver, shipId: string) {
 }
 
 function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver, beamPointer: string) {
-    const panelCleanup = new Destructors();
-    const pane = createPane({ title: 'Scan Beam', container: container.getElement().get(0) });
-    panelCleanup.add(() => pane.dispose());
-    container.on('destroy', panelCleanup.destroy);
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Scan Beam');
     addSliderBlade(
         pane,
         readWriteNumberProp(shipDriver, `${beamPointer}/directionCommand`),

@@ -1,8 +1,8 @@
-import { Destructors, ShipDriver } from '@starwards/core';
-import { addGraph, addTextBlade, createPane } from '../panel';
+import { addGraph, addTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
+import { ShipDriver } from '@starwards/core';
 import { plugins as TweakpaneTablePlugin } from 'tweakpane-table';
 import { WidgetContainer } from '../container';
 
@@ -22,13 +22,8 @@ export function engineeringStatusWidget(shipDriver: ShipDriver): DashboardWidget
 }
 
 export function drawEngineeringStatus(container: WidgetContainer, shipDriver: ShipDriver) {
-    const panelCleanup = new Destructors();
-    const pane = createPane({ title: 'Engineering Status', container: container.getElement().get(0) });
+    const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Engineering Status');
     pane.registerPlugin(TweakpaneTablePlugin);
-    panelCleanup.add(() => {
-        pane.dispose();
-    });
-    container.on('destroy', panelCleanup.destroy);
 
     const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
     addTextBlade(
