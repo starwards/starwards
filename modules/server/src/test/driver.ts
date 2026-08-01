@@ -9,7 +9,10 @@ import { server } from '../server';
 import { stringToSchema } from '../serialization/game-state-serialization';
 
 /**
- * Deep comparison with approximate equality for numbers to handle float32 precision loss
+ * Deep comparison with approximate equality for numbers to handle float32 precision loss.
+ * Tolerance is relative to magnitude (scaled by the larger operand): a fixed absolute epsilon
+ * is too tight for values in the thousands (e.g. radar range), where float32 rounding alone
+ * produces an absolute delta far above 1e-6 despite being a faithful float32 round-trip.
  */
 function deepApproxEqual(a: unknown, b: unknown, tolerance = 1e-6): boolean {
     if (a === b) return true;
@@ -17,7 +20,7 @@ function deepApproxEqual(a: unknown, b: unknown, tolerance = 1e-6): boolean {
     if (typeof a === 'number' && typeof b === 'number') {
         if (isNaN(a) && isNaN(b)) return true;
         if (!isFinite(a) || !isFinite(b)) return a === b;
-        return Math.abs(a - b) <= tolerance;
+        return Math.abs(a - b) <= tolerance * Math.max(1, Math.abs(a), Math.abs(b));
     }
 
     if (Array.isArray(a) && Array.isArray(b)) {

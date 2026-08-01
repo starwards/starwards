@@ -55,9 +55,13 @@ export class GameManager {
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
         this.totalSeconds = this.totalSeconds + adjustedDeltaSeconds;
-        if (this.state.isGameRunning && adjustedDeltaSeconds > 0) {
+        // The loop keeps running even at speed 0 (paused): queued commands (GM edits, scan
+        // level, waypoints, ...) must still drain every tick. deltaSeconds is 0 while paused,
+        // which freezes simulation math that scales with it; anything that doesn't scale with
+        // deltaSeconds is the sub-manager's own responsibility to gate (see SpaceManager.update).
+        if (this.state.isGameRunning) {
             const iterationData = {
-                deltaSeconds: currDeltaSeconds * this.state.speed,
+                deltaSeconds: adjustedDeltaSeconds,
                 deltaSecondsAvg: this.deltaSecondsAvg * this.state.speed,
                 totalSeconds: this.totalSeconds,
             };

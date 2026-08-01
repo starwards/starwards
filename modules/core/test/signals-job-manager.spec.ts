@@ -119,6 +119,20 @@ describe('SignalsJobManager', () => {
             expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
+        // Regression coverage for issue #2022: pause keeps the loop running at deltaSeconds=0,
+        // so auto-discovery (unconditional, not time-scaled like the rest of this manager) must
+        // be gated explicitly or crew "notice" new contacts while the simulation is frozen.
+        it('does not auto-create a scan job while paused (deltaSeconds=0)', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            // the warmup tick in createTestSetup already discovers the visible target; drop it
+            // to pin the "not yet discovered" state a paused tick must not re-discover it from
+            shipMgr.state.signals.jobs.splice(0);
+
+            tick(spaceMgr, 0, 0.1, shipMgr);
+
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
+        });
+
         it('does not duplicate the scan job for a target', () => {
             const { shipMgr, spaceMgr } = createTestSetup();
             runTicks(spaceMgr, 1, 20, 0.05, shipMgr);

@@ -264,7 +264,12 @@ export class SpaceManager implements Updateable {
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
-        this.checkUnguidedProximityFuzes();
+        // both act once per call regardless of elapsed time (a proximity check, a per-tick
+        // damage/impulse resolution), so unlike the rest of this method they don't freeze on
+        // their own at deltaSeconds 0 (paused) and must be gated explicitly
+        if (deltaSeconds > 0) {
+            this.checkUnguidedProximityFuzes();
+        }
         this.untrackDestroyedObjects();
         this.frozendAndAttachedDontMove();
         this.applyPhysics(deltaSeconds);
@@ -273,7 +278,9 @@ export class SpaceManager implements Updateable {
         this.factionIntel.update(totalSeconds, this.getVisibleObjectsByFaction());
         this.updateFieldsOFView();
         this.updateCollisionBodies();
-        this.handleCollisions(deltaSeconds);
+        if (deltaSeconds > 0) {
+            this.handleCollisions(deltaSeconds);
+        }
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
             this.gc();
