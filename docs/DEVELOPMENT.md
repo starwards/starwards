@@ -2,7 +2,7 @@
 
 ## Setup
 
-**Requirements:** Node.js ≥ 22.11.0, npm ≥ 10.9.0, Git
+**Requirements:** Node.js ≥ 24.0.0, npm ≥ 10.9.0, Git
 
 ```bash
 git clone https://github.com/starwards/starwards.git && cd starwards
@@ -211,7 +211,7 @@ docker-compose down                    # Stop
 
 ## Node Requirements
 
-**Node.js ≥ 22.11.0, npm ≥ 10.9.0**
+**Node.js ≥ 24.0.0, npm ≥ 10.9.0**
 
 **Check:** `node --version && npm --version`
 

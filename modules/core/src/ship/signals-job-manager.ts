@@ -1,21 +1,12 @@
 import { IterationData, Updateable } from '../updateable';
 import { JobStatus, SignalsJob } from './signals-job';
 
-import { ArraySchema } from '@colyseus/schema';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
 import { Spaceship } from '../space';
+import { findLastIndex } from '../utils';
 import { makeId } from '../id';
-
-function findLastIndex<T>(items: ArraySchema<T>, predicate: (item: T) => boolean): number | null {
-    for (let i = items.length - 1; i >= 0; i--) {
-        if (predicate(items[i])) {
-            return i;
-        }
-    }
-    return null;
-}
 
 export class SignalsJobManager implements Updateable {
     constructor(
@@ -88,10 +79,13 @@ export class SignalsJobManager implements Updateable {
     private trimExcessJobs(): void {
         const jobs = this.state.signals.jobs;
         while (jobs.length > this.state.signals.currentMaxJobs) {
+            const waitingUnprioritized = findLastIndex(
+                jobs,
+                (job) => !job.prioritized && job.status !== JobStatus.IN_PROGRESS,
+            );
+            const waiting = findLastIndex(jobs, (job) => job.status !== JobStatus.IN_PROGRESS);
             const evictIndex =
-                findLastIndex(jobs, (job) => !job.prioritized && job.status !== JobStatus.IN_PROGRESS) ??
-                findLastIndex(jobs, (job) => job.status !== JobStatus.IN_PROGRESS) ??
-                jobs.length - 1;
+                waitingUnprioritized >= 0 ? waitingUnprioritized : waiting >= 0 ? waiting : jobs.length - 1;
             jobs.splice(evictIndex, 1);
         }
     }

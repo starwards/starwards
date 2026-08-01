@@ -22,7 +22,7 @@ module.exports = {
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'tsx',
-                    target: 'es2020',
+                    target: 'es2023',
                     tsconfigRaw: require('./tsconfig.json'),
                 },
             },
@@ -31,7 +31,7 @@ module.exports = {
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'ts',
-                    target: 'es2020',
+                    target: 'es2023',
                     tsconfigRaw: require('./tsconfig.json'),
                 },
             },
