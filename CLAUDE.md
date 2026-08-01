@@ -139,6 +139,43 @@ power = 1.0;
 - Typed: `room.send(command)`
 - JSON Pointer: `/Spaceship/${id}/property`
 
+A command's `setValue` receives only the **state**, never a manager — so writing state directly from a command silently bypasses every guard that lives on the manager. Enqueue instead, and drain the queue in the manager's `update()`:
+
+```typescript
+// ✅ Correct — same shape as createAsteroidCommands / createWaypointCommands
+setValue: (state, value) => state.someCommands.push(value)
+
+// ❌ Wrong — skips SpaceManager's validation
+setValue: (state, value) => { state.get(value.id).someField[value.index] = value.level; }
+```
+
+### Comments on Synced State
+
+Use **JSDoc**, not line comments, on `@gameField` properties, schema classes and public methods. Line comments do not survive into `modules/core/cjs/index.d.ts`, so every cross-module consumer loses them.
+
+```typescript
+/** Seconds at which this was captured. Indexed by Faction. */   // ✅ reaches consumers
+// Seconds at which this was captured. Indexed by Faction.       // ❌ dies at the module boundary
+@gameField(['float32']) capturedAt = new ArraySchema<number>();
+```
+
+### Player-Facing Selection Is a Fog-of-War Boundary
+
+All space state is broadcast live to every client regardless of faction or scan level — concealment is a client-side rendering discipline, never a property of what was sent. What a station shows is that station's design decision: the long-range radar drops blips outside the field of view it recomputes via `RadarRangeFilter`, other views differ. **Layers on one radar must agree — an overlay draws only when its subject blip draws.**
+
+So a client-side filter leaks its own predicate. `getAll('<Type>')` on any player-facing selection path (target cycling, job lists, radar overlays) tells the player which contacts are that type, whichever scan level they hold.
+
+```typescript
+getAll('Spaceship')                       // ❌ cycling classifies every contact as ship / not-ship
+filter(o => getScanLevel(o) === UFO)      // ✅ keys on what the player has earned
+```
+
+Filter on scan level. Type filters are legitimate only above `BASIC`, where the player already knows the type. GM surfaces are exempt. The same rule covers removal: a visible collection that drops an entry discloses why it dropped.
+
+### Managers
+
+`ship/` decomposes into sub-managers (`chain-gun-manager`, `damage-manager`, `energy-manager`, …); `logic/` should too. When extracting one, pass computed per-tick inputs (e.g. field-of-view) as **arguments** rather than reaching back into the parent — that turns an implicit call-ordering contract into a signature the compiler enforces.
+
 ### System Effectiveness
 
 `broken ? 0 : power * hacked` (`hacked` is a HackLevel multiplier: OK=1, COMPROMISED=0.5, DISABLED=0; `coolantFactor` governs heat dissipation, not effectiveness — see `SystemState.effectiveness` in `modules/core/src/ship/system.ts`)
@@ -182,6 +219,8 @@ When something is removed or replaced, delete every mention of it — no "X was 
 ## GitHub Access
 
 Use the `gh` CLI for all GitHub operations (issues, PRs, workflow runs) — it is the reliable path in headless/agent runs. Treat GitHub MCP tools as a fallback only.
+
+When falling back to an MCP server, **verify write access before planning work around it**. Read and write are granted separately: a GitHub App installation commonly allows `issue_read` / `list_issues` while rejecting `issue_write` with `403 Resource not accessible by integration`. Probe with one cheap write rather than batching six and discovering it at the end. The GitKraken MCP is a second fallback but needs its own sign-in (`gk auth login`) before any call succeeds.
 
 ## Commits & PRs
 
