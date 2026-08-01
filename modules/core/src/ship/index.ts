@@ -1,4 +1,5 @@
 export * from './armor';
+export * from './attack-resolution-manager';
 export * from './chain-gun';
 export * from './damage-manager';
 export * from './docking';

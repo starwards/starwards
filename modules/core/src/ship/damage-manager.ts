@@ -1,3 +1,4 @@
+import { AreaExposure, AttackDamage, AttackResolutionManager, SurfaceChannelHit } from './attack-resolution-manager';
 import {
     ChainGun,
     Damage,
@@ -12,11 +13,10 @@ import {
     limitPercision,
     shipAreasInRange,
 } from '..';
-import { DamageProfile, WeaponDamageType, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
+import { DamageProfile, damageProfiles, isWeaponDamageType } from '../space/damage-profile';
 import { Die, ShipSystem } from './ship-manager-abstract';
 import { FRONT_ARC, REAR_ARC } from '.';
 
-import { ArmorPlate } from './armor';
 import { DeepReadonly } from 'ts-essentials';
 import { Docking } from './docking';
 import { Magazine } from './magazine';
@@ -28,11 +28,7 @@ import { Signals } from './signals';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
 
-/**
- * Explosion damage arrives per tick (damageFactor × dt × capped overlap), so this is
- * calibrated for sanding over a full cloud pass (a handful of small defects), not instant kills.
- */
-const SURFACE_EFFECT_FACTOR = 0.05;
+export type { AttackDamage } from './attack-resolution-manager';
 
 /**
  * bound on spillover rolls per application: past this point every roll sits at the 0.5 cap and
@@ -41,22 +37,18 @@ const SURFACE_EFFECT_FACTOR = 0.05;
  */
 const MAX_SPILLOVER_ROLLS = 20;
 
-export type AttackDamage = Damage & {
-    damageType: WeaponDamageType;
-    profile: DamageProfile;
-};
-
-type AreaExposure = { hitArea: ShipArea; exposure: number };
-
 export class DamageManager {
     private applicationCounter = 0;
+    private attackResolutionManager: AttackResolutionManager;
 
     constructor(
         public spaceObject: DeepReadonly<Spaceship>,
         private state: ShipState,
         private spaceManager: SpaceManager,
         private die: Die,
-    ) {}
+    ) {
+        this.attackResolutionManager = new AttackResolutionManager(this.state);
+    }
 
     update() {
         let damagedInternals = false;
@@ -87,20 +79,9 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
-        const damagedExternals = this.applySurfaceEffect(damage);
-        const exposures: AreaExposure[] = [];
-        for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
-            const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
-            const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
-            if (!areaHitRangeAngles) {
-                continue;
-            }
-            const exposure = this.walkArmorLayers(damage, areaHitRangeAngles, areaArc);
-            if (exposure > 0) {
-                exposures.push({ hitArea, exposure });
-            }
-        }
-        return this.applyExposedSystemDamage(damage, exposures) || damagedExternals;
+        const resolution = this.attackResolutionManager.resolveAttack(damage);
+        const damagedExternals = this.applySurfaceChannelDamage(damage, resolution.surfaceChannel);
+        return this.applyExposedSystemDamage(damage, resolution.exposures) || damagedExternals;
     }
 
     public takeCollisionDamage(damage: Damage): boolean {
@@ -126,105 +107,16 @@ export class DamageManager {
         return damagedInternals;
     }
 
-    /**
-     * hull-mounted equipment sits outside every armor model — blast/shrapnel scrapes it
-     * regardless of the plates
-     */
-    private applySurfaceEffect(damage: AttackDamage): boolean {
-        const { profile } = damage;
-        if (!profile.surfaceEffect) {
+    /** applies the surface channel's pre-scaled amount to its systems as ordinary defect rolls */
+    private applySurfaceChannelDamage(damage: AttackDamage, surfaceChannel: SurfaceChannelHit | null): boolean {
+        if (!surfaceChannel) {
             return false;
         }
-        const scaled = { ...damage, amount: damage.amount * SURFACE_EFFECT_FACTOR * profile.surfaceDamageFactor };
-        for (const system of this.collectAreaSystems(damage.damageSurfaceArc)) {
-            if (!system.isInternal) {
-                this.damageSystem(system, scaled, 1);
-            }
+        const scaled = { id: damage.id, amount: surfaceChannel.amount };
+        for (const system of surfaceChannel.systems) {
+            this.damageSystem(system, scaled, 1);
         }
         return true;
-    }
-
-    /**
-     * Spec §6 resolution walk, one plate at a time: each plate in the hit arc is walked
-     * independently through its own layer stack, using only its own share of the hit — the
-     * fraction of the hit's own angular width that lands on that specific plate (1 when the
-     * entire hit sits within that one plate, less when the hit is spread across several
-     * plates). Plates are exclusive to each other: one plate's outcome (block, erosion, chain)
-     * never depends on another plate's state. The hit meets each layer outermost-in;
-     * transparent layers are skipped, an intact blocking layer stops that plate's chain,
-     * engaging layers erode (scaled by the chain so far and the plate's own share of the hit)
-     * and leak inward through their exposure — max(penetration, broken) — chaining
-     * multiplicatively down the stack. The area's final exposure is each plate's chain weighted
-     * by how many of the hit's degrees landed on it, averaged over the area's full angular
-     * width (including any of its plates outside this particular hit).
-     *
-     * Reactive cells (`singleUsePlates`) trigger on impact delivery only: one cell across the
-     * whole hit pops and the hit is defeated for that plate (exposure measured pre-pop) unless
-     * the round fully penetrates (Tandem). Explosions erode the cells like ordinary plates — no
-     * pop, no defeat.
-     */
-    private walkArmorLayers(damage: AttackDamage, areaHitRangeAngles: RTuple2, areaArc: RTuple2): number {
-        const armor = this.state.armor;
-        const platesInArea = armor.numberOfPlatesInRange(areaArc);
-        if (platesInArea <= 0) {
-            return 0;
-        }
-        const totalAreaDegrees = platesInArea * armor.degreesPerPlate;
-        const hits = [...armor.plateHitOverlaps(areaHitRangeAngles)];
-        const hitSize = hits.reduce((sum, [, overlap]) => sum + overlap, 0);
-        if (hitSize <= 0) {
-            return 0;
-        }
-        const cellBudget = { popped: false };
-        let exposureSum = 0;
-        for (const [plate, overlap] of hits) {
-            const share = overlap / hitSize;
-            const chain = this.walkPlateLayers(plate, damage, damage.amount * share, cellBudget);
-            exposureSum += chain * overlap;
-        }
-        return exposureSum / totalAreaDegrees;
-    }
-
-    /** walks a single plate's own layer stack, independent of every other plate in the hit */
-    private walkPlateLayers(
-        plate: ArmorPlate,
-        damage: AttackDamage,
-        amount: number,
-        cellBudget: { popped: boolean },
-    ): number {
-        let chain = 1;
-        for (const layer of plate.layers) {
-            if (chain <= 0) {
-                break;
-            }
-            const response = layer.design.response(damage.damageType);
-            if (response.kind === 'bypass') {
-                continue;
-            }
-            if (response.kind === 'block') {
-                chain *= layer.broken ? 1 : 0;
-                continue;
-            }
-            if (layer.design.singleUsePlates && damage.delivery === 'impact') {
-                const bareBeforePop = layer.broken ? 1 : 0;
-                if (!cellBudget.popped && !layer.broken) {
-                    // a single reactive cell sacrifices itself to defeat the whole hit
-                    layer.health = 0;
-                    cellBudget.popped = true;
-                    chain *= Math.max(response.penetration, bareBeforePop);
-                    if (response.penetration < 1) {
-                        // exposure measured pre-pop; deeper layers on this plate never see this round
-                        return chain;
-                    }
-                    continue;
-                }
-                chain *= Math.max(response.penetration, bareBeforePop);
-                continue;
-            }
-            layer.health = Math.max(layer.health - amount * response.plateFactor * chain, 0);
-            chain *= Math.max(response.penetration, layer.broken ? 1 : 0);
-        }
-        return chain;
     }
 
     /**
@@ -275,14 +167,6 @@ export class DamageManager {
             return systems.filter((s) => s.isElectronics);
         }
         return systems.filter((s) => s.isInternal === profile.hitsInternal);
-    }
-
-    private collectAreaSystems(surfaceArc: RTuple2): ShipSystem[] {
-        const collected: ShipSystem[] = [];
-        for (const hitArea of shipAreasInRange(surfaceArc)) {
-            collected.push(...(this.state.systemsByAreas(hitArea) || []));
-        }
-        return collected;
     }
 
     damageAllSystems(damageObject: { id: string; amount: number }) {
