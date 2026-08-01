@@ -700,7 +700,7 @@ export class SpaceManager implements Updateable {
         } else {
             const collisionVector = XY.scale(response.overlapV, -0.5);
             return {
-                damageAmount: subject.collisionDamage * Math.min(response.overlap, object.radius * 2),
+                damageAmount: subject.collisionDamage * deltaSeconds * Math.min(response.overlap, object.radius * 2),
                 positionChange: collisionVector,
                 velocityChange: XY.scale(collisionVector, subject.collisionElasticity / deltaSeconds),
             };

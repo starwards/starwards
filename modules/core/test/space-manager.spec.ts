@@ -106,6 +106,29 @@ describe('SpaceManager', () => {
             ),
         );
     });
+    it('solid-collision damage per second is frame-rate independent', () => {
+        function totalDamageForOneTick(deltaSeconds: number) {
+            const target = new Asteroid();
+            target.init('target', Vec2.make({ x: 0, y: 0 }), Spaceship.radius);
+            const collider = new Asteroid();
+            collider.init('collider', Vec2.make({ x: Spaceship.radius, y: 0 }), Spaceship.radius);
+            const healthBefore = target.health + collider.health;
+
+            const spaceMgr = new SpaceManager();
+            spaceMgr.insertBulk([target, collider]);
+            spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
+
+            return healthBefore - (target.health + collider.health);
+        }
+
+        // same overlap, ten times the tick length: total damage should scale with deltaSeconds,
+        // not stay fixed per tick (which would make damage/second scale with server tick rate)
+        const damageAtSlowTick = totalDamageForOneTick(1 / 20);
+        const damageAtFastTick = totalDamageForOneTick(1 / 200);
+
+        expect(damageAtFastTick).to.be.greaterThan(0);
+        expect(damageAtSlowTick / damageAtFastTick).to.be.closeTo(10, 1);
+    });
     it('upon collision, ship takes damage', () => {
         fc.assert(
             fc.property(
