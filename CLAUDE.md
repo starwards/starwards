@@ -17,9 +17,12 @@ npm run test:e2e -- modules/e2e/test/visual/specific.spec.ts
 # (testMatch lives in playwright.config.ts, so file filters work and it runs fine from PowerShell too)
 
 # E2E snapshots
-npm run test:e2e -- --update-snapshots   # Update snapshots locally
+npm run test:e2e -- --update-snapshots   # Update snapshots locally (only rewrites baselines whose test fails)
+npm run test:e2e -- --update-snapshots=all   # Rewrite every baseline — needed when the comparator itself changed
 npm run snapshots:ci                     # Update CI (linux) snapshots via docker — very slow
-npm run test:widgets                     # Gallery visual tests, headed chromium
+npm run test:widgets                     # Gallery visual tests, headed chromium (add xvfb-run on linux)
+# Gallery baselines exist per project — regenerate BOTH (test:e2e and test:widgets) or the other job fails.
+# Comparator settings and the per-scene sensitivity guard: docs/testing/README.md#gallery-visual-tests
 
 # Development — one command (cross-platform: core watch + server + browser via concurrently)
 npm run dev
