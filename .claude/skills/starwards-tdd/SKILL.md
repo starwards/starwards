@@ -449,11 +449,11 @@ test('broken system has 0 effectiveness', () => {
 });
 
 test('hacked system reduces effectiveness', () => {
-  shield.hacked = 0.3;
+  shield.hacked = HackLevel.COMPROMISED; // multiplier, not a fraction to subtract
   shield.power = 1.0;
 
-  const expected = 1.0 * (1 - 0.3); // power × (1 - hacked)
-  expect(shield.effectiveness).toBeCloseTo(expected, 2);
+  // effectiveness = broken ? 0 : power * hacked  (OK=1, COMPROMISED=0.5, DISABLED=0)
+  expect(shield.effectiveness).toBeCloseTo(0.5, 2);
 });
 ```
 
@@ -500,6 +500,53 @@ npm test -- --watch
 | "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
 | "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
+
+## Does This Test Earn Its Place?
+
+TDD says write the test first. It does not say every test deserves to exist. A test earns its place when it:
+
+1. checks something **actually important** that would otherwise be easy to miss,
+2. is **cheap** — in code, in length, and at runtime, and
+3. reads like the **product spec, not the implementation**.
+
+> **Good tests are very different from the implementation that satisfies them.** They state what the product must do, not what the engineering happens to be.
+
+**Delete or don't write:**
+
+| Smell | Example |
+|---|---|
+| Restates the data structure | `expect(fn(x)).toEqual({ a: 1, b: 2 })` on a shape the function literally constructs |
+| Asserts arithmetic just performed | code computes `1 - progress`; test asserts `0.75` from `0.25` |
+| Guards a player-invisible invariant | "does not duplicate the queued job for a target" |
+| Covers an unreachable feature | a whole validation suite for a command no client ever sends |
+| Name promises behaviour, body checks wiring | "halts all jobs" that only asserts a boolean flipped |
+| Traverses UI-library internals | `.tp-ckbv_w` — see [testing README](../../docs/testing/README.md#ui-testing-best-practices) |
+
+### The inverse failure: relaxing an assertion
+
+When new behaviour breaks an old test, **fix the code or restate the spec — never loosen the assertion to make it pass.**
+
+```typescript
+expect(p.scanLevels[f]).to.equal(ScanLevel.ADVANCED);   // before
+expect(p.scanLevels[f]).to.be.at.least(ScanLevel.SNAPSHOT); // ❌ describes the new floor
+expect(p.scanLevels[f]).to.be.at.least(ScanLevel.BASIC);    // ✅ states the rule: own shells stay identifiable
+```
+
+Each relaxation converts a spec statement into a description of current behaviour. Do it enough and the suite follows the implementation instead of constraining it. Same trap: picking the one enum value or duration that avoids triggering the new code path.
+
+### Harness shape
+
+If a test needs power levels, pilot modes, entity flushes and warmup ticks before it can say anything, it is shaped by the implementation. Aim for setup a designer would recognise:
+
+```
+"hold a contact in sight for 5 seconds → it becomes identified"
+```
+
+not
+
+```
+"construct two managers, set PowerLevel.MAX, set two SmartPilotModes, flush, warm up, then assert"
+```
 
 ## Red Flags - STOP and Start Over
 

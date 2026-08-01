@@ -61,6 +61,13 @@ export abstract class SpaceObjectBase extends Schema {
     @gameField(['uint8'])
     public scanLevels = new ArraySchema<number>(...(Array(Faction.FACTION_COUNT).fill(ScanLevel.UFO) as number[])); // Indexed by Faction enum
 
+    /**
+     * Seconds (IterationData.totalSeconds) at which each faction's SNAPSHOT scan level was
+     * captured on FULL -> SNAPSHOT demotion. Indexed by Faction enum.
+     */
+    @gameField(['float32'])
+    public scanSnapshotCapturedAt = new ArraySchema<number>(...(Array(Faction.FACTION_COUNT).fill(0) as number[]));
+
     @gameField(Vec2)
     public position: Vec2 = new Vec2(0, 0);
 

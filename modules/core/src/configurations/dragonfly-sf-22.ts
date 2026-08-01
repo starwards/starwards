@@ -189,8 +189,7 @@ export const dragonflySignals = {
     isElectronics: true,
     damage50: 20,
     maxJobs: 9,
-    scanBaseDuration: 20,
-    scanAdvancedFactor: 2,
+    scanBaseDuration: 5,
 };
 
 export const dragonflySF22 = {

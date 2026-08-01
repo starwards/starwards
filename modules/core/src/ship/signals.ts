@@ -11,14 +11,12 @@ export type SignalsDesign = {
     damage50: number;
     maxJobs: number;
     scanBaseDuration: number;
-    scanAdvancedFactor: number;
 };
 
 export class SignalsDesignState extends DesignState implements SignalsDesign {
     @gameField('float32') damage50 = 0;
     @gameField('float32') maxJobs = 9;
-    @gameField('float32') scanBaseDuration = 20;
-    @gameField('float32') scanAdvancedFactor = 2;
+    @gameField('float32') scanBaseDuration = 5;
 }
 
 export class Signals extends SystemState {
@@ -49,11 +47,19 @@ export class Signals extends SystemState {
     @gameField([SignalsJob])
     jobs = new ArraySchema<SignalsJob>();
 
-    // Command properties (set by client via JSON pointer, consumed by manager on tick)
+    /** Command properties (set by client via JSON pointer, consumed by manager on tick). */
     @commandable()
     public cancelJobId = '';
 
-    // Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks
+    /** Move a job to the top of the queue, making it the active job. */
+    @commandable()
+    public prioritizeJobId = '';
+
+    /** Halts progress on all jobs while set (resource management); the queue itself keeps updating. */
+    @commandable()
+    public jobsPaused = false;
+
+    /** Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks. */
     get currentMaxJobs(): number {
         if (this.broken) {
             return 0;

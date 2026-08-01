@@ -108,6 +108,31 @@ test.describe('GM Screen', () => {
         await expect(tweakPanel.locator('.tp-search-listv').first()).toBeVisible();
     });
 
+    test('tweak panel Scan Levels folder offers UFO/BASIC/SNAPSHOT/FULL per faction', async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const scanLevelsFolder = tweakPanel
+            .locator('.tp-fldv', { has: page.getByText('Scan Levels', { exact: true }) })
+            .last();
+        await expect(scanLevelsFolder).toBeVisible({ timeout: 5000 });
+        await scanLevelsFolder.getByText('Scan Levels', { exact: true }).click(); // folder starts collapsed
+
+        // one <select> list blade per faction; each offers all four scan levels.
+        // Text is all the DOM exposes: tweakpane builds each <option> from textContent alone and
+        // never sets a value attribute, mapping selections by index into its options array. The
+        // scan-level numbering those texts stand for is pinned in modules/core/test/scan-level.spec.ts.
+        const scanLevelSelect = scanLevelsFolder.locator('select').first();
+        await expect(scanLevelSelect).toBeVisible({ timeout: 5000 });
+        const optionTexts = await scanLevelSelect.locator('option').allTextContents();
+        expect(optionTexts).toEqual(['UFO', 'BASIC', 'SNAPSHOT', 'FULL']);
+    });
+
     test('velocity set via the tweak panel persists (does not get thrusted away by the smart pilot)', async ({
         page,
     }) => {
