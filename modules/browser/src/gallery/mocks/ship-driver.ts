@@ -6,6 +6,7 @@ interface MockShipDriver {
     id: string;
     state: ShipState;
     systems: unknown[];
+    sendJsonCmd: (pointerStr: string, value: unknown) => void;
 }
 
 export function createMockShipDriver(ship: ShipState): MockShipDriver {
@@ -14,5 +15,7 @@ export function createMockShipDriver(ship: ShipState): MockShipDriver {
         id: ship.id,
         state: ship,
         systems: [],
+        // the gallery has no server behind it — writable widgets render, their commands go nowhere
+        sendJsonCmd: () => undefined,
     };
 }

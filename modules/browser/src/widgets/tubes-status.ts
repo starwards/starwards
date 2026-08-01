@@ -1,8 +1,8 @@
-import { addBarBlade, addInputBlade, addTextBlade } from '../panel/blades';
-import { readNumberProp, readProp } from '../property-wrappers';
+import { ClusterWarheadMode, ShipDriver, clusterWarheadModes } from '@starwards/core';
+import { addBarBlade, addInputBlade, addListBlade, addTextBlade } from '../panel/blades';
+import { readNumberProp, readProp, readWriteProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
-import { ShipDriver } from '@starwards/core';
 import { WidgetContainer } from '../container';
 import { createWidgetPane } from '../panel';
 
@@ -39,6 +39,18 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
             { label: 'auto load' },
             panelCleanup.add,
         );
+        // cluster munitions carry two selectable warheads; tubes that cannot load them have no mode to pick
+        if (tube.design.isAmmoEnabled('ClusterMissile')) {
+            addListBlade(
+                tubeFolder,
+                readWriteProp<ClusterWarheadMode>(shipDriver, `/tubes/${tube.index}/clusterWarhead`),
+                {
+                    label: 'cluster warhead',
+                    options: clusterWarheadModes.map((mode) => ({ value: mode, text: mode })),
+                },
+                panelCleanup.add,
+            );
+        }
         if (tube.index < shipDriver.state.tubes.length - 1) {
             pane.addBlade({ view: 'separator' });
         }

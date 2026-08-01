@@ -1,6 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
-import { expectNonInteractiveBar, getPropertyValue, makeDriver } from './driver';
+import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForShipCondition } from './driver';
 
 import { maps } from '@starwards/server';
 
@@ -44,5 +44,27 @@ test.describe('Weapons Screen', () => {
         const gunPanel = page.locator('[data-id="Chain Gun"]');
         await expect(gunPanel).toBeVisible();
         await expectNonInteractiveBar(gunPanel.locator('.sw-bar').first());
+    });
+
+    test('picking a cluster warhead mode on a tube arms the next cluster launch with it', async ({ page }) => {
+        const tubesPanel = page.locator('[data-id="Tubes Status"]');
+        await expect(tubesPanel).toBeVisible({ timeout: 10000 });
+
+        const modeLabel = tubesPanel.getByText('cluster warhead', { exact: true }).first();
+        await expect(modeLabel).toBeVisible();
+        await modeLabel.locator('..').locator('select').selectOption('ArmPen');
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.tubes.at(0)?.clusterWarhead === 'ArmPen',
+            3000,
+        );
+    });
+
+    test('the ammunition panel groups shells and missiles', async ({ page }) => {
+        const ammoPanel = page.locator('[data-id="Ammunition"]');
+        await expect(ammoPanel).toBeVisible({ timeout: 10000 });
+        await expect(ammoPanel.getByText('Shells', { exact: true })).toBeVisible();
+        await expect(ammoPanel.getByText('Missiles', { exact: true })).toBeVisible();
     });
 });

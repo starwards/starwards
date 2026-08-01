@@ -380,8 +380,6 @@ change is a deliberate pin update.
    delivery flag supports it without new mechanics.
 4. **Play-test calibration**: all damage numbers (now also setting defect counts via
    spillover), frag scrape rates, Hardened grind pace, Reactive attrition pace.
-5. **Weapons-station UI**: cluster mode toggle on the tube widget (state/commands exist).
-6. **Per-ship system mounting**: [#1954](https://github.com/starwards/starwards/issues/1954).
-7. **Ammo widget grouping**: 9 flat rows may read poorly at the weapons station.
-8. **Tandem surface realism**: real shaped charges also blast on contact; currently zero
+5. **Per-ship system mounting**: [#1954](https://github.com/starwards/starwards/issues/1954).
+6. **Tandem surface realism**: real shaped charges also blast on contact; currently zero
    surface effect for role clarity. A token scrape is a two-number change if wanted.
