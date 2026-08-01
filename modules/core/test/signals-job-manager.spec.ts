@@ -1,5 +1,6 @@
 import {
     Faction,
+    HackLevel,
     PowerLevel,
     ScanLevel,
     ShipManagerPc,
@@ -252,6 +253,35 @@ describe('SignalsJobManager', () => {
             tick(shipMgr, spaceMgr, 0.05, 0.1);
 
             expect(shipMgr.state.signals.jobs.length).to.be.at.most(1);
+        });
+    });
+
+    // Nothing in modules/ writes `hacked` any more — it is kept so a GM can compromise a system by
+    // hand for a scripted event. The job pipeline must leave that value alone.
+    describe('hacked systems', () => {
+        it('should leave a hand-set hack level untouched while jobs run', () => {
+            const { shipMgr, spaceMgr } = createTestSetup();
+            shipMgr.state.radars[0].hacked = HackLevel.COMPROMISED;
+
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
+            seedJob(shipMgr, 'target1');
+            runTicks(shipMgr, spaceMgr, 45, 20, 0.05);
+
+            expect(spaceMgr.getScanLevel('target1', Faction.Gravitas), 'the job still ran').to.equal(
+                ScanLevel.ADVANCED,
+            );
+            expect(shipMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
+        });
+
+        it('should not clear a hack level on the target of a job', () => {
+            const { shipMgr, spaceMgr, targetMgr } = createTestSetup();
+            targetMgr.state.radars[0].hacked = HackLevel.COMPROMISED;
+
+            spaceMgr.setScanLevel('target1', Faction.Gravitas, ScanLevel.BASIC);
+            seedJob(shipMgr, 'target1');
+            runTicks(shipMgr, spaceMgr, 45, 20, 0.05);
+
+            expect(targetMgr.state.radars[0].hacked).to.equal(HackLevel.COMPROMISED);
         });
     });
 
