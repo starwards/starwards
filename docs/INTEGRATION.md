@@ -676,12 +676,12 @@ export function powerControl(shipDriver: ShipDriver): DashboardWidget {
 **Advanced Controls:**
 
 ```typescript
-import { createPane } from '../panel';
+import { createWidgetPane } from '../panel';
 
 export function systemControl(shipDriver: ShipDriver): DashboardWidget {
     class SystemControlComponent {
         constructor(container: WidgetContainer) {
-            const pane = createPane({ title: 'System Control', container: container.getElement().get(0) });
+            const { pane } = createWidgetPane(container, 'System Control');
 
             // Add controls
             pane.addBinding(shipDriver.state.reactor, 'power', {

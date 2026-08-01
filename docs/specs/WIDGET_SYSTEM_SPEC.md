@@ -228,13 +228,14 @@ export function statusWidget(shipDriver: ShipDriver): DashboardWidget {
 
 ### Widget with Tweakpane
 ```typescript
-import { createPane } from '../panel';
+import { createWidgetPane } from '../panel';
 
 export function controlWidget(shipDriver: ShipDriver): DashboardWidget {
     class ControlComponent {
         constructor(container: WidgetContainer, _: unknown) {
-            // Use createPane() for automatic data-id attribute (enables semantic testing)
-            const pane = createPane({ title: 'Controls', container: container.getElement().get(0) });
+            // createWidgetPane() adds the data-id attribute (enables semantic testing) and ties
+            // the pane's lifecycle to the container's
+            const { pane } = createWidgetPane(container, 'Controls');
 
             // Add controls
             pane.addBinding(shipDriver.state.reactor, 'power', {
@@ -253,7 +254,7 @@ export function controlWidget(shipDriver: ShipDriver): DashboardWidget {
 }
 ```
 
-**Note**: Always use `createPane({ title: 'Panel Name', container })` instead of `new Pane({ container })`. This automatically adds `data-id="Panel Name"` for semantic testing via `page.locator('[data-id="Panel Name"]')`.
+**Note**: Always use `createWidgetPane(container, 'Panel Name')` instead of `new Pane({ container })`. It adds `data-id="Panel Name"` for semantic testing via `page.locator('[data-id="Panel Name"]')`, and returns a `cleanup` (`Destructors`) already wired to the container's `destroy` event — pass `cleanup.add` to the blade helpers and register any other teardown on it.
 
 ## createWidget (GM "Create Objects" panel)
 @file: modules/browser/src/widgets/create.ts
@@ -404,12 +405,12 @@ dashboard.createDragSource(menuItem, itemConfig);
 
 ## Basic Tweakpane Usage
 ```typescript
-import { createPane } from '../panel';
+import { createWidgetPane } from '../panel';
 
 export function controlPanel(shipDriver: ShipDriver): DashboardWidget {
     class ControlPanelComponent {
         constructor(container: WidgetContainer, _: unknown) {
-            const pane = createPane({ title: 'Controls', container: container.getElement().get(0) });
+            const { pane } = createWidgetPane(container, 'Controls');
 
             // Number input
             pane.addBinding(shipDriver.state.reactor, 'power', {
@@ -438,7 +439,7 @@ export function controlPanel(shipDriver: ShipDriver): DashboardWidget {
 
 ## Folder Organization
 ```typescript
-const pane = createPane({ title: 'Systems', container });
+const { pane } = createWidgetPane(container, 'Systems');
 
 // Create folders
 const reactorFolder = pane.addFolder({ title: 'Reactor' });
@@ -590,12 +591,12 @@ export function displayWidget(shipDriver: ShipDriver): DashboardWidget {
 @purpose: user-input
 
 ```typescript
-import { createPane } from '../panel';
+import { createWidgetPane } from '../panel';
 
 export function controlWidget(shipDriver: ShipDriver): DashboardWidget {
     class ControlComponent {
         constructor(container: WidgetContainer, _: unknown) {
-            const pane = createPane({ title: 'Controls', container: container.getElement().get(0) });
+            const { pane } = createWidgetPane(container, 'Controls');
 
             // Add controls
             pane.addBinding(shipDriver.state.reactor, 'power', {

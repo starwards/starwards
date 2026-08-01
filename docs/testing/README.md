@@ -99,7 +99,7 @@ const panel = page.locator('[data-id="Targeting"]');
 const panel = page.getByRole('button', { name: /Targeting/ });
 ```
 
-**Why:** All Tweakpane panels created with `createPane({ title, container })` automatically get `data-id="title"` for semantic testing. This decouples tests from Tweakpane's internal DOM structure.
+**Why:** All Tweakpane panels created with `createWidgetPane(container, title)` automatically get `data-id="title"` for semantic testing. This decouples tests from Tweakpane's internal DOM structure.
 
 **✓ Test panel presence, not internals**
 

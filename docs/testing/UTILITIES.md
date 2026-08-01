@@ -220,7 +220,7 @@ Utilities for testing Tweakpane PropertyPanel displays in E2E tests.
 ### Architecture
 
 **Tweakpane Structure:**
-- **Panes** with titles get `data-id` automatically via `createPane({ title, container })`
+- **Panes** with titles get `data-id` automatically via `createWidgetPane(container, title)`
 - **Folders** inside panes create button elements (for collapse) + label elements (inside)
 - **Inputs** may be CSS-hidden (checkboxes) but remain DOM-interactive
 

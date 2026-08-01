@@ -1,5 +1,5 @@
-import { Destructors, Faction, ShipDriver, SpaceDriver, XY } from '@starwards/core';
-import { addTextBlade, createPane } from '../panel';
+import { Faction, ShipDriver, SpaceDriver, XY } from '@starwards/core';
+import { addTextBlade, createWidgetPane } from '../panel';
 
 import { DashboardWidget } from './dashboard';
 import { EmitterLoop } from '../loop';
@@ -34,11 +34,7 @@ export function drawTargetInfo(
     shipDriver: ShipDriver,
     stationTarget: SelectionContainer,
 ) {
-    const cleanup = new Destructors();
-    container.on('destroy', cleanup.destroy);
-
-    const pane = createPane({ title: 'Target', container: container.getElement().get(0) });
-    cleanup.add(() => pane.dispose());
+    const { pane, cleanup } = createWidgetPane(container, 'Target');
 
     const typeProp = propertyStub('—');
     addTextBlade(pane, typeProp, { label: 'Type' }, cleanup.add);

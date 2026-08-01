@@ -1,11 +1,13 @@
 import * as CamerakitPlugin from '@tweakpane/plugin-camerakit';
 import * as TextareaPlugin from '@pangenerator/tweakpane-textarea-plugin';
 
-import { FolderApi, InputBindingApi } from 'tweakpane';
-import { Model, NumericModel, createPane } from './blades';
+import { FolderApi, InputBindingApi, Pane } from 'tweakpane';
+import { Model, NumericModel } from './blades';
 
+import { Destructors } from '@starwards/core';
 import { EmitterLoop } from '../loop';
 import { WidgetContainer } from '../container';
+import { createWidgetPane } from './widget-pane';
 
 /*
     This module was written originally for the Dat.gui API.
@@ -26,17 +28,20 @@ export interface Panel {
 type ViewModel = Record<string, number | string>;
 export class PropertyPanel implements Panel {
     private rootViewModel: ViewModel = {};
-    private pane: ReturnType<typeof createPane>;
+    private pane: Pane;
+    private cleanup: Destructors;
     private viewLoop = new EmitterLoop();
     constructor(container: WidgetContainer) {
-        this.pane = createPane({ title: 'Properties', container: container.getElement().get(0) });
+        const { pane, cleanup } = createWidgetPane(container, 'Properties');
+        this.pane = pane;
+        this.cleanup = cleanup;
+        this.cleanup.add(() => this.viewLoop.stop());
         this.pane.registerPlugin(CamerakitPlugin);
         this.pane.registerPlugin(TextareaPlugin);
         this.viewLoop.start();
     }
     destroy() {
-        this.viewLoop.stop();
-        this.pane.dispose();
+        this.cleanup.destroy();
     }
 
     private addInput<T extends number | string>(

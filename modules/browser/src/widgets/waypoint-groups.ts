@@ -1,5 +1,5 @@
 import { Destructors, SpaceDriver, XY, spaceCommands } from '@starwards/core';
-import { addButton, addColorBlade, addInputBlade, createPane } from '../panel';
+import { addButton, addColorBlade, addInputBlade, createWidgetPane } from '../panel';
 import { groupDisplayName, ownWaypoints } from '../radar/waypoint-group-layers';
 
 import { SelectionContainer } from '../radar/selection-container';
@@ -23,11 +23,7 @@ export function drawWaypointGroups(
     selection: SelectionContainer,
     focus: (position: XY) => void,
 ): WaypointGroupsPanel {
-    const cleanup = new Destructors();
-    container.on('destroy', cleanup.destroy);
-
-    const pane = createPane({ title: 'Groups', container: container.getElement().get(0) });
-    cleanup.add(() => pane.dispose());
+    const { pane, cleanup } = createWidgetPane(container, 'Groups');
 
     const folders = new Map<string, Destructors>();
 
