@@ -154,10 +154,13 @@ await waitForPropertyFloatValue(page, 'rotationCommand', 0.05); // ✓ Determini
 `modules/e2e/test/visual/gallery.spec.ts` screenshots every gallery scene and compares it to a
 baseline in `gallery.spec.ts-snapshots/`. Two properties keep those comparisons meaningful:
 
-- **Exact comparison.** Gallery renders are deterministic, so the comparator runs at `threshold: 0`
-  with a 100-pixel allowance for future anti-aliasing drift. A permissive threshold silently eats
-  the low-contrast grey-on-dark text these widgets are made of: at `threshold: 0.2` roughly 98% of
-  differing pixels were discarded, and several scenes could not fail at all.
+- **The comparator sits between the rasteriser and anything structural.** Layout reproduces across
+  machines; glyph anti-aliasing does not. At `threshold: 0.15` the same scene rendered on two
+  machines differs by at most 18 pixels, while the weakest change any scene produces is 1537 — so
+  `maxDiffPixels: 200` clears the noise by 11× and the signal clears it by 7.7×. Both ends matter:
+  the previous `threshold: 0.2` with a 2000-pixel radar allowance let 8 scenes pass no matter what
+  changed, and dropping to `threshold: 0.05` would swing the other way, since cross-machine
+  anti-aliasing alone reaches 1719 pixels there — more than several scenes produce when they change.
 - **The screenshot frames the widget.** `gallery.ts` sizes `#container` to what the scene actually
   drew, because an element screenshot is clipped to its element's box — a widget rendering past the
   size its scene declared would be cropped out of the baseline and look covered while being untested.

@@ -60,12 +60,14 @@ const scenes = [
 ];
 
 /**
- * Gallery renders are deterministic: every scene reproduces its baseline pixel for pixel, run after
- * run and machine after machine, so the comparator is set to exact per-pixel equality. The pixel
- * allowance is a hedge against future anti-aliasing drift only — the weakest perturbation any scene
- * produces is ~3300 differing pixels, so it stays far below anything a real widget edit moves.
+ * Layout is reproducible across machines but glyph anti-aliasing is not, so the comparator has to
+ * sit above the rasteriser and below anything structural. Both bounds were measured against CI:
+ * the same scene rendered on two machines differs by at most 18 pixels at this threshold, while the
+ * weakest perturbation any scene produces is 1537 — an 11x margin over the noise and 7.7x under the
+ * signal. Lowering the threshold does not buy sensitivity, it buys anti-aliasing: at 0.05 the
+ * cross-machine noise is already 1719 pixels, past what several scenes produce when they change.
  */
-const SNAPSHOT_OPTIONS = { threshold: 0, maxDiffPixels: 100 } as const;
+const SNAPSHOT_OPTIONS = { threshold: 0.15, maxDiffPixels: 200 } as const;
 
 /**
  * Vertical nudge applied to everything a scene rendered, to prove the snapshot assertion can fail.
