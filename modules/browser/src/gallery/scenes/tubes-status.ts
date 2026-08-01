@@ -46,17 +46,15 @@ export const tubesStatusScenes: Record<string, Scene> = {
 
     'tubes-status-cluster': {
         name: 'tubes-status-cluster',
-        description: 'Tubes status panel with cluster missiles loaded and warhead modes picked',
+        description: 'Tubes status panel with a cluster missile loaded, armor-piercing warhead selected',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            let armPen = true;
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'ClusterMissile';
                 tube.loadedProjectile = 'ClusterMissile';
                 tube.loading = 1;
                 tube.loadAmmo = true;
-                tube.clusterWarhead = armPen ? 'ArmPen' : 'Frag';
-                armPen = !armPen;
+                tube.clusterWarhead = 'ArmPen';
             }
 
             const mockContainer = createMockContainer(container, 350, 400);
@@ -71,13 +69,11 @@ export const tubesStatusScenes: Record<string, Scene> = {
         description: 'Tubes status panel with loading in progress',
         setup(container: HTMLElement) {
             const ship = makeShipState('player', dragonflySF22);
-            let loadingProgress = 0.2;
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'HiExpShell';
                 tube.loadedProjectile = 'None';
-                tube.loading = loadingProgress;
+                tube.loading = 0.2;
                 tube.loadAmmo = true;
-                loadingProgress += 0.3;
             }
 
             const mockContainer = createMockContainer(container, 350, 400);
