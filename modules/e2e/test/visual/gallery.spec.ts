@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { Page, expect, test } from '@playwright/test';
 import { makeDriver } from '../driver';
 
 const gameDriver = makeDriver(test);
@@ -59,24 +59,63 @@ const scenes = [
     'warp-active',
 ];
 
+/**
+ * Gallery renders are deterministic: every scene reproduces its baseline pixel for pixel, run after
+ * run and machine after machine, so the comparator is set to exact per-pixel equality. The pixel
+ * allowance is a hedge against future anti-aliasing drift only — the weakest perturbation any scene
+ * produces is ~3300 differing pixels, so it stays far below anything a real widget edit moves.
+ */
+const SNAPSHOT_OPTIONS = { threshold: 0, maxDiffPixels: 100 } as const;
+
+/**
+ * Vertical nudge applied to everything a scene rendered, to prove the snapshot assertion can fail.
+ * Four pixels is a fraction of the row shift that PR #2013 introduced without this suite noticing —
+ * a comparator blind to it is blind to every realistic widget edit.
+ */
+const PERTURBATION_PX = 4;
+
+async function openScene(page: Page, scene: string) {
+    await page.goto(`${gameDriver.baseURL}/gallery.html?scene=${scene}`);
+    await page.waitForFunction(() => (window as unknown as { __PIXI_READY__: boolean }).__PIXI_READY__ === true, {
+        timeout: 10000,
+    });
+    await page.waitForTimeout(100);
+    return page.locator('#container');
+}
+
 test.describe('Visual Gallery', () => {
     test.describe.configure({ mode: 'parallel' });
 
     for (const scene of scenes) {
         test(`${scene} renders correctly`, async ({ page }) => {
-            await page.goto(`${gameDriver.baseURL}/gallery.html?scene=${scene}`);
-            await page.waitForFunction(
-                () => (window as unknown as { __PIXI_READY__: boolean }).__PIXI_READY__ === true,
-                { timeout: 10000 },
-            );
-            await page.waitForTimeout(100);
-            const container = page.locator('#container');
+            const container = await openScene(page, scene);
             await expect(container).toBeVisible();
-            const maxDiff = scene.includes('radar') ? 2000 : 200;
-            await expect(container).toHaveScreenshot(`${scene}.png`, {
-                maxDiffPixels: maxDiff,
-                threshold: 0.2,
-            });
+            await expect(container).toHaveScreenshot(`${scene}.png`, SNAPSHOT_OPTIONS);
+        });
+    }
+
+    for (const scene of scenes) {
+        test(`${scene} snapshot detects a perturbed widget`, async ({ page }) => {
+            test.skip(
+                !['none', 'missing'].includes(test.info().config.updateSnapshots),
+                'snapshot-update mode would rewrite the baseline from the perturbed render',
+            );
+            const container = await openScene(page, scene);
+            await page.evaluate((offset) => {
+                for (const child of Array.from(document.getElementById('container')!.children)) {
+                    (child as HTMLElement).style.transform = `translateY(${offset}px)`;
+                }
+            }, PERTURBATION_PX);
+            let matchedBaseline = true;
+            try {
+                await expect(container).toHaveScreenshot(`${scene}.png`, { ...SNAPSHOT_OPTIONS, timeout: 2000 });
+            } catch {
+                matchedBaseline = false;
+            }
+            expect(
+                matchedBaseline,
+                `shifting the widget by ${PERTURBATION_PX}px still matched the baseline — this scene's snapshot cannot fail`,
+            ).toBe(false);
         });
     }
 

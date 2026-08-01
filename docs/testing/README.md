@@ -149,6 +149,31 @@ await page.keyboard.press('e');
 await waitForPropertyFloatValue(page, 'rotationCommand', 0.05); // ✓ Deterministic + specific
 ```
 
+### Gallery Visual Tests
+
+`modules/e2e/test/visual/gallery.spec.ts` screenshots every gallery scene and compares it to a
+baseline in `gallery.spec.ts-snapshots/`. Two properties keep those comparisons meaningful:
+
+- **Exact comparison.** Gallery renders are deterministic, so the comparator runs at `threshold: 0`
+  with a 100-pixel allowance for future anti-aliasing drift. A permissive threshold silently eats
+  the low-contrast grey-on-dark text these widgets are made of: at `threshold: 0.2` roughly 98% of
+  differing pixels were discarded, and several scenes could not fail at all.
+- **The screenshot frames the widget.** `gallery.ts` sizes `#container` to what the scene actually
+  drew, because an element screenshot is clipped to its element's box — a widget rendering past the
+  size its scene declared would be cropped out of the baseline and look covered while being untested.
+
+Every scene therefore carries a companion `… snapshot detects a perturbed widget` test that nudges
+the rendered widget a few pixels and asserts the snapshot assertion fails. Adding a scene to the
+`scenes` list adds both tests; nothing else is needed. That guard is skipped under
+`--update-snapshots=all|changed`, which would otherwise rewrite the baseline from the perturbed render.
+
+After an intentional widget change, regenerate both projects:
+
+```bash
+npm run test:e2e -- --update-snapshots=all modules/e2e/test/visual/gallery.spec.ts
+xvfb-run npm run test:widgets -- --update-snapshots=all
+```
+
 ### E2E Test Infrastructure
 
 **Problem:** When E2E tests fail, they can cause a "domino effect" where subsequent tests hang or slow down significantly. This happens when page crashes, JavaScript errors, or broken WebSocket connections leave the page in a corrupted state.
