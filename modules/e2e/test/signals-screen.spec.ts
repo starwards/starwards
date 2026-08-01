@@ -101,6 +101,8 @@ test.describe('Signals Screen', () => {
             5000,
         );
         const [rock] = gameDriver.gameManager.spaceManager.state.getAll('Asteroid');
+        // bare id, not "Asteroid <id>": the contact is still UFO, and a job label must not
+        // classify what the player has not scanned
         await expect(panel.getByText(`SCAN ${rock.id}`)).toBeVisible({ timeout: 10000 });
         await expect(panel.getByText('progress')).toBeVisible();
     });

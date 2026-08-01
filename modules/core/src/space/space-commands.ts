@@ -124,8 +124,11 @@ export const setScanLevel = {
     cmdName: 'setScanLevel',
     setValue: (state: SpaceState, value: SetScanLevelArg) => {
         const target = state.get(value.targetId);
-        if (target && !target.destroyed) {
-            target.scanLevels[value.faction] = value.level;
+        // same bounds guard as SpaceManager.setScanLevel: Faction.NONE is -1, and scanLevels is
+        // indexed by faction, so an unguarded write lands outside the array
+        const factionIndex = Number(value.faction);
+        if (target && !target.destroyed && factionIndex >= 0 && factionIndex < Number(Faction.FACTION_COUNT)) {
+            target.scanLevels[factionIndex] = value.level;
         }
     },
 };

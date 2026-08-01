@@ -13,7 +13,7 @@ describe('jobIndicators', () => {
 
     test('active job yields a ring indicator with the remaining fraction', () => {
         const jobs = [job('a', JobStatus.IN_PROGRESS, 0.25)];
-        expect(jobIndicators(jobs)).toEqual({ active: { targetId: 'a', remaining: 0.75 }, queued: [] });
+        expect(jobIndicators(jobs)).toEqual({ active: { targetId: 'a', remainingFraction: 0.75 }, queued: [] });
     });
 
     test('queued jobs after the active one get 1-based order markers, capped at 3', () => {
@@ -38,7 +38,7 @@ describe('jobIndicators', () => {
             job('b', JobStatus.QUEUED),
         ];
         expect(jobIndicators(jobs)).toEqual({
-            active: { targetId: 'a', remaining: 0.9 },
+            active: { targetId: 'a', remainingFraction: 0.9 },
             queued: [{ targetId: 'b', order: 1 }],
         });
     });

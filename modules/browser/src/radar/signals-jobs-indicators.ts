@@ -1,12 +1,12 @@
-import { JobStatus } from '@starwards/core';
+import { JobStatus, SignalsJob } from '@starwards/core';
 
 // how many upcoming queue targets get an order marker on the radar
 export const QUEUE_MARKERS_SHOWN = 3;
 
-type JobView = { targetId: string; status: JobStatus; progress: number };
+type JobView = Pick<SignalsJob, 'targetId' | 'status' | 'progress'>;
 
-export type ActiveIndicator = { targetId: string; remaining: number };
-export type QueuedIndicator = { targetId: string; order: number };
+type ActiveIndicator = { targetId: string; remainingFraction: number };
+type QueuedIndicator = { targetId: string; order: number };
 
 /**
  * What the signals radar should mark: a progress ring on the job being worked (remaining
@@ -29,5 +29,5 @@ export function jobIndicators(source: Iterable<JobView>): {
         .filter((job) => job.status === JobStatus.QUEUED)
         .slice(0, QUEUE_MARKERS_SHOWN)
         .map((job, i) => ({ targetId: job.targetId, order: i + 1 }));
-    return { active: { targetId: activeJob.targetId, remaining: 1 - activeJob.progress }, queued };
+    return { active: { targetId: activeJob.targetId, remainingFraction: 1 - activeJob.progress }, queued };
 }

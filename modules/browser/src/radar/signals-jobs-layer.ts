@@ -10,8 +10,8 @@ const markerRadius = 16;
 
 /**
  * Radar overlay for the signals station: a circular progress ring around the object being
- * scanned (arc length = remaining job time) and numbered markers on the next few queued
- * job targets.
+ * scanned (arc length = the fraction of the job still remaining) and numbered markers on the
+ * next few queued job targets.
  */
 export class SignalsJobsLayer {
     private readonly stage = new Container();
@@ -43,7 +43,7 @@ export class SignalsJobsLayer {
                         .circle(pos.x, pos.y, ringRadius)
                         .stroke({ width: 1, color: indicatorColor, alpha: 0.3 });
                     const start = -Math.PI / 2;
-                    const end = start + 2 * Math.PI * active.remaining;
+                    const end = start + 2 * Math.PI * active.remainingFraction;
                     this.graphics
                         .moveTo(pos.x + ringRadius * Math.cos(start), pos.y + ringRadius * Math.sin(start))
                         .arc(pos.x, pos.y, ringRadius, start, end)

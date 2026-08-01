@@ -1,6 +1,6 @@
 # Radar & Scanning
 
-> **See also:** [`docs/MS3/SCAN_LEVELS_DESIGN.md`](../../MS3/SCAN_LEVELS_DESIGN.md) and [`docs/MS3/SIGNALS_JOBS_DESIGN.md`](../../MS3/SIGNALS_JOBS_DESIGN.md) — detailed technical specs for scan levels and the signals jobs system summarized below.
+> **Historical context:** [`docs/MS3/SCAN_LEVELS_DESIGN.md`](../../MS3/SCAN_LEVELS_DESIGN.md) and [`docs/MS3/SIGNALS_JOBS_DESIGN.md`](../../MS3/SIGNALS_JOBS_DESIGN.md) are the Nov-2025 design corpus these mechanics grew out of. They describe an earlier model; this page is the live summary.
 
 ## Radar System (Partial)
 
@@ -14,32 +14,38 @@ A ship's vision is the union of its radar **sectors**. Each radar contributes on
 
 Each radar design sweeps a constant area (`area = range² · arc`): widening the arc shortens the reach and vice versa. Effectiveness scales the area, so reach scales with √effectiveness; malfunction blends toward a floor area, and an unpowered radar sees nothing at all.
 
-All visibility gates (signals job queueing/progress, tier-1 promotion, weapons target retention) ask one field-of-view test — `SpaceManager.isVisible` — so nothing treats radar as a circle.
+All visibility gates (signals job queueing/progress, scan promotion and demotion, weapons target retention) ask one field-of-view test — `SpaceManager.isVisible` — so nothing treats radar as a circle.
 
 ## Scan Levels (Partial)
 
-3-tier progressive reveal system. All contacts start as unknowns. The Signals officer actively scans to reveal information.
+4-tier progressive reveal system. All contacts start as unknowns, and sustained line of sight reveals them.
 
 | Level | Label | What you see |
 |-------|-------|-------------|
 | 0 | UFO | Distance, heading, relative speed (physics only) |
 | 1 | Basic | + Faction, ship model |
-| 2 | Advanced | + All systems, damage, armor status |
+| 2 | Snapshot | + All systems, damage, armor status — frozen at the moment line of sight was lost |
+| 3 | Full | The same intel, live |
 
 **Properties:**
-- Persistent — once scanned, stays scanned (no decay)
 - Faction-shared — one ship's scan benefits all allies
-- Progressive — can't skip from 0 to 2
+- Progressive — can't skip tiers
+- Levels 0→1 and 1→3 are earned by holding line of sight; level 2 is only ever reached by demotion
+- Levels 2 and 3 cycle with line of sight: losing sight of a level-3 contact demotes it to the level-2 snapshot, regaining sight re-promotes it. Levels 0 and 1, once reached, do not decay
 
 ## Signals Jobs (Partial — [#1206](https://github.com/starwards/starwards/issues/1206))
 
-The Signals station operates through a job queue (max 9 jobs, FIFO execution):
+The Signals station operates through a job queue (up to `maxJobs`, 9 on the dragonfly). Execution is **first workable wins**, not FIFO: each tick the station works the first job whose target it can currently see and still has something to reveal, skipping the rest. Losing the working slot resets that job's progress to zero.
 
-**Scan:** Upgrade target scan level. 15-30s (Lvl0→1) or 30-60s (Lvl1→2). 70-90% success rate.
+The station's lever is order, not submission. Prioritizing a job moves it to the front of the queue and marks it, so trimming under damage evicts unprioritized jobs first.
 
-**Hack:** Reduce target system effectiveness by 50% for 2-3 minutes. Requires Lvl2 scan. 30-60s duration. 50-70% success rate. 1-minute cooldown per target system.
+**Scan:** Upgrade target scan level. Auto-managed — every object in the ship's field of view below the top tier gets a scan job appended, so the station prioritizes rather than submits. Deterministic: no die roll. One tier per `scanBaseDuration` (5s) of unbroken line of sight, divided by signals effectiveness, so a half-powered station takes 10s per tier. Losing sight of the target resets its progress.
 
-System malfunctions degrade job performance: +25% duration, +20% fail chance per defect. At 3+ defects, 50% chance of alerting the target on failure.
+**Hack:** Halve a target system's effectiveness (`HackLevel.COMPROMISED`) for `hackEffectDuration` (150s). Requires Snapshot or better on the target. `hackBaseDuration` 45s, `hackBaseSuccessRate` 0.6 scaled by the attacker's own signals effectiveness — so a hacked signals station hacks worse — and `hackCooldown` 60s per target system. Expiry is tracked by the victim, so it lifts even if the attacker is gone.
+
+Hack is the only job type meant to be submitted by hand, but **no client currently writes the submission command**, so the path is unreachable in play.
+
+Two defectibles degrade the station, both normally 1: `jobSpeedFactor` scales progress per tick, and `jobSuccessFactor` scales the hack roll. The system counts as `broken` once `jobSpeedFactor` reaches 0, and damage also shrinks `currentMaxJobs` (9 → 3 → 1), so a damaged station tracks fewer contacts at once. Scans are unaffected by `jobSuccessFactor` — promotion is deterministic.
 
 ## Open Issues
 

@@ -55,8 +55,10 @@ export class Signals extends SystemState {
     @gameField([SignalsJob])
     jobs = new ArraySchema<SignalsJob>();
 
-    // Command properties (set by client via JSON pointer, consumed by manager on tick).
-    // Scan jobs are auto-managed; submission is for hack jobs only.
+    /**
+     * Command properties (set by client via JSON pointer, consumed by manager on tick).
+     * Scan jobs are auto-managed; submission is for hack jobs only.
+     */
     @commandable()
     public queueJobTargetId = '';
 
@@ -69,15 +71,15 @@ export class Signals extends SystemState {
     @commandable()
     public cancelJobId = '';
 
-    // Move a job to the top of the queue, making it the active job
+    /** Move a job to the top of the queue, making it the active job. */
     @commandable()
     public prioritizeJobId = '';
 
-    // Halts progress on all jobs while set (resource management); the queue itself keeps updating
+    /** Halts progress on all jobs while set (resource management); the queue itself keeps updating. */
     @commandable()
     public jobsPaused = false;
 
-    // Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks
+    /** Both damage factors reduce queue capacity: a damaged system can't manage as many concurrent tasks. */
     get currentMaxJobs(): number {
         if (this.broken) {
             return 0;

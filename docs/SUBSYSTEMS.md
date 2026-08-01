@@ -6,7 +6,7 @@ source_of_truth:
 related:
   - PHYSICS.md
   - API_REFERENCE.md
-last_verified: 2026-07-20
+last_verified: 2026-08-01
 ---
 
 # Ship Subsystems

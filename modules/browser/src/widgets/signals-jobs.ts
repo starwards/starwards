@@ -1,13 +1,16 @@
 import { Destructors, JobStatus, JobType, ShipDriver, SignalsJob, SpaceDriver } from '@starwards/core';
 import { addBarBlade, addButton, addInputBlade, addTextBlade, createPane } from '../panel';
+import { objectDisplayName, playerScanLevel } from '../space-object-intel';
 import { readNumberProp, readProp, readWriteProp, writeProp } from '../property-wrappers';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 
-function jobLabel(spaceDriver: SpaceDriver, job: SignalsJob) {
-    const target = spaceDriver.state.getShip(job.targetId);
-    const targetName = target?.callsign || job.targetId;
+function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: SignalsJob) {
+    // scan jobs target every kind of space object, not just ships
+    const target = spaceDriver.state.get(job.targetId);
+    const scanLevel = target && playerScanLevel(target, shipDriver.state.faction);
+    const targetName = objectDisplayName(target, job.targetId, scanLevel);
     return job.jobType === JobType.HACK ? `HACK ${job.hackSystemName} @ ${targetName}` : `SCAN ${targetName}`;
 }
 
@@ -65,7 +68,7 @@ export function drawSignalsJobs(
         addTextBlade(
             pane,
             readProp<number>(shipDriver, `/signals/jobs/${index}/status`),
-            { label: jobLabel(spaceDriver, job), format: (s: number) => JobStatus[s] },
+            { label: jobLabel(spaceDriver, shipDriver, job), format: (s: number) => JobStatus[s] },
             session.add,
         );
         addBarBlade(

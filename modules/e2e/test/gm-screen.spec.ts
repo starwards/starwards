@@ -123,13 +123,14 @@ test.describe('GM Screen', () => {
         await expect(scanLevelsFolder).toBeVisible({ timeout: 5000 });
         await scanLevelsFolder.getByText('Scan Levels', { exact: true }).click(); // folder starts collapsed
 
-        // one <select> list blade per faction; each offers all four scan levels
+        // one <select> list blade per faction; each offers all four scan levels.
+        // Text is all the DOM exposes: tweakpane builds each <option> from textContent alone and
+        // never sets a value attribute, mapping selections by index into its options array. The
+        // scan-level numbering those texts stand for is pinned in modules/core/test/scan-level.spec.ts.
         const scanLevelSelect = scanLevelsFolder.locator('select').first();
         await expect(scanLevelSelect).toBeVisible({ timeout: 5000 });
         const optionTexts = await scanLevelSelect.locator('option').allTextContents();
         expect(optionTexts).toEqual(['UFO', 'BASIC', 'SNAPSHOT', 'FULL']);
-
-        await page.screenshot({ path: 'test-results/gm-tweak-scan-levels.png' });
     });
 
     test('velocity set via the tweak panel persists (does not get thrusted away by the smart pilot)', async ({

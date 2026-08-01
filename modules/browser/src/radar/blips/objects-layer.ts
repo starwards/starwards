@@ -5,6 +5,7 @@ import { Faction, ScanLevel, SpaceDriver, SpaceObject, SpaceObjects, XY } from '
 import { radar, white } from '../../colors';
 import { CameraView } from '../camera-view';
 import { TrackObjects } from '../track-objects';
+import { playerScanLevel } from '../../space-object-intel';
 
 type RenderFunctions<K extends keyof SpaceObjects> = {
     [T in K]: {
@@ -20,19 +21,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
     private stage = new Container();
 
     private getScanLevel(o: SpaceObject): ScanLevel {
-        if (this.playerFaction === undefined) {
-            return ScanLevel.FULL;
-        }
-        const factionIndex = Number(this.playerFaction);
-        const rawLevel =
-            factionIndex >= 0 && factionIndex < o.scanLevels.length
-                ? ((o.scanLevels[factionIndex] as ScanLevel | undefined) ?? ScanLevel.UFO)
-                : ScanLevel.UFO;
-        // Same-faction objects are always at least BASIC
-        if (o.faction === this.playerFaction && this.playerFaction !== Faction.NONE) {
-            return Math.max(rawLevel, ScanLevel.BASIC);
-        }
-        return rawLevel;
+        return playerScanLevel(o, this.playerFaction);
     }
 
     private createBlip = (spaceObject: SpaceObjects[K]): Blip<K> => {
