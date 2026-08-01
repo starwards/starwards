@@ -58,6 +58,20 @@ function buildSceneSelector() {
     });
 }
 
+/**
+ * Visual tests screenshot `#container`, and an element screenshot is clipped to that element's box.
+ * A widget that renders past the size its scene declared would be silently cropped out of the
+ * baseline — untested pixels that look like coverage. Grow the box to whatever the scene drew.
+ */
+function fitToContent() {
+    // let the widget lay itself out at its natural size, then pin the box to what it drew
+    container.style.width = 'max-content';
+    container.style.height = 'max-content';
+    const box = container.getBoundingClientRect();
+    container.style.width = `${Math.ceil(box.width)}px`;
+    container.style.height = `${Math.ceil(box.height)}px`;
+}
+
 function showError(message: string) {
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
@@ -105,11 +119,13 @@ async function loadScene() {
                     window.__PIXI_APP__!.ticker.stop();
                     // Force final render to ensure canvas has content
                     window.__PIXI_APP__!.render();
+                    fitToContent();
                     window.__PIXI_READY__ = true;
                 }
             };
             window.__PIXI_APP__.ticker.add(waitForRender);
         } else {
+            fitToContent();
             window.__PIXI_READY__ = true;
         }
     } catch (error) {

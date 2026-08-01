@@ -214,7 +214,8 @@ export const longRangeRadarScenes: Record<string, Scene> = {
 
     'long-range-radar-job-indicators': {
         name: 'long-range-radar-job-indicators',
-        description: 'Long range radar with a scan-progress ring on the active job target and queue-order markers',
+        description:
+            'Long range radar with a scan-progress ring on the active job target, queue-order markers, and a dormant job that gets none',
         async setup(container: HTMLElement) {
             const playerShip = createShipWithState('player', 0, 0, 0);
 
@@ -226,6 +227,8 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             });
             const next1 = createMockAsteroid({ id: 'next-1', position: { x: -15000, y: 15000 }, radius: 600 });
             const next2 = createMockShip({ id: 'next-2', position: { x: 5000, y: 25000 }, angle: 90, faction: 1 });
+            // a job the station will skip: it holds a queue position but gets no order marker
+            const dormant = createMockShip({ id: 'dormant-1', position: { x: -22000, y: -12000 }, angle: 45 });
 
             const makeJob = (targetId: string, status: JobStatus, progress: number) => {
                 const job = new SignalsJob();
@@ -238,12 +241,13 @@ export const longRangeRadarScenes: Record<string, Scene> = {
             };
             playerShip.signals.jobs.push(
                 makeJob('scanned-1', JobStatus.IN_PROGRESS, 0.65),
+                makeJob('dormant-1', JobStatus.DORMANT, 0),
                 makeJob('next-1', JobStatus.QUEUED, 0),
                 makeJob('next-2', JobStatus.QUEUED, 0),
             );
 
             const mockContainer = createMockContainer(container);
-            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, scanned, next1, next2]);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, scanned, next1, next2, dormant]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
             const root = await drawLongRangeRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {

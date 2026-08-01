@@ -149,6 +149,34 @@ await page.keyboard.press('e');
 await waitForPropertyFloatValue(page, 'rotationCommand', 0.05); // ✓ Deterministic + specific
 ```
 
+### Gallery Visual Tests
+
+`modules/e2e/test/visual/gallery.spec.ts` screenshots every gallery scene and compares it to a
+baseline in `gallery.spec.ts-snapshots/`. Two properties keep those comparisons meaningful:
+
+- **The comparator sits between the rasteriser and anything structural.** Layout reproduces across
+  machines; glyph anti-aliasing does not. At `threshold: 0.15` the same scene rendered on two
+  machines differs by at most 18 pixels, while the weakest change any scene produces is 1537 — so
+  `maxDiffPixels: 200` clears the noise by 11× and the signal clears it by 7.7×. Both ends matter:
+  the previous `threshold: 0.2` with a 2000-pixel radar allowance let 8 scenes pass no matter what
+  changed, and dropping to `threshold: 0.05` would swing the other way, since cross-machine
+  anti-aliasing alone reaches 1719 pixels there — more than several scenes produce when they change.
+- **The screenshot frames the widget.** `gallery.ts` sizes `#container` to what the scene actually
+  drew, because an element screenshot is clipped to its element's box — a widget rendering past the
+  size its scene declared would be cropped out of the baseline and look covered while being untested.
+
+Every scene therefore carries a companion `… snapshot detects a perturbed widget` test that nudges
+the rendered widget a few pixels and asserts the snapshot assertion fails. Adding a scene to the
+`scenes` list adds both tests; nothing else is needed. That guard is skipped under
+`--update-snapshots=all|changed`, which would otherwise rewrite the baseline from the perturbed render.
+
+After an intentional widget change, regenerate both projects:
+
+```bash
+npm run test:e2e -- --update-snapshots=all modules/e2e/test/visual/gallery.spec.ts
+xvfb-run npm run test:widgets -- --update-snapshots=all
+```
+
 ### E2E Test Infrastructure
 
 **Problem:** When E2E tests fail, they can cause a "domino effect" where subsequent tests hang or slow down significantly. This happens when page crashes, JavaScript errors, or broken WebSocket connections leave the page in a corrupted state.

@@ -1,6 +1,5 @@
-import { Asteroid, Faction, ScanLevel, Spaceship } from '@starwards/core';
-
-import { objectDisplayName } from '../src/space-object-intel';
+import { Asteroid, Faction, ScanLevel, SpaceObject, Spaceship } from '@starwards/core';
+import { objectDisplayName, scanCycleTargets } from '../src/space-object-intel';
 
 describe('objectDisplayName', () => {
     function asteroid(id: string) {
@@ -37,5 +36,39 @@ describe('objectDisplayName', () => {
 
     test('falls back to the id for an object missing from the space state', () => {
         expect(objectDisplayName(undefined, 'gone', ScanLevel.FULL)).toEqual('gone');
+    });
+});
+
+describe('scanCycleTargets', () => {
+    const PLAYER = Faction.Gravitas;
+
+    function at<T extends SpaceObject>(o: T, id: string, level: ScanLevel): T {
+        o.id = id;
+        o.scanLevels[Number(PLAYER)] = level;
+        return o;
+    }
+
+    function ids(objects: SpaceObject[], selfId = 'self') {
+        return scanCycleTargets(objects, PLAYER, selfId).map((o) => o.id);
+    }
+
+    test('reaches unidentified contacts of any type — the player needs to learn what a mover is', () => {
+        const objects = [at(new Asteroid(), 'rock', ScanLevel.UFO), at(new Spaceship(), 'mover', ScanLevel.UFO)];
+        expect(ids(objects)).toEqual(['rock', 'mover']);
+    });
+
+    test('reaches identified ships, so a ship at SNAPSHOT can be marked and rescanned', () => {
+        const objects = [at(new Spaceship(), 'known', ScanLevel.SNAPSHOT)];
+        expect(ids(objects)).toEqual(['known']);
+    });
+
+    test('skips an identified non-ship — a rock at BASIC has nothing left to reveal', () => {
+        const objects = [at(new Asteroid(), 'rock', ScanLevel.BASIC)];
+        expect(ids(objects)).toEqual([]);
+    });
+
+    test('skips the ship the station is aboard', () => {
+        const objects = [at(new Spaceship(), 'self', ScanLevel.FULL)];
+        expect(ids(objects, 'self')).toEqual([]);
     });
 });
