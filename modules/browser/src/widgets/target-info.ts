@@ -1,10 +1,11 @@
-import { Faction, ShipDriver, SpaceDriver, XY } from '@starwards/core';
+import { Faction, ScanLevel, ShipDriver, SpaceDriver, XY } from '@starwards/core';
 import { addTextBlade, createWidgetPane } from '../panel';
 
 import { DashboardWidget } from './dashboard';
 import { EmitterLoop } from '../loop';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
+import { playerScanLevel } from '../space-object-intel';
 import { propertyStub } from '../property-wrappers';
 import { trackTargetObject } from '../ship-logic';
 
@@ -59,8 +60,12 @@ export function drawTargetInfo(
             bearingProp.setValue('—');
             return;
         }
-        typeProp.setValue(target.type);
-        factionProp.setValue(Faction[target.faction] || 'Unknown');
+        // the panel is a player-facing selection surface: type and faction are BASIC-gated, or
+        // reading out the panel would classify a contact the station has not scanned
+        const scanLevel = playerScanLevel(target, shipDriver.state.faction);
+        const identified = scanLevel >= ScanLevel.BASIC;
+        typeProp.setValue(identified ? target.type : 'UFO');
+        factionProp.setValue(identified ? Faction[target.faction] || 'Unknown' : 'Unknown');
         const ownShip = spaceDriver.state.getShip(shipDriver.id);
         if (!ownShip) return;
         const diff = XY.difference(target.position, ownShip.position);

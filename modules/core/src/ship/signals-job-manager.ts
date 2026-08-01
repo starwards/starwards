@@ -5,6 +5,7 @@ import { ArraySchema } from '@colyseus/schema';
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
+import { Spaceship } from '../space';
 import { makeId } from '../id';
 
 function findLastIndex<T>(items: ArraySchema<T>, predicate: (item: T) => boolean): number | null {
@@ -76,50 +77,80 @@ export class SignalsJobManager implements Updateable {
     }
 
     /**
-     * When the queue shrinks (system damage), evict from the back: queued unprioritized jobs
-     * first, then queued prioritized ones, and the active job only as a last resort.
+     * When the queue shrinks (system damage), evict from the back: waiting unprioritized jobs
+     * first, then waiting prioritized ones, and the active job only as a last resort.
      */
     private trimExcessJobs(): void {
         const jobs = this.state.signals.jobs;
         while (jobs.length > this.state.signals.currentMaxJobs) {
             const evictIndex =
-                findLastIndex(jobs, (job) => !job.prioritized && job.status === JobStatus.QUEUED) ??
-                findLastIndex(jobs, (job) => job.status === JobStatus.QUEUED) ??
+                findLastIndex(jobs, (job) => !job.prioritized && job.status !== JobStatus.IN_PROGRESS) ??
+                findLastIndex(jobs, (job) => job.status !== JobStatus.IN_PROGRESS) ??
                 jobs.length - 1;
             jobs.splice(evictIndex, 1);
         }
     }
 
     /**
+     * The highest scan level worth working towards. `SNAPSHOT` and `FULL` mean systems and damage;
+     * an asteroid or a shell has neither, so identifying it is all there is to learn.
+     */
+    private scanCeiling(targetId: string): ScanLevel {
+        const target = this.spaceManager.state.get(targetId);
+        return target && Spaceship.isInstance(target) ? ScanLevel.FULL : ScanLevel.BASIC;
+    }
+
+    /**
+     * A job is terminal when nothing can ever come of it again: its target is gone, or the target
+     * has reached its scan ceiling and can never demote back below it (only `FULL` demotes). A
+     * terminal job is removed even when prioritized.
+     */
+    private isJobTerminal(job: SignalsJob): boolean {
+        const target = this.spaceManager.state.get(job.targetId);
+        if (!target || target.destroyed) {
+            return true;
+        }
+        return (
+            !Spaceship.isInstance(target) &&
+            this.spaceManager.getScanLevel(job.targetId, this.state.faction) >= ScanLevel.BASIC
+        );
+    }
+
+    /**
      * A job is workable when the station can make progress on it right now: the target is in the
-     * ship's field of view and still has something left to reveal. A prioritized job that is not
-     * workable lies dormant in place instead of being pruned.
+     * ship's field of view and still has something left to reveal. A job that is not workable lies
+     * dormant — in place if prioritized, pruned otherwise.
      */
     private isJobWorkable(job: SignalsJob): boolean {
         if (!this.spaceManager.isVisible(this.state.id, job.targetId)) {
             return false;
         }
-        return this.spaceManager.getScanLevel(job.targetId, this.state.faction) < ScanLevel.FULL;
+        return this.spaceManager.getScanLevel(job.targetId, this.state.faction) < this.scanCeiling(job.targetId);
     }
 
     /**
      * The station always works the first workable job in the queue. A job that loses the working
      * slot (displaced by a prioritized job, or its target slipping out of sight) loses all
-     * progress — progress only survives while a job stays active.
+     * progress — progress only survives while a job stays active. Every job that is not the active
+     * one is marked `QUEUED` or `DORMANT` by whether the station could work it, so a client can
+     * tell a genuinely next-up job from one that will be skipped.
      */
     private updateActiveJob(): SignalsJob | undefined {
         const jobs = this.state.signals.jobs;
-        const next = jobs.find((job) => this.isJobWorkable(job));
+        let active: SignalsJob | undefined;
         for (const job of jobs) {
-            if (job !== next && job.status === JobStatus.IN_PROGRESS) {
-                job.status = JobStatus.QUEUED;
+            const workable = this.isJobWorkable(job);
+            if (workable && !active) {
+                active = job;
+                job.status = JobStatus.IN_PROGRESS;
+                continue;
+            }
+            if (job.status === JobStatus.IN_PROGRESS) {
                 job.progress = 0;
             }
+            job.status = workable ? JobStatus.QUEUED : JobStatus.DORMANT;
         }
-        if (next && next.status !== JobStatus.IN_PROGRESS) {
-            next.status = JobStatus.IN_PROGRESS;
-        }
-        return next;
+        return active;
     }
 
     private processJobQueue(activeJob: SignalsJob, deltaSeconds: number): void {
@@ -141,31 +172,38 @@ export class SignalsJobManager implements Updateable {
         // scans are passive and deterministic: sustaining line of sight for the job's duration
         // promotes the target one tier
         this.applyScanPromotion(job.targetId);
-        this.removeJob(job.id);
+        // a prioritized job is a standing order: it stays at its queue position with fresh
+        // progress and lies dormant until the target demotes, rather than being removed
+        if (job.prioritized && !this.isJobTerminal(job)) {
+            job.progress = 0;
+        } else {
+            this.removeJob(job.id);
+        }
         this.updateActiveJob();
     }
 
     private applyScanPromotion(targetId: string): void {
         const level = this.spaceManager.getScanLevel(targetId, this.state.faction);
-        if (level < ScanLevel.FULL) {
+        if (level < this.scanCeiling(targetId)) {
             const next = level === ScanLevel.UFO ? ScanLevel.BASIC : ScanLevel.FULL;
             this.spaceManager.setScanLevel(targetId, this.state.faction, next);
         }
     }
 
     /**
-     * Scan jobs are auto-managed: every space object in this ship's field of view whose faction
-     * scan level is below FULL gets a scan job appended to the end of the queue. A job whose
-     * target left the field of view (or reached FULL) is dropped — unless it was prioritized, in
-     * which case it lies dormant in place so the queue order of prioritized jobs survives sight
-     * loss. Players prioritize by moving jobs to the top of the queue; a cancelled job re-enters
-     * at the end of the queue while its target stays visible.
+     * Scan jobs are auto-managed: every space object in this ship's field of view still below its
+     * scan ceiling gets a scan job appended to the end of the queue. A job whose target left the
+     * field of view (or reached its ceiling) is dropped — unless it was prioritized, in which case
+     * it lies dormant in place so the queue order of prioritized jobs survives sight loss. Only a
+     * terminal job (target destroyed, or a non-ship identified to BASIC) is dropped regardless.
+     * Players prioritize by moving jobs to the top of the queue; a cancelled job re-enters at the
+     * end of the queue while its target stays visible.
      */
     private updateScanJobs(): void {
         const jobs = this.state.signals.jobs;
         for (let i = jobs.length - 1; i >= 0; i--) {
             const job = jobs[i];
-            if (!job.prioritized && !this.isJobWorkable(job)) {
+            if (this.isJobTerminal(job) || (!job.prioritized && !this.isJobWorkable(job))) {
                 jobs.splice(i, 1);
             }
         }
@@ -176,7 +214,7 @@ export class SignalsJobManager implements Updateable {
             if (target.id === this.state.id || target.destroyed) {
                 continue;
             }
-            if (this.spaceManager.getScanLevel(target.id, this.state.faction) >= ScanLevel.FULL) {
+            if (this.spaceManager.getScanLevel(target.id, this.state.faction) >= this.scanCeiling(target.id)) {
                 continue;
             }
             if (jobs.some((job) => job.targetId === target.id)) {

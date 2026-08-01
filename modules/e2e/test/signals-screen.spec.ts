@@ -1,6 +1,6 @@
 import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
-import { makeDriver, waitForShipCondition } from './driver';
+import { getPropertyValue, makeDriver, waitForShipCondition } from './driver';
 
 import { maps } from '@starwards/server';
 
@@ -105,6 +105,31 @@ test.describe('Signals Screen', () => {
         // classify what the player has not scanned
         await expect(panel.getByText(`SCAN ${rock.id}`)).toBeVisible({ timeout: 10000 });
         await expect(panel.getByText('progress')).toBeVisible();
+    });
+
+    // --- Target cycle: which contacts the ] / [ keys reach ---
+
+    test('cycles onto an unidentified contact of any type, without disclosing what it is', async ({ page }) => {
+        await waitForRadarReady(page);
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push({
+            position: { x: 1000, y: 0 },
+            radius: 50,
+        });
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length > 0,
+            5000,
+        );
+
+        // the only contact in range is a rock: a ships-only cycle would have nothing to land on
+        // the client may not have received the rock yet when the server-side job appears; retry
+        // the keypress until the cycle has something to land on
+        await expect(async () => {
+            await page.keyboard.press(']');
+            expect(await getPropertyValue(page, 'Distance', 'Target')).not.toEqual('—');
+        }).toPass({ timeout: 10_000 });
+        // …and landing on it must not classify it — the rock is still UFO
+        expect(await getPropertyValue(page, 'Type', 'Target')).toEqual('UFO');
     });
 
     test('paused toggle halts all jobs via /signals/jobsPaused', async ({ page }) => {

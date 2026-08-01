@@ -15,6 +15,7 @@ import { drawSignalsJobs } from '../widgets/signals-jobs';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { readWriteNumberProp } from '../property-wrappers';
+import { scanCycleTargets } from '../space-object-intel';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
 
@@ -103,7 +104,7 @@ function wireInput(
     let currentIndex = -1;
 
     function getTargets() {
-        return [...spaceDriver.state.getAll('Spaceship')].filter((s) => s.id !== shipId);
+        return scanCycleTargets(spaceDriver.state, shipDriver.state.faction, shipId);
     }
 
     function cycleTarget(direction: 1 | -1) {
