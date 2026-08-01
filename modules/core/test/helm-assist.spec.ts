@@ -238,4 +238,32 @@ describe('helm assist', function () {
             );
         });
     });
+    // Regression coverage for issue #2022: a paused tick calls these helpers with
+    // deltaSeconds === 0. A ship already at its target speed/position/heading (the common
+    // resting state) must not turn that into a NaN maneuvering/rotation command.
+    describe('at deltaSeconds=0 (paused)', () => {
+        it('matchGlobalSpeed returns finite output when already at target speed', () => {
+            const harness = new ShipTestHarness();
+            const maneuvering = matchGlobalSpeed(0, harness.shipState, XY.zero);
+            expect(Number.isNaN(maneuvering.boost), 'boost').to.equal(false);
+            expect(Number.isNaN(maneuvering.strafe), 'strafe').to.equal(false);
+        });
+        it('moveToTarget returns finite output when already at the target position', () => {
+            const harness = new ShipTestHarness();
+            const maneuvering = moveToTarget(0, harness.shipState, XY.zero);
+            expect(Number.isNaN(maneuvering.boost), 'boost').to.equal(false);
+            expect(Number.isNaN(maneuvering.strafe), 'strafe').to.equal(false);
+        });
+        it('rotateToTarget returns finite output when already facing the target', () => {
+            const harness = new ShipTestHarness();
+            const target = XY.byLengthAndDirection(100, 0);
+            const rotation = rotateToTarget(0, harness.shipState, target, 0);
+            expect(Number.isNaN(rotation), 'rotation').to.equal(false);
+        });
+        it('rotationFromTargetTurnSpeed returns finite output when already at target turnSpeed', () => {
+            const harness = new ShipTestHarness();
+            const rotation = rotationFromTargetTurnSpeed(0, harness.shipState, 0);
+            expect(Number.isNaN(rotation), 'rotation').to.equal(false);
+        });
+    });
 });

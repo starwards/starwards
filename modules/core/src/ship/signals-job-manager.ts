@@ -26,7 +26,12 @@ export class SignalsJobManager implements Updateable {
     update({ deltaSeconds }: IterationData): void {
         this.processCancelJobCommand();
         this.processPrioritizeJobCommand();
-        this.updateScanJobs();
+        // auto-discovery acts once per call regardless of elapsed time, so — unlike
+        // processJobQueue below, which scales by deltaSeconds — it doesn't freeze on its own
+        // at deltaSeconds 0 (paused) and must be gated explicitly
+        if (deltaSeconds > 0) {
+            this.updateScanJobs();
+        }
         this.trimExcessJobs();
         const activeJob = this.updateActiveJob();
         if (activeJob && !this.state.signals.jobsPaused) {

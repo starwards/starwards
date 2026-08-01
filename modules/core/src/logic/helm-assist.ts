@@ -63,6 +63,12 @@ function calcTargetAngleDiff(_deltaSeconds: number, ship: Craft, targetPos: XY) 
 function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: number, relTargetPosition: number) {
     const pinpointIterationsPredict = 2;
     const maxAccelerationInIteration = deltaSeconds * capacity;
+    if (maxAccelerationInIteration === 0) {
+        // no acceleration budget this tick (paused, or a fully broken thruster) — every
+        // distance/velocity ratio below divides by this, so bail out with no command
+        // rather than feed a same-magnitude 0/0 into lerp()
+        return 0;
+    }
     const pinPointDistance = equasionOfMotion(0, 0, maxAccelerationInIteration, pinpointIterationsPredict); // always positive
     const pinPointVelocity = maxAccelerationInIteration * pinpointIterationsPredict; // always positive
 
@@ -99,6 +105,11 @@ function accelerateToPosition(deltaSeconds: number, capacity: number, velocity: 
 // result is normalized [-1, 1]
 function accelerateToSpeed(deltaSeconds: number, capacity: number, relTargetSpeed: number) {
     const maxAccelerationInTime = deltaSeconds * capacity * 1.001;
+    if (maxAccelerationInTime === 0) {
+        // no acceleration budget this tick (paused, or a fully broken thruster) — lerp() below
+        // would divide by this same zero-width range
+        return 0;
+    }
     const res = capToRange(-1, 1, lerp([-maxAccelerationInTime, maxAccelerationInTime], [-1, 1], relTargetSpeed));
     return res * res * sign(res);
 }

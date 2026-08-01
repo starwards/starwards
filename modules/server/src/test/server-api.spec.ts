@@ -74,6 +74,13 @@ describe('server-API', () => {
         beforeEach(async () => {
             gameDriver.pauseGameCommand();
             await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+            // the pause fix (#2022) keeps the loop running (draining commands, settling derived
+            // state like radar sectors) even at speed 0 — run two deltaSeconds=0 ticks up front
+            // (ShipState.spaceship mirrors the previous tick's radar sectors, so it needs one
+            // extra tick to catch up) so settling isn't racing the background simulation
+            // interval between the two saves
+            gameDriver.gameManager.update(0);
+            gameDriver.gameManager.update(0);
         });
 
         // In the following tests we use `getUnzipped()` to compare unzipped data
