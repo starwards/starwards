@@ -2,6 +2,10 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
+// esbuild-loader is handed the tsconfig raw, without resolving "extends", so every compiler option
+// it needs must be spelled out in the file named below. `useDefineForClassFields` is the one that
+// matters: from es2022 onwards esbuild defaults it to true, and Colyseus `@gameField` accessors and
+// widgets that read a sibling field from an initializer both need assignment semantics.
 module.exports = {
     entry: {
         gm: [path.resolve(__dirname, 'src', 'screens', 'gm.ts')],
@@ -22,7 +26,7 @@ module.exports = {
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'tsx',
-                    target: 'es2020',
+                    target: 'es2023',
                     tsconfigRaw: require('./tsconfig.json'),
                 },
             },
@@ -31,7 +35,7 @@ module.exports = {
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'ts',
-                    target: 'es2020',
+                    target: 'es2023',
                     tsconfigRaw: require('./tsconfig.json'),
                 },
             },

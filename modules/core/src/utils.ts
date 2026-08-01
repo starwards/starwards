@@ -84,6 +84,16 @@ export function printError(err: unknown): string {
     }
 }
 
+/**
+ * `Array.prototype.findLastIndex` with its native signature, including the `-1` miss result.
+ * Colyseus collections delegate the call to their backing array at runtime, but declare it as
+ * `(...args: any[]) => any`, which erases both the callback argument and the result. This wrapper
+ * restores the types for arrays and Colyseus collections alike.
+ */
+export function findLastIndex<T>(items: ArrayLike<T>, predicate: (item: T) => boolean): number {
+    return (items as unknown as { findLastIndex(p: (item: T) => boolean): number }).findLastIndex(predicate);
+}
+
 export function notNull<T>(e: T): e is Exclude<T, null> {
     return e !== null;
 }

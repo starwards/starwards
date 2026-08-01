@@ -3,6 +3,7 @@
     "include": ["src"],
     "compilerOptions": {
         "experimentalDecorators": true,
+        "useDefineForClassFields": false,
         "paths": { "@starwards/core": ["../core/cjs"] }
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/*/*.html"]

@@ -238,7 +238,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/) for non-triv
 
 ## Node Requirements
 
-Node.js >= 22.11.0, npm >= 10.9.0
+Node.js >= 24.0.0, npm >= 10.9.0
 
 ## Documentation
 
