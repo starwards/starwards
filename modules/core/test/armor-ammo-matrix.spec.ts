@@ -1,6 +1,7 @@
 import {
     ArmorModelName,
     AttackResolutionManager,
+    ShipArea,
     SpaceManager,
     Spaceship,
     Tuple2,
@@ -10,7 +11,7 @@ import {
     armorModels,
     clusterWarheadModes,
     damageProfiles,
-    dragonflySF22,
+    demoShip,
     makeShipState,
 } from '../src';
 import { Fixture, PLATE_MAX_HEALTH, buildArmorAmmoMatrix, matrixToMarkdown } from './armor-ammo-matrix-harness';
@@ -24,6 +25,23 @@ import path from 'path';
 // hit lands on exactly one plate, so `share` in the resolution walk is always 1
 const SINGLE_PLATE_ARC: Tuple2 = [0, 1];
 
+/**
+ * Design-spec quotations (design repo unreachable from here — this is the full text of the rule,
+ * reproduced verbatim, that armor-ammo-matrix-harness.ts's DEFLECTING_ARMOR_MODELS /
+ * NON_DEFLECTABLE_TYPES encode):
+ *
+ * "Deflectable: a deflecting armor (Reactive) pushes the round away before its blast develops,
+ * cancelling the scrape. Everything is deflectable except Tandem (its precursor defeats the
+ * deflection) and Frag (a cloud is not a round, there is nothing to push away)."
+ *
+ * "deflectsSurfaceEffect: cancels the scrape of deflectable types, but only while the deflecting
+ * layer is the outermost intact layer in the hit arc. Stripped Reactive deflects nothing."
+ *
+ * This property does not exist in `ArmorModelStats` / `resolveWeaponAttack` (grep -rn deflect
+ * modules/ --include=*.ts finds only the radar aiming-crosshair tint) — a src-level gap tracked
+ * separately, not fixed here. See the harness's "Deflection" report section for detail.
+ */
+
 // `makeArmor` requires the innermost layer to be composite, and an intact composite backing
 // engages HiExp/ArmPen/Tandem — zeroing the exposure chain for every tested model and making
 // the penetration channel unobservable. Pre-breaking the backing makes it transparent
@@ -32,7 +50,7 @@ function createFixture(model: ArmorModelName): Fixture {
     const ship = new Spaceship();
     ship.id = 'qa-armor-matrix-ship';
     const state = makeShipState(ship.id, {
-        ...dragonflySF22,
+        ...demoShip,
         armor: {
             numberOfPlates: 12,
             layers: [
@@ -48,8 +66,19 @@ function createFixture(model: ArmorModelName): Fixture {
     const resolution = new AttackResolutionManager(state, new MockDie());
     const [, plate] = [...state.armor.platesInRange(SINGLE_PLATE_ARC)][0];
     const layer = plate.layers[0];
+    // the exact set of systems the surface channel can ever hit for this hit arc — static per
+    // ship, independent of armor state or damage type. Used to split resolveWeaponAttack's
+    // result structurally (its own doc comment: "ordered surface-channel hits first, then
+    // penetration-channel hits") instead of by comparing damage amounts, which only works by
+    // coincidence and would silently misclassify the moment a profile is tuned so that
+    // 0.05 × surfaceDamageFactor happens to equal systemDamageFactor.
+    const surfaceEligibleCount = state.systemsByAreas(ShipArea.front).filter((s) => !s.isInternal).length;
     return {
         response: (damageType: WeaponDamageType) => layer.design.response(damageType),
+        factors: (damageType: WeaponDamageType) => ({
+            plateDamageFactor: layer.design.plateDamage(damageType),
+            penetrationFactor: layer.design.penetration(damageType),
+        }),
         singleUsePlates: layer.design.singleUsePlates,
         fire(damageType: WeaponDamageType, delivery: 'impact' | 'explosion', amount: number) {
             const profile = damageProfiles[damageType];
@@ -63,12 +92,9 @@ function createFixture(model: ArmorModelName): Fixture {
                 delivery,
                 profile,
             });
-            // both channels resolve to a uniform per-hit amount; the penetration channel's is
-            // amount × systemDamageFactor (resolvePenetrationChannel), which never coincides
-            // with the surface channel's scaled amount for any current profile
-            const penetrationAmount = amount * profile.systemDamageFactor;
-            const penetration = hits.filter((h) => h.damage.amount === penetrationAmount);
-            const surface = hits.filter((h) => h.damage.amount !== penetrationAmount);
+            const surfaceCount = profile.surfaceEffect ? surfaceEligibleCount : 0;
+            const surface = hits.slice(0, surfaceCount);
+            const penetration = hits.slice(surfaceCount);
             return {
                 erosion: healthBefore - layer.health,
                 outerHealthAfter: layer.health,
@@ -146,6 +172,37 @@ describe('armor x ammo QA matrix (issue #2035)', () => {
         const armPen = createFixture('hardened').fire('ArmPen', 'impact', 30);
         expect(tandem.erosion).to.be.closeTo(armPen.erosion * 2, 0.01);
         expect(armPen.erosion).to.be.greaterThan(0);
+    });
+
+    it('flags the unimplemented Reactive HiExp scrape deflection (spec gap, tracked separately — not a code regression in this harness)', () => {
+        const shell = row('reactive', 'HiExpShell');
+        const missile = row('reactive', 'HiExpMissile');
+        expect(shell?.anomalies.some((a) => a.includes('deflection gap'))).to.equal(true);
+        expect(missile?.anomalies.some((a) => a.includes('deflection gap'))).to.equal(true);
+    });
+
+    it('does not flag a deflection gap where the spec does not predict one', () => {
+        // ArmPen is deflectable but has no surface effect to deflect in the first place
+        expect(row('reactive', 'ArmPenShell')?.anomalies.some((a) => a.includes('deflection gap'))).to.equal(false);
+        // Frag has a surface effect but is explicitly excluded from "deflectable" (a cloud can't be pushed away)
+        expect(row('reactive', 'FragShell')?.anomalies.some((a) => a.includes('deflection gap'))).to.equal(false);
+        // composite is not a deflecting model at all
+        expect(row('composite', 'HiExpShell')?.anomalies.some((a) => a.includes('deflection gap'))).to.equal(false);
+    });
+
+    it('opens the penetration channel once a layer breaks (regression: post-breach behavior must be observed, not just the shots leading up to it)', () => {
+        // composite vs ArmPenShell: plateDamage_ArmPen 2, flat 30 damage/shot against a 100-health
+        // plate → breaches on the 2nd shot (60, then 120 clamped to 100); the 3rd shot lands on an
+        // already-broken layer and must show the exposure chain fully open (penetration channel)
+        const fixture = createFixture('composite');
+        fixture.fire('ArmPen', 'impact', 30);
+        const breaching = fixture.fire('ArmPen', 'impact', 30);
+        expect(breaching.outerHealthAfter, 'plate should be broken by the 2nd shot').to.equal(0);
+        const postBreach = fixture.fire('ArmPen', 'impact', 30);
+        expect(
+            postBreach.penetrationHits,
+            'a broken layer must not keep blocking the penetration channel',
+        ).to.be.greaterThan(0);
     });
 
     it('every observed value is finite and non-negative', () => {
