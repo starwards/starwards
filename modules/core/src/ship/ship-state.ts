@@ -12,6 +12,7 @@ import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
+import { RepairQueue } from './repair-queue';
 import { ShipDirection } from './ship-direction';
 import { Signals } from './signals';
 import { SmartPilot } from './smart-pilot';
@@ -125,6 +126,9 @@ export class ShipState extends Schema {
 
     @gameField(Signals)
     signals!: Signals;
+
+    @gameField(RepairQueue)
+    repairQueue = new RepairQueue();
 
     @range([-1, 1])
     @gameField('float32')
