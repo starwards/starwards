@@ -1,5 +1,5 @@
-import { MockDie, makeIterationsData } from './ship-test-harness';
 import {
+    Faction,
     Order,
     ShipManagerNpc,
     ShipManagerPc,
@@ -10,6 +10,7 @@ import {
     makeShipState,
     shipConfigurations,
 } from '../src';
+import { MockDie, makeIterationsData } from './ship-test-harness';
 
 import { expect } from 'chai';
 import { resetShipState } from '../src/ship/ship-manager-abstract';
@@ -141,6 +142,75 @@ describe('automation order on NPC ships', () => {
         // After cleanup() fix, completed orders get cleared, but 5000,5000 is far enough
         // that it won't complete in one tick
         expect(shipMgr.state.currentTask).to.include('Go to');
+    });
+});
+
+describe('NPC threat re-acquisition', () => {
+    function createHostile(id: string, faction: Faction, position: XY) {
+        const hostile = new Spaceship();
+        hostile.id = id;
+        hostile.faction = faction;
+        hostile.position.setValue(position);
+        return hostile;
+    }
+
+    it('NPC re-engages a new hostile when its attack target is destroyed', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc);
+        shipObj.faction = Faction.Raiders;
+
+        const originalTarget = createHostile('original-target', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
+        const nearbyHostile = createHostile('nearby-hostile', Faction.Gravitas, XY.byLengthAndDirection(2500, 45));
+        spaceMgr.insert(originalTarget);
+        spaceMgr.insert(nearbyHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = originalTarget.id;
+        runOneTick(shipMgr, spaceMgr);
+        expect(shipMgr.state.order).to.equal(Order.ATTACK);
+
+        originalTarget.destroyed = true;
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.order).to.equal(Order.ATTACK);
+        expect(shipMgr.state.orderTargetId).to.equal(nearbyHostile.id);
+    });
+
+    it('NPC degrades gracefully to no order when no hostile remains in range', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc);
+        shipObj.faction = Faction.Raiders;
+
+        const originalTarget = createHostile('original-target', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
+        spaceMgr.insert(originalTarget);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = originalTarget.id;
+        runOneTick(shipMgr, spaceMgr);
+
+        originalTarget.destroyed = true;
+
+        runOneTick(shipMgr, spaceMgr);
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.order).to.equal(Order.NONE);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(shipMgr.state.orderTargetId).to.be.null;
+    });
+
+    it('player ship does not auto-engage nearby hostiles when idle', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerPc);
+        shipObj.faction = Faction.Raiders;
+
+        const nearbyHostile = createHostile('nearby-hostile', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
+        spaceMgr.insert(nearbyHostile);
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.order).to.equal(Order.NONE);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(shipMgr.state.orderTargetId).to.be.null;
     });
 });
 

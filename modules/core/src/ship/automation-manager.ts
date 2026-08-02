@@ -19,6 +19,7 @@ import {
 import { Order, ShipState } from './ship-state';
 
 import { DockingMode } from './docking';
+import { Faction } from '../space';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
@@ -263,6 +264,44 @@ export class AutomationManager implements Updateable {
             }
             return true;
         }
+        if (!this.state.isPlayerShip && this.state.docking.mode === DockingMode.UNDOCKED) {
+            const threatId = this.findNearestHostileTarget();
+            if (threatId) {
+                this.state.order = Order.ATTACK;
+                this.state.orderTargetId = threatId;
+            }
+        }
         return false;
+    }
+
+    /**
+     * Picks the nearest non-destroyed hostile-faction Spaceship within the ship's own chain-gun
+     * range, so an idle NPC re-engages instead of sitting dead in the water once its ordered
+     * target is gone. No weapon, no threat routine — an unarmed NPC has nothing to re-acquire for.
+     */
+    private findNearestHostileTarget(): string | null {
+        const controlWeapon = this.state.chainGuns[0] ?? null;
+        if (!controlWeapon) {
+            return null;
+        }
+        const engagementRadius = controlWeapon.design.maxShellRange;
+        let nearestId: string | null = null;
+        let nearestDistance = Infinity;
+        for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
+            if (
+                candidate.id === this.state.id ||
+                candidate.destroyed ||
+                candidate.faction === Faction.NONE ||
+                candidate.faction === this.state.faction
+            ) {
+                continue;
+            }
+            const distance = XY.lengthOf(XY.difference(candidate.position, this.state.position));
+            if (distance <= engagementRadius && distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestId = candidate.id;
+            }
+        }
+        return nearestId;
     }
 }
