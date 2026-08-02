@@ -12,6 +12,7 @@ export const cataphractThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
+    bearingLimit: 0,
     maxBearingSkew: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -32,6 +33,8 @@ export const cataphractOmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 50_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const cataphractScanBeam = {
@@ -47,6 +50,8 @@ export const cataphractScanBeam = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 37_500,
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 
 /** Main battery: fitted forward, sweeping 270° — blind only in a 90° cone astern. */
@@ -206,6 +211,7 @@ export const cataphractTube = {
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 

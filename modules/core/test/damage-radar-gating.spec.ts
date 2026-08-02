@@ -1,13 +1,21 @@
-import { SpaceManager, Spaceship, makeShipState, shipConfigurations } from '../src';
+import { ShipDesign, SpaceManager, Spaceship, makeShipState, shipConfigurations } from '../src';
 
 import { DamageManager } from '../src/ship/damage-manager';
 import { MockDie } from './ship-test-harness';
+import { demoShipScanBeam } from '../src/configurations/demo-ship';
 import { expect } from 'chai';
 
 describe('damageRadar gates each surface on the design actually declaring it', () => {
     it('never writes bearingSkew on a radar whose design declares no skew surface (maxBearingSkew: 0)', () => {
-        const state = makeShipState('1', shipConfigurations['demo-ship']);
-        const radar = state.radars[1]; // scan-beam: turnSpeed > 0, maxBearingSkew unset (0 default)
+        // the roster's scan beam now declares a real skew surface (maxBearingSkew: 45, #2051) — this
+        // test needs a turret that turns but has no skew surface, so it stubs one in explicitly.
+        const demoShip = shipConfigurations['demo-ship'];
+        const design: ShipDesign = {
+            ...demoShip,
+            radars: [demoShip.radars[0], { ...demoShipScanBeam, maxBearingSkew: 0 }],
+        };
+        const state = makeShipState('1', design);
+        const radar = state.radars[1]; // turnSpeed > 0, maxBearingSkew explicitly 0
         expect(radar.design.turnSpeed).to.be.greaterThan(0);
         expect(radar.design.maxBearingSkew).to.equal(0);
         radar.design.damage50 = 0; // guaranteed single defect per hit, sidesteps the outer spillover roll

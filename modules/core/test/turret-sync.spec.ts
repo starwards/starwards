@@ -12,15 +12,17 @@ describe('turret bearingCommand sync', () => {
         gameDriver.pauseGameCommand();
         const shipId = test_map_1.testShipId;
         const shipDriver = await clientDriver.driver.getShipDriver(shipId);
-        expect(shipDriver.state.chainGuns.length).toBeGreaterThan(0);
+        // the roster's forward chain gun is bolted (bearingLimit 0, #2051) and can never leave 0 — use
+        // the scan-beam radar instead, a mount that actually traverses (bearingLimit 180).
+        expect(shipDriver.state.radars.length).toBeGreaterThan(1);
 
-        const bearingCommandEvent = new Promise((res) => shipDriver.events.once('/chainGuns/0/bearingCommand', res));
-        const serverChainGun = gameDriver.getShip(shipId).state.chainGuns[0];
-        serverChainGun.bearingCommand = 12;
+        const bearingCommandEvent = new Promise((res) => shipDriver.events.once('/radars/1/bearingCommand', res));
+        const serverRadar = gameDriver.getShip(shipId).state.radars[1];
+        serverRadar.bearingCommand = 12;
 
         await bearingCommandEvent;
         await waitFor(() => {
-            expect(shipDriver.state.chainGuns[0].bearingCommand).toBeCloseTo(12, 1);
+            expect(shipDriver.state.radars[1].bearingCommand).toBeCloseTo(12, 1);
         }, 3_000);
     }, 20_000);
 });

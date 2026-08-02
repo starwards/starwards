@@ -18,6 +18,7 @@ import { repairProtocols, validateRepairCatalog } from '../configurations/repair
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
 import { ammoTypes } from '../space/projectile';
+import { validateTurretDesign } from './turret';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
@@ -41,6 +42,7 @@ function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index:
     thruster.index = index;
     thruster.fittedBearing = getDirectionFromConfig(angle);
     thruster.design.assign(design);
+    validateTurretDesign(thruster.design, `thruster ${index} (${angle})`);
     return thruster;
 }
 
@@ -90,6 +92,7 @@ function makeChainGun(design: ChaingunDesign, angle: ShipDirectionConfig) {
     // asking it to swing anywhere else yet.
     chainGun.fittedBearing = getDirectionFromConfig(angle);
     chainGun.design.assign(design);
+    validateTurretDesign(chainGun.design, `chain gun (${angle})`);
     return chainGun;
 }
 
@@ -98,12 +101,14 @@ function makeTube(design: ChaingunDesign, angle: ShipDirectionConfig, index: num
     tube.index = index;
     tube.fittedBearing = getDirectionFromConfig(angle);
     tube.design.assign(design);
+    validateTurretDesign(tube.design, `tube ${index} (${angle})`);
     return tube;
 }
 
-function makeRadar(design: RadarDesign) {
+function makeRadar(design: RadarDesign, index: number) {
     const radar = new Radar();
     radar.design.assign(design);
+    validateTurretDesign(radar.design, `radar ${index}`);
     return radar;
 }
 
@@ -173,7 +178,7 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.smartPilot = makeSmartPilot(design.smartPilot);
 
     state.armor = makeArmor(design.armor);
-    state.radars = new ArraySchema(...design.radars.map(makeRadar));
+    state.radars = new ArraySchema(...design.radars.map((radarDesign, index) => makeRadar(radarDesign, index)));
     state.reactor = makeReactor(design.reactor);
     state.magazine = makeMagazine(design.magazine);
     state.weaponsTarget = makeTargeting(design.weaponsTarget);

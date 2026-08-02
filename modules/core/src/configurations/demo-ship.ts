@@ -11,6 +11,7 @@ export const demoShipThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
+    bearingLimit: 0,
     maxBearingSkew: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -32,6 +33,8 @@ export const demoShipOmniRadar = {
     malfunctionRange: 5_000,
     // the omni sweeps every bearing at once, so its mount has nothing to turn
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 export const demoShipScanBeam = {
     modelName: 'Lancet-20 Directional Scan Beam',
@@ -48,6 +51,8 @@ export const demoShipScanBeam = {
     malfunctionRange: 10_000,
     // a full sweep from bow to stern takes 6 seconds at full effectiveness
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 export const demoShipChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
@@ -72,6 +77,7 @@ export const demoShipChaingun = {
     energyCost: 1,
     // bolted to the hull, facing forward: the ship is aimed by turning the ship
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 export const demoShipReactor = {
@@ -142,6 +148,7 @@ export const demoShipTube = {
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 export const demoShipTargeting = {

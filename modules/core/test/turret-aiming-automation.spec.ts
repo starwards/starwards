@@ -17,7 +17,7 @@ import { expect } from 'chai';
 const demoShipConfig = shipConfigurations['demo-ship'];
 
 // A turreted mount, unlike the roster's bolted-forward chain gun, can actually swing.
-const turretedChaingun = { ...demoShipChaingun, turnSpeed: 90 };
+const turretedChaingun = { ...demoShipChaingun, turnSpeed: 90, bearingLimit: 180 };
 
 describe('an NPC ship with multiple turreted mounts under attack orders', () => {
     afterEach(() => jest.restoreAllMocks());

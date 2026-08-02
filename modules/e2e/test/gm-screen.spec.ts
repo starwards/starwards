@@ -316,6 +316,33 @@ test.describe('GM Screen', () => {
         expect(asteroid.velocity.y).toBeCloseTo(30, 0);
     });
 
+    test('tweak panel opens on a hull whose mounts are all bearingLimit: 0 without throwing (issue #2051, A17)', async ({
+        page,
+    }) => {
+        // single_ship spawns a demo-ship: its thruster, chain gun and omni radar are all bolted
+        // (bearingLimit: 0, #2051), so their bearingCommand slider range collapses to [-0, 0].
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await expect(tweakPanel.getByText('velocity', { exact: true })).toBeVisible({ timeout: 5000 });
+
+        // demo-ship's forward chain gun is bolted (bearingLimit: 0, #2051) — its bearingCommand
+        // slider range collapses to [-0, 0]. Open that system's folder and confirm the blade renders
+        // (scoped to the folder itself: other systems' still-collapsed bearingCommand blades share
+        // the same label text but stay hidden).
+        const chainGunFolderTitle = tweakPanel.locator('.tp-fldv_t', { hasText: 'Chain gun' }).first();
+        await expect(chainGunFolderTitle).toBeVisible({ timeout: 5000 });
+        await chainGunFolderTitle.click();
+
+        const visibleBearingCommandLabels = tweakPanel.locator('.tp-lblv_l:visible', { hasText: 'bearingCommand' });
+        await expect(visibleBearingCommandLabels).toHaveCount(1, { timeout: 5000 });
+    });
+
     test('radius set via the tweak panel persists', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
