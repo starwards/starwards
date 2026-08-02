@@ -115,7 +115,7 @@ export class ShipState extends Schema {
     weaponsTarget!: Targeting;
 
     @gameField(Warp)
-    warp!: Warp;
+    warp: Warp | null = null;
 
     @gameField(Docking)
     docking!: Docking;

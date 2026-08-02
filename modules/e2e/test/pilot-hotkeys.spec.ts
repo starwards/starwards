@@ -96,7 +96,7 @@ test.describe('Pilot hotkeys', () => {
     // --- Warp level (r/f keys — momentary, observe level change) ---
 
     test('r key: warp levelUpCommand fires (warp level increases or stays at max)', async ({ page }) => {
-        const initialLevel = gameDriver.getShip(shipId).state.warp.currentLevel;
+        const initialLevel = gameDriver.getShip(shipId).state.warp!.currentLevel;
         await page.keyboard.press('r');
         // Wait a moment for the server to process the command
         await page.waitForTimeout(200);

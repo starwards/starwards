@@ -110,7 +110,7 @@ describe('spec §9 worked examples', () => {
             }
             expect(damaged).to.equal(false);
             expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp.damageFactor).to.equal(0);
+            expect(state.warp!.damageFactor).to.equal(0);
             expect(state.magazine.capacity).to.equal(1);
         });
 
@@ -127,8 +127,8 @@ describe('spec §9 worked examples', () => {
             expect(state.magazine.capacity).to.be.closeTo(0.9 ** 3, 0.0001);
             // the other front internals never see this round (single scope)
             expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp.damageFactor).to.equal(0);
-            expect(state.warp.velocityFactor).to.equal(1);
+            expect(state.warp!.damageFactor).to.equal(0);
+            expect(state.warp!.velocityFactor).to.equal(1);
         });
 
         // §9 / design intent: fighter-class plates are sized so a standard ArmPen missile
@@ -160,8 +160,8 @@ describe('spec §9 worked examples', () => {
             expect(state.smartPilot.offsetFactor).to.be.closeTo(state.smartPilot.design.offsetBrokenThreshold, 0.0001);
             // 600 × 1.5 = 900 worth of spillover died with the victim — nothing else was hit
             expect(state.magazine.capacity).to.equal(1);
-            expect(state.warp.damageFactor).to.equal(0);
-            expect(state.warp.velocityFactor).to.equal(1);
+            expect(state.warp!.damageFactor).to.equal(0);
+            expect(state.warp!.velocityFactor).to.equal(1);
         });
     });
 
@@ -177,7 +177,7 @@ describe('spec §9 worked examples', () => {
             // smartPilot: 50 vs damage50 90 → 1 roll → one defect
             expect(state.smartPilot.offsetFactor).to.be.closeTo(0.01, 0.0001);
             // warp: 50 vs damage50 20 → 3 rolls → three defects
-            expect(state.warp.damageFactor).to.be.closeTo(0.15, 0.0001);
+            expect(state.warp!.damageFactor).to.be.closeTo(0.15, 0.0001);
             // magazine bleeds too (ammo lost)
             expect(state.magazine.getCount('HiExpShell')).to.be.lessThan(state.magazine.max_HiExpShell);
             // externals take the weak scrape: 50 × SURFACE_EFFECT_FACTOR 0.05 × HiExp
@@ -201,7 +201,7 @@ describe('spec §9 worked examples', () => {
             expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internals safe — frag never penetrates (hitsInternal false)
             expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp.damageFactor).to.equal(0);
+            expect(state.warp!.damageFactor).to.equal(0);
         });
 
         // §9: frag sands "at x2" vs HiExp's weak x0.25 — shrapnel is purpose-built for equipment
@@ -337,7 +337,7 @@ describe('spec §9 worked examples', () => {
             expect(damaged).to.equal(true);
             // warp sees 40 × exposure 0.5 = 20 = exactly one damage50 step → one defect.
             // At exposure 1 it would take two rolls (0.10) — this pins the 0.5 chain.
-            expect(state.warp.damageFactor).to.be.closeTo(0.05, 0.0001);
+            expect(state.warp!.damageFactor).to.be.closeTo(0.05, 0.0001);
             expect(state.smartPilot.offsetFactor).to.be.closeTo(0.01, 0.0001);
         });
 
@@ -354,7 +354,7 @@ describe('spec §9 worked examples', () => {
                 expect(plate.layers[1].health).to.equal(500); // block never erodes
             }
             expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp.damageFactor).to.equal(0);
+            expect(state.warp!.damageFactor).to.equal(0);
         });
     });
 });

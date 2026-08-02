@@ -71,7 +71,9 @@ async function initScreen(driver: Driver, shipId: string) {
     wireInput(shipDriver);
 
     drawEngineeringStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
-    drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
+    if (shipDriver.state.warp) {
+        drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
+    }
     drawFullSystemsStatus(container.subContainer(VPos.MIDDLE, HPos.MIDDLE), shipDriver, shipDriver.systems);
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
 }
@@ -129,21 +131,23 @@ function wireInput(shipDriver: ShipDriver) {
             '`',
             'Toggle ECR Control',
         );
-        ecrControlInput.addRangeAction(
-            {
-                ...readWriteProp<number>(shipDriver, `/warp/standbyFrequency`),
-                range: [0, WarpFrequency.WARP_FREQUENCY_COUNT - 1],
-            },
-            {
-                offsetKeys: new KeysRangeConfig(']', '[', '', 1),
-            },
-            'Warp Frequency',
-        );
-        ecrControlInput.addMomentaryClickAction(
-            writeProp(shipDriver, `/warp/changeFrequencyCommand`),
-            '\\',
-            'Change Frequency',
-        );
+        if (shipDriver.state.warp) {
+            ecrControlInput.addRangeAction(
+                {
+                    ...readWriteProp<number>(shipDriver, `/warp/standbyFrequency`),
+                    range: [0, WarpFrequency.WARP_FREQUENCY_COUNT - 1],
+                },
+                {
+                    offsetKeys: new KeysRangeConfig(']', '[', '', 1),
+                },
+                'Warp Frequency',
+            );
+            ecrControlInput.addMomentaryClickAction(
+                writeProp(shipDriver, `/warp/changeFrequencyCommand`),
+                '\\',
+                'Change Frequency',
+            );
+        }
         ecrControlInput.init();
         inputManagers.push(ecrControlInput);
     }
