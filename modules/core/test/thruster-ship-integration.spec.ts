@@ -97,7 +97,7 @@ describe('thrusters-ship integration', function () {
             fc.property(float(-44, 44), (offset: number) => {
                 const harness = new ShipTestHarness();
                 for (const thruster of harness.shipState.angleThrusters(ShipDirection.FWD)) {
-                    thruster.angleError = offset;
+                    thruster.bearingSkew = offset;
                 }
                 harness.shipMgr.state.smartPilot.maneuvering.x = 1;
                 harness.simulate(1, iterationsPerSecond);

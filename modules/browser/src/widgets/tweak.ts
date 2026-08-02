@@ -228,6 +228,13 @@ const singleSelectionDetails = async (
                 defectibleProps.push(prop);
                 addSliderBlade(systemFolder, prop, { label: defectible.field }, cleanup);
             }
+            // Turret.bearingCommand is a getter over the synced bearingCommandRaw, so it's not an
+            // own enumerable property of the instance — getTweakables()'s Object.keys(state) sweep
+            // (below, via addTweakables) never finds it. Wire it explicitly instead.
+            if ('bearingCommandRaw' in system.state) {
+                const prop = readWriteNumberProp(shipDriver, `${system.pointer}/bearingCommand`);
+                addSliderBlade(systemFolder, prop, { label: 'bearingCommand' }, cleanup);
+            }
             systemFolder.element.classList.add('tp-rotv'); // This allows overriding tweakpane theme for this folder
             const applyThemeByStatus = () => (systemFolder.element.dataset.status = system.getStatus()); // this will change tweakpane theme for this folder, see tweakpane.css
             cleanup(abstractOnChange(defectibleProps, system.getStatus, applyThemeByStatus));

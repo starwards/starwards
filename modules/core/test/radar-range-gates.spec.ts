@@ -31,7 +31,7 @@ function configureRadars(shipMgr: { state: ShipState }): void {
     const beam = shipMgr.state.radars[1];
     beam.design.assign(BEAM_DESIGN);
     beam.arc = BEAM_ARC;
-    beam.direction = 0; // ship angle is 0, so ship-relative 0 == world bearing 0 (toward the target)
+    beam.bearing = 0; // ship angle is 0, so ship-relative 0 == world bearing 0 (toward the target)
 }
 
 // A scan job is only auto-created for a target the ship can see, so the queue is the observable

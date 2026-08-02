@@ -9,7 +9,7 @@ export const glaiveThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
-    maxAngleError: 45,
+    maxBearingSkew: 45,
     capacity: 150,
     energyCost: 0.07,
     afterBurnerCapacity: 150,
@@ -69,7 +69,8 @@ export const glaiveChaingun = {
     damage50: 20,
     energyCost: 1,
     turnSpeed: 30,
-    arcWidth: 180,
+    maxBearingSkew: 90,
+    bearingLimit: 90,
 };
 
 export const glaiveReactor = {
@@ -196,6 +197,7 @@ export const glaiveTube = {
     use_ElecMissile: false,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    maxBearingSkew: 90,
 };
 
 export const glaive = {

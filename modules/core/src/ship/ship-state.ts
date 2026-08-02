@@ -221,7 +221,7 @@ export class ShipState extends Schema {
     }
     *angleThrusters(direction: ShipDirection) {
         for (const thruster of this.thrusters) {
-            if (toDegreesDelta(direction) === toDegreesDelta(thruster.angle)) {
+            if (toDegreesDelta(direction) === toDegreesDelta(thruster.fittedBearing)) {
                 yield thruster;
             }
         }

@@ -19,7 +19,7 @@ type HullExpectation = {
         maxRange: number;
         minRange: number;
         bulletSpeed: number;
-        arcWidth: number;
+        bearingLimit: number;
     }>;
     shells: { HiExpShell: number; ArmPenShell: number; FragShell: number };
     tubes: number;
@@ -44,7 +44,7 @@ const hulls: HullExpectation[] = [
         rotationCapacity: 205,
         thrusters: 4,
         thrusterCapacity: 300,
-        chainGuns: [{ direction: 'FWD', bps: 8, maxRange: 4500, minRange: 500, bulletSpeed: 1000, arcWidth: 360 }],
+        chainGuns: [{ direction: 'FWD', bps: 8, maxRange: 4500, minRange: 500, bulletSpeed: 1000, bearingLimit: 180 }],
         shells: { HiExpShell: 960, ArmPenShell: 480, FragShell: 800 },
         tubes: 0,
         missiles: {},
@@ -66,7 +66,7 @@ const hulls: HullExpectation[] = [
         rotationCapacity: 160,
         thrusters: 4,
         thrusterCapacity: 300,
-        chainGuns: [{ direction: 'FWD', bps: 14, maxRange: 4500, minRange: 500, bulletSpeed: 1000, arcWidth: 360 }],
+        chainGuns: [{ direction: 'FWD', bps: 14, maxRange: 4500, minRange: 500, bulletSpeed: 1000, bearingLimit: 180 }],
         shells: { HiExpShell: 1_680, ArmPenShell: 840, FragShell: 1_400 },
         tubes: 1,
         missiles: { ArmPenMissile: 4 },
@@ -91,7 +91,9 @@ const hulls: HullExpectation[] = [
         rotationCapacity: 45,
         thrusters: 6,
         thrusterCapacity: 300,
-        chainGuns: [{ direction: 'FWD', bps: 30, maxRange: 8_000, minRange: 500, bulletSpeed: 2_000, arcWidth: 360 }],
+        chainGuns: [
+            { direction: 'FWD', bps: 30, maxRange: 8_000, minRange: 500, bulletSpeed: 2_000, bearingLimit: 180 },
+        ],
         shells: { HiExpShell: 3_600, ArmPenShell: 1_800, FragShell: 3_000 },
         tubes: 2,
         missiles: {
@@ -123,7 +125,9 @@ const hulls: HullExpectation[] = [
         rotationCapacity: 45,
         thrusters: 6,
         thrusterCapacity: 250,
-        chainGuns: [{ direction: 'FWD', bps: 30, maxRange: 7_500, minRange: 500, bulletSpeed: 2_000, arcWidth: 360 }],
+        chainGuns: [
+            { direction: 'FWD', bps: 30, maxRange: 7_500, minRange: 500, bulletSpeed: 2_000, bearingLimit: 180 },
+        ],
         shells: { HiExpShell: 3_600, ArmPenShell: 1_800, FragShell: 3_000 },
         tubes: 2,
         missiles: { ArmPenMissile: 12, HiExpMissile: 8, TandemMissile: 2 },
@@ -146,8 +150,8 @@ const hulls: HullExpectation[] = [
         thrusters: 8,
         thrusterCapacity: 150,
         chainGuns: [
-            { direction: 'PORT', bps: 20, maxRange: 8_000, minRange: 500, bulletSpeed: 2_000, arcWidth: 180 },
-            { direction: 'STBD', bps: 20, maxRange: 8_000, minRange: 500, bulletSpeed: 2_000, arcWidth: 180 },
+            { direction: 'PORT', bps: 20, maxRange: 8_000, minRange: 500, bulletSpeed: 2_000, bearingLimit: 90 },
+            { direction: 'STBD', bps: 20, maxRange: 8_000, minRange: 500, bulletSpeed: 2_000, bearingLimit: 90 },
         ],
         shells: { HiExpShell: 4_800, ArmPenShell: 2_400, FragShell: 4_000 },
         tubes: 2,
@@ -174,9 +178,9 @@ const hulls: HullExpectation[] = [
         thrusters: 8,
         thrusterCapacity: 150,
         chainGuns: [
-            { direction: 'FWD', bps: 20, maxRange: 10_000, minRange: 500, bulletSpeed: 2_500, arcWidth: 270 },
-            { direction: 'FWD', bps: 20, maxRange: 10_000, minRange: 500, bulletSpeed: 2_500, arcWidth: 270 },
-            { direction: 'FWD', bps: 20, maxRange: 10_000, minRange: 500, bulletSpeed: 2_500, arcWidth: 60 },
+            { direction: 'FWD', bps: 20, maxRange: 10_000, minRange: 500, bulletSpeed: 2_500, bearingLimit: 135 },
+            { direction: 'FWD', bps: 20, maxRange: 10_000, minRange: 500, bulletSpeed: 2_500, bearingLimit: 135 },
+            { direction: 'FWD', bps: 20, maxRange: 10_000, minRange: 500, bulletSpeed: 2_500, bearingLimit: 30 },
         ],
         shells: { HiExpShell: 7_200, ArmPenShell: 3_600, FragShell: 6_000 },
         tubes: 4,
@@ -250,7 +254,7 @@ const hulls: HullExpectation[] = [
         thrusters: 0,
         thrusterCapacity: 0,
         chainGuns: [
-            { direction: 'FWD', bps: 40, maxRange: 12_000, minRange: 2_400, bulletSpeed: 2_500, arcWidth: 360 },
+            { direction: 'FWD', bps: 40, maxRange: 12_000, minRange: 2_400, bulletSpeed: 2_500, bearingLimit: 180 },
         ],
         shells: { HiExpShell: 4_800, ArmPenShell: 2_400, FragShell: 4_000 },
         tubes: 0,
@@ -324,8 +328,8 @@ describe('ship roster MVP hull configurations (issue #2042)', () => {
             expect(gunDesign.maxShellRange).toBe(expected.maxRange);
             expect(gunDesign.minShellRange).toBe(expected.minRange);
             expect(gunDesign.bulletSpeed).toBe(expected.bulletSpeed);
-            // arcWidth is optional in the design; an omitted arc is unrestricted
-            expect(gunDesign.arcWidth ?? 360).toBe(expected.arcWidth);
+            // bearingLimit is optional in the design; an omitted limit is unrestricted
+            expect(gunDesign.bearingLimit ?? 180).toBe(expected.bearingLimit);
         }
 
         expect(design.magazine.max_HiExpShell).toBe(hull.shells.HiExpShell);

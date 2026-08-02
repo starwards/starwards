@@ -65,7 +65,17 @@ export abstract class DesignState extends Schema {
     }
 }
 
-export type DefectibleConfig = { normal: number; name: string };
+export type DefectibleConfig = {
+    normal: number;
+    name: string;
+    /**
+     * Whether this defectible is meaningful on `state` at all — e.g. a bearing-skew defectible is
+     * meaningless on a mount whose design carries no skew surface (an omni radar). Omitted means
+     * always enabled. Evaluated per-instance at collection time (`getSystems`), since the same
+     * class (`Radar`) can back both a skew-capable and a skew-free mount depending on its design.
+     */
+    enabled?: (state: SystemState) => boolean;
+};
 export type DefectibleValue = DefectibleConfig & { value: number; field: string; systemPointer: string };
 export const PowerLevelStep = 0.25;
 export enum PowerLevel {
@@ -190,7 +200,7 @@ export function getSystems(root: Schema): System[] {
         if (state && state instanceof SystemState && typeof value === 'number' && typeof field === 'string') {
             const config = Reflect.getMetadata(defectiblePropertyMetadataKey, state, field) as
                 DefectibleConfig | undefined;
-            if (config) {
+            if (config && (config.enabled?.(state) ?? true)) {
                 if (!systemsMap[systemPointer]) {
                     systemsMap[systemPointer] = System(systemPointer, state);
                 }

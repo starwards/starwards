@@ -347,7 +347,7 @@ export class MovementManager implements Updateable {
                 const actionFactor = thruster.effectiveness * thruster.availableCapacity * deltaSeconds;
                 return XY.byLengthAndDirection(
                     (mvEffect + abEffect) * actionFactor,
-                    thruster.angle + thruster.angleError + this.state.angle,
+                    thruster.getGlobalBearing(this.state),
                 );
             }),
         );
@@ -361,7 +361,10 @@ export class MovementManager implements Updateable {
             thruster.afterBurnerActive = 0;
             thruster.active = 0;
             if (thruster.effectiveness) {
-                const globalAngle = thruster.angle + this.state.angle;
+                // same bearing (skew included) as the force this thruster actually applies below —
+                // otherwise a skewed thruster would be allocated thrust for the axis it was
+                // designed to serve while pushing along the axis damage has actually bent it to.
+                const globalAngle = thruster.getGlobalBearing(this.state);
                 const desiredAction = capToRange(0, 1, XY.rotate(maneuveringAction, -globalAngle).x);
                 const axisCapacity = thruster.design.capacity * thruster.effectiveness * deltaSeconds;
                 if (

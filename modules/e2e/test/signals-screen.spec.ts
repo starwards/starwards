@@ -46,11 +46,11 @@ test.describe('Signals Screen', () => {
     test('d key: the mount swings toward the commanded bearing', async ({ page }) => {
         await waitForRadarReady(page);
 
-        const initial = gameDriver.getShip(shipId).state.radars[1].direction;
+        const initial = gameDriver.getShip(shipId).state.radars[1].bearing;
         await page.keyboard.press('d');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => ship.state.radars[1].direction > initial + 0.01,
+            (ship) => ship.state.radars[1].bearing > initial + 0.01,
             3000,
         );
     });
@@ -66,7 +66,7 @@ test.describe('Signals Screen', () => {
         }
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => Math.abs(ship.state.radars[1].directionCommand - 160) < 1,
+            (ship) => Math.abs(ship.state.radars[1].bearingCommand - 160) < 1,
             3000,
         );
     });

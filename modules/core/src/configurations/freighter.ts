@@ -9,7 +9,7 @@ export const freighterThruster = {
     modelName: 'RT-100 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
-    maxAngleError: 45,
+    maxBearingSkew: 45,
     capacity: 100,
     energyCost: 0.07,
     afterBurnerCapacity: 100,

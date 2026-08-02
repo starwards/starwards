@@ -91,11 +91,6 @@ export class ChainGun extends Turret {
     @gameField('int8')
     shellRangeMode!: SmartPilotMode;
 
-    @defectible({ normal: 0, name: 'offset' })
-    @range([-90, 90])
-    @gameField('float32')
-    angleOffset = 0;
-
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
     @gameField('float32')
@@ -128,6 +123,6 @@ export class ChainGun extends Turret {
     public changeProjectileCommand = false;
 
     get broken(): boolean {
-        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.rateOfFireFactor <= 0;
+        return super.broken || this.rateOfFireFactor <= 0;
     }
 }

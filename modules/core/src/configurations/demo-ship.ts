@@ -11,7 +11,7 @@ export const demoShipThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
-    maxAngleError: 45,
+    maxBearingSkew: 45,
     capacity: 150,
     energyCost: 0.07,
     afterBurnerCapacity: 300,
@@ -72,6 +72,7 @@ export const demoShipChaingun = {
     energyCost: 1,
     // bolted to the hull, facing forward: the ship is aimed by turning the ship
     turnSpeed: 0,
+    maxBearingSkew: 90,
 };
 export const demoShipReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
@@ -141,6 +142,7 @@ export const demoShipTube = {
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    maxBearingSkew: 90,
 };
 export const demoShipTargeting = {
     modelName: 'Falcon Targeting Computer',

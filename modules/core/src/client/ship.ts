@@ -50,6 +50,13 @@ export async function ShipDriver(shipRoom: Room<ShipState>) {
                 events.emit(`${system.pointer}/broken`, e);
             });
         }
+        // `bearingCommand` (Turret) is a getter over the synced `bearingCommandRaw` — colyseus
+        // change tracking only knows about the real field, so re-emit under the logical name too.
+        if ('bearingCommandRaw' in system.state) {
+            events.on(`${system.pointer}/bearingCommandRaw`, (e) => {
+                events.emit(`${system.pointer}/bearingCommand`, e);
+            });
+        }
     }
     return {
         events,

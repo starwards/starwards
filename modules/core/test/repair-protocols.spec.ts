@@ -36,7 +36,7 @@ describe('repair protocols catalog', () => {
         const catalog: Record<string, RepairProtocolStats> = {
             noChainGun: {
                 name: 'Needs a chain gun',
-                targets: [{ system: 'chainGuns', field: 'angleOffset' }],
+                targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
                 duration: 10,
                 energyDraw: 1,
                 heat: 0,
@@ -67,7 +67,7 @@ describe('repair protocols catalog', () => {
     describe('isProtocolAvailable / getAvailableRepairProtocols', () => {
         const noChainGunTarget: RepairProtocolStats = {
             name: 'Needs a chain gun',
-            targets: [{ system: 'chainGuns', field: 'angleOffset' }],
+            targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
             duration: 10,
             energyDraw: 1,
             heat: 0,

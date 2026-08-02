@@ -51,12 +51,12 @@ function tick(totalSeconds: number, deltaSeconds = 1 / 60) {
 describe('radar vision (beam adds visibility end-to-end)', () => {
     // 1. The ship manager populates the SYNCED spaceObject.radarSectors each tick from the
     //    ship's radars: a 360-degree omni sector (radars[0]) plus a directional beam sector
-    //    (radars[1]) whose world-bearing direction = spaceObject.angle + radars[1].direction.
+    //    (radars[1]) whose world-bearing direction = spaceObject.angle + radars[1].bearing.
     describe('sectors synced from radars', () => {
         it('emits a 360-degree omni sector and a directional beam sector matching radars[1]', () => {
             const harness = new ShipTestHarness();
             // radars[1] is the directional scan beam; give it a non-zero bearing offset.
-            harness.shipState.radars[1].direction = 30;
+            harness.shipState.radars[1].bearing = 30;
             harness.simulate(1, 30);
 
             const angle = harness.shipObj.angle;
@@ -77,7 +77,7 @@ describe('radar vision (beam adds visibility end-to-end)', () => {
             expect(directional!.arc).to.be.closeTo(beam.arc, 1);
             expect(directional!.range).to.be.closeTo(beam.range, 1);
             expect(toPositiveDegreesDelta(directional!.direction)).to.be.closeTo(
-                toPositiveDegreesDelta(angle + beam.direction),
+                toPositiveDegreesDelta(angle + beam.bearing),
                 1,
             );
         });

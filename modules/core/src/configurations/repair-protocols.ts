@@ -67,8 +67,8 @@ export type RepairProtocolStats = {
 export const actuatorRecalibration: RepairProtocolStats = {
     name: 'Actuator recalibration',
     targets: [
-        { system: 'thrusters', field: 'angleError' },
-        { system: 'chainGuns', field: 'angleOffset' },
+        { system: 'thrusters', field: 'bearingSkew' },
+        { system: 'chainGuns', field: 'bearingSkew' },
         { system: 'smartPilot', field: 'offsetFactor' },
     ],
     duration: 45,
@@ -163,7 +163,7 @@ export const containmentFieldTuning: RepairProtocolStats = {
 export const fireControlAlignment: RepairProtocolStats = {
     name: 'Fire-control alignment',
     targets: [
-        { system: 'chainGuns', field: 'angleOffset' },
+        { system: 'chainGuns', field: 'bearingSkew' },
         { system: 'smartPilot', field: 'offsetFactor' },
         { system: 'radars', field: 'malfunctionRangeFactor' },
     ],
@@ -177,7 +177,7 @@ export const fireControlAlignment: RepairProtocolStats = {
 export const hullWideSystemsOverhaul: RepairProtocolStats = {
     name: 'Hull-wide systems overhaul',
     targets: [
-        { system: 'thrusters', field: 'angleError' },
+        { system: 'thrusters', field: 'bearingSkew' },
         { system: 'warp', field: 'velocityFactor' },
         { system: 'signals', field: 'jobSuccessFactor' },
         { system: 'docking', field: 'rangesFactor' },
