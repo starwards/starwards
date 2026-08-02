@@ -35,6 +35,8 @@ const scenes = [
     'tactical-radar-single-ship',
     'tactical-radar-multiple-objects',
     'tactical-radar-with-shells',
+    'tactical-radar-firing-arcs',
+    'tactical-radar-firing-arcs-limits',
     // Long Range Radar
     'long-range-radar-empty',
     'long-range-radar-single-ship',
