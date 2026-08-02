@@ -86,6 +86,8 @@ export class Warp extends SystemState {
     @gameField('float32')
     frequencyChange = 1;
 
+    /** GM override — proximity-jam physics (`handleWarpProximityJam` in movement-manager.ts) may overwrite this on the next tick. */
+    @tweakable('boolean')
     @gameField('boolean')
     jammed = false;
 

@@ -92,4 +92,13 @@ describe('ShipRoom JSON pointer commands', () => {
         await waitForServer(() => Math.abs(shipManager.state.radars[1].arc - maxArc) < 0.01);
         expect(shipManager.state.radars[1].arc).toBeCloseTo(maxArc, 2);
     });
+
+    it('applies a GM write to warp.jammed (GM override lever, issue #2033)', async () => {
+        const { client, room, shipId } = await connectShip('jam-toggle');
+        const shipManager = driver.serverDriver.getShip(shipId);
+        expect(shipManager.state.warp.jammed).toEqual(false);
+        await client.sendCommand(room, '/warp/jammed', { value: true });
+        await waitForServer(() => shipManager.state.warp.jammed === true);
+        expect(shipManager.state.warp.jammed).toEqual(true);
+    });
 });
