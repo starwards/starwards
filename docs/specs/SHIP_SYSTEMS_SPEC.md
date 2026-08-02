@@ -22,7 +22,7 @@ last_verified: 2026-06-13
 | Reactor | Energy generation | energy, power | EnergyManager |
 | Thruster | Propulsion | thrust, turn | MovementManager |
 | Radar | Detection | range, contacts | (no dedicated manager) |
-| ChainGun | Weapons | isFiring, rateOfFireFactor, angleOffset | ChainGunManager |
+| ChainGun | Weapons | isFiring, rateOfFireFactor, bearingSkew | ChainGunManager |
 | Warp | FTL travel | level, charging | (no dedicated manager) |
 
 ---
@@ -625,10 +625,10 @@ class Thruster extends SystemState {
     @gameField(ThrusterDesignState)
     design = new ThrusterDesignState();
 
-    @range((t: Thruster) => [-t.design.maxAngleError, t.design.maxAngleError])
-    @defectible({ normal: 0, name: 'offset' })
+    @range((t: Thruster) => [-t.design.maxBearingSkew, t.design.maxBearingSkew])
+    @defectible({ normal: 0, name: 'bearing skew' })
     @gameField('float32')
-    angleError = 0.0;
+    bearingSkew = 0.0;
 
     @range([0, 1])
     @defectible({ normal: 1, name: 'capacity' })
@@ -636,7 +636,7 @@ class Thruster extends SystemState {
     availableCapacity = 1.0;
 
     get broken(): boolean {
-        return this.availableCapacity === 0 || Math.abs(this.angleError) >= this.design.maxAngleError;
+        return this.availableCapacity === 0 || Math.abs(this.bearingSkew) >= this.design.maxBearingSkew;
     }
 }
 ```
@@ -654,10 +654,10 @@ class ChainGun extends SystemState {
     @gameField('float32')
     loading = 0;
 
-    @defectible({ normal: 0, name: 'offset' })
+    @defectible({ normal: 0, name: 'bearing skew' })
     @range([-90, 90])
     @gameField('float32')
-    angleOffset = 0;
+    bearingSkew = 0;
 
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
@@ -671,7 +671,7 @@ class ChainGun extends SystemState {
     design = new ChaingunDesignState();
 
     get broken(): boolean {
-        return (this.angleOffset >= 90 || this.angleOffset <= -90) && this.rateOfFireFactor <= 0;
+        return (this.bearingSkew >= 90 || this.bearingSkew <= -90) && this.rateOfFireFactor <= 0;
     }
 }
 

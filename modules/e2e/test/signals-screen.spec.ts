@@ -39,7 +39,7 @@ test.describe('Signals Screen', () => {
 
     // --- Scan beam controls drive radars[1] (arc / direction) ---
     // The scan beam is the ship's second radar (radars[1]); its Signals-station
-    // controls command /radars/1/directionCommand and /radars/1/arc. The `d`/`a` keys
+    // controls command /radars/1/bearingCommand and /radars/1/arc. The `d`/`a` keys
     // sweep the commanded bearing all the way around (KeysRangeConfig step 5), and the
     // mount swings toward it at its turn speed; `w` narrows the beam and `s` widens it.
 
