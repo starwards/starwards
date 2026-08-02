@@ -107,6 +107,7 @@ export const largeStationDocking = {
     undockingTargetDistance: 100,
     angle: -90,
     width: 45,
+    isDockingHost: true,
 };
 
 export const largeStationManeuvering = {
