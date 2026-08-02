@@ -185,7 +185,7 @@ export const dragonflyMK2Tube = {
 
 export const dragonflyMK2 = {
     properties: dragonflyMK2Properties,
-    chainGun: dragonflyMK2Chaingun,
+    chainGuns: [['FWD', dragonflyMK2Chaingun]],
     thrusters: [
         ['STBD', dragonflyMK2Thruster],
         ['PORT', dragonflyMK2Thruster],

@@ -46,12 +46,7 @@ export const glaiveScanBeam = {
     turnSpeed: 30,
 };
 
-/**
- * Spec calls for 1x PORT arc180 + 1x STBD arc180 (40 bps combined). Today's ChainGun field is a
- * single bolted-forward mount with no per-mount bearing/arc — see #2041 (chainGuns[] + arcWidth).
- * TODO(#2041): split into the two broadside mounts once that lands; until then this lands the
- * main mount only, at its per-mount rate.
- */
+/** Broadside mount: fitted PORT and STBD, each sweeping 180° centred on its own beam. */
 export const glaiveChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
     isInternal: false,
@@ -73,7 +68,8 @@ export const glaiveChaingun = {
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
-    turnSpeed: 0,
+    turnSpeed: 30,
+    arcWidth: 180,
 };
 
 export const glaiveReactor = {
@@ -204,7 +200,10 @@ export const glaiveTube = {
 
 export const glaive = {
     properties: glaiveProperties,
-    chainGun: glaiveChaingun,
+    chainGuns: [
+        ['PORT', glaiveChaingun],
+        ['STBD', glaiveChaingun],
+    ],
     thrusters: [
         ['STBD', glaiveThruster],
         ['STBD', glaiveThruster],

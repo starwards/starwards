@@ -203,7 +203,7 @@ export const predatorTube = {
 
 export const predator = {
     properties: predatorProperties,
-    chainGun: predatorChaingun,
+    chainGuns: [['FWD', predatorChaingun]],
     thrusters: [
         ['STBD', predatorThruster],
         ['PORT', predatorThruster],
