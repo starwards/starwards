@@ -486,7 +486,7 @@ export class SpaceManager implements Updateable {
                     turnSpeed += obj.turnSpeed;
                 }
                 subject.velocity.setValue(velocity);
-                subject.turnSpeed = toDegreesDelta(turnSpeed);
+                subject.turnSpeed = turnSpeed;
             }
         }
         this.attachments.delete(attacherId);
