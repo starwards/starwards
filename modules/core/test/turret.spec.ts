@@ -1,5 +1,17 @@
-import { ChainGun, PowerLevel, Radar, Thruster, Turret, makeShipState, shipConfigurations, updateTurret } from '../src';
+import {
+    ChainGun,
+    PowerLevel,
+    Radar,
+    Thruster,
+    Turret,
+    getRange,
+    getSystems,
+    makeShipState,
+    shipConfigurations,
+    updateTurret,
+} from '../src';
 
+import { JsonPointer } from '../src/json-ptr';
 import { expect } from 'chai';
 
 /**
@@ -134,6 +146,13 @@ describe('turret mount bearing limit (A2, A3)', () => {
         expect(turret.bearing).to.be.at.most(180);
     });
 
+    it('bearing carries a range — the GM tweak panel throws without one', () => {
+        const turret = makeTurret(0);
+
+        expect(() => getRange(turret, JsonPointer.create('/bearing'))).to.not.throw();
+        expect(getRange(turret, JsonPointer.create('/bearing'))).to.deep.equal([-180, 180]);
+    });
+
     it('a bearingLimitFactor below 1 clamps thereafter, taking the short way round', () => {
         const turret = makeTurret(1000);
         turret.design.assign({ bearingLimit: 90 });
@@ -242,6 +261,22 @@ describe('unified defectibles gate on design capability (A6, A9)', () => {
         thruster.availableCapacity = 0;
 
         expect(thruster.broken).to.equal(true);
+    });
+
+    it('a bolted mount (turnSpeed: 0) shows no turn-speed defectible — nothing damage ever moves for it', () => {
+        const thruster = new Thruster();
+        thruster.design.assign({ turnSpeed: 0, maxBearingSkew: 45 });
+
+        const fields = getSystems(thruster).flatMap((s) => s.defectibles.map((d) => d.field));
+        expect(fields).to.not.include('turnSpeedFactor');
+    });
+
+    it('a mount that actually turns (turnSpeed > 0) shows the turn-speed defectible', () => {
+        const radar = new Radar();
+        radar.design.assign({ turnSpeed: 30 });
+
+        const fields = getSystems(radar).flatMap((s) => s.defectibles.map((d) => d.field));
+        expect(fields).to.include('turnSpeedFactor');
     });
 });
 

@@ -61,6 +61,7 @@ export abstract class Turret extends SystemState {
      * where it's fitted). Owned by the ship manager — command it through `bearingCommand` instead
      * of writing it.
      */
+    @range(shipDirectionRange)
     @tweakable('number')
     @gameField('float32')
     bearing = 0;
@@ -81,7 +82,15 @@ export abstract class Turret extends SystemState {
     @gameField('float32')
     bearingSkew = 0;
 
-    @defectible({ normal: 1, name: 'turn speed' })
+    /**
+     * fraction of `design.turnSpeed` this mount currently retains. Declared only where
+     * `design.turnSpeed > 0` — a bolted mount has no turn speed to lose.
+     */
+    @defectible({
+        normal: 1,
+        name: 'turn speed',
+        enabled: (t) => (t as Turret).design.turnSpeed > 0,
+    })
     @range([0, 1])
     @gameField('float32')
     turnSpeedFactor = 1;

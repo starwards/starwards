@@ -195,12 +195,16 @@ export class DamageManager {
     /**
      * An omni radar has no skew surface and no traverse to lose (`design.maxBearingSkew` and
      * `design.turnSpeed` are both 0) — every hit routes to `malfunctionRangeFactor`, same as
-     * today. A scan-beam radar rolls across all four surfaces a mount can degrade on: range,
-     * turn speed, bearing skew and traverse limit. `damageRadarRange:` is kept as the seed id
-     * for the range branch — it is load-bearing for existing determinism.
+     * today. A radar with a turn speed and/or a skew surface rolls across range plus whichever
+     * of those surfaces its design actually declares — never writing to a surface the design says
+     * does not exist (that field would be neither a visible defectible nor resettable by repair).
+     * `damageRadarRange:` is kept as the seed id for the range branch — it is load-bearing for
+     * existing determinism.
      */
     private damageRadar(radar: Radar, damageId: string) {
-        if (radar.design.maxBearingSkew <= 0 && radar.design.turnSpeed <= 0) {
+        const hasSkew = radar.design.maxBearingSkew > 0;
+        const hasTraverse = radar.design.turnSpeed > 0;
+        if (!hasSkew && !hasTraverse) {
             radar.malfunctionRangeFactor += 0.05;
             return;
         }
@@ -208,16 +212,23 @@ export class DamageManager {
             radar.malfunctionRangeFactor += 0.05;
             return;
         }
-        const roll = this.die.getRollInRange('damageRadarSurface:' + damageId, 0, 3);
-        if (roll < 1) {
-            radar.turnSpeedFactor *= 0.9;
-        } else if (roll < 2) {
-            radar.bearingSkew +=
-                limitPercision(this.die.getRollInRange('damageRadarSkew:' + damageId, 1, 2)) *
-                (this.die.getSuccess('damageRadarSkewSign:' + damageId, 0.5) ? 1 : -1);
-        } else {
-            radar.bearingLimitFactor *= 0.9;
+        const surfaces: Array<() => void> = [];
+        if (hasTraverse) {
+            surfaces.push(() => (radar.turnSpeedFactor *= 0.9));
         }
+        if (hasSkew) {
+            surfaces.push(
+                () =>
+                    (radar.bearingSkew +=
+                        limitPercision(this.die.getRollInRange('damageRadarSkew:' + damageId, 1, 2)) *
+                        (this.die.getSuccess('damageRadarSkewSign:' + damageId, 0.5) ? 1 : -1)),
+            );
+        }
+        if (hasTraverse) {
+            surfaces.push(() => (radar.bearingLimitFactor *= 0.9));
+        }
+        const roll = Math.floor(this.die.getRollInRange('damageRadarSurface:' + damageId, 0, surfaces.length));
+        surfaces[Math.min(roll, surfaces.length - 1)]();
     }
 
     private damageThruster(thruster: Thruster, damageId: string) {
