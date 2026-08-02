@@ -616,19 +616,47 @@ class Reactor extends SystemState {
 }
 ```
 
+## Turret Pattern (shared mount base)
+@system: mounts
+@file: modules/core/src/ship/turret.ts
+
+Radars, chain guns, tubes and thrusters all extend `Turret` — the rotating
+mount every bearing-carrying system shares. `bearingSkew` and `broken` below
+are inherited, not redeclared, by every subclass; a subclass only overrides
+`broken` to OR in its own failure condition.
+
+```typescript
+abstract class Turret extends SystemState {
+    abstract readonly design: TurretDesignState; // carries maxBearingSkew
+
+    @gameField('float32')
+    fittedBearing = 0; // where the mount is bolted, relative to the ship; fixed after fitting
+
+    @gameField('float32')
+    bearing = 0; // where it's pointing now, relative to fittedBearing
+
+    // damage-driven skew off the commanded bearing. Declared only where
+    // design.maxBearingSkew > 0 — a mount with no skew surface (e.g. an omni
+    // radar) never shows this as a defectible.
+    @defectible({ normal: 0, name: 'bearing skew', enabled: (t) => t.design.maxBearingSkew > 0 })
+    @range((t: Turret) => [-t.design.maxBearingSkew, t.design.maxBearingSkew])
+    @gameField('float32')
+    bearingSkew = 0;
+
+    get broken(): boolean {
+        return this.design.maxBearingSkew > 0 && Math.abs(this.bearingSkew) >= this.design.maxBearingSkew;
+    }
+}
+```
+
 ## Thruster Pattern
 @system: propulsion
 @file: modules/core/src/ship/thruster.ts
 
 ```typescript
-class Thruster extends SystemState {
+class Thruster extends Turret {
     @gameField(ThrusterDesignState)
     design = new ThrusterDesignState();
-
-    @range((t: Thruster) => [-t.design.maxBearingSkew, t.design.maxBearingSkew])
-    @defectible({ normal: 0, name: 'bearing skew' })
-    @gameField('float32')
-    bearingSkew = 0.0;
 
     @range([0, 1])
     @defectible({ normal: 1, name: 'capacity' })
@@ -636,7 +664,7 @@ class Thruster extends SystemState {
     availableCapacity = 1.0;
 
     get broken(): boolean {
-        return this.availableCapacity === 0 || Math.abs(this.bearingSkew) >= this.design.maxBearingSkew;
+        return super.broken || this.availableCapacity === 0;
     }
 }
 ```
@@ -646,18 +674,13 @@ class Thruster extends SystemState {
 @file: modules/core/src/ship/chain-gun.ts
 
 ```typescript
-class ChainGun extends SystemState {
+class ChainGun extends Turret {
     @gameField('boolean')
     isFiring = false;
 
     @range([0, 1])
     @gameField('float32')
     loading = 0;
-
-    @defectible({ normal: 0, name: 'bearing skew' })
-    @range([-90, 90])
-    @gameField('float32')
-    bearingSkew = 0;
 
     @range([0, 1])
     @defectible({ normal: 1, name: 'rate of fire' })
@@ -671,7 +694,7 @@ class ChainGun extends SystemState {
     design = new ChaingunDesignState();
 
     get broken(): boolean {
-        return (this.bearingSkew >= 90 || this.bearingSkew <= -90) && this.rateOfFireFactor <= 0;
+        return super.broken || this.rateOfFireFactor <= 0;
     }
 }
 
