@@ -11,7 +11,7 @@ export type RepairProtocolTier = 'field' | 'docked' | 'shipyard';
 /**
  * Top-level ShipState field a repair-protocol target lives on. Mirrors the
  * keys `getSystems()` reports (the first path segment of a system pointer,
- * e.g. `/thrusters/0` -> `thrusters`, `/chainGun` -> `chainGun`).
+ * e.g. `/thrusters/0` -> `thrusters`, `/chainGuns/0` -> `chainGuns`).
  *
  * Declared as a const array (not a bare union) so `isRepairableSystemKey` can validate a plain
  * `string` read back off a `@gameField('string')` schema field at runtime — Colyseus schema wire
@@ -21,7 +21,7 @@ export type RepairProtocolTier = 'field' | 'docked' | 'shipyard';
 export const REPAIRABLE_SYSTEM_KEYS = [
     'thrusters',
     'tubes',
-    'chainGun',
+    'chainGuns',
     'radars',
     'reactor',
     'smartPilot',
@@ -68,13 +68,13 @@ export const actuatorRecalibration: RepairProtocolStats = {
     name: 'Actuator recalibration',
     targets: [
         { system: 'thrusters', field: 'angleError' },
-        { system: 'chainGun', field: 'angleOffset' },
+        { system: 'chainGuns', field: 'angleOffset' },
         { system: 'smartPilot', field: 'offsetFactor' },
     ],
     duration: 45,
     energyDraw: 2,
     heat: 20,
-    sideEffectSystems: ['chainGun'],
+    sideEffectSystems: ['chainGuns'],
     tier: 'field',
 };
 
@@ -94,7 +94,7 @@ export const thrustLinePurge: RepairProtocolStats = {
 export const feedSystemOverhaul: RepairProtocolStats = {
     name: 'Feed-system overhaul',
     targets: [
-        { system: 'chainGun', field: 'rateOfFireFactor' },
+        { system: 'chainGuns', field: 'rateOfFireFactor' },
         { system: 'magazine', field: 'capacity' },
     ],
     duration: 60,
@@ -163,7 +163,7 @@ export const containmentFieldTuning: RepairProtocolStats = {
 export const fireControlAlignment: RepairProtocolStats = {
     name: 'Fire-control alignment',
     targets: [
-        { system: 'chainGun', field: 'angleOffset' },
+        { system: 'chainGuns', field: 'angleOffset' },
         { system: 'smartPilot', field: 'offsetFactor' },
         { system: 'radars', field: 'malfunctionRangeFactor' },
     ],
@@ -208,9 +208,10 @@ export type RepairProtocolName = keyof typeof repairProtocols;
 
 /**
  * Resolves a catalog target/side-effect system key to its live instance(s) on `state`. A ship
- * design may legitimately lack a keyed system (`chainGun` and `warp` are both nullable) — callers
- * get an empty array, not a throw, so `validateRepairCatalog` can report a clear per-protocol
- * error instead of a raw crash, and `isProtocolAvailable` can filter the protocol out cleanly.
+ * design may legitimately lack a keyed system (`chainGuns` may be empty, `warp` is nullable) —
+ * callers get an empty array, not a throw, so `validateRepairCatalog` can report a clear
+ * per-protocol error instead of a raw crash, and `isProtocolAvailable` can filter the protocol out
+ * cleanly.
  */
 export function getRepairableSystemInstances(state: ShipState, key: RepairableSystemKey): SystemState[] {
     switch (key) {
@@ -218,8 +219,8 @@ export function getRepairableSystemInstances(state: ShipState, key: RepairableSy
             return [...state.thrusters];
         case 'tubes':
             return [...state.tubes];
-        case 'chainGun':
-            return state.chainGun ? [state.chainGun] : [];
+        case 'chainGuns':
+            return [...state.chainGuns];
         case 'radars':
             return [...state.radars];
         case 'reactor':
@@ -244,8 +245,8 @@ export function getRepairableSystemInstances(state: ShipState, key: RepairableSy
  * `state` (SPEC-0003: "a bad pointer fails startup, not gameplay"). Called from `makeShipState`
  * for every ship built.
  *
- * A ship that simply lacks a system a protocol references (`chainGun` is nullable, a future hull
- * might have no `tubes`, ...) is a normal configuration, not a catalog bug — `getProtocolAvailability`
+ * A ship that simply lacks a system a protocol references (`warp` is nullable, a future hull
+ * might have no `tubes` or `chainGuns`, ...) is a normal configuration, not a catalog bug — `getProtocolAvailability`
  * / `getAvailableRepairProtocols` filter those protocols out for that ship instead. This function
  * only throws for what *is* a genuine catalog bug: a `field` that isn't a real `@defectible`
  * anywhere on a system the ship actually has (a typo `RepairProtocolTarget.field` can't be caught

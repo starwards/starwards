@@ -163,18 +163,18 @@ describe('SpaceManager', () => {
                 const shipMgr = sim.withShip(ship, new ShipDie(0), shipManagerCtor);
                 ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
                 shipMgr.state.spaceship.velocity = ship.velocity;
-                shipMgr.state.chainGun!.design.maxShellRange = 10_000;
-                shipMgr.state.chainGun!.shellRange = 1;
-                shipMgr.state.chainGun!.loading = 1;
-                shipMgr.state.chainGun!.loadedProjectile = 'HiExpShell';
-                shipMgr.state.chainGun!.isFiring = true;
-                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                shipMgr.state.chainGuns[0].design.maxShellRange = 10_000;
+                shipMgr.state.chainGuns[0].shellRange = 1;
+                shipMgr.state.chainGuns[0].loading = 1;
+                shipMgr.state.chainGuns[0].loadedProjectile = 'HiExpShell';
+                shipMgr.state.chainGuns[0].isFiring = true;
+                switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
 
                 // stop simulation when first bullet reaches its range
                 const shellSecondsToLive = calcShellSecondsToLive(
                     shipMgr.state,
-                    shipMgr.state.chainGun!,
-                    shipMgr.state.chainGun!.design.maxShellRange,
+                    shipMgr.state.chainGuns[0],
+                    shipMgr.state.chainGuns[0].design.maxShellRange,
                 );
                 return { sim, shellSecondsToLive, ship, shipMgr };
             }

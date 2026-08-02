@@ -53,8 +53,8 @@ export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
     state.maneuvering.afterBurnerFuel = state.maneuvering.design.maxAfterBurnerFuel;
     fixArmor(state.armor);
-    if (state.chainGun) {
-        resetChainGun(state.chainGun);
+    for (const chainGun of state.chainGuns) {
+        resetChainGun(chainGun);
     }
     for (const thruster of state.thrusters) {
         resetThruster(thruster);
@@ -129,7 +129,7 @@ export abstract class ShipManager implements Updateable {
     public weaponsTarget: SpaceObject | null = null;
 
     protected tubeManagers = new Array<ChainGunManager>();
-    protected chainGunManager: ChainGunManager | null = null;
+    protected chainGunManagers = new Array<ChainGunManager>();
     protected dockingManager: DockingManager;
     protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
@@ -151,15 +151,17 @@ export abstract class ShipManager implements Updateable {
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
-        if (this.state.chainGun) {
-            this.chainGunManager = new ChainGunManager(
-                this.state.chainGun,
-                this.spaceObject,
-                this.state,
-                this.spaceManager,
-                this,
-                this.internalProxy,
-                this.internalProxy,
+        for (const chainGun of this.state.chainGuns) {
+            this.chainGunManagers.push(
+                new ChainGunManager(
+                    chainGun,
+                    this.spaceObject,
+                    this.state,
+                    this.spaceManager,
+                    this,
+                    this.internalProxy,
+                    this.internalProxy,
+                ),
             );
         }
         for (const tube of this.state.tubes) {
@@ -207,7 +209,9 @@ export abstract class ShipManager implements Updateable {
     }
 
     public setShellRangeMode(value: SmartPilotMode) {
-        this.chainGunManager?.setShellRangeMode(value);
+        for (const chainGunManager of this.chainGunManagers) {
+            chainGunManager.setShellRangeMode(value);
+        }
     }
 
     public setTarget(id: string | null) {
@@ -254,7 +258,9 @@ export abstract class ShipManager implements Updateable {
         // vision first: the target and signal gates below all read this tick's radar sectors
         this.updateRadarSectors(id);
         this.validateWeaponsTargetId();
-        this.chainGunManager?.update(id);
+        for (const chainGunManager of this.chainGunManagers) {
+            chainGunManager.update(id);
+        }
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(id);
         }
@@ -319,7 +325,7 @@ export abstract class ShipManager implements Updateable {
         if (this.ships) {
             for (const shipManager of this.ships.values()) {
                 if (shipManager.state.weaponsTarget.targetId === this.state.id) {
-                    if (shipManager.state.chainGun?.isFiring) {
+                    if (shipManager.state.chainGuns.some((chainGun) => chainGun.isFiring)) {
                         status = TargetedStatus.FIRED_UPON;
                         break; // no need to look further
                     }

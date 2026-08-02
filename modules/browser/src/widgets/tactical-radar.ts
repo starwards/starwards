@@ -100,8 +100,8 @@ export async function drawTacticalRadar(
     const asimuthCircle = azimuthCircle(root, shipDriver.state, () => 6000);
     root.addLayer(asimuthCircle);
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
-    if (shipDriver.state.chainGun) {
-        root.addLayer(crosshairs(root, shipDriver.state, shipDriver.state.chainGun, shipTarget));
+    for (const chainGun of shipDriver.state.chainGuns) {
+        root.addLayer(crosshairs(root, shipDriver.state, chainGun, shipTarget));
     }
     root.addLayer(speedLines(root, shipDriver.state, shipTarget));
     // The weapons officer needs visual feedback of the shells they fire, even

@@ -21,7 +21,7 @@ import { ammoTypes } from '../space/projectile';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
-    chainGun: ChaingunDesign | null;
+    chainGuns: [ShipDirectionConfig, ChaingunDesign][];
     tubes: [ShipDirectionConfig, ChaingunDesign][];
     thrusters: [ShipDirectionConfig, ThrusterDesign][];
     armor: ArmorDesign;
@@ -84,8 +84,10 @@ function makeShip(id: string, design: ShipPropertiesDesign) {
     return state;
 }
 
-function makeChainGun(design: ChaingunDesign) {
+function makeChainGun(design: ChaingunDesign, angle: ShipDirectionConfig) {
     const chainGun = new ChainGun();
+    // a mount starts out aimed where it is fitted, with nobody asking it to swing anywhere else
+    chainGun.fittedBearing = chainGun.direction = chainGun.directionCommand = getDirectionFromConfig(angle);
     chainGun.design.assign(design);
     return chainGun;
 }
@@ -161,8 +163,9 @@ export function makeShipState(id: string, design: ShipDesign) {
     for (const [index, [angleConfig, thrusterConfig]] of design.thrusters.entries()) {
         state.thrusters[index] = makeThruster(thrusterConfig, angleConfig, index);
     }
-    if (design.chainGun) {
-        state.chainGun = makeChainGun(design.chainGun);
+    state.chainGuns = new ArraySchema();
+    for (const [index, [angleConfig, chainGunConfig]] of design.chainGuns.entries()) {
+        state.chainGuns[index] = makeChainGun(chainGunConfig, angleConfig);
     }
     for (const [index, [angleConfig, tubeConfig]] of design.tubes.entries()) {
         state.tubes[index] = makeTube(tubeConfig, angleConfig, index);

@@ -7,13 +7,13 @@ import { shipInputConfig } from '../input/input-config';
 export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
     const input = new InputManager();
     input.addRangeAction(
-        readWriteNumberProp(shipDriver, '/chainGun/shellRange'),
+        readWriteNumberProp(shipDriver, '/chainGuns/0/shellRange'),
         shipInputConfig.shellRange,
         'Shell Range',
     );
 
     input.addMomentaryClickAction(
-        writeProp(shipDriver, '/chainGun/isFiring'),
+        writeProp(shipDriver, '/chainGuns/0/isFiring'),
         shipInputConfig.chainGunIsFiring,
         'Fire Chain Gun',
     );

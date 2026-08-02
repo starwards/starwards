@@ -55,7 +55,7 @@ async function initScreen(driver: Driver, shipId: string) {
         shipDriver.systems.filter(
             (s) =>
                 s.pointer.startsWith('/tubes/') ||
-                s.pointer === '/chainGun' ||
+                s.pointer.startsWith('/chainGuns/') ||
                 s.pointer === '/magazine' ||
                 s.pointer === '/radar',
         ),
@@ -79,9 +79,13 @@ function wireInput(shipDriver: ShipDriver) {
     input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v', 'Change Tube Ammo');
 
-    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/isFiring'), 'f', 'Fire Chain Gun');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/chainGun/loadAmmo'), 'g', 'Load Chain Gun');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGun/changeProjectileCommand'), 'b', 'Change Gun Ammo');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGuns/0/isFiring'), 'f', 'Fire Chain Gun');
+    input.addToggleClickAction(readWriteProp(shipDriver, '/chainGuns/0/loadAmmo'), 'g', 'Load Chain Gun');
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/chainGuns/0/changeProjectileCommand'),
+        'b',
+        'Change Gun Ammo',
+    );
     input.init();
     setupHotkeyHelp(input);
 }
