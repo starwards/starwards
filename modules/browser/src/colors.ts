@@ -26,6 +26,7 @@ export const radar = {
     shellTint: 0xff6600, // Orange (secondary)
     deflectionTint: 0x00aaff, // Cyan-blue
     unknownTint: 0x666666, // Dim gray for UFO/unscanned objects
+    mountArc: 0x888888, // Dim gray - static structural firing arc, not a live overlay
 };
 
 // ============================================================================
