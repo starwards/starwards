@@ -238,7 +238,7 @@ describe('spec §9 worked examples', () => {
             expect(state.radars[0].malfunctionRangeFactor).to.be.closeTo(0.15, 0.0001);
             // smartPilot (damage50 90) → 1 roll → 0.01; rear electronics (reactor) hit too
             expect(state.smartPilot.offsetFactor).to.be.closeTo(0.01, 0.0001);
-            expect(state.reactor.energy).to.be.lessThan(state.reactor.design.maxEnergy);
+            expect(state.reactor.effeciencyFactor).to.be.lessThan(1);
             // non-electronics untouched ship-wide
             for (const thruster of state.thrusters) {
                 expect(thruster.angleError).to.equal(0);

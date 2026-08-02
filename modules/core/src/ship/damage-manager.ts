@@ -125,7 +125,7 @@ export class DamageManager {
         } else if (SmartPilot.isInstance(system)) {
             this.damageSmartPilot(system);
         } else if (Reactor.isInstance(system)) {
-            this.damageReactor(system, defectId);
+            this.damageReactor(system);
         } else if (Magazine.isInstance(system)) {
             this.damageMagazine(system, defectId);
         } else if (Warp.isInstance(system)) {
@@ -184,13 +184,8 @@ export class DamageManager {
         }
     }
 
-    private damageReactor(reactor: Reactor, damageId: string) {
-        if (this.die.getSuccess('damageReactor:' + damageId, 0.5)) {
-            // todo convert to a defectible property that accumulates damage
-            reactor.energy *= 0.9;
-        } else {
-            reactor.effeciencyFactor -= 0.05;
-        }
+    private damageReactor(reactor: Reactor) {
+        reactor.effeciencyFactor -= 0.1;
     }
 
     private damageSmartPilot(smartPilot: SmartPilot) {

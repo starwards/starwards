@@ -186,6 +186,7 @@ export class GameManager {
         if (this.spaceManager.checkDuplicateShip(spaceObject.id)) {
             throw new Error(`Ship with same ID already exist! ${spaceObject.id}`);
         }
+        spaceObject.expendable = !isPlayerShip;
         this.spaceManager.insert(spaceObject);
         const configuration = shipConfigurations[spaceObject.model];
         const shipState = makeShipState(spaceObject.id, configuration);
@@ -287,6 +288,7 @@ export class GameManager {
 
             // Update the state's isPlayerShip property
             shipState.isPlayerShip = isPlayerShip;
+            spaceObject.expendable = !isPlayerShip;
 
             // Clean up the existing ship manager (and room if it was a player ship)
             const cleanup = this.shipCleanups.get(shipId);
