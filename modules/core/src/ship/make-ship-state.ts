@@ -30,7 +30,7 @@ export type ShipDesign = {
     reactor: ReactorDesign;
     magazine: MagazineDesign;
     weaponsTarget: TargetingDesign;
-    warp: WarpDesign;
+    warp: WarpDesign | null;
     docking: DockingDesign;
     maneuvering: ManeuveringDesign;
     signals: SignalsDesign;
@@ -174,7 +174,9 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.reactor = makeReactor(design.reactor);
     state.magazine = makeMagazine(design.magazine);
     state.weaponsTarget = makeTargeting(design.weaponsTarget);
-    state.warp = makeWarp(design.warp);
+    if (design.warp) {
+        state.warp = makeWarp(design.warp);
+    }
     state.docking = makeDocking(design.docking);
     state.maneuvering = makeManeuvering(design.maneuvering);
     state.signals = makeSignals(design.signals);

@@ -265,6 +265,19 @@ describe('SpaceManager attachments', () => {
         tick(spaceMgr);
         expect(rider.position.y).to.be.closeTo(riderY, 1);
     });
+
+    it('detach preserves a sustained turn speed above 180°/s instead of wrapping it', () => {
+        const spaceMgr = new SpaceManager();
+        const anchor = makeShip('anchor');
+        anchor.turnSpeed = 300;
+        const rider = makeAsteroid('rider', 0, 100);
+        spaceMgr.insertBulk([anchor, rider]);
+        spaceMgr.forceFlushEntities();
+        spaceMgr.attach('rider', 'anchor');
+        tick(spaceMgr); // compute cliques, move together
+        spaceMgr.detach('rider');
+        expect(rider.turnSpeed).to.be.closeTo(300, 0.01);
+    });
 });
 
 describe('SpaceManager faction scan levels', () => {

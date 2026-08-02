@@ -119,16 +119,20 @@ systems.forEach(sys => {
 
 ### Damage Propagation
 ```typescript
-// DamageManager.takeWeaponDamage (modules/core/src/ship/damage-manager.ts)
+// AttackResolutionManager.resolveWeaponAttack (modules/core/src/ship/attack-resolution-manager.ts)
+// delivery + armor engagement + channel split — resolved before any system takes damage
 for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {   // front / rear
     // walk armor layers outermost-in; per damage type each layer bypasses,
     // blocks, or engages (plates erode, damage leaks via max(penetration, brokenRatio))
     exposure = walkArmorLayers(damage, areaHitRange);   // 0..1 leak-through
 }
 // systemScope picks targets: single random system, all in area, or ship-wide electronics
-applyExposedSystemDamage(damage, exposures);
+const { hits, damagedExternals } = resolveWeaponAttack(damage);
+
+// DamageManager.takeWeaponDamage (modules/core/src/ship/damage-manager.ts)
 // → damageSystem(): amount × exposure walked off in damage50-sized steps,
 //   each a probabilistic @defectible roll (capped at 50%) — no direct "broken = true"
+for (const hit of hits) damageSystem(hit.system, hit.damage, hit.percentageOfBrokenPlates);
 ```
 
 ## Damage Philosophy

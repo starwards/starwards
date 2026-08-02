@@ -38,7 +38,7 @@ test.describe('ECR Screen', () => {
         // Verify warp state syncs: set known value and check UI
         // Note: Energy uses addGraph() which has no input element, so we test warp level instead
         const ship = gameDriver.getShip(shipId);
-        ship.state.warp.currentLevel = 3;
+        ship.state.warp!.currentLevel = 3;
         await waitForPropertyValue(page, 'Actual LVL', (v) => Math.abs(parseFloat(v) - 3) < 0.5, 'Warp');
     });
 

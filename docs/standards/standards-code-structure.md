@@ -8,12 +8,13 @@ source_of_truth:
   - modules/core/src/ship/magazine.ts
   - modules/core/src/space/projectile.ts
   - modules/core/src/space/damage-profile.ts
+  - modules/core/src/ship/attack-resolution-manager.ts
   - modules/core/src/ship/damage-manager.ts
 related:
   - standards-code-style.md
   - standards-naming.md
   - ../PATTERNS.md
-last_verified: 2026-07-15
+last_verified: 2026-08-01
 ---
 
 # Code Structure Standards
@@ -79,12 +80,12 @@ Structural conventions for the codebase. Established during the armor/ammo rewor
 
 ## Pipeline structure over branching monoliths
 
-`damage-manager.ts` is the reference:
+`attack-resolution-manager.ts` and `damage-manager.ts` are the reference:
 
 - **Split methods along union variants** instead of branching inside one method:
   `takeWeaponDamage` / `takeCollisionDamage`, dispatched by the type guard.
 - **Unify parallel code paths onto one function over uniform data.** All system-damage paths
-  (penetrating, per-area, electronics, bypass) are one `applyExposedSystemDamage` over
+  (penetrating, per-area, electronics, bypass) are one `resolvePenetrationChannel` over
   `(system, exposure)` candidates; bypass is just "full exposure per area".
 - **Extract stateful loop bodies into functions with explicit result objects**
   (`engagePlatesInArea` → `{brokenPlates, cellPopped}`) instead of mutating flags inside the

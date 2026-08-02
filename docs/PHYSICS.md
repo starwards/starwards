@@ -137,15 +137,24 @@ Weapons are designed for specific effectiveness ranges:
 
 ### Damage Application
 
-Weapon hits resolve in `DamageManager.takeWeaponDamage()` (`modules/core/src/ship/damage-manager.ts`):
+Weapon hits resolve in two stages, split across two managers (`modules/core/src/ship/attack-resolution-manager.ts` and `modules/core/src/ship/damage-manager.ts`):
 
 ```typescript
-takeWeaponDamage(damage: AttackDamage) {
-    applySurfaceEffect(damage);          // hull-mounted (external) systems scraped regardless of armor
+// AttackResolutionManager.resolveWeaponAttack — delivery, armor engagement, channel split
+resolveWeaponAttack(damage: AttackDamage): WeaponAttackResolution {
+    // surface channel: hull-mounted (external) systems scraped regardless of armor
     for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {  // front / rear
         exposure = walkArmorLayers(damage, areaHitRange);  // 0..1 leak-through per area
     }
-    applyExposedSystemDamage(damage, exposures);  // post-armor system defects
+    // penetration channel: candidates picked from the exposed areas per damage profile
+    return { hits, damagedExternals };
+}
+
+// DamageManager.takeWeaponDamage — applies the resolved hits as post-armor defect rolls
+takeWeaponDamage(damage: AttackDamage) {
+    const { hits, damagedExternals } = this.attackResolution.resolveWeaponAttack(damage);
+    for (const hit of hits) damageSystem(hit.system, hit.damage, hit.percentageOfBrokenPlates);
+    return hits.length > 0 || damagedExternals;
 }
 ```
 
@@ -157,7 +166,7 @@ takeWeaponDamage(damage: AttackDamage) {
 
 Exposure chains multiplicatively across the stack; the final chain scales system damage for the area. Reactive layers (`singleUsePlates`) trigger on impact delivery only: one cell pops and defeats the whole hit (exposure measured pre-pop) unless the round fully penetrates (Tandem); explosions erode reactive cells like ordinary plates.
 
-Post-armor damage goes through `applyExposedSystemDamage()` → `damageSystem()`: the damage profile's `systemScope` picks targets (a single random system, all systems in the exposed area, or ship-wide electronics), and each application is walked off in `damage50`-sized steps of probabilistic `@defectible` rolls (each capped at 50%) — no direct health subtraction on systems.
+Resolved hits are applied through `damageSystem()`: the damage profile's `systemScope` picks targets (a single random system, all systems in the exposed area, or ship-wide electronics — decided during resolution), and each application is walked off in `damage50`-sized steps of probabilistic `@defectible` rolls (each capped at 50%) — no direct health subtraction on systems.
 
 ### Sectional Armor
 

@@ -133,7 +133,9 @@ void driver.waitForGame().then(
             dashboard.registerWidget(fullSystemsStatusWidget(shipDriver), {}, shipId + ' systems (full)');
             dashboard.registerWidget(engineeringStatusWidget(shipDriver), {}, shipId + ' engineering status');
             dashboard.registerWidget(targetingWidget(shipDriver), {}, shipId + ' targeting');
-            dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
+            if (shipDriver.state.warp) {
+                dashboard.registerWidget(warpWidget(shipDriver), {}, shipId + ' warp');
+            }
             dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, shipId + ' docking');
             dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver), {}, shipId + ' target info');
             dashboard.registerWidget(longRangeRadarWidget(spaceDriver, shipDriver), {}, shipId + ' long range radar');

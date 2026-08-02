@@ -44,11 +44,11 @@ test.describe('ECR hotkeys', () => {
 
     // ] key steps warp standbyFrequency up by 1.
     test('] key: warp standbyFrequency increases', async ({ page }) => {
-        const initial = gameDriver.getShip(shipId).state.warp.standbyFrequency;
+        const initial = gameDriver.getShip(shipId).state.warp!.standbyFrequency;
         await page.keyboard.press(']');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => ship.state.warp.standbyFrequency > initial,
+            (ship) => ship.state.warp!.standbyFrequency > initial,
             3000,
         );
     });
@@ -58,12 +58,12 @@ test.describe('ECR hotkeys', () => {
     test('[ key: warp standbyFrequency decreases', async ({ page }) => {
         // Preposition at a value where there's room to decrease.
         // standbyFrequency is a WarpFrequency enum; use Number() to compare.
-        gameDriver.getShip(shipId).state.warp.standbyFrequency = 2;
+        gameDriver.getShip(shipId).state.warp!.standbyFrequency = 2;
         await page.waitForTimeout(100);
         await page.keyboard.press('[');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => Number(ship.state.warp.standbyFrequency) < 2,
+            (ship) => Number(ship.state.warp!.standbyFrequency) < 2,
             3000,
         );
     });

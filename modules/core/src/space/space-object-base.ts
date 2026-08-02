@@ -91,9 +91,10 @@ export abstract class SpaceObjectBase extends Schema {
      */
     public readonly collisionElasticity: number = 0.05;
     /**
-     * how much collision overlap turns into damage to self (0-1)
+     * how much collision overlap turns into damage to self, per second of contact.
+     * Tuned so total damage-per-second matches pre-#2023 behavior at the game's normal tick rate (~20/sec).
      */
-    public readonly collisionDamage: number = 0.5;
+    public readonly collisionDamage: number = 10;
 
     public readonly isCorporal: boolean = true;
     /*!
