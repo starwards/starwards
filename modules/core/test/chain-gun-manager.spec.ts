@@ -31,7 +31,7 @@ describe('ChainGunManager', () => {
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
-            const chainGun = shipMgr.state.chainGun!;
+            const chainGun = shipMgr.state.chainGuns[0];
             const magazine = shipMgr.state.magazine;
 
             // Ensure magazine has ammo
@@ -54,7 +54,7 @@ describe('ChainGunManager', () => {
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
-            const chainGun = shipMgr.state.chainGun!;
+            const chainGun = shipMgr.state.chainGuns[0];
             const magazine = shipMgr.state.magazine;
 
             // Deplete all ammo
@@ -81,7 +81,7 @@ describe('ChainGunManager', () => {
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
-            const chainGun = shipMgr.state.chainGun!;
+            const chainGun = shipMgr.state.chainGuns[0];
             chainGun.isFiring = true;
             chainGun.loadAmmo = true;
             switchToAvailableAmmo(chainGun, shipMgr.state.magazine);
@@ -110,7 +110,7 @@ describe('ChainGunManager', () => {
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
-            const chainGun = shipMgr.state.chainGun!;
+            const chainGun = shipMgr.state.chainGuns[0];
             chainGun.isFiring = true;
             chainGun.loadAmmo = true;
             switchToAvailableAmmo(chainGun, shipMgr.state.magazine);
@@ -142,7 +142,7 @@ describe('ChainGunManager', () => {
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
             shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
 
-            const chainGun = shipMgr.state.chainGun!;
+            const chainGun = shipMgr.state.chainGuns[0];
             // Set power to 0 so effectiveness = 0
             chainGun.power = 0;
             chainGun.isFiring = true;

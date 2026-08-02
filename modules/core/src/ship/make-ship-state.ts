@@ -13,6 +13,7 @@ import { Targeting, TargetingDesign } from './targeting';
 import { Thruster, ThrusterDesign } from './thruster';
 import { Warp, WarpDesign } from './warp';
 import { armorModels, withFaradayLayer } from '../configurations/armor-models';
+import { repairProtocols, validateRepairCatalog } from '../configurations/repair-protocols';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
@@ -20,7 +21,7 @@ import { ammoTypes } from '../space/projectile';
 
 export type ShipDesign = {
     properties: ShipPropertiesDesign;
-    chainGun: ChaingunDesign | null;
+    chainGuns: [ShipDirectionConfig, ChaingunDesign][];
     tubes: [ShipDirectionConfig, ChaingunDesign][];
     thrusters: [ShipDirectionConfig, ThrusterDesign][];
     armor: ArmorDesign;
@@ -29,7 +30,7 @@ export type ShipDesign = {
     reactor: ReactorDesign;
     magazine: MagazineDesign;
     weaponsTarget: TargetingDesign;
-    warp: WarpDesign;
+    warp: WarpDesign | null;
     docking: DockingDesign;
     maneuvering: ManeuveringDesign;
     signals: SignalsDesign;
@@ -83,8 +84,10 @@ function makeShip(id: string, design: ShipPropertiesDesign) {
     return state;
 }
 
-function makeChainGun(design: ChaingunDesign) {
+function makeChainGun(design: ChaingunDesign, angle: ShipDirectionConfig) {
     const chainGun = new ChainGun();
+    // a mount starts out aimed where it is fitted, with nobody asking it to swing anywhere else
+    chainGun.fittedBearing = chainGun.direction = chainGun.directionCommand = getDirectionFromConfig(angle);
     chainGun.design.assign(design);
     return chainGun;
 }
@@ -160,8 +163,9 @@ export function makeShipState(id: string, design: ShipDesign) {
     for (const [index, [angleConfig, thrusterConfig]] of design.thrusters.entries()) {
         state.thrusters[index] = makeThruster(thrusterConfig, angleConfig, index);
     }
-    if (design.chainGun) {
-        state.chainGun = makeChainGun(design.chainGun);
+    state.chainGuns = new ArraySchema();
+    for (const [index, [angleConfig, chainGunConfig]] of design.chainGuns.entries()) {
+        state.chainGuns[index] = makeChainGun(chainGunConfig, angleConfig);
     }
     for (const [index, [angleConfig, tubeConfig]] of design.tubes.entries()) {
         state.tubes[index] = makeTube(tubeConfig, angleConfig, index);
@@ -173,9 +177,12 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.reactor = makeReactor(design.reactor);
     state.magazine = makeMagazine(design.magazine);
     state.weaponsTarget = makeTargeting(design.weaponsTarget);
-    state.warp = makeWarp(design.warp);
+    if (design.warp) {
+        state.warp = makeWarp(design.warp);
+    }
     state.docking = makeDocking(design.docking);
     state.maneuvering = makeManeuvering(design.maneuvering);
     state.signals = makeSignals(design.signals);
+    validateRepairCatalog(state, repairProtocols);
     return state;
 }

@@ -40,6 +40,13 @@ describe('snapshot-persistence', () => {
     it('writeGameSnapshot writes a snapshot file for a running game', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        // the pause fix (#2022) keeps the loop running (settling derived state like radar
+        // sectors) even at speed 0 — run two deltaSeconds=0 ticks (ShipState.spaceship mirrors
+        // the previous tick's radar sectors, so it needs one extra tick to catch up) so the
+        // snapshot isn't racing the background simulation interval against the later
+        // live-state comparison
+        gameDriver.gameManager.update(0);
+        gameDriver.gameManager.update(0);
         expect(await writeGameSnapshot(gameDriver.gameManager, snapshotFile)).toBe(true);
         const content = await fs.readFile(snapshotFile, 'utf-8');
         expect(content.length).toBeGreaterThan(100);
@@ -49,6 +56,8 @@ describe('snapshot-persistence', () => {
     it('restoreGameSnapshot restores the saved game state', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        gameDriver.gameManager.update(0);
+        gameDriver.gameManager.update(0);
         await writeGameSnapshot(gameDriver.gameManager, snapshotFile);
         await gameDriver.gameManager.stopGame();
         expect(gameDriver.gameManager.state.isGameRunning).toBe(false);
@@ -82,6 +91,8 @@ describe('snapshot-persistence', () => {
     it('startSnapshotPersistence periodically writes snapshots and stop() halts writing', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        gameDriver.gameManager.update(0);
+        gameDriver.gameManager.update(0);
         const stop = startSnapshotPersistence(gameDriver.gameManager, snapshotFile, 20);
         try {
             await waitFor(

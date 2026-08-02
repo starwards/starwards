@@ -26,6 +26,25 @@ describe('server-API', () => {
         expect(gameDriver.gameManager.state.shipIds).toContain(shipId);
     });
 
+    it('player ships are not expendable, NPC ships are, at creation', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const playerShipId = gameDriver.gameManager.state.playerShipIds[0];
+        const npcShipId = gameDriver.gameManager.state.shipIds.find(
+            (id: string) => !gameDriver.gameManager.state.playerShipIds.includes(id),
+        );
+        expect(gameDriver.spaceManager.state.getShip(playerShipId)?.expendable).toBe(false);
+        expect(gameDriver.spaceManager.state.getShip(npcShipId!)?.expendable).toBe(true);
+    });
+
+    it('converting a ship flips expendable to match its new type', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        await gameDriver.gameManager.convertShipType(shipId, false);
+        expect(gameDriver.spaceManager.state.getShip(shipId)?.expendable).toBe(true);
+        await gameDriver.gameManager.convertShipType(shipId, true);
+        expect(gameDriver.spaceManager.state.getShip(shipId)?.expendable).toBe(false);
+    });
+
     it('round-trip conversion produces no NaN in ship state after tick', async () => {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
         const shipId = gameDriver.gameManager.state.playerShipIds[0];
@@ -74,6 +93,13 @@ describe('server-API', () => {
         beforeEach(async () => {
             gameDriver.pauseGameCommand();
             await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+            // the pause fix (#2022) keeps the loop running (draining commands, settling derived
+            // state like radar sectors) even at speed 0 — run two deltaSeconds=0 ticks up front
+            // (ShipState.spaceship mirrors the previous tick's radar sectors, so it needs one
+            // extra tick to catch up) so settling isn't racing the background simulation
+            // interval between the two saves
+            gameDriver.gameManager.update(0);
+            gameDriver.gameManager.update(0);
         });
 
         // In the following tests we use `getUnzipped()` to compare unzipped data

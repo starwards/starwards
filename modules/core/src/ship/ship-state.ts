@@ -12,6 +12,7 @@ import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import { Radar } from './radar';
 import { Reactor } from './reactor';
+import { RepairQueue } from './repair-queue';
 import { ShipDirection } from './ship-direction';
 import { Signals } from './signals';
 import { SmartPilot } from './smart-pilot';
@@ -93,8 +94,8 @@ export class ShipState extends Schema {
     @gameField([Tube])
     tubes = new ArraySchema<Tube>();
 
-    @gameField(ChainGun)
-    chainGun: ChainGun | null = null;
+    @gameField([ChainGun])
+    chainGuns = new ArraySchema<ChainGun>();
 
     @gameField([Radar])
     radars = new ArraySchema<Radar>();
@@ -115,7 +116,7 @@ export class ShipState extends Schema {
     weaponsTarget!: Targeting;
 
     @gameField(Warp)
-    warp!: Warp;
+    warp: Warp | null = null;
 
     @gameField(Docking)
     docking!: Docking;
@@ -125,6 +126,9 @@ export class ShipState extends Schema {
 
     @gameField(Signals)
     signals!: Signals;
+
+    @gameField(RepairQueue)
+    repairQueue = new RepairQueue();
 
     @range([-1, 1])
     @gameField('float32')
@@ -250,7 +254,7 @@ export class ShipState extends Schema {
         switch (area) {
             case ShipArea.front:
                 return [
-                    this.chainGun,
+                    ...this.chainGuns.values(),
                     ...this.radars.values(),
                     this.smartPilot,
                     this.magazine,

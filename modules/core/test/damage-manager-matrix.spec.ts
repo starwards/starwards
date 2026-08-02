@@ -203,7 +203,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internals untouched — the scrape only reaches hull-mounted systems
             expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp.damageFactor).to.equal(0);
+            expect(state.warp!.damageFactor).to.equal(0);
         });
 
         it('HiExp vs Reactive: the scrape lands on externals while cells erode, nothing penetrates', () => {
@@ -235,7 +235,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             // electronics defects appear (front AND rear electronics)
             expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             expect(state.smartPilot.offsetFactor).to.be.greaterThan(0);
-            expect(state.warp.damageFactor).to.be.greaterThan(0);
+            expect(state.warp!.damageFactor).to.be.greaterThan(0);
             // non-electronics untouched
             for (const thruster of state.thrusters) {
                 expect(thruster.angleError).to.equal(0);
@@ -273,7 +273,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.radars[0].malfunctionRangeFactor).to.be.greaterThan(0);
             // internal systems untouched
             expect(state.smartPilot.offsetFactor).to.equal(0);
-            expect(state.warp.damageFactor).to.equal(0);
+            expect(state.warp!.damageFactor).to.equal(0);
             expect(state.maneuvering.efficiency).to.equal(1);
         });
 
@@ -282,7 +282,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             damageManager.takeWeaponDamage(frontDamage(1000, 'ArmPen'));
             const internalDefects = [
                 state.smartPilot.offsetFactor > 0,
-                state.warp.damageFactor > 0,
+                state.warp!.damageFactor > 0,
                 state.maneuvering.efficiency < 1,
                 state.reactor.effeciencyFactor < 1 || state.reactor.energy < state.reactor.design.maxEnergy,
                 state.magazine.capacity < 1 || state.magazine.getCount('HiExpShell') < state.magazine.max_HiExpShell,

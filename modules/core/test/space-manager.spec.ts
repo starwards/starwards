@@ -106,6 +106,29 @@ describe('SpaceManager', () => {
             ),
         );
     });
+    it('solid-collision damage per second is frame-rate independent', () => {
+        function totalDamageForOneTick(deltaSeconds: number) {
+            const target = new Asteroid();
+            target.init('target', Vec2.make({ x: 0, y: 0 }), Spaceship.radius);
+            const collider = new Asteroid();
+            collider.init('collider', Vec2.make({ x: Spaceship.radius, y: 0 }), Spaceship.radius);
+            const healthBefore = target.health + collider.health;
+
+            const spaceMgr = new SpaceManager();
+            spaceMgr.insertBulk([target, collider]);
+            spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
+
+            return healthBefore - (target.health + collider.health);
+        }
+
+        // same overlap, ten times the tick length: total damage should scale with deltaSeconds,
+        // not stay fixed per tick (which would make damage/second scale with server tick rate)
+        const damageAtSlowTick = totalDamageForOneTick(1 / 20);
+        const damageAtFastTick = totalDamageForOneTick(1 / 200);
+
+        expect(damageAtFastTick).to.be.greaterThan(0);
+        expect(damageAtSlowTick / damageAtFastTick).to.be.closeTo(10, 1);
+    });
     it('upon collision, ship takes damage', () => {
         fc.assert(
             fc.property(
@@ -140,18 +163,18 @@ describe('SpaceManager', () => {
                 const shipMgr = sim.withShip(ship, new ShipDie(0), shipManagerCtor);
                 ship.velocity = Vec2.make(XY.byLengthAndDirection(speed, ship.angle));
                 shipMgr.state.spaceship.velocity = ship.velocity;
-                shipMgr.state.chainGun!.design.maxShellRange = 10_000;
-                shipMgr.state.chainGun!.shellRange = 1;
-                shipMgr.state.chainGun!.loading = 1;
-                shipMgr.state.chainGun!.loadedProjectile = 'HiExpShell';
-                shipMgr.state.chainGun!.isFiring = true;
-                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                shipMgr.state.chainGuns[0].design.maxShellRange = 10_000;
+                shipMgr.state.chainGuns[0].shellRange = 1;
+                shipMgr.state.chainGuns[0].loading = 1;
+                shipMgr.state.chainGuns[0].loadedProjectile = 'HiExpShell';
+                shipMgr.state.chainGuns[0].isFiring = true;
+                switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
 
                 // stop simulation when first bullet reaches its range
                 const shellSecondsToLive = calcShellSecondsToLive(
                     shipMgr.state,
-                    shipMgr.state.chainGun!,
-                    shipMgr.state.chainGun!.design.maxShellRange,
+                    shipMgr.state.chainGuns[0],
+                    shipMgr.state.chainGuns[0].design.maxShellRange,
                 );
                 return { sim, shellSecondsToLive, ship, shipMgr };
             }

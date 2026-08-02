@@ -24,7 +24,7 @@ module.exports = mergeWithRules({
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'tsx',
-                    target: 'es2020',
+                    target: 'es2023',
                     tsconfigRaw: require('./tsconfig.runtime.json'),
                 },
             },
@@ -33,7 +33,7 @@ module.exports = mergeWithRules({
                 loader: 'esbuild-loader',
                 options: {
                     loader: 'ts',
-                    target: 'es2020',
+                    target: 'es2023',
                     tsconfigRaw: require('./tsconfig.runtime.json'),
                 },
             },
@@ -43,5 +43,5 @@ module.exports = mergeWithRules({
         extensions: ['.ts', '.tsx', '.js', '.json', '.mjs'],
         plugins: [new TsconfigPathsPlugin({ configFile: require.resolve('./tsconfig.runtime.json') })],
     },
-    optimization: { minimizer: [new EsbuildPlugin({ target: 'es2020' })] },
+    optimization: { minimizer: [new EsbuildPlugin({ target: 'es2023' })] },
 });

@@ -264,7 +264,12 @@ export class SpaceManager implements Updateable {
         this.growExplosions(deltaSeconds);
         this.destroyTimedOut(deltaSeconds);
         this.calcHomingProjectiles(deltaSeconds);
-        this.checkUnguidedProximityFuzes();
+        // both act once per call regardless of elapsed time (a proximity check, a per-tick
+        // damage/impulse resolution), so unlike the rest of this method they don't freeze on
+        // their own at deltaSeconds 0 (paused) and must be gated explicitly
+        if (deltaSeconds > 0) {
+            this.checkUnguidedProximityFuzes();
+        }
         this.untrackDestroyedObjects();
         this.frozendAndAttachedDontMove();
         this.applyPhysics(deltaSeconds);
@@ -273,7 +278,9 @@ export class SpaceManager implements Updateable {
         this.factionIntel.update(totalSeconds, this.getVisibleObjectsByFaction());
         this.updateFieldsOFView();
         this.updateCollisionBodies();
-        this.handleCollisions(deltaSeconds);
+        if (deltaSeconds > 0) {
+            this.handleCollisions(deltaSeconds);
+        }
         this.secondsSinceLastGC += deltaSeconds;
         if (this.secondsSinceLastGC > GC_TIMEOUT) {
             this.gc();
@@ -479,7 +486,7 @@ export class SpaceManager implements Updateable {
                     turnSpeed += obj.turnSpeed;
                 }
                 subject.velocity.setValue(velocity);
-                subject.turnSpeed = toDegreesDelta(turnSpeed);
+                subject.turnSpeed = turnSpeed;
             }
         }
         this.attachments.delete(attacherId);
@@ -693,7 +700,7 @@ export class SpaceManager implements Updateable {
         } else {
             const collisionVector = XY.scale(response.overlapV, -0.5);
             return {
-                damageAmount: subject.collisionDamage * Math.min(response.overlap, object.radius * 2),
+                damageAmount: subject.collisionDamage * deltaSeconds * Math.min(response.overlap, object.radius * 2),
                 positionChange: collisionVector,
                 velocityChange: XY.scale(collisionVector, subject.collisionElasticity / deltaSeconds),
             };

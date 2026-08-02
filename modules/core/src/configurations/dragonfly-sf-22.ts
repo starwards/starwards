@@ -194,7 +194,7 @@ export const dragonflySignals = {
 
 export const dragonflySF22 = {
     properties: dragonflyProperties,
-    chainGun: dragonflyChaingun,
+    chainGuns: [['FWD', dragonflyChaingun]],
     thrusters: [
         ['STBD', dragonflyThruster],
         ['PORT', dragonflyThruster],

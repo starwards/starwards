@@ -111,8 +111,8 @@
     - Randomized but balanced outcomes
 
 18. **Arc-Based Damage Distribution**
-    - [`shipAreasInRange`](../modules/core/src/ship/damage-manager.ts) determines hit zones
-    - [`archIntersection`](../modules/core/src/ship/damage-manager.ts) calculates overlap
+    - [`shipAreasInRange`](../modules/core/src/ship/attack-resolution-manager.ts) determines hit zones
+    - [`archIntersection`](../modules/core/src/ship/attack-resolution-manager.ts) calculates overlap
     - Armor plates by angular position
     - Directional damage modeling
 

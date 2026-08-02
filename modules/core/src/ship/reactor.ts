@@ -49,6 +49,6 @@ export class Reactor extends SystemState {
     }
 
     get broken() {
-        return this.effeciencyFactor === 0;
+        return this.effeciencyFactor <= 0;
     }
 }

@@ -4,6 +4,7 @@ import { RoomEventEmitter, getSystems, sendJsonCmd } from '..';
 import EventEmitter2 from 'eventemitter2';
 import { Room } from 'colyseus.js';
 import { ShipState } from '../ship';
+import { StateCommand } from '../commands';
 import { waitForEvents } from '../async-utils';
 
 export type ShipDriver = Awaited<ReturnType<typeof ShipDriver>>;
@@ -32,9 +33,6 @@ export async function ShipDriver(shipRoom: Room<ShipState>) {
         });
     });
     const pendingEvents = [];
-    if (!shipRoom.state.chainGun) {
-        pendingEvents.push('/chainGun');
-    }
     if (!shipRoom.state.design) {
         pendingEvents.push('/design');
     }
@@ -61,5 +59,8 @@ export async function ShipDriver(shipRoom: Room<ShipState>) {
         },
         systems,
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(shipRoom, pointerStr, value),
+        command: <T>(cmd: StateCommand<T, ShipState, void>, value: T) => {
+            shipRoom.send(cmd.cmdName, { value, path: undefined });
+        },
     };
 }
