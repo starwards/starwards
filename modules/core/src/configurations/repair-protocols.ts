@@ -1,5 +1,5 @@
+import { SystemState, getSystems } from '../ship/system';
 import { ShipState } from '../ship/ship-state';
-import { getSystems } from '../ship/system';
 
 /**
  * Ship-design-agnostic tier gate: a protocol above the ship's current repair
@@ -190,9 +190,45 @@ export const repairProtocols = {
 export type RepairProtocolName = keyof typeof repairProtocols;
 
 /**
- * Validates every target pointer in `catalog` against the real `@defectible`
- * fields discovered on `state` (SPEC-0003: "a bad pointer fails startup, not
- * gameplay"). Called from `makeShipState` for every ship built.
+ * Resolves a catalog target/side-effect system key to its live instance(s) on `state`. A ship
+ * design may legitimately lack a keyed system (e.g. `chainGun` is nullable) — callers get an
+ * empty array, not a throw, so `validateRepairCatalog` can report a clear per-protocol error
+ * instead of a raw crash.
+ */
+export function getRepairableSystemInstances(state: ShipState, key: RepairableSystemKey): SystemState[] {
+    switch (key) {
+        case 'thrusters':
+            return [...state.thrusters];
+        case 'tubes':
+            return [...state.tubes];
+        case 'chainGun':
+            return state.chainGun ? [state.chainGun] : [];
+        case 'radars':
+            return [...state.radars];
+        case 'reactor':
+            return [state.reactor];
+        case 'smartPilot':
+            return [state.smartPilot];
+        case 'magazine':
+            return [state.magazine];
+        case 'warp':
+            return [state.warp];
+        case 'docking':
+            return [state.docking];
+        case 'maneuvering':
+            return [state.maneuvering];
+        case 'signals':
+            return [state.signals];
+    }
+}
+
+/**
+ * Validates every target pointer and side-effect system in `catalog` against the real ship built
+ * from `state` (SPEC-0003: "a bad pointer fails startup, not gameplay"). Called from
+ * `makeShipState` for every ship built. Covers two independent ways a catalog entry can be wrong:
+ * a target field that doesn't exist as `@defectible` anywhere (typo in `field`), and a target or
+ * side-effect system that resolves to no live instance on this particular ship (typo in `system`,
+ * or a ship design that legitimately lacks that system, e.g. no chain gun).
  */
 export function validateRepairCatalog(state: ShipState, catalog: Record<string, RepairProtocolStats>): void {
     const known = new Set<string>();
@@ -204,10 +240,22 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
     }
     for (const [id, protocol] of Object.entries(catalog)) {
         for (const target of protocol.targets) {
+            if (getRepairableSystemInstances(state, target.system).length === 0) {
+                throw new Error(
+                    `repair protocol "${id}" targets system "${target.system}" which does not exist on this ship`,
+                );
+            }
             const key = `${target.system}/${target.field}`;
             if (!known.has(key)) {
                 throw new Error(
                     `repair protocol "${id}" targets unknown defectible field "${target.field}" on system "${target.system}"`,
+                );
+            }
+        }
+        for (const sideEffectSystem of protocol.sideEffectSystems) {
+            if (getRepairableSystemInstances(state, sideEffectSystem).length === 0) {
+                throw new Error(
+                    `repair protocol "${id}" declares a side effect on system "${sideEffectSystem}" which does not exist on this ship`,
                 );
             }
         }

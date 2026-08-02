@@ -139,16 +139,20 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
  * Mounts the damage report into a fixed-grid station container (`wrapRootWidgetContainer` +
  * `subContainer`, e.g. `screens/ecr.ts`) rather than a golden-layout `Dashboard` — the two
  * layout systems don't mix (see CLAUDE.md), so this bypasses `Dashboard.registerWidget` and
- * renders the same React component directly into the container's element.
+ * renders the same React component directly into the container.
+ *
+ * React mounts into its own dedicated child `<div>`, not the container's element itself — that
+ * element is already under a `ResizeSensor` (`wrapWidgetContainer`, `container.ts`) which injects
+ * its own child DOM, and React reconciliation only ever expects to own the children it rendered
+ * (same reason `input/hotkey-help.ts`'s `createRoot` gets a freshly created div, not `document.body`).
  */
 export function drawDamageReport(container: WidgetContainer, shipDriver: ShipDriver) {
     const { component, defaultProps } = damageReportWidget(shipDriver);
-    container.getElement().attr('data-id', 'Damage Report');
-    const element = container.getElement().get(0);
-    if (!element) {
-        return;
-    }
-    const root = createRoot(element);
+    const parent = container.getElement();
+    parent.attr('data-id', 'Damage Report');
+    const mountPoint = document.createElement('div');
+    parent.append(mountPoint);
+    const root = createRoot(mountPoint);
     root.render(React.createElement(component as React.ComponentType, defaultProps));
     container.on('destroy', () => root.unmount());
 }

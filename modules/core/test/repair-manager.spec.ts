@@ -1,8 +1,10 @@
 import { MockDie, makeIterationsData } from './ship-test-harness';
+import { cancelRepair, enqueueRepair, reorderRepair } from '../src/ship/repair-commands';
 import { dragonflySF22, makeShipState } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
+import { PowerLevel } from '../src/ship/system';
 import { RepairManager } from '../src/ship/repair-manager';
 import { RepairOperationStatus } from '../src/ship/repair-queue';
 import { RepairProtocolStats } from '../src/configurations/repair-protocols';
@@ -75,8 +77,18 @@ function setUpShip(catalog: Record<string, RepairProtocolStats> = testCatalog) {
     return { state, repairManager, energyManager, heatManager };
 }
 
-function enqueue(state: ReturnType<typeof setUpShip>['state'], protocolId: string) {
-    state.repairQueue.enqueueCommands.push({ protocolId });
+type TestShipState = ReturnType<typeof setUpShip>['state'];
+
+function enqueue(state: TestShipState, protocolId: string) {
+    enqueueRepair.setValue(state, { protocolId });
+}
+
+function cancel(state: TestShipState, operationId: string) {
+    cancelRepair.setValue(state, { operationId });
+}
+
+function reorder(state: TestShipState, operationId: string, index: number) {
+    reorderRepair.setValue(state, { operationId, index });
 }
 
 function tickOnce(repairManager: RepairManager, deltaSeconds: number) {
@@ -124,12 +136,14 @@ describe('RepairManager', () => {
 
     it('clear-at-done: a new defect landing on the target mid-operation is still cleared at completion', () => {
         const { state, repairManager } = setUpShip();
+        state.magazine.capacity = 0.5; // already damaged before the operation is even enqueued
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1); // promote to active
+        tickOnce(repairManager, 0.1); // promote to active (still 0.5 — not the normal value)
 
-        state.magazine.capacity = 0.3; // new damage arrives mid-operation
+        state.magazine.capacity = 0.3; // a second, different defect arrives mid-operation
         runTicks(repairManager, 2, 20);
 
+        // neither the pre-enqueue value (0.5) nor the mid-operation value (0.3) — the real normal
         expect(state.magazine.capacity).to.equal(1);
     });
 
@@ -172,7 +186,7 @@ describe('RepairManager', () => {
         tickOnce(repairManager, 0.1);
 
         const queuedOp = state.repairQueue.operations[1];
-        state.repairQueue.cancelCommands.push({ operationId: queuedOp.id });
+        cancel(state, queuedOp.id);
         tickOnce(repairManager, 0.1);
 
         expect(state.repairQueue.operations.map((o) => o.protocolId)).to.deep.equal(['fixThrusters']);
@@ -188,7 +202,7 @@ describe('RepairManager', () => {
         tickOnce(repairManager, 0.1);
 
         const activeOp = state.repairQueue.operations[0];
-        state.repairQueue.cancelCommands.push({ operationId: activeOp.id });
+        cancel(state, activeOp.id);
         tickOnce(repairManager, 0.1);
 
         // aborted: target not restored
@@ -210,14 +224,79 @@ describe('RepairManager', () => {
         const activeOp = state.repairQueue.operations[0];
         const lastQueued = state.repairQueue.operations[2];
         // try to demote the active op — refused
-        state.repairQueue.reorderCommands.push({ operationId: activeOp.id, index: 2 });
+        reorder(state, activeOp.id, 2);
         // move the last queued op to the front of the queued subset
-        state.repairQueue.reorderCommands.push({ operationId: lastQueued.id, index: 1 });
+        reorder(state, lastQueued.id, 1);
         tickOnce(repairManager, 0.1);
 
         expect(state.repairQueue.operations[0].id).to.equal(activeOp.id);
         expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
         expect(state.repairQueue.operations[1].id).to.equal(lastQueued.id);
+    });
+
+    it('invariant: the ACTIVE operation is always operations[0], even when "move up" targets index 0', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixThrusters');
+        enqueue(state, 'fixMagazine');
+        tickOnce(repairManager, 0.1);
+
+        const queuedOp = state.repairQueue.operations[1];
+        // this is exactly what the repair-queue widget's "Move up" button sends for the row at
+        // index 1: {index: 0} — the active operation must not be displaced from index 0
+        reorder(state, queuedOp.id, 0);
+        tickOnce(repairManager, 0.1);
+
+        expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
+        expect(state.repairQueue.operations[0].protocolId).to.equal('fixThrusters');
+    });
+
+    it('a protocolId colliding with an inherited Object.prototype member is refused, not crashed on', () => {
+        const { state, repairManager } = setUpShip();
+        for (const protocolId of ['constructor', 'toString', 'valueOf', '__proto__', 'hasOwnProperty']) {
+            enqueue(state, protocolId);
+        }
+
+        expect(() => tickOnce(repairManager, 0.1)).to.not.throw();
+        expect(state.repairQueue.operations).to.have.lengthOf(0);
+    });
+
+    it('malformed command payloads degrade to a no-op instead of throwing out of the tick', () => {
+        const { state, repairManager } = setUpShip();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (state.repairQueue.enqueueCommands as any[]).push(null, 'garbage', 42, {});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (state.repairQueue.cancelCommands as any[]).push(null, 'garbage', {});
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (state.repairQueue.reorderCommands as any[]).push(null, 'garbage', {}, { operationId: 'x' });
+
+        expect(() => tickOnce(repairManager, 0.1)).to.not.throw();
+        expect(state.repairQueue.operations).to.have.lengthOf(0);
+    });
+
+    it('does not overwrite a player-commanded power change on a side-effected system with a stale snapshot', () => {
+        const { state, repairManager } = setUpShip();
+        for (const thruster of state.thrusters) {
+            thruster.angleError = 5;
+        }
+        enqueue(state, 'fixThrusters');
+        tickOnce(repairManager, 0.1); // promotes to active, side effect: thrusters power -> 0
+        expect(state.thrusters[0].power).to.equal(0);
+
+        state.thrusters[0].power = PowerLevel.MAX; // the pilot commands power back up mid-repair
+        runTicks(repairManager, 2, 20); // let the operation complete
+
+        // the player's later intent wins — completion must not snap it back to the pre-repair value
+        expect(state.thrusters[0].power).to.equal(PowerLevel.MAX);
+    });
+
+    it('caps the queue length and refuses further enqueue commands once full', () => {
+        const { state, repairManager } = setUpShip();
+        for (let i = 0; i < 20; i++) {
+            enqueue(state, 'fixMagazine');
+        }
+        tickOnce(repairManager, 0.1);
+
+        expect(state.repairQueue.operations.length).to.be.at.most(16);
     });
 
     it('declared side effects apply on activation and revert on completion', () => {
@@ -237,7 +316,7 @@ describe('RepairManager', () => {
     it('heat from an active operation lands on its target systems', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'heatDocking');
-        tickOnce(repairManager, 1); // 1s tick, protocol.heat=20 over duration=1s -> +20 heat
+        tickOnce(repairManager, 1); // 1s tick, protocol.heat=100 over duration=5s -> +20 heat this tick
 
         expect(state.docking.heat).to.be.closeTo(20, 0.01);
     });
@@ -278,21 +357,8 @@ describe('RepairManager', () => {
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
-    it('survives a Schema.clone() + resetShipState cycle (NPC<->PC conversion) without throwing', () => {
+    it('a Schema.clone() + resetShipState cycle (NPC<->PC conversion) reverts a stranded side effect and empties the queue, without throwing', () => {
         const { state, repairManager, energyManager, heatManager } = setUpShip();
-        enqueue(state, 'fixThrusters');
-        tickOnce(repairManager, 0.1);
-
-        const cloned = state.clone();
-        resetShipState(cloned);
-        const clonedManager = new RepairManager(cloned, energyManager, heatManager);
-
-        expect(() => tickOnce(clonedManager, 0.1)).to.not.throw();
-        expect(cloned.repairQueue.operations).to.have.lengthOf(0);
-    });
-
-    it('reverts a side effect left active by a Schema.clone() + resetShipState cycle, instead of leaving it stuck', () => {
-        const { state, repairManager } = setUpShip();
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
         tickOnce(repairManager, 0.1); // promotes to active, applies the side effect: thrusters power -> 0
@@ -301,6 +367,12 @@ describe('RepairManager', () => {
         const cloned = state.clone();
         resetShipState(cloned);
 
+        // the side effect must be reverted by resetShipState itself — a fresh RepairManager for the
+        // cloned state has no memory of the operation that was active on the pre-clone state
         expect(cloned.thrusters[0].power).to.equal(priorPower);
+        expect(cloned.repairQueue.operations).to.have.lengthOf(0);
+
+        const clonedManager = new RepairManager(cloned, energyManager, heatManager);
+        expect(() => tickOnce(clonedManager, 0.1)).to.not.throw();
     });
 });

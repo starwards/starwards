@@ -26,6 +26,24 @@ describe('repair protocols catalog', () => {
 
     it('rejects a protocol whose target system does not exist on the ship', () => {
         const state = makeShipState('test-ship', dragonflySF22);
+        state.chainGun = null; // simulate a ship design without a chain gun
+        const badCatalog: Record<string, RepairProtocolStats> = {
+            bogus: {
+                name: 'Bogus protocol',
+                targets: [{ system: 'chainGun', field: 'angleOffset' }],
+                duration: 10,
+                energyDraw: 1,
+                heat: 0,
+                sideEffectSystems: [],
+                tier: 'field',
+            },
+        };
+        expect(() => validateRepairCatalog(state, badCatalog)).to.throw(/chainGun/);
+    });
+
+    it('rejects a protocol whose side-effect system does not exist on the ship', () => {
+        const state = makeShipState('test-ship', dragonflySF22);
+        state.chainGun = null; // simulate a ship design without a chain gun
         const badCatalog: Record<string, RepairProtocolStats> = {
             bogus: {
                 name: 'Bogus protocol',
@@ -33,11 +51,10 @@ describe('repair protocols catalog', () => {
                 duration: 10,
                 energyDraw: 1,
                 heat: 0,
-                sideEffectSystems: ['thrusters'],
+                sideEffectSystems: ['chainGun'],
                 tier: 'field',
             },
         };
-        // sanity: this one is valid, only asserting the good path also compiles/runs
-        expect(() => validateRepairCatalog(state, badCatalog)).to.not.throw();
+        expect(() => validateRepairCatalog(state, badCatalog)).to.throw(/chainGun/);
     });
 });

@@ -40,6 +40,26 @@ export type CancelRepairArg = { operationId: string };
 export type ReorderRepairArg = { operationId: string; index: number };
 
 /**
+ * The client-supplied command payload is untyped at runtime (only `StateCommand`'s generic gives
+ * it a compile-time shape) — a malformed or hostile message (`null`, a string, `{}`) must degrade
+ * to a no-op rather than throw out of destructuring and abort the whole server tick.
+ */
+export function isEnqueueRepairArg(value: unknown): value is EnqueueRepairArg {
+    return !!value && typeof value === 'object' && typeof (value as EnqueueRepairArg).protocolId === 'string';
+}
+export function isCancelRepairArg(value: unknown): value is CancelRepairArg {
+    return !!value && typeof value === 'object' && typeof (value as CancelRepairArg).operationId === 'string';
+}
+export function isReorderRepairArg(value: unknown): value is ReorderRepairArg {
+    return (
+        !!value &&
+        typeof value === 'object' &&
+        typeof (value as ReorderRepairArg).operationId === 'string' &&
+        Number.isFinite((value as ReorderRepairArg).index)
+    );
+}
+
+/**
  * Server-authoritative repair queue: only `RepairManager` mutates `operations`.
  * Clients render the synced list and send commands through `enqueueRepair` /
  * `cancelRepair` / `reorderRepair` (see `repair-commands.ts`), queued here and

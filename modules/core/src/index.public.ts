@@ -60,7 +60,7 @@ export {
     TargetedStatus,
     WarpFrequency,
     makeShipState,
-    shipCommands,
+    repairCommands,
 } from './ship';
 export type { DefectibleValue, RepairOperation, System } from './ship';
 

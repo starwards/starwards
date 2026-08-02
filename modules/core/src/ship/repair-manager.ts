@@ -1,60 +1,51 @@
+import {
+    CancelRepairArg,
+    EnqueueRepairArg,
+    ReorderRepairArg,
+    RepairOperation,
+    RepairOperationStatus,
+    SavedPowerEntry,
+    isCancelRepairArg,
+    isEnqueueRepairArg,
+    isReorderRepairArg,
+} from './repair-queue';
 import { IterationData, Updateable } from '../updateable';
-import { PowerLevel, SystemState, getSystems } from './system';
-import { RepairOperation, RepairOperationStatus, SavedPowerEntry } from './repair-queue';
+import { PowerLevel, SystemState } from './system';
 import {
     RepairProtocolStats,
     RepairProtocolTier,
     RepairableSystemKey,
+    getRepairableSystemInstances,
     repairProtocols,
 } from '../configurations/repair-protocols';
 import { ShipState } from './ship-state';
+import { getSystems } from './system';
 import { makeId } from '../id';
 
 const TIER_ORDER: Record<RepairProtocolTier, number> = { field: 0, docked: 1, shipyard: 2 };
 
 /**
- * Resolves a catalog target/side-effect system key to its live instance(s) on `state`. Standalone
- * (not a `RepairManager` method) so `revertOperationSideEffects` can run without a live manager —
- * needed by `resetShipState` on an NPC<->PC conversion, where no `RepairManager` for the cloned
- * state exists yet.
+ * Hard cap on the queue's length (SPEC-0003 doesn't specify one; without it, `repairQueue.operations`
+ * — a synced `ArraySchema` broadcast to every client and rendered as one Tweakpane folder per entry —
+ * grows without bound). Repair work is always explicitly player-commanded (unlike e.g. signals jobs,
+ * which are auto-discovered and therefore evict low-priority entries) — so once full, new enqueue
+ * commands are refused rather than silently displacing a queued operation the crew asked for.
  */
-export function getRepairableSystemInstances(state: ShipState, key: RepairableSystemKey): SystemState[] {
-    switch (key) {
-        case 'thrusters':
-            return [...state.thrusters];
-        case 'tubes':
-            return [...state.tubes];
-        case 'chainGun':
-            return state.chainGun ? [state.chainGun] : [];
-        case 'radars':
-            return [...state.radars];
-        case 'reactor':
-            return [state.reactor];
-        case 'smartPilot':
-            return [state.smartPilot];
-        case 'magazine':
-            return [state.magazine];
-        case 'warp':
-            return [state.warp];
-        case 'docking':
-            return [state.docking];
-        case 'maneuvering':
-            return [state.maneuvering];
-        case 'signals':
-            return [state.signals];
-    }
-}
+export const MAX_REPAIR_QUEUE_LENGTH = 16;
 
 /**
- * Reverts `op`'s declared side effects (restores each saved `power` value) and clears the saved
- * list. Called both by `RepairManager` (done/cancelled) and by `resetShipState` (an operation
- * left active across an NPC<->PC conversion has no manager left to revert it otherwise — see
- * `SavedPowerEntry`).
+ * Reverts `op`'s declared side effects and clears the saved list. Called both by `RepairManager`
+ * (done/cancelled) and by `resetShipState` (an operation left active across an NPC<->PC conversion
+ * has no manager left to revert it otherwise — see `SavedPowerEntry`).
+ *
+ * Only restores a saved `power` value if nothing else changed it since the side effect forced it —
+ * a player who commanded power on the affected system mid-operation (or a GM, or a second
+ * operation) has their intent honored; a stale snapshot never overwrites it.
  */
 export function revertOperationSideEffects(state: ShipState, op: RepairOperation) {
     for (const entry of op.savedPower) {
         const instance = getRepairableSystemInstances(state, entry.system as RepairableSystemKey)[entry.index];
-        if (instance) {
+        if (instance && instance.power === PowerLevel.SHUTDOWN) {
             instance.power = entry.value;
         }
     }
@@ -79,6 +70,10 @@ export interface RepairHeatSink {
  * queue of `RepairOperation`s, one active at a time, draining commands pushed
  * onto `state.repairQueue` by `repair-commands.ts`. Sibling to
  * `damage-manager.ts` / `heat-manager.ts`.
+ *
+ * Invariant: whenever an operation is ACTIVE, it is always `operations[0]` — enforced by
+ * `ensureActive` (only ever promotes the lowest-index QUEUED entry) and `drainReorderCommands`
+ * (never moves a QUEUED entry to index 0 while one is active).
  */
 export class RepairManager implements Updateable {
     constructor(
@@ -102,6 +97,16 @@ export class RepairManager implements Updateable {
         return this.state.repairQueue.operations;
     }
 
+    /**
+     * Catalog lookup safe against a client-supplied `protocolId` that collides with an inherited
+     * `Object.prototype` member (`"constructor"`, `"toString"`, `"valueOf"`, `"__proto__"`, ...) —
+     * those resolve to a truthy, catalog-shaped-enough value via plain `this.catalog[id]` and would
+     * otherwise sail past every guard below and throw deep inside the next tick.
+     */
+    private getProtocol(protocolId: string): RepairProtocolStats | undefined {
+        return Object.prototype.hasOwnProperty.call(this.catalog, protocolId) ? this.catalog[protocolId] : undefined;
+    }
+
     private getActive(): RepairOperation | undefined {
         return this.operations.find((o) => o.status === RepairOperationStatus.ACTIVE);
     }
@@ -116,9 +121,13 @@ export class RepairManager implements Updateable {
     }
 
     private drainCancelCommands() {
-        const commands = this.state.repairQueue.cancelCommands;
+        const commands: unknown[] = this.state.repairQueue.cancelCommands;
         this.state.repairQueue.cancelCommands = [];
-        for (const { operationId } of commands) {
+        for (const command of commands) {
+            if (!isCancelRepairArg(command)) {
+                continue;
+            }
+            const { operationId }: CancelRepairArg = command;
             const index = this.operations.findIndex((o) => o.id === operationId);
             if (index < 0) {
                 continue;
@@ -133,31 +142,59 @@ export class RepairManager implements Updateable {
         }
     }
 
+    /**
+     * Moves the QUEUED operation named by each command to its requested index — never to index 0
+     * while an operation is ACTIVE there (SPEC-0003: the active operation cannot be demoted, only
+     * cancelled), preserving the "ACTIVE is always operations[0]" invariant. Uses only single-index
+     * replacement (never add/remove) so no `RepairOperation` instance is ever dropped and
+     * re-registered in the same change set.
+     */
     private drainReorderCommands() {
-        const commands = this.state.repairQueue.reorderCommands;
+        const commands: unknown[] = this.state.repairQueue.reorderCommands;
         this.state.repairQueue.reorderCommands = [];
-        for (const { operationId, index } of commands) {
-            const ops = this.operations;
-            const opIndex = ops.findIndex((o) => o.id === operationId);
-            // the active operation cannot be demoted, only cancelled (SPEC-0003)
-            if (opIndex < 0 || ops[opIndex].status !== RepairOperationStatus.QUEUED) {
+        for (const command of commands) {
+            if (!isReorderRepairArg(command)) {
                 continue;
             }
-            const reordered = [...ops];
-            const [op] = reordered.splice(opIndex, 1);
-            const clampedIndex = Math.max(0, Math.min(index, reordered.length));
-            reordered.splice(clampedIndex, 0, op);
-            // ArraySchema#splice only supports insertCount <= deleteCount, so replace the
-            // whole array in one call rather than remove-then-insert as two operations.
-            ops.splice(0, ops.length, ...reordered);
+            const { operationId, index }: ReorderRepairArg = command;
+            const ops = this.operations;
+            const from = ops.findIndex((o) => o.id === operationId);
+            if (from < 0 || ops[from].status !== RepairOperationStatus.QUEUED) {
+                continue;
+            }
+            const minIndex = ops.length > 0 && ops[0].status === RepairOperationStatus.ACTIVE ? 1 : 0;
+            const to = Math.max(minIndex, Math.min(Math.trunc(index), ops.length - 1));
+            this.moveOperation(from, to);
         }
     }
 
+    private moveOperation(from: number, to: number) {
+        const ops = this.operations;
+        const op = ops[from];
+        if (from < to) {
+            for (let i = from; i < to; i++) {
+                ops[i] = ops[i + 1];
+            }
+        } else {
+            for (let i = from; i > to; i--) {
+                ops[i] = ops[i - 1];
+            }
+        }
+        ops[to] = op;
+    }
+
     private drainEnqueueCommands() {
-        const commands = this.state.repairQueue.enqueueCommands;
+        const commands: unknown[] = this.state.repairQueue.enqueueCommands;
         this.state.repairQueue.enqueueCommands = [];
-        for (const { protocolId } of commands) {
-            const protocol = this.catalog[protocolId];
+        for (const command of commands) {
+            if (!isEnqueueRepairArg(command)) {
+                continue;
+            }
+            const { protocolId }: EnqueueRepairArg = command;
+            if (this.operations.length >= MAX_REPAIR_QUEUE_LENGTH) {
+                continue;
+            }
+            const protocol = this.getProtocol(protocolId);
             if (!protocol || TIER_ORDER[protocol.tier] > TIER_ORDER[this.tier]) {
                 // unknown protocol id, or above the ship's current repair tier: refused
                 continue;
@@ -179,7 +216,7 @@ export class RepairManager implements Updateable {
             return;
         }
         next.status = RepairOperationStatus.ACTIVE;
-        const protocol = this.catalog[next.protocolId];
+        const protocol = this.getProtocol(next.protocolId);
         if (protocol) {
             this.applySideEffects(next, protocol);
         }
@@ -190,7 +227,7 @@ export class RepairManager implements Updateable {
         if (!active) {
             return;
         }
-        const protocol = this.catalog[active.protocolId];
+        const protocol = this.getProtocol(active.protocolId);
         if (!protocol) {
             this.abort(active);
             return;

@@ -68,8 +68,17 @@ test.describe('ECR Screen', () => {
         await enqueueButton.click();
 
         await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
-        const progress = await waitForPropertyValue(page, 'progress', (v) => parseFloat(v) > 0, 'Repair Queue', 5000);
-        expect(parseFloat(progress)).toBeGreaterThan(0);
+        const firstProgress = await waitForPropertyValue(
+            page,
+            'progress',
+            (v) => parseFloat(v) > 0,
+            'Repair Queue',
+            5000,
+        );
+        // a real progression over time, not a restatement of the wait predicate above
+        await page.waitForTimeout(500);
+        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
 
         const cancelButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Cancel' });
         await cancelButton.click();
@@ -82,5 +91,29 @@ test.describe('ECR Screen', () => {
         await expect(
             repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Hull-wide systems overhaul' }),
         ).toHaveCount(0);
+    });
+
+    test('reordering via Move up drives the server-side queue order through the real command path', async ({
+        page,
+    }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+
+        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Actuator recalibration' }).click();
+        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Thrust-line purge' }).click();
+        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Feed-system overhaul' }).click();
+
+        const ship = gameDriver.getShip(shipId);
+        await expect
+            .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
+            .toEqual(['actuatorRecalibration', 'thrustLinePurge', 'feedSystemOverhaul']);
+
+        // move the last queued row ("Feed-system overhaul") up, ahead of "Thrust-line purge" —
+        // "Actuator recalibration" (index 0) is ACTIVE and has no move buttons at all
+        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Move up' }).nth(1).click();
+
+        await expect
+            .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
+            .toEqual(['actuatorRecalibration', 'feedSystemOverhaul', 'thrustLinePurge']);
     });
 });

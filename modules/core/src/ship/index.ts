@@ -1,4 +1,4 @@
-import * as _shipCommands from './repair-commands';
+import * as _repairCommands from './repair-commands';
 
 export * from './armor';
 export * from './chain-gun';
@@ -25,4 +25,7 @@ export * from './thruster';
 export * from './turret';
 export * from './warp';
 
-export const shipCommands = _shipCommands;
+// Named for what it aggregates today (only repair-commands.ts) rather than "all ship commands" —
+// a future ship command module must be added to this bundle explicitly, the same as
+// `spaceCommands` in `../space/index.ts`.
+export const repairCommands = _repairCommands;

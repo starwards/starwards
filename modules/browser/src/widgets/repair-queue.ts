@@ -1,4 +1,4 @@
-import { Destructors, RepairOperationStatus, ShipDriver, repairProtocols, shipCommands } from '@starwards/core';
+import { Destructors, RepairOperationStatus, ShipDriver, repairCommands, repairProtocols } from '@starwards/core';
 import { addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
@@ -37,7 +37,7 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
     for (const [protocolId, protocol] of Object.entries(repairProtocols).filter(([, p]) => p.tier === 'field')) {
         addButton(
             catalogFolder,
-            () => shipDriver.command(shipCommands.enqueueRepair, { protocolId }),
+            () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
             { label: '', title: `${protocol.name} (${protocol.duration}s)` },
             panelCleanup.add,
         );
@@ -68,7 +68,7 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             );
             addButton(
                 row,
-                () => shipDriver.command(shipCommands.cancelRepair, { operationId: op.id }),
+                () => shipDriver.command(repairCommands.cancelRepair, { operationId: op.id }),
                 { label: '', title: 'Cancel' },
                 session.add,
             );
@@ -76,7 +76,8 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
                 if (index > 0) {
                     addButton(
                         row,
-                        () => shipDriver.command(shipCommands.reorderRepair, { operationId: op.id, index: index - 1 }),
+                        () =>
+                            shipDriver.command(repairCommands.reorderRepair, { operationId: op.id, index: index - 1 }),
                         { label: '', title: 'Move up' },
                         session.add,
                     );
@@ -84,7 +85,8 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
                 if (index < operations().length - 1) {
                     addButton(
                         row,
-                        () => shipDriver.command(shipCommands.reorderRepair, { operationId: op.id, index: index + 1 }),
+                        () =>
+                            shipDriver.command(repairCommands.reorderRepair, { operationId: op.id, index: index + 1 }),
                         { label: '', title: 'Move down' },
                         session.add,
                     );
@@ -93,11 +95,13 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         });
     }
 
-    // only structural changes (enqueue/cancel/reorder shift indices) need a full re-render —
-    // each row's own status/progress blades already auto-update via their live bindings
+    // each row's status TEXT and progress bar auto-update via their own live bindings, but the
+    // Move up/Move down buttons are gated on `status === QUEUED` captured at render time (a plain
+    // conditional, not a binding) — a QUEUED -> ACTIVE flip changes no ids, so status must be part
+    // of the signature or a promoted row keeps stale buttons the server silently refuses
     const signature = () =>
         operations()
-            .map((o) => o.id)
+            .map((o) => `${o.id}:${o.status}`)
             .join(',');
     let lastSignature = '';
     const onQueueChange = () => {
