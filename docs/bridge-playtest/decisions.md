@@ -2,6 +2,24 @@
 
 Confirmed decisions only. Candidates and drafts live in [`proposals.md`](proposals.md).
 
+## 2026-08-01 — Scan queue semantics + hack mechanism removal (PR #1995 review follow-ups)
+
+Decisions from the review of the passive-scan-tiers implementation ([PR #1995](https://github.com/starwards/starwards/pull/1995), issue [#1992](https://github.com/starwards/starwards/issues/1992)). Build specs live in the linked issues. The **authoritative design record** — including the rejected alternatives and the reasoning behind each ruling — is [`mechanics/scan-and-intel-spec.md`](https://github.com/starwards/starwards-design/blob/master/mechanics/scan-and-intel-spec.md) in the design repo, with the concealment rules in [`mechanics/information-concealment.md`](https://github.com/starwards/starwards-design/blob/master/mechanics/information-concealment.md). This entry is the dated summary; where it and the design repo disagree, the design repo wins.
+
+**Hack mechanism removed; effect socket kept** ([#2005](https://github.com/starwards/starwards/issues/2005)). The never-wired hack submission path is deleted. `HackLevel`, `SystemState.hacked` and the effectiveness formula stay — a GM can still compromise a system by hand for scripted events, and hacking returns as its own feature when designed ([#1899](https://github.com/starwards/starwards/issues/1899), and "Hack as coordination beat" in [`proposals.md`](proposals.md)).
+
+**Scan queue semantics** ([#2007](https://github.com/starwards/starwards/issues/2007)):
+
+- A scan job is **workable**, **dormant** (retained, target out of field of view), or **terminal** (removed). Dormant jobs never get radar order markers. The Signals Jobs widget shows only the job being worked — no queue view.
+- **Non-ships cap at BASIC.** `SNAPSHOT`/`FULL` mean *systems and damage*; asteroids have neither. Fired projectiles are `BASIC` for the firing faction — "your own shells are always identifiable to you".
+- **Target cycle reaches exactly two populations:** UFO contacts of any type, and BASIC-and-above ships. No type-keyed cycle split — that leaks identity through the fog of war (see "Player-Facing Selection Is a Fog-of-War Boundary" in `CLAUDE.md`).
+- **Prioritized jobs are standing orders:** they survive promotion, lie dormant, and resume when the target demotes. Removed only on target destruction or non-ship-at-BASIC. The queue is never reordered dynamically.
+- **Accepted limitation:** a target flickering at the field-of-view edge restarts its scan progress; a noise-reduction buffer may come later.
+
+**Dispatch.** Six follow-up issues, worked two-at-a-time by autonomous agents: [#2005](https://github.com/starwards/starwards/issues/2005) + [#2006](https://github.com/starwards/starwards/issues/2006) first (disjoint files), then #2007 unblocks [#2008](https://github.com/starwards/starwards/issues/2008), [#2009](https://github.com/starwards/starwards/issues/2009), [#2010](https://github.com/starwards/starwards/issues/2010). A human flips `blocked` → `agent-ready` as predecessors merge.
+
+**Status.** Agreed in review (2026-08-01); implementation dispatched to the issues above.
+
 ## 2026-07-04 — Next-step priorities
 
 Agreed order of upcoming work (Amir + Daniel, 2026-07-04):

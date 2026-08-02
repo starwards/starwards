@@ -33,9 +33,6 @@ export async function ShipDriver(shipRoom: Room<ShipState>) {
         });
     });
     const pendingEvents = [];
-    if (!shipRoom.state.chainGun) {
-        pendingEvents.push('/chainGun');
-    }
     if (!shipRoom.state.design) {
         pendingEvents.push('/design');
     }

@@ -73,8 +73,8 @@ export function targetRadarWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriv
             range.setSizeFactor(sizeFactor);
             root.addLayer(range.renderRoot);
             const shipTarget = trackTargetObject(spaceDriver, shipDriver);
-            if (shipDriver.state.chainGun) {
-                root.addLayer(crosshairs(root, shipDriver.state, shipDriver.state.chainGun, shipTarget));
+            for (const chainGun of shipDriver.state.chainGuns) {
+                root.addLayer(crosshairs(root, shipDriver.state, chainGun, shipTarget));
             }
             const blipLayer = new ObjectsLayer(
                 root,

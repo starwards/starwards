@@ -209,7 +209,7 @@ describe('ShipManager targeted status', () => {
         const b = makeShipMgr('b', Faction.Raiders, 1000, 0);
         flush();
         b.mgr.setTarget('a');
-        b.mgr.state.chainGun!.isFiring = true;
+        b.mgr.state.chainGuns[0].isFiring = true;
         runTick(a.mgr);
         expect(a.mgr.state.targeted).to.equal(TargetedStatus.FIRED_UPON);
     });

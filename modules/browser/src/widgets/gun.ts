@@ -8,15 +8,37 @@ import { WidgetContainer } from '../container';
 
 export function drawGunStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Chain Gun');
-    addTextBlade(pane, readProp(shipDriver, '/chainGun/projectile'), { label: 'projectile' }, panelCleanup.add);
-    addTextBlade(
-        pane,
-        readProp(shipDriver, '/chainGun/loadedProjectile'),
-        { label: 'loaded projectile' },
-        panelCleanup.add,
-    );
-    addBarBlade(pane, readNumberProp(shipDriver, '/chainGun/loading'), { label: 'loading' }, panelCleanup.add);
-    addInputBlade(pane, readProp(shipDriver, '/chainGun/loadAmmo'), { label: 'auto load' }, panelCleanup.add);
+    const mounts = shipDriver.state.chainGuns;
+    for (const index of mounts.keys()) {
+        const gunPane = mounts.length > 1 ? pane.addFolder({ title: `Chain Gun ${index}`, expanded: true }) : pane;
+        if (mounts.length > 1) {
+            panelCleanup.add(() => gunPane.dispose());
+        }
+        addTextBlade(
+            gunPane,
+            readProp(shipDriver, `/chainGuns/${index}/projectile`),
+            { label: 'projectile' },
+            panelCleanup.add,
+        );
+        addTextBlade(
+            gunPane,
+            readProp(shipDriver, `/chainGuns/${index}/loadedProjectile`),
+            { label: 'loaded projectile' },
+            panelCleanup.add,
+        );
+        addBarBlade(
+            gunPane,
+            readNumberProp(shipDriver, `/chainGuns/${index}/loading`),
+            { label: 'loading' },
+            panelCleanup.add,
+        );
+        addInputBlade(
+            gunPane,
+            readProp(shipDriver, `/chainGuns/${index}/loadAmmo`),
+            { label: 'auto load' },
+            panelCleanup.add,
+        );
+    }
 }
 
 export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
@@ -26,16 +48,25 @@ export function gunWidget(shipDriver: ShipDriver): DashboardWidget {
             container.on('destroy', () => {
                 panel.destroy();
             });
-            const chainGunPanel = panel.addFolder('chainGun');
-
-            chainGunPanel.addProperty('max Ammo', readNumberProp(shipDriver, `/magazine/count_HiExpShell`));
-            chainGunPanel.addProperty('ammo', readNumberProp(shipDriver, `/magazine/count_HiExpShell`));
-            chainGunPanel.addProperty('loading', readNumberProp(shipDriver, `/chainGun/loading`));
-            chainGunPanel.addText('chainGunFire', { getValue: () => String(shipDriver.state.chainGun?.isFiring) });
-            chainGunPanel.addText('loadAmmo', { getValue: () => String(shipDriver.state.chainGun?.loadAmmo) });
             panel.addText('target', { getValue: () => String(shipDriver.state.weaponsTarget.targetId) });
 
-            panel.addProperty('shellSecondsToLive', readNumberProp(shipDriver, `/chainGun/shellSecondsToLive`));
+            for (const [index] of shipDriver.state.chainGuns.entries()) {
+                const chainGunPanel = panel.addFolder(`chainGun${index}`);
+
+                chainGunPanel.addProperty('max Ammo', readNumberProp(shipDriver, `/magazine/count_HiExpShell`));
+                chainGunPanel.addProperty('ammo', readNumberProp(shipDriver, `/magazine/count_HiExpShell`));
+                chainGunPanel.addProperty('loading', readNumberProp(shipDriver, `/chainGuns/${index}/loading`));
+                chainGunPanel.addText('chainGunFire', {
+                    getValue: () => String(shipDriver.state.chainGuns[index]?.isFiring),
+                });
+                chainGunPanel.addText('loadAmmo', {
+                    getValue: () => String(shipDriver.state.chainGuns[index]?.loadAmmo),
+                });
+                chainGunPanel.addProperty(
+                    'shellSecondsToLive',
+                    readNumberProp(shipDriver, `/chainGuns/${index}/shellSecondsToLive`),
+                );
+            }
         }
     }
     return {

@@ -83,3 +83,40 @@ describe('turret mount', () => {
         expect(turret.direction).to.equal(-90);
     });
 });
+
+describe('turret mount arc limit', () => {
+    it('clamps a commanded bearing outside the arc to its limit and holds', () => {
+        const turret = makeTurret(1000);
+        turret.design.assign({ arcWidth: 60 });
+        turret.directionCommand = 90;
+
+        updateTurret(turret, 1);
+        expect(turret.direction).to.be.closeTo(30, 0.001);
+
+        // stays clamped on subsequent ticks instead of continuing to climb toward 90
+        updateTurret(turret, 1);
+        expect(turret.direction).to.be.closeTo(30, 0.001);
+    });
+
+    it('centers the arc on the mount fitted bearing, not on 0', () => {
+        const turret = makeTurret(1000);
+        turret.design.assign({ arcWidth: 60 });
+        turret.fittedBearing = 90;
+        turret.direction = turret.directionCommand = 90;
+
+        turret.directionCommand = 200; // 110 degrees off the fitted bearing
+
+        updateTurret(turret, 1);
+
+        expect(turret.direction).to.be.closeTo(120, 0.001); // fittedBearing + halfArc
+    });
+
+    it('does not restrict movement when arcWidth is 360 (unrestricted, the default)', () => {
+        const turret = makeTurret(1000);
+        turret.directionCommand = 179;
+
+        updateTurret(turret, 1);
+
+        expect(turret.direction).to.be.closeTo(179, 0.001);
+    });
+});
