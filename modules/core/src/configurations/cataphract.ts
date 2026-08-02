@@ -49,12 +49,7 @@ export const cataphractScanBeam = {
     turnSpeed: 30,
 };
 
-/**
- * Spec calls for 2x FWD arc270 + 1x FWD arc60 (60 bps combined). Today's ChainGun field is a
- * single mount with no per-mount bearing/arc — see #2041 (chainGuns[] + arcWidth).
- * TODO(#2041): add the second and third mounts once that lands; until then this lands the main
- * mount only (FWD, matching its own bearing), at its per-mount rate.
- */
+/** Main battery: fitted forward, sweeping 270° — blind only in a 90° cone astern. */
 export const cataphractChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
     isInternal: false,
@@ -76,7 +71,14 @@ export const cataphractChaingun = {
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
-    turnSpeed: 0,
+    turnSpeed: 30,
+    arcWidth: 270,
+};
+
+/** Chin mount: same gun on a narrow 60° forward arc, for close-in work dead ahead. */
+export const cataphractChinChaingun = {
+    ...cataphractChaingun,
+    arcWidth: 60,
 };
 
 export const cataphractReactor = {
@@ -207,7 +209,11 @@ export const cataphractTube = {
 
 export const cataphract = {
     properties: cataphractProperties,
-    chainGun: cataphractChaingun,
+    chainGuns: [
+        ['FWD', cataphractChaingun],
+        ['FWD', cataphractChaingun],
+        ['FWD', cataphractChinChaingun],
+    ],
     thrusters: [
         ['STBD', cataphractThruster],
         ['STBD', cataphractThruster],

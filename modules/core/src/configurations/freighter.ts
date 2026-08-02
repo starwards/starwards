@@ -134,7 +134,7 @@ export const freighterSignals = {
 
 export const freighter = {
     properties: freighterProperties,
-    chainGun: null,
+    chainGuns: [],
     thrusters: [
         ['STBD', freighterThruster],
         ['PORT', freighterThruster],
