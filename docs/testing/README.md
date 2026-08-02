@@ -363,6 +363,17 @@ harness.shipObj.position = new Vec2(10, 10);
 const ships = harness.createCombatScenario({ shipCount: 2 });
 ```
 
+### Armor x Ammo QA Matrix
+
+**Location:** `modules/core/test/armor-ammo-matrix.spec.ts` (`modules/core/test/armor-ammo-matrix-harness.ts` builds the sweep)
+
+Fires every ammo type at every registered armor layer type (single plate, demo-ship baseline, pre-broken composite backing so the penetration channel is observable) and classifies each cell as Blocked / Transparent / Engages / Pops via `ArmorLayerDesignState.response()`, recording plate erosion plus resolved system damage on both the surface and penetration channels. The committed report `modules/core/test/armor-ammo-matrix-report.md` is drift-checked by `npm test` — a stale report fails CI. It is a reporting tool, not a balance gate: read the report, don't compare it against target numbers.
+
+```bash
+# regenerate the committed report after a balance/armor-model change
+UPDATE_ARMOR_MATRIX_REPORT=1 npm test -- modules/core/test/armor-ammo-matrix.spec.ts
+```
+
 ### Multi-Client Driver
 
 **Location:** `modules/server/src/test/multi-client-driver.ts`
