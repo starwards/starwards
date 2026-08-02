@@ -53,4 +53,34 @@ test.describe('ECR Screen', () => {
         await expect(warpPanel).toBeVisible({ timeout: 10000 });
         await expectNonInteractiveBar(warpPanel.locator('.sw-bar').first());
     });
+
+    test('damage report shows a defect, and enqueueing/cancelling a repair drives the queue', async ({ page }) => {
+        const ship = gameDriver.getShip(shipId);
+        ship.state.radars[0].malfunctionRangeFactor = 0.5;
+
+        const damageReportPanel = page.locator('[data-id="Damage Report"]');
+        await expect(damageReportPanel).toBeVisible({ timeout: 10000 });
+        await expect(damageReportPanel).toContainText('range fluctuation');
+
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible();
+        const enqueueButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Sensor-array degauss' });
+        await enqueueButton.click();
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
+        const progress = await waitForPropertyValue(page, 'progress', (v) => parseFloat(v) > 0, 'Repair Queue', 5000);
+        expect(parseFloat(progress)).toBeGreaterThan(0);
+
+        const cancelButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Cancel' });
+        await cancelButton.click();
+        await expect(repairQueuePanel.getByText('state', { exact: true })).not.toBeVisible({ timeout: 5000 });
+    });
+
+    test('crew station cannot enqueue a docked-tier protocol', async ({ page }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        await expect(
+            repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Hull-wide systems overhaul' }),
+        ).toHaveCount(0);
+    });
 });

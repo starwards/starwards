@@ -12,8 +12,8 @@ export { AdminDriver, ClientStatus, Driver, ShipDriver, SpaceDriver, Status } fr
 export type { ShipDriverRead, SpaceEventEmitter } from './client';
 
 // --- configurations ---
-export { dragonflySF22, shipModels } from './configurations';
-export type { ShipModel } from './configurations';
+export { dragonflySF22, repairProtocols, shipModels } from './configurations';
+export type { RepairProtocolName, RepairProtocolStats, ShipModel } from './configurations';
 
 // --- events ---
 export type { RoomEventEmitter } from './events';
@@ -52,6 +52,7 @@ export {
     JobStatus,
     PowerLevel,
     PowerLevelStep,
+    RepairOperationStatus,
     ShipState,
     Signals,
     SignalsJob,
@@ -59,8 +60,9 @@ export {
     TargetedStatus,
     WarpFrequency,
     makeShipState,
+    shipCommands,
 } from './ship';
-export type { DefectibleValue, System } from './ship';
+export type { DefectibleValue, RepairOperation, System } from './ship';
 
 // --- space ---
 export {

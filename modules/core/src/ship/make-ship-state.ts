@@ -13,6 +13,7 @@ import { Targeting, TargetingDesign } from './targeting';
 import { Thruster, ThrusterDesign } from './thruster';
 import { Warp, WarpDesign } from './warp';
 import { armorModels, withFaradayLayer } from '../configurations/armor-models';
+import { repairProtocols, validateRepairCatalog } from '../configurations/repair-protocols';
 
 import { ArraySchema } from '@colyseus/schema';
 import { Tube } from './tube';
@@ -177,5 +178,6 @@ export function makeShipState(id: string, design: ShipDesign) {
     state.docking = makeDocking(design.docking);
     state.maneuvering = makeManeuvering(design.maneuvering);
     state.signals = makeSignals(design.signals);
+    validateRepairCatalog(state, repairProtocols);
     return state;
 }

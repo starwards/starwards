@@ -6,7 +6,9 @@ import { BleepsProvider } from '../components/arwes-compat';
 import { DashboardWidget } from './dashboard';
 import { ShipDriver } from '@starwards/core';
 import WebFont from 'webfontloader';
+import { WidgetContainer } from '../container';
 import { createMachine } from 'xstate';
+import { createRoot } from 'react-dom/client';
 import { getBrokenSystems } from './damage-report-logic';
 import { readProp } from '../property-wrappers';
 import { useMachine } from '@xstate/react';
@@ -131,4 +133,22 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
         component: DamageReport,
         defaultProps: {},
     };
+}
+
+/**
+ * Mounts the damage report into a fixed-grid station container (`wrapRootWidgetContainer` +
+ * `subContainer`, e.g. `screens/ecr.ts`) rather than a golden-layout `Dashboard` — the two
+ * layout systems don't mix (see CLAUDE.md), so this bypasses `Dashboard.registerWidget` and
+ * renders the same React component directly into the container's element.
+ */
+export function drawDamageReport(container: WidgetContainer, shipDriver: ShipDriver) {
+    const { component, defaultProps } = damageReportWidget(shipDriver);
+    container.getElement().attr('data-id', 'Damage Report');
+    const element = container.getElement().get(0);
+    if (!element) {
+        return;
+    }
+    const root = createRoot(element);
+    root.render(React.createElement(component as React.ComponentType, defaultProps));
+    container.on('destroy', () => root.unmount());
 }

@@ -1,3 +1,5 @@
+import * as _shipCommands from './repair-commands';
+
 export * from './armor';
 export * from './chain-gun';
 export * from './damage-manager';
@@ -5,6 +7,9 @@ export * from './docking';
 export * from './make-ship-state';
 export * from './radar';
 export * from './reactor';
+export * from './repair-commands';
+export * from './repair-manager';
+export * from './repair-queue';
 export * from './ship-areas';
 export * from './ship-die';
 export * from './ship-direction';
@@ -19,3 +24,5 @@ export * from './system';
 export * from './thruster';
 export * from './turret';
 export * from './warp';
+
+export const shipCommands = _shipCommands;

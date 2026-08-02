@@ -63,6 +63,7 @@ export function resetShipState(state: ShipState) {
     }
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
+    state.repairQueue.operations.splice(0);
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));
     }
@@ -72,6 +73,9 @@ export function resetShipState(state: ShipState) {
     state.rotationModeCommand = false;
     state.maneuveringModeCommand = false;
     state.hullDamaged = false;
+    state.repairQueue.enqueueCommands = [];
+    state.repairQueue.cancelCommands = [];
+    state.repairQueue.reorderCommands = [];
     // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;

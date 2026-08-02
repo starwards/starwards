@@ -1,4 +1,11 @@
-import { ShipManager, ShipState, createLogger, handleJsonPointerCommand } from '@starwards/core/internal';
+import {
+    ShipManager,
+    ShipState,
+    cmdReceivers,
+    createLogger,
+    handleJsonPointerCommand,
+    shipCommands,
+} from '@starwards/core/internal';
 
 import { Room } from '@colyseus/core';
 
@@ -13,6 +20,9 @@ export class ShipRoom extends Room<ShipState> {
     public onCreate({ manager }: { manager: ShipManager }) {
         this.roomId = manager.spaceObject.id;
         this.setState(manager.state);
+        for (const [cmdName, handler] of cmdReceivers(shipCommands, manager)) {
+            this.onMessage(cmdName, handler);
+        }
         this.onMessage('*', (_, type, message: unknown) => {
             if (!handleJsonPointerCommand(message, type, manager.state)) {
                 logError(`onMessage for message="${JSON.stringify(message)}" not registered.`);
