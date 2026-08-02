@@ -55,6 +55,28 @@ describe('MovementManager', () => {
         expect(XY.lengthOf(shipObj.velocity)).to.be.greaterThan(0);
     });
 
+    it('a ship built with warp: null does not throw during construction or a tick', () => {
+        const warplessState = makeShipState('warpless', { ...dragonflyConfig, warp: null });
+        expect(warplessState.warp).to.equal(null);
+
+        const warplessShipObj = new Spaceship();
+        warplessShipObj.id = 'warpless';
+        const warplessDie = new MockDie();
+        const warplessSpaceMgr = new SpaceManager();
+        const warplessShipMgr = new ShipManagerPc(warplessShipObj, warplessState, warplessSpaceMgr, warplessDie);
+        warplessDie.expectedRoll = 1;
+        warplessSpaceMgr.insert(warplessShipObj);
+        warplessShipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        warplessShipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+        expect(() => {
+            for (const id of makeIterationsData(1, 20)) {
+                warplessShipMgr.update(id);
+                warplessSpaceMgr.update(id);
+            }
+        }).to.not.throw();
+    });
+
     it('ship decelerates when braking', () => {
         // Give the ship some initial velocity by boosting first
         shipMgr.state.smartPilot.maneuvering.x = 1;

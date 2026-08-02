@@ -31,7 +31,7 @@ export function drawWarpStatus(container: WidgetContainer, shipDriver: ShipDrive
         panelCleanup.add,
     );
     jamBlade.element.classList.add('status', 'tp-rotv'); // This allows overriding tweakpane theme for this folder
-    const applyThemeToJammed = () => (jamBlade.element.dataset.status = shipDriver.state.warp.jammed ? 'WARN' : ''); // this will change tweakpane theme for this folder, see tweakpane.css
+    const applyThemeToJammed = () => (jamBlade.element.dataset.status = shipDriver.state.warp?.jammed ? 'WARN' : ''); // this will change tweakpane theme for this folder, see tweakpane.css
     panelCleanup.add(jammedProp.onChange(applyThemeToJammed));
     applyThemeToJammed();
 

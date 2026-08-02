@@ -79,7 +79,9 @@ async function initScreen(dashboard: Dashboard, shipId: string) {
     dashboard.registerWidget(fullSystemsStatusWidget(shipDriver), {}, 'systems (full)');
     dashboard.registerWidget(engineeringStatusWidget(shipDriver), {}, 'engineering status');
     dashboard.registerWidget(targetingWidget(shipDriver), {}, 'targeting');
-    dashboard.registerWidget(warpWidget(shipDriver), {}, 'warp');
+    if (shipDriver.state.warp) {
+        dashboard.registerWidget(warpWidget(shipDriver), {}, 'warp');
+    }
     dashboard.registerWidget(dockingWidget(spaceDriver, shipDriver), {}, 'docking');
     dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver), {}, 'target info');
     dashboard.setup();
