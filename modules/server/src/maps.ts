@@ -17,8 +17,8 @@ export const two_vs_one: GameMap = {
         for (let i = 0; i < 20; i++) {
             game.addObject(newAsteroid());
         }
-        game.addPlayerSpaceship(newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22'));
-        game.addPlayerSpaceship(newShip('GVTS2', Faction.Gravitas, 'dragonfly-SF22'));
+        game.addPlayerSpaceship(newShip('GVTS', Faction.Gravitas, 'gravitas'));
+        game.addPlayerSpaceship(newShip('GVTS2', Faction.Gravitas, 'gravitas'));
         const ship2 = game.addNpcSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
         ship2.setTarget('GVTS');
     },
@@ -27,7 +27,7 @@ export const two_vs_one: GameMap = {
 export const solo: GameMap = {
     name: 'solo',
     init: (game: GameApi) => {
-        const spaceObject = newShip('GVTS', Faction.Gravitas, 'dragonfly-SF22');
+        const spaceObject = newShip('GVTS', Faction.Gravitas, 'gravitas');
         game.addPlayerSpaceship(spaceObject);
         spaceObject.position.x = spaceObject.position.y = 0;
         for (let i = 0; i < 20; i++) {
