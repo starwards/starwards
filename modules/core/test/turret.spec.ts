@@ -2,6 +2,7 @@ import {
     ChainGun,
     PowerLevel,
     Radar,
+    ShipDesign,
     Thruster,
     Turret,
     getRange,
@@ -287,5 +288,58 @@ describe('makeTube fits the mount, not just the launch heading (A10)', () => {
         expect(state.tubes.length).to.be.at.least(1);
         expect(state.tubes[0].fittedBearing).to.equal(90);
         expect(state.tubes[0].bearing).to.equal(0);
+    });
+});
+
+describe('turret design validation fails startup, not gameplay (A12)', () => {
+    const demoShip = shipConfigurations['demo-ship'];
+
+    it('rejects a chain gun with turnSpeed > 0 and bearingLimit 0', () => {
+        const design = {
+            ...demoShip,
+            chainGuns: [['FWD', { ...demoShip.chainGuns[0][1], turnSpeed: 30, bearingLimit: 0 }]],
+        } as ShipDesign;
+
+        expect(() => makeShipState('1', design)).to.throw();
+    });
+
+    it('rejects a chain gun with bearingLimit > 0 and turnSpeed 0', () => {
+        const design = {
+            ...demoShip,
+            chainGuns: [['FWD', { ...demoShip.chainGuns[0][1], turnSpeed: 0, bearingLimit: 30 }]],
+        } as ShipDesign;
+
+        expect(() => makeShipState('1', design)).to.throw();
+    });
+
+    it('rejects a thruster with turnSpeed > 0 and bearingLimit 0', () => {
+        const design = {
+            ...demoShip,
+            thrusters: [['FWD', { ...demoShip.thrusters[0][1], turnSpeed: 30, bearingLimit: 0 }]],
+        } as ShipDesign;
+
+        expect(() => makeShipState('1', design)).to.throw();
+    });
+
+    it('rejects a radar with turnSpeed > 0 and bearingLimit 0', () => {
+        const design = {
+            ...demoShip,
+            radars: [{ ...demoShip.radars[1], turnSpeed: 30, bearingLimit: 0 }],
+        } as ShipDesign;
+
+        expect(() => makeShipState('1', design)).to.throw();
+    });
+
+    it('rejects a tube with bearingLimit > 0 and turnSpeed 0', () => {
+        const design = {
+            ...demoShip,
+            tubes: [['AFT', { ...demoShip.tubes[0][1], turnSpeed: 0, bearingLimit: 30 }]],
+        } as ShipDesign;
+
+        expect(() => makeShipState('1', design)).to.throw();
+    });
+
+    it('accepts the unmodified roster hull (both zero, or both positive)', () => {
+        expect(() => makeShipState('1', demoShip)).to.not.throw();
     });
 });

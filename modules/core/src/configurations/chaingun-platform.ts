@@ -21,6 +21,8 @@ export const chaingunPlatformOmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 60_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const chaingunPlatformScanBeam = {
@@ -36,6 +38,8 @@ export const chaingunPlatformScanBeam = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 50_000,
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 
 /**
@@ -65,6 +69,7 @@ export const chaingunPlatformChaingun = {
     energyCost: 1,
     // arc 360°, unrestricted: the whole platform slews to track its target
     turnSpeed: 45,
+    bearingLimit: 180,
     maxBearingSkew: 90,
 };
 

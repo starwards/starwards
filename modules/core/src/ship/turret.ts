@@ -33,6 +33,21 @@ export abstract class TurretDesignState extends DesignState implements TurretDes
 }
 
 /**
+ * `turnSpeed > 0` with `bearingLimit: 0`, or the converse, is legal, harmless and does nothing —
+ * a mount that can never traverse but is "unrestricted", or one restricted to a single degree but
+ * bolted in place. Neither is ever an intentional design, so it fails ship construction instead of
+ * shipping a silently-wrong mount (SPEC pattern: same as `validateRepairCatalog`).
+ */
+export function validateTurretDesign(design: TurretDesignState, context: string): void {
+    if (design.turnSpeed > 0 !== design.bearingLimit > 0) {
+        throw new Error(
+            `turret design "${context}" is contradictory: turnSpeed (${design.turnSpeed}) and ` +
+                `bearingLimit (${design.bearingLimit}) must both be zero or both be positive`,
+        );
+    }
+}
+
+/**
  * A system carried on a rotating mount: it points somewhere, the crew asks it to point somewhere
  * else, and it takes time to swing between the two. What the system does once it is pointing —
  * sweep for contacts, throw bullets, push the hull — is the subsystem's business; the mount only
