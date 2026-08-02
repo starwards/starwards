@@ -66,7 +66,7 @@ describe('RepairQueue reorder survives a Colyseus encode/decode round trip', () 
                 tier: 'field',
             },
         };
-        const repairManager = new RepairManager(state, energyManager, heatManager, 'field', catalog);
+        const repairManager = new RepairManager(state, energyManager, heatManager, catalog);
         const tick = (deltaSeconds: number) =>
             repairManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 

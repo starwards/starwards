@@ -2,6 +2,7 @@ import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './te
 import { expect, test } from '@playwright/test';
 import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
 
+import { DockingMode } from '@starwards/core';
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
@@ -95,6 +96,26 @@ test.describe('ECR Screen', () => {
         await expect(
             repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Hull-wide systems overhaul' }),
         ).toHaveCount(0);
+    });
+
+    test('docking live-reveals a docked-tier protocol, and enqueueing it drives the queue', async ({ page }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const overhaulButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Hull-wide systems overhaul' });
+        await expect(overhaulButton).toHaveCount(0);
+
+        const ship = gameDriver.getShip(shipId);
+        ship.state.docking.mode = DockingMode.DOCKED;
+
+        await expect(overhaulButton).toHaveCount(1, { timeout: 5000 });
+        await overhaulButton.click();
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
+        expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'hullWideSystemsOverhaul')).toBe(true);
+
+        ship.state.docking.mode = DockingMode.UNDOCKED;
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
     });
 
     test('reordering via Move up drives the server-side queue order through the real command path', async ({
