@@ -118,7 +118,7 @@
 
 19. **System Degradation Pattern**
     - Systems have effectiveness factors that accumulate damage
-    - [`effectiveness`](../modules/core/src/ship/system.ts), `malfunctionRangeFactor`, `angleError`
+    - [`effectiveness`](../modules/core/src/ship/system.ts), `malfunctionRangeFactor`, `bearingSkew`
     - Gradual performance loss vs instant failure
     - Repair vs replace decisions
 

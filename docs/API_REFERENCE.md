@@ -156,10 +156,10 @@ efficiency = 1;
 | System | Location | Key Properties | Computed |
 |--------|----------|----------------|----------|
 | Reactor | `reactor.ts` | energy, effeciencyFactor | energyPerSecond |
-| Thruster | `thruster.ts` | angle, active, availableCapacity | getVelocityCapacity() |
-| Radar | `radar.ts` | arc, malfunctionRangeFactor (turret: direction, directionCommand, turnSpeedFactor) | range, broken |
+| Thruster | `thruster.ts` | fittedBearing, active, availableCapacity | getVelocityCapacity() |
+| Radar | `radar.ts` | arc, malfunctionRangeFactor (turret: bearing, bearingCommand, turnSpeedFactor) | range, broken |
 | ChainGun | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | - |
-| Tube | `tube.ts` | index, direction (extends ChainGun: isFiring, loadAmmo, loading, loadedProjectile) | (none; firing/loading handled by chain-gun-manager) |
+| Tube | `tube.ts` | index (extends ChainGun/Turret: fittedBearing, isFiring, loadAmmo, loading, loadedProjectile) | (none; firing/loading handled by chain-gun-manager) |
 | Targeting | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | range, next/prev/clearTargetCommand |
 | Warp | `warp.ts` | damageFactor, currentLevel, desiredLevel, currentFrequency | - |
 | Armor | `armor.ts` | armorPlates[], design | numberOfPlates, numberOfHealthyPlates, degreesPerPlate |

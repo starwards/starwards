@@ -111,7 +111,7 @@ flowchart TD
     H_level -->|"heat > MAX_SYSTEM_HEAT"| DMG["💥 DAMAGE<br/><small>damageManager.damageSystem()</small>"]
 
     subgraph DAMAGE_EFFECTS ["DAMAGE EFFECTS"]
-        D_defect["@defectible properties degrade<br/><small>thruster.angleError, radar.malfunctionRangeFactor, etc.</small>"]
+        D_defect["@defectible properties degrade<br/><small>thruster.bearingSkew, radar.malfunctionRangeFactor, etc.</small>"]
         D_broken["system.broken = true<br/><small>effectiveness → 0</small>"]
     end
 

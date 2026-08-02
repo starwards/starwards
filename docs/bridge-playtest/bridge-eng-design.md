@@ -86,8 +86,8 @@ per-system files (`thruster.ts`, `chain-gun.ts`, `radar.ts`, `warp.ts`,
 
 - `@defectible({ normal, name })` decorator marks per-system properties
   that can be damaged. Examples in code:
-  - `thruster.angleError` (normal 0), `thruster.availableCapacity` (normal 1)
-  - `chainGun.angleOffset` (normal 0), `chainGun.rateOfFireFactor` (normal 1)
+  - `thruster.bearingSkew` (normal 0), `thruster.availableCapacity` (normal 1)
+  - `chainGun.bearingSkew` (normal 0), `chainGun.rateOfFireFactor` (normal 1)
   - `warp.velocityFactor` (normal 1), `warp.damageFactor` (normal 0)
   - `radar.malfunctionRangeFactor` (normal 0)
   - `reactor.effeciencyFactor` (normal 1)
