@@ -373,7 +373,7 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip({
             needsChainGun: {
                 name: 'Needs a chain gun',
-                targets: [{ system: 'chainGun', field: 'angleOffset' }],
+                targets: [{ system: 'chainGuns', field: 'angleOffset' }],
                 duration: 10,
                 energyDraw: 1,
                 heat: 0,
@@ -381,7 +381,7 @@ describe('RepairManager', () => {
                 tier: 'field',
             },
         });
-        state.chainGun = null; // simulate a ship design without a chain gun
+        state.chainGuns.splice(0); // simulate a ship design without a chain gun
 
         enqueue(state, 'needsChainGun');
         expect(() => tickOnce(repairManager, 0.1)).to.not.throw();

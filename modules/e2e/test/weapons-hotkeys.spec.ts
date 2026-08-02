@@ -58,7 +58,7 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
-    // --- Ammo load toggles (c for tube, g for chainGun) ---
+    // --- Ammo load toggles (c for tube, g for chainGuns[0]) ---
     // Both start as `true` (loadAmmo = true by default), so press once → false.
 
     test('c key: tubes[0].loadAmmo toggles to false', async ({ page }) => {
@@ -73,11 +73,11 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
-    test('g key: chainGun.loadAmmo toggles to false', async ({ page }) => {
+    test('g key: chainGuns[0].loadAmmo toggles to false', async ({ page }) => {
         await page.keyboard.press('g');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => ship.state.chainGun?.loadAmmo === false,
+            (ship) => ship.state.chainGuns.at(0)?.loadAmmo === false,
             3000,
         );
     });
@@ -112,12 +112,12 @@ test.describe('Weapons hotkeys', () => {
         await page.waitForTimeout(200);
     });
 
-    test('f key: chainGun.isFiring admitted without whitelist rejection', async ({ page }) => {
+    test('f key: chainGuns[0].isFiring admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('f');
         await page.waitForTimeout(200);
     });
 
-    test('b key: chainGun.changeProjectileCommand admitted without whitelist rejection', async ({ page }) => {
+    test('b key: chainGuns[0].changeProjectileCommand admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('b');
         await page.waitForTimeout(200);
     });

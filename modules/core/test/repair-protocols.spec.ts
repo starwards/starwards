@@ -32,11 +32,11 @@ describe('repair protocols catalog', () => {
 
     it('does not throw for a target system the ship simply does not have — that is a normal configuration, not a catalog bug', () => {
         const state = makeShipState('test-ship', dragonflySF22);
-        state.chainGun = null; // simulate a ship design without a chain gun
+        state.chainGuns.splice(0); // simulate a ship design without a chain gun
         const catalog: Record<string, RepairProtocolStats> = {
             noChainGun: {
                 name: 'Needs a chain gun',
-                targets: [{ system: 'chainGun', field: 'angleOffset' }],
+                targets: [{ system: 'chainGuns', field: 'angleOffset' }],
                 duration: 10,
                 energyDraw: 1,
                 heat: 0,
@@ -49,7 +49,7 @@ describe('repair protocols catalog', () => {
 
     it('does not throw for a side-effect system the ship simply does not have', () => {
         const state = makeShipState('test-ship', dragonflySF22);
-        state.chainGun = null;
+        state.chainGuns.splice(0);
         const catalog: Record<string, RepairProtocolStats> = {
             noChainGun: {
                 name: 'Side-effects a chain gun',
@@ -57,7 +57,7 @@ describe('repair protocols catalog', () => {
                 duration: 10,
                 energyDraw: 1,
                 heat: 0,
-                sideEffectSystems: ['chainGun'],
+                sideEffectSystems: ['chainGuns'],
                 tier: 'field',
             },
         };
@@ -67,7 +67,7 @@ describe('repair protocols catalog', () => {
     describe('isProtocolAvailable / getAvailableRepairProtocols', () => {
         const noChainGunTarget: RepairProtocolStats = {
             name: 'Needs a chain gun',
-            targets: [{ system: 'chainGun', field: 'angleOffset' }],
+            targets: [{ system: 'chainGuns', field: 'angleOffset' }],
             duration: 10,
             energyDraw: 1,
             heat: 0,
@@ -80,7 +80,7 @@ describe('repair protocols catalog', () => {
             duration: 10,
             energyDraw: 1,
             heat: 0,
-            sideEffectSystems: ['chainGun'],
+            sideEffectSystems: ['chainGuns'],
             tier: 'field',
         };
         const needsOnlyReactor: RepairProtocolStats = {
@@ -100,19 +100,19 @@ describe('repair protocols catalog', () => {
 
         it('is unavailable when the ship lacks a targeted system', () => {
             const state = makeShipState('test-ship', dragonflySF22);
-            state.chainGun = null;
+            state.chainGuns.splice(0);
             expect(isProtocolAvailable(state, noChainGunTarget)).to.equal(false);
         });
 
         it('is unavailable when the ship lacks a side-effect system', () => {
             const state = makeShipState('test-ship', dragonflySF22);
-            state.chainGun = null;
+            state.chainGuns.splice(0);
             expect(isProtocolAvailable(state, noChainGunSideEffect)).to.equal(false);
         });
 
         it('filters an unavailable protocol out of the resolved catalog for this ship', () => {
             const state = makeShipState('test-ship', dragonflySF22);
-            state.chainGun = null;
+            state.chainGuns.splice(0);
             const catalog = { noChainGunTarget, needsOnlyReactor };
             const available = getAvailableRepairProtocols(state, catalog);
             expect(Object.keys(available)).to.deep.equal(['needsOnlyReactor']);

@@ -93,9 +93,9 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     const brokenInsideExplosion = countBrokenPlatesInRange(shipMgr.state, expectedHitPlatesRange);
                     expect(brokenInsideExplosion).to.equal(brokenTotal);
                     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                    expect(shipMgr.state.chainGun!.broken).to.be.false;
-                    expect(shipMgr.state.chainGun!.angleOffset).to.equal(0);
-                    expect(shipMgr.state.chainGun!.rateOfFireFactor).to.equal(1);
+                    expect(shipMgr.state.chainGuns[0].broken).to.be.false;
+                    expect(shipMgr.state.chainGuns[0].angleOffset).to.equal(0);
+                    expect(shipMgr.state.chainGuns[0].rateOfFireFactor).to.equal(1);
                 },
             ),
         );
@@ -116,9 +116,9 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                shipMgr.state.chainGun!.power = PowerLevel.MAX;
-                shipMgr.state.chainGun!.isFiring = true;
-                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
+                shipMgr.state.chainGuns[0].isFiring = true;
+                switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
 
                 const i = makeIterationsData(1, numIterationsPerSecond);
                 for (const id of i) {
@@ -127,7 +127,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 }
                 const cannonShells = [...spaceMgr.state.getAll('Projectile')];
                 expect(cannonShells.length).to.be.closeTo(
-                    Math.min(numIterationsPerSecond, shipMgr.state.chainGun!.design.bulletsPerSecond),
+                    Math.min(numIterationsPerSecond, shipMgr.state.chainGuns[0].design.bulletsPerSecond),
                     1,
                 );
                 expect(shipMgr.state.magazine.count_HiExpShell).to.equal(
@@ -155,15 +155,15 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun!.power = PowerLevel.MAX;
-                    shipMgr.state.chainGun!.rateOfFireFactor = 1;
-                    shipMgr.state.chainGun!.design.use_FragShell = false;
-                    shipMgr.state.chainGun!.design.use_HiExpMissile = false;
-                    shipMgr.state.chainGun!.design.use_HiExpShell = true;
+                    shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
+                    shipMgr.state.chainGuns[0].rateOfFireFactor = 1;
+                    shipMgr.state.chainGuns[0].design.use_FragShell = false;
+                    shipMgr.state.chainGuns[0].design.use_HiExpMissile = false;
+                    shipMgr.state.chainGuns[0].design.use_HiExpShell = true;
                     shipMgr.state.magazine.count_HiExpShell = availableAmmo;
-                    shipMgr.state.chainGun!.projectile = 'HiExpShell';
-                    shipMgr.state.chainGun!.isFiring = true;
-                    switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                    shipMgr.state.chainGuns[0].projectile = 'HiExpShell';
+                    shipMgr.state.chainGuns[0].isFiring = true;
+                    switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
 
                     const i = makeIterationsData(1, numIterationsPerSecond);
                     for (const id of i) {
@@ -196,9 +196,9 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun!.angleOffset = angleOffset;
-                    shipMgr.state.chainGun!.design.bulletDegreesDeviation = 0;
-                    shipMgr.state.chainGun!.isFiring = true;
+                    shipMgr.state.chainGuns[0].angleOffset = angleOffset;
+                    shipMgr.state.chainGuns[0].design.bulletDegreesDeviation = 0;
+                    shipMgr.state.chainGuns[0].isFiring = true;
 
                     const i = makeIterationsData(1, numIterationsPerSecond);
                     for (const id of i) {
@@ -229,12 +229,12 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                shipMgr.state.chainGun!.power = PowerLevel.MAX;
-                shipMgr.state.chainGun!.isFiring = true;
+                shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
+                shipMgr.state.chainGuns[0].isFiring = true;
                 // disable cooling and reactor heat to isolate weapon heat
                 shipMgr.state.design.totalCoolant = 0;
                 shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
-                switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
                 const heatPerShell = ammoDesigns.HiExpShell.heatPerShot;
 
                 const i = makeIterationsData(1, numIterationsPerSecond);
@@ -244,7 +244,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 }
                 const shotsFired = [...spaceMgr.state.getAll('Projectile')].length;
                 expect(shotsFired).to.be.greaterThan(0);
-                expect(shipMgr.state.chainGun!.heat).to.be.closeTo(shotsFired * heatPerShell, heatPerShell);
+                expect(shipMgr.state.chainGuns[0].heat).to.be.closeTo(shotsFired * heatPerShell, heatPerShell);
             }),
         );
     });
@@ -301,11 +301,11 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGun!.power = PowerLevel.MAX;
-                    shipMgr.state.chainGun!.rateOfFireFactor = 0.5;
-                    shipMgr.state.chainGun!.design.bulletsPerSecond = bulletsPerSecond;
-                    shipMgr.state.chainGun!.isFiring = true;
-                    switchToAvailableAmmo(shipMgr.state.chainGun!, shipMgr.state.magazine);
+                    shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
+                    shipMgr.state.chainGuns[0].rateOfFireFactor = 0.5;
+                    shipMgr.state.chainGuns[0].design.bulletsPerSecond = bulletsPerSecond;
+                    shipMgr.state.chainGuns[0].isFiring = true;
+                    switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
 
                     const i = makeIterationsData(1, numIterationsPerSecond);
                     for (const id of i) {
@@ -314,7 +314,8 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     }
                     expect([...spaceMgr.state.getAll('Projectile')].length).to.be.closeTo(
                         Math.floor(
-                            shipMgr.state.chainGun!.design.bulletsPerSecond * shipMgr.state.chainGun!.rateOfFireFactor,
+                            shipMgr.state.chainGuns[0].design.bulletsPerSecond *
+                                shipMgr.state.chainGuns[0].rateOfFireFactor,
                         ),
                         1,
                     );

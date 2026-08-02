@@ -31,8 +31,8 @@ export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
     function makeShipComponent(container: WidgetContainer) {
         const rootPanel = new PropertyPanel(container);
         // TODO add cleanups for folders
-        if (shipDriver.state.chainGun) {
-            addDesignStateToPanel(rootPanel.addFolder('chainGun'), shipDriver, `/chainGun/design`);
+        for (const index of shipDriver.state.chainGuns.keys()) {
+            addDesignStateToPanel(rootPanel.addFolder(`chainGun${index}`), shipDriver, `/chainGuns/${index}/design`);
         }
         for (const thruster of shipDriver.state.thrusters) {
             addDesignStateToPanel(
