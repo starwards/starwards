@@ -82,6 +82,10 @@ test.describe('ECR Screen', () => {
 
         const cancelButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Cancel' });
         await cancelButton.click();
+
+        // terminal status must reach the client and stay visible for a few seconds (R4) — a
+        // cancelled repair is not indistinguishable from one that simply vanished
+        await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
         await expect(repairQueuePanel.getByText('state', { exact: true })).not.toBeVisible({ timeout: 5000 });
     });
 
@@ -115,5 +119,20 @@ test.describe('ECR Screen', () => {
         await expect
             .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
             .toEqual(['actuatorRecalibration', 'feedSystemOverhaul', 'thrustLinePurge']);
+    });
+
+    test('a refused enqueue (queue full) shows a notice instead of silently doing nothing', async ({ page }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+
+        const enqueueButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Sensor-array degauss' });
+        for (let i = 0; i < 17; i++) {
+            // 16 is the queue cap; the 17th must be refused. dispatchEvent (not click) because the
+            // growing queue list pushes this button out of the panel's scrollable viewport as rows
+            // accumulate, which a real click requires but the handler itself doesn't care about.
+            await enqueueButton.dispatchEvent('click');
+        }
+
+        await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);
     });
 });

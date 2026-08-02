@@ -33,6 +33,21 @@ export class RepairOperation extends Schema {
 
     @gameField([SavedPowerEntry])
     savedPower = new ArraySchema<SavedPowerEntry>();
+
+    /**
+     * Seconds of continuous energy shortfall so far while ACTIVE (real time, not ticks — see
+     * `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`). A momentary dip from an unrelated
+     * consumer must not destroy a nearly-complete operation; only a *sustained* shortfall aborts it.
+     */
+    @gameField('float32') starvedSeconds = 0;
+
+    /**
+     * Seconds left before a DONE/CANCELLED operation is removed from `RepairQueue.recentlyFinished`
+     * (real time, not ticks — a quantity measured in "one manager tick" silently changes meaning
+     * with the tick rate and is invisible whenever the tick is shorter than the network patch
+     * interval, which it always is here). See `RepairManager`'s `tickRecentlyFinished`.
+     */
+    @gameField('float32') terminalSecondsRemaining = 0;
 }
 
 export type EnqueueRepairArg = { protocolId: string };
@@ -67,8 +82,27 @@ export function isReorderRepairArg(value: unknown): value is ReorderRepairArg {
  * `*Commands` arrays).
  */
 export class RepairQueue extends Schema {
+    /** Only QUEUED and ACTIVE operations — the ACTIVE one, if any, is always `operations[0]`. */
     @gameField([RepairOperation])
     operations = new ArraySchema<RepairOperation>();
+
+    /**
+     * DONE/CANCELLED operations, moved here off `operations` the instant they finish so the
+     * "ACTIVE is always operations[0]" invariant never has to account for a lingering terminal
+     * entry. Retained for `terminalSecondsRemaining` each so the crew can see a repair finished (or
+     * was cancelled) before the row disappears — see `RepairManager.tickRecentlyFinished`.
+     */
+    @gameField([RepairOperation])
+    recentlyFinished = new ArraySchema<RepairOperation>();
+
+    /**
+     * The reason the most recent enqueue command was refused (unknown protocol, above the ship's
+     * repair tier, no matching systems fitted, or the queue is full), shown to the crew for
+     * `refusalSecondsRemaining` — otherwise a refused click (e.g. the queue-length cap) just does
+     * nothing with no feedback. Empty string when there's nothing to show.
+     */
+    @gameField('string') refusalReason = '';
+    @gameField('float32') refusalSecondsRemaining = 0;
 
     // server only, used for commands
     public enqueueCommands = Array.of<EnqueueRepairArg>();

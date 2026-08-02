@@ -1,4 +1,11 @@
-import { Destructors, RepairOperationStatus, ShipDriver, repairCommands, repairProtocols } from '@starwards/core';
+import {
+    Destructors,
+    RepairOperationStatus,
+    ShipDriver,
+    getAvailableRepairProtocols,
+    repairCommands,
+    repairProtocols,
+} from '@starwards/core';
 import { addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
@@ -25,16 +32,30 @@ function protocolName(protocolId: string): string {
 
 /**
  * ECR damage-control queue: a catalog of repair protocols the Engineer can enqueue, and the live
- * queue (one active operation at a time) with per-operation cancel/reorder controls.
+ * queue (one active operation at a time) with per-operation cancel/reorder controls. Recently
+ * finished operations (done or cancelled) show read-only for a few seconds so the crew can see the
+ * outcome before the row disappears — see `RepairQueue.recentlyFinished`.
  */
 export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriver) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Repair Queue');
 
+    // a refused enqueue (unknown/unavailable/above-tier protocol, or a full queue) otherwise does
+    // nothing visible — this surfaces the server's reason for a few seconds (RepairQueue.refusalReason)
+    addTextBlade(
+        pane,
+        readProp<string>(shipDriver, '/repairQueue/refusalReason'),
+        { label: 'notice' },
+        panelCleanup.add,
+    );
+
     const catalogFolder = pane.addFolder({ title: 'Enqueue' });
     panelCleanup.add(() => catalogFolder.dispose());
     // this build slice hardcodes the ship's repair tier to 'field' (SPEC-0003); docked/shipyard
-    // protocols are refused server-side regardless, but hiding them here avoids a dead button
-    for (const [protocolId, protocol] of Object.entries(repairProtocols).filter(([, p]) => p.tier === 'field')) {
+    // protocols are refused server-side regardless, but hiding them here avoids a dead button.
+    // getAvailableRepairProtocols also drops protocols that target equipment this ship doesn't
+    // have fitted (e.g. no chain gun) — the server refuses those too, so hide them the same way.
+    const availableProtocols = getAvailableRepairProtocols(shipDriver.state, repairProtocols);
+    for (const [protocolId, protocol] of Object.entries(availableProtocols).filter(([, p]) => p.tier === 'field')) {
         addButton(
             catalogFolder,
             () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
@@ -44,6 +65,7 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
     }
 
     const operations = () => shipDriver.state.repairQueue.operations;
+    const recentlyFinished = () => shipDriver.state.repairQueue.recentlyFinished;
 
     let session = new Destructors();
     panelCleanup.add(() => session.destroy());
@@ -93,6 +115,16 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
                 }
             }
         });
+        recentlyFinished().forEach((op, index) => {
+            const row = pane.addFolder({ title: protocolName(op.protocolId) });
+            session.add(() => row.dispose());
+            addTextBlade(
+                row,
+                readProp<RepairOperationStatus>(shipDriver, `/repairQueue/recentlyFinished/${index}/status`),
+                { label: 'state', format: formatStatus },
+                session.add,
+            );
+        });
     }
 
     // each row's status TEXT and progress bar auto-update via their own live bindings, but the
@@ -102,6 +134,10 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
     const signature = () =>
         operations()
             .map((o) => `${o.id}:${o.status}`)
+            .join(',') +
+        '|' +
+        recentlyFinished()
+            .map((o) => o.id)
             .join(',');
     let lastSignature = '';
     const onQueueChange = () => {
@@ -113,9 +149,11 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
     };
     shipDriver.events.on('/repairQueue/operations', onQueueChange);
     shipDriver.events.on('/repairQueue/operations/**', onQueueChange);
+    shipDriver.events.on('/repairQueue/recentlyFinished', onQueueChange);
     panelCleanup.add(() => {
         shipDriver.events.off('/repairQueue/operations', onQueueChange);
         shipDriver.events.off('/repairQueue/operations/**', onQueueChange);
+        shipDriver.events.off('/repairQueue/recentlyFinished', onQueueChange);
     });
     onQueueChange();
 }

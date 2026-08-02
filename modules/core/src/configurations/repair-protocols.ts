@@ -12,19 +12,33 @@ export type RepairProtocolTier = 'field' | 'docked' | 'shipyard';
  * Top-level ShipState field a repair-protocol target lives on. Mirrors the
  * keys `getSystems()` reports (the first path segment of a system pointer,
  * e.g. `/thrusters/0` -> `thrusters`, `/chainGun` -> `chainGun`).
+ *
+ * Declared as a const array (not a bare union) so `isRepairableSystemKey` can validate a plain
+ * `string` read back off a `@gameField('string')` schema field at runtime — Colyseus schema wire
+ * types have no string-literal-union primitive, so `SavedPowerEntry.system` can't carry this type
+ * through serialization; a value read off it must be checked here before use.
  */
-export type RepairableSystemKey =
-    | 'thrusters'
-    | 'tubes'
-    | 'chainGun'
-    | 'radars'
-    | 'reactor'
-    | 'smartPilot'
-    | 'magazine'
-    | 'warp'
-    | 'docking'
-    | 'maneuvering'
-    | 'signals';
+export const REPAIRABLE_SYSTEM_KEYS = [
+    'thrusters',
+    'tubes',
+    'chainGun',
+    'radars',
+    'reactor',
+    'smartPilot',
+    'magazine',
+    'warp',
+    'docking',
+    'maneuvering',
+    'signals',
+] as const;
+
+export type RepairableSystemKey = (typeof REPAIRABLE_SYSTEM_KEYS)[number];
+
+const REPAIRABLE_SYSTEM_KEY_SET: ReadonlySet<string> = new Set(REPAIRABLE_SYSTEM_KEYS);
+
+export function isRepairableSystemKey(value: string): value is RepairableSystemKey {
+    return REPAIRABLE_SYSTEM_KEY_SET.has(value);
+}
 
 export type RepairProtocolTarget = {
     system: RepairableSystemKey;
@@ -126,7 +140,10 @@ export const powerTrainReset: RepairProtocolStats = {
     duration: 90,
     energyDraw: 1,
     heat: 30,
-    sideEffectSystems: ['reactor', 'warp', 'maneuvering'],
+    // does NOT include 'reactor': zeroing the reactor's own power would zero its regen for the
+    // operation's full 90s duration (effectiveness = broken ? 0 : power * hacked), which is an
+    // accident of the authored numbers, not a designed tradeoff (R1, PR #2030 review)
+    sideEffectSystems: ['warp', 'maneuvering'],
     tier: 'field',
 };
 
@@ -223,12 +240,18 @@ export function getRepairableSystemInstances(state: ShipState, key: RepairableSy
 }
 
 /**
- * Validates every target pointer and side-effect system in `catalog` against the real ship built
- * from `state` (SPEC-0003: "a bad pointer fails startup, not gameplay"). Called from
- * `makeShipState` for every ship built. Covers two independent ways a catalog entry can be wrong:
- * a target field that doesn't exist as `@defectible` anywhere (typo in `field`), and a target or
- * side-effect system that resolves to no live instance on this particular ship (typo in `system`,
- * or a ship design that legitimately lacks that system, e.g. no chain gun).
+ * Validates every target field in `catalog` against the real `@defectible` fields discovered on
+ * `state` (SPEC-0003: "a bad pointer fails startup, not gameplay"). Called from `makeShipState`
+ * for every ship built.
+ *
+ * A ship that simply lacks a system a protocol references (`chainGun` is nullable, a future hull
+ * might have no `tubes`, ...) is a normal configuration, not a catalog bug — `getProtocolAvailability`
+ * / `getAvailableRepairProtocols` filter those protocols out for that ship instead. This function
+ * only throws for what *is* a genuine catalog bug: a `field` that isn't a real `@defectible`
+ * anywhere on a system the ship actually has (a typo `RepairProtocolTarget.field` can't be caught
+ * by TypeScript, since it's a bare `string`). A target/side-effect system this ship doesn't have is
+ * silently skipped here — it contributes nothing to `known` either way, so it can never be
+ * mistaken for a validated field.
  */
 export function validateRepairCatalog(state: ShipState, catalog: Record<string, RepairProtocolStats>): void {
     const known = new Set<string>();
@@ -241,9 +264,7 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
     for (const [id, protocol] of Object.entries(catalog)) {
         for (const target of protocol.targets) {
             if (getRepairableSystemInstances(state, target.system).length === 0) {
-                throw new Error(
-                    `repair protocol "${id}" targets system "${target.system}" which does not exist on this ship`,
-                );
+                continue; // this ship doesn't have the system — not a catalog bug, see getProtocolAvailability
             }
             const key = `${target.system}/${target.field}`;
             if (!known.has(key)) {
@@ -252,12 +273,35 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
                 );
             }
         }
-        for (const sideEffectSystem of protocol.sideEffectSystems) {
-            if (getRepairableSystemInstances(state, sideEffectSystem).length === 0) {
-                throw new Error(
-                    `repair protocol "${id}" declares a side effect on system "${sideEffectSystem}" which does not exist on this ship`,
-                );
-            }
+    }
+}
+
+/**
+ * Whether `protocol` can run at all on `state` — i.e. every system it targets or declares a side
+ * effect on is actually fitted to this ship. This is the seam for "the protocols available to
+ * *this* ship": today it only checks system presence, but further applicability conditions (repair
+ * tier, current damage state, docking status, ...) are meant to layer onto this same function
+ * later, not be built as parallel filters elsewhere.
+ */
+export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolStats): boolean {
+    const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
+    return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
+}
+
+/**
+ * The subset of `catalog` that `isProtocolAvailable` on this particular ship — "the protocols
+ * available to this ship" as a real, reusable concept, rather than every caller (the enqueue
+ * command handler, the ECR catalog widget) re-deriving it independently.
+ */
+export function getAvailableRepairProtocols(
+    state: ShipState,
+    catalog: Record<string, RepairProtocolStats>,
+): Record<string, RepairProtocolStats> {
+    const available: Record<string, RepairProtocolStats> = {};
+    for (const [id, protocol] of Object.entries(catalog)) {
+        if (isProtocolAvailable(state, protocol)) {
+            available[id] = protocol;
         }
     }
+    return available;
 }

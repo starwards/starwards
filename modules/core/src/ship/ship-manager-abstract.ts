@@ -71,6 +71,9 @@ export function resetShipState(state: ShipState) {
         revertOperationSideEffects(state, op);
     }
     state.repairQueue.operations.splice(0);
+    state.repairQueue.recentlyFinished.splice(0);
+    state.repairQueue.refusalReason = '';
+    state.repairQueue.refusalSecondsRemaining = 0;
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));
     }

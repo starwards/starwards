@@ -154,5 +154,8 @@ export function drawDamageReport(container: WidgetContainer, shipDriver: ShipDri
     parent.append(mountPoint);
     const root = createRoot(mountPoint);
     root.render(React.createElement(component as React.ComponentType, defaultProps));
-    container.on('destroy', () => root.unmount());
+    container.on('destroy', () => {
+        root.unmount();
+        mountPoint.remove();
+    });
 }

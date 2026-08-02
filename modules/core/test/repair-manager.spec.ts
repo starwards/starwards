@@ -156,7 +156,25 @@ describe('RepairManager', () => {
         expect(before - state.reactor.energy).to.be.closeTo(10, 0.01);
     });
 
-    it('aborts the active operation all-or-nothing on energy shortfall: no restoration, side effects reverted', () => {
+    it('survives a brief energy dip within the grace window: no abort, nothing lost', () => {
+        const { state, repairManager } = setUpShip();
+        for (const thruster of state.thrusters) {
+            thruster.angleError = 5;
+        }
+        enqueue(state, 'fixThrusters');
+        tickOnce(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
+        expect(state.thrusters[0].power).to.equal(0);
+
+        state.reactor.energy = 0; // a momentary dip — well under ENERGY_STARVATION_GRACE_SECONDS
+        tickOnce(repairManager, 0.5);
+        state.reactor.energy = state.reactor.design.maxEnergy; // recovers
+
+        expect(state.repairQueue.operations).to.have.lengthOf(1);
+        expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
+        expect(state.thrusters[0].power).to.equal(0); // side effect still applied, op still running
+    });
+
+    it('aborts the active operation all-or-nothing on a SUSTAINED energy shortfall: no restoration, side effects reverted', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
             thruster.angleError = 5;
@@ -164,18 +182,14 @@ describe('RepairManager', () => {
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
         tickOnce(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
-
         expect(state.thrusters[0].power).to.equal(0);
 
-        state.reactor.energy = 0; // shortfall
-        tickOnce(repairManager, 0.1);
+        state.reactor.energy = 0; // sustained shortfall — longer than the grace window
+        runTicks(repairManager, 3, 20);
 
         // aborted: side effect reverted, target NOT restored to normal
         expect(state.thrusters[0].power).to.equal(priorPower);
         expect(state.thrusters[0].angleError).to.equal(5);
-
-        // operation is gone from the queue after one more tick (terminal cleanup)
-        tickOnce(repairManager, 0.1);
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
@@ -203,12 +217,10 @@ describe('RepairManager', () => {
 
         const activeOp = state.repairQueue.operations[0];
         cancel(state, activeOp.id);
-        tickOnce(repairManager, 0.1);
+        tickOnce(repairManager, 0.1); // abort moves it to recentlyFinished and promotes the next op, same tick
 
         // aborted: target not restored
         expect(state.thrusters[0].angleError).to.equal(5);
-
-        tickOnce(repairManager, 0.1); // terminal cleanup + promote next
         expect(state.repairQueue.operations).to.have.lengthOf(1);
         expect(state.repairQueue.operations[0].protocolId).to.equal('fixMagazine');
         expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
@@ -355,6 +367,73 @@ describe('RepairManager', () => {
         tickOnce(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
+    });
+
+    it('refuses to enqueue a protocol that targets a system this ship does not have, without throwing', () => {
+        const { state, repairManager } = setUpShip({
+            needsChainGun: {
+                name: 'Needs a chain gun',
+                targets: [{ system: 'chainGun', field: 'angleOffset' }],
+                duration: 10,
+                energyDraw: 1,
+                heat: 0,
+                sideEffectSystems: [],
+                tier: 'field',
+            },
+        });
+        state.chainGun = null; // simulate a ship design without a chain gun
+
+        enqueue(state, 'needsChainGun');
+        expect(() => tickOnce(repairManager, 0.1)).to.not.throw();
+
+        expect(state.repairQueue.operations).to.have.lengthOf(0);
+        expect(state.repairQueue.refusalReason).to.not.equal('');
+    });
+
+    it('shows a refusal notice for TERMINAL_DISPLAY_SECONDS when an enqueue is refused, then clears it', () => {
+        const { state, repairManager } = setUpShip();
+        for (let i = 0; i < 16; i++) {
+            enqueue(state, 'fixMagazine');
+        }
+        tickOnce(repairManager, 0.1); // fills the queue to the cap
+
+        enqueue(state, 'fixMagazine'); // refused: queue full
+        tickOnce(repairManager, 0.1);
+
+        expect(state.repairQueue.refusalReason).to.not.equal('');
+        expect(state.repairQueue.refusalSecondsRemaining).to.be.greaterThan(0);
+
+        runTicks(repairManager, 3, 20); // longer than TERMINAL_DISPLAY_SECONDS, no further enqueue attempts
+
+        expect(state.repairQueue.refusalReason).to.equal('');
+        expect(state.repairQueue.refusalSecondsRemaining).to.equal(0);
+    });
+
+    it('keeps a finished operation visible in recentlyFinished for TERMINAL_DISPLAY_SECONDS, then removes it', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine'); // duration 2s
+        runTicks(repairManager, 2.1, 20); // completes
+
+        expect(state.repairQueue.operations).to.have.lengthOf(0);
+        expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
+        expect(state.repairQueue.recentlyFinished[0].status).to.equal(RepairOperationStatus.DONE);
+
+        runTicks(repairManager, 3, 20); // longer than TERMINAL_DISPLAY_SECONDS
+
+        expect(state.repairQueue.recentlyFinished).to.have.lengthOf(0);
+    });
+
+    it('keeps a cancelled operation visible in recentlyFinished as CANCELLED, distinct from DONE', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine');
+        tickOnce(repairManager, 0.1);
+
+        const activeOp = state.repairQueue.operations[0];
+        cancel(state, activeOp.id);
+        tickOnce(repairManager, 0.1);
+
+        expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
+        expect(state.repairQueue.recentlyFinished[0].status).to.equal(RepairOperationStatus.CANCELLED);
     });
 
     it('a Schema.clone() + resetShipState cycle (NPC<->PC conversion) reverts a stranded side effect and empties the queue, without throwing', () => {

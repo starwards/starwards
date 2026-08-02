@@ -14,8 +14,9 @@ import { PowerLevel, SystemState } from './system';
 import {
     RepairProtocolStats,
     RepairProtocolTier,
-    RepairableSystemKey,
     getRepairableSystemInstances,
+    isProtocolAvailable,
+    isRepairableSystemKey,
     repairProtocols,
 } from '../configurations/repair-protocols';
 import { ShipState } from './ship-state';
@@ -34,6 +35,21 @@ const TIER_ORDER: Record<RepairProtocolTier, number> = { field: 0, docked: 1, sh
 export const MAX_REPAIR_QUEUE_LENGTH = 16;
 
 /**
+ * How long a brief energy dip (a chain-gun burst, another consumer's spike) may starve an active
+ * operation before it's treated as a *sustained* shortfall and aborted (R3, PR #2030 review round
+ * 2). Chosen to comfortably outlast a single weapon-fire tick's energy draw while still enforcing
+ * "sustained" — not validated against real playtest numbers, same caveat as the rest of the catalog.
+ */
+export const ENERGY_STARVATION_GRACE_SECONDS = 2;
+
+/**
+ * How long a DONE/CANCELLED operation stays visible in `RepairQueue.recentlyFinished`, and how long
+ * a refused-enqueue notice stays in `RepairQueue.refusalReason`, before being cleared (R4). Both are
+ * real-time durations, not tick counts — see the fields' own doc comments in `repair-queue.ts`.
+ */
+export const TERMINAL_DISPLAY_SECONDS = 2;
+
+/**
  * Reverts `op`'s declared side effects and clears the saved list. Called both by `RepairManager`
  * (done/cancelled) and by `resetShipState` (an operation left active across an NPC<->PC conversion
  * has no manager left to revert it otherwise — see `SavedPowerEntry`).
@@ -41,10 +57,20 @@ export const MAX_REPAIR_QUEUE_LENGTH = 16;
  * Only restores a saved `power` value if nothing else changed it since the side effect forced it —
  * a player who commanded power on the affected system mid-operation (or a GM, or a second
  * operation) has their intent honored; a stale snapshot never overwrites it.
+ *
+ * Known limitation (R7, PR #2030 review round 2): a player who *deliberately* powers the system
+ * down mid-operation is indistinguishable from the side effect itself (both read as
+ * `PowerLevel.SHUTDOWN`), so that specific case still gets silently reverted. Distinguishing it
+ * would need an ownership flag on every `@gameField` write this side effect could collide with —
+ * infrastructure this codebase has nowhere else and that's disproportionate to the edge case.
+ * Accepted as-is.
  */
 export function revertOperationSideEffects(state: ShipState, op: RepairOperation) {
     for (const entry of op.savedPower) {
-        const instance = getRepairableSystemInstances(state, entry.system as RepairableSystemKey)[entry.index];
+        if (!isRepairableSystemKey(entry.system)) {
+            continue; // defensive: the schema field is a plain string, not the union it represents
+        }
+        const instance = getRepairableSystemInstances(state, entry.system)[entry.index];
         if (instance && instance.power === PowerLevel.SHUTDOWN) {
             instance.power = entry.value;
         }
@@ -73,7 +99,9 @@ export interface RepairHeatSink {
  *
  * Invariant: whenever an operation is ACTIVE, it is always `operations[0]` — enforced by
  * `ensureActive` (only ever promotes the lowest-index QUEUED entry) and `drainReorderCommands`
- * (never moves a QUEUED entry to index 0 while one is active).
+ * (never moves a QUEUED entry to index 0 while one is active). DONE/CANCELLED operations never sit
+ * in `operations` at all — `finish()` moves them to `recentlyFinished` immediately — so this
+ * invariant never has to account for a lingering terminal entry.
  */
 export class RepairManager implements Updateable {
     constructor(
@@ -85,7 +113,8 @@ export class RepairManager implements Updateable {
     ) {}
 
     update({ deltaSeconds }: IterationData) {
-        this.removeTerminalOperations();
+        this.tickRecentlyFinished(deltaSeconds);
+        this.tickRefusalNotice(deltaSeconds);
         this.drainCancelCommands();
         this.drainReorderCommands();
         this.drainEnqueueCommands();
@@ -95,6 +124,10 @@ export class RepairManager implements Updateable {
 
     private get operations() {
         return this.state.repairQueue.operations;
+    }
+
+    private get recentlyFinished() {
+        return this.state.repairQueue.recentlyFinished;
     }
 
     /**
@@ -111,13 +144,32 @@ export class RepairManager implements Updateable {
         return this.operations.find((o) => o.status === RepairOperationStatus.ACTIVE);
     }
 
-    private removeTerminalOperations() {
-        for (let i = this.operations.length - 1; i >= 0; i--) {
-            const status = this.operations[i].status;
-            if (status === RepairOperationStatus.DONE || status === RepairOperationStatus.CANCELLED) {
-                this.operations.splice(i, 1);
+    /** Real-time countdown, not "one manager tick" — see `RepairOperation.terminalSecondsRemaining`. */
+    private tickRecentlyFinished(deltaSeconds: number) {
+        for (let i = this.recentlyFinished.length - 1; i >= 0; i--) {
+            const op = this.recentlyFinished[i];
+            op.terminalSecondsRemaining -= deltaSeconds;
+            if (op.terminalSecondsRemaining <= 0) {
+                this.recentlyFinished.splice(i, 1);
             }
         }
+    }
+
+    private tickRefusalNotice(deltaSeconds: number) {
+        const queue = this.state.repairQueue;
+        if (queue.refusalSecondsRemaining <= 0) {
+            return;
+        }
+        queue.refusalSecondsRemaining -= deltaSeconds;
+        if (queue.refusalSecondsRemaining <= 0) {
+            queue.refusalSecondsRemaining = 0;
+            queue.refusalReason = '';
+        }
+    }
+
+    private refuseEnqueue(reason: string) {
+        this.state.repairQueue.refusalReason = reason;
+        this.state.repairQueue.refusalSecondsRemaining = TERMINAL_DISPLAY_SECONDS;
     }
 
     private drainCancelCommands() {
@@ -146,8 +198,16 @@ export class RepairManager implements Updateable {
      * Moves the QUEUED operation named by each command to its requested index — never to index 0
      * while an operation is ACTIVE there (SPEC-0003: the active operation cannot be demoted, only
      * cancelled), preserving the "ACTIVE is always operations[0]" invariant. Uses only single-index
-     * replacement (never add/remove) so no `RepairOperation` instance is ever dropped and
-     * re-registered in the same change set.
+     * replacement (`ops[i] = ops[j]`), never `splice`'s add/remove.
+     *
+     * This still momentarily writes over the moved operation's own array slot before its final
+     * `ops[to] = op` (same category of change as `state.thrusters[i] = makeThruster(...)` during
+     * ship construction) — R6 (PR #2030 review round 2) raised whether that pattern is safe under
+     * Colyseus v3's refcount tracking across a client round trip. Settled, not just observed via
+     * e2e: `test/repair-queue-sync.spec.ts` drives a real `Encoder`/`Decoder` pair through exactly
+     * this reorder and asserts every operation's id/protocolId/progress on the decoded mirror — not
+     * just its length — matches the source after the move. No dropped ref, no swapped/duplicated
+     * instance.
      */
     private drainReorderCommands() {
         const commands: unknown[] = this.state.repairQueue.reorderCommands;
@@ -192,11 +252,20 @@ export class RepairManager implements Updateable {
             }
             const { protocolId }: EnqueueRepairArg = command;
             if (this.operations.length >= MAX_REPAIR_QUEUE_LENGTH) {
+                this.refuseEnqueue('repair queue is full');
                 continue;
             }
             const protocol = this.getProtocol(protocolId);
-            if (!protocol || TIER_ORDER[protocol.tier] > TIER_ORDER[this.tier]) {
-                // unknown protocol id, or above the ship's current repair tier: refused
+            if (!protocol) {
+                this.refuseEnqueue('unknown repair protocol');
+                continue;
+            }
+            if (TIER_ORDER[protocol.tier] > TIER_ORDER[this.tier]) {
+                this.refuseEnqueue(`${protocol.name} requires a higher repair tier than this ship has`);
+                continue;
+            }
+            if (!isProtocolAvailable(this.state, protocol)) {
+                this.refuseEnqueue(`${protocol.name} needs equipment this ship doesn't have`);
                 continue;
             }
             const op = new RepairOperation();
@@ -233,10 +302,15 @@ export class RepairManager implements Updateable {
             return;
         }
         if (!this.energySource.trySpendEnergy(protocol.energyDraw * deltaSeconds)) {
-            // energy shortfall: all-or-nothing abort, spent costs lost, no restoration
-            this.abort(active);
+            // brief dip: no progress/heat this tick, but the operation survives until the shortfall
+            // is sustained past the grace window (R3) — then it's still all-or-nothing
+            active.starvedSeconds += deltaSeconds;
+            if (active.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
+                this.abort(active);
+            }
             return;
         }
+        active.starvedSeconds = 0;
         this.applyHeat(protocol, deltaSeconds);
         active.progress = Math.min(1, active.progress + deltaSeconds / protocol.duration);
         if (active.progress >= 1) {
@@ -248,12 +322,24 @@ export class RepairManager implements Updateable {
         this.revertSideEffects(op);
         this.resetTargets(protocol);
         op.progress = 1;
-        op.status = RepairOperationStatus.DONE;
+        this.finish(op, RepairOperationStatus.DONE);
     }
 
     private abort(op: RepairOperation) {
         this.revertSideEffects(op);
-        op.status = RepairOperationStatus.CANCELLED;
+        this.finish(op, RepairOperationStatus.CANCELLED);
+    }
+
+    /** Moves `op` out of the live queue and into `recentlyFinished` for `TERMINAL_DISPLAY_SECONDS`. */
+    private finish(op: RepairOperation, status: RepairOperationStatus) {
+        op.status = status;
+        op.starvedSeconds = 0;
+        op.terminalSecondsRemaining = TERMINAL_DISPLAY_SECONDS;
+        const index = this.operations.indexOf(op);
+        if (index >= 0) {
+            this.operations.splice(index, 1);
+        }
+        this.recentlyFinished.push(op);
     }
 
     private resetTargets(protocol: RepairProtocolStats) {
@@ -272,6 +358,13 @@ export class RepairManager implements Updateable {
      * the distinct target *system keys* (SPEC-0003) — and, when a key resolves to more than one
      * live instance (e.g. all 6 thrusters), split evenly again across those instances so the total
      * delivered stays `protocol.heat` regardless of how many instances the ship happens to have.
+     *
+     * Consequence (R2, PR #2030 review round 2, confirmed as intended): repair heat on a
+     * multi-instance system can no longer push any *single* instance over the overheat threshold on
+     * its own the way a single-instance system's full budget can — the per-instance share is always
+     * a fraction of the total. The existing overheat-cascade test only exercises this because it
+     * targets `docking` (single-instance); a multi-instance system reaching overheat via repair heat
+     * alone would need a much larger `heat` budget than any current catalog entry declares.
      */
     private applyHeat(protocol: RepairProtocolStats, deltaSeconds: number) {
         if (protocol.heat <= 0) {
