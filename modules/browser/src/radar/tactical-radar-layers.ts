@@ -1,4 +1,4 @@
-import { Assets, Container, Texture } from 'pixi.js';
+import { Assets, Container, Graphics, Texture, UPDATE_PRIORITY } from 'pixi.js';
 import {
     ChainGun,
     ShipState,
@@ -59,6 +59,49 @@ export function crosshairs(root: CameraView, shipState: ShipState, chainGun: Cha
         deflectionCrosshairLayer.texture = texture;
     });
     return stage;
+}
+
+/**
+ * A mount's arc is a fixed structural limit, as fitted — unlike the scan beam's live sweep, it
+ * ignores `bearingSkew` and the mount's current `bearing`. `bearingLimit: 0` draws as a single line
+ * (a bolted mount with no traverse) and `bearingLimit: 180` as a full circle (unrestricted), rather
+ * than degenerating to an invisible wedge at either extreme.
+ */
+export function mountArc(root: CameraView, shipState: ShipState, chainGun: ChainGun) {
+    const graphics = new Graphics();
+    root.ticker.add(
+        () => {
+            graphics.clear();
+            const center = root.worldToScreen(shipState.position);
+            const radiusPixels = root.metersToPixles(chainGun.design.maxShellRange);
+            const centerAngle = degToRad * (shipState.angle + chainGun.fittedBearing - root.camera.angle);
+            const bearingLimit = chainGun.design.bearingLimit;
+            if (bearingLimit <= 0) {
+                const to = {
+                    x: center.x + radiusPixels * Math.cos(centerAngle),
+                    y: center.y + radiusPixels * Math.sin(centerAngle),
+                };
+                graphics.moveTo(center.x, center.y).lineTo(to.x, to.y);
+            } else if (bearingLimit >= 180) {
+                graphics.circle(center.x, center.y, radiusPixels);
+            } else {
+                const bearingLimitRad = degToRad * bearingLimit;
+                graphics.moveTo(center.x, center.y);
+                graphics.arc(
+                    center.x,
+                    center.y,
+                    radiusPixels,
+                    centerAngle - bearingLimitRad,
+                    centerAngle + bearingLimitRad,
+                );
+                graphics.lineTo(center.x, center.y);
+            }
+            graphics.stroke({ width: 1, color: radar.mountArc, alpha: 0.5 });
+        },
+        null,
+        UPDATE_PRIORITY.LOW,
+    );
+    return graphics;
 }
 
 export function speedLines(root: CameraView, shipState: ShipState, shipTarget: SelectionContainer) {

@@ -1,6 +1,6 @@
 import { Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { Projectile, ShipDriver, SpaceDriver, SpaceObject } from '@starwards/core';
-import { azimuthCircle, crosshairs, speedLines } from '../radar/tactical-radar-layers';
+import { azimuthCircle, crosshairs, mountArc, speedLines } from '../radar/tactical-radar-layers';
 import { green, radar, radarFogOfWar, radarVisibleBg } from '../colors';
 import { trackTargetObject, waitForShip } from '../ship-logic';
 
@@ -102,6 +102,9 @@ export async function drawTacticalRadar(
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
     for (const chainGun of shipDriver.state.chainGuns) {
         root.addLayer(crosshairs(root, shipDriver.state, chainGun, shipTarget));
+        const arc = mountArc(root, shipDriver.state, chainGun);
+        arc.mask = circleMask;
+        root.addLayer(arc);
     }
     root.addLayer(speedLines(root, shipDriver.state, shipTarget));
     // The weapons officer needs visual feedback of the shells they fire, even
