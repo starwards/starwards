@@ -5,12 +5,17 @@ import {
     repairProtocols,
     validateRepairCatalog,
 } from '../src/configurations/repair-protocols';
-import { demoShip, makeShipState } from '../src';
+import { demoShip, dragonflyMK2, makeShipState } from '../src';
 import { expect } from 'chai';
 
 describe('repair protocols catalog', () => {
     it('every catalog protocol targets real @defectible fields on the dragonfly ship', () => {
         const state = makeShipState('test-ship', demoShip);
+        expect(() => validateRepairCatalog(state, repairProtocols)).to.not.throw();
+    });
+
+    it('does not throw for a defectible declared on the system class but disabled on every instance this ship has (dragonfly-MK2 has only an omni radar — no radar with a skew surface)', () => {
+        const state = makeShipState('test-ship', dragonflyMK2);
         expect(() => validateRepairCatalog(state, repairProtocols)).to.not.throw();
     });
 
@@ -62,6 +67,13 @@ describe('repair protocols catalog', () => {
             },
         };
         expect(() => validateRepairCatalog(state, catalog)).to.not.throw();
+    });
+
+    it('a repair protocol targets radars/bearingSkew — scan beams declare a real skew surface (#2051 review)', () => {
+        const targeted = Object.values(repairProtocols).some((protocol) =>
+            protocol.targets.some((target) => target.system === 'radars' && target.field === 'bearingSkew'),
+        );
+        expect(targeted).to.equal(true);
     });
 
     describe('isProtocolAvailable / getAvailableRepairProtocols', () => {

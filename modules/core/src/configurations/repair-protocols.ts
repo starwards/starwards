@@ -1,5 +1,6 @@
-import { SystemState, getSystems } from '../ship/system';
+import { DEFECTIBLE_METADATA } from '../game-field';
 import { ShipState } from '../ship/ship-state';
+import { SystemState } from '../ship/system';
 
 /**
  * Ship-design-agnostic tier gate: a protocol above the ship's current repair
@@ -69,6 +70,7 @@ export const actuatorRecalibration: RepairProtocolStats = {
     targets: [
         { system: 'thrusters', field: 'bearingSkew' },
         { system: 'chainGuns', field: 'bearingSkew' },
+        { system: 'radars', field: 'bearingSkew' },
         { system: 'smartPilot', field: 'offsetFactor' },
     ],
     duration: 45,
@@ -241,34 +243,35 @@ export function getRepairableSystemInstances(state: ShipState, key: RepairableSy
 }
 
 /**
- * Validates every target field in `catalog` against the real `@defectible` fields discovered on
- * `state` (SPEC-0003: "a bad pointer fails startup, not gameplay"). Called from `makeShipState`
- * for every ship built.
+ * Validates every target field in `catalog` against the real `@defectible` fields declared on the
+ * system class(es) `state` carries for that key (SPEC-0003: "a bad pointer fails startup, not
+ * gameplay"). Called from `makeShipState` for every ship built.
+ *
+ * Checked against the raw `@defectible` decorator metadata, not `getSystems()`'s per-instance
+ * `enabled` gate: a defectible can be a real, correctly-spelled field that is simply inactive on
+ * every instance a particular hull happens to carry (radar `bearingSkew` is declared on every
+ * `Turret`, including omni radars, but only *enabled* where `design.maxBearingSkew > 0` — a hull
+ * whose only radar is an omni, e.g. dragonfly-MK2, would otherwise look like it has no such
+ * field at all). That is a normal per-hull configuration difference, not a catalog bug.
  *
  * A ship that simply lacks a system a protocol references (`warp` is nullable, a future hull
- * might have no `tubes` or `chainGuns`, ...) is a normal configuration, not a catalog bug — `getProtocolAvailability`
- * / `getAvailableRepairProtocols` filter those protocols out for that ship instead. This function
- * only throws for what *is* a genuine catalog bug: a `field` that isn't a real `@defectible`
- * anywhere on a system the ship actually has (a typo `RepairProtocolTarget.field` can't be caught
- * by TypeScript, since it's a bare `string`). A target/side-effect system this ship doesn't have is
- * silently skipped here — it contributes nothing to `known` either way, so it can never be
- * mistaken for a validated field.
+ * might have no `tubes` or `chainGuns`, ...) is likewise a normal configuration, not a catalog bug
+ * — `getProtocolAvailability` / `getAvailableRepairProtocols` filter those protocols out for that
+ * ship instead. This function only throws for what *is* a genuine catalog bug: a `field` that
+ * isn't a real `@defectible` name anywhere on a system the ship actually has (a typo
+ * `RepairProtocolTarget.field` can't be caught by TypeScript, since it's a bare `string`).
  */
 export function validateRepairCatalog(state: ShipState, catalog: Record<string, RepairProtocolStats>): void {
-    const known = new Set<string>();
-    for (const system of getSystems(state)) {
-        const topLevelKey = system.pointer.split('/')[1];
-        for (const defectible of system.defectibles) {
-            known.add(`${topLevelKey}/${defectible.field}`);
-        }
-    }
     for (const [id, protocol] of Object.entries(catalog)) {
         for (const target of protocol.targets) {
-            if (getRepairableSystemInstances(state, target.system).length === 0) {
+            const instances = getRepairableSystemInstances(state, target.system);
+            if (instances.length === 0) {
                 continue; // this ship doesn't have the system — not a catalog bug, see getProtocolAvailability
             }
-            const key = `${target.system}/${target.field}`;
-            if (!known.has(key)) {
+            const hasField = instances.some(
+                (instance) => Reflect.getMetadata(DEFECTIBLE_METADATA, instance, target.field) != null,
+            );
+            if (!hasField) {
                 throw new Error(
                     `repair protocol "${id}" targets unknown defectible field "${target.field}" on system "${target.system}"`,
                 );
