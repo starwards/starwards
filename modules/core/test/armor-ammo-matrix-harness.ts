@@ -1,0 +1,167 @@
+import {
+    AmmoType,
+    ArmorModelName,
+    ArmorModelStats,
+    ClusterWarheadMode,
+    ProjectileDesign,
+    WeaponDamageType,
+} from '../src';
+
+type MatrixRow = {
+    armor: ArmorModelName;
+    ammo: string;
+    damageType: WeaponDamageType;
+    delivery: 'impact' | 'explosion';
+    plateDamageFactor: number;
+    penetrationFactor: number;
+    /** health lost on the plate's own layer from a single shot */
+    damageDealt: number;
+    breachedOnFirstShot: boolean;
+    /** shots against the same plate until it breaks, or null if it never breaks within MAX_SHOTS */
+    shotsToBreach: number | null;
+    anomalies: string[];
+};
+
+type Matrix = { rows: MatrixRow[] };
+
+const MAX_SHOTS = 50;
+export const PLATE_MAX_HEALTH = 100;
+
+type AmmoRow = { key: string; damageType: WeaponDamageType; delivery: 'impact' | 'explosion'; amount: number };
+
+function rowsForAmmo(
+    ammo: AmmoType,
+    design: ProjectileDesign,
+    clusterWarheadModes: readonly ClusterWarheadMode[],
+): AmmoRow[] {
+    if (design.warheads) {
+        return clusterWarheadModes.map((mode) => {
+            const warhead = design.warheads![mode];
+            return {
+                key: `${ammo}:${mode}`,
+                damageType: warhead.damageType,
+                delivery: warhead.delivery,
+                amount: warhead.delivery === 'impact' ? warhead.damage : warhead.explosion.damageFactor,
+            };
+        });
+    }
+    return [
+        {
+            key: ammo,
+            damageType: design.damageType,
+            delivery: design.delivery,
+            amount: design.delivery === 'impact' ? design.damage : design.explosion.damageFactor,
+        },
+    ];
+}
+
+type Fixture = { fire: (damageType: WeaponDamageType, delivery: 'impact' | 'explosion', amount: number) => number };
+
+export function buildArmorAmmoMatrix({
+    armorModels,
+    ammoTypes,
+    ammoDesigns,
+    clusterWarheadModes,
+    createFixture,
+}: {
+    armorModels: Record<ArmorModelName, ArmorModelStats>;
+    ammoTypes: readonly AmmoType[];
+    ammoDesigns: Record<AmmoType, ProjectileDesign>;
+    clusterWarheadModes: readonly ClusterWarheadMode[];
+    createFixture: (model: ArmorModelName) => Fixture;
+}): Matrix {
+    const ammoRows = ammoTypes.flatMap((ammo) => rowsForAmmo(ammo, ammoDesigns[ammo], clusterWarheadModes));
+    const rows: MatrixRow[] = [];
+    for (const modelName of Object.keys(armorModels) as ArmorModelName[]) {
+        const stats = armorModels[modelName];
+        for (const ammoRow of ammoRows) {
+            const anomalies: string[] = [];
+            const plateDamageFactor = stats[`plateDamage_${ammoRow.damageType}`];
+            const penetrationFactor = stats[`penetration_${ammoRow.damageType}`];
+
+            // one fixture (one persistent plate) per cell — every shot in this cell's loop below
+            // lands on the same plate, accumulating like real repeated fire would
+            const fixture = createFixture(modelName);
+            const healthAfterFirstShot = fixture.fire(ammoRow.damageType, ammoRow.delivery, ammoRow.amount);
+            const damageDealt = PLATE_MAX_HEALTH - healthAfterFirstShot;
+            const breachedOnFirstShot = healthAfterFirstShot <= 0;
+
+            // informational only (per issue #2035: report raw numbers, don't pass judgment on
+            // balance) — a high or "never" shots-to-breach is not itself an anomaly
+            let shotsToBreach: number | null = null;
+            if (breachedOnFirstShot) {
+                shotsToBreach = 1;
+            } else if (damageDealt > 0) {
+                let shots = 1;
+                let health = healthAfterFirstShot;
+                while (health > 0 && shots < MAX_SHOTS) {
+                    health = fixture.fire(ammoRow.damageType, ammoRow.delivery, ammoRow.amount);
+                    shots++;
+                }
+                shotsToBreach = health <= 0 ? shots : null;
+            }
+
+            if (damageDealt === 0) {
+                anomalies.push('zero damage dealt to plate (armor may not engage this ammo type — verify intent)');
+            }
+            if (!Number.isFinite(damageDealt) || damageDealt < 0) {
+                anomalies.push(`invalid observed damage: ${damageDealt}`);
+            }
+
+            rows.push({
+                armor: modelName,
+                ammo: ammoRow.key,
+                damageType: ammoRow.damageType,
+                delivery: ammoRow.delivery,
+                plateDamageFactor,
+                penetrationFactor,
+                damageDealt: Number.isFinite(damageDealt) ? Math.max(damageDealt, 0) : damageDealt,
+                breachedOnFirstShot,
+                shotsToBreach,
+                anomalies,
+            });
+        }
+    }
+    return { rows };
+}
+
+export function matrixToMarkdown(matrix: Matrix): string {
+    const flagged = matrix.rows.filter((r) => r.anomalies.length > 0);
+    const lines: string[] = [];
+    lines.push('# Armor x Ammo QA Matrix');
+    lines.push('');
+    lines.push(
+        `Regenerated by \`modules/core/test/armor-ammo-matrix.spec.ts\` (run \`npm test -- modules/core/test/armor-ammo-matrix.spec.ts\`). Do not hand-edit — this file is overwritten on every run.`,
+    );
+    lines.push('');
+    lines.push(
+        `Methodology: each cell fires a single plate (100 max health, matching the dragonfly-SF22 baseline) with the ammo's own tuned per-shot magnitude (\`damage\` for impact ammo, \`explosion.damageFactor\` for explosion ammo), reusing the live \`DamageManager\`/armor resolution walk — the same code path a real hit takes in game. It is not a full blast-propagation simulation.`,
+    );
+    lines.push('');
+
+    if (flagged.length > 0) {
+        lines.push(`## ⚠ ${flagged.length} anomal${flagged.length === 1 ? 'y' : 'ies'} flagged`);
+        lines.push('');
+        for (const row of flagged) {
+            lines.push(`- **${row.armor} x ${row.ammo}**: ${row.anomalies.join('; ')}`);
+        }
+        lines.push('');
+    } else {
+        lines.push('## No anomalies flagged');
+        lines.push('');
+    }
+
+    lines.push('## Full matrix');
+    lines.push('');
+    lines.push(
+        '| Armor | Ammo | Damage Type | Delivery | plateDamage factor | penetration factor | Damage dealt (1st shot) | Breach on 1st shot | Shots to breach | Anomalies |',
+    );
+    lines.push('|---|---|---|---|---|---|---|---|---|---|');
+    for (const row of matrix.rows) {
+        lines.push(
+            `| ${row.armor} | ${row.ammo} | ${row.damageType} | ${row.delivery} | ${row.plateDamageFactor} | ${row.penetrationFactor} | ${row.damageDealt.toFixed(2)} | ${row.breachedOnFirstShot ? 'yes' : 'no'} | ${row.shotsToBreach ?? `> ${MAX_SHOTS}`} | ${row.anomalies.join('; ') || '-'} |`,
+        );
+    }
+    lines.push('');
+    return lines.join('\n');
+}
