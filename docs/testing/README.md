@@ -359,10 +359,11 @@ const ships = harness.createCombatScenario({ shipCount: 2 });
 
 **Location:** `modules/core/test/armor-ammo-matrix.spec.ts` (`modules/core/test/armor-ammo-matrix-harness.ts` builds the sweep)
 
-Fires every ammo type at every registered armor layer type (single plate, dragonfly-SF22 baseline) and regenerates `modules/core/test/armor-ammo-matrix-report.md` — a plain-language table of observed damage, breach outcome and shots-to-breach per cell, with zero-effect and invalid-value anomalies flagged at the top. It is a reporting tool, not a balance gate: run it and read the report, don't compare it against target numbers.
+Fires every ammo type at every registered armor layer type (single plate, dragonfly-SF22 baseline, pre-broken composite backing so the penetration channel is observable) and classifies each cell as Blocked / Transparent / Engages / Pops via `ArmorLayerDesignState.response()`, recording plate erosion plus resolved system damage on both the surface and penetration channels. The committed report `modules/core/test/armor-ammo-matrix-report.md` is drift-checked by `npm test` — a stale report fails CI. It is a reporting tool, not a balance gate: read the report, don't compare it against target numbers.
 
 ```bash
-npm test -- modules/core/test/armor-ammo-matrix.spec.ts
+# regenerate the committed report after a balance/armor-model change
+UPDATE_ARMOR_MATRIX_REPORT=1 npm test -- modules/core/test/armor-ammo-matrix.spec.ts
 ```
 
 ### Multi-Client Driver
