@@ -130,15 +130,15 @@ export class AutomationManager implements Updateable {
     /**
      * Points every chain-gun mount at the current target, hull-relative bearing only — no lead, no
      * can't-bear handling, no per-mount fire discipline (that belongs to the deferred NPC-aiming
-     * design). `updateTurret`'s arc clamp is what stops a mount from swinging past the hull it is
-     * bolted to; this only ever asks.
+     * design). `bearingCommand`'s own clamp is what stops a mount from swinging past the hull it
+     * is bolted to; this only ever asks.
      */
     private aimMountsAtTarget(target: SpaceObject) {
-        const bearing = toDegreesDelta(
+        const hullBearing = toDegreesDelta(
             XY.angleOf(XY.difference(target.position, this.state.position)) - this.state.angle,
         );
         for (const chainGun of this.state.chainGuns) {
-            chainGun.directionCommand = bearing;
+            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
         }
     }
 

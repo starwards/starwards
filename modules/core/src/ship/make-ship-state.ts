@@ -39,7 +39,7 @@ export type ShipDesign = {
 function makeThruster(design: ThrusterDesign, angle: ShipDirectionConfig, index: number): Thruster {
     const thruster = new Thruster();
     thruster.index = index;
-    thruster.angle = getDirectionFromConfig(angle);
+    thruster.fittedBearing = getDirectionFromConfig(angle);
     thruster.design.assign(design);
     return thruster;
 }
@@ -86,8 +86,9 @@ function makeShip(id: string, design: ShipPropertiesDesign) {
 
 function makeChainGun(design: ChaingunDesign, angle: ShipDirectionConfig) {
     const chainGun = new ChainGun();
-    // a mount starts out aimed where it is fitted, with nobody asking it to swing anywhere else
-    chainGun.fittedBearing = chainGun.direction = chainGun.directionCommand = getDirectionFromConfig(angle);
+    // bearing is mount-relative (0 = fitted), so simply fitting the mount is enough — nobody is
+    // asking it to swing anywhere else yet.
+    chainGun.fittedBearing = getDirectionFromConfig(angle);
     chainGun.design.assign(design);
     return chainGun;
 }
@@ -95,8 +96,7 @@ function makeChainGun(design: ChaingunDesign, angle: ShipDirectionConfig) {
 function makeTube(design: ChaingunDesign, angle: ShipDirectionConfig, index: number) {
     const tube = new Tube();
     tube.index = index;
-    // a mount starts out aimed where it is fitted, with nobody asking it to swing anywhere else
-    tube.direction = tube.directionCommand = getDirectionFromConfig(angle);
+    tube.fittedBearing = getDirectionFromConfig(angle);
     tube.design.assign(design);
     return tube;
 }

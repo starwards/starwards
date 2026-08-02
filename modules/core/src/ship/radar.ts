@@ -158,7 +158,7 @@ export class Radar extends Turret {
     public powered = true;
 
     get broken() {
-        return this.malfunctionRangeFactor >= 1 - this.design.rangeEaseFactor * 2;
+        return super.broken || this.malfunctionRangeFactor >= 1 - this.design.rangeEaseFactor * 2;
     }
 
     /**

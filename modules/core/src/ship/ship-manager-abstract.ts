@@ -101,7 +101,7 @@ export function resetShipState(state: ShipState) {
 }
 
 function resetThruster(thruster: Thruster) {
-    thruster.angleError = 0;
+    thruster.bearingSkew = 0;
     thruster.availableCapacity = 1.0;
 }
 export type ShipSystem =
@@ -298,7 +298,7 @@ export abstract class ShipManager implements Updateable {
             );
             radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
             sectors.push({
-                direction: toPositiveDegreesDelta(this.spaceObject.angle + radar.direction),
+                direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,
                 range: radar.range,
             });

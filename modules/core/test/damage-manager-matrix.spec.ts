@@ -238,7 +238,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             expect(state.warp!.damageFactor).to.be.greaterThan(0);
             // non-electronics untouched
             for (const thruster of state.thrusters) {
-                expect(thruster.angleError).to.equal(0);
+                expect(thruster.bearingSkew).to.equal(0);
                 expect(thruster.availableCapacity).to.equal(1);
             }
             expect(state.maneuvering.efficiency).to.equal(1);

@@ -262,8 +262,8 @@ export const longRangeRadarScenes: Record<string, Scene> = {
                 { direction: 45, arc: 20, range: 60_000 },
             ]);
             // the beam sweeps from 45 toward 70, so the outline leads the coverage it has now
-            playerShip.radars[1].direction = 45;
-            playerShip.radars[1].directionCommand = 70;
+            playerShip.radars[1].bearing = 45;
+            playerShip.radars[1].bearingCommand = 70;
 
             // inside the beam, far beyond the omni ring — visible only because of the beam
             const inBeam = createMockAsteroid({

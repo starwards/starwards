@@ -30,10 +30,10 @@ describe('radar collection (I1)', () => {
         const beam = state.radars[1];
         expect(beam.arc).to.be.a('number').and.to.be.lessThan(360);
         // steerable direction
-        expect(beam.direction).to.be.a('number');
-        const original = beam.direction;
-        beam.direction = original + 30;
-        expect(beam.direction).to.equal(original + 30);
+        expect(beam.bearing).to.be.a('number');
+        const original = beam.bearing;
+        beam.bearing = original + 30;
+        expect(beam.bearing).to.equal(original + 30);
         // narrower-than-widest design envelope
         expect(beam.design.minArc).to.be.lessThan(beam.design.maxArc);
     });

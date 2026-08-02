@@ -156,7 +156,7 @@ export async function drawLongRangeRadar(
             if (sectorRange <= 0 || radar.arc <= 0 || radar.arc >= 360) {
                 continue;
             }
-            const direction = ownShip.angle + radar.directionCommand;
+            const direction = radar.getGlobalCommandedBearing(shipDriver.state);
             const radiusPixels = root.metersToPixles(sectorRange);
             const fromAngle = degToRad * (direction - radar.arc / 2 - root.camera.angle);
             const toAngle = degToRad * (direction + radar.arc / 2 - root.camera.angle);

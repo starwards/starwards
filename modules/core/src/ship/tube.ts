@@ -1,5 +1,4 @@
 import { ChainGun } from './chain-gun';
-import { gameField } from '../game-field';
 import { getDirectionConfigFromAngle } from './ship-direction';
 
 export class Tube extends ChainGun {
@@ -9,12 +8,6 @@ export class Tube extends ChainGun {
 
     public readonly type = 'Tube';
     get name() {
-        return `Tube ${this.index} (${getDirectionConfigFromAngle(this.direction)})`;
+        return `Tube ${this.index} (${getDirectionConfigFromAngle(this.fittedBearing)})`;
     }
-
-    /**
-     * the index of tube in the parent ship
-     */
-    @gameField('int8')
-    index = 0;
 }

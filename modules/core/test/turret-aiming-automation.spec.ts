@@ -1,4 +1,13 @@
-import { Faction, Order, ShipManagerNpc, SpaceManager, Spaceship, makeShipState, shipConfigurations } from '../src';
+import {
+    Faction,
+    Order,
+    ShipManagerNpc,
+    SpaceManager,
+    Spaceship,
+    makeShipState,
+    shipConfigurations,
+    toDegreesDelta,
+} from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
 
 import { ShipDesign } from '../src/ship/make-ship-state';
@@ -38,8 +47,8 @@ describe('an NPC ship with multiple turreted mounts under attack orders', () => 
         spaceMgr.forceFlushEntities();
 
         const [fwdMount, aftMount] = shipMgr.state.chainGuns;
-        expect(fwdMount.direction).to.equal(0);
-        expect(aftMount.direction).to.equal(180);
+        expect(fwdMount.hullBearing).to.equal(0);
+        expect(aftMount.hullBearing).to.equal(180);
 
         shipMgr.state.order = Order.ATTACK;
         shipMgr.state.orderTargetId = targetObj.id;
@@ -49,9 +58,10 @@ describe('an NPC ship with multiple turreted mounts under attack orders', () => 
             spaceMgr.update(id);
         }
 
-        // both mounts converge on the same bearing toward the target...
-        expect(fwdMount.direction).to.be.closeTo(aftMount.direction, 2);
+        // both mounts converge on the same bearing toward the target (normalized: hullBearing is a
+        // plain sum of fittedBearing + bearingSkew + bearing, not itself wrapped to [-180, 180])...
+        expect(toDegreesDelta(fwdMount.hullBearing)).to.be.closeTo(toDegreesDelta(aftMount.hullBearing), 2);
         // ...which means the aft mount actually swung off the bearing it was fitted at
-        expect(aftMount.direction).to.not.be.closeTo(180, 2);
+        expect(toDegreesDelta(aftMount.hullBearing)).to.not.be.closeTo(180, 2);
     });
 });

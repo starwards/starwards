@@ -17,7 +17,7 @@ import { uniqueId } from '../id';
 const { error: logError } = createLogger('chain-gun');
 
 export function resetChainGun(chainGun: ChainGun) {
-    chainGun.angleOffset = 0;
+    chainGun.bearingSkew = 0;
     chainGun.rateOfFireFactor = 1;
     chainGun.shellRangeMode = SmartPilotMode.DIRECT;
 }
@@ -185,7 +185,7 @@ export class ChainGunManager implements Updateable {
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
             projectile.angle = gaussianRandom(
-                this.spaceObject.angle + chainGun.direction + chainGun.angleOffset,
+                chainGun.getGlobalBearing(this.state),
                 chainGun.design.bulletDegreesDeviation,
             );
             projectile.velocity = Vec2.sum(

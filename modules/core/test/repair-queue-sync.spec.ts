@@ -40,7 +40,7 @@ describe('RepairQueue reorder survives a Colyseus encode/decode round trip', () 
         const catalog: Record<string, RepairProtocolStats> = {
             protocolA: {
                 name: 'Protocol A',
-                targets: [{ system: 'thrusters', field: 'angleError' }],
+                targets: [{ system: 'thrusters', field: 'bearingSkew' }],
                 duration: 100,
                 energyDraw: 0,
                 heat: 0,

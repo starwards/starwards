@@ -65,6 +65,7 @@ export const chaingunPlatformChaingun = {
     energyCost: 1,
     // arc 360°, unrestricted: the whole platform slews to track its target
     turnSpeed: 45,
+    maxBearingSkew: 90,
 };
 
 export const chaingunPlatformReactor = {

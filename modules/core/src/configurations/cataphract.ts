@@ -12,7 +12,7 @@ export const cataphractThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
-    maxAngleError: 45,
+    maxBearingSkew: 45,
     capacity: 150,
     energyCost: 0.07,
     afterBurnerCapacity: 150,
@@ -72,13 +72,14 @@ export const cataphractChaingun = {
     damage50: 20,
     energyCost: 1,
     turnSpeed: 30,
-    arcWidth: 270,
+    maxBearingSkew: 90,
+    bearingLimit: 135,
 };
 
 /** Chin mount: same gun on a narrow 60° forward arc, for close-in work dead ahead. */
 export const cataphractChinChaingun = {
     ...cataphractChaingun,
-    arcWidth: 60,
+    bearingLimit: 30,
 };
 
 export const cataphractReactor = {
@@ -205,6 +206,7 @@ export const cataphractTube = {
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    maxBearingSkew: 90,
 };
 
 export const cataphract = {

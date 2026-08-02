@@ -16,7 +16,7 @@ import { resetShipState } from '../src/ship/ship-manager-abstract';
 const testCatalog: Record<string, RepairProtocolStats> = {
     fixThrusters: {
         name: 'Fix thruster offset',
-        targets: [{ system: 'thrusters', field: 'angleError' }],
+        targets: [{ system: 'thrusters', field: 'bearingSkew' }],
         duration: 2,
         energyDraw: 10,
         heat: 0,
@@ -43,7 +43,7 @@ const testCatalog: Record<string, RepairProtocolStats> = {
     },
     heatThrusters: {
         name: 'Heat-generating thruster fix',
-        targets: [{ system: 'thrusters', field: 'angleError' }],
+        targets: [{ system: 'thrusters', field: 'bearingSkew' }],
         duration: 4,
         energyDraw: 1,
         heat: 24,
@@ -124,13 +124,13 @@ describe('RepairManager', () => {
     it('completing an operation resets its targets to normal and clears DAMAGED status', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
-            thruster.angleError = 5;
+            thruster.bearingSkew = 5;
         }
         enqueue(state, 'fixThrusters');
         runTicks(repairManager, 2.1, 20);
 
         for (const thruster of state.thrusters) {
-            expect(thruster.angleError).to.equal(0);
+            expect(thruster.bearingSkew).to.equal(0);
         }
     });
 
@@ -159,7 +159,7 @@ describe('RepairManager', () => {
     it('survives a brief energy dip within the grace window: no abort, nothing lost', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
-            thruster.angleError = 5;
+            thruster.bearingSkew = 5;
         }
         enqueue(state, 'fixThrusters');
         tickOnce(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
@@ -177,7 +177,7 @@ describe('RepairManager', () => {
     it('aborts the active operation all-or-nothing on a SUSTAINED energy shortfall: no restoration, side effects reverted', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
-            thruster.angleError = 5;
+            thruster.bearingSkew = 5;
         }
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
@@ -189,7 +189,7 @@ describe('RepairManager', () => {
 
         // aborted: side effect reverted, target NOT restored to normal
         expect(state.thrusters[0].power).to.equal(priorPower);
-        expect(state.thrusters[0].angleError).to.equal(5);
+        expect(state.thrusters[0].bearingSkew).to.equal(5);
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
@@ -209,7 +209,7 @@ describe('RepairManager', () => {
     it('cancelling the active operation aborts it all-or-nothing, letting the next queued operation start', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
-            thruster.angleError = 5;
+            thruster.bearingSkew = 5;
         }
         enqueue(state, 'fixThrusters');
         enqueue(state, 'fixMagazine');
@@ -220,7 +220,7 @@ describe('RepairManager', () => {
         tickOnce(repairManager, 0.1); // abort moves it to recentlyFinished and promotes the next op, same tick
 
         // aborted: target not restored
-        expect(state.thrusters[0].angleError).to.equal(5);
+        expect(state.thrusters[0].bearingSkew).to.equal(5);
         expect(state.repairQueue.operations).to.have.lengthOf(1);
         expect(state.repairQueue.operations[0].protocolId).to.equal('fixMagazine');
         expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
@@ -288,7 +288,7 @@ describe('RepairManager', () => {
     it('does not overwrite a player-commanded power change on a side-effected system with a stale snapshot', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
-            thruster.angleError = 5;
+            thruster.bearingSkew = 5;
         }
         enqueue(state, 'fixThrusters');
         tickOnce(repairManager, 0.1); // promotes to active, side effect: thrusters power -> 0
@@ -314,7 +314,7 @@ describe('RepairManager', () => {
     it('declared side effects apply on activation and revert on completion', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {
-            thruster.angleError = 5;
+            thruster.bearingSkew = 5;
         }
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
@@ -373,7 +373,7 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip({
             needsChainGun: {
                 name: 'Needs a chain gun',
-                targets: [{ system: 'chainGuns', field: 'angleOffset' }],
+                targets: [{ system: 'chainGuns', field: 'bearingSkew' }],
                 duration: 10,
                 energyDraw: 1,
                 heat: 0,

@@ -192,20 +192,40 @@ export class DamageManager {
         smartPilot.offsetFactor += 0.01;
     }
 
+    /**
+     * An omni radar has no skew surface and no traverse to lose (`design.maxBearingSkew` and
+     * `design.turnSpeed` are both 0) — every hit routes to `malfunctionRangeFactor`, same as
+     * today. A scan-beam radar rolls across all four surfaces a mount can degrade on: range,
+     * turn speed, bearing skew and traverse limit. `damageRadarRange:` is kept as the seed id
+     * for the range branch — it is load-bearing for existing determinism.
+     */
     private damageRadar(radar: Radar, damageId: string) {
-        if (radar.design.turnSpeed <= 0 || this.die.getSuccess('damageRadarRange:' + damageId, 0.5)) {
+        if (radar.design.maxBearingSkew <= 0 && radar.design.turnSpeed <= 0) {
             radar.malfunctionRangeFactor += 0.05;
-        } else {
+            return;
+        }
+        if (this.die.getSuccess('damageRadarRange:' + damageId, 0.5)) {
+            radar.malfunctionRangeFactor += 0.05;
+            return;
+        }
+        const roll = this.die.getRollInRange('damageRadarSurface:' + damageId, 0, 3);
+        if (roll < 1) {
             radar.turnSpeedFactor *= 0.9;
+        } else if (roll < 2) {
+            radar.bearingSkew +=
+                limitPercision(this.die.getRollInRange('damageRadarSkew:' + damageId, 1, 2)) *
+                (this.die.getSuccess('damageRadarSkewSign:' + damageId, 0.5) ? 1 : -1);
+        } else {
+            radar.bearingLimitFactor *= 0.9;
         }
     }
 
     private damageThruster(thruster: Thruster, damageId: string) {
         if (this.die.getSuccess('damageThruster:' + damageId, 0.5)) {
-            thruster.angleError +=
+            thruster.bearingSkew +=
                 limitPercision(this.die.getRollInRange('thrusterAngleOffset:' + damageId, 1, 3)) *
                 (this.die.getSuccess('thrusterAngleSign:' + damageId, 0.5) ? 1 : -1);
-            thruster.angleError = capToRange(-180, 180, thruster.angleError);
+            thruster.bearingSkew = capToRange(-180, 180, thruster.bearingSkew);
         } else {
             thruster.availableCapacity -= limitPercision(
                 this.die.getRollInRange('availableCapacity:' + damageId, 0.01, 0.1),
@@ -215,7 +235,7 @@ export class DamageManager {
 
     private damageChainGun(chainGun: ChainGun, damageId: string) {
         if (this.die.getSuccess('damageChaingun:' + damageId, 0.5)) {
-            chainGun.angleOffset +=
+            chainGun.bearingSkew +=
                 limitPercision(this.die.getRollInRange('chainGunAngleOffset:' + damageId, 1, 2)) *
                 (this.die.getSuccess('chainGunAngleSign:' + damageId, 0.5) ? 1 : -1);
         } else {

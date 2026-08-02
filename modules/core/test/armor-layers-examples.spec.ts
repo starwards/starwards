@@ -241,7 +241,7 @@ describe('spec §9 worked examples', () => {
             expect(state.reactor.effeciencyFactor).to.be.lessThan(1);
             // non-electronics untouched ship-wide
             for (const thruster of state.thrusters) {
-                expect(thruster.angleError).to.equal(0);
+                expect(thruster.bearingSkew).to.equal(0);
                 expect(thruster.availableCapacity).to.equal(1);
             }
             expect(state.maneuvering.efficiency).to.equal(1);

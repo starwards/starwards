@@ -94,7 +94,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     expect(brokenInsideExplosion).to.equal(brokenTotal);
                     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
                     expect(shipMgr.state.chainGuns[0].broken).to.be.false;
-                    expect(shipMgr.state.chainGuns[0].angleOffset).to.equal(0);
+                    expect(shipMgr.state.chainGuns[0].bearingSkew).to.equal(0);
                     expect(shipMgr.state.chainGuns[0].rateOfFireFactor).to.equal(1);
                 },
             ),
@@ -181,7 +181,9 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     it('chaingun with attitude damage must fire at an offset', () => {
         fc.assert(
             fc.property(
-                float(1, 180),
+                // stays under the chain gun's design.maxBearingSkew (90) — beyond that the mount is
+                // considered broken and stops firing altogether, which is what this test is not about
+                float(1, 89),
                 fc.integer({ min: 15, max: 20 }),
                 (angleOffset: number, numIterationsPerSecond: number) => {
                     const spaceMgr = new SpaceManager();
@@ -196,7 +198,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    shipMgr.state.chainGuns[0].angleOffset = angleOffset;
+                    shipMgr.state.chainGuns[0].bearingSkew = angleOffset;
                     shipMgr.state.chainGuns[0].design.bulletDegreesDeviation = 0;
                     shipMgr.state.chainGuns[0].isFiring = true;
 
