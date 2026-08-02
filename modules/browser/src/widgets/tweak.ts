@@ -356,6 +356,9 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             });
             selectionContainer.events.addListener('changed', this.handleSelectionChange);
 
+            const speedProp = readWriteNumberProp(adminDriver, `/speed`);
+            addSliderBlade(this.pane, speedProp, { label: 'Game Speed' }, this.panelCleanup.add);
+
             const onPlayerShipChange = () => {
                 this.handleSelectionChange();
             };
