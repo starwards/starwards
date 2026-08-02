@@ -12,6 +12,7 @@ export const gravitasThruster = {
     modelName: 'RT-300 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
+    bearingLimit: 0,
     maxBearingSkew: 45,
     capacity: 300,
     energyCost: 0.07,
@@ -32,6 +33,8 @@ export const gravitasOmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 35_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const gravitasScanBeam = {
@@ -47,6 +50,8 @@ export const gravitasScanBeam = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 25_000,
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 
 export const gravitasChaingun = {
@@ -72,6 +77,7 @@ export const gravitasChaingun = {
     energyCost: 1,
     // bolted to the hull, facing forward: the ship is aimed by turning the ship
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 
@@ -201,6 +207,7 @@ export const gravitasTube = {
     use_ElecMissile: true,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 

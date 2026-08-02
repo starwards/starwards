@@ -9,6 +9,7 @@ export const glaiveThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
+    bearingLimit: 0,
     maxBearingSkew: 45,
     capacity: 150,
     energyCost: 0.07,
@@ -29,6 +30,8 @@ export const glaiveOmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 50_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const glaiveScanBeam = {
@@ -44,6 +47,8 @@ export const glaiveScanBeam = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 37_500,
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 
 /** Broadside mount: fitted PORT and STBD, each sweeping 180° centred on its own beam. */
@@ -197,6 +202,7 @@ export const glaiveTube = {
     use_ElecMissile: false,
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 

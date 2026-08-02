@@ -21,6 +21,8 @@ export const largeStationOmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 60_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const largeStationScanBeam = {
@@ -36,6 +38,8 @@ export const largeStationScanBeam = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 50_000,
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 
 export const largeStationReactor = {

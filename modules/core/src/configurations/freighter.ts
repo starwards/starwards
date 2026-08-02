@@ -9,6 +9,7 @@ export const freighterThruster = {
     modelName: 'RT-100 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
+    bearingLimit: 0,
     maxBearingSkew: 45,
     capacity: 100,
     energyCost: 0.07,
@@ -29,6 +30,8 @@ export const freighterOmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 20_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const freighterReactor = {

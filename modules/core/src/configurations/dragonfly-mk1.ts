@@ -9,6 +9,7 @@ export const dragonflyMK1Thruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
+    bearingLimit: 0,
     maxBearingSkew: 45,
     capacity: 300,
     energyCost: 0.07,
@@ -29,6 +30,8 @@ export const dragonflyMK1OmniRadar = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 10_000,
     turnSpeed: 0,
+    bearingLimit: 0,
+    maxBearingSkew: 0,
 };
 
 export const dragonflyMK1ScanBeam = {
@@ -44,6 +47,8 @@ export const dragonflyMK1ScanBeam = {
     rangeEaseFactor: 0.2,
     malfunctionRange: 15_000,
     turnSpeed: 30,
+    bearingLimit: 180,
+    maxBearingSkew: 45,
 };
 
 export const dragonflyMK1Chaingun = {
@@ -69,6 +74,7 @@ export const dragonflyMK1Chaingun = {
     energyCost: 1,
     // bolted to the hull, facing forward: the ship is aimed by turning the ship
     turnSpeed: 0,
+    bearingLimit: 0,
     maxBearingSkew: 90,
 };
 
