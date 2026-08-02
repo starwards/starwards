@@ -7,7 +7,7 @@ import {
     Spaceship,
     WeaponDamageType,
     damageProfiles,
-    dragonflySF22,
+    demoShip,
     makeShipState,
 } from '../src';
 
@@ -28,7 +28,7 @@ const FRONT_HIT_ARC: [number, number] = [...FRONT_ARC];
 function setUpLayeredShip(layers: ArmorLayerDesign[]): Fixture {
     const ship = new Spaceship();
     ship.id = 'test-ship';
-    const state = makeShipState(ship.id, { ...dragonflySF22, armor: { numberOfPlates: 12, layers } });
+    const state = makeShipState(ship.id, { ...demoShip, armor: { numberOfPlates: 12, layers } });
     const spaceManager = new SpaceManager();
     spaceManager.insert(ship);
     const damageManager = new DamageManager(ship, state, spaceManager, new MockDie());

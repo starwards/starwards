@@ -4,7 +4,7 @@ import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import { setOmniRadarSector } from '../src';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 // Build a single IterationData tick. ShipManagerAbstract.update takes
 // `IterationData`, not a raw delta number.
@@ -24,12 +24,7 @@ describe('ShipManagerAbstract.syncShipProperties (source-of-truth invariant)', (
         const spaceMgr = new SpaceManager();
         const shipObj = new Spaceship();
         shipObj.id = 'test-ship';
-        const shipMgr = new ShipManagerNpc(
-            shipObj,
-            makeShipState(shipObj.id, dragonflyConfig),
-            spaceMgr,
-            new MockDie(),
-        );
+        const shipMgr = new ShipManagerNpc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, new MockDie());
         spaceMgr.insert(shipObj);
         return { shipMgr, spaceMgr, shipObj };
     }

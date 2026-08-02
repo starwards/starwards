@@ -329,7 +329,7 @@
     - Type-safe design objects
 
 52. **Design Data as Configuration**
-    - [`ShipDesign`](../modules/core/src/configurations/dragonfly-sf-22.ts) plain objects
+    - [`ShipDesign`](../modules/core/src/configurations/demo-ship.ts) plain objects
     - Tuples for directional components
     - [`ShipDirectionConfig`](../modules/core/src/ship/ship-direction.ts) string aliases
     - JSON-serializable ship templates

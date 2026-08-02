@@ -45,6 +45,6 @@ penetrator family and reactive armor.
   everything once per cell and is depleted by sustained fire of any warhead — Tandem skips the
   attrition, Frag sands its externals for free.
 - Reactive is no longer free immunity: every defeated warhead costs a cell (12 on the
-  dragonfly), making cheap AP shells a viable "strip the ERA" tactic before a killing blow.
+  demo ship), making cheap AP shells a viable "strip the ERA" tactic before a killing blow.
 - Whipple's ArmPen/Tandem weakness changed in kind: plates stay intact but systems take full
   bypass damage immediately — the shield is simply irrelevant against penetrators.

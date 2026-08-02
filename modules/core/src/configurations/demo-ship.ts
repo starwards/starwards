@@ -1,13 +1,13 @@
 import { ShipDesign } from '../ship';
 
-export const dragonflyArmor = {
+export const demoShipArmor = {
     numberOfPlates: 12,
     // fighter-class plates: sized so a standard ArmPen missile (60 flat × plateDamage_ArmPen 2
     // = 120 erosion) breaches a plate in one direct hit
     layers: [{ type: 'composite' as const, plateMaxHealth: 100 }],
 };
 
-export const dragonflyThruster = {
+export const demoShipThruster = {
     modelName: 'RT-150 Vectored Thruster',
     isInternal: false,
     isElectronics: false,
@@ -17,7 +17,7 @@ export const dragonflyThruster = {
     afterBurnerCapacity: 300,
     damage50: 15,
 };
-export const dragonflyOmniRadar = {
+export const demoShipOmniRadar = {
     modelName: 'Argus-10k Phased Radar',
     isInternal: false,
     isElectronics: true,
@@ -33,7 +33,7 @@ export const dragonflyOmniRadar = {
     // the omni sweeps every bearing at once, so its mount has nothing to turn
     turnSpeed: 0,
 };
-export const dragonflyScanBeam = {
+export const demoShipScanBeam = {
     modelName: 'Lancet-20 Directional Scan Beam',
     isInternal: false,
     isElectronics: true,
@@ -49,7 +49,7 @@ export const dragonflyScanBeam = {
     // a full sweep from bow to stern takes 6 seconds at full effectiveness
     turnSpeed: 30,
 };
-export const dragonflyChaingun = {
+export const demoShipChaingun = {
     modelName: 'Hailstorm 20RPS Chaingun',
     isInternal: false,
     isElectronics: true,
@@ -73,7 +73,7 @@ export const dragonflyChaingun = {
     // bolted to the hull, facing forward: the ship is aimed by turning the ship
     turnSpeed: 0,
 };
-export const dragonflyReactor = {
+export const demoShipReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
@@ -83,12 +83,12 @@ export const dragonflyReactor = {
     energyHeat: 0.5,
     damage50: 20,
 };
-export const dragonflyProperties = {
-    modelName: 'Dragonfly SF-22 Frame',
+export const demoShipProperties = {
+    modelName: 'Demo Ship Frame',
     totalCoolant: 10,
     systemKillRatio: 0.5,
 };
-export const dragonflyMagazine = {
+export const demoShipMagazine = {
     modelName: 'Hornet Mk-II Magazine',
     isInternal: true,
     isElectronics: true,
@@ -105,7 +105,7 @@ export const dragonflyMagazine = {
     capacityBrokenThreshold: 0.15,
     capacityDamageFactor: 0.1,
 };
-export const dragonflySmartPilot = {
+export const demoShipSmartPilot = {
     modelName: 'Nimbus-3 Smart Pilot',
     isInternal: true,
     isElectronics: true,
@@ -117,7 +117,7 @@ export const dragonflySmartPilot = {
     maxSpeed: 300,
     maxSpeedFromAfterBurner: 300,
 };
-export const dragonflyTube = {
+export const demoShipTube = {
     modelName: 'Stinger Missile Tube',
     isInternal: false,
     isElectronics: true,
@@ -142,12 +142,12 @@ export const dragonflyTube = {
     // fixed tube: it launches along the bearing it is fitted at
     turnSpeed: 0,
 };
-export const dragonflyTargeting = {
+export const demoShipTargeting = {
     modelName: 'Falcon Targeting Computer',
     maxRange: 5_000,
     shortRange: 3_000,
 };
-export const dragonflyWarp = {
+export const demoShipWarp = {
     modelName: 'Voyager-X Warp Drive',
     isInternal: true,
     isElectronics: true,
@@ -161,7 +161,7 @@ export const dragonflyWarp = {
     baseDamagePerWarpSpeedPerSecond: 0.1,
     secondsToChangeFrequency: 10,
 };
-export const dragonflyDocking = {
+export const demoShipDocking = {
     modelName: 'Gripper-1 Docking Clamp',
     isInternal: false,
     isElectronics: true,
@@ -172,7 +172,7 @@ export const dragonflyDocking = {
     angle: -90,
     width: 45,
 };
-export const dragonflyManeuvering = {
+export const demoShipManeuvering = {
     modelName: 'Pivot-25 Maneuvering Suite',
     isInternal: true,
     isElectronics: false,
@@ -184,7 +184,7 @@ export const dragonflyManeuvering = {
     damage50: 20,
 };
 
-export const dragonflySignals = {
+export const demoShipSignals = {
     isInternal: false,
     isElectronics: true,
     damage50: 20,
@@ -192,26 +192,26 @@ export const dragonflySignals = {
     scanBaseDuration: 5,
 };
 
-export const dragonflySF22 = {
-    properties: dragonflyProperties,
-    chainGuns: [['FWD', dragonflyChaingun]],
+export const demoShip = {
+    properties: demoShipProperties,
+    chainGuns: [['FWD', demoShipChaingun]],
     thrusters: [
-        ['STBD', dragonflyThruster],
-        ['PORT', dragonflyThruster],
-        ['FWD', dragonflyThruster],
-        ['FWD', dragonflyThruster],
-        ['AFT', dragonflyThruster],
-        ['AFT', dragonflyThruster],
+        ['STBD', demoShipThruster],
+        ['PORT', demoShipThruster],
+        ['FWD', demoShipThruster],
+        ['FWD', demoShipThruster],
+        ['AFT', demoShipThruster],
+        ['AFT', demoShipThruster],
     ],
-    tubes: [['AFT', dragonflyTube]],
-    armor: dragonflyArmor,
-    radars: [dragonflyOmniRadar, dragonflyScanBeam],
-    smartPilot: dragonflySmartPilot,
-    reactor: dragonflyReactor,
-    magazine: dragonflyMagazine,
-    weaponsTarget: dragonflyTargeting,
-    warp: dragonflyWarp,
-    docking: dragonflyDocking,
-    maneuvering: dragonflyManeuvering,
-    signals: dragonflySignals,
+    tubes: [['AFT', demoShipTube]],
+    armor: demoShipArmor,
+    radars: [demoShipOmniRadar, demoShipScanBeam],
+    smartPilot: demoShipSmartPilot,
+    reactor: demoShipReactor,
+    magazine: demoShipMagazine,
+    weaponsTarget: demoShipTargeting,
+    warp: demoShipWarp,
+    docking: demoShipDocking,
+    maneuvering: demoShipManeuvering,
+    signals: demoShipSignals,
 } satisfies ShipDesign;

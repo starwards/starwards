@@ -1,4 +1,4 @@
-import { WarpFrequency, dragonflySF22, makeShipState } from '@starwards/core';
+import { WarpFrequency, demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -10,7 +10,7 @@ export const warpScenes: Record<string, Scene> = {
         name: 'warp-idle',
         description: 'Warp panel in idle state (level 0, not jammed)',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.warp!.currentLevel = 0;
             ship.warp!.desiredLevel = 0;
             ship.warp!.jammed = false;
@@ -29,7 +29,7 @@ export const warpScenes: Record<string, Scene> = {
         name: 'warp-jammed',
         description: 'Warp panel showing proximity jammed state',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.warp!.currentLevel = 0;
             ship.warp!.desiredLevel = 2;
             ship.warp!.jammed = true;
@@ -48,7 +48,7 @@ export const warpScenes: Record<string, Scene> = {
         name: 'warp-calibrating',
         description: 'Warp panel showing frequency calibration in progress',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.warp!.currentLevel = 0;
             ship.warp!.desiredLevel = 0;
             ship.warp!.jammed = false;
@@ -67,7 +67,7 @@ export const warpScenes: Record<string, Scene> = {
         name: 'warp-active',
         description: 'Warp panel with active warp (level > 0)',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.warp!.currentLevel = 3;
             ship.warp!.desiredLevel = 3;
             ship.warp!.jammed = false;

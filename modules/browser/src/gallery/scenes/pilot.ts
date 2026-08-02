@@ -1,4 +1,4 @@
-import { SmartPilotMode, TargetedStatus, dragonflySF22, makeShipState } from '@starwards/core';
+import { SmartPilotMode, TargetedStatus, demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -10,7 +10,7 @@ export const pilotScenes: Record<string, Scene> = {
         name: 'pilot-dashboard-stationary',
         description: 'Pilot dashboard with ship at rest',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.spaceship.velocity.x = 0;
             ship.spaceship.velocity.y = 0;
             ship.spaceship.angle = 0;
@@ -32,7 +32,7 @@ export const pilotScenes: Record<string, Scene> = {
         name: 'pilot-dashboard-moving',
         description: 'Pilot dashboard with ship in motion',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.spaceship.velocity.x = 100;
             ship.spaceship.velocity.y = 50;
             ship.spaceship.angle = 45;
@@ -56,7 +56,7 @@ export const pilotScenes: Record<string, Scene> = {
         name: 'pilot-dashboard-target-mode',
         description: 'Pilot dashboard with TARGET mode active',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.spaceship.velocity.x = 200;
             ship.spaceship.velocity.y = 0;
             ship.spaceship.angle = 90;

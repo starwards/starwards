@@ -14,14 +14,14 @@ import {
 import { expect } from 'chai';
 import { resetShipState } from '../src/ship/ship-manager-abstract';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 function createShipSetup(Ctor: typeof ShipManagerPc | typeof ShipManagerNpc) {
     const spaceMgr = new SpaceManager();
     const shipObj = new Spaceship();
     shipObj.id = '1';
     const die = new MockDie();
-    const shipMgr = new Ctor(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+    const shipMgr = new Ctor(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
     die.expectedRoll = 1;
     spaceMgr.insert(shipObj);
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -146,7 +146,7 @@ describe('automation order on NPC ships', () => {
 
 describe('resetShipState clears orders', () => {
     it('clears order fields and currentTask', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.order = Order.ATTACK;
         state.orderTargetId = 'target-1';
@@ -176,7 +176,7 @@ describe('NPC to PC conversion clears stale currentTask', () => {
         spaceMgr.insert(shipObj);
 
         // Build an NPC state with stale task info (as would exist during NPC→PC conversion)
-        const npcState = makeShipState(shipObj.id, dragonflyConfig);
+        const npcState = makeShipState(shipObj.id, demoShipConfig);
         npcState.order = Order.MOVE;
         npcState.orderPosition.x = 5000;
         npcState.orderPosition.y = 2000;
@@ -192,7 +192,7 @@ describe('NPC to PC conversion clears stale currentTask', () => {
     });
 
     it('clears smartPilot automation state', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.smartPilot.maneuvering.x = 0.8;
         state.smartPilot.maneuvering.y = -0.5;

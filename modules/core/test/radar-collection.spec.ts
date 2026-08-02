@@ -2,11 +2,11 @@ import { PowerLevel, ShipArea, getSystems, makeShipState, shipConfigurations } f
 
 import { expect } from 'chai';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 describe('radar collection (I1)', () => {
     it('makeShipState builds a radars collection with at least two radars', () => {
-        const state = makeShipState('1', dragonflyConfig);
+        const state = makeShipState('1', demoShipConfig);
         // ArraySchema-like: indexable + has a numeric length
         expect(state.radars).to.not.equal(undefined);
         expect(state.radars.length).to.be.at.least(2);
@@ -15,7 +15,7 @@ describe('radar collection (I1)', () => {
     });
 
     it('radars[0] is the 360 omni radar', () => {
-        const state = makeShipState('1', dragonflyConfig);
+        const state = makeShipState('1', demoShipConfig);
         const omni = state.radars[0];
         expect(omni.design.range).to.be.a('number').and.to.be.greaterThan(0);
         expect(omni.design.area).to.be.a('number');
@@ -26,7 +26,7 @@ describe('radar collection (I1)', () => {
     });
 
     it('radars[1] is the steerable directional scan-beam radar', () => {
-        const state = makeShipState('1', dragonflyConfig);
+        const state = makeShipState('1', demoShipConfig);
         const beam = state.radars[1];
         expect(beam.arc).to.be.a('number').and.to.be.lessThan(360);
         // steerable direction
@@ -39,7 +39,7 @@ describe('radar collection (I1)', () => {
     });
 
     it('every radar is a SystemState (power/effectiveness/broken)', () => {
-        const state = makeShipState('1', dragonflyConfig);
+        const state = makeShipState('1', demoShipConfig);
         for (const radar of state.radars) {
             expect(radar.power).to.equal(PowerLevel.NORMAL);
             expect(radar.effectiveness).to.be.a('number');
@@ -48,14 +48,14 @@ describe('radar collection (I1)', () => {
     });
 
     it('getSystems discovers both radars at /radars/0 and /radars/1', () => {
-        const state = makeShipState('1', dragonflyConfig);
+        const state = makeShipState('1', demoShipConfig);
         const pointers = getSystems(state).map((s) => s.pointer);
         expect(pointers).to.include('/radars/0');
         expect(pointers).to.include('/radars/1');
     });
 
     it('systemsByAreas(front) enumerates BOTH radar instances', () => {
-        const state = makeShipState('1', dragonflyConfig);
+        const state = makeShipState('1', demoShipConfig);
         const frontSystems = state.systemsByAreas(ShipArea.front);
         expect(frontSystems).to.include(state.radars[0]);
         expect(frontSystems).to.include(state.radars[1]);

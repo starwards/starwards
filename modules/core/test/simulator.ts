@@ -15,7 +15,7 @@ import { Die } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 import { makeIterationsData } from './ship-test-harness';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 const MAX_SIMULATION_TIME = 60 * 60 * 24;
 export class SpaceSimulator {
@@ -30,7 +30,7 @@ export class SpaceSimulator {
         return this;
     }
     withShip(ship: Spaceship, die: Die, shipManagerCtor: typeof ShipManagerPc | typeof ShipManagerNpc) {
-        const shipMgr = new shipManagerCtor(ship, makeShipState(ship.id, dragonflyConfig), this.spaceMgr, die);
+        const shipMgr = new shipManagerCtor(ship, makeShipState(ship.id, demoShipConfig), this.spaceMgr, die);
         this.updateables.push(shipMgr);
         if (isUpdateable(die)) {
             this.updateables.push(die);

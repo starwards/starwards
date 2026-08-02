@@ -1,4 +1,4 @@
-import { dragonflySF22, makeShipState } from '@starwards/core';
+import { demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -10,7 +10,7 @@ export const targetingScenes: Record<string, Scene> = {
         name: 'targeting-no-target',
         description: 'Targeting panel with no target selected',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.weaponsTarget.targetId = '';
             ship.weaponsTarget.shipOnly = false;
             ship.weaponsTarget.enemyOnly = false;
@@ -27,7 +27,7 @@ export const targetingScenes: Record<string, Scene> = {
         name: 'targeting-ship-target',
         description: 'Targeting panel with a ship targeted',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.weaponsTarget.targetId = 'enemy-ship-001';
             ship.weaponsTarget.shipOnly = true;
             ship.weaponsTarget.enemyOnly = true;
@@ -44,7 +44,7 @@ export const targetingScenes: Record<string, Scene> = {
         name: 'targeting-filters-active',
         description: 'Targeting panel with all filters active',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.weaponsTarget.targetId = '';
             ship.weaponsTarget.shipOnly = true;
             ship.weaponsTarget.enemyOnly = true;
