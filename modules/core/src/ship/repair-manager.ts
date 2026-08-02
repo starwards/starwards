@@ -1,6 +1,6 @@
 import { IterationData, Updateable } from '../updateable';
 import { PowerLevel, SystemState, getSystems } from './system';
-import { RepairOperation, RepairOperationStatus } from './repair-queue';
+import { RepairOperation, RepairOperationStatus, SavedPowerEntry } from './repair-queue';
 import {
     RepairProtocolStats,
     RepairProtocolTier,
@@ -12,7 +12,54 @@ import { makeId } from '../id';
 
 const TIER_ORDER: Record<RepairProtocolTier, number> = { field: 0, docked: 1, shipyard: 2 };
 
-type SavedPower = { key: RepairableSystemKey; index: number; value: number };
+/**
+ * Resolves a catalog target/side-effect system key to its live instance(s) on `state`. Standalone
+ * (not a `RepairManager` method) so `revertOperationSideEffects` can run without a live manager —
+ * needed by `resetShipState` on an NPC<->PC conversion, where no `RepairManager` for the cloned
+ * state exists yet.
+ */
+export function getRepairableSystemInstances(state: ShipState, key: RepairableSystemKey): SystemState[] {
+    switch (key) {
+        case 'thrusters':
+            return [...state.thrusters];
+        case 'tubes':
+            return [...state.tubes];
+        case 'chainGun':
+            return state.chainGun ? [state.chainGun] : [];
+        case 'radars':
+            return [...state.radars];
+        case 'reactor':
+            return [state.reactor];
+        case 'smartPilot':
+            return [state.smartPilot];
+        case 'magazine':
+            return [state.magazine];
+        case 'warp':
+            return [state.warp];
+        case 'docking':
+            return [state.docking];
+        case 'maneuvering':
+            return [state.maneuvering];
+        case 'signals':
+            return [state.signals];
+    }
+}
+
+/**
+ * Reverts `op`'s declared side effects (restores each saved `power` value) and clears the saved
+ * list. Called both by `RepairManager` (done/cancelled) and by `resetShipState` (an operation
+ * left active across an NPC<->PC conversion has no manager left to revert it otherwise — see
+ * `SavedPowerEntry`).
+ */
+export function revertOperationSideEffects(state: ShipState, op: RepairOperation) {
+    for (const entry of op.savedPower) {
+        const instance = getRepairableSystemInstances(state, entry.system as RepairableSystemKey)[entry.index];
+        if (instance) {
+            instance.power = entry.value;
+        }
+    }
+    op.savedPower.splice(0);
+}
 
 /**
  * Deliberately narrower than `EnergySource`/`HeatSink` in `ship-manager-abstract.ts` (which
@@ -34,8 +81,6 @@ export interface RepairHeatSink {
  * `damage-manager.ts` / `heat-manager.ts`.
  */
 export class RepairManager implements Updateable {
-    private savedPower = new Map<string, SavedPower[]>();
-
     constructor(
         private state: ShipState,
         private energySource: RepairEnergySource,
@@ -185,6 +230,12 @@ export class RepairManager implements Updateable {
         }
     }
 
+    /**
+     * `protocol.heat` is a fixed total budget added over `protocol.duration`, split evenly across
+     * the distinct target *system keys* (SPEC-0003) — and, when a key resolves to more than one
+     * live instance (e.g. all 6 thrusters), split evenly again across those instances so the total
+     * delivered stays `protocol.heat` regardless of how many instances the ship happens to have.
+     */
     private applyHeat(protocol: RepairProtocolStats, deltaSeconds: number) {
         if (protocol.heat <= 0) {
             return;
@@ -195,64 +246,31 @@ export class RepairManager implements Updateable {
         }
         const perKeyHeatPerSecond = protocol.heat / protocol.duration / uniqueKeys.length;
         for (const key of uniqueKeys) {
-            for (const instance of this.getSystemInstances(key)) {
-                this.heatSink.addHeat(perKeyHeatPerSecond * deltaSeconds, instance);
+            const instances = getRepairableSystemInstances(this.state, key);
+            if (instances.length === 0) {
+                continue;
+            }
+            const perInstanceHeatPerSecond = perKeyHeatPerSecond / instances.length;
+            for (const instance of instances) {
+                this.heatSink.addHeat(perInstanceHeatPerSecond * deltaSeconds, instance);
             }
         }
     }
 
     private applySideEffects(op: RepairOperation, protocol: RepairProtocolStats) {
-        if (protocol.sideEffectSystems.length === 0) {
-            return;
-        }
-        const saved: SavedPower[] = [];
         for (const key of protocol.sideEffectSystems) {
-            this.getSystemInstances(key).forEach((instance, index) => {
-                saved.push({ key, index, value: instance.power });
+            getRepairableSystemInstances(this.state, key).forEach((instance, index) => {
+                const entry = new SavedPowerEntry();
+                entry.system = key;
+                entry.index = index;
+                entry.value = instance.power;
+                op.savedPower.push(entry);
                 instance.power = PowerLevel.SHUTDOWN;
             });
         }
-        this.savedPower.set(op.id, saved);
     }
 
     private revertSideEffects(op: RepairOperation) {
-        const saved = this.savedPower.get(op.id);
-        if (!saved) {
-            return;
-        }
-        for (const { key, index, value } of saved) {
-            const instance = this.getSystemInstances(key)[index];
-            if (instance) {
-                instance.power = value;
-            }
-        }
-        this.savedPower.delete(op.id);
-    }
-
-    private getSystemInstances(key: RepairableSystemKey): SystemState[] {
-        switch (key) {
-            case 'thrusters':
-                return [...this.state.thrusters];
-            case 'tubes':
-                return [...this.state.tubes];
-            case 'chainGun':
-                return this.state.chainGun ? [this.state.chainGun] : [];
-            case 'radars':
-                return [...this.state.radars];
-            case 'reactor':
-                return [this.state.reactor];
-            case 'smartPilot':
-                return [this.state.smartPilot];
-            case 'magazine':
-                return [this.state.magazine];
-            case 'warp':
-                return [this.state.warp];
-            case 'docking':
-                return [this.state.docking];
-            case 'maneuvering':
-                return [this.state.maneuvering];
-            case 'signals':
-                return [this.state.signals];
-        }
+        revertOperationSideEffects(this.state, op);
     }
 }

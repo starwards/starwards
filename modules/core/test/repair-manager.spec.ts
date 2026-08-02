@@ -39,6 +39,15 @@ const testCatalog: Record<string, RepairProtocolStats> = {
         sideEffectSystems: [],
         tier: 'field',
     },
+    heatThrusters: {
+        name: 'Heat-generating thruster fix',
+        targets: [{ system: 'thrusters', field: 'angleError' }],
+        duration: 4,
+        energyDraw: 1,
+        heat: 24,
+        sideEffectSystems: [],
+        tier: 'field',
+    },
     dockedOnly: {
         name: 'Docked-tier only',
         targets: [{ system: 'reactor', field: 'effeciencyFactor' }],
@@ -233,6 +242,15 @@ describe('RepairManager', () => {
         expect(state.docking.heat).to.be.closeTo(20, 0.01);
     });
 
+    it('declared heat is a fixed total budget, not multiplied by the target system instance count', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'heatThrusters');
+        tickOnce(repairManager, 1); // 1s tick, protocol.heat=24 over duration=4s -> +6 total this tick
+
+        const totalHeat = state.thrusters.reduce((sum, t) => sum + t.heat, 0);
+        expect(totalHeat).to.be.closeTo(6, 0.01);
+    });
+
     it('repair heat pushing an already-hot system over the overheat threshold causes new damage', () => {
         const { state, repairManager } = setUpShip();
         state.docking.heat = 90;
@@ -271,5 +289,18 @@ describe('RepairManager', () => {
 
         expect(() => tickOnce(clonedManager, 0.1)).to.not.throw();
         expect(cloned.repairQueue.operations).to.have.lengthOf(0);
+    });
+
+    it('reverts a side effect left active by a Schema.clone() + resetShipState cycle, instead of leaving it stuck', () => {
+        const { state, repairManager } = setUpShip();
+        const priorPower = state.thrusters[0].power;
+        enqueue(state, 'fixThrusters');
+        tickOnce(repairManager, 0.1); // promotes to active, applies the side effect: thrusters power -> 0
+        expect(state.thrusters[0].power).to.equal(0);
+
+        const cloned = state.clone();
+        resetShipState(cloned);
+
+        expect(cloned.thrusters[0].power).to.equal(priorPower);
     });
 });

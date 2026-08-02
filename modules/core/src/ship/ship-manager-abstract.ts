@@ -36,6 +36,7 @@ import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
+import { revertOperationSideEffects } from './repair-manager';
 import { sinWave } from '../logic';
 
 const { error: logError } = createLogger('ship-manager');
@@ -63,6 +64,12 @@ export function resetShipState(state: ShipState) {
     }
     state.smartPilot.offsetFactor = 0;
     state.signals.jobs.splice(0);
+    // an operation left ACTIVE across this reset (e.g. NPC<->PC conversion) has no RepairManager
+    // left to revert its side effects later — do it here or the affected system's power stays
+    // pinned at 0 forever (see SavedPowerEntry / revertOperationSideEffects).
+    for (const op of state.repairQueue.operations) {
+        revertOperationSideEffects(state, op);
+    }
     state.repairQueue.operations.splice(0);
     for (const at of ammoTypes) {
         state.magazine.setCount(at, state.magazine.getMax(at));

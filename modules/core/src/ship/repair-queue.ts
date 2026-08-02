@@ -9,6 +9,19 @@ export enum RepairOperationStatus {
     CANCELLED,
 }
 
+/**
+ * A system's `power` before a repair operation's declared side effect forced it to 0, so it can
+ * be restored on completion/cancellation. `@gameField` (not a plain server-only field) so it
+ * survives `Schema.clone()` — an NPC<->PC conversion mid-operation must still be able to revert
+ * the side effect via `revertOperationSideEffects` (see `repair-manager.ts`), which needs no live
+ * `RepairManager` instance to do so.
+ */
+export class SavedPowerEntry extends Schema {
+    @gameField('string') system = '';
+    @gameField('uint8') index = 0;
+    @gameField('float32') value = 0;
+}
+
 export class RepairOperation extends Schema {
     @gameField('string') id = '';
     @gameField('string') protocolId = '';
@@ -17,6 +30,9 @@ export class RepairOperation extends Schema {
     @range([0, 1])
     @gameField('float32')
     progress = 0;
+
+    @gameField([SavedPowerEntry])
+    savedPower = new ArraySchema<SavedPowerEntry>();
 }
 
 export type EnqueueRepairArg = { protocolId: string };
