@@ -3,6 +3,7 @@ import { getKeys } from '../utils';
 
 export * from './armor-models';
 export * from './dragonfly-sf-22';
+export * from './repair-protocols';
 
 export const shipConfigurations = {
     'dragonfly-SF22': dragonflySF22,

@@ -19,8 +19,10 @@ import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { KeysRangeConfig } from '../input/input-config';
 import { drawArmorStatus } from '../widgets/armor';
+import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { drawRepairQueue } from '../widgets/repair-queue';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
@@ -76,6 +78,8 @@ async function initScreen(driver: Driver, shipId: string) {
     }
     drawFullSystemsStatus(container.subContainer(VPos.MIDDLE, HPos.MIDDLE), shipDriver, shipDriver.systems);
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
+    drawDamageReport(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver);
+    drawRepairQueue(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
 }
 
 function systemLabel(pointer: string): string {

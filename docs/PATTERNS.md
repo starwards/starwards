@@ -217,6 +217,18 @@ Test fixtures fire `Number.MAX_SAFE_INTEGER` damage (`modules/core/test/ship-man
 ### ShipDie Event Rolls Are Deterministic Per Id
 `getRoll`/`getSuccess`/`getRollInRange` are pure hashes of (seed, id) — the same id returns the identical value forever (no time salt; drift rolls are the time-varying kind). Any repeated roll — per-tick explosion streams reusing one damage id, multiple rolls within one event — silently degenerates to a constant unless the key includes a counter or index (see the defect roll keys in `damageSystem`, `modules/core/src/ship/damage-manager.ts`). Details in the doc comment in `modules/core/src/ship/ship-die.ts`.
 
+### Simulation Behaviour Must Be Decoupled From Engine Tick Rate
+Anything the player can observe, or that affects game state, must be expressed in seconds (via `deltaSeconds`), never in ticks. A quantity measured in "one manager tick" silently changes meaning whenever the tick rate changes, and is invisible whenever the tick is shorter than the network patch interval — which it always is: the simulation loop runs far faster than a Colyseus room's `patchRate` (default 50ms), so a value that lives for exactly one tick (~16ms) is gone before it can ever appear in an outgoing patch.
+```typescript
+// ✗ Wrong — retained for "one more manager tick", invisible at normal patch rates
+if (op.status === DONE) queue.splice(index, 1);
+
+// ✓ Correct — retained for a real-time duration, long enough to survive a patch
+op.secondsRemaining -= deltaSeconds;
+if (op.secondsRemaining <= 0) queue.splice(index, 1);
+```
+Found via `RepairManager`'s terminal-operation cleanup (`modules/core/src/ship/repair-manager.ts`): DONE/CANCELLED operations were spliced out after exactly one `update()` call, so a completed or cancelled repair's status never reached the client — both just made the row vanish. Fixed by giving the operation a `terminalSecondsRemaining` field ticked down in real time instead.
+
 ### JSON Pointer Paths
 ```typescript
 // ✗ Wrong
