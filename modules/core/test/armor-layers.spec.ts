@@ -2,7 +2,7 @@ import { makeShipState, resetShipState, shipConfigurations } from '../src';
 
 import { expect } from 'chai';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 const layeredArmor = {
     numberOfPlates: 12,
@@ -13,14 +13,14 @@ const layeredArmor = {
 };
 
 function makeLayeredState(id = 'test-ship') {
-    return makeShipState(id, { ...dragonflyConfig, armor: layeredArmor });
+    return makeShipState(id, { ...demoShipConfig, armor: layeredArmor });
 }
 
 describe('armor layer stacks', () => {
     it('makeArmor rejects a non-composite innermost layer', () => {
         expect(() =>
             makeShipState('test-ship', {
-                ...dragonflyConfig,
+                ...demoShipConfig,
                 armor: { numberOfPlates: 12, layers: [{ type: 'reactive', plateMaxHealth: 100 }] },
             }),
         ).to.throw();

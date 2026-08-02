@@ -13,7 +13,7 @@ import {
 import { expect } from 'chai';
 import { resetShipState } from '../src/ship/ship-manager-abstract';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     afterEach(() => {
@@ -25,7 +25,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         const shipObj = new Spaceship();
         shipObj.id = '1';
         const die = new MockDie();
-        const shipMgr = new shipManagerCtor(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+        const shipMgr = new shipManagerCtor(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
         die.expectedRoll = 1;
         spaceMgr.insert(shipObj);
         shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -88,7 +88,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('resetShipState resets command fields', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.afterBurnerCommand = 1;
         state.rotationModeCommand = true;
@@ -104,7 +104,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('resetShipState restores reactor energy to max', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.reactor.energy = 0;
 
@@ -114,7 +114,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('resetShipState restores afterburner fuel to max', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.maneuvering.afterBurnerFuel = 0;
 
@@ -124,7 +124,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('resetShipState resets radar malfunctionRangeFactor', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.radars[0].malfunctionRangeFactor = 0.5;
 
@@ -134,7 +134,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('resetShipState restores magazine count', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.magazine.count_HiExpShell = 0;
 
@@ -144,7 +144,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('resetShipState clears hull damage', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
         state.hullDamaged = true;
 
@@ -155,25 +155,25 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
     });
 
     it('ship systems carry the modelName configured in the ship design', () => {
-        const state = makeShipState('test', dragonflyConfig);
+        const state = makeShipState('test', demoShipConfig);
 
-        expect(state.design.modelName).to.equal(dragonflyConfig.properties.modelName);
-        expect(state.radars[0].design.modelName).to.equal(dragonflyConfig.radars[0].modelName);
-        expect(state.reactor.design.modelName).to.equal(dragonflyConfig.reactor.modelName);
-        expect(state.smartPilot.design.modelName).to.equal(dragonflyConfig.smartPilot.modelName);
-        expect(state.magazine.design.modelName).to.equal(dragonflyConfig.magazine.modelName);
-        expect(state.weaponsTarget.design.modelName).to.equal(dragonflyConfig.weaponsTarget.modelName);
-        expect(state.warp!.design.modelName).to.equal(dragonflyConfig.warp.modelName);
-        expect(state.docking.design.modelName).to.equal(dragonflyConfig.docking.modelName);
-        expect(state.maneuvering.design.modelName).to.equal(dragonflyConfig.maneuvering.modelName);
+        expect(state.design.modelName).to.equal(demoShipConfig.properties.modelName);
+        expect(state.radars[0].design.modelName).to.equal(demoShipConfig.radars[0].modelName);
+        expect(state.reactor.design.modelName).to.equal(demoShipConfig.reactor.modelName);
+        expect(state.smartPilot.design.modelName).to.equal(demoShipConfig.smartPilot.modelName);
+        expect(state.magazine.design.modelName).to.equal(demoShipConfig.magazine.modelName);
+        expect(state.weaponsTarget.design.modelName).to.equal(demoShipConfig.weaponsTarget.modelName);
+        expect(state.warp!.design.modelName).to.equal(demoShipConfig.warp.modelName);
+        expect(state.docking.design.modelName).to.equal(demoShipConfig.docking.modelName);
+        expect(state.maneuvering.design.modelName).to.equal(demoShipConfig.maneuvering.modelName);
         for (const [index, chainGun] of state.chainGuns.entries()) {
-            expect(chainGun.design.modelName).to.equal(dragonflyConfig.chainGuns[index][1].modelName);
+            expect(chainGun.design.modelName).to.equal(demoShipConfig.chainGuns[index][1].modelName);
         }
         for (const thruster of state.thrusters) {
-            expect(thruster.design.modelName).to.equal(dragonflyConfig.thrusters[thruster.index][1].modelName);
+            expect(thruster.design.modelName).to.equal(demoShipConfig.thrusters[thruster.index][1].modelName);
         }
         for (const tube of state.tubes) {
-            expect(tube.design.modelName).to.equal(dragonflyConfig.tubes[tube.index][1].modelName);
+            expect(tube.design.modelName).to.equal(demoShipConfig.tubes[tube.index][1].modelName);
         }
     });
 

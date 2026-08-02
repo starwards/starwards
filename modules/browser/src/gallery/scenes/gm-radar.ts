@@ -1,5 +1,5 @@
 import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
-import { Faction, dragonflySF22, makeShipState } from '@starwards/core';
+import { Faction, demoShip, makeShipState } from '@starwards/core';
 import { blue, radarVisibleBg, red, yellow } from '../../colors';
 import { createMockAsteroid, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../../radar/blips/blip-renderer';
@@ -51,7 +51,7 @@ function addFovRendering(root: CameraView, mockSpaceDriver: ReturnType<typeof cr
 }
 
 function createFactionShip(id: string, x: number, y: number, faction: Faction, angle = 0) {
-    const state = makeShipState(id, dragonflySF22);
+    const state = makeShipState(id, demoShip);
     state.spaceship.position.x = x;
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;

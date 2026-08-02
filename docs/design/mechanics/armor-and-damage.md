@@ -49,7 +49,7 @@ Overheat cascades: one overheating system can break, reducing the ship's capabil
 ## Weapons (Done)
 
 Three engagement circles:
-- **Close (< 1000m):** ChainGun — rapid-fire, three shell types (HiExp / ArmPen / Frag; dragonfly magazine 2400/1200/2000)
+- **Close (< 1000m):** ChainGun — rapid-fire, three shell types (HiExp / ArmPen / Frag; demo ship magazine 2400/1200/2000)
 - **Medium (1000-4000m):** Railgun — charge time weapon (planned, not built)
 - **Long (4000m+):** Missiles — six homing types incl. dual-mode Cluster (per-type speed/agility/lifetime, 100m proximity detonation; see the [Damage Model Spec](damage-model-spec.md) ammo catalog)
 

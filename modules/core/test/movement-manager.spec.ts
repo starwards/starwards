@@ -3,7 +3,7 @@ import { ShipManagerPc, SmartPilotMode, SpaceManager, Spaceship, XY, makeShipSta
 
 import { expect } from 'chai';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 describe('MovementManager', () => {
     let spaceMgr: SpaceManager;
@@ -16,7 +16,7 @@ describe('MovementManager', () => {
         shipObj = new Spaceship();
         shipObj.id = '1';
         die = new MockDie();
-        shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+        shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
         die.expectedRoll = 1;
         spaceMgr.insert(shipObj);
         shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -56,7 +56,7 @@ describe('MovementManager', () => {
     });
 
     it('a ship built with warp: null does not throw during construction or a tick', () => {
-        const warplessState = makeShipState('warpless', { ...dragonflyConfig, warp: null });
+        const warplessState = makeShipState('warpless', { ...demoShipConfig, warp: null });
         expect(warplessState.warp).to.equal(null);
 
         const warplessShipObj = new Spaceship();

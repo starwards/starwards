@@ -893,8 +893,8 @@ export function shieldWidget(shipDriver: ShipDriver): DashboardWidget {
 **7. Add Configuration:**
 
 ```typescript
-// modules/core/src/configurations/dragonfly-sf-22.ts
-export const dragonflyConfig = {
+// modules/core/src/configurations/demo-ship.ts
+export const demoShipConfig = {
     // ... other systems
     shield: {
         maxStrength: 1000,

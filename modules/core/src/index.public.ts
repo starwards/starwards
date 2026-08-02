@@ -12,7 +12,7 @@ export { AdminDriver, ClientStatus, Driver, ShipDriver, SpaceDriver, Status } fr
 export type { ShipDriverRead, SpaceEventEmitter } from './client';
 
 // --- configurations ---
-export { dragonflySF22, getAvailableRepairProtocols, repairProtocols, shipModels } from './configurations';
+export { demoShip, getAvailableRepairProtocols, repairProtocols, shipModels } from './configurations';
 export type { RepairProtocolName, RepairProtocolStats, ShipModel } from './configurations';
 
 // --- events ---

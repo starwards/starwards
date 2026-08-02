@@ -1,11 +1,4 @@
-import {
-    JobStatus,
-    SignalsJob,
-    applyRadarSectors,
-    dragonflySF22,
-    makeShipState,
-    setOmniRadarSector,
-} from '@starwards/core';
+import { JobStatus, SignalsJob, applyRadarSectors, demoShip, makeShipState, setOmniRadarSector } from '@starwards/core';
 import { createMockAsteroid, createMockShip, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
 
 import { Scene } from './index';
@@ -18,7 +11,7 @@ const DEFAULT_RANGE = 50_000;
 const RADAR_RANGE = 60_000;
 
 function createShipWithState(id: string, x = 0, y = 0, angle = 0, radarRange = RADAR_RANGE) {
-    const state = makeShipState(id, dragonflySF22);
+    const state = makeShipState(id, demoShip);
     state.spaceship.position.x = x;
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;

@@ -9,7 +9,7 @@ import {
     WeaponDamageType,
     ammoDesigns,
     damageProfiles,
-    dragonflySF22,
+    demoShip,
     makeShipState,
 } from '../src';
 
@@ -43,7 +43,7 @@ const HI_EXP_MISSILE_BLAST = ammoDesigns.HiExpMissile.explosion.damageFactor; //
 function setUpLayeredShip(layers: ArmorLayerDesign[], die: Die = new MockDie()): Fixture {
     const ship = new Spaceship();
     ship.id = 'test-ship';
-    const state = makeShipState(ship.id, { ...dragonflySF22, armor: { numberOfPlates: 12, layers } });
+    const state = makeShipState(ship.id, { ...demoShip, armor: { numberOfPlates: 12, layers } });
     const spaceManager = new SpaceManager();
     spaceManager.insert(ship);
     const damageManager = new DamageManager(ship, state, spaceManager, die);
@@ -136,7 +136,7 @@ describe('spec §9 worked examples', () => {
         // vs the dragonfly's plateMaxHealth 100. A "direct hit" lands on a single plate, not
         // spread across the whole front arc, so this narrows the hit to one plate's own width.
         it('one ArmPen missile direct hit breaches a fighter plate', () => {
-            const { state, damageManager } = setUpLayeredShip([...dragonflySF22.armor.layers]);
+            const { state, damageManager } = setUpLayeredShip([...demoShip.armor.layers]);
             const singlePlateArc: [number, number] = [FRONT_ARC[0], FRONT_ARC[0] + 20];
             const damaged = damageManager.takeWeaponDamage({
                 ...frontDamage(ARM_PEN_MISSILE_DAMAGE, 'ArmPen', 'impact'),

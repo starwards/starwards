@@ -1,6 +1,6 @@
 import { MockDie, makeIterationsData } from './ship-test-harness';
 import { cancelRepair, enqueueRepair, reorderRepair } from '../src/ship/repair-commands';
-import { dragonflySF22, makeShipState } from '../src';
+import { demoShip, makeShipState } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
@@ -63,7 +63,7 @@ const testCatalog: Record<string, RepairProtocolStats> = {
 
 function setUpShip(catalog: Record<string, RepairProtocolStats> = testCatalog) {
     const shipId = 'test-ship';
-    const state = makeShipState(shipId, dragonflySF22);
+    const state = makeShipState(shipId, demoShip);
     state.reactor.energy = state.reactor.design.maxEnergy;
     const spaceObject = new Spaceship();
     spaceObject.id = shipId;

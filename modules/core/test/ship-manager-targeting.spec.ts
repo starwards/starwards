@@ -18,7 +18,7 @@ import { ShipManager } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 import { setOmniRadarSector } from '../src';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 // Behavior tests for the weapons-target lifecycle, targeted status, radar
 // malfunction and magazine clamping in ShipManager (ship-manager-abstract.ts).
@@ -35,7 +35,7 @@ function setup() {
         setOmniRadarSector(obj, 10_000);
         const die = new MockDie();
         die.expectedRoll = 1;
-        const mgr = new ShipManagerPc(obj, makeShipState(id, dragonflyConfig), spaceMgr, die, ships);
+        const mgr = new ShipManagerPc(obj, makeShipState(id, demoShipConfig), spaceMgr, die, ships);
         mgr.state.spaceship.faction = faction; // normally synced from the space object on update
         ships.set(id, mgr);
         spaceMgr.insert(obj);

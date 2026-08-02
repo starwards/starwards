@@ -315,7 +315,7 @@ flight; the ArmPenShell is contact-fuzed.
 | TandemMissile  | 420       | 936 deg/s | 60s         | **contact**                              |
 | ElecMissile    | 780       | 720 deg/s | 96s         | **contact**                              |
 
-Shells: 5 heat per shot; missiles: 25. Dragonfly magazine: 2400 / 1200 / 2000 shells,
+Shells: 5 heat per shot; missiles: 25. Demo ship magazine: 2400 / 1200 / 2000 shells,
 12 / 6 / 8 / 6 / 4 / 4 missiles (HiExp / ArmPen / Frag / Cluster / Tandem / Elec).
 
 ## 9. Worked examples
@@ -323,7 +323,7 @@ Shells: 5 heat per shot; missiles: 25. Dragonfly magazine: 2400 / 1200 / 2000 sh
 **ArmPen missile vs intact Composite:** contact, one event, amount 60. Armor row 2/0: the
 struck plate erodes 120; on a capital-grade plate (1000 HP) exposure stays 0 (plates intact,
 no penetration), so **no system damage** — armor did its job; repeat hits break the plate,
-then the assassin gets in. On a fighter-class plate (the dragonfly's 100 HP composite) the
+then the assassin gets in. On a fighter-class plate (the demo ship's 100 HP composite) the
 same 120 erosion **breaches the plate in one direct hit**, and the exposure opens within the
 same event.
 
@@ -367,7 +367,7 @@ Frag sands the externals the entire time regardless of the stack.
 | `damage50`, defect sizes                             | per-system designs                 | system toughness           |
 
 Fighter-class plates are sized so a standard ArmPen missile breaches a plate in one direct
-hit: the dragonfly's composite `plateMaxHealth` is 100, against ArmPenMissile erosion of
+hit: the demo ship's composite `plateMaxHealth` is 100, against ArmPenMissile erosion of
 60 × 2 = 120 — while ArmPenShell (30 × 2 = 60) and Tandem (50 × 1 = 50) need two hits, and a
 full HiExpMissile blast (~17.5 × 1 per plate) about six.
 

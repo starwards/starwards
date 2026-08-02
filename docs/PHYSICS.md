@@ -170,7 +170,7 @@ Resolved hits are applied through `damageSystem()`: the damage profile's `system
 
 ### Sectional Armor
 
-Armor is modeled as N equal radial plates stored in an `ArraySchema<ArmorPlate>` (`modules/core/src/ship/armor.ts`; e.g. 12 plates for the dragonfly design). Each plate spans `360/numberOfPlates` degrees, with its angular position derived from its array index rather than a stored angle. Each plate holds `layers = ArraySchema<ArmorLayer>` — outermost first, indexed in lockstep with `Armor.layerDesigns` — and each layer carries `health`/`maxHealth`, with `plateMaxHealth` set per layer by the matching `ArmorLayerDesignState`. `plate.broken` is a getter: true only when every layer of the plate is down.
+Armor is modeled as N equal radial plates stored in an `ArraySchema<ArmorPlate>` (`modules/core/src/ship/armor.ts`; e.g. 12 plates for the demo ship design). Each plate spans `360/numberOfPlates` degrees, with its angular position derived from its array index rather than a stored angle. Each plate holds `layers = ArraySchema<ArmorLayer>` — outermost first, indexed in lockstep with `Armor.layerDesigns` — and each layer carries `health`/`maxHealth`, with `plateMaxHealth` set per layer by the matching `ArmorLayerDesignState`. `plate.broken` is a getter: true only when every layer of the plate is down.
 
 ## Explosion Propagation
 

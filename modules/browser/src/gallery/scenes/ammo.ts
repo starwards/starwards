@@ -1,4 +1,4 @@
-import { dragonflySF22, makeShipState } from '@starwards/core';
+import { demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -10,7 +10,7 @@ export const ammoScenes: Record<string, Scene> = {
         name: 'ammo-full',
         description: 'Ammunition panel with full ammo',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             // Magazine is initialized with full ammo by makeShipState
 
             const mockContainer = createMockContainer(container, 250, 200);
@@ -24,7 +24,7 @@ export const ammoScenes: Record<string, Scene> = {
         name: 'ammo-low',
         description: 'Ammunition panel with low ammo',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.magazine.count_HiExpShell = Math.round(ship.magazine.max_HiExpShell * 0.2);
             ship.magazine.count_ArmPenShell = Math.round(ship.magazine.max_ArmPenShell * 0.2);
             ship.magazine.count_FragShell = Math.round(ship.magazine.max_FragShell * 0.1);
@@ -46,7 +46,7 @@ export const ammoScenes: Record<string, Scene> = {
         name: 'ammo-empty',
         description: 'Ammunition panel with no ammo',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             ship.magazine.count_HiExpShell = 0;
             ship.magazine.count_ArmPenShell = 0;
             ship.magazine.count_FragShell = 0;

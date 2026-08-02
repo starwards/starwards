@@ -10,7 +10,7 @@ Multiple radar types serve different stations:
 - **Navigator radar** (Navigator) — warp topology overlay (designed, not built)
 - **Long-range radar** (Signals) — extended range for intelligence (built; drives the Signals station's main radar view)
 
-A ship's vision is the union of its radar **sectors**. Each radar contributes one wedge — `direction` (ship-relative), `arc`, and a derived `range` — synced to clients so server and stations compute the same field of view. The dragonfly carries an omnidirectional radar (arc pinned to 360°) plus a steerable "Lancet-20" scan beam (5°–90°) pointed from the Signals station (direction/arc sliders + hotkeys).
+A ship's vision is the union of its radar **sectors**. Each radar contributes one wedge — `direction` (ship-relative), `arc`, and a derived `range` — synced to clients so server and stations compute the same field of view. The demo ship carries an omnidirectional radar (arc pinned to 360°) plus a steerable "Lancet-20" scan beam (5°–90°) pointed from the Signals station (direction/arc sliders + hotkeys).
 
 Each radar design sweeps a constant area (`area = range² · arc`): widening the arc shortens the reach and vice versa. Effectiveness scales the area, so reach scales with √effectiveness; malfunction blends toward a floor area, and an unpowered radar sees nothing at all.
 
@@ -35,7 +35,7 @@ All visibility gates (signals job queueing/progress, scan promotion and demotion
 
 ## Signals Jobs (Partial — [#1206](https://github.com/starwards/starwards/issues/1206))
 
-The Signals station operates through a job queue (up to `maxJobs`, 9 on the dragonfly). Execution is **first workable wins**, not FIFO: each tick the station works the first job whose target it can currently see and still has something to reveal, skipping the rest. Losing the working slot resets that job's progress to zero.
+The Signals station operates through a job queue (up to `maxJobs`, 9 on the demo ship). Execution is **first workable wins**, not FIFO: each tick the station works the first job whose target it can currently see and still has something to reveal, skipping the rest. Losing the working slot resets that job's progress to zero.
 
 The station's lever is order. Prioritizing a job moves it to the front of the queue and marks it, so trimming under damage evicts unprioritized jobs first.
 
