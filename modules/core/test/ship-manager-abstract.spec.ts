@@ -163,9 +163,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         expect(state.smartPilot.design.modelName).to.equal(dragonflyConfig.smartPilot.modelName);
         expect(state.magazine.design.modelName).to.equal(dragonflyConfig.magazine.modelName);
         expect(state.weaponsTarget.design.modelName).to.equal(dragonflyConfig.weaponsTarget.modelName);
-        if (state.warp) {
-            expect(state.warp.design.modelName).to.equal(dragonflyConfig.warp?.modelName);
-        }
+        expect(state.warp!.design.modelName).to.equal(dragonflyConfig.warp.modelName);
         expect(state.docking.design.modelName).to.equal(dragonflyConfig.docking.modelName);
         expect(state.maneuvering.design.modelName).to.equal(dragonflyConfig.maneuvering.modelName);
         if (state.chainGun) {

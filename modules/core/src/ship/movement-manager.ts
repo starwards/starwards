@@ -45,13 +45,11 @@ export class MovementManager implements Updateable {
     ) {}
 
     update({ deltaSeconds }: IterationData) {
-        if (this.state.warp) {
-            this.handleWarpCommands();
-            this.handleWarpFrequencyChange(deltaSeconds);
-            this.handleWarpProximityJam(deltaSeconds);
-            this.handleWarpLevel(deltaSeconds);
-            this.handleWarpMovement(deltaSeconds);
-        }
+        this.handleWarpCommands();
+        this.handleWarpFrequencyChange(deltaSeconds);
+        this.handleWarpProximityJam(deltaSeconds);
+        this.handleWarpLevel(deltaSeconds);
+        this.handleWarpMovement(deltaSeconds);
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
