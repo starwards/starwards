@@ -156,7 +156,7 @@ export const chaingunPlatformSignals = {
 
 export const chaingunPlatform = {
     properties: chaingunPlatformProperties,
-    chainGun: chaingunPlatformChaingun,
+    chainGuns: [['FWD', chaingunPlatformChaingun]],
     thrusters: [],
     tubes: [],
     armor: chaingunPlatformArmor,

@@ -127,7 +127,7 @@ export const smallStationSignals = {
 
 export const smallStation = {
     properties: smallStationProperties,
-    chainGun: null,
+    chainGuns: [],
     thrusters: [],
     tubes: [],
     armor: smallStationArmor,

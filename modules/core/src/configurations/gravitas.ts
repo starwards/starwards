@@ -204,7 +204,7 @@ export const gravitasTube = {
 
 export const gravitas = {
     properties: gravitasProperties,
-    chainGun: gravitasChaingun,
+    chainGuns: [['FWD', gravitasChaingun]],
     thrusters: [
         ['STBD', gravitasThruster],
         ['PORT', gravitasThruster],
