@@ -14,6 +14,7 @@ import { drawPilotRadar } from '../widgets/pilot-radar';
 import { drawPilotStats } from '../widgets/pilot';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
+import { isPilotSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
 const { error: logError } = createLogger('screen:pilot');
@@ -53,14 +54,7 @@ async function initScreen(driver: Driver, shipId: string) {
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
-        shipDriver.systems.filter(
-            (s) =>
-                s.pointer.startsWith('/thrusters/') ||
-                s.pointer === '/warp' ||
-                s.pointer === '/radar' ||
-                s.pointer === '/maneuvering' ||
-                s.pointer === '/smartPilot',
-        ),
+        shipDriver.systems.filter((s) => isPilotSystem(s.pointer)),
     );
     drawPilotStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     if (shipDriver.state.warp) {

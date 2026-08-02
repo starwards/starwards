@@ -52,10 +52,10 @@ These three mechanisms are where the matrix actually lives in code:
 
 | Station | Depends on … | For … | Code reference |
 |---|---|---|---|
-| **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radar` | `pilot.ts` (systems-status filter) |
+| **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radars/*` | `pilot.ts` (systems-status filter) |
 | Pilot | Engineering | warp **frequency** (only ECR can change) | `ecr.ts` |
 | Pilot | Signals | scan-level gating on pilot-radar — same-faction always BASIC, others UFO until scanned | `fc54991` (#1205) |
-| **Weapons** | Engineering | power for `/chainGun`, `/tubes/*`, `/magazine`, `/radar` | `weapons.ts` |
+| **Weapons** | Engineering | power for `/chainGuns/*`, `/tubes/*`, `/magazine`, `/radars/*` | `weapons.ts` |
 | Weapons | Engineering | coolant — chaingun fires generate heat (energy spend → heat) | `energy-manager.ts` |
 | Weapons | Pilot | ship orientation — must be pointed roughly at target to hit | implicit; tactical-radar shows crosshairs from `chainGun` |
 | Weapons | Signals | scan-level gating on tactical-radar (UFO ships render as gray, no model) | `fc54991` (#1205) |
