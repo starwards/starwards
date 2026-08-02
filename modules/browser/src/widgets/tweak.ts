@@ -344,11 +344,11 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             });
             addEnumListBlade(optionsFolder, selectionContainer.filter, 'type', TypeFilter, this.panelCleanup.add);
 
-            void this.init(this.pane);
+            void this.init();
         }
 
         // the async part of initializing
-        private async init(pane: Pane) {
+        private async init() {
             const [spaceDriver, adminDriver] = await Promise.all([driver.getSpaceDriver(), driver.getAdminDriver()]);
             this.spaceDriver = spaceDriver;
             this.panelCleanup.add(() => {
@@ -357,7 +357,7 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             selectionContainer.events.addListener('changed', this.handleSelectionChange);
 
             const speedProp = readWriteNumberProp(adminDriver, `/speed`);
-            addSliderBlade(pane, speedProp, { label: 'Game Speed' }, this.panelCleanup.add);
+            addSliderBlade(this.pane, speedProp, { label: 'Game Speed' }, this.panelCleanup.add);
 
             const onPlayerShipChange = () => {
                 this.handleSelectionChange();

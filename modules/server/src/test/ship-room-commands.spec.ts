@@ -96,9 +96,9 @@ describe('ShipRoom JSON pointer commands', () => {
     it('applies a GM write to warp.jammed (GM override lever, issue #2033)', async () => {
         const { client, room, shipId } = await connectShip('jam-toggle');
         const shipManager = driver.serverDriver.getShip(shipId);
-        expect(shipManager.state.warp.jammed).toEqual(false);
+        expect(shipManager.state.warp!.jammed).toEqual(false);
         await client.sendCommand(room, '/warp/jammed', { value: true });
-        await waitForServer(() => shipManager.state.warp.jammed === true);
-        expect(shipManager.state.warp.jammed).toEqual(true);
+        await waitForServer(() => shipManager.state.warp!.jammed === true);
+        expect(shipManager.state.warp!.jammed).toEqual(true);
     });
 });

@@ -45,4 +45,16 @@ describe('AdminRoom JSON pointer commands', () => {
         await waitForServer(() => driver.serverDriver.gameManager.state.speed === 3);
         expect(driver.serverDriver.gameManager.state.speed).toEqual(3);
     });
+
+    it('speed is sticky across a stop/start cycle — deliberately not auto-reset (see PR discussion for issue #2033)', async () => {
+        const { client, room } = await connectAdmin('gm-speed-sticky');
+        await client.sendCommand(room, '/speed', { value: 2.5 });
+        await waitForServer(() => driver.serverDriver.gameManager.state.speed === 2.5);
+
+        await supertest(driver.serverDriver.httpServer).post('/stop-game').send({}).expect(200);
+        expect(driver.serverDriver.gameManager.state.speed).toEqual(2.5);
+
+        await supertest(driver.serverDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        expect(driver.serverDriver.gameManager.state.speed).toEqual(2.5);
+    });
 });

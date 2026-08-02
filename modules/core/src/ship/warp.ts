@@ -86,7 +86,13 @@ export class Warp extends SystemState {
     @gameField('float32')
     frequencyChange = 1;
 
-    /** GM override — proximity-jam physics (`handleWarpProximityJam` in movement-manager.ts) may overwrite this on the next tick. */
+    /**
+     * Manual override — proximity-jam physics (`handleWarpProximityJam` in movement-manager.ts)
+     * may overwrite this on the next tick. `@tweakable` admits it to the ShipRoom JSON-pointer
+     * command surface, same as any other ship subsystem field, so any client connected to this
+     * ship's room can write it, not just the GM tweak panel — see "Non-goal: malicious-player
+     * isolation" in docs/maintainers.md.
+     */
     @tweakable('boolean')
     @gameField('boolean')
     jammed = false;
