@@ -1,4 +1,4 @@
-import { dragonflySF22, makeShipState } from '@starwards/core';
+import { demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -6,7 +6,7 @@ import { createMockShipDriver } from '../mocks/ship-driver';
 import { drawArmorStatus } from '../../widgets/armor';
 
 function createShipWithArmor(id: string, healthFactors: number[]) {
-    const state = makeShipState(id, dragonflySF22);
+    const state = makeShipState(id, demoShip);
     for (let i = 0; i < state.armor.armorPlates.length && i < healthFactors.length; i++) {
         for (const layer of state.armor.armorPlates[i].layers) {
             layer.health = layer.maxHealth * healthFactors[i];

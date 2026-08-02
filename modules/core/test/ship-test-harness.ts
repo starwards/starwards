@@ -137,7 +137,7 @@ declare let global: typeof globalThis & {
     harness?: ShipTestHarness;
 };
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 export function* makeIterationsData(
     timeInSeconds: number,
@@ -182,7 +182,7 @@ export class ShipTestHarness {
     public shipObj = new Spaceship();
     public shipMgr = new ShipManagerPc(
         this.shipObj,
-        makeShipState(this.shipObj.id, dragonflyConfig),
+        makeShipState(this.shipObj.id, demoShipConfig),
         this.spaceMgr,
         new ShipDie(0),
     );

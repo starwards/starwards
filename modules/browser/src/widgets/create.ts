@@ -46,7 +46,7 @@ export function createWidget(createContainer: InteractiveLayerCommands): Dashboa
             const createShipTemplate: CreateSpaceshipTemplate = {
                 type: 'Spaceship',
                 isPlayerShip: false,
-                shipModel: 'dragonfly-SF22',
+                shipModel: 'demo-ship',
                 faction: Faction.NONE,
             };
             makeShipFolder.addBinding(createShipTemplate, 'faction', {

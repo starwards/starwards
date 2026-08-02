@@ -5,7 +5,7 @@ import {
     createMockSpaceDriver,
     createMockWaypoint,
 } from '../mocks/space-driver';
-import { dragonflySF22, makeShipState } from '@starwards/core';
+import { demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -16,7 +16,7 @@ import { setOmniRadarSector } from '@starwards/core';
 const RANGE = 5000;
 const RADAR_RANGE = 6000;
 function createShipWithState(id: string, x = 0, y = 0, angle = 0, radarRange = RADAR_RANGE) {
-    const state = makeShipState(id, dragonflySF22);
+    const state = makeShipState(id, demoShip);
     state.spaceship.position.x = x;
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;

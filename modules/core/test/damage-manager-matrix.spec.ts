@@ -10,7 +10,7 @@ import {
     WeaponDamageType,
     compositeArmor,
     damageProfiles,
-    dragonflySF22,
+    demoShip,
     faradayArmor,
     hardenedArmor,
     makeShipState,
@@ -34,7 +34,7 @@ interface Fixture {
 function setUpShip(armorStats: ArmorModelStats = compositeArmor): Fixture {
     const ship = new Spaceship();
     ship.id = 'test-ship';
-    const state = makeShipState(ship.id, dragonflySF22);
+    const state = makeShipState(ship.id, demoShip);
     for (const plate of state.armor.armorPlates) {
         plate.layers[0].design.assign(armorStats);
     }
@@ -317,8 +317,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const ship = new Spaceship();
             ship.id = 'test-ship-radar-internal';
             const state = makeShipState(ship.id, {
-                ...dragonflySF22,
-                radars: [{ ...dragonflySF22.radars[0], isInternal: true }, dragonflySF22.radars[1]],
+                ...demoShip,
+                radars: [{ ...demoShip.radars[0], isInternal: true }, demoShip.radars[1]],
             });
             expect(state.radars[0].isInternal).to.equal(true);
             expect(state.thrusters[0].isInternal).to.equal(false);
@@ -327,10 +327,10 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
         it('a ship config can override a single thruster model to isInternal, leaving the rest external', () => {
             const ship = new Spaceship();
             ship.id = 'test-ship-thruster-internal';
-            const [firstAngle, firstDesign] = dragonflySF22.thrusters[0];
+            const [firstAngle, firstDesign] = demoShip.thrusters[0];
             const state = makeShipState(ship.id, {
-                ...dragonflySF22,
-                thrusters: [[firstAngle, { ...firstDesign, isInternal: true }], ...dragonflySF22.thrusters.slice(1)],
+                ...demoShip,
+                thrusters: [[firstAngle, { ...firstDesign, isInternal: true }], ...demoShip.thrusters.slice(1)],
             });
             expect(state.thrusters[0].isInternal).to.equal(true);
             expect(state.thrusters[1].isInternal).to.equal(false);
@@ -340,8 +340,8 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const ship = new Spaceship();
             ship.id = 'test-ship-maneuvering-electronics';
             const state = makeShipState(ship.id, {
-                ...dragonflySF22,
-                maneuvering: { ...dragonflySF22.maneuvering, isElectronics: true },
+                ...demoShip,
+                maneuvering: { ...demoShip.maneuvering, isElectronics: true },
             });
             expect(state.maneuvering.isElectronics).to.equal(true);
             expect(state.thrusters[0].isElectronics).to.equal(false);

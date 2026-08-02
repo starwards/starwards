@@ -1,5 +1,5 @@
 import { Decoder, Encoder } from '@colyseus/schema';
-import { dragonflySF22, makeShipState } from '../src';
+import { demoShip, makeShipState } from '../src';
 import { enqueueRepair, reorderRepair } from '../src/ship/repair-commands';
 import { DamageManager } from '../src/ship/damage-manager';
 import { EnergyManager } from '../src/ship/energy-manager';
@@ -22,7 +22,7 @@ import { expect } from 'chai';
 describe('RepairQueue reorder survives a Colyseus encode/decode round trip', () => {
     it('reorders correctly on the decoded mirror, with every operation field intact', () => {
         const shipId = 'test-ship';
-        const state = makeShipState(shipId, dragonflySF22);
+        const state = makeShipState(shipId, demoShip);
         state.reactor.energy = state.reactor.design.maxEnergy;
         const spaceObject = new Spaceship();
         spaceObject.id = shipId;
@@ -76,7 +76,7 @@ describe('RepairQueue reorder survives a Colyseus encode/decode round trip', () 
         tick(1); // A -> ACTIVE (progress 0.01), B and C -> QUEUED
 
         const encoder = new Encoder(state);
-        const mirror = makeShipState(shipId, dragonflySF22);
+        const mirror = makeShipState(shipId, demoShip);
         const decoder = new Decoder(mirror);
         decoder.decode(encoder.encodeAll());
 

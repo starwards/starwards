@@ -1,4 +1,4 @@
-import { DamageManager, Reactor, SpaceManager, Spaceship, dragonflySF22, makeShipState } from '../src';
+import { DamageManager, Reactor, SpaceManager, Spaceship, demoShip, makeShipState } from '../src';
 
 import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
@@ -27,7 +27,7 @@ describe('reactor defect tuning', () => {
     it('breaks the reactor in about 10 defects, since every reactor defect now makes progress', () => {
         const ship = new Spaceship();
         ship.id = 'test-ship';
-        const state = makeShipState(ship.id, dragonflySF22);
+        const state = makeShipState(ship.id, demoShip);
         const spaceManager = new SpaceManager();
         spaceManager.insert(ship);
         const damageManager = new DamageManager(ship, state, spaceManager, new MockDie()) as unknown as {

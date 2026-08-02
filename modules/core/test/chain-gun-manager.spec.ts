@@ -14,7 +14,7 @@ import { MockDie, makeIterationsData } from './ship-test-harness';
 import { expect } from 'chai';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 describe('ChainGunManager', () => {
     afterEach(() => jest.restoreAllMocks());
@@ -25,7 +25,7 @@ describe('ChainGunManager', () => {
             const shipObj = new Spaceship();
             shipObj.id = '1';
             const die = new MockDie();
-            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
             die.expectedRoll = 1;
             spaceMgr.insert(shipObj);
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -48,7 +48,7 @@ describe('ChainGunManager', () => {
             const shipObj = new Spaceship();
             shipObj.id = '1';
             const die = new MockDie();
-            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
             die.expectedRoll = 1;
             spaceMgr.insert(shipObj);
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -75,7 +75,7 @@ describe('ChainGunManager', () => {
             const shipObj = new Spaceship();
             shipObj.id = '1';
             const die = new MockDie();
-            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
             die.expectedRoll = 1;
             spaceMgr.insert(shipObj);
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -104,7 +104,7 @@ describe('ChainGunManager', () => {
             shipObj.id = 'ship-A';
             shipObj.faction = Faction.Gravitas;
             const die = new MockDie();
-            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
             die.expectedRoll = 1;
             spaceMgr.insert(shipObj);
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -136,7 +136,7 @@ describe('ChainGunManager', () => {
             const shipObj = new Spaceship();
             shipObj.id = '1';
             const die = new MockDie();
-            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die);
+            const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
             die.expectedRoll = 1;
             spaceMgr.insert(shipObj);
             shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);

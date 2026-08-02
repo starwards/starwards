@@ -57,11 +57,11 @@ Structural conventions for the codebase. Established during the armor/ammo rewor
 ## Configuration is declarative data, not imported logic
 
 - **Ship configs do not import stats from other modules.** A config names what it wants via a
-  union of literals and lets instantiation resolve it: `dragonflyArmor` declares
+  union of literals and lets instantiation resolve it: `demoShipArmor` declares
   `type: 'composite', withFaradayLayer: false`; `makeArmor` resolves the name through the
   `armorModels` registry (`ArmorModelName` keeps the name checked). No `...compositeArmor`
   spreads in configs.
-- **Type configs with `satisfies`, not annotations**: `dragonflySF22 = {...} satisfies
+- **Type configs with `satisfies`, not annotations**: `demoShip = {...} satisfies
   ShipDesign` keeps the config a checked plain literal without widening.
 - **Use concrete literal numbers in design data** — no abstract 1–5 scales, no formulas where a
   literal is enough. Numbers must be simple to track and change.

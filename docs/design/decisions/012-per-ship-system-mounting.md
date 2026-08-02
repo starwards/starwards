@@ -21,7 +21,7 @@ A first pass at this (see git history) moved `isInternal` onto a synced `DesignS
 still defaulted it in `make-ship-state.ts` (hardcoded `design.isInternal = true` per system,
 invisible from the ship config itself) and pinned `Thruster.isInternal` in code, and left
 `isElectronics` untouched as a class constant. That placement was wrong: a config author looking
-at `dragonfly-sf-22.ts` could not tell which systems were internal/external or electronics
+at `demo-ship.ts` could not tell which systems were internal/external or electronics
 without also reading `make-ship-state.ts` and the system classes.
 
 ## Decision
@@ -36,14 +36,14 @@ without also reading `make-ship-state.ts` and the system classes.
    `ManeuveringDesign`) declares `isInternal: boolean` and `isElectronics: boolean` as
    **required** fields — every ship config must state both explicitly per system (and, for
    thrusters and tubes, per instance in the array), so the mounting and electronics
-   classification of every system is readable directly from `dragonfly-sf-22.ts` without
+   classification of every system is readable directly from `demo-ship.ts` without
    cross-referencing `make-ship-state.ts` or the system class.
 3. `make-ship-state.ts` no longer defaults either flag — each `make*` function does a plain
-   `design.assign(design)`. The values in `dragonflySF22` reproduce the previous hardcoded
+   `design.assign(design)`. The values in `demoShip` reproduce the previous hardcoded
    behavior exactly (reactor/warp/magazine/maneuvering/smart-pilot internal; everything else
    external; every electronics system flagged `isElectronics: true` as it was before).
 4. **Thrusters are no longer pinned in code.** `Thruster.isInternal` is gone; mounting comes
-   from `this.design.isInternal` like every other system. `dragonflySF22`'s thrusters are
+   from `this.design.isInternal` like every other system. `demoShip`'s thrusters are
    configured `isInternal: false` (matching prior behavior), but because `thrusters` is an
    array of `[ShipDirectionConfig, ThrusterDesign]` pairs, a ship config can give individual
    thruster instances different mounting — e.g. one shielded thruster model mounted internal
@@ -62,7 +62,7 @@ without also reading `make-ship-state.ts` and the system classes.
   design-state panel (see `isCommandable` in `game-field.ts`) — useful for prototyping mounting
   choices live, at the cost of a player-reachable knob with no in-fiction gate (same accepted
   limitation as every other `DesignState` field).
-- Default ship behavior (`dragonflySF22`) is unchanged: the internal/external and
+- Default ship behavior (`demoShip`) is unchanged: the internal/external and
   electronics/non-electronics split existing players are used to is preserved exactly, verified
   by the existing `damage-manager-matrix.spec.ts` system-scoping regressions.
 - Removing the code-level thruster pin means a future ship config *could* make Frag/Cluster

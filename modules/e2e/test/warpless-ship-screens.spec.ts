@@ -8,7 +8,7 @@ const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
-// No shipped hull actually omits a warp drive (dragonfly-sf-22 always has one), so these
+// No shipped hull actually omits a warp drive (demo-ship always has one), so these
 // tests simulate ShipDesign.warp: null (issue #2032) by nulling the field on an already
 // running ship, before the client connects - exercising the exact `state.warp === null`
 // path the ECR/Pilot screens must survive.

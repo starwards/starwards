@@ -19,7 +19,7 @@ export const two_vs_one: GameMap = {
         }
         game.addPlayerSpaceship(newShip('GVTS', Faction.Gravitas, 'gravitas'));
         game.addPlayerSpaceship(newShip('GVTS2', Faction.Gravitas, 'gravitas'));
-        const ship2 = game.addNpcSpaceship(newShip('R2D2', Faction.Raiders, 'dragonfly-SF22'));
+        const ship2 = game.addNpcSpaceship(newShip('R2D2', Faction.Raiders, 'demo-ship'));
         ship2.setTarget('GVTS');
     },
 };
@@ -49,7 +49,7 @@ export const test_map_1 = {
     name: 'test_map_1',
     testShipId,
     init: (game: GameApi) => {
-        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22', Faction.Gravitas);
+        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'demo-ship', Faction.Gravitas);
         game.addPlayerSpaceship(spaceObject);
         const asteroidHiddenInRange = new Asteroid().init('astro1', new Vec2(2000, 2000));
         asteroidHiddenInRange.radius = 200;
@@ -67,7 +67,7 @@ export const single_ship = {
     name: 'single_ship',
     testShipId,
     init: (game: GameApi) => {
-        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'dragonfly-SF22', Faction.Gravitas);
+        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'demo-ship', Faction.Gravitas);
         game.addPlayerSpaceship(spaceObject);
     },
 };

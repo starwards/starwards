@@ -10,14 +10,14 @@ describe('Spaceship', () => {
         });
 
         test('init() sets callsign to id when callsign is empty', () => {
-            const ship = new Spaceship().init('my-ship-id', new Vec2(0, 0), 'dragonfly-SF22', Faction.NONE);
+            const ship = new Spaceship().init('my-ship-id', new Vec2(0, 0), 'demo-ship', Faction.NONE);
             expect(ship.callsign).toBe('my-ship-id');
         });
 
         test('init() does not overwrite a pre-set callsign', () => {
             const ship = new Spaceship();
             ship.callsign = 'Alpha';
-            ship.init('my-ship-id', new Vec2(0, 0), 'dragonfly-SF22', Faction.NONE);
+            ship.init('my-ship-id', new Vec2(0, 0), 'demo-ship', Faction.NONE);
             expect(ship.callsign).toBe('Alpha');
         });
     });

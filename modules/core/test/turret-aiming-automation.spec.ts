@@ -2,20 +2,20 @@ import { Faction, Order, ShipManagerNpc, SpaceManager, Spaceship, makeShipState,
 import { MockDie, makeIterationsData } from './ship-test-harness';
 
 import { ShipDesign } from '../src/ship/make-ship-state';
-import { dragonflyChaingun } from '../src/configurations/dragonfly-sf-22';
+import { demoShipChaingun } from '../src/configurations/demo-ship';
 import { expect } from 'chai';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 // A turreted mount, unlike the roster's bolted-forward chain gun, can actually swing.
-const turretedChaingun = { ...dragonflyChaingun, turnSpeed: 90 };
+const turretedChaingun = { ...demoShipChaingun, turnSpeed: 90 };
 
 describe('an NPC ship with multiple turreted mounts under attack orders', () => {
     afterEach(() => jest.restoreAllMocks());
 
     it('swings every mount onto the target instead of leaving them fixed forward and aft', () => {
         const design: ShipDesign = {
-            ...dragonflyConfig,
+            ...demoShipConfig,
             chainGuns: [
                 ['FWD', turretedChaingun],
                 ['AFT', turretedChaingun],

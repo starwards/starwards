@@ -18,7 +18,7 @@ import { MockDie } from './ship-test-harness';
 import { ShipManager } from '../src/ship/ship-manager-abstract';
 import { expect } from 'chai';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     const spaceMgr = new SpaceManager();
@@ -27,7 +27,7 @@ function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     shipObj.faction = Faction.Gravitas;
     const die = new MockDie();
     const ships = new Map<string, ShipManager>();
-    const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, dragonflyConfig), spaceMgr, die, ships);
+    const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die, ships);
     ships.set(shipObj.id, shipMgr);
     spaceMgr.insert(shipObj);
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -42,7 +42,7 @@ function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     const targetDie = new MockDie();
     const targetMgr = new ShipManagerPc(
         targetObj,
-        makeShipState(targetObj.id, dragonflyConfig),
+        makeShipState(targetObj.id, demoShipConfig),
         spaceMgr,
         targetDie,
         ships,

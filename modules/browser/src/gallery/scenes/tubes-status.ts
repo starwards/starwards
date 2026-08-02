@@ -1,4 +1,4 @@
-import { dragonflySF22, makeShipState } from '@starwards/core';
+import { demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -10,7 +10,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
         name: 'tubes-status-empty',
         description: 'Tubes status panel with no ammo loaded',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'None';
                 tube.loadedProjectile = 'None';
@@ -29,7 +29,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
         name: 'tubes-status-loaded',
         description: 'Tubes status panel with ammo loaded and ready to fire',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'HiExpShell';
                 tube.loadedProjectile = 'HiExpShell';
@@ -48,7 +48,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
         name: 'tubes-status-cluster',
         description: 'Tubes status panel with cluster missiles loaded and warhead modes picked',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             let armPen = true;
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'ClusterMissile';
@@ -70,7 +70,7 @@ export const tubesStatusScenes: Record<string, Scene> = {
         name: 'tubes-status-loading',
         description: 'Tubes status panel with loading in progress',
         setup(container: HTMLElement) {
-            const ship = makeShipState('player', dragonflySF22);
+            const ship = makeShipState('player', demoShip);
             let loadingProgress = 0.2;
             for (const tube of ship.tubes.values()) {
                 tube.projectile = 'HiExpShell';

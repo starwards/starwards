@@ -27,7 +27,7 @@ import { expect } from 'chai';
 import fc from 'fast-check';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
-const dragonflyConfig = shipConfigurations['dragonfly-SF22'];
+const demoShipConfig = shipConfigurations['demo-ship'];
 
 function countBrokenPlatesInRange(state: ShipState, hitRange: RTuple2): number {
     let broken = 0;
@@ -54,7 +54,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     const die = new MockDie();
                     const shipMgr = new shipManagerCtor(
                         shipObj,
-                        makeShipState(shipObj.id, dragonflyConfig),
+                        makeShipState(shipObj.id, demoShipConfig),
                         spaceMgr,
                         die,
                     );
@@ -109,7 +109,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipObj.id = '1';
                 const shipMgr = new shipManagerCtor(
                     shipObj,
-                    makeShipState(shipObj.id, dragonflyConfig),
+                    makeShipState(shipObj.id, demoShipConfig),
                     spaceMgr,
                     new MockDie(),
                 );
@@ -148,7 +148,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     shipObj.id = '1';
                     const shipMgr = new shipManagerCtor(
                         shipObj,
-                        makeShipState(shipObj.id, dragonflyConfig),
+                        makeShipState(shipObj.id, demoShipConfig),
                         spaceMgr,
                         new MockDie(),
                     );
@@ -189,7 +189,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     shipObj.id = '1';
                     const shipMgr = new shipManagerCtor(
                         shipObj,
-                        makeShipState(shipObj.id, dragonflyConfig),
+                        makeShipState(shipObj.id, demoShipConfig),
                         spaceMgr,
                         new MockDie(),
                     );
@@ -222,7 +222,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipObj.id = '1';
                 const shipMgr = new shipManagerCtor(
                     shipObj,
-                    makeShipState(shipObj.id, dragonflyConfig),
+                    makeShipState(shipObj.id, demoShipConfig),
                     spaceMgr,
                     new MockDie(),
                 );
@@ -255,7 +255,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         shipObj.id = '1';
         const shipMgr = new shipManagerCtor(
             shipObj,
-            makeShipState(shipObj.id, dragonflyConfig),
+            makeShipState(shipObj.id, demoShipConfig),
             spaceMgr,
             new MockDie(),
         );
@@ -294,7 +294,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     shipObj.id = '1';
                     const shipMgr = new shipManagerCtor(
                         shipObj,
-                        makeShipState(shipObj.id, dragonflyConfig),
+                        makeShipState(shipObj.id, demoShipConfig),
                         spaceMgr,
                         new MockDie(),
                     );
@@ -336,7 +336,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 shipObj.angle = rotation;
                 const shipMgr = new shipManagerCtor(
                     shipObj,
-                    makeShipState(shipObj.id, dragonflyConfig),
+                    makeShipState(shipObj.id, demoShipConfig),
                     spaceMgr,
                     new MockDie(),
                 );
