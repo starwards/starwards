@@ -45,11 +45,13 @@ export class MovementManager implements Updateable {
     ) {}
 
     update({ deltaSeconds }: IterationData) {
-        this.handleWarpCommands();
-        this.handleWarpFrequencyChange(deltaSeconds);
-        this.handleWarpProximityJam(deltaSeconds);
-        this.handleWarpLevel(deltaSeconds);
-        this.handleWarpMovement(deltaSeconds);
+        if (this.state.warp) {
+            this.handleWarpCommands();
+            this.handleWarpFrequencyChange(deltaSeconds);
+            this.handleWarpProximityJam(deltaSeconds);
+            this.handleWarpLevel(deltaSeconds);
+            this.handleWarpMovement(deltaSeconds);
+        }
         this.handleAfterburnerCommand();
         this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
@@ -62,6 +64,7 @@ export class MovementManager implements Updateable {
     }
 
     private handleWarpCommands() {
+        if (!this.state.warp) return;
         if (this.state.warp.changingFrequency) {
             this.state.warp.changeFrequencyCommand = false;
             this.state.warp.levelUpCommand = false;
@@ -90,6 +93,7 @@ export class MovementManager implements Updateable {
     }
 
     private handleWarpFrequencyChange(deltaSeconds: number) {
+        if (!this.state.warp) return;
         if (this.state.warp.changingFrequency) {
             if (this.calibrationGoal === WarpFrequency.WARP_FREQUENCY_COUNT) {
                 // first update after change command or server restart
@@ -111,6 +115,7 @@ export class MovementManager implements Updateable {
     }
 
     private handleWarpProximityJam(deltaSeconds: number) {
+        if (!this.state.warp) return;
         if (this.state.warp.desiredLevel > 0) {
             this.checkJam();
             if (this.state.warp.jammed) {
@@ -125,6 +130,7 @@ export class MovementManager implements Updateable {
     }
 
     private checkJam() {
+        if (!this.state.warp) return;
         const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
         const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
             .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
@@ -134,6 +140,7 @@ export class MovementManager implements Updateable {
     }
 
     private handleWarpLevel(deltaSeconds: number) {
+        if (!this.state.warp) return;
         if (!this.state.warp.changingFrequency) {
             if (this.state.warp.desiredLevel > this.state.warp.currentLevel) {
                 // increase warp level
@@ -168,6 +175,7 @@ export class MovementManager implements Updateable {
     }
 
     private handleWarpMovement(deltaSeconds: number) {
+        if (!this.state.warp) return;
         if (
             this.isWarpActive() &&
             this.energyManager.trySpendEnergy(
@@ -206,7 +214,12 @@ export class MovementManager implements Updateable {
     }
 
     private isWarpActive() {
-        return this.state.warp.effectiveness > 0 && this.state.warp.currentLevel && !this.state.warp.changingFrequency;
+        return (
+            !!this.state.warp &&
+            this.state.warp.effectiveness > 0 &&
+            this.state.warp.currentLevel &&
+            !this.state.warp.changingFrequency
+        );
     }
 
     private calcRotation(deltaSeconds: number) {

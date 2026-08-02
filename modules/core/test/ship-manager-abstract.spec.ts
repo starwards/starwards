@@ -163,7 +163,9 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         expect(state.smartPilot.design.modelName).to.equal(dragonflyConfig.smartPilot.modelName);
         expect(state.magazine.design.modelName).to.equal(dragonflyConfig.magazine.modelName);
         expect(state.weaponsTarget.design.modelName).to.equal(dragonflyConfig.weaponsTarget.modelName);
-        expect(state.warp.design.modelName).to.equal(dragonflyConfig.warp.modelName);
+        if (state.warp) {
+            expect(state.warp.design.modelName).to.equal(dragonflyConfig.warp?.modelName);
+        }
         expect(state.docking.design.modelName).to.equal(dragonflyConfig.docking.modelName);
         expect(state.maneuvering.design.modelName).to.equal(dragonflyConfig.maneuvering.modelName);
         if (state.chainGun) {
@@ -187,7 +189,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
 
             // shut down all other systems so they don't consume energy
             state.radars[0].power = PowerLevel.SHUTDOWN;
-            state.warp.power = PowerLevel.SHUTDOWN;
+            if (state.warp) state.warp.power = PowerLevel.SHUTDOWN;
             state.maneuvering.power = PowerLevel.SHUTDOWN;
             if (state.chainGun) state.chainGun.power = PowerLevel.SHUTDOWN;
             for (const thruster of state.thrusters) thruster.power = PowerLevel.SHUTDOWN;
@@ -220,7 +222,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
 
             // shut down all other systems so they don't consume energy
             state.radars[0].power = PowerLevel.SHUTDOWN;
-            state.warp.power = PowerLevel.SHUTDOWN;
+            if (state.warp) state.warp.power = PowerLevel.SHUTDOWN;
             state.maneuvering.power = PowerLevel.SHUTDOWN;
             if (state.chainGun) state.chainGun.power = PowerLevel.SHUTDOWN;
             for (const thruster of state.thrusters) thruster.power = PowerLevel.SHUTDOWN;
