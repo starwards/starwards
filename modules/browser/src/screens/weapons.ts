@@ -13,6 +13,7 @@ import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
 import { drawTubesStatus } from '../widgets/tubes-status';
+import { isWeaponsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
 const { error: logError } = createLogger('screen:weapons');
@@ -52,13 +53,7 @@ async function initScreen(driver: Driver, shipId: string) {
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
-        shipDriver.systems.filter(
-            (s) =>
-                s.pointer.startsWith('/tubes/') ||
-                s.pointer.startsWith('/chainGuns/') ||
-                s.pointer === '/magazine' ||
-                s.pointer === '/radar',
-        ),
+        shipDriver.systems.filter((s) => isWeaponsSystem(s.pointer)),
     );
     drawTubesStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);

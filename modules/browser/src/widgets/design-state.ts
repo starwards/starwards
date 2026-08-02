@@ -42,7 +42,9 @@ export function designStateWidget(shipDriver: ShipDriver): DashboardWidget {
             );
         }
         addDesignStateToPanel(rootPanel.addFolder('armor'), shipDriver, `/armor/design`);
-        addDesignStateToPanel(rootPanel.addFolder('radar'), shipDriver, `/radar/design`);
+        for (const index of shipDriver.state.radars.keys()) {
+            addDesignStateToPanel(rootPanel.addFolder(`radar${index}`), shipDriver, `/radars/${index}/design`);
+        }
         addDesignStateToPanel(rootPanel.addFolder('smartPilot'), shipDriver, `/smartPilot/design`);
         addDesignStateToPanel(rootPanel.addFolder('reactor'), shipDriver, `/reactor/design`);
         addDesignStateToPanel(rootPanel.addFolder('magazine'), shipDriver, `/magazine/design`);
