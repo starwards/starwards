@@ -238,6 +238,7 @@ export const cataphract = {
         ['STBD', cataphractTube],
         ['STBD', cataphractTube],
     ],
+    radius: 44.8,
     armor: cataphractArmor,
     radars: [cataphractOmniRadar, cataphractScanBeam],
     smartPilot: cataphractSmartPilot,

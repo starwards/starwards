@@ -28,6 +28,10 @@ import fc from 'fast-check';
 import { switchToAvailableAmmo } from '../src/ship/chain-gun-manager';
 
 const demoShipConfig = shipConfigurations['demo-ship'];
+// This test's tolerance (`sizeOfPlate` reused as a degrees pad, not a physically-derived arc
+// angle) is a generic geometric calibration, not specific to any hull — pin it independently of
+// demo-ship's configured radius.
+const GENERIC_SHIP_RADIUS = 50;
 
 function countBrokenPlatesInRange(state: ShipState, hitRange: RTuple2): number {
     let broken = 0;
@@ -50,6 +54,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     const spaceMgr = new SpaceManager();
                     const shipObj = new Spaceship();
                     shipObj.id = '1';
+                    shipObj.radius = GENERIC_SHIP_RADIUS;
                     shipObj.angle = shipAngle;
                     const die = new MockDie();
                     const shipMgr = new shipManagerCtor(

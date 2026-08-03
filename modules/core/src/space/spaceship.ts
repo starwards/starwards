@@ -1,7 +1,8 @@
+import { ShipModel, shipConfigurations } from '../configurations';
+
 import { ArraySchema } from '@colyseus/schema';
 import { Faction } from './faction';
 import { RadarSector } from './radar-sector';
-import { ShipModel } from '../configurations';
 import { SpaceObjectBase } from './space-object-base';
 import { Vec2 } from './vec2';
 import { gameField } from '../game-field';
@@ -11,7 +12,6 @@ export class Spaceship extends SpaceObjectBase {
     public static isInstance = (o: unknown): o is Spaceship => {
         return !!o && (o as SpaceObjectBase).type === 'Spaceship';
     };
-    public static radius = 50;
 
     @gameField('string')
     public readonly type = 'Spaceship';
@@ -35,16 +35,12 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('string')
     public callsign = '';
 
-    constructor() {
-        super();
-        this.radius = Spaceship.radius;
-    }
-
     init(id: string, position: Vec2, shipModel: ShipModel, faction: Faction): this {
         this.id = id;
         this.position = position;
         this.model = shipModel;
         this.faction = faction;
+        this.radius = shipConfigurations[shipModel].radius;
         if (!this.callsign) {
             this.callsign = id;
         }

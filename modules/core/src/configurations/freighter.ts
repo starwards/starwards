@@ -147,6 +147,7 @@ export const freighter = {
         ['AFT', freighterThruster],
     ],
     tubes: [],
+    radius: 33.6,
     armor: freighterArmor,
     radars: [freighterOmniRadar],
     smartPilot: freighterSmartPilot,
