@@ -1,3 +1,4 @@
+import { cataphract, demoShip, makeShipState } from '@starwards/core';
 import {
     createMockAsteroid,
     createMockProjectile,
@@ -5,7 +6,6 @@ import {
     createMockSpaceDriver,
     createMockWaypoint,
 } from '../mocks/space-driver';
-import { demoShip, makeShipState } from '@starwards/core';
 
 import { Scene } from './index';
 import { createMockContainer } from '../mocks/container';
@@ -15,6 +15,9 @@ import { setOmniRadarSector } from '@starwards/core';
 
 const RANGE = 5000;
 const RADAR_RANGE = 6000;
+// Cataphract's chainguns have maxShellRange 10_000 - wider than RANGE, so the firing-arc
+// scenes need enough visible range for the arcs' curved edge to land on screen.
+const FIRING_ARC_RANGE = 12000;
 function createShipWithState(id: string, x = 0, y = 0, angle = 0, radarRange = RADAR_RANGE) {
     const state = makeShipState(id, demoShip);
     state.spaceship.position.x = x;
@@ -143,6 +146,66 @@ export const tacticalRadarScenes: Record<string, Scene> = {
 
             return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
                 range: RANGE,
+            });
+        },
+    },
+
+    'tactical-radar-firing-arcs': {
+        name: 'tactical-radar-firing-arcs',
+        description: "Cataphract's three chain gun mounts, each with a differing fitted bearing",
+        async setup(container: HTMLElement) {
+            const shipState = makeShipState('player', cataphract);
+            shipState.spaceship.position.x = 0;
+            shipState.spaceship.position.y = 0;
+            shipState.spaceship.angle = 0;
+            shipState.spaceship.faction = 0;
+            setOmniRadarSector(shipState.spaceship, RADAR_RANGE);
+            for (const radar of shipState.radars) {
+                radar.power = 1;
+            }
+            // Give the mounts differing fitted bearings so the arcs are provably centred on
+            // their own mount rather than all sharing the ship's nose.
+            const bearings = [-45, 0, 45];
+            shipState.chainGuns.forEach((chainGun, index) => {
+                chainGun.fittedBearing = bearings[index] ?? 0;
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([shipState.spaceship]);
+            const mockShipDriver = createMockShipDriver(shipState);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: FIRING_ARC_RANGE,
+            });
+        },
+    },
+
+    'tactical-radar-firing-arcs-limits': {
+        name: 'tactical-radar-firing-arcs-limits',
+        description: 'A bearingLimit: 0 mount renders as a single line, a bearingLimit: 180 mount as a full circle',
+        async setup(container: HTMLElement) {
+            const shipState = makeShipState('player', cataphract);
+            shipState.spaceship.position.x = 0;
+            shipState.spaceship.position.y = 0;
+            shipState.spaceship.angle = 0;
+            shipState.spaceship.faction = 0;
+            setOmniRadarSector(shipState.spaceship, RADAR_RANGE);
+            for (const radar of shipState.radars) {
+                radar.power = 1;
+            }
+            const [lineMount, circleMount, wedgeMount] = shipState.chainGuns;
+            lineMount.design.bearingLimit = 0;
+            lineMount.fittedBearing = -60;
+            circleMount.design.bearingLimit = 180;
+            circleMount.fittedBearing = 60;
+            wedgeMount.fittedBearing = 0;
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([shipState.spaceship]);
+            const mockShipDriver = createMockShipDriver(shipState);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: FIRING_ARC_RANGE,
             });
         },
     },

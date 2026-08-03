@@ -26,6 +26,11 @@ export class AdminState extends Schema {
     @gameField('float32')
     speed = 1;
 
+    /** Free-text scenario/GM announcement, broadcast to every screen. Empty string = no message. */
+    @tweakable('string')
+    @gameField('string')
+    message = '';
+
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;
     }
