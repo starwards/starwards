@@ -193,6 +193,7 @@ export class ShipTestHarness {
 
     constructor() {
         this.shipObj.id = '1';
+        this.shipObj.radius = demoShipConfig.radius;
         this.spaceMgr.insert(this.shipObj);
         global.harness = this;
         this.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -228,6 +229,7 @@ export class ShipTestHarness {
         for (let i = 0; i < config.shipCount; i++) {
             const ship = new Spaceship();
             ship.id = `ship-${i + 2}`; // Start from 2 since main ship is 1
+            ship.radius = demoShipConfig.radius;
             ship.faction = config.teams?.[i] ?? i % 2;
 
             // Position ships

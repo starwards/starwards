@@ -226,6 +226,7 @@ export const glaive = {
         ['PORT', glaiveTube],
         ['STBD', glaiveTube],
     ],
+    radius: 33.6,
     armor: glaiveArmor,
     radars: [glaiveOmniRadar, glaiveScanBeam],
     smartPilot: glaiveSmartPilot,

@@ -16,8 +16,10 @@ import { XY } from './xy';
  * Radar detection threshold factor. Minimum detectable radius = factor × √distance.
  * Based on radar equation: RCS ∝ radius², signal ∝ 1/distance⁴.
  * With 0.025: shells (r=1) detectable to ~1600m, asteroids (r=50+) always visible.
+ * Exported so hull-radius validation (`ship/make-ship-state.ts`) can derive the same
+ * detectability floor instead of duplicating the constant.
  */
-const MIN_RADAR_DETECT_FACTOR = 0.025;
+export const MIN_RADAR_DETECT_FACTOR = 0.025;
 
 type VisibleObject = {
     object: SpaceObject | null;
