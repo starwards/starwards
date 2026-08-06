@@ -16,11 +16,45 @@ import { armorModels, withFaradayLayer } from '../configurations/armor-models';
 import { repairProtocols, validateRepairCatalog } from '../configurations/repair-protocols';
 
 import { ArraySchema } from '@colyseus/schema';
+import { MIN_RADAR_DETECT_FACTOR } from '../logic/field-of-view';
 import { Tube } from './tube';
 import { ammoTypes } from '../space/projectile';
 import { validateTurretDesign } from './turret';
 
+/**
+ * Today's station omni-radar perimeter (metres). The scenario's wave-warning model assumes every
+ * hull is detectable before a contact reaches it, so every hull's `radius` must clear this line.
+ */
+const STATION_RADAR_PERIMETER = 120_000;
+
+/**
+ * Radius (metres) at which a hull becomes detectable exactly at `STATION_RADAR_PERIMETER`, per the
+ * field-of-view gate in `logic/field-of-view.ts`
+ * (`object.radius > MIN_RADAR_DETECT_FACTOR * Math.sqrt(distance)`). A hull at or below this line
+ * is invisible inside the perimeter the warning model is built on.
+ */
+export const MIN_HULL_RADIUS = MIN_RADAR_DETECT_FACTOR * Math.sqrt(STATION_RADAR_PERIMETER);
+
+/**
+ * A hull invisible inside the station's own omni-radar perimeter would silently break the
+ * scenario's wave-warning model (SPEC pattern: same as `validateRepairCatalog` / `validateTurretDesign`).
+ */
+export function validateHullRadius(radius: number, context: string): void {
+    if (radius <= MIN_HULL_RADIUS) {
+        throw new Error(
+            `hull "${context}" radius (${radius}m) is at or below the detectability floor ` +
+                `(${MIN_HULL_RADIUS.toFixed(2)}m) for the ${STATION_RADAR_PERIMETER / 1000}km station radar perimeter`,
+        );
+    }
+}
+
 export type ShipDesign = {
+    /**
+     * Hull radius in metres. Sets radar detection range and blip size (`logic/field-of-view.ts`)
+     * and collision/docking geometry (`space/space-object-base.ts`). A decided per-hull value,
+     * never derived from armor plate count at runtime.
+     */
+    radius: number;
     properties: ShipPropertiesDesign;
     chainGuns: [ShipDirectionConfig, ChaingunDesign][];
     tubes: [ShipDirectionConfig, ChaingunDesign][];
@@ -163,6 +197,7 @@ function makeSmartPilot(design: SmartPilotDesign) {
 }
 
 export function makeShipState(id: string, design: ShipDesign) {
+    validateHullRadius(design.radius, design.properties.modelName ?? id);
     const state = makeShip(id, design.properties);
     state.thrusters = new ArraySchema();
     for (const [index, [angleConfig, thrusterConfig]] of design.thrusters.entries()) {

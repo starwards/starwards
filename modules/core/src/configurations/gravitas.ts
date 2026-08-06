@@ -226,6 +226,7 @@ export const gravitas = {
         ['PORT', gravitasTube],
         ['STBD', gravitasTube],
     ],
+    radius: 22.4,
     armor: gravitasArmor,
     radars: [gravitasOmniRadar, gravitasScanBeam],
     smartPilot: gravitasSmartPilot,

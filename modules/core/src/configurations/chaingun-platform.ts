@@ -165,6 +165,7 @@ export const chaingunPlatform = {
     chainGuns: [['FWD', chaingunPlatformChaingun]],
     thrusters: [],
     tubes: [],
+    radius: 50.4,
     armor: chaingunPlatformArmor,
     radars: [chaingunPlatformOmniRadar, chaingunPlatformScanBeam],
     smartPilot: chaingunPlatformSmartPilot,

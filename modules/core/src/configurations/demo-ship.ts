@@ -213,6 +213,7 @@ export const demoShip = {
         ['AFT', demoShipThruster],
     ],
     tubes: [['AFT', demoShipTube]],
+    radius: 16.8,
     armor: demoShipArmor,
     radars: [demoShipOmniRadar, demoShipScanBeam],
     smartPilot: demoShipSmartPilot,

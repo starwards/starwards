@@ -36,6 +36,7 @@ function shipWithContactInSight(targetScanLevel: ScanLevel = ScanLevel.UFO) {
     // Create a target ship within radar range
     const targetObj = new Spaceship();
     targetObj.id = 'target1';
+    targetObj.radius = demoShipConfig.radius;
     targetObj.faction = Faction.Raiders;
     targetObj.position = Vec2.make({ x: 1000, y: 0 });
     spaceMgr.insert(targetObj);

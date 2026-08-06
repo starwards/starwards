@@ -6,6 +6,9 @@ import { setOmniRadarSector } from '../src';
 // Behavior tests for SpaceManager command processing, object lifecycle,
 // freeze semantics, attachments, and the faction tracking registry.
 
+// Generic hull-sized radius for physics fixtures unrelated to any specific ship configuration.
+const GENERIC_SHIP_RADIUS = 50;
+
 function tick(spaceMgr: SpaceManager, deltaSeconds = 1) {
     spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 }
@@ -13,6 +16,7 @@ function tick(spaceMgr: SpaceManager, deltaSeconds = 1) {
 function makeShip(id: string, x = 0, y = 0, faction = Faction.NONE) {
     const ship = new Spaceship();
     ship.id = id;
+    ship.radius = GENERIC_SHIP_RADIUS;
     ship.position.x = x;
     ship.position.y = y;
     ship.faction = faction;
@@ -375,7 +379,7 @@ describe('SpaceManager damage resolution', () => {
     it('resolveObjectDamage yields collision damage exactly once', () => {
         const spaceMgr = new SpaceManager();
         const ship = makeShip('ship');
-        const rock = makeAsteroid('rock', Spaceship.radius, 0, Spaceship.radius);
+        const rock = makeAsteroid('rock', GENERIC_SHIP_RADIUS, 0, GENERIC_SHIP_RADIUS);
         spaceMgr.insertBulk([ship, rock]);
         spaceMgr.forceFlushEntities();
         tick(spaceMgr, 0.05); // overlapping circles collide immediately
