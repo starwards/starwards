@@ -15,18 +15,12 @@ const demoShipConfig = shipConfigurations['demo-ship'];
 
 function makeDockingShipState(faction: Faction) {
     const state = makeShipState('docking-ship', demoShipConfig);
-    state.spaceship.faction = faction;
-    state.spaceship.position = new Vec2(0, 0);
+    state.spaceship.init('docking-ship', new Vec2(0, 0), 'demo-ship', faction);
     return state;
 }
 
 function makeCandidateShip(id: string, faction: Faction, position: Vec2, model: keyof typeof shipConfigurations) {
-    const ship = new Spaceship();
-    ship.id = id;
-    ship.faction = faction;
-    ship.position = position;
-    ship.model = model;
-    return ship;
+    return new Spaceship().init(id, position, model, faction);
 }
 
 describe('getClosestDockingTarget', () => {
