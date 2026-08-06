@@ -225,6 +225,7 @@ export const predator = {
         ['PORT', predatorTube],
         ['STBD', predatorTube],
     ],
+    radius: 22.4,
     armor: predatorArmor,
     radars: [predatorOmniRadar, predatorScanBeam],
     smartPilot: predatorSmartPilot,

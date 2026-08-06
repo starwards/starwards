@@ -19,6 +19,8 @@ import { expect } from 'chai';
 
 const OMNI_RANGE = 1000;
 const TARGET_DISTANCE = 3000; // beyond omni, inside the beam sector
+// Generic hull-sized radius for Spaceship targets unrelated to any specific ship configuration.
+const GENERIC_SHIP_RADIUS = 50;
 const BEAM_ARC = 60;
 // nominal reach at the fitted arc, comfortably > TARGET_DISTANCE even at partial effectiveness
 const BEAM_DESIGN = { range: 20_000, minArc: 5, maxArc: 90, defaultArc: BEAM_ARC };
@@ -92,6 +94,7 @@ describe('radar range gates honor the beam (I3)', () => {
 
         const target = new Spaceship();
         target.id = 'in-beam-target';
+        target.radius = GENERIC_SHIP_RADIUS;
         target.faction = Faction.Raiders;
         target.position = Vec2.make({ x: TARGET_DISTANCE, y: 0 });
 
@@ -120,6 +123,7 @@ describe('radar range gates honor the beam (I3)', () => {
 
         const target = new Spaceship();
         target.id = 'off-bearing-target';
+        target.radius = GENERIC_SHIP_RADIUS;
         target.faction = Faction.Raiders;
         target.position = Vec2.make({ x: 0, y: TARGET_DISTANCE }); // bearing 90: beyond omni, outside the beam
 
