@@ -7,6 +7,9 @@ import { expect } from 'chai';
 // collisions, must not apply per-tick collision damage, and must not let a proximity
 // fuze detonate while frozen.
 
+// Generic hull-sized radius for physics fixtures unrelated to any specific ship configuration.
+const GENERIC_SHIP_RADIUS = 50;
+
 function tick(spaceMgr: SpaceManager, deltaSeconds: number) {
     spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
 }
@@ -14,7 +17,7 @@ function tick(spaceMgr: SpaceManager, deltaSeconds: number) {
 function makeShip(id: string, x = 0, y = 0) {
     const ship = new Spaceship();
     ship.id = id;
-    ship.radius = Spaceship.radius;
+    ship.radius = GENERIC_SHIP_RADIUS;
     ship.position.x = x;
     ship.position.y = y;
     return ship;

@@ -13,6 +13,7 @@ import {
     SpaceObject,
     Spaceship,
     Vec2,
+    XY,
     createLogger,
     makeId,
     makeShipState,
@@ -48,6 +49,26 @@ export class GameManager {
         addNpcSpaceship: (ship: Spaceship) => this.addShip(ship, false),
         stopGame: () => {
             void this.stopGame();
+        },
+        orderAttack: (shipId: string, targetId: string) => {
+            this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'attack', targetId } });
+        },
+        orderMove: (shipId: string, position: XY) => {
+            this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'move', position } });
+        },
+        orderFollow: (shipId: string, targetId: string) => {
+            this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'follow', targetId } });
+        },
+        orderNone: (shipId: string) => {
+            this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'none' } });
+        },
+        getObject: (id: string) => this.spaceManager.state.get(id),
+        getObjects: () => this.spaceManager.state,
+        setSpeed: (speed: number) => {
+            this.state.speed = Math.max(0, Math.min(3, speed));
+        },
+        setMessage: (message: string) => {
+            this.state.message = message;
         },
     };
 
@@ -103,6 +124,7 @@ export class GameManager {
             this.die = new ShipDie();
             this.state.playerShipIds.splice(0);
             this.state.shipIds.splice(0);
+            this.state.message = '';
             this.shipCleanups.clear();
             this.shipManagers.clear();
             this.convertingShips.clear();

@@ -49,6 +49,8 @@ function* getHitPlatesArch(armor: Armor, range: RTuple2) {
 }
 
 const bulletSpeed = 1000;
+// Generic hull-sized radius for physics fixtures unrelated to any specific ship configuration.
+const GENERIC_SHIP_RADIUS = 50;
 describe('SpaceManager', () => {
     afterEach(() => {
         jest.restoreAllMocks();
@@ -61,7 +63,7 @@ describe('SpaceManager', () => {
                 fc.integer({ min: 15, max: 20 }),
                 (timeInSeconds: number, numIterationsPerSecond: number) => {
                     const target = new Asteroid();
-                    target.radius = Spaceship.radius;
+                    target.radius = GENERIC_SHIP_RADIUS;
                     const explosion = new Explosion();
                     const explosionInit = jest.spyOn(explosion, 'init');
                     // proximity-fuzed and untargeted: flies straight like a dumb shell,
@@ -92,9 +94,9 @@ describe('SpaceManager', () => {
                 (timeInSeconds: number, numIterationsPerSecond: number) => {
                     const target = new Asteroid();
                     const initialHealth = target.health;
-                    target.radius = Spaceship.radius;
+                    target.radius = GENERIC_SHIP_RADIUS;
                     const collider = new Asteroid();
-                    collider.radius = Spaceship.radius;
+                    collider.radius = GENERIC_SHIP_RADIUS;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     collider.velocity = Vec2.make(velocity);
                     collider.init('collider', Vec2.make(position));
@@ -109,9 +111,9 @@ describe('SpaceManager', () => {
     it('solid-collision damage per second is frame-rate independent', () => {
         function totalDamageForOneTick(deltaSeconds: number) {
             const target = new Asteroid();
-            target.init('target', Vec2.make({ x: 0, y: 0 }), Spaceship.radius);
+            target.init('target', Vec2.make({ x: 0, y: 0 }), GENERIC_SHIP_RADIUS);
             const collider = new Asteroid();
-            collider.init('collider', Vec2.make({ x: Spaceship.radius, y: 0 }), Spaceship.radius);
+            collider.init('collider', Vec2.make({ x: GENERIC_SHIP_RADIUS, y: 0 }), GENERIC_SHIP_RADIUS);
             const healthBefore = target.health + collider.health;
 
             const spaceMgr = new SpaceManager();
@@ -137,7 +139,7 @@ describe('SpaceManager', () => {
                 (timeInSeconds: number, numIterationsPerSecond: number) => {
                     const target = new Spaceship();
                     const collider = new Asteroid();
-                    collider.radius = Spaceship.radius;
+                    collider.radius = GENERIC_SHIP_RADIUS;
                     const { velocity, position } = calcCollider(timeInSeconds, target, bulletSpeed);
                     collider.velocity = Vec2.make(velocity);
                     collider.init('collider', Vec2.make(position));
@@ -271,6 +273,7 @@ describe('SpaceManager', () => {
 
             const target = new Spaceship();
             target.id = 'target';
+            target.radius = GENERIC_SHIP_RADIUS;
             target.position = Vec2.make({ x: 3000, y: 0 });
 
             sim.withObjects(scanner, target);
@@ -634,9 +637,9 @@ describe('SpaceManager', () => {
             const numIterationsPerSecond = 20;
             const timeInSeconds = 2;
             const target = new Asteroid();
-            target.radius = Spaceship.radius;
+            target.radius = GENERIC_SHIP_RADIUS;
             const collider = new Asteroid();
-            collider.radius = Spaceship.radius;
+            collider.radius = GENERIC_SHIP_RADIUS;
             const extremeSpeed = 1_000_000;
             const { velocity, position } = calcCollider(timeInSeconds, target, extremeSpeed);
             collider.velocity = Vec2.make(velocity);

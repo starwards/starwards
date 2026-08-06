@@ -22,6 +22,18 @@ describe('Spaceship', () => {
         });
     });
 
+    describe('radius field', () => {
+        test('init() sets radius from the ship configuration', () => {
+            const ship = new Spaceship().init('my-ship-id', new Vec2(0, 0), 'dragonfly-MK1', Faction.NONE);
+            expect(ship.radius).toBeCloseTo(11.2, 5);
+        });
+
+        test('init() sets a different radius for a different hull', () => {
+            const ship = new Spaceship().init('my-ship-id', new Vec2(0, 0), 'large-station', Faction.NONE);
+            expect(ship.radius).toBeCloseTo(50.4, 5);
+        });
+    });
+
     describe('velocity field', () => {
         test('is exposed to the GM tweak panel as a vec2 blade', () => {
             const ship = new Spaceship();

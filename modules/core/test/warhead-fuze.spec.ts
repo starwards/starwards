@@ -7,6 +7,9 @@ import { expect } from 'chai';
 // and never spawn an Explosion object. Proximity-fuzed (AoE) warheads keep today's
 // blast-object behavior, including detonating on lifetime expiry (backup time-fuze).
 
+// Generic hull-sized radius for physics fixtures unrelated to any specific ship configuration.
+const GENERIC_SHIP_RADIUS = 50;
+
 function tick(spaceMgr: SpaceManager, deltaSeconds = 1) {
     spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 }
@@ -14,7 +17,7 @@ function tick(spaceMgr: SpaceManager, deltaSeconds = 1) {
 function makeShip(id: string, x = 0, y = 0) {
     const ship = new Spaceship();
     ship.id = id;
-    ship.radius = Spaceship.radius;
+    ship.radius = GENERIC_SHIP_RADIUS;
     ship.position.x = x;
     ship.position.y = y;
     return ship;

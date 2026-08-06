@@ -201,6 +201,7 @@ export const dragonflyMK2 = {
         ['AFT', dragonflyMK2Thruster],
     ],
     tubes: [['PORT', dragonflyMK2Tube]],
+    radius: 11.2,
     armor: dragonflyMK2Armor,
     radars: [dragonflyMK2OmniRadar],
     smartPilot: dragonflyMK2SmartPilot,

@@ -29,6 +29,7 @@ function setup() {
     const makeShipMgr = (id: string, faction: Faction, x = 0, y = 0) => {
         const obj = new Spaceship();
         obj.id = id;
+        obj.radius = demoShipConfig.radius;
         obj.faction = faction;
         obj.position.x = x;
         obj.position.y = y;
@@ -103,7 +104,8 @@ describe('ShipManager weapons target lifecycle', () => {
         const { spaceMgr, makeShipMgr, flush } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
         makeShipMgr('c', Faction.Gravitas, 1000, 0);
-        spaceMgr.insert(new Asteroid().init('rock', Vec2.make({ x: 500, y: 0 }), 10));
+        // off the scanner-to-'c' bearing (0deg) so the asteroid doesn't occlude 'c' behind it
+        spaceMgr.insert(new Asteroid().init('rock', Vec2.make({ x: 500, y: 500 }), 10));
         flush();
         mgr.state.weaponsTarget.shipOnly = true;
         mgr.state.weaponsTarget.enemyOnly = false;
