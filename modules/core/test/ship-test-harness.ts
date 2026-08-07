@@ -53,6 +53,10 @@ export class MockDie {
         return v * (max - min) + min;
     }
 
+    public getGaussian(_id: string, mean: number, stdev: number): number {
+        return mean + 2.0 * stdev * (3 * this._expectedRoll - 1.5);
+    }
+
     set expectedRoll(roll: number) {
         this._expectedRoll = roll;
     }

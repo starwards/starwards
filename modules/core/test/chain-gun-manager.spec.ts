@@ -1,6 +1,7 @@
 import {
     Faction,
     ScanLevel,
+    ShipDie,
     ShipManagerPc,
     SmartPilotMode,
     SpaceManager,
@@ -129,6 +130,39 @@ describe('ChainGunManager', () => {
                 // is a shell's ceiling, so it never demotes and never takes a scan queue slot
                 expect(p.scanLevels[Faction.Gravitas]).to.equal(ScanLevel.BASIC);
             }
+        });
+
+        it('replay determinism: two independent runs with the same die seed fire identical projectile angles', () => {
+            function run(seed: number) {
+                const spaceMgr = new SpaceManager();
+                const shipObj = new Spaceship();
+                shipObj.id = '1';
+                const die = new ShipDie(seed);
+                const shipMgr = new ShipManagerPc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+                spaceMgr.insert(shipObj);
+                shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+                shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+                const chainGun = shipMgr.state.chainGuns[0];
+                chainGun.isFiring = true;
+                chainGun.loadAmmo = true;
+                switchToAvailableAmmo(chainGun, shipMgr.state.magazine);
+
+                const i = makeIterationsData(2, 200);
+                for (const id of i) {
+                    shipMgr.update(id);
+                    spaceMgr.update(id);
+                }
+                return [...spaceMgr.state.getAll('Projectile')].map((p) => p.angle);
+            }
+
+            const runA = run(42);
+            const runB = run(42);
+            const runC = run(43);
+
+            expect(runA.length).to.be.greaterThan(0);
+            expect(runA).to.deep.equal(runB);
+            expect(runA).to.not.deep.equal(runC);
         });
 
         it('does not fire when effectiveness is zero', () => {

@@ -24,7 +24,10 @@ describe('a ship with multiple chain gun mounts', () => {
         shipObj.id = 'multi-mount';
         shipObj.faction = Faction.Gravitas;
         const die = new MockDie();
-        die.expectedRoll = 1;
+        // 0.5 ⇒ zero-mean aim deviation (die.getGaussian collapses to `mean`), so the fired angle is
+        // exactly the mount's fitted bearing instead of a value that merely has to fall within a
+        // tolerance band wide enough to absorb unseeded aim jitter.
+        die.expectedRoll = 0.5;
         const shipMgr = new ShipManagerNpc(shipObj, makeShipState(shipObj.id, twoMountDesign), spaceMgr, die);
         spaceMgr.insert(shipObj);
 
@@ -44,8 +47,7 @@ describe('a ship with multiple chain gun mounts', () => {
         const projectiles = [...spaceMgr.state.getAll('Projectile')];
         expect(projectiles.length).to.be.greaterThan(0);
 
-        const closeTo = (value: number, target: number) => Math.abs(value - target) < 5;
-        expect(projectiles.some((p) => closeTo(p.angle, 0))).to.equal(true); // FWD mount
-        expect(projectiles.some((p) => closeTo(p.angle, -90))).to.equal(true); // STBD mount
+        expect(projectiles.some((p) => Math.abs(p.angle - 0) < 1e-6)).to.equal(true); // FWD mount
+        expect(projectiles.some((p) => Math.abs(p.angle - -90) < 1e-6)).to.equal(true); // STBD mount
     });
 });
