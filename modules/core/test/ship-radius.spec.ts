@@ -1,6 +1,12 @@
 import { FieldOfView, MIN_RADAR_DETECT_FACTOR, RadarSector, ShipModel, Spaceship, SpatialIndex, Vec2 } from '../src';
-import { MIN_HULL_RADIUS, makeShipState, validateHullRadius } from '../src/ship/make-ship-state';
+import {
+    MIN_HULL_RADIUS,
+    MIN_HULL_RADIUS_ANGULAR,
+    makeShipState,
+    validateHullRadius,
+} from '../src/ship/make-ship-state';
 import { shipConfigurations, shipModels } from '../src/configurations';
+import { ANGLE_QUANTUM_DEGREES } from '../src/logic/formulas';
 
 const expectedRadii: Record<ShipModel, number> = {
     'demo-ship': 16.8,
@@ -117,5 +123,31 @@ describe('hull radius boot assertion: the 120km detectability floor', () => {
     it('makeShipState refuses to build a ship whose configured radius is at or below the floor', () => {
         const unsafeDesign = { ...shipConfigurations['dragonfly-MK1'], radius: 5 };
         expect(() => makeShipState('unsafe-ship', unsafeDesign)).toThrow(/radius/i);
+    });
+});
+
+// The binding constraint on long-range detection is angular precision, not the radius gate:
+// `limitPercisionHard` rounds arc endpoints to the nearest ANGLE_QUANTUM_DEGREES, so a hull whose
+// angular width falls below that quantum at the 120km line is invisible regardless of the radius
+// gate. See issue #2076.
+describe('hull radius boot assertion: the angular-precision floor', () => {
+    it('the floor is derived from the angle quantum, not a hardcoded literal', () => {
+        expect(MIN_HULL_RADIUS_ANGULAR).toBeCloseTo((ANGLE_QUANTUM_DEGREES * 120_000 * Math.PI) / 180 / 2, 5);
+        expect(MIN_HULL_RADIUS_ANGULAR).toBeCloseTo(10.47, 2);
+    });
+
+    it('the angular floor is the binding (larger) constraint over the radius-gate floor', () => {
+        expect(MIN_HULL_RADIUS_ANGULAR).toBeGreaterThan(MIN_HULL_RADIUS);
+    });
+
+    it('rejects a hull radius above the radius-gate floor but at or below the angular floor', () => {
+        expect(MIN_HULL_RADIUS).toBeLessThan(10);
+        expect(() => validateHullRadius(10, 'sub-quantum-hull')).toThrow(/sub-quantum-hull/);
+    });
+
+    it('every shipped hull configuration clears the angular floor', () => {
+        for (const model of shipModels) {
+            expect(shipConfigurations[model].radius).toBeGreaterThan(MIN_HULL_RADIUS_ANGULAR);
+        }
     });
 });
