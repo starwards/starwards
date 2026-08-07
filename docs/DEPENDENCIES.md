@@ -61,6 +61,17 @@ last_verified: 2026-07-04
 **Exact:** No updates
 - `1.0.0-next.25020502` → Exactly this version
 
+**zod must resolve to exactly one copy** — root `overrides` pins it (`4.1.12`), and `modules/mcp`
+depends on that same exact version. zod v4 brands its schema types, so two copies in the tree are two
+incompatible type identities. When `@modelcontextprotocol/sdk` and `modules/mcp` each resolved their
+own, `tsc` did not report a mismatch — it exhausted a 4 GB heap trying to compare them, on a build
+that had been fine moments earlier. Any module that adds zod must land on the same copy; check with
+`npm ls zod --all` and confirm no `modules/*/node_modules/zod` exists.
+
+Note that npm will keep reinstalling a nested copy while `package-lock.json` still has an entry for
+it, even after the override is added — delete the `modules/*/node_modules/zod` entry from the lockfile
+and reinstall.
+
 ## Docker Infrastructure
 
 | Component | Version | Rationale |
@@ -78,6 +89,7 @@ last_verified: 2026-07-04
 | eslint | 10.x | eslint-plugin-react peers cap at ^9.7 | Blocked on plugin |
 | colyseus | 0.17/0.18 | Breaking 0.x line (0.16.x adopted) | Dedicated migration |
 | esbuild | 0.26+ | Breaking 0.x minors | Held at 0.25.x |
+| zod | any second copy | Duplicate copies make `tsc` OOM rather than error (see Version Pins) | Pinned via root `overrides` |
 
 ## Upgrade Checklist
 

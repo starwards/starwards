@@ -18,6 +18,7 @@ import asyncHandler from 'express-async-handler';
 import basicAuth from 'express-basic-auth';
 import { createLogger } from '@starwards/core/internal';
 import express from 'express';
+import { getStationsManifest } from './stations-manifest';
 import { monitor } from '@colyseus/monitor';
 
 const { error: logError } = createLogger('server:http');
@@ -62,6 +63,13 @@ export async function server(
 
     app.get('/health', (_, res) => {
         res.json({ status: 'ok' });
+    });
+
+    // the bridge a ship offers: which stations exist and what each may see and do. Headless clients
+    // read this to scope themselves to a seat; unknown ships still get the default bridge, because
+    // a manifest describes a ship model, not a live game object.
+    app.get('/stations-manifest/:shipId', (req, res) => {
+        res.json(getStationsManifest(req.params.shipId));
     });
 
     // add colyseus monitor

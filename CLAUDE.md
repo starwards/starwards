@@ -85,8 +85,8 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 - **Stack**: Colyseus multiplayer, PixiJS v8 graphics, React UI, XState, TypeScript
 - **Monorepo**: `modules/` folder with npm workspaces
-- **Modules**: browser, core, server, node-red, e2e
-- **Build order**: core → (server, browser, node-red in parallel)
+- **Modules**: browser, core, server, node-red, mcp, e2e
+- **Build order**: core → (server, browser, node-red, mcp in parallel)
 - **Scenarios**: Defined in `modules/server/src/maps.ts`
 
 ## Architecture
@@ -175,6 +175,8 @@ filter(o => getScanLevel(o) === UFO)      // ✅ keys on what the player has ear
 
 Filter on scan level. Type filters are legitimate only above `BASIC`, where the player already knows the type. GM surfaces are exempt. The same rule covers removal: a visible collection that drops an entry discloses why it dropped.
 
+**This discipline now spans clients.** `modules/mcp` seats an LLM at a station and answers `get_radar_contacts` from the same `FieldOfView` and the same `playerScanLevel` the browser draws blips with — both live in `modules/core/src/client/`. A perception rule implemented in only one of them is a client that sees what the other cannot: put it in core, and cover it in `modules/mcp/src/radar/radar-view.spec.ts`, which asserts the MCP predicate against the browser's directly.
+
 ### Managers
 
 `ship/` decomposes into sub-managers (`chain-gun-manager`, `damage-manager`, `energy-manager`, …); `logic/` should too. When extracting one, pass computed per-tick inputs (e.g. field-of-view) as **arguments** rather than reaching back into the parent — that turns an implicit call-ordering contract into a signature the compiler enforces.
@@ -199,6 +201,7 @@ Filter on scan level. Type filters are legitimate only above `BASIC`, where the 
 | E2E fails at import with `Cannot read properties of undefined (reading 'constructor')` in `@colyseus/schema` | The workspace was never built, so Playwright resolves `@starwards/*` to TS source via tsconfig `paths` and transpiles `@gameField` as a standard (2023-05) decorator — colyseus expects a legacy one. Build first, as CI does: `npm run build:core && npm run build:server && npm --prefix modules/browser run build` |
 | Port in use              | Dev server uses 8080 (override with `PORT` env). Unix: `lsof -ti:8080 \| xargs kill -9`; Windows: `Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess \| Stop-Process` |
 | `room.send()` float values arrive as garbage (e.g. 0.25 → 1.08e-137) while ints and strings survive | `Packr.useBuffer()` in @colyseus/msgpackr swaps the module-level write buffer without refreshing the DataView floats are written through, and colyseus calls it from `getMessageBytes[JOIN_ROOM]` once the schema handshake outgrows the 8 KB packr buffer. `modules/core/src/serialization-buffers.ts` sizes that buffer up front to keep colyseus off the path; grow it there if the handshake ever exceeds it |
+| `tsc` dies with "JavaScript heap out of memory" on a build that worked minutes ago | Two copies of `zod` in the tree. Its v4 types are branded, so duplicates are incompatible identities and the compiler exhausts its heap comparing them instead of reporting a mismatch. `npm ls zod --all`; there must be no `modules/*/node_modules/zod`. Root `overrides` pins the version — see [`docs/DEPENDENCIES.md`](docs/DEPENDENCIES.md#version-pins) |
 | `--update-snapshots` leaves the baseline untouched, so a real visual change looks like "my change is not rendering" | The flag's default mode is `changed`, which only rewrites snapshots whose comparison **failed**. The gallery tests pass with `maxDiffPixels` 200 (2000 for radar) and `threshold: 0.2` (`modules/e2e/test/visual/gallery.spec.ts`), so a change under those tolerances still passes and is never written. Use `--update-snapshots=all` to force a rewrite, then read the image diff |
 | Tweakpane pane click times out, `tp-rotv_c` div intercepts pointer events | Fixed-position panes (e.g. `drawPilotStats`) have unbounded height and later-appended DOM covers earlier panes. Create the pane that must receive clicks **last** so it stacks on top |
 
