@@ -279,6 +279,122 @@ today's duplicated arbitration.
 Each stage: full vertical slice (state → server → both clients → tests → snapshots), no
 leftover tasks. Visual snapshots rebaseline once per stage that touches rendering.
 
+## Migration decisions (approved 2026-08-08)
+
+Every decision each stage forces, with its approved answer — implementation sessions
+execute these instead of re-litigating.
+
+### Global
+
+- **G1. Fixed-screen placement during migration**: the `layout` annex ships as a follow-up
+  after stage 8. Until then, existing screen files keep placement — each grid slot calls
+  the generic percept renderer instead of `drawXxx`. Placement-as-code is a skin concern.
+- **G2. Mixed id vocabulary**: registries are the single source from stage 1; each facet's
+  ids rename in the stage that migrates it, same commit updates server grants; MCP enums
+  derive from registry keys and follow automatically.
+- **G3. Metadata visibility**: registries and annotation getters export through
+  `core/src/index.public.ts`, same pattern as `getTweakables`/`getRange`.
+
+### Stage 1 — annotation infrastructure + warp slice
+
+- **1a**: kind-specific decorators (`@gauge`, `@mode`, `@condition`, `@setpoint`, `@stock`,
+  `@progress`, `@entityRef`, `@notice`, `@affordance`), all writing one metadata registry.
+- **1b**: metadata mechanism mirrors `core/src/tweakable.ts` (Map keyed by
+  constructor+property, getter function).
+- **1c**: kind inference (numeric+`@range` → gauge, enum → mode) as fallback inside the
+  registry getter; explicit decorators override.
+- **1d**: facet specs in `modules/core/src/stations/` — one file per facet + `index.ts`
+  building both registries.
+- **1e**: warp slice replaces ALL consumers in one slice — `drawWarpStatus` on
+  pilot/ecr/ship screens, MCP reader entry, warp wiring on all three screens;
+  `widgets/warp.ts` imperative body deleted. Ids: `warp.status`, `warp.up`, `warp.down`,
+  `warp.frequency`, `warp.changeFrequency`.
+- **1f**: step affordance declared on the setpoint field (`desiredLevel`), referencing the
+  up/down pulse fields by `keyof`-checked property name.
+- **1g**: feedback in MCP `execute_command` built now — echo `desiredLevel`, response
+  `currentLevel` via `frequencyChange` is the test case.
+- **1h**: dispatch wire shape `{affordance, item?, args?}` from day one.
+
+### Stage 2 — simple panels
+
+- **2a**: legacy PropertyPanel widgets (`gunWidget`, `pilotWidget`) retired; ship.html
+  `helm`/`gun` become the `pilot.stats`/`guns.status` percepts. `panel/property-panel.ts`
+  survives only for GM `design-state` (exempt).
+- **2b**: ammo modeled as a spec-level synthetic collection over the `ammoDesigns` catalog
+  with pointer templates; each item a `stock` with capacity from design. No schema change.
+- **2c**: docking "Closest Option" is a named core derivation over
+  `core/src/client/spatial-index.ts` with a declared `cadence: 250` trait.
+- **2d**: targeting filter checkboxes become live in-pane toggles (affordance-driven
+  rendering with echo feedback) — the inert-display quirk is fixed, not preserved.
+- **2e**: conditional presence (clusterWarhead, warp-fitted, >1 gun mount) is one
+  `presence` trait taking a named design predicate.
+
+### Stage 3 — system tables + severity
+
+- **3a**: `monitor` is a **skin** over `engineering.status` + `systems.status` — no grant,
+  no MCP surface, ship.html-only.
+- **3b**: severity maps declared in core (`@mode({severity})`, `@condition`); browser's
+  three per-widget maps deleted; CSS keys only on `ok|warn|error`.
+- **3c**: station system subsets become distinct percept ids — `systems.flight`,
+  `systems.weapons`, `systems.all`, `systems.full`; grants pick the subset; every
+  `'pilot'`/`'weapons'` station-name literal in core/mcp goes.
+- **3d**: table rendering is a renderer-level default (homogeneous scalar item spec →
+  table), not a semantic trait.
+
+### Stage 4 — pilot + ECR affordances
+
+- **4a**: single browser-side `input/keymap.ts` keyed by affordance id (global; only
+  granted affordances get wired, so key reuse across stations is safe). Gamepad included.
+- **4b**: ECR authority gate is a generic `activeWhen: {pointer, equals}` condition on
+  facet affordance groups, interpreted by browser wiring and MCP alike; bridge-engineer
+  gets the inverse.
+- **4c**: `hold` declares its engaged value (default 1/0); axis-capable bindings may drive
+  it analog.
+- **4d**: `rotationMode`/`maneuveringMode` are semantically `set`; keyboard cycling is a
+  keymap binding style.
+- **4e**: hotkey help generated from keymap + affordance labels; hand-wired help deleted.
+
+### Stage 5 — argumented invokes
+
+- **5a**: arg schemas use their own small semantic types (`catalogRef`, `entityRef`,
+  `position`, `index`, enum) — meaningful to every medium; MCP converts to zod at its
+  boundary. No zod in core.
+- **5b**: repair catalog is a presence-filtered catalog collection over
+  `getAvailableRepairProtocols`; enqueue is `invoke(catalogRef)` with membership feedback
+  and declared refusal (`refusalReason`).
+- **5c**: reorder gating (QUEUED-only) is a `presence` trait on the item affordance —
+  replaces the imperative re-render signature.
+
+### Stage 6 — relay / waypoints
+
+- **6a**: spec sources extend to space collections with an ownership/perception filter
+  (own-faction waypoints), through core perception.
+- **6b**: group fan-out ops are `invoke` with args (`relay.renameGroup(group, name)`);
+  dispatch owns the fan-out.
+- **6c**: `moveWaypoint`'s semantic arg is the absolute position; delta/`bulkMove`
+  conversion is dispatch implementation.
+
+### Stage 7 — radar view configs
+
+- **7a**: ship.html `target radar` joins the registry as grantable `radar.target`; the
+  full radar stays a named config without a grant.
+- **7b**: radar affordances formalized on the percept — `select` (client-local), waypoint
+  `invoke`s on `radar.relay`; pan/zoom/follow stay local.
+- **7c**: MCP `get_radar_contacts` becomes one code path over `RadarViewConfig`; the three
+  per-radar branches in `mcp/src/server.ts` go.
+
+### Stage 8 — deletions + terminology
+
+- **8a**: renames land in one commit — `StationEntry.percepts`/`.affordances`, MCP tool
+  params, `stationPercepts`/`stationAffordances`; docs updated (INTEGRATION, ARCHITECTURE,
+  TECHNICAL_REFERENCE, standards-naming). The manifest's only consumer is in-repo MCP, so
+  the break is free.
+- **8b**: gallery scenes keyed by percept id; CLAUDE.md scene-list comment points at the
+  registry-keyed index.
+- **8c**: deletions per no-tombstones — `mcp/src/readers.ts`,
+  `mcp/src/sandbox/command-map.ts`, per-screen `wireInput` bodies, `input/wiring.ts`
+  duplication, `station-system-filters.ts`, hand-maintained id arrays.
+
 ## Testing
 
 - Registry exhaustiveness is compile-time (exhaustive `Record`s).
