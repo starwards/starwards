@@ -21,6 +21,7 @@ import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
 import { Turret, updateTurret } from './turret';
 
+import { AmmoManager } from './ammo-manager';
 import { Armor } from './armor';
 import { ArmorRepairManager } from './armor-repair-manager';
 import { AutomationManager } from './automation-manager';
@@ -136,6 +137,7 @@ export abstract class ShipManager implements Updateable {
     protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
     protected heatManager: HeatManager;
+    protected ammoManager: AmmoManager;
     public signalsJobManager: SignalsJobManager;
 
     constructor(
@@ -153,6 +155,7 @@ export abstract class ShipManager implements Updateable {
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.armorRepairManager = new ArmorRepairManager(this.state);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
+        this.ammoManager = new AmmoManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         for (const chainGun of this.state.chainGuns) {
             this.chainGunManagers.push(
@@ -271,6 +274,7 @@ export abstract class ShipManager implements Updateable {
         this.calcTargetedStatus();
 
         this.signalsJobManager.update(id);
+        this.ammoManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
         this.armorRepairManager.update(id);

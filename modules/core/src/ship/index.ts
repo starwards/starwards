@@ -1,5 +1,6 @@
 import * as _repairCommands from './repair-commands';
 
+export * from './ammo-manager';
 export * from './armor';
 export * from './attack-resolution-manager';
 export * from './chain-gun';
