@@ -194,8 +194,14 @@ export class AutomationManager implements Updateable {
             this.shipManager.cancelAllTasks();
         }
         if (this.chooseAndRunTask(id)) {
+            const reacquiredTargetId =
+                !this.state.isPlayerShip && this.state.order === Order.ATTACK ? this.findNearestHostileTarget() : null;
             this.shipManager.cancelAllTasks();
-            this.clearOrder();
+            if (reacquiredTargetId) {
+                this.state.orderTargetId = reacquiredTargetId;
+            } else {
+                this.clearOrder();
+            }
         }
     }
 
@@ -264,20 +270,15 @@ export class AutomationManager implements Updateable {
             }
             return true;
         }
-        if (!this.state.isPlayerShip && this.state.docking.mode === DockingMode.UNDOCKED) {
-            const threatId = this.findNearestHostileTarget();
-            if (threatId) {
-                this.state.order = Order.ATTACK;
-                this.state.orderTargetId = threatId;
-            }
-        }
         return false;
     }
 
     /**
      * Picks the nearest non-destroyed hostile-faction Spaceship within the ship's own chain-gun
-     * range, so an idle NPC re-engages instead of sitting dead in the water once its ordered
-     * target is gone. No weapon, no threat routine — an unarmed NPC has nothing to re-acquire for.
+     * range, so an NPC whose ATTACK order just completed (target destroyed or gone) re-engages
+     * instead of sitting dead in the water. Only consulted at that transition — an NPC that was
+     * never given an order stays idle, per the GameApi contract that scripts gate engagement. No
+     * weapon, no threat routine — an unarmed NPC has nothing to re-acquire for.
      */
     private findNearestHostileTarget(): string | null {
         const controlWeapon = this.state.chainGuns[0] ?? null;
