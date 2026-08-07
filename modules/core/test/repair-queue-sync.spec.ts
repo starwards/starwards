@@ -34,6 +34,7 @@ describe('RepairQueue reorder survives a Colyseus encode/decode round trip', () 
             getRollInRange: (_, min) => min,
             getDrift: () => 0,
             getDriftInRange: (_, min) => min,
+            getGaussian: (_, mean) => mean,
         });
         const heatManager = new HeatManager(state, damageManager);
         const energyManager = new EnergyManager(state, heatManager);

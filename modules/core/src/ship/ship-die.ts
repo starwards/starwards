@@ -85,4 +85,17 @@ export class ShipDie implements Updateable {
     public getDriftInRange(id: string, min: number, max: number, frequencyHz = 0.2): number {
         return this.getDrift(id, frequencyHz) * (max - min) + min;
     }
+
+    /**
+     * Event roll, shaped as an approximately-normal distribution via three summed unit rolls
+     * (Irwin-Hall), bounded to `[mean - 3*stdev, mean + 3*stdev]`. The three sub-rolls are always
+     * fresh (their ids are suffixed, never bare) regardless of the caller's own id, so this is safe
+     * to call with a sticky id without colliding with an unrelated `getRoll` on the same id.
+     */
+    public getGaussian(id: string, mean: number, stdev: number): number {
+        const r1 = hashToUnit(mix(this.eventSalt, fnv1a(`${id}:a`)));
+        const r2 = hashToUnit(mix(this.eventSalt, fnv1a(`${id}:b`)));
+        const r3 = hashToUnit(mix(this.eventSalt, fnv1a(`${id}:c`)));
+        return mean + 2.0 * stdev * (r1 + r2 + r3 - 1.5);
+    }
 }

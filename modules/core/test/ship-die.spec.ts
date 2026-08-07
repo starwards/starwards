@@ -183,4 +183,42 @@ describe('ShipDie', () => {
             expect(stepAtBoundary).to.be.lessThan(stepAwayFromBoundary + 0.05);
         });
     });
+
+    describe('getGaussian', () => {
+        it('same seed + same id ⇒ identical value', () => {
+            const a = new ShipDie(42);
+            const b = new ShipDie(42);
+            expect(a.getGaussian('aim:shell-1', 10, 2)).to.equal(b.getGaussian('aim:shell-1', 10, 2));
+        });
+
+        it('different ids ⇒ different values (spot check)', () => {
+            const die = new ShipDie(1);
+            const samples = new Set<number>();
+            for (let i = 0; i < 16; i++) samples.add(die.getGaussian(`aim:${i}`, 0, 1));
+            expect(samples.size).to.be.greaterThan(12);
+        });
+
+        it('different seeds ⇒ different values for the same id', () => {
+            const diffs = new Set<number>();
+            for (let s = 0; s < 8; s++) {
+                diffs.add(new ShipDie(s).getGaussian('same-id', 0, 1));
+            }
+            expect(diffs.size).to.be.greaterThan(6);
+        });
+
+        it('is centered on mean and bounded by the Irwin-Hall approximation (statistically)', () => {
+            const die = new ShipDie(123);
+            let sum = 0;
+            const stdev = 2;
+            const mean = 5;
+            const n = 2000;
+            for (let i = 0; i < n; i++) {
+                const v = die.getGaussian(`g:${i}`, mean, stdev);
+                expect(v).to.be.at.least(mean - 3 * stdev);
+                expect(v).to.be.at.most(mean + 3 * stdev);
+                sum += v;
+            }
+            expect(sum / n).to.be.closeTo(mean, 0.2);
+        });
+    });
 });

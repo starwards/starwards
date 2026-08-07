@@ -114,6 +114,7 @@ export type Die = {
     getRollInRange: (id: string, min: number, max: number) => number;
     getDrift: (id: string, frequencyHz?: number) => number;
     getDriftInRange: (id: string, min: number, max: number, frequencyHz?: number) => number;
+    getGaussian: (id: string, mean: number, stdev: number) => number;
 };
 
 export interface EnergySource {
@@ -154,7 +155,7 @@ export abstract class ShipManager implements Updateable {
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.ammoManager = new AmmoManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
-        for (const chainGun of this.state.chainGuns) {
+        for (const [index, chainGun] of this.state.chainGuns.entries()) {
             this.chainGunManagers.push(
                 new ChainGunManager(
                     chainGun,
@@ -164,10 +165,12 @@ export abstract class ShipManager implements Updateable {
                     this,
                     this.internalProxy,
                     this.internalProxy,
+                    this.die,
+                    `chainGun:${index}`,
                 ),
             );
         }
-        for (const tube of this.state.tubes) {
+        for (const [index, tube] of this.state.tubes.entries()) {
             this.tubeManagers.push(
                 new ChainGunManager(
                     tube,
@@ -177,6 +180,8 @@ export abstract class ShipManager implements Updateable {
                     this,
                     this.internalProxy,
                     this.internalProxy,
+                    this.die,
+                    `tube:${index}`,
                 ),
             );
         }
