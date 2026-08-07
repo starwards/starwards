@@ -363,6 +363,8 @@ returns the same bridge for every one.
 | `get_ship_status`     | Read one panel the seat holds.                                                |
 | `get_radar_contacts`  | The seat's picture of space, filtered and scan-level degraded.                |
 | `execute_command`     | Operate a control the seat holds.                                             |
+| `say`                 | Speak to the rest of the crew.                                                |
+| `listen`              | Hear what the crew has said since the last call.                              |
 
 A refusal names what the seat can do instead, so a model can correct itself without guessing.
 
@@ -376,6 +378,48 @@ degrades detail without hiding contacts: below `BASIC` a contact reports positio
 its type, faction or name.
 
 `modules/mcp/src/radar/radar-view.spec.ts` asserts this against the browser's predicate directly.
+
+### The crew channel
+
+A sandboxed station is a station that cannot see most of the ship, which is the point: signals is the
+only seat that can identify a blip, ECR the only seat that knows why power is sagging. The game only
+works when those seats tell each other, so `say` and `listen` carry crew speech over a Discord text
+channel — the one the human crew already uses, which makes an LLM station and a human player the same
+kind of participant in the same room. A testplay can be all-LLM, all-human, or mixed.
+
+Configure it through the environment of each MCP server process — a bot token does not belong in a
+committed client config, so there is no flag form:
+
+| Variable               | Purpose                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `DISCORD_WEBHOOK_URL`  | Where speech is posted. Each message overrides the webhook username with the   |
+|                        | speaking station's name, so one webhook serves the whole crew.                 |
+| `DISCORD_BOT_TOKEN`    | Reading needs a bot, with the **Message Content intent** enabled.              |
+| `DISCORD_CHANNEL_ID`   | The channel to read.                                                           |
+| `STARWARDS_CALLSIGN`   | What to call yourself before you hold a seat. A captain never logs in.         |
+
+Neither tool consults the manifest: speech is not a station capability. Unset variables produce a
+refusal naming them, and the server otherwise runs exactly as it does without a channel.
+
+The channel is outside the game — nothing said there is subject to range, jamming or a damaged comms
+array, and a station hears an order only when it next calls `listen`. Humans must type; a voice
+channel is inaudible to the models.
+
+### Running a testplay
+
+1. `npm run dev` — game on `localhost:8080`. Open a browser GM screen: it is the only honest check on
+   what the crew is actually doing, as opposed to what it tells each other.
+2. `npm run build:mcp`.
+3. One Discord text channel, a webhook on it, and a bot in the guild with Message Content on.
+4. One MCP client session per station, all pointed at the same game and the same channel, each told
+   which seat to take: `pilot`, `weapons`, `ecr`, `bridge-engineer`, `signals`, `relay`. The seat's
+   briefing comes back from `login` — that is what the manifest's `prompt` is for.
+5. A captain: either a human typing in the channel, or a session that never calls `login` and so has
+   only `say` and `listen` — a fair model of an officer who commands through the crew.
+
+Start with two seats, not six. Have signals `say` a contact it has identified, confirm the pilot's
+`listen` returns it, and confirm the pilot's own `get_radar_contacts` still reports that contact as
+`UFO`: the crew shares knowledge, the sandbox does not.
 
 ## Docker Deployment
 

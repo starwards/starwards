@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { DiscordChannel, readCommsConfig } from './comms/discord';
+
 import { Driver } from '@starwards/core/internal';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { buildMcpServer } from './server';
@@ -30,8 +32,13 @@ function readUrlArg(argv: string[]): string {
 async function main() {
     const baseUrl = new URL(withDefaultProtocol(readUrlArg(process.argv.slice(2))));
     const driver = new Driver(baseUrl).connect(1_000);
-    const server = buildMcpServer(driver, baseUrl);
+    const commsConfig = readCommsConfig(process.env);
+    const server = buildMcpServer(driver, baseUrl, {
+        comms: commsConfig && new DiscordChannel(commsConfig),
+        callsign: process.env.STARWARDS_CALLSIGN,
+    });
     log(`connecting to ${baseUrl.href}`);
+    log(commsConfig ? `crew channel ${commsConfig.channelId}` : 'no crew channel configured');
     await server.connect(new StdioServerTransport());
 }
 

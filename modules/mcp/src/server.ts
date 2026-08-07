@@ -11,6 +11,7 @@ import { InvalidCommandError, NotPermittedError, StationSession } from './sandbo
 import { enabledStations, fetchStationsManifest } from './sandbox/manifest';
 import { pilotRadarRange, scanBeamStatus, widgetReaders } from './readers';
 
+import { DiscordChannel } from './comms/discord';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { commandBindings } from './sandbox/command-map';
 import { describeContact } from './contacts';
@@ -65,14 +66,22 @@ async function attempt(body: () => unknown): Promise<ToolResult> {
     }
 }
 
+type McpServerOptions = {
+    /** The crew channel, when one is configured. Without it, `say` and `listen` explain what is missing. */
+    comms?: DiscordChannel;
+    /** What to call yourself on the crew channel before you hold a seat — a captain never logs in. */
+    callsign?: string;
+};
+
 /**
  * The MCP surface: a bridge station, playable by an LLM.
  *
  * The shape follows what a player does. You look at the ship list, you take a seat, and from then on
  * everything you can see and everything you can do is whatever that seat has — the same boundary the
- * browser draws by only rendering one screen's widgets and only wiring one screen's keys.
+ * browser draws by only rendering one screen's widgets and only wiring one screen's keys. What the
+ * seat cannot see, it asks the crew for.
  */
-export function buildMcpServer(driver: Driver, baseUrl: URL) {
+export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerOptions = {}) {
     const server = new McpServer(
         { name: 'starwards', version: '0.5.1' },
         {
@@ -80,7 +89,8 @@ export function buildMcpServer(driver: Driver, baseUrl: URL) {
                 'A Starwards ship bridge. Call list_ships, then list_stations for a ship, then login to take a ' +
                 'seat. From then on you are that station: get_capabilities tells you what you may read and do, ' +
                 'get_radar_contacts is your scope, and execute_command is your console. What you cannot see, the ' +
-                'rest of the crew may be able to — talk to them.',
+                'rest of the crew can — say and listen are how you reach them, and no station can play well ' +
+                'without using them.',
         },
     );
 
@@ -92,6 +102,21 @@ export function buildMcpServer(driver: Driver, baseUrl: URL) {
             throw new NotPermittedError('you are not logged in to a station yet. Call login first.');
         }
         return session;
+    }
+
+    function requireComms(): DiscordChannel {
+        if (!options.comms) {
+            throw new NotPermittedError(
+                'there is no crew channel configured. Set DISCORD_WEBHOOK_URL, DISCORD_BOT_TOKEN and ' +
+                    "DISCORD_CHANNEL_ID in this server's environment to join one.",
+            );
+        }
+        return options.comms;
+    }
+
+    /** Who the channel sees you as. Your seat names you; before you have one, your callsign does. */
+    function speaker(): string {
+        return session?.stationName ?? options.callsign ?? 'captain';
     }
 
     server.registerTool(
@@ -333,6 +358,37 @@ export function buildMcpServer(driver: Driver, baseUrl: URL) {
                 const defined = Object.fromEntries(Object.entries(args).filter(([, v]) => v !== undefined));
                 return { done: await s.execute(command, defined, value) };
             }),
+    );
+
+    // Speech is not a station capability, so neither tool consults the manifest: every seat can talk,
+    // and a session that never logs in — a captain, who commands through the crew — can talk too.
+    server.registerTool(
+        'say',
+        {
+            description:
+                'Say something to the rest of the crew, out loud, as your station. Use it whenever you learn ' +
+                'something another seat needs and cannot see for itself, and to answer the captain.',
+            inputSchema: { text: z.string().min(1).describe('what you say') },
+            annotations: { destructiveHint: false, openWorldHint: true },
+        },
+        async ({ text }) =>
+            attempt(async () => {
+                const as = speaker();
+                await requireComms().say(as, text);
+                return { said: text, as };
+            }),
+    );
+
+    server.registerTool(
+        'listen',
+        {
+            description:
+                'Everything the crew has said since you last listened, oldest first. Call it every turn — ' +
+                'orders and warnings arrive here, and nothing repeats.',
+            inputSchema: {},
+            annotations: { readOnlyHint: true, openWorldHint: true },
+        },
+        async () => attempt(async () => ({ heard: await requireComms().listen(speaker()) })),
     );
 
     return server;

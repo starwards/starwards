@@ -155,4 +155,16 @@ describe('starwards mcp server', () => {
             );
         });
     });
+
+    describe('the crew channel', () => {
+        it('offers say and listen to every seat', async () => {
+            const tools = (await client.listTools()).tools.map((t) => t.name);
+            expect(tools).toEqual(expect.arrayContaining(['say', 'listen']));
+        });
+
+        it('says what is missing when no channel is configured, rather than failing silently', async () => {
+            expect(refusal(await call('say', { text: 'contact bearing 040' }))).toContain('DISCORD_WEBHOOK_URL');
+            expect(refusal(await call('listen'))).toContain('no crew channel');
+        });
+    });
 });
