@@ -173,6 +173,9 @@ export const Lobby = (p: Props) => {
                                 <Button palette="success" onClick={() => adminDriver.startGame('solo')}>
                                     <div>Solo Game</div>
                                 </Button>
+                                <Button palette="success" onClick={() => adminDriver.startGame('wave_defence')}>
+                                    <div data-id="wave defence game">Wave Defence</div>
+                                </Button>
                             </pre>
                         )}
                         <pre key="Utilities">
