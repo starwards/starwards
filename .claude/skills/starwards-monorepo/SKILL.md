@@ -39,6 +39,10 @@ starwards/
 │   │   ├── src/
 │   │   ├── dist/
 │   │   └── package.json     # @starwards/node-red
+│   ├── mcp/                 # MCP server: LLM station client
+│   │   ├── src/
+│   │   ├── dist/
+│   │   └── package.json     # @starwards/mcp
 │   └── e2e/                 # Playwright tests
 │       └── test/
 └── node_modules/            # Shared dependencies (hoisted)
@@ -51,6 +55,7 @@ core (no deps)
   ├─→ server (depends on core)
   ├─→ browser (depends on core)
   ├─→ node-red (depends on core)
+  ├─→ mcp (depends on core)
   └─→ e2e (depends on all)
 ```
 
@@ -63,13 +68,14 @@ core (no deps)
 ```bash
 # Build all modules (correct order)
 npm run build
-# Runs: core → (server, browser, node-red in parallel)
+# Runs: core → (server, browser, node-red, mcp in parallel)
 
 # Build specific module
 npm run build:core
 npm run build:browser
 npm run build:server
 npm run build:node-red
+npm run build:mcp
 
 # Clean all build artifacts
 npm run clean

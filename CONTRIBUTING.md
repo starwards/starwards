@@ -21,6 +21,8 @@ The sub-modules are in the `modules` folder:
 -   browser - The web client for the game (including 3D)
 -   core - The game core logic and API objects, may be used by client and/or server
 -   server - The game's server
+-   node-red - Node-RED nodes for wiring the game to external hardware and services
+-   mcp - An MCP server that lets an LLM crew a bridge station
 -   e2e - not strictly a module. The End-to-End tests reside here.
 
 ### Scripts
