@@ -276,6 +276,7 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         const tube = shipMgr.state.tubes[0];
         tube.power = PowerLevel.MAX;
         tube.isFiring = true;
+        tube.safetyLocked = false;
         switchToAvailableAmmo(tube, shipMgr.state.magazine);
         const heatPerMissile = ammoDesigns.HiExpMissile.heatPerShot;
 

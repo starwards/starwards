@@ -403,16 +403,18 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
   - `ammo to use`: Projectile type selected (text, read-only)
   - `ammo loaded`: Currently loaded projectile (text, read-only)
   - `loading`: Load progress slider (0-1, read-only)
+  - `safety locked`: Toggle for that tube's fire safety (checkbox) — locked by default; auto-locks the instant the tube fires
   - `auto load`: Toggle for automatic reloading (checkbox)
 - **Features**:
   - Each tube in separate folder (expanded by default)
   - Separators between tubes
-  - Auto-load can be toggled per tube
+  - Auto-load and safety can be toggled per tube
 - **Keyboard**:
   - `C` key: Toggle auto-load on Tube 0
   - `V` key: Change projectile type on Tube 0
-  - `X` key: Fire Tube 0
-- **Data Source**: `/tubes/[index]/projectile`, `/tubes/[index]/loadedProjectile`, `/tubes/[index]/loading`, `/tubes/[index]/loadAmmo`, `/tubes/[index]/isFiring`
+  - `1`, `2`, `3`, `4` keys: Toggle safety on Tube 0, 1, 2, 3 respectively (one dedicated key per tube index)
+  - `X` key: Fire — ship-level command that launches every tube that is simultaneously loaded, unlocked, and able to bear; each tube that fires re-locks its own safety immediately
+- **Data Source**: `/tubes/[index]/projectile`, `/tubes/[index]/loadedProjectile`, `/tubes/[index]/loading`, `/tubes/[index]/loadAmmo`, `/tubes/[index]/safetyLocked`, `/fireTubesCommand`
 
 #### 3. Ammunition Panel (Middle-Left)
 - **Widget**: `drawAmmoStatus()` - Tweakpane panel
@@ -458,9 +460,10 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 2. Press `]` or `[` to cycle through valid targets
 3. Check **Tactical Radar** to verify target position and range
 4. Ensure **Tubes Status** shows loaded ammunition
-5. Press `X` to fire Tube 0 at target
-6. Watch **Ammunition Panel** to track remaining ammo
-7. Wait for tube to reload (monitor loading slider)
+5. Unlock the tubes to fire with their dedicated safety key (`1`, `2`, `3`, `4`)
+6. Press `X` to fire — every loaded, unlocked tube launches at once, then re-locks itself
+7. Watch **Ammunition Panel** to track remaining ammo
+8. Wait for a tube to reload (monitor loading slider) and re-unlock it before firing again
 
 #### Secondary Workflow: Ammunition Management
 1. Monitor **Ammunition Panel** for ammo counts
@@ -470,23 +473,20 @@ The Weapons screen provides tactical targeting, torpedo tube management, and amm
 5. Coordinate with engineering to ensure magazine has power
 
 #### Tertiary Workflow: Multiple Tube Management
-1. Fire Tube 0 with `X`
-2. Manually switch to Tube 1 in UI (no keyboard shortcut)
-3. Fire additional tubes (currently only Tube 0 has keyboard binding)
-4. Stagger reloads by disabling auto-load on some tubes
-5. Save EMP/Nuclear rounds for high-value targets
+1. Unlock the tubes to fire this volley with their dedicated safety keys (e.g. `1` and `2` for a two-tube ship)
+2. Press `X` to fire every unlocked, loaded tube at once — a locked tube never fires, so leaving a tube locked holds its rounds in reserve
+3. Stagger reloads by disabling auto-load on some tubes
+4. Save EMP/Nuclear rounds for high-value targets, keeping their tube locked until needed
 
 ### Current Pain Points
 
-1. **Only Tube 0 Controllable**: Keyboard shortcuts only work for first tube - others require UI interaction
-2. **No Multi-Fire**: Can't fire multiple tubes simultaneously
-3. **Projectile Selection Hidden**: `V` key cycles projectile but no visual feedback of available types
-4. **No Target Info**: Target ID shown but no type, faction, distance, or health
-5. **Radar Range Fixed**: 5000m range may be too close or too far depending on situation
-6. **No Fire Solution**: No lead indicator or time-to-target calculation
-7. **Tube Cooldown**: Loading time shown but no estimated time to ready
-8. **No Ammo Warnings**: No alert when running low on specific ammo type
-9. **Filter Persistence**: Targeting filters don't persist across reloads
+1. **Projectile Selection Hidden**: `V` key cycles projectile but no visual feedback of available types
+2. **No Target Info**: Target ID shown but no type, faction, distance, or health
+3. **Radar Range Fixed**: 5000m range may be too close or too far depending on situation
+4. **No Fire Solution**: No lead indicator or time-to-target calculation
+5. **Tube Cooldown**: Loading time shown but no estimated time to ready
+6. **No Ammo Warnings**: No alert when running low on specific ammo type
+7. **Filter Persistence**: Targeting filters don't persist across reloads
 
 ### Data Dependencies
 

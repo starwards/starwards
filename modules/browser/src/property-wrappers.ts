@@ -93,6 +93,11 @@ export function writeProp<T extends Primitive>(driver: Driver, pointerStr: strin
     return { setValue: (value: T) => driver.sendJsonCmd(pointerStr, value) };
 }
 
+/** Fans a single trigger out to several JSON pointers — e.g. one fire key driving every mount. */
+export function writeAllProp<T extends Primitive>(driver: Driver, pointerStrs: string[]) {
+    return { setValue: (value: T) => pointerStrs.forEach((pointerStr) => driver.sendJsonCmd(pointerStr, value)) };
+}
+
 export function readWriteNumberProp(driver: Driver, pointerStr: JsonStringPointer) {
     const api = readWriteProp<number>(driver, pointerStr);
     return { ...api, range: getRange(driver.state, api.pointer) };

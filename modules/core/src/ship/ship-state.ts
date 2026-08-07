@@ -179,6 +179,8 @@ export class ShipState extends Schema {
     public rotationModeCommand = false;
     @commandable()
     public maneuveringModeCommand = false;
+    @commandable()
+    public fireTubesCommand = false;
 
     // Read-only delegates to the composed spaceship. These satisfy the Craft
     // interface used by helm-assist / gunner-assist without @gameField, so they
