@@ -1,3 +1,5 @@
+import { CrewChannel, CrewMessage } from './channel';
+
 const DISCORD_API = 'https://discord.com/api/v10';
 
 /** How many messages one `listen` call will catch up on. Discord's own per-request maximum. */
@@ -7,11 +9,6 @@ export type CommsConfig = {
     webhookUrl: string;
     botToken: string;
     channelId: string;
-};
-
-type CrewMessage = {
-    speaker: string;
-    text: string;
 };
 
 /**
@@ -28,17 +25,13 @@ export function readCommsConfig(env: Record<string, string | undefined>): CommsC
 }
 
 /**
- * The crew channel: what a station says out loud, and what it hears the rest of the bridge say.
- *
- * This is deliberately outside the game. Nothing here is subject to range, jamming or a damaged comms
- * array — it is the room the crew is sitting in, not a system aboard the ship. It exists so that a
- * headless station can take part in the one thing the game is actually about: the seat that knows
- * something telling the seats that do not.
+ * A crew channel carried by a Discord text channel — the one the human crew already uses, which makes
+ * an LLM station and a human player the same kind of participant in the same room.
  *
  * One webhook serves the whole crew. Each message overrides the webhook's `username` with the name of
  * the station that sent it, so a reader sees six distinct speakers without six bot registrations.
  */
-export class DiscordChannel {
+export class DiscordChannel implements CrewChannel {
     /**
      * Discord's paging cursor. It is unset until the first `listen`, which deliberately returns
      * nothing: a station joining an hour into a game should hear what happens next, not replay the

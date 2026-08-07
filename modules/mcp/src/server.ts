@@ -11,7 +11,7 @@ import { InvalidCommandError, NotPermittedError, StationSession } from './sandbo
 import { enabledStations, fetchStationsManifest } from './sandbox/manifest';
 import { pilotRadarRange, scanBeamStatus, widgetReaders } from './readers';
 
-import { DiscordChannel } from './comms/discord';
+import { CrewChannel } from './comms/channel';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { commandBindings } from './sandbox/command-map';
 import { describeContact } from './contacts';
@@ -68,7 +68,7 @@ async function attempt(body: () => unknown): Promise<ToolResult> {
 
 type McpServerOptions = {
     /** The crew channel, when one is configured. Without it, `say` and `listen` explain what is missing. */
-    comms?: DiscordChannel;
+    comms?: CrewChannel;
     /** What to call yourself on the crew channel before you hold a seat — a captain never logs in. */
     callsign?: string;
 };
@@ -104,7 +104,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
         return session;
     }
 
-    function requireComms(): DiscordChannel {
+    function requireComms(): CrewChannel {
         if (!options.comms) {
             throw new NotPermittedError(
                 'there is no crew channel configured. Set DISCORD_WEBHOOK_URL, DISCORD_BOT_TOKEN and ' +

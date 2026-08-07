@@ -421,6 +421,10 @@ Start with two seats, not six. Have signals `say` a contact it has identified, c
 `listen` returns it, and confirm the pilot's own `get_radar_contacts` still reports that contact as
 `UFO`: the crew shares knowledge, the sandbox does not.
 
+`modules/mcp/src/testplay.spec.ts` runs that loop without any model in it — three stations, three MCP
+sessions, one running game — so the seams a crew depends on stay covered by CI. The crew there is
+scripted: a real-LLM run is a thing you watch, not a thing you assert on.
+
 ## Docker Deployment
 
 ### Docker Compose Setup
