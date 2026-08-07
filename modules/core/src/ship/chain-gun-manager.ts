@@ -10,6 +10,7 @@ import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
+import { Tube } from './tube';
 import { Vec2 } from '..';
 import { createLogger } from '../logger';
 import { uniqueId } from '../id';
@@ -184,9 +185,11 @@ export class ChainGunManager implements Updateable {
 
     private fireChainGun() {
         const chainGun = this.chainGun;
+        const safetyLocked = Tube.isInstance(chainGun) && chainGun.safetyLocked;
         if (
             chainGun.effectiveness > 0 &&
             chainGun.isFiring &&
+            !safetyLocked &&
             chainGun.loading >= 1 &&
             chainGun.loadedProjectile !== 'None'
         ) {

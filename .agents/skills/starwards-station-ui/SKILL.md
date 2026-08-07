@@ -86,7 +86,7 @@ input.init(); // must call at end
 
 ### Existing key bindings (DO NOT CONFLICT)
 
-**Weapons station:** `] [ ' p o i x c v`
+**Weapons station:** `] [ ' p o i x c v f g b` + `1 2 3 4` (per-tube safety toggle)
 **Pilot station:** `q e a d w s r f z` + gamepad axes 0,2,3 + buttons 5,6,7,10,11,14
 **ECR station:** `1-0 a-l` (with shift variants), `` ` `` `] [ \`
 
@@ -139,7 +139,8 @@ wireInput(shipDriver);
 
 Access ship state via JSON pointer strings:
 - `/chainGun/isFiring`, `/chainGun/loadAmmo`, `/chainGun/rateOfFireFactor`
-- `/tubes/0/isFiring`, `/tubes/0/loadAmmo`, `/tubes/0/changeProjectileCommand`
+- `/fireTubesCommand` (ship-level: fires every loaded, unlocked tube)
+- `/tubes/0/safetyLocked`, `/tubes/0/loadAmmo`, `/tubes/0/changeProjectileCommand`
 - `/weaponsTarget/nextTargetCommand`, `/weaponsTarget/clearTargetCommand`
 - `/weaponsTarget/shipOnly`, `/weaponsTarget/enemyOnly`, `/weaponsTarget/shortRangeOnly`
 - `/smartPilot/rotation`, `/smartPilot/maneuvering/x`, `/smartPilot/maneuvering/y`

@@ -35,6 +35,7 @@ import { Signals } from './signals';
 import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
+import { Tube } from './tube';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
@@ -83,6 +84,7 @@ export function resetShipState(state: ShipState) {
     state.afterBurnerCommand = 0;
     state.rotationModeCommand = false;
     state.maneuveringModeCommand = false;
+    state.fireTubesCommand = false;
     state.hullDamaged = false;
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
@@ -266,12 +268,14 @@ export abstract class ShipManager implements Updateable {
         // vision first: the target and signal gates below all read this tick's radar sectors
         this.updateRadarSectors(id);
         this.validateWeaponsTargetId();
+        const firingTubes = this.consumeFireTubesCommand();
         for (const chainGunManager of this.chainGunManagers) {
             chainGunManager.update(id);
         }
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(id);
         }
+        this.lockFiredTubes(firingTubes);
         this.handleTargetCommands();
         this.calcTargetedStatus();
 
@@ -279,6 +283,33 @@ export abstract class ShipManager implements Updateable {
         this.ammoManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
+    }
+
+    /**
+     * Ship-level fire: marks every unlocked, ready tube as firing for this tick. Readiness itself
+     * is still gated by ChainGunManager.fireChainGun(); this only decides which tubes fire.
+     */
+    private consumeFireTubesCommand(): Tube[] {
+        if (!this.state.fireTubesCommand) {
+            return [];
+        }
+        this.state.fireTubesCommand = false;
+        const readyTubes = this.state.tubes.filter(
+            (tube) =>
+                !tube.safetyLocked && tube.effectiveness > 0 && tube.loading >= 1 && tube.loadedProjectile !== 'None',
+        );
+        for (const tube of readyTubes) {
+            tube.isFiring = true;
+        }
+        return readyTubes;
+    }
+
+    /** Every tube that fired this tick re-locks immediately, per the ship-level fire design. */
+    private lockFiredTubes(firedTubes: Tube[]) {
+        for (const tube of firedTubes) {
+            tube.isFiring = false;
+            tube.safetyLocked = true;
+        }
     }
 
     /**

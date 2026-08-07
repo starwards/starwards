@@ -2,7 +2,7 @@ import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
-import { readWriteProp, writeProp } from '../property-wrappers';
+import { readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
@@ -15,6 +15,7 @@ import { drawTargetingStatus } from '../widgets/targeting';
 import { drawTubesStatus } from '../widgets/tubes-status';
 import { isWeaponsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
+import { shipInputConfig } from '../input/input-config';
 
 const { error: logError } = createLogger('screen:weapons');
 
@@ -70,11 +71,25 @@ function wireInput(shipDriver: ShipDriver) {
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/enemyOnly'), 'o', 'Enemy Only');
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i', 'Short Range Only');
 
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/isFiring'), 'x', 'Fire Tube');
+    input.addMomentaryClickAction(writeProp(shipDriver, '/fireTubesCommand'), 'x', 'Fire Tubes');
     input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
     input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v', 'Change Tube Ammo');
+    for (const tube of shipDriver.state.tubes) {
+        input.addToggleClickAction(
+            readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
+            shipInputConfig.tubeSafety[tube.index],
+            `Tube ${tube.index} Safety`,
+        );
+    }
 
-    input.addMomentaryClickAction(writeProp(shipDriver, '/chainGuns/0/isFiring'), 'f', 'Fire Chain Gun');
+    input.addMomentaryClickAction(
+        writeAllProp(
+            shipDriver,
+            shipDriver.state.chainGuns.map((_, index) => `/chainGuns/${index}/isFiring`),
+        ),
+        'f',
+        'Fire Chain Gun',
+    );
     input.addToggleClickAction(readWriteProp(shipDriver, '/chainGuns/0/loadAmmo'), 'g', 'Load Chain Gun');
     input.addMomentaryClickAction(
         writeProp(shipDriver, '/chainGuns/0/changeProjectileCommand'),
