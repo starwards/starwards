@@ -180,6 +180,7 @@ export const demoShipDocking = {
     undockingTargetDistance: 100,
     angle: -90,
     width: 45,
+    isDockingHost: false,
 };
 export const demoShipManeuvering = {
     modelName: 'Pivot-25 Maneuvering Suite',

@@ -22,6 +22,8 @@ export type DockingDesign = {
     undockingTargetDistance: number;
     angle: number;
     width: number;
+    /** Whether other ships may select this hull as a docking target. Stations set this `true`; combat/utility hulls set it `false`. */
+    isDockingHost: boolean;
 };
 
 export class DockingDesignState extends DesignState implements DockingDesign {
@@ -31,6 +33,8 @@ export class DockingDesignState extends DesignState implements DockingDesign {
     @gameField('float32') undockingTargetDistance = 0;
     @gameField('float32') angle = 0;
     @gameField('float32') width = 0;
+    /** Whether other ships may select this hull as a docking target. Stations set this `true`; combat/utility hulls set it `false`. */
+    @gameField('boolean') isDockingHost = false;
 }
 export class Docking extends SystemState {
     public static isInstance = (o: unknown): o is Docking => {
