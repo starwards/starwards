@@ -2,6 +2,7 @@ import { Die, ShipManager } from './ship-manager-abstract';
 import {
     NpcShipApi,
     PcShipApi,
+    PowerLevel,
     ShipState,
     SmartPilotMode,
     Spaceship,
@@ -102,6 +103,12 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
         super(spaceObject, state, spaceManager, die, ships);
         this.state.isPlayerShip = false;
         this.internalProxy.trySpendEnergy = () => true;
+        // Uncrewed hulls have no engineer to raise power off the default — without this their
+        // radar permanently pays the idle-power tax (range scales with √effectiveness), so a
+        // station's/NPC's detection radius sits at ~71% of its design range forever (issue #2084).
+        for (const radar of this.state.radars) {
+            radar.power = PowerLevel.MAX;
+        }
     }
 
     private handleManeuvering(deltaSeconds: number) {

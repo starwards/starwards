@@ -1,7 +1,21 @@
-import { Radar, degToRad, getRange, malfunctionAreaFactor, radarRangeFromArea } from '../src';
+import {
+    PowerLevel,
+    Radar,
+    ShipManagerNpc,
+    ShipManagerPc,
+    SpaceManager,
+    Spaceship,
+    degToRad,
+    getRange,
+    makeShipState,
+    malfunctionAreaFactor,
+    radarRangeFromArea,
+    shipConfigurations,
+} from '../src';
 
 import { HackLevel } from '../src';
 import { JsonPointer } from '../src/json-ptr';
+import { MockDie } from './ship-test-harness';
 import { expect } from 'chai';
 import fc from 'fast-check';
 
@@ -136,6 +150,33 @@ describe('Radar effectiveness scaling', () => {
         full.power = 1;
         quarter.power = 0.25;
         expect(full.range / quarter.range).to.be.closeTo(2, 1e-3);
+    });
+});
+
+describe('uncrewed hull radar power (issue #2084)', () => {
+    const largeStationConfig = shipConfigurations['large-station'];
+
+    function makeShipManager(ctor: typeof ShipManagerNpc | typeof ShipManagerPc) {
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = 'station-1';
+        const die = new MockDie();
+        return new ctor(shipObj, makeShipState(shipObj.id, largeStationConfig), spaceMgr, die);
+    }
+
+    it('a healthy uncrewed large-station omni radar detects a dragonfly-MK1 (11.2m) at 119km — its design range at boot, no √0.5 idle-power tax', () => {
+        const shipMgr = makeShipManager(ShipManagerNpc);
+        const [omniRadar] = shipMgr.state.radars;
+
+        expect(omniRadar.power).to.equal(PowerLevel.MAX);
+        expect(omniRadar.range).to.be.closeTo(omniRadar.design.range, 1);
+    });
+
+    it('a crewed (player-managed) hull still boots its radar at NORMAL power — crew power management is unaffected', () => {
+        const shipMgr = makeShipManager(ShipManagerPc);
+        const [omniRadar] = shipMgr.state.radars;
+
+        expect(omniRadar.power).to.equal(PowerLevel.NORMAL);
     });
 });
 
