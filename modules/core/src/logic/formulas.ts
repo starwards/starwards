@@ -243,8 +243,15 @@ export function limitPercision(num: number) {
     return Math.round(num * 1e4) / 1e4;
 }
 
+/**
+ * The smallest angular width (degrees) that survives `limitPercisionHard`'s rounding. Exported so
+ * hull-radius validation (`ship/make-ship-state.ts`) can derive the angular-resolvability floor
+ * from the same quantum instead of duplicating the literal.
+ */
+export const ANGLE_QUANTUM_DEGREES = 1 / 1e2;
+
 export function limitPercisionHard(num: number) {
-    return Math.round(num * 1e2) / 1e2;
+    return Math.round(num / ANGLE_QUANTUM_DEGREES) * ANGLE_QUANTUM_DEGREES;
 }
 
 type Sign = 1 | -1 | 0;

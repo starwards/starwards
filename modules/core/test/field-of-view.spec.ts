@@ -199,6 +199,49 @@ describe('FieldOfView', () => {
         });
     });
 
+    describe('angular-precision cliff (issue #2076)', () => {
+        // dragonfly-MK1 (radius 11.2m) is angularly resolvable up to ~128.3km at the 0.01-degree
+        // rounding quantum (`limitPercisionHard`) — well past the 120km station-omni detection line,
+        // but well short of what the radius gate alone would allow (~201km).
+        function makeScanner(radarRange: number) {
+            const ship = new Spaceship();
+            ship.id = 'scanner';
+            ship.position = new Vec2(0, 0);
+            ship.radarSectors.push(makeOmniSector(radarRange));
+            return ship;
+        }
+
+        function findObject(fov: FieldOfView, id: string) {
+            return fov.view.some((arc) => arc.object?.id === id);
+        }
+
+        function makeFighter(x: number) {
+            const fighter = new Asteroid();
+            fighter.id = 'fighter';
+            fighter.position = new Vec2(x, 0);
+            fighter.radius = 11.2;
+            return fighter;
+        }
+
+        it('detects a dragonfly-MK1-radius hull at the 120km station-omni detection line', () => {
+            const scanner = makeScanner(5_000_000);
+            const fighter = makeFighter(120_000);
+            const index = makeSpatialIndex([scanner, fighter]);
+            const fov = new FieldOfView(index, scanner);
+
+            expect(findObject(fov, 'fighter')).to.equal(true);
+        });
+
+        it('does not detect a dragonfly-MK1-radius hull past the angular-precision cliff (~128km)', () => {
+            const scanner = makeScanner(5_000_000);
+            const fighter = makeFighter(135_000);
+            const index = makeSpatialIndex([scanner, fighter]);
+            const fov = new FieldOfView(index, scanner);
+
+            expect(findObject(fov, 'fighter')).to.equal(false);
+        });
+    });
+
     describe('edge-of-range detection', () => {
         it('detects an object whose center is just beyond range but whose edge is within it', () => {
             const ship = new Spaceship();
