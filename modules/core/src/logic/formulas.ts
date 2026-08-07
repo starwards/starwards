@@ -129,12 +129,6 @@ export function capToRange(from: number, to: number, value: number) {
 export function isInRange(from: number, to: number, value: number) {
     return value < to && value > from;
 }
-/**
- *  generate a random number with a given mean and standard deviation
- */
-export function gaussianRandom(mean: number, stdev: number): number {
-    return mean + 2.0 * stdev * (Math.random() + Math.random() + Math.random() - 1.5);
-}
 
 type Circle = {
     readonly position: XY;
@@ -171,9 +165,20 @@ export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] |
     /**
      * point2 is the intersection between the chord between the intersection points
      * and a line that passes through both circle centres.
+     *
+     * Clamped short of ±subject.radius: once the object has grown enough to engulf the subject
+     * (a shell's blast radius outgrowing the target it's centred on), the unclamped value
+     * overshoots past ±subject.radius and turns `h` below into NaN, losing the hit entirely.
+     * Clamping exactly to ±subject.radius would collapse `h` to precisely 0 — a zero-width arc,
+     * which callers like `archIntersection` treat as no hit (same reason
+     * `resolveProjectileContactDamage` pads a contact hit by EPSILON). Stopping one EPSILON
+     * short keeps `h`, and so the arc, non-zero.
      */
-    const a =
-        (subject.radius * subject.radius - object.radius * object.radius + distance * distance) / (2.0 * distance);
+    const a = capToRange(
+        -(subject.radius - EPSILON),
+        subject.radius - EPSILON,
+        (subject.radius * subject.radius - object.radius * object.radius + distance * distance) / (2.0 * distance),
+    );
     const p2 = { x: subject.position.x + (dx * a) / distance, y: subject.position.y + (dy * a) / distance };
 
     // h is the distance from p2 and either of the circle intersection points

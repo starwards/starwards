@@ -106,6 +106,38 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
         );
     });
 
+    it('explosion that engulfs the ship still deals armor damage (issue #2093)', () => {
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = '1';
+        shipObj.radius = GENERIC_SHIP_RADIUS;
+        const die = new MockDie();
+        const shipMgr = new shipManagerCtor(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+        die.expectedRoll = 1;
+        spaceMgr.insert(shipObj);
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+
+        const explosion = new Explosion();
+        // detonates well inside the hull with a blast radius that already engulfs the ship —
+        // the geometry from issue #2093 (e.g. a HiExp shell vs. a small station)
+        explosion.position = Vec2.sum(shipObj.position, XY.byLengthAndDirection(5, 0));
+        explosion.expansionSpeed = 0;
+        explosion.radius = shipObj.radius * 4;
+        explosion.damageFactor = Number.MAX_SAFE_INTEGER;
+        spaceMgr.insert(explosion);
+
+        const initialHealthyPlates = shipMgr.state.armor.numberOfHealthyPlates;
+        const totalTime = explosion.secondsToLive * 2;
+        const i = makeIterationsData(totalTime, totalTime * 20, () => explosion.destroyed);
+        for (const id of i) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipMgr.state.armor.numberOfHealthyPlates).to.be.lessThan(initialHealthyPlates);
+    });
+
     it('chaingun must expend ammo', () => {
         fc.assert(
             fc.property(fc.integer({ min: 15, max: 20 }), (numIterationsPerSecond: number) => {
