@@ -62,10 +62,13 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         catalogSession = new Destructors();
         const availableProtocols = getAvailableRepairProtocols(shipDriver.state, repairProtocols);
         for (const [protocolId, protocol] of Object.entries(availableProtocols)) {
+            // dynamicDuration (e.g. armorPlateRenewal's GM-tweakable Armor.plateRepairSeconds) always
+            // overrides the static catalog number — same rule RepairManager.getDuration() applies.
+            const duration = protocol.dynamicDuration ? protocol.dynamicDuration(shipDriver.state) : protocol.duration;
             addButton(
                 catalogFolder,
                 () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
-                { label: '', title: `${protocol.name} (${protocol.duration}s)` },
+                { label: '', title: `${protocol.name} (${duration}s)` },
                 catalogSession.add,
             );
         }

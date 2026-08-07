@@ -117,14 +117,15 @@ export class Armor extends Schema {
     design = new ArmorDesignState();
 
     /**
-     * Seconds for a fully-stripped plate to heal to max while docked (`ArmorRepairManager`). Every
-     * plate heals in parallel, so this also bounds the whole hull's worst-case docked repair time.
-     * GM lever to rescue a live session by speeding up repair.
+     * Seconds the docked-tier `armorPlateRenewal` repair-queue operation takes to fully restore one
+     * plate (see `repair-protocols.ts`). Plates are renewed one at a time, so the whole hull's
+     * worst-case docked repair time is this times the plate count. GM lever to rescue a live session
+     * by speeding up repair.
      */
-    @range([1, 3600])
+    @range([1, 600])
     @tweakable('number')
     @gameField('float32')
-    repairSeconds = 150;
+    plateRepairSeconds = 10;
 
     get numberOfPlates(): number {
         return this.armorPlates.length;
