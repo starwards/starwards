@@ -1,8 +1,7 @@
-import { EnergySource, HeatSink } from './ship-manager-abstract';
+import { Die, EnergySource, HeatSink } from './ship-manager-abstract';
 import { Faction, Projectile, ScanLevel, SpaceObject, Spaceship, ammoDesigns, ammoTypes } from '../space';
 import { IterationData, Updateable } from '../updateable';
 import { SpaceManager, XY, calcShellSecondsToLive, capToRange, lerp } from '../logic';
-import { Vec2, gaussianRandom } from '..';
 
 import { ChainGun } from './chain-gun';
 import { DeepReadonly } from 'ts-essentials';
@@ -11,6 +10,7 @@ import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { ShipState } from './ship-state';
 import { SmartPilotMode } from './smart-pilot';
+import { Vec2 } from '..';
 import { createLogger } from '../logger';
 import { uniqueId } from '../id';
 
@@ -39,6 +39,16 @@ export class ChainGunManager implements Updateable {
      */
     private loadingRemainder = 0;
 
+    /**
+     * Per-instance, starts at 0 every time a ShipManager (re)builds its mounts — deliberately NOT
+     * the game-wide `uniqueId` counter, which keeps incrementing across a process's whole lifetime
+     * and would make the same in-game shot draw a different die roll depending on how many shells
+     * any ship fired earlier in the process. Combined with `mountId` (unique per mount on this
+     * ship) and the ship's own id, this reproduces the same aim-deviation sequence for a replayed
+     * scenario regardless of what else happened earlier in the process.
+     */
+    private shotSeq = 0;
+
     constructor(
         public chainGun: ChainGun,
         public spaceObject: DeepReadonly<Spaceship>,
@@ -47,6 +57,8 @@ export class ChainGunManager implements Updateable {
         private shipManager: ShipManager,
         private energyManager: EnergySource,
         private heatSink: HeatSink,
+        private die: Die,
+        private mountId: string,
     ) {
         switchToAvailableAmmo(chainGun, state.magazine);
     }
@@ -184,7 +196,8 @@ export class ChainGunManager implements Updateable {
             projectile.warhead = chainGun.clusterWarhead;
             chainGun.loading = 0;
             chainGun.loadedProjectile = 'None';
-            projectile.angle = gaussianRandom(
+            projectile.angle = this.die.getGaussian(
+                `${this.spaceObject.id}:${this.mountId}:aim:${this.shotSeq++}`,
                 chainGun.getGlobalBearing(this.state),
                 chainGun.design.bulletDegreesDeviation,
             );

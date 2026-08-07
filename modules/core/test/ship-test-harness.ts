@@ -53,6 +53,16 @@ export class MockDie {
         return v * (max - min) + min;
     }
 
+    /**
+     * Ignores `_expectedRoll`: that knob is set across the test suite to force unrelated success/
+     * failure rolls (ammo selection, damage application), and reusing it here would silently bias
+     * every mocked shot's aim by up to 3 stdev, breaking hit-dependent assertions that never meant
+     * to opt into aim jitter. Callers that want to exercise deviation should test the real `ShipDie`.
+     */
+    public getGaussian(_id: string, mean: number, _stdev: number): number {
+        return mean;
+    }
+
     set expectedRoll(roll: number) {
         this._expectedRoll = roll;
     }
