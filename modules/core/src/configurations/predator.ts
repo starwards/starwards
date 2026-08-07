@@ -161,6 +161,7 @@ export const predatorDocking = {
     undockingTargetDistance: 100,
     angle: -90,
     width: 45,
+    isDockingHost: false,
 };
 
 export const predatorManeuvering = {
