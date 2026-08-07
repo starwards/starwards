@@ -97,9 +97,11 @@ export class RepairQueue extends Schema {
 
     /**
      * The reason the most recent enqueue command was refused (unknown protocol, above the ship's
-     * repair tier, no matching systems fitted, or the queue is full), shown to the crew for
-     * `refusalSecondsRemaining` — otherwise a refused click (e.g. the queue-length cap) just does
-     * nothing with no feedback. Empty string when there's nothing to show.
+     * repair tier, no matching systems fitted, or the queue is full) — or the reason an active
+     * operation was force-cancelled mid-repair (e.g. a `docked`-tier operation when the ship
+     * undocks) — shown to the crew for `refusalSecondsRemaining`. Otherwise a refusal (e.g. the
+     * queue-length cap) or a forced cancellation would happen with no visible feedback. Empty
+     * string when there's nothing to show.
      */
     @gameField('string') refusalReason = '';
     @gameField('float32') refusalSecondsRemaining = 0;

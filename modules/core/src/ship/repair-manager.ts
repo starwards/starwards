@@ -12,8 +12,9 @@ import {
 import { IterationData, Updateable } from '../updateable';
 import { PowerLevel, SystemState } from './system';
 import {
+    REPAIR_TIER_ORDER,
     RepairProtocolStats,
-    RepairProtocolTier,
+    getEffectiveRepairTier,
     getRepairableSystemInstances,
     isProtocolAvailable,
     isRepairableSystemKey,
@@ -22,8 +23,6 @@ import {
 import { ShipState } from './ship-state';
 import { getSystems } from './system';
 import { makeId } from '../id';
-
-const TIER_ORDER: Record<RepairProtocolTier, number> = { field: 0, docked: 1, shipyard: 2 };
 
 /**
  * Hard cap on the queue's length (SPEC-0003 doesn't specify one; without it, `repairQueue.operations`
@@ -108,7 +107,6 @@ export class RepairManager implements Updateable {
         private state: ShipState,
         private energySource: RepairEnergySource,
         private heatSink: RepairHeatSink,
-        private tier: RepairProtocolTier = 'field',
         private catalog: Record<string, RepairProtocolStats> = repairProtocols,
     ) {}
 
@@ -118,6 +116,7 @@ export class RepairManager implements Updateable {
         this.drainCancelCommands();
         this.drainReorderCommands();
         this.drainEnqueueCommands();
+        this.cancelIfTierLost();
         this.ensureActive();
         this.tickActive(deltaSeconds);
     }
@@ -167,7 +166,8 @@ export class RepairManager implements Updateable {
         }
     }
 
-    private refuseEnqueue(reason: string) {
+    /** Shared by enqueue refusals and mid-repair forced cancellations — both are "why nothing happened / why it stopped" notices on the same field. */
+    private notifyRefusal(reason: string) {
         this.state.repairQueue.refusalReason = reason;
         this.state.repairQueue.refusalSecondsRemaining = TERMINAL_DISPLAY_SECONDS;
     }
@@ -252,20 +252,20 @@ export class RepairManager implements Updateable {
             }
             const { protocolId }: EnqueueRepairArg = command;
             if (this.operations.length >= MAX_REPAIR_QUEUE_LENGTH) {
-                this.refuseEnqueue('repair queue is full');
+                this.notifyRefusal('repair queue is full');
                 continue;
             }
             const protocol = this.getProtocol(protocolId);
             if (!protocol) {
-                this.refuseEnqueue('unknown repair protocol');
+                this.notifyRefusal('unknown repair protocol');
                 continue;
             }
-            if (TIER_ORDER[protocol.tier] > TIER_ORDER[this.tier]) {
-                this.refuseEnqueue(`${protocol.name} requires a higher repair tier than this ship has`);
+            if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
+                this.notifyRefusal(`${protocol.name} requires a higher repair tier than this ship has`);
                 continue;
             }
             if (!isProtocolAvailable(this.state, protocol)) {
-                this.refuseEnqueue(`${protocol.name} needs equipment this ship doesn't have`);
+                this.notifyRefusal(`${protocol.name} needs equipment this ship doesn't have`);
                 continue;
             }
             const op = new RepairOperation();
@@ -273,6 +273,27 @@ export class RepairManager implements Updateable {
             op.protocolId = protocolId;
             op.status = RepairOperationStatus.QUEUED;
             this.operations.push(op);
+        }
+    }
+
+    /**
+     * A `docked`-tier operation loses its footing the instant the ship stops being docked
+     * (undocking started, or forced e.g. by combat) — the repair queue is all-or-nothing, same as
+     * an energy-starvation abort, so the operation is cancelled outright rather than left stalled
+     * or silently allowed to keep running off-dock.
+     */
+    private cancelIfTierLost() {
+        const active = this.getActive();
+        if (!active) {
+            return;
+        }
+        const protocol = this.getProtocol(active.protocolId);
+        if (!protocol) {
+            return;
+        }
+        if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(this.state)]) {
+            this.abort(active);
+            this.notifyRefusal(`${protocol.name} was cancelled: ship no longer has the required repair tier`);
         }
     }
 

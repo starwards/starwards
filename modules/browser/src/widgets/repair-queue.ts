@@ -50,19 +50,29 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
 
     const catalogFolder = pane.addFolder({ title: 'Enqueue' });
     panelCleanup.add(() => catalogFolder.dispose());
-    // this build slice hardcodes the ship's repair tier to 'field' (SPEC-0003); docked/shipyard
-    // protocols are refused server-side regardless, but hiding them here avoids a dead button.
-    // getAvailableRepairProtocols also drops protocols that target equipment this ship doesn't
-    // have fitted (e.g. no chain gun) — the server refuses those too, so hide them the same way.
-    const availableProtocols = getAvailableRepairProtocols(shipDriver.state, repairProtocols);
-    for (const [protocolId, protocol] of Object.entries(availableProtocols).filter(([, p]) => p.tier === 'field')) {
-        addButton(
-            catalogFolder,
-            () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
-            { label: '', title: `${protocol.name} (${protocol.duration}s)` },
-            panelCleanup.add,
-        );
+    // getAvailableRepairProtocols drops protocols above the repair tier live docking state
+    // currently grants (see getEffectiveRepairTier) and protocols targeting equipment this ship
+    // doesn't have fitted (e.g. no chain gun) — the server refuses those too, so hide them the
+    // same way. Re-rendered on every docking-mode change so a docked-tier protocol appears or
+    // disappears live as the ship docks/undocks, not only after a panel reload.
+    let catalogSession = new Destructors();
+    panelCleanup.add(() => catalogSession.destroy());
+    function renderCatalog() {
+        catalogSession.destroy();
+        catalogSession = new Destructors();
+        const availableProtocols = getAvailableRepairProtocols(shipDriver.state, repairProtocols);
+        for (const [protocolId, protocol] of Object.entries(availableProtocols)) {
+            addButton(
+                catalogFolder,
+                () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
+                { label: '', title: `${protocol.name} (${protocol.duration}s)` },
+                catalogSession.add,
+            );
+        }
     }
+    shipDriver.events.on('/docking/mode', renderCatalog);
+    panelCleanup.add(() => shipDriver.events.off('/docking/mode', renderCatalog));
+    renderCatalog();
 
     const operations = () => shipDriver.state.repairQueue.operations;
     const recentlyFinished = () => shipDriver.state.repairQueue.recentlyFinished;
