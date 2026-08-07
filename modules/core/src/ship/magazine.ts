@@ -93,6 +93,16 @@ export class Magazine extends SystemState {
     @gameField('float32')
     capacity = 1;
 
+    /**
+     * Seconds for an empty magazine to fill at a docked station (`AmmoManager`), per-type rate
+     * derived as `max_<type> / restockDurationSeconds`. `@tweakable` so a GM can speed up restock
+     * to rescue a live session, same as `Warp.jammed`.
+     */
+    @range([1, 3600])
+    @tweakable('number')
+    @gameField('float32')
+    restockDurationSeconds = 150;
+
     get broken() {
         return this.capacity < this.design.capacityBrokenThreshold;
     }
