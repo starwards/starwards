@@ -75,4 +75,9 @@ export class Docking extends SystemState {
     get broken(): boolean {
         return this.rangesFactor <= EPSILON;
     }
+
+    /** Whether this ship currently qualifies for the `docked` repair tier (see `configurations/repair-protocols.ts`). */
+    get isDocked(): boolean {
+        return this.mode === DockingMode.DOCKED;
+    }
 }

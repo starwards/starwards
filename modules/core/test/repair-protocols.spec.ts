@@ -6,6 +6,7 @@ import {
     validateRepairCatalog,
 } from '../src/configurations/repair-protocols';
 import { demoShip, dragonflyMK2, makeShipState } from '../src';
+import { DockingMode } from '../src/ship/docking';
 import { expect } from 'chai';
 
 describe('repair protocols catalog', () => {
@@ -130,10 +131,32 @@ describe('repair protocols catalog', () => {
             expect(Object.keys(available)).to.deep.equal(['needsOnlyReactor']);
         });
 
-        it('every real catalog protocol is available on the dragonfly (which has every system it references)', () => {
+        it('every real catalog protocol is available on the docked dragonfly (which has every system it references)', () => {
             const state = makeShipState('test-ship', demoShip);
+            state.docking.mode = DockingMode.DOCKED;
             const available = getAvailableRepairProtocols(state, repairProtocols);
             expect(Object.keys(available)).to.deep.equal(Object.keys(repairProtocols));
+        });
+
+        it('a docked-tier protocol is unavailable on an undocked ship even though it has the equipment', () => {
+            const state = makeShipState('test-ship', demoShip);
+            expect(state.docking.mode).to.equal(DockingMode.UNDOCKED);
+            expect(isProtocolAvailable(state, repairProtocols.hullWideSystemsOverhaul)).to.equal(false);
+        });
+
+        it('a docked-tier protocol becomes available once the ship is docked', () => {
+            const state = makeShipState('test-ship', demoShip);
+            state.docking.mode = DockingMode.DOCKED;
+            expect(isProtocolAvailable(state, repairProtocols.hullWideSystemsOverhaul)).to.equal(true);
+        });
+
+        it('every field-tier protocol is equally available docked and undocked', () => {
+            const state = makeShipState('test-ship', demoShip);
+            const fieldProtocols = Object.values(repairProtocols).filter((p) => p.tier === 'field');
+            expect(fieldProtocols.every((p) => isProtocolAvailable(state, p))).to.equal(true);
+
+            state.docking.mode = DockingMode.DOCKED;
+            expect(fieldProtocols.every((p) => isProtocolAvailable(state, p))).to.equal(true);
         });
     });
 });

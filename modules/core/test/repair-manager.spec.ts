@@ -2,6 +2,7 @@ import { MockDie, makeIterationsData } from './ship-test-harness';
 import { cancelRepair, enqueueRepair, reorderRepair } from '../src/ship/repair-commands';
 import { demoShip, makeShipState } from '../src';
 import { DamageManager } from '../src/ship/damage-manager';
+import { DockingMode } from '../src/ship/docking';
 import { EnergyManager } from '../src/ship/energy-manager';
 import { HeatManager } from '../src/ship/heat-manager';
 import { PowerLevel } from '../src/ship/system';
@@ -73,7 +74,7 @@ function setUpShip(catalog: Record<string, RepairProtocolStats> = testCatalog) {
     const damageManager = new DamageManager(spaceObject, state, spaceManager, die);
     const heatManager = new HeatManager(state, damageManager);
     const energyManager = new EnergyManager(state, heatManager);
-    const repairManager = new RepairManager(state, energyManager, heatManager, 'field', catalog);
+    const repairManager = new RepairManager(state, energyManager, heatManager, catalog);
     return { state, repairManager, energyManager, heatManager };
 }
 
@@ -353,12 +354,45 @@ describe('RepairManager', () => {
         expect(state.docking.rangesFactor).to.be.lessThan(before);
     });
 
-    it('refuses to enqueue a protocol above the ship current repair tier', () => {
+    it('refuses to enqueue a protocol above the ship current repair tier, with a tier-specific message', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'dockedOnly');
         tickOnce(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
+        expect(state.repairQueue.refusalReason).to.match(/higher repair tier/);
+    });
+
+    it('enqueues and completes a docked-tier protocol once the ship is docked', () => {
+        const { state, repairManager } = setUpShip();
+        state.docking.mode = DockingMode.DOCKED;
+        state.reactor.effeciencyFactor = 0.5;
+        enqueue(state, 'dockedOnly');
+        runTicks(repairManager, 1.1, 20);
+
+        expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
+        expect(state.repairQueue.recentlyFinished[0].status).to.equal(RepairOperationStatus.DONE);
+        expect(state.reactor.effeciencyFactor).to.equal(1);
+    });
+
+    it('cancels an active docked-tier operation the moment the ship undocks mid-repair', () => {
+        const { state, repairManager } = setUpShip();
+        state.docking.mode = DockingMode.DOCKED;
+        state.reactor.effeciencyFactor = 0.5;
+        enqueue(state, 'dockedOnly');
+        tickOnce(repairManager, 0.1); // promotes to ACTIVE while docked
+
+        expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
+
+        state.docking.mode = DockingMode.UNDOCKED;
+        tickOnce(repairManager, 0.1);
+
+        expect(state.repairQueue.operations).to.have.lengthOf(0);
+        expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
+        expect(state.repairQueue.recentlyFinished[0].status).to.equal(RepairOperationStatus.CANCELLED);
+        // aborted, not completed: the target was never reset to normal
+        expect(state.reactor.effeciencyFactor).to.equal(0.5);
+        expect(state.repairQueue.refusalReason).to.not.equal('');
     });
 
     it('refuses to enqueue an unknown protocol id', () => {
