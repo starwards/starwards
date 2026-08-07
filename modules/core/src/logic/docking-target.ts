@@ -12,6 +12,7 @@ const MIN_RADIUS_DOCKING_TARGET = 1;
 function isLegalDockingTarget(ship: ShipState, o: SpaceObject): boolean {
     return (
         ship.id !== o.id &&
+        !o.destroyed &&
         o.isCorporal &&
         o.radius > MIN_RADIUS_DOCKING_TARGET &&
         Spaceship.isInstance(o) &&
