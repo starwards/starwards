@@ -160,6 +160,17 @@ describe('wave_defence map (integration)', () => {
         );
     }
 
+    it('spawns stations frozen so weapon-impact physics cannot fling them (issue #2092)', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+
+        for (const station of STATIONS) {
+            const stationObject = gameDriver.spaceManager.state.get(station.id);
+            expect(stationObject).toBeDefined();
+            expect(stationObject?.freeze).toBe(true);
+        }
+    });
+
     it('spawns wave 1 (two dragonfly-MK1) targeting station-large at game start', async () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
