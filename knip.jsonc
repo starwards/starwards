@@ -41,6 +41,9 @@
         },
         "modules/server": {
             "entry": ["src/prod.ts"]
+        },
+        "modules/mcp": {
+            "entry": ["src/cli.ts"]
         }
     }
 }

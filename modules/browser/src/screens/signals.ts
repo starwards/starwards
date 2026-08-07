@@ -1,6 +1,15 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Radar, ShipDriver, SpaceDriver, Status, createLogger } from '@starwards/core';
+import {
+    ClientStatus,
+    Driver,
+    Radar,
+    ShipDriver,
+    SpaceDriver,
+    Status,
+    createLogger,
+    scanCycleTargets,
+} from '@starwards/core';
 import { HPos, VPos, WidgetContainer, wrapRootWidgetContainer } from '../container';
 import { addSliderBlade, createWidgetPane } from '../panel';
 
@@ -15,7 +24,7 @@ import { drawSignalsJobs } from '../widgets/signals-jobs';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { readWriteNumberProp } from '../property-wrappers';
-import { scanCycleTargets } from '../space-object-intel';
+
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
 

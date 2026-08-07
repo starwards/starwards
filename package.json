@@ -15,7 +15,8 @@
     "overrides": {
         "ws@^7": "^7.5.11",
         "picomatch@^4": "^4.0.4",
-        "form-data@^4": "^4.0.6"
+        "form-data@^4": "^4.0.6",
+        "zod": "4.1.12"
     },
     "scripts": {
         "predev": "rimraf ./modules/core/cjs/index.js",
@@ -24,13 +25,14 @@
         "dev:server": "node scripts/wait-for-core.js",
         "dev:browser": "npm --prefix ./modules/browser run start",
         "dev:zellij": "bash scripts/dev.sh",
-        "clean": "rimraf ./modules/browser/dist ./modules/browser/dist ./modules/core/cjs ./modules/server/cjs",
+        "clean": "rimraf ./modules/browser/dist ./modules/browser/dist ./modules/core/cjs ./modules/server/cjs ./modules/mcp/dist",
         "postbuild": "node scripts/post-build.js",
         "pretty-quick": "pretty-quick --staged --pattern \"./modules/*/src/**/*.{ts,tsx,json}\"",
         "prettify": "prettier \"./modules/*/src/**/*.{ts,tsx,json}\" -w",
         "build:browser": "npm --prefix ./modules/browser run build",
         "build:core": "npm --prefix ./modules/core run build",
         "build:unity": "npm --prefix ./modules/core run build:unity",
+        "build:mcp": "npm --prefix ./modules/mcp run build",
         "build:node-red": "npm --prefix ./modules/node-red run build",
         "build:server": "npm --prefix ./modules/server run build",
         "build": "turbo run build",

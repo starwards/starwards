@@ -1,6 +1,13 @@
-import { Destructors, JobStatus, ShipDriver, SignalsJob, SpaceDriver } from '@starwards/core';
+import {
+    Destructors,
+    JobStatus,
+    ShipDriver,
+    SignalsJob,
+    SpaceDriver,
+    objectDisplayName,
+    playerScanLevel,
+} from '@starwards/core';
 import { addBarBlade, addButton, addInputBlade, addTextBlade, createWidgetPane } from '../panel';
-import { objectDisplayName, playerScanLevel } from '../space-object-intel';
 import { readNumberProp, readProp, readWriteProp, writeProp } from '../property-wrappers';
 
 import { SelectionContainer } from '../radar/selection-container';

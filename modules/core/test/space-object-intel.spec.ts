@@ -1,5 +1,5 @@
 import { Asteroid, Faction, ScanLevel, SpaceObject, Spaceship } from '@starwards/core';
-import { objectDisplayName, scanCycleTargets } from '../src/space-object-intel';
+import { objectDisplayName, scanCycleTargets } from '../src/client/space-object-intel';
 
 describe('objectDisplayName', () => {
     function asteroid(id: string) {
