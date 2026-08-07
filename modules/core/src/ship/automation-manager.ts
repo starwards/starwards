@@ -17,6 +17,7 @@ import {
 } from '../logic';
 import { Order, ShipState } from './ship-state';
 
+import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
 import { ShipManager } from './ship-manager-abstract';
@@ -119,7 +120,10 @@ export class AutomationManager implements Updateable {
             this.shipManager.setTarget(targetId);
             switchToAvailableAmmo(controlWeapon, this.state.magazine);
             const destination = predictHitLocation(this.state, controlWeapon, target);
-            rotationCompensation = getShellAimVelocityCompensation(this.state, controlWeapon);
+            rotationCompensation =
+                controlWeapon.bearingLimit > 0
+                    ? getShellAimVelocityCompensation(this.state, controlWeapon)
+                    : this.boltedGunAimCompensation(controlWeapon, target);
             const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
             const rangeDiff = calcRangediff(this.state, target, destination);
             // Position-holding needs a stable band. getKillZoneRadiusRange is keyed on
@@ -153,6 +157,20 @@ export class AutomationManager implements Updateable {
         for (const chainGun of this.state.chainGuns) {
             chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
         }
+    }
+
+    /**
+     * A mount with no traverse left (bolted by design, or a turret whose `bearingLimitFactor` was
+     * damaged to 0) can't correct its own aim — `bearingCommand` always clamps to 0, so its global
+     * bearing is locked to `ship.angle + fittedBearing`. Bringing it to bear is the hull's job: aim
+     * the hull at the target rotated by `-fittedBearing`, so the muzzle (not the bow) ends up on the
+     * firing line. Returned as a `positionNearTarget`-style offset added to the target's position,
+     * matching `getShellAimVelocityCompensation`'s shape for the traversable-mount case.
+     */
+    private boltedGunAimCompensation(chainGun: ChainGun, target: SpaceObject): XY {
+        const shipToTarget = XY.difference(target.position, this.state.position);
+        const aimPoint = XY.add(this.state.position, XY.rotate(shipToTarget, -chainGun.fittedBearing));
+        return XY.difference(aimPoint, target.position);
     }
 
     private undock(dockingTargetId: string, dockingTarget: SpaceObject, deltaSecondsAvg: number) {

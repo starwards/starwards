@@ -366,7 +366,10 @@ export class SpaceManager implements Updateable {
     }
 
     // unguided rounds don't track a target, but a proximity fuze still detonates
-    // them when a hostile object passes within range as they fly by
+    // them when a hostile object passes within range as they fly by. IFF-gated: a
+    // wingman flying in formation with the shooter must not arm the fuze early, or a
+    // multi-ship attack detonates every burst on its own formation before it ever
+    // reaches the actual (more distant) target (issue #2082's wave-defence case).
     private checkUnguidedProximityFuzes() {
         for (const projectile of this.state.getAll('Projectile')) {
             if (projectile.freeze || projectile.design.homing) {
@@ -376,12 +379,20 @@ export class SpaceManager implements Updateable {
             if (fuze.type !== 'proximity') {
                 continue;
             }
+            const shooter = this.state.get(projectile.shipId);
+            const shooterFaction = shooter && Spaceship.isInstance(shooter) ? shooter.faction : null;
             const queryArea = new Circle(XY.clone(projectile.position), fuze.range);
             for (const object of this.spatialIndex.selectPotentials(queryArea)) {
                 if (
                     (Spaceship.isInstance(object) || Asteroid.isInstance(object)) &&
                     !object.destroyed &&
-                    object.id !== projectile.shipId // never detonate on the ship that fired it
+                    object.id !== projectile.shipId && // never detonate on the ship that fired it
+                    !(
+                        Spaceship.isInstance(object) &&
+                        shooterFaction !== null &&
+                        shooterFaction !== Faction.NONE &&
+                        object.faction === shooterFaction
+                    ) // ...or on a friendly ship
                 ) {
                     this.explodeProjectile(projectile);
                     break;
