@@ -4,10 +4,22 @@ import { SystemState } from '../ship/system';
 
 /**
  * Ship-design-agnostic tier gate: a protocol above the ship's current repair
- * tier is refused at enqueue time (SPEC-0003 §done-conditions). Only `field`
- * content is in scope for this build slice.
+ * tier is refused at enqueue time (SPEC-0003 §done-conditions). `shipyard` is
+ * declared but unreachable — no mechanic grants it.
  */
 export type RepairProtocolTier = 'field' | 'docked' | 'shipyard';
+
+export const REPAIR_TIER_ORDER: Record<RepairProtocolTier, number> = { field: 0, docked: 1, shipyard: 2 };
+
+/**
+ * The repair tier `state`'s ship currently qualifies for, derived live from docking state rather
+ * than a static per-ship value: `'docked'` while the ship is docked, `'field'` otherwise
+ * (including mid-transition `DOCKING`/`UNDOCKING`). `'shipyard'` is never returned — no mechanic
+ * grants it.
+ */
+export function getEffectiveRepairTier(state: ShipState): RepairProtocolTier {
+    return state.docking.isDocked ? 'docked' : 'field';
+}
 
 /**
  * Top-level ShipState field a repair-protocol target lives on. Mirrors the
@@ -281,13 +293,16 @@ export function validateRepairCatalog(state: ShipState, catalog: Record<string, 
 }
 
 /**
- * Whether `protocol` can run at all on `state` — i.e. every system it targets or declares a side
- * effect on is actually fitted to this ship. This is the seam for "the protocols available to
- * *this* ship": today it only checks system presence, but further applicability conditions (repair
- * tier, current damage state, docking status, ...) are meant to layer onto this same function
- * later, not be built as parallel filters elsewhere.
+ * Whether `protocol` can run at all on `state` — i.e. its tier is within what `state`'s ship
+ * currently qualifies for (see `getEffectiveRepairTier`), and every system it targets or declares
+ * a side effect on is actually fitted to this ship. This is the seam for "the protocols available
+ * to *this* ship": further applicability conditions (current damage state, ...) are meant to layer
+ * onto this same function later, not be built as parallel filters elsewhere.
  */
 export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolStats): boolean {
+    if (REPAIR_TIER_ORDER[protocol.tier] > REPAIR_TIER_ORDER[getEffectiveRepairTier(state)]) {
+        return false;
+    }
     const systems = [...protocol.targets.map((t) => t.system), ...protocol.sideEffectSystems];
     return systems.every((system) => getRepairableSystemInstances(state, system).length > 0);
 }
