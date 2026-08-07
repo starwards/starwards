@@ -1,4 +1,14 @@
-import { Faction, GameApi, GameMap, ShipModel, Spaceship, Vec2, XY, makeId } from '@starwards/core/internal';
+import {
+    Faction,
+    GameApi,
+    GameMap,
+    PowerLevel,
+    ShipModel,
+    Spaceship,
+    Vec2,
+    XY,
+    makeId,
+} from '@starwards/core/internal';
 
 interface WaveDefenceStation {
     readonly id: string;
@@ -159,9 +169,16 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             game = g;
             game.addPlayerSpaceship(new Spaceship().init(PLAYER_SHIP_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas));
             for (const station of STATIONS) {
-                game.addNpcSpaceship(
+                const stationApi = game.addNpcSpaceship(
                     new Spaceship().init(station.id, Vec2.make(station.position), station.model, Faction.Gravitas),
                 );
+                // Stations have no engineer to raise power off the idle default, so radar range
+                // (which scales with sqrt(effectiveness)) would otherwise sit at ~71% of design
+                // range forever -- short of the 120km line this map's spawn distances assume.
+                // Scenario-local per the #2084 design redirect: other maps/NPCs keep the default.
+                for (const radar of stationApi.state.radars) {
+                    radar.power = PowerLevel.MAX;
+                }
             }
             spawnWave();
         },
