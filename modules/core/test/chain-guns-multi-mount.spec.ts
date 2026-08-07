@@ -23,11 +23,10 @@ describe('a ship with multiple chain gun mounts', () => {
         const shipObj = new Spaceship();
         shipObj.id = 'multi-mount';
         shipObj.faction = Faction.Gravitas;
+        // MockDie.getGaussian always collapses to `mean`, so the fired angle is exactly the mount's
+        // fitted bearing instead of a value that merely has to fall within a tolerance band wide
+        // enough to absorb unseeded aim jitter.
         const die = new MockDie();
-        // 0.5 ⇒ zero-mean aim deviation (die.getGaussian collapses to `mean`), so the fired angle is
-        // exactly the mount's fitted bearing instead of a value that merely has to fall within a
-        // tolerance band wide enough to absorb unseeded aim jitter.
-        die.expectedRoll = 0.5;
         const shipMgr = new ShipManagerNpc(shipObj, makeShipState(shipObj.id, twoMountDesign), spaceMgr, die);
         spaceMgr.insert(shipObj);
 
