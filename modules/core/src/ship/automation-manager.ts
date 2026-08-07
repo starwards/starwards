@@ -5,7 +5,6 @@ import {
     SpaceManager,
     XY,
     calcRangediff,
-    getKillZoneRadiusRange,
     getShellAimVelocityCompensation,
     isInRange,
     isTargetInKillZone,
@@ -68,8 +67,9 @@ export class AutomationManager implements Updateable {
         const ship = this.state;
         const shipToTarget = XY.difference(targetPosition, ship.position);
         const distanceToTarget = XY.lengthOf(shipToTarget);
+        const inRange = isInRange(trackRange[0], trackRange[1], distanceToTarget);
         let maneuvering: ManeuveringCommand;
-        if (isInRange(trackRange[0], trackRange[1], distanceToTarget)) {
+        if (inRange) {
             maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, targetVelocity);
         } else {
             maneuvering = moveToTarget(deltaSecondsAvg, ship, targetPosition);
@@ -78,7 +78,13 @@ export class AutomationManager implements Updateable {
                 maneuvering.strafe = -maneuvering.strafe;
             }
         }
-        const rotation = rotateToTarget(deltaSecondsAvg, ship, XY.add(targetPosition, rotationCompensation), 0);
+        // Shell-aim lead compensation grows with the ship's own closing speed. Applying it to hull
+        // facing while still closing distance couples heading to velocity: a fast approach turns the
+        // hull away from the target, which (via local-frame boost) accelerates it further off course —
+        // a runaway feedback loop (issue #2083). It only makes sense once the ship is holding station
+        // in range, where closing speed toward the target is already small.
+        const aimPoint = inRange ? XY.add(targetPosition, rotationCompensation) : targetPosition;
+        const rotation = rotateToTarget(deltaSecondsAvg, ship, aimPoint, 0);
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         ship.smartPilot.maneuvering.x = maneuvering.boost;
@@ -116,7 +122,13 @@ export class AutomationManager implements Updateable {
             rotationCompensation = getShellAimVelocityCompensation(this.state, controlWeapon);
             const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
             const rangeDiff = calcRangediff(this.state, target, destination);
-            trackRange = getKillZoneRadiusRange(controlWeapon);
+            // Position-holding needs a stable band. getKillZoneRadiusRange is keyed on
+            // shellSecondsToLive, which is derived from the ship's own velocity — using it here
+            // would make the approach/hold boundary chase the very velocity it's trying to
+            // stabilize, chattering between the two positionNearTarget branches (issue #2083).
+            // The gun's static design envelope gives a fixed band instead; the real (dynamic)
+            // kill zone below still governs firing.
+            trackRange = [controlWeapon.design.minShellRange, controlWeapon.design.maxShellRange];
             controlWeapon.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
             controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
             this.aimMountsAtTarget(target);
