@@ -3,6 +3,7 @@ import {
     Faction,
     SpaceManager,
     Spaceship,
+    SpatialIndex,
     Vec2,
     getClosestDockingTarget,
     makeShipState,
@@ -66,6 +67,17 @@ describe('getClosestDockingTarget', () => {
         spaceMgr.forceFlushEntities();
 
         expect(getClosestDockingTarget(shipState, spaceMgr.spatialIndex)).to.equal(null);
+    });
+
+    it('rejects a destroyed station at the docking gate, with no entity flush in between', () => {
+        const shipState = makeDockingShipState(Faction.Gravitas);
+        const station = makeCandidateShip('dead-station', Faction.Gravitas, new Vec2(50, 0), 'large-station');
+        station.destroyed = true;
+        // bypasses SpaceManager's own spatial-index destroyed filtering, so this exercises
+        // isLegalDockingTarget's gate directly rather than an incidental upstream filter.
+        const spatial: SpatialIndex = { selectPotentials: () => [station] };
+
+        expect(getClosestDockingTarget(shipState, spatial)).to.equal(null);
     });
 
     it('returns a friendly host station in range', () => {
