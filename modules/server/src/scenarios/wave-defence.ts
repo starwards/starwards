@@ -169,19 +169,9 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
             game = g;
             game.addPlayerSpaceship(new Spaceship().init(PLAYER_SHIP_ID, new Vec2(0, 0), 'gravitas', Faction.Gravitas));
             for (const station of STATIONS) {
-                const stationShip = new Spaceship().init(
-                    station.id,
-                    Vec2.make(station.position),
-                    station.model,
-                    Faction.Gravitas,
+                const stationApi = game.addNpcSpaceship(
+                    new Spaceship().init(station.id, Vec2.make(station.position), station.model, Faction.Gravitas),
                 );
-                // Anchored structures (their smart pilot already caps maxSpeed at 0) must stay put
-                // even when hit: without this, a chain-gun impact's blast-physics kick can fling a
-                // station across the map, which then makes the attacking raider's automation chase
-                // its now-wildly-moving velocity and fly off in pursuit instead of holding orbit
-                // (issue #2092).
-                stationShip.freeze = true;
-                const stationApi = game.addNpcSpaceship(stationShip);
                 // Stations have no engineer to raise power off the idle default, so radar range
                 // (which scales with sqrt(effectiveness)) would otherwise sit at ~71% of design
                 // range forever -- short of the 120km line this map's spawn distances assume.

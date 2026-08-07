@@ -135,7 +135,7 @@ export const smallStation = {
     chainGuns: [],
     thrusters: [],
     tubes: [],
-    radius: 50.4,
+    radius: 500,
     armor: smallStationArmor,
     radars: [smallStationOmniRadar, smallStationScanBeam],
     smartPilot: smallStationSmartPilot,

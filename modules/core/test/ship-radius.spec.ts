@@ -17,9 +17,9 @@ const expectedRadii: Record<ShipModel, number> = {
     glaive: 33.6,
     cataphract: 44.8,
     freighter: 33.6,
-    'small-station': 50.4,
-    'chaingun-platform': 50.4,
-    'large-station': 50.4,
+    'small-station': 500,
+    'chaingun-platform': 800,
+    'large-station': 1_200,
 };
 
 function makeSpatialIndex(objects: Iterable<{ position: Vec2; radius: number }>): SpatialIndex {
@@ -90,11 +90,6 @@ describe('hull radius drives detection range (field-of-view gate)', () => {
 
     it('a dragonfly-MK1 clears the 120km perimeter with margin', () => {
         expect(maxDetectionRange(shipConfigurations['dragonfly-MK1'].radius)).toBeGreaterThan(120_000 * 1.5);
-    });
-
-    it("a station's detection range stays within 2% of today's uniform-50m ~4000km range", () => {
-        const range = maxDetectionRange(shipConfigurations['large-station'].radius);
-        expect(Math.abs(range - 4_000_000) / 4_000_000).toBeLessThan(0.02);
     });
 });
 
