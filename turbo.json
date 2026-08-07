@@ -18,6 +18,10 @@
         "@starwards/node-red#build": {
             "dependsOn": ["^build"],
             "outputs": ["dist/**"]
+        },
+        "@starwards/mcp#build": {
+            "dependsOn": ["@starwards/core#build"],
+            "outputs": ["dist/**"]
         }
     }
 }

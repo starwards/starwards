@@ -25,7 +25,7 @@ jobs:
             - run: npm run test:format
             # depcheck resolves @starwards/core/internal through package
             # "exports" (built cjs/), so core must be built. The full build
-            # (browser/server/node-red) is covered by the Build job.
+            # (browser/server/node-red/mcp) is covered by the Build job.
             - run: npm run build:core
             - run: npm run depcheck
 

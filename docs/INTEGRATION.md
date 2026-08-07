@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [Node-RED Integration](#node-red-integration)
+- [MCP Server (LLM stations)](#mcp-server-llm-stations)
 - [Docker Deployment](#docker-deployment)
 - [Touch Controllers (Open Stage Control)](#touch-controllers-open-stage-control)
 - [MQTT Integration](#mqtt-integration)
@@ -286,6 +287,95 @@ const totalEnergy = ships.reduce((sum, ship) => sum + ship.reactor.energy, 0);
 msg.payload = totalEnergy;
 return msg;
 ```
+
+## MCP Server (LLM stations)
+
+**Module:** [`modules/mcp`](../modules/mcp) — an MCP server that lets an LLM crew a station.
+
+### Overview
+
+Node-RED connects to the game as a machine: any pointer, read or written, no notion of who is asking.
+An LLM crewing a bridge needs the opposite — it should sit at one station and be bounded by it, or it
+plays with information no player at that seat could have. So the MCP server sandboxes each session to
+a station: the widgets that station's screen draws are what it can read, the input actions that screen
+wires are what it can do, and its radar is filtered exactly as the browser filters it.
+
+The game server enforces none of this and is not meant to (see [`maintainers.md`](maintainers.md),
+"Non-goal: malicious-player isolation"). The sandbox lives in the MCP server.
+
+### Setup
+
+The server talks stdio, so an MCP client launches it:
+
+```json
+{
+    "mcpServers": {
+        "starwards": {
+            "command": "npx",
+            "args": ["-y", "@starwards/mcp", "--url", "http://localhost:8080"]
+        }
+    }
+}
+```
+
+`--url` (or `STARWARDS_URL`) points at the game server; it defaults to `http://localhost:8080`. A bare
+`host:port` is accepted.
+
+### Stations come from the server
+
+The bridge layout is not client configuration — it is served, so the browser client, the MCP server and
+anything else agree on one definition:
+
+```
+GET /stations-manifest/:shipId
+```
+
+The manifest is `{ stations: { <name>: StationEntry } }`, defined in
+[`modules/core/src/stations-manifest.ts`](../modules/core/src/stations-manifest.ts) and populated in
+[`modules/server/src/stations-manifest.ts`](../modules/server/src/stations-manifest.ts). Each entry:
+
+| Field      | Meaning                                                                             |
+| ---------- | ----------------------------------------------------------------------------------- |
+| `enabled`  | A station is selectable only when explicitly enabled.                               |
+| `widgets`  | Panels this seat may read — one flag per widget the station screen draws.            |
+| `commands` | Controls this seat may operate — one flag per input action the station screen wires. |
+| `prompt`   | The briefing handed to an LLM taking this seat.                                      |
+| `gm`       | Game master: sees all of space at full scan level, may tweak anything.               |
+
+Everything is deny-by-default: `"Johnny": { "enabled": true }` is a valid station that can see nothing
+and do nothing. Station names are free-form. The `gm` seat ships disabled.
+
+View-state actions — zoom, pan, follow, client-local target cycling — have no flags. They change
+nothing another client can observe, and an LLM always reads the full scope its widgets admit.
+
+Per-ship bridges are the seam this leaves open: `getStationsManifest(shipId)` takes the ship, and today
+returns the same bridge for every one.
+
+### Tools
+
+| Tool                  | Purpose                                                                       |
+| --------------------- | ----------------------------------------------------------------------------- |
+| `list_ships`          | Ships in the running game.                                                    |
+| `list_stations`       | Stations a ship offers, with flags and briefings.                             |
+| `login`               | Take a seat. Everything afterwards is bounded by it.                          |
+| `logout`              | Leave the seat.                                                               |
+| `get_capabilities`    | What this seat may read and do, with live value ranges and indices.           |
+| `get_ship_status`     | Read one panel the seat holds.                                                |
+| `get_radar_contacts`  | The seat's picture of space, filtered and scan-level degraded.                |
+| `execute_command`     | Operate a control the seat holds.                                             |
+
+A refusal names what the seat can do instead, so a model can correct itself without guessing.
+
+### Radar filtering
+
+All space state is broadcast to every client; what a station sees is a filter the client applies. The
+MCP server reproduces it from the same core `FieldOfView` over the same synced `radarSectors`, so
+sector range, arc, the minimum-detectable-size gate and line-of-sight occlusion all apply, and a
+contact is visible when any same-faction ship holds it — the fleet shares one picture. Scan level then
+degrades detail without hiding contacts: below `BASIC` a contact reports position and size only, never
+its type, faction or name.
+
+`modules/mcp/src/radar/radar-view.spec.ts` asserts this against the browser's predicate directly.
 
 ## Docker Deployment
 

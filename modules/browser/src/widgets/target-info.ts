@@ -1,11 +1,10 @@
-import { Faction, ScanLevel, ShipDriver, SpaceDriver, XY } from '@starwards/core';
+import { Faction, ScanLevel, ShipDriver, SpaceDriver, XY, playerScanLevel } from '@starwards/core';
 import { addTextBlade, createWidgetPane } from '../panel';
 
 import { DashboardWidget } from './dashboard';
 import { EmitterLoop } from '../loop';
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
-import { playerScanLevel } from '../space-object-intel';
 import { propertyStub } from '../property-wrappers';
 import { trackTargetObject } from '../ship-logic';
 

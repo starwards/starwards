@@ -85,8 +85,8 @@ ship.state.angle = 90      # ❌ Gets overwritten by sync
 
 - **Stack**: Colyseus multiplayer, PixiJS v8 graphics, React UI, XState, TypeScript
 - **Monorepo**: `modules/` folder with npm workspaces
-- **Modules**: browser, core, server, node-red, e2e
-- **Build order**: core → (server, browser, node-red in parallel)
+- **Modules**: browser, core, server, node-red, mcp, e2e
+- **Build order**: core → (server, browser, node-red, mcp in parallel)
 - **Scenarios**: Defined in `modules/server/src/maps.ts`
 
 ## Architecture

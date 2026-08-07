@@ -1,4 +1,4 @@
-import { Faction, ScanLevel, SpaceObject, Spaceship } from '@starwards/core';
+import { Faction, ScanLevel, SpaceObject, Spaceship } from '../space';
 
 /**
  * The scan level a player holds on an object. A GM view (no faction) sees everything; same-faction
