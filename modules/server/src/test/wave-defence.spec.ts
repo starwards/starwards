@@ -1,4 +1,17 @@
-import { GameStatus, Order, ShipModel, Vec2, XY, waitFor } from '@starwards/core/internal';
+import {
+    Faction,
+    GameApi,
+    GameMap,
+    GameStatus,
+    Order,
+    PowerLevel,
+    ShipModel,
+    Spaceship,
+    Vec2,
+    XY,
+    makeId,
+    waitFor,
+} from '@starwards/core/internal';
 import {
     STATIONS,
     createWaveDefenceMap,
@@ -10,6 +23,10 @@ import {
 } from '../scenarios/wave-defence';
 
 import { makeDriver } from './driver';
+
+function makeMap(init: (game: GameApi) => void, update?: (deltaSeconds: number) => void): GameMap {
+    return { name: 'test-map', init, update };
+}
 
 const stationPositionsById: Record<string, XY> = Object.fromEntries(STATIONS.map((s) => [s.id, s.position]));
 const allStationPositions = STATIONS.map((s) => s.position);
@@ -259,5 +276,58 @@ describe('wave_defence map (integration)', () => {
             gameDriver.gameManager.update(0);
         }
         expect(npcWaveIds()).toHaveLength(0); // still no wave 2, no matter how many paused ticks pass
+    });
+});
+
+/**
+ * Design redirect (Amir, 2026-08-07) on issue #2084: the idle-power detection-range cut
+ * (range scales with sqrt(effectiveness); uncrewed hulls never raise power off the 0.5 default)
+ * is fixed *here*, scenario-local to the three stations this map spawns -- not as an engine-wide
+ * default for every uncrewed hull. Revised acceptance criteria A1-A3 replace the issue's original
+ * ones.
+ */
+describe('station radar power (issue #2084 design redirect)', () => {
+    const gameDriver = makeDriver();
+    const stationLargePosition = Vec2.make(stationPositionsById['station-large']);
+
+    function spawnContact(position: Vec2) {
+        return gameDriver.gameManager.scriptApi.addNpcSpaceship(
+            new Spaceship().init(makeId(), position, 'dragonfly-MK1', Faction.Raiders),
+        ).spaceObject.id;
+    }
+
+    it('A1: a healthy station-large radar detects a dragonfly-MK1 at 119km -- full design range, no idle-power tax', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+
+        const contactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(119_000, 0))));
+        gameDriver.gameManager.update(1 / 20); // flushes the contact and recomputes the station's field of view
+
+        expect(gameDriver.spaceManager.isVisible('station-large', contactId)).toBe(true);
+    });
+
+    it('A2: a large-station spawned outside the wave-defence map keeps the current half-power detection radius -- the boost is scenario-local', async () => {
+        await gameDriver.gameManager.startGame(
+            makeMap((game) => {
+                game.addNpcSpaceship(
+                    new Spaceship().init('station-large', stationLargePosition, 'large-station', Faction.Gravitas),
+                );
+            }),
+        );
+
+        const nearContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(84_000, 0))));
+        const farContactId = spawnContact(Vec2.make(XY.add(stationLargePosition, XY.byLengthAndDirection(119_000, 0))));
+        gameDriver.gameManager.update(1 / 20);
+
+        expect(gameDriver.spaceManager.isVisible('station-large', nearContactId)).toBe(true);
+        expect(gameDriver.spaceManager.isVisible('station-large', farContactId)).toBe(false);
+    });
+
+    it('A3: the wave-defence map does not boost the player ship -- only the three stations it spawns get max radar power', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+
+        const player = gameDriver.getShip('GVTS');
+        expect(player.state.radars.every((radar) => radar.power === PowerLevel.NORMAL)).toBe(true);
     });
 });
