@@ -1,3 +1,4 @@
+import { ANGLE_QUANTUM_DEGREES, degToRad } from '../logic/formulas';
 import { Armor, ArmorDesign, ArmorLayer, ArmorLayerDesign, ArmorPlate } from './armor';
 import { ChainGun, ChaingunDesign } from './chain-gun';
 import { Docking, DockingDesign } from './docking';
@@ -36,6 +37,16 @@ const STATION_RADAR_PERIMETER = 120_000;
 export const MIN_HULL_RADIUS = MIN_RADAR_DETECT_FACTOR * Math.sqrt(STATION_RADAR_PERIMETER);
 
 /**
+ * Radius (metres) below which a hull's angular width at `STATION_RADAR_PERIMETER` rounds away to
+ * nothing under `limitPercisionHard`'s quantum (`logic/formulas.ts`) — the sweep in
+ * `logic/field-of-view.ts` builds its arcs from rounded endpoints, so a hull this small is
+ * invisible there regardless of the radius gate. This is the *binding* constraint on long-range
+ * detection (larger than `MIN_HULL_RADIUS`): derived from `ANGLE_QUANTUM_DEGREES` so a future
+ * change to the rounding quantum or the perimeter moves this floor with it.
+ */
+export const MIN_HULL_RADIUS_ANGULAR = (ANGLE_QUANTUM_DEGREES * STATION_RADAR_PERIMETER * degToRad) / 2;
+
+/**
  * A hull invisible inside the station's own omni-radar perimeter would silently break the
  * scenario's wave-warning model (SPEC pattern: same as `validateRepairCatalog` / `validateTurretDesign`).
  */
@@ -44,6 +55,13 @@ export function validateHullRadius(radius: number, context: string): void {
         throw new Error(
             `hull "${context}" radius (${radius}m) is at or below the detectability floor ` +
                 `(${MIN_HULL_RADIUS.toFixed(2)}m) for the ${STATION_RADAR_PERIMETER / 1000}km station radar perimeter`,
+        );
+    }
+    if (radius <= MIN_HULL_RADIUS_ANGULAR) {
+        throw new Error(
+            `hull "${context}" radius (${radius}m) is at or below the angular-resolvability floor ` +
+                `(${MIN_HULL_RADIUS_ANGULAR.toFixed(2)}m) for the ${STATION_RADAR_PERIMETER / 1000}km station radar perimeter — ` +
+                `its angular width there rounds below the ${ANGLE_QUANTUM_DEGREES}-degree precision quantum`,
         );
     }
 }
