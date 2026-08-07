@@ -1,11 +1,10 @@
-import { DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget } from '@starwards/core';
+import { DockingMode, ShipDriver, SpaceDriver, getClosestDockingTarget, getSpatialIndex } from '@starwards/core';
 import { addListBlade, addTextBlade, createWidgetPane } from '../panel';
 import { propertyStub, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
 import { EmitterLoop } from '../loop';
 import { WidgetContainer } from '../container';
-import { getSpatialIndex } from '../radar/spatial-index';
 
 export function dockingWidget(spaceDriver: SpaceDriver, shipDriver: ShipDriver): DashboardWidget {
     class DockingComponent {

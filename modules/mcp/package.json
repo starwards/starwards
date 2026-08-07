@@ -1,0 +1,43 @@
+{
+    "name": "@starwards/mcp",
+    "version": "0.5.1",
+    "description": "Starwards MCP server — station client for LLMs",
+    "keywords": [
+        "mcp",
+        "llm",
+        "game",
+        "spaceship",
+        "larp",
+        "SBS"
+    ],
+    "bin": {
+        "starwards-mcp": "./dist/cli.js"
+    },
+    "scripts": {
+        "clean": "rimraf ./dist",
+        "prebuild": "npm run clean",
+        "build": "tsc -p tsconfig.runtime.json",
+        "postbuild": "npm pack --quiet"
+    },
+    "repository": "git@github.com:starwards/starwards.git",
+    "author": "amir-arad <greenshade@gmail.com>",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "engines": {
+        "node": ">= 18"
+    },
+    "license": "SEE LICENSE IN LICENSE.md",
+    "files": [
+        "dist"
+    ],
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.12.1",
+        "@starwards/core": "0.5.1",
+        "zod": "4.1.12"
+    },
+    "devDependencies": {
+        "@starwards/server": "0.0.0"
+    }
+}

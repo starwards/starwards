@@ -48,8 +48,8 @@ last_verified: 2026-08-01
 | **Thrusters** | `thruster.ts` | fittedBearing, active, afterBurnerActive, availableCapacity, bearingSkew | Directional thrust (Fwd/Back/L/R array); bolted mounts (turnSpeed 0), so `fittedBearing` is what's fixed and `bearing` stays 0 |
 | **Radar** | `radar.ts` | arc, bearing, malfunctionRangeFactor | One vision sector each; a ship carries a `radars` collection and sees their union |
 | **Turret** | `turret.ts` | fittedBearing, bearing, bearingCommand, bearingSkew, turnSpeedFactor, bearingLimit, bearingLimitFactor | The rotating mount shared by radars, chain guns, tubes and thrusters. `turnSpeed = design.turnSpeed * effectiveness * turnSpeedFactor`; `turnSpeed: 0` is a fixed mount |
-| **ChainGun** | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | Rapid-fire kinetic |
-| **Tubes** | `tube.ts` | index (inherits fittedBearing, loading, rateOfFireFactor, loadedProjectile from ChainGun) | Missile launchers (array) |
+| **ChainGun** | `chain-gun.ts` | isFiring, loadAmmo, loading, rateOfFireFactor | Rapid-fire kinetic; ship-level fire trigger drives `isFiring` on every mount that can bear, no safety |
+| **Tubes** | `tube.ts` | index, safetyLocked (inherits fittedBearing, loading, rateOfFireFactor, loadedProjectile from ChainGun) | Missile launchers (array); `ShipState.fireTubesCommand` fires every loaded, unlocked tube and re-locks each one that fires |
 | **Magazine** | `magazine.ts` | capacity, missiles | Ammo storage |
 | **Armor** | `armor.ts` | armorPlates[] (each: layers[] of health/maxHealth), layerDesigns[], numberOfHealthyPlates, numberOfPlates | Sectional damage, layered plate stacks |
 | **Targeting** | `targeting.ts` | targetId, shipOnly, enemyOnly, shortRangeOnly | Weapon targeting |

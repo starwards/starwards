@@ -35,6 +35,7 @@ import { Signals } from './signals';
 import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
+import { Tube } from './tube';
 import { Warp } from './warp';
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
@@ -83,6 +84,7 @@ export function resetShipState(state: ShipState) {
     state.afterBurnerCommand = 0;
     state.rotationModeCommand = false;
     state.maneuveringModeCommand = false;
+    state.fireTubesCommand = false;
     state.hullDamaged = false;
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
@@ -114,6 +116,7 @@ export type Die = {
     getRollInRange: (id: string, min: number, max: number) => number;
     getDrift: (id: string, frequencyHz?: number) => number;
     getDriftInRange: (id: string, min: number, max: number, frequencyHz?: number) => number;
+    getGaussian: (id: string, mean: number, stdev: number) => number;
 };
 
 export interface EnergySource {
@@ -154,7 +157,7 @@ export abstract class ShipManager implements Updateable {
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.ammoManager = new AmmoManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
-        for (const chainGun of this.state.chainGuns) {
+        for (const [index, chainGun] of this.state.chainGuns.entries()) {
             this.chainGunManagers.push(
                 new ChainGunManager(
                     chainGun,
@@ -164,10 +167,12 @@ export abstract class ShipManager implements Updateable {
                     this,
                     this.internalProxy,
                     this.internalProxy,
+                    this.die,
+                    `chainGun:${index}`,
                 ),
             );
         }
-        for (const tube of this.state.tubes) {
+        for (const [index, tube] of this.state.tubes.entries()) {
             this.tubeManagers.push(
                 new ChainGunManager(
                     tube,
@@ -177,6 +182,8 @@ export abstract class ShipManager implements Updateable {
                     this,
                     this.internalProxy,
                     this.internalProxy,
+                    this.die,
+                    `tube:${index}`,
                 ),
             );
         }
@@ -261,12 +268,14 @@ export abstract class ShipManager implements Updateable {
         // vision first: the target and signal gates below all read this tick's radar sectors
         this.updateRadarSectors(id);
         this.validateWeaponsTargetId();
+        const firingTubes = this.consumeFireTubesCommand();
         for (const chainGunManager of this.chainGunManagers) {
             chainGunManager.update(id);
         }
         for (const tubeManager of this.tubeManagers) {
             tubeManager.update(id);
         }
+        this.lockFiredTubes(firingTubes);
         this.handleTargetCommands();
         this.calcTargetedStatus();
 
@@ -274,6 +283,33 @@ export abstract class ShipManager implements Updateable {
         this.ammoManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
+    }
+
+    /**
+     * Ship-level fire: marks every unlocked, ready tube as firing for this tick. Readiness itself
+     * is still gated by ChainGunManager.fireChainGun(); this only decides which tubes fire.
+     */
+    private consumeFireTubesCommand(): Tube[] {
+        if (!this.state.fireTubesCommand) {
+            return [];
+        }
+        this.state.fireTubesCommand = false;
+        const readyTubes = this.state.tubes.filter(
+            (tube) =>
+                !tube.safetyLocked && tube.effectiveness > 0 && tube.loading >= 1 && tube.loadedProjectile !== 'None',
+        );
+        for (const tube of readyTubes) {
+            tube.isFiring = true;
+        }
+        return readyTubes;
+    }
+
+    /** Every tube that fired this tick re-locks immediately, per the ship-level fire design. */
+    private lockFiredTubes(firedTubes: Tube[]) {
+        for (const tube of firedTubes) {
+            tube.isFiring = false;
+            tube.safetyLocked = true;
+        }
     }
 
     /**

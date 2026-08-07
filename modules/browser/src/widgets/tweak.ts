@@ -215,6 +215,7 @@ const singleSelectionDetails = async (
             cleanup,
         );
         addDesignFolder(shipDriver, armorFolder, `/armor`, cleanup);
+        addTweakables(shipDriver, armorFolder, `/armor`, cleanup);
         for (const system of shipDriver.systems) {
             const modelName = system.state.design?.modelName;
             const systemFolder = guiFolder.addFolder({

@@ -25,7 +25,6 @@
         "colyseus-events": "^4.1.0",
         "css-element-queries": "^1.2.3",
         "d3-selection": "^3.0.0",
-        "detect-collisions": "^10.10.2025",
         "eventemitter2": "^6.4.9",
         "eventemitter3": "^5.0.4",
         "golden-layout": "^1.5.9",

@@ -75,6 +75,21 @@ export type RepairProtocolStats = {
      */
     sideEffectSystems: RepairableSystemKey[];
     tier: RepairProtocolTier;
+    /**
+     * Overrides `duration` with a value read live from ship state each tick, for a protocol whose
+     * duration is a GM-tweakable constant rather than a fixed catalog number (e.g. `armorPlateRenewal`
+     * reads `state.armor.plateRepairSeconds`). Reread every tick, so a GM's live tweak affects an
+     * already-active operation, not just future enqueues.
+     */
+    dynamicDuration?: (state: ShipState) => number;
+    /**
+     * Completion effect for a protocol with no defectible `targets` — SPEC-0003's target/reset
+     * model only covers per-field `@defectible`s, so a protocol that writes state no defectible
+     * can express (e.g. `ArmorPlate.health`, a plain `Schema` field) declares its effect here
+     * instead. Run once, after `targets` are reset, only when the operation completes (never on
+     * cancellation).
+     */
+    onComplete?: (state: ShipState) => void;
 };
 
 export const actuatorRecalibration: RepairProtocolStats = {
@@ -206,6 +221,51 @@ export const hullWideSystemsOverhaul: RepairProtocolStats = {
 // Coolant recharge (docked tier) is deliberately excluded: finite coolant (#1892) is out of
 // scope this slice, and the mechanic has no defectible target to validate against.
 
+/**
+ * Completion effect for `armorPlateRenewal`: fully heals the single most-damaged plate, a no-op if
+ * every plate is already at max health. Defined here rather than in `ship/armor.ts` deliberately —
+ * `configurations/` only ever needs `ShipState` as a type (elided at compile time, same as every
+ * other protocol in this catalog); a real runtime import of a `ship/*` value from this module would
+ * open a fresh circular-require edge (`configurations` -> `ship/armor` -> the core barrel ->
+ * `configurations` again) that the existing type-only `ShipState` import never triggers.
+ */
+function repairWorstArmorPlate(state: ShipState): void {
+    const plates = state.armor.armorPlates;
+    let worst: (typeof plates)[number] | undefined;
+    for (const plate of plates) {
+        if (plate.healthRatio < 1 && (!worst || plate.healthRatio < worst.healthRatio)) {
+            worst = plate;
+        }
+    }
+    if (worst) {
+        for (const layer of worst.layers) {
+            layer.health = layer.maxHealth;
+        }
+    }
+}
+
+/**
+ * Docked-tier, chunked-per-plate armour repair (issue #2078). No defectible `targets` — armour
+ * stays a plain `Schema`, not a `SystemState`, so the queue's normal target/reset mechanism can't
+ * see it; `onComplete` writes `ArmorPlate.health` directly instead (see `repairWorstArmorPlate`
+ * above). `duration` is a placeholder never read: `dynamicDuration` always wins, sourcing the true
+ * per-op duration from the GM-tweakable `Armor.plateRepairSeconds`. No energy cost, no heat, and
+ * repeatable — re-enqueueable as many times as there are damaged plates, one plate per operation,
+ * so undocking mid-repair only loses the single in-flight op (SPEC-0003's existing all-or-nothing
+ * cancel), never plates already renewed.
+ */
+export const armorPlateRenewal: RepairProtocolStats = {
+    name: 'Armor plate renewal',
+    targets: [],
+    duration: 10,
+    dynamicDuration: (state) => state.armor.plateRepairSeconds,
+    energyDraw: 0,
+    heat: 0,
+    sideEffectSystems: [],
+    tier: 'docked',
+    onComplete: repairWorstArmorPlate,
+};
+
 export const repairProtocols = {
     actuatorRecalibration,
     thrustLinePurge,
@@ -216,6 +276,7 @@ export const repairProtocols = {
     containmentFieldTuning,
     fireControlAlignment,
     hullWideSystemsOverhaul,
+    armorPlateRenewal,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;

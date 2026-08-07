@@ -8,7 +8,18 @@
 export { AdminState, GameStatus } from './admin';
 
 // --- client ---
-export { AdminDriver, ClientStatus, Driver, ShipDriver, SpaceDriver, Status } from './client';
+export {
+    AdminDriver,
+    ClientStatus,
+    Driver,
+    ShipDriver,
+    SpaceDriver,
+    Status,
+    getSpatialIndex,
+    objectDisplayName,
+    playerScanLevel,
+    scanCycleTargets,
+} from './client';
 export type { ShipDriverRead, SpaceEventEmitter } from './client';
 
 // --- configurations ---
@@ -63,6 +74,16 @@ export {
     repairCommands,
 } from './ship';
 export type { DefectibleValue, RepairOperation, System } from './ship';
+
+// --- stations-manifest ---
+export { isRadarWidget, stationCommands, stationRadarWidgets, stationWidgets } from './stations-manifest';
+export type {
+    StationCommand,
+    StationEntry,
+    StationRadarWidget,
+    StationWidget,
+    StationsManifest,
+} from './stations-manifest';
 
 // --- space ---
 export {

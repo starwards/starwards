@@ -33,9 +33,10 @@ Browser ←──WS──→ Server(Colyseus) ←──WS──→ Node-RED
 | server | tsc | `cjs/` | Colyseus rooms, game logic |
 | browser | webpack | `dist/` | PixiJS + React UI |
 | node-red | rollup+tsc | `dist/` | Integration nodes |
+| mcp | tsc | `dist/` | MCP server: LLM station client |
 | e2e | playwright | - | E2E tests |
 
-**Build order:** core → (server, browser, node-red in parallel)
+**Build order:** core → (server, browser, node-red, mcp in parallel)
 
 **Path aliases:** `@starwards/*` → `modules/*/src` or `modules/*/cjs`
 
@@ -46,9 +47,22 @@ core/src/
 ├── space/          # SpaceState, Spaceship, Projectile, Explosion, Asteroid, Waypoint
 ├── ship/           # ShipState, Reactor, Thruster, Radar, ChainGun, Tube, Armor, etc.
 ├── logic/          # SpaceManager(physics), XY(vectors), formulas
-├── client/         # ConnectionManager, Driver, Ship
+├── client/         # ConnectionManager, Driver, Ship, SpatialIndex, scan-level intel
 └── [decorators]    # @gameField, @tweakable, @range, @defectible
 ```
+
+`client/` holds what every client needs, not only what the browser needs. Anything that decides
+**what a player is allowed to perceive** belongs here rather than in `modules/browser`, because more
+than one client now answers that question and they must answer it identically.
+
+Concretely: `FieldOfView` (`logic/`) is fed by `getSpatialIndex` (`client/spatial-index.ts`), which
+keeps a collision index in sync from `SpaceDriver` events; `playerScanLevel` and `objectDisplayName`
+(`client/space-object-intel.ts`) decide how much of a contact may be disclosed. The browser draws
+blips with them and `modules/mcp` answers `get_radar_contacts` with them — one implementation, so the
+two cannot drift into showing different pictures of the same space.
+
+The same rule applies to station definitions: `stations-manifest.ts` types the bridge layout the
+server serves, so a station means the same thing to every client that reads it.
 
 ## Rooms
 

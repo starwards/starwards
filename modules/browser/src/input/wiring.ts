@@ -1,5 +1,5 @@
 import { InputManager, numberAction } from '../input/input-manager';
-import { readWriteNumberProp, writeProp } from '../property-wrappers';
+import { readWriteNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import { ShipDriver } from '@starwards/core';
 import { shipInputConfig } from '../input/input-config';
@@ -13,7 +13,10 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
     );
 
     input.addMomentaryClickAction(
-        writeProp(shipDriver, '/chainGuns/0/isFiring'),
+        writeAllProp(
+            shipDriver,
+            shipDriver.state.chainGuns.map((_, index) => `/chainGuns/${index}/isFiring`),
+        ),
         shipInputConfig.chainGunIsFiring,
         'Fire Chain Gun',
     );
@@ -28,10 +31,17 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
         'Clear Target',
     );
     input.addMomentaryClickAction(
-        writeProp(shipDriver, '/tubes/0/isFiring'),
+        writeProp(shipDriver, '/fireTubesCommand'),
         shipInputConfig.tubeIsFiring,
-        'Fire Tube',
+        'Fire Tubes',
     );
+    for (const tube of shipDriver.state.tubes) {
+        input.addToggleClickAction(
+            readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
+            shipInputConfig.tubeSafety[tube.index],
+            `Tube ${tube.index} Safety`,
+        );
+    }
 
     // pilot
     input.addRangeAction(

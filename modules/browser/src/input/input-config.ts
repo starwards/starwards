@@ -58,6 +58,8 @@ export interface RangeConfig {
 export const shipInputConfig = {
     // buttons
     tubeIsFiring: 'x',
+    // one dedicated hotkey per tube index — toggles that tube's safety only
+    tubeSafety: ['1', '2', '3', '4'],
     warpUp: 'r',
     warpDown: 'f',
     dock: 'z',
