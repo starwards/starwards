@@ -116,6 +116,16 @@ export class Armor extends Schema {
     @gameField(ArmorDesignState)
     design = new ArmorDesignState();
 
+    /**
+     * Seconds for a fully-stripped plate to heal to max while docked (`ArmorRepairManager`). Every
+     * plate heals in parallel, so this also bounds the whole hull's worst-case docked repair time.
+     * GM lever to rescue a live session by speeding up repair.
+     */
+    @range([1, 3600])
+    @tweakable('number')
+    @gameField('float32')
+    repairSeconds = 150;
+
     get numberOfPlates(): number {
         return this.armorPlates.length;
     }

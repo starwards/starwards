@@ -22,6 +22,7 @@ import { IterationData, Updateable } from '../updateable';
 import { Turret, updateTurret } from './turret';
 
 import { Armor } from './armor';
+import { ArmorRepairManager } from './armor-repair-manager';
 import { AutomationManager } from './automation-manager';
 import { DamageManager } from './damage-manager';
 import { DeepReadonly } from 'ts-essentials';
@@ -131,6 +132,7 @@ export abstract class ShipManager implements Updateable {
     protected tubeManagers = new Array<ChainGunManager>();
     protected chainGunManagers = new Array<ChainGunManager>();
     protected dockingManager: DockingManager;
+    protected armorRepairManager: ArmorRepairManager;
     protected automationManager: AutomationManager;
     protected damageManager: DamageManager;
     protected heatManager: HeatManager;
@@ -149,6 +151,7 @@ export abstract class ShipManager implements Updateable {
         this.heatManager = new HeatManager(this.state, this.damageManager);
         this.internalProxy.addHeat = this.heatManager.addHeat.bind(this.heatManager);
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
+        this.armorRepairManager = new ArmorRepairManager(this.state);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         for (const chainGun of this.state.chainGuns) {
@@ -270,6 +273,7 @@ export abstract class ShipManager implements Updateable {
         this.signalsJobManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
+        this.armorRepairManager.update(id);
     }
 
     /**
