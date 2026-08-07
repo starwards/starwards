@@ -5,10 +5,10 @@ import {
     SpaceManager,
     XY,
     calcRangediff,
+    capToRange,
     getShellAimVelocityCompensation,
     isInRange,
     isTargetInKillZone,
-    lerp,
     matchGlobalSpeed,
     moveToTarget,
     predictHitLocation,
@@ -124,7 +124,7 @@ export class AutomationManager implements Updateable {
                 controlWeapon.bearingLimit > 0
                     ? getShellAimVelocityCompensation(this.state, controlWeapon)
                     : this.boltedGunAimCompensation(controlWeapon, target);
-            const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
+            const aimRange = (controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange) / 2;
             const rangeDiff = calcRangediff(this.state, target, destination);
             // Position-holding needs a stable band. getKillZoneRadiusRange is keyed on
             // shellSecondsToLive, which is derived from the ship's own velocity — using it here
@@ -133,7 +133,25 @@ export class AutomationManager implements Updateable {
             // The gun's static design envelope gives a fixed band instead; the real (dynamic)
             // kill zone below still governs firing.
             trackRange = [controlWeapon.design.minShellRange, controlWeapon.design.maxShellRange];
-            controlWeapon.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
+            if (controlWeapon.shellRangeMode === SmartPilotMode.TARGET) {
+                // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
+                // already — shellRange only carries rangeDiff's small target-motion lead correction.
+                controlWeapon.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
+            } else {
+                // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
+                // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
+                // player-facing visibility/radar range, an unrelated concern for an NPC's own
+                // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
+                // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
+                const midRange = controlWeapon.design.minShellRange + aimRange;
+                const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
+                const desiredRange = capToRange(
+                    controlWeapon.design.minShellRange,
+                    controlWeapon.design.maxShellRange,
+                    actualDistance + rangeDiff,
+                );
+                controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
+            }
             controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
             this.aimMountsAtTarget(target);
         } else {

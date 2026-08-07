@@ -319,6 +319,49 @@ describe('NPC ATTACK order with a bolted (non-traversing) chain gun', () => {
         // 10 sim-minutes, instead of detonating on each other before ever reaching it.
         expect(armorHealthSum(targetState)).to.be.lessThan(initialArmor);
     });
+
+    it('anchors the fuze to the real attack-order distance when the weapons-lock target does not resolve', () => {
+        // weaponsTarget (and shellRangeMode) resolve off player-facing visibility/radar range — an
+        // unrelated concern for an NPC's own gunnery against its attack order. Put the target beyond
+        // every radar sector's range so weaponsTarget definitely stays unresolved (shellRangeMode
+        // stays DIRECT), while still well within the gun's own maxShellRange-clamped engagement.
+        const spaceMgr = new SpaceManager();
+        const die = new MockDie();
+        die.expectedRoll = 1;
+
+        const targetDistance = 50_000; // beyond every dragonfly-MK1 radar sector's range
+        const attacker = new Spaceship().init(
+            'attacker',
+            Vec2.make(XY.byLengthAndDirection(targetDistance, 0)),
+            'dragonfly-MK1',
+            Faction.Raiders,
+        );
+        const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
+        attackerState.isPlayerShip = false;
+        const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
+
+        const target = new Spaceship().init('target', Vec2.make(XY.zero), 'large-station', Faction.Gravitas);
+        spaceMgr.insert(attacker);
+        spaceMgr.insert(target);
+        spaceMgr.forceFlushEntities();
+
+        attackerMgr.state.order = Order.ATTACK;
+        attackerMgr.state.orderTargetId = target.id;
+
+        const iterations = makeIterationsData(0.05, 1);
+        for (const id of iterations) {
+            attackerMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        const gun = attackerMgr.state.chainGuns[0];
+        expect(gun.shellRangeMode, 'target is out of every radar sector range').to.equal(SmartPilotMode.DIRECT);
+        const explosionDistance = gun.shellSecondsToLive * gun.design.bulletSpeed;
+        // the order target is 50km out but the gun only reaches maxShellRange (4500m) — the fuze
+        // should aim for that clamped ceiling, not the gun's min/max midpoint (2500m) DIRECT mode
+        // otherwise falls back to regardless of how far away the real order target actually is.
+        expect(explosionDistance).to.be.greaterThan(gun.design.maxShellRange * 0.9);
+    });
 });
 
 describe('resetShipState clears orders', () => {
