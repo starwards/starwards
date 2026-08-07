@@ -333,15 +333,21 @@ export class RepairManager implements Updateable {
         }
         active.starvedSeconds = 0;
         this.applyHeat(protocol, deltaSeconds);
-        active.progress = Math.min(1, active.progress + deltaSeconds / protocol.duration);
+        active.progress = Math.min(1, active.progress + deltaSeconds / this.getDuration(protocol));
         if (active.progress >= 1) {
             this.complete(active, protocol);
         }
     }
 
+    /** `dynamicDuration`, when declared, always wins over the static `duration` — see its doc comment. */
+    private getDuration(protocol: RepairProtocolStats): number {
+        return protocol.dynamicDuration ? protocol.dynamicDuration(this.state) : protocol.duration;
+    }
+
     private complete(op: RepairOperation, protocol: RepairProtocolStats) {
         this.revertSideEffects(op);
         this.resetTargets(protocol);
+        protocol.onComplete?.(this.state);
         op.progress = 1;
         this.finish(op, RepairOperationStatus.DONE);
     }
@@ -395,7 +401,7 @@ export class RepairManager implements Updateable {
         if (uniqueKeys.length === 0) {
             return;
         }
-        const perKeyHeatPerSecond = protocol.heat / protocol.duration / uniqueKeys.length;
+        const perKeyHeatPerSecond = protocol.heat / this.getDuration(protocol) / uniqueKeys.length;
         for (const key of uniqueKeys) {
             const instances = getRepairableSystemInstances(this.state, key);
             if (instances.length === 0) {
