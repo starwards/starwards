@@ -3,6 +3,7 @@ import {
     RTuple2,
     Tuple2,
     archIntersection,
+    circlesIntersection,
     equasionOfMotion,
     lerp,
     limitPercision,
@@ -102,6 +103,23 @@ describe('formulas', () => {
             const arcA = [90, -90.01] as RTuple2;
             const arcB = [96.91, 97.3] as RTuple2;
             expectArcToBe(archIntersection(arcA, arcB), arcB, 'archIntersection()');
+        });
+    });
+    describe('circlesIntersection', () => {
+        it('stays finite and reports a non-degenerate arc when the object circle has grown past the subject and engulfs it (issue #2093)', () => {
+            const subject = { position: { x: 0, y: 0 }, radius: 50.4 };
+            const object = { position: { x: 17, y: 0 }, radius: 200 };
+            const result = circlesIntersection(subject, object);
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+            expect(result, 'an engulfing blast should still report an intersection').to.not.be.undefined;
+            const [p0, p1] = result!;
+            for (const point of [p0, p1]) {
+                expect(Number.isFinite(point.x), `x should be finite, got ${point.x}`).to.equal(true);
+                expect(Number.isFinite(point.y), `y should be finite, got ${point.y}`).to.equal(true);
+            }
+            // a zero-width arc (both points identical) is treated as no hit by callers like
+            // archIntersection, so an engulfing hit must still report two distinct points
+            expect(p0, 'the two intersection points should not collapse onto each other').to.not.deep.equal(p1);
         });
     });
     describe('lerp', () => {
