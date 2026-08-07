@@ -6,6 +6,7 @@ import {
     SmartPilotMode,
     SpaceManager,
     Spaceship,
+    Vec2,
     XY,
     makeShipState,
     shipConfigurations,
@@ -211,6 +212,62 @@ describe('NPC threat re-acquisition', () => {
         expect(shipMgr.state.order).to.equal(Order.NONE);
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(shipMgr.state.orderTargetId).to.be.null;
+    });
+});
+
+describe('NPC ATTACK order with a bolted (non-traversing) chain gun', () => {
+    function armorHealthSum(state: ReturnType<typeof makeShipState>) {
+        let sum = 0;
+        for (const plate of state.armor.armorPlates) {
+            sum += plate.healthRatio;
+        }
+        return sum;
+    }
+
+    it('brings the bolted gun to bear and damages a stationary target within 5 sim-minutes', () => {
+        const spaceMgr = new SpaceManager();
+        const die = new MockDie();
+        die.expectedRoll = 1;
+
+        // .init() (not just setting .id/.position) matters here: it's what sets the SpaceObject's
+        // physical radius from the ship config, which real hit detection depends on.
+        const attacker = new Spaceship().init(
+            'attacker',
+            Vec2.make(XY.byLengthAndDirection(20_000, 0)),
+            'dragonfly-MK1',
+            Faction.Raiders,
+        );
+        const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
+        attackerState.isPlayerShip = false;
+        const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
+
+        const target = new Spaceship().init('target', Vec2.make(XY.zero), 'large-station', Faction.Gravitas);
+        const targetState = makeShipState(target.id, shipConfigurations['large-station']);
+        const targetMgr = new ShipManagerNpc(target, targetState, spaceMgr, die);
+
+        spaceMgr.insert(attacker);
+        spaceMgr.insert(target);
+        spaceMgr.forceFlushEntities();
+
+        attackerMgr.state.order = Order.ATTACK;
+        attackerMgr.state.orderTargetId = target.id;
+
+        const initialArmor = armorHealthSum(targetState);
+        let firingTicks = 0;
+        let totalTicks = 0;
+        for (const id of makeIterationsData(300, 6000)) {
+            attackerMgr.update(id);
+            targetMgr.update(id);
+            spaceMgr.update(id);
+            totalTicks++;
+            if (attackerMgr.state.chainGuns[0]?.isFiring) firingTicks++;
+        }
+
+        // A1: measurably reduces the station's armour within 5 sim-minutes
+        expect(armorHealthSum(targetState)).to.be.lessThan(initialArmor);
+        // A2: the bolted mount fires a non-trivial fraction of the engagement
+        expect(firingTicks / totalTicks).to.be.greaterThan(0.02);
+        // A3: player ships are unaffected (pinned by existing tests in this file)
     });
 });
 
