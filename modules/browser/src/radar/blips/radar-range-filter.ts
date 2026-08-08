@@ -1,5 +1,13 @@
 import { DeepReadonly, noop } from 'ts-essentials';
-import { FieldOfView, SpaceDriver, SpaceObject, XY, degToRad, getSpatialIndex } from '@starwards/core';
+import {
+    FieldOfView,
+    SpaceDriver,
+    SpaceObject,
+    XY,
+    degToRad,
+    getSpatialIndex,
+    isSensorInvisible,
+} from '@starwards/core';
 
 import { CameraView } from '../camera-view';
 import { Graphics } from 'pixi.js';
@@ -50,9 +58,13 @@ export class RadarRangeFilter {
         this.visibleObjects.clear();
         this.fovs.update();
         for (const fov of this.fieldsOfView()) {
-            this.visibleObjects.add(fov.object);
+            if (!isSensorInvisible(fov.object)) {
+                this.visibleObjects.add(fov.object);
+            }
             for (const visibleArc of fov.view) {
-                visibleArc.object && this.visibleObjects.add(visibleArc.object);
+                if (visibleArc.object && !isSensorInvisible(visibleArc.object)) {
+                    this.visibleObjects.add(visibleArc.object);
+                }
             }
         }
     };
