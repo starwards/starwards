@@ -250,4 +250,5 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     Projectile: CircleRenderer,
     Explosion: CircleRenderer,
+    Nebula: CircleRenderer,
 };

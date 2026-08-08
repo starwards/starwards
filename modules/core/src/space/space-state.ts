@@ -4,6 +4,7 @@ import {
     ConvertShipTypeArg,
     CreateAsteroidOrderArg,
     CreateExplosionOrderArg,
+    CreateNebulaOrderArg,
     CreateSpaceshipOrderArg,
     CreateWaypointOrderArg,
     SetScanLevelArg,
@@ -13,6 +14,7 @@ import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
 import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
+import { Nebula } from './nebula';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
 import { gameField } from '../game-field';
@@ -29,6 +31,9 @@ export class SpaceState extends Schema {
     @gameField({ map: Explosion })
     private readonly Explosion = new MapSchema<Explosion>();
 
+    @gameField({ map: Nebula })
+    private readonly Nebula = new MapSchema<Nebula>();
+
     @gameField({ map: Asteroid })
     private readonly Asteroid = new MapSchema<Asteroid>();
 
@@ -44,6 +49,7 @@ export class SpaceState extends Schema {
     public botOrderCommands = Array.of<BulkBotOrderArg>();
     public createAsteroidCommands = Array.of<CreateAsteroidOrderArg>();
     public createExplosionCommands = Array.of<CreateExplosionOrderArg>();
+    public createNebulaCommands = Array.of<CreateNebulaOrderArg>();
     public createWaypointCommands = Array.of<CreateWaypointOrderArg>();
     public setScanLevelCommands = Array.of<SetScanLevelArg>();
     // commands handled by game manager:
@@ -57,6 +63,7 @@ export class SpaceState extends Schema {
             this.Asteroid.get(id) ??
             this.Spaceship.get(id) ??
             this.Explosion.get(id) ??
+            this.Nebula.get(id) ??
             this.Waypoint.get(id)
         );
     }
@@ -84,6 +91,7 @@ export class SpaceState extends Schema {
     public *maps(): IterableIterator<MapSchema> {
         yield this.Projectile;
         yield this.Explosion;
+        yield this.Nebula;
         yield this.Asteroid;
         yield this.Spaceship;
         yield this.Waypoint;

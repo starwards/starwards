@@ -217,6 +217,12 @@ export class InteractiveLayer {
                         position,
                         damageFactor,
                     });
+                } else if (this.createTemplate.type === 'Nebula') {
+                    const radius = lerp([0, 1], literal2Range(this.createTemplate.radius), Math.random());
+                    this.spaceDriver.command(spaceCommands.createNebulaOrder, {
+                        position,
+                        radius,
+                    });
                 } else if (this.createTemplate.type === 'Waypoint') {
                     this.spaceDriver.command(spaceCommands.createWaypointOrder, {
                         position,

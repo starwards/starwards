@@ -52,7 +52,7 @@ export class RadarRangeFilter {
         for (const fov of this.fieldsOfView()) {
             this.visibleObjects.add(fov.object);
             for (const visibleArc of fov.view) {
-                visibleArc.object && this.visibleObjects.add(visibleArc.object);
+                visibleArc.object && !visibleArc.object.isRadarInvisible && this.visibleObjects.add(visibleArc.object);
             }
         }
     };

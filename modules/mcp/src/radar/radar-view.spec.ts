@@ -2,6 +2,7 @@ import {
     Asteroid,
     Faction,
     FieldOfView,
+    Nebula,
     Projectile,
     RadarSector,
     SpaceObject,
@@ -50,6 +51,14 @@ function asteroid(id: string, x: number, y: number, radius = 50) {
     return a;
 }
 
+function nebula(id: string, x: number, y: number, radius = 50) {
+    const n = new Nebula();
+    n.id = id;
+    n.position = new Vec2(x, y);
+    n.radius = radius;
+    return n;
+}
+
 /**
  * The browser's `RadarRangeFilter.update()`, reduced to the set it produces. The production code
  * must agree with this on every case below — this is the definition of "sees what the station sees".
@@ -60,7 +69,7 @@ function browserVisibleSet(spatial: SpatialIndex, objects: SpaceObject[], factio
         const fov = new FieldOfView(spatial, observer);
         visible.add(observer);
         for (const arc of fov.view) {
-            arc.object && visible.add(arc.object);
+            arc.object && !arc.object.isRadarInvisible && visible.add(arc.object);
         }
     }
     return visible;
@@ -138,6 +147,24 @@ describe('RadarView', () => {
             ship('foe', 100_000, 0, Faction.Raiders, 5000),
             asteroid('rock', 101_000, 0),
         ];
+        expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['own']);
+    });
+
+    it('a nebula occludes like a solid body but never itself becomes a contact (issue #2123)', () => {
+        const objects = [
+            ship('own', 0, 0, Faction.Gravitas, 50_000),
+            nebula('fog', 1000, 0, 500),
+            asteroid('hidden', 2000, 0, 50),
+        ];
+        const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
+        expect(visible).to.not.include('fog');
+        expect(visible).to.not.include('hidden');
+        expect(visible).to.deep.equal(ids(browserVisibleSet(makeSpatialIndex(objects), objects, Faction.Gravitas)));
+    });
+
+    it('shows the game master a nebula, unlike any faction radar', () => {
+        const objects = [ship('own', 0, 0, Faction.Gravitas), nebula('fog', 100_000, 0, 500)];
+        expect(ids(viewOf(objects).visibleObjects(undefined))).to.deep.equal(['fog', 'own']);
         expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['own']);
     });
 

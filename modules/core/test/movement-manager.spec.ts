@@ -1,5 +1,16 @@
+import {
+    Asteroid,
+    Nebula,
+    ShipManagerPc,
+    SmartPilotMode,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    makeShipState,
+    shipConfigurations,
+} from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
-import { ShipManagerPc, SmartPilotMode, SpaceManager, Spaceship, XY, makeShipState, shipConfigurations } from '../src';
 
 import { expect } from 'chai';
 
@@ -122,5 +133,33 @@ describe('MovementManager', () => {
 
         const finalFuel = shipMgr.state.maneuvering.afterBurnerFuel;
         expect(finalFuel).to.be.lessThan(initialFuel);
+    });
+
+    it('a solid object within warp proximity jams warp', () => {
+        const rock = new Asteroid();
+        rock.init('rock', Vec2.make({ x: 2000, y: 0 }), 100);
+        spaceMgr.insert(rock);
+        spaceMgr.update({ deltaSeconds: 0, deltaSecondsAvg: 0, totalSeconds: 0 });
+
+        shipMgr.state.warp!.desiredLevel = 1;
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(shipMgr.state.warp!.jammed).to.equal(true);
+    });
+
+    it('a nebula within warp proximity does not jam warp — it is optical only (issue #2123)', () => {
+        const fog = new Nebula();
+        fog.init('fog', Vec2.make({ x: 2000, y: 0 }), 500);
+        spaceMgr.insert(fog);
+        spaceMgr.update({ deltaSeconds: 0, deltaSecondsAvg: 0, totalSeconds: 0 });
+
+        shipMgr.state.warp!.desiredLevel = 1;
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(shipMgr.state.warp!.jammed).to.equal(false);
     });
 });

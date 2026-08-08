@@ -47,7 +47,7 @@ export class RadarView {
             const fov = new FieldOfView(this.spatial, object);
             visible.add(object);
             for (const visibleArc of fov.view) {
-                visibleArc.object && visible.add(visibleArc.object);
+                visibleArc.object && !visibleArc.object.isRadarInvisible && visible.add(visibleArc.object);
             }
         }
         return visible;

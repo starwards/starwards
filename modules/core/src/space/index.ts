@@ -2,6 +2,7 @@ import * as _spaceCommands from './space-commands';
 
 import { Asteroid } from './asteroid';
 import { Explosion } from './explosion';
+import { Nebula } from './nebula';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
 import { Waypoint } from './waypoint';
@@ -11,6 +12,7 @@ export interface SpaceObjects {
     Asteroid: Asteroid;
     Projectile: Projectile;
     Explosion: Explosion;
+    Nebula: Nebula;
     Waypoint: Waypoint;
 }
 
@@ -22,6 +24,7 @@ export * from './space-object-base';
 export * from './spaceship';
 export * from './projectile';
 export * from './explosion';
+export * from './nebula';
 export * from './waypoint';
 export * from './vec2';
 export * from './radar-sector';

@@ -50,6 +50,18 @@ describe('SpaceManager lifecycle', () => {
         expect(spaceMgr.state.createExplosionCommands).to.have.lengthOf(0);
     });
 
+    it('createNebulaCommands spawn a nebula and are consumed', () => {
+        const spaceMgr = new SpaceManager();
+        spaceMgr.state.createNebulaCommands.push({ position: { x: 5, y: 6 }, radius: 300 });
+        tick(spaceMgr, 0.01);
+        const nebulas = [...spaceMgr.state.getAll('Nebula')];
+        expect(nebulas).to.have.lengthOf(1);
+        expect(nebulas[0].radius).to.equal(300);
+        expect(nebulas[0].position.x).to.equal(5);
+        expect(nebulas[0].position.y).to.equal(6);
+        expect(spaceMgr.state.createNebulaCommands).to.have.lengthOf(0);
+    });
+
     it('createWaypointCommands spawn a frozen waypoint and are consumed', () => {
         const spaceMgr = new SpaceManager();
         spaceMgr.state.createWaypointCommands.push({ position: { x: 7, y: 8 } });

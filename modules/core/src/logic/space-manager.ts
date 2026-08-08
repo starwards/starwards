@@ -11,7 +11,7 @@ import {
     toDegreesDelta,
     toPositiveDegreesDelta,
 } from '.';
-import { Explosion, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
+import { Explosion, Nebula, Projectile, SpaceObject, SpaceState, Vec2, XY } from '../';
 import { IterationData, Updateable } from '../updateable';
 import { makeId, uniqueId } from '../id';
 
@@ -219,6 +219,11 @@ export class SpaceManager implements Updateable {
             this.insert(explosion);
         }
         this.state.createExplosionCommands = [];
+        for (const cmd of this.state.createNebulaCommands) {
+            const nebula = new Nebula().init(makeId(), Vec2.make(cmd.position), cmd.radius);
+            this.insert(nebula);
+        }
+        this.state.createNebulaCommands = [];
         for (const cmd of this.state.createWaypointCommands) {
             const waypoint = new Waypoint().init(makeId(), Vec2.make(cmd.position));
             if (cmd.owner != null) waypoint.owner = cmd.owner;
@@ -311,7 +316,7 @@ export class SpaceManager implements Updateable {
             const data = this.stateToExtraData.get(object);
             if (data) {
                 for (const visibleArc of data.fov.view) {
-                    visibleArc.object && visibleObjects.add(visibleArc.object);
+                    visibleArc.object && !visibleArc.object.isRadarInvisible && visibleObjects.add(visibleArc.object);
                 }
             } else {
                 logError(`object leak! ${object.id} has no extra data`);
@@ -328,7 +333,9 @@ export class SpaceManager implements Updateable {
                 const data = this.stateToExtraData.get(object);
                 if (data) {
                     for (const visibleArc of data.fov.view) {
-                        visibleArc.object && visibleObjects.add(visibleArc.object);
+                        visibleArc.object &&
+                            !visibleArc.object.isRadarInvisible &&
+                            visibleObjects.add(visibleArc.object);
                     }
                 } else {
                     logError(`object leak! ${object.id} has no extra data`);
@@ -656,6 +663,8 @@ export class SpaceManager implements Updateable {
                 !Projectile.isInstance(object) &&
                 !Waypoint.isInstance(subject) &&
                 !Waypoint.isInstance(object) &&
+                !Nebula.isInstance(subject) &&
+                !Nebula.isInstance(object) &&
                 !object.destroyed
             ) {
                 let positionChange: XY | null = null;
@@ -810,7 +819,7 @@ export class SpaceManager implements Updateable {
         const [scanner] = this.getObjectPtr(scannerId);
         const [target] = this.getObjectPtr(targetId);
 
-        if (!scanner || !target) {
+        if (!scanner || !target || target.isRadarInvisible) {
             return false;
         }
 

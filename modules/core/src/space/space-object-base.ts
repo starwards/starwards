@@ -97,6 +97,13 @@ export abstract class SpaceObjectBase extends Schema {
     public readonly collisionDamage: number = 10;
 
     public readonly isCorporal: boolean = true;
+
+    /**
+     * True for objects that occlude the field of view (via `isCorporal`) but never surface as a
+     * contact themselves — every radar/scan-job/targeting consumer that reads a `FieldOfView`
+     * arc's object must skip one. The game master's view is exempt; it never filters by this.
+     */
+    public readonly isRadarInvisible: boolean = false;
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)
      */
