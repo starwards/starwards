@@ -1,8 +1,8 @@
+import { DockingMode, PowerLevel } from '@starwards/core';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
 import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
 
-import { DockingMode } from '@starwards/core';
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
@@ -123,14 +123,41 @@ test.describe('ECR Screen', () => {
         await expect(repairQueuePanel.getByText('state', { exact: true })).not.toBeVisible({ timeout: 5000 });
     });
 
+    test('radar traverse servo alignment (#2109) is listed as a field-tier protocol and drives visible progress via hotkey', async ({
+        page,
+    }) => {
+        const ship = gameDriver.getShip(shipId);
+        ship.state.radars[1].turnSpeedFactor = 0.6;
+
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        await expect(repairQueuePanel.getByText('Radar traverse servo alignment', { exact: true })).toBeVisible();
+
+        // radarTraverseServoAlignment is the 5th catalog entry -> alt+5
+        await page.keyboard.press('Alt+5');
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
+        const firstProgress = await waitForPropertyValue(
+            page,
+            'progress',
+            (v) => parseFloat(v) > 0,
+            'Repair Queue',
+            5000,
+        );
+        await page.waitForTimeout(500);
+        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
+        expect(ship.state.radars[1].power).toBe(PowerLevel.SHUTDOWN); // side effect: radar dark while the op runs
+    });
+
     test('crew station cannot enqueue a docked-tier protocol, even via its hotkey (A2)', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
         await expect(repairQueuePanel.getByText('Hull-wide systems overhaul', { exact: true })).not.toBeVisible();
 
-        // hullWideSystemsOverhaul is the 9th catalog entry -> alt+9. The key is always bound; the
+        // hullWideSystemsOverhaul is the 10th catalog entry -> alt+0. The key is always bound; the
         // server-side tier gate is what actually refuses it while undocked.
-        await page.keyboard.press('Alt+9');
+        await page.keyboard.press('Alt+0');
         await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);
 
         const ship = gameDriver.getShip(shipId);
@@ -149,7 +176,8 @@ test.describe('ECR Screen', () => {
         ship.state.docking.mode = DockingMode.DOCKED;
 
         await expect(overhaulLabel).toBeVisible({ timeout: 5000 });
-        await page.keyboard.press('Alt+9');
+        // hullWideSystemsOverhaul is the 10th catalog entry -> alt+0
+        await page.keyboard.press('Alt+0');
 
         await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
         expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'hullWideSystemsOverhaul')).toBe(true);
@@ -173,8 +201,8 @@ test.describe('ECR Screen', () => {
         ship.state.docking.mode = DockingMode.DOCKED;
 
         await expect(renewalLabel).toBeVisible({ timeout: 5000 });
-        // armorPlateRenewal is the 10th (last) catalog entry -> alt+0
-        await page.keyboard.press('Alt+0');
+        // armorPlateRenewal is the 11th catalog entry -> alt+q
+        await page.keyboard.press('Alt+q');
 
         await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
         expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'armorPlateRenewal')).toBe(true);

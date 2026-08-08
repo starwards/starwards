@@ -18,7 +18,9 @@ import { WidgetContainer } from '../container';
  * own modifier namespace rather than fighting over what's left. Alt (not Ctrl) specifically:
  * Ctrl+1..9 is bound to browser tab-switching in Chrome/Firefox and would never reach the page.
  * Assigned by fixed position in `repairProtocols` (not the per-ship filtered/visible subset), so a
- * protocol's key never shifts as tier/equipment availability changes it in and out of view.
+ * protocol's key never shifts as tier/equipment availability changes it in and out of view — a
+ * protocol *added* to the catalog does shift every key after it, same as inserting a row in the
+ * middle of any position-indexed list; overflow past the digit row spills onto the qwerty row.
  */
 const REPAIR_PROTOCOL_HOTKEYS = [
     'alt+1',
@@ -31,6 +33,11 @@ const REPAIR_PROTOCOL_HOTKEYS = [
     'alt+8',
     'alt+9',
     'alt+0',
+    'alt+q',
+    'alt+w',
+    'alt+e',
+    'alt+r',
+    'alt+t',
 ];
 
 /** The hotkey assigned to `protocolId`, or `undefined` if the catalog has grown past `REPAIR_PROTOCOL_HOTKEYS`. */
