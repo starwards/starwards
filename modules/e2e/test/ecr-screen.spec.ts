@@ -257,6 +257,11 @@ test.describe('ECR Screen', () => {
         }
         await page.keyboard.press('Alt+4'); // the 17th must be refused
 
-        await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);
+        // Read the refusal off server state directly, not the client-rendered panel: the notice
+        // auto-clears after TERMINAL_DISPLAY_SECONDS (2s, real time, server-side) regardless of how
+        // long the colyseus round trip to the client takes, so polling the DOM races that window
+        // under CI's heavier load. Server state is the authoritative, immediate source of truth for
+        // "did the hotkey's enqueue get refused".
+        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 5000 }).not.toBe('');
     });
 });
