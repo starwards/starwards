@@ -1,5 +1,5 @@
 import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { Asteroid, Derelict, ScanLevel, ShipModel, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
+import { Asteroid, Derelict, Nebula, ScanLevel, ShipModel, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
 import { radar, selectionColor, white } from '../../colors';
 
 import { CameraView } from '../camera-view';
@@ -208,6 +208,30 @@ class CircleRenderer implements BlipRenderer<SpaceObject> {
         this.selectionSprite.width = blipSize;
     }
 }
+
+/**
+ * A nebula is a visible optical hazard, not a scanned contact: it always draws in a fixed
+ * semi-transparent pink, ignoring scan level / faction color like a ship or asteroid blip would use.
+ */
+class NebulaRenderer implements BlipRenderer<Nebula> {
+    private shellCircle = new Graphics();
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
+        stage.addChild(this.shellCircle);
+        stage.addChild(this.selectionSprite);
+    }
+    redraw(spaceObject: Nebula, { parent, isSelected, blipSize }: BlipData): void {
+        const radius = Math.max(parent.metersToPixles(spaceObject.radius), 2);
+        this.shellCircle.clear();
+        this.shellCircle.circle(0, 0, radius).fill({ color: radar.nebulaTint, alpha: 0.25 });
+        this.selectionSprite.visible = isSelected;
+        this.selectionSprite.height = blipSize;
+        this.selectionSprite.width = blipSize;
+    }
+}
 class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
     private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
     private fighterSprite = blipSprite(shipBlipTexture('tactical', this.spaceObject.model), this.blipSize, white);
@@ -344,5 +368,6 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     Projectile: CircleRenderer,
     Explosion: CircleRenderer,
+    Nebula: NebulaRenderer,
     Derelict: TacticalDerelictRenderer,
 };

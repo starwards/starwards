@@ -67,6 +67,11 @@ export class RadarRangeFilter {
                 }
             }
         }
+        // a nebula is a visible optical hazard, not a scanned contact: every radar shows it
+        // regardless of field of view, so crews can navigate around it.
+        for (const nebula of this.spaceDriver.state.getAll('Nebula')) {
+            this.visibleObjects.add(nebula);
+        }
     };
 
     public fieldsOfView() {

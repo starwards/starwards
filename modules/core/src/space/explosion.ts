@@ -53,13 +53,3 @@ export class Explosion extends SpaceObjectBase {
         return this;
     }
 }
-
-/**
- * Objects that must never surface as a radar contact, blip, or scan job — only as a
- * field-of-view obstruction. `FieldOfView` stays unfiltered so these still cast a shadow;
- * every consumer that turns a field of view into a player-facing contact list (radar
- * rendering, MCP `get_radar_contacts`, signals scan-job creation) filters through this.
- */
-export function isSensorInvisible(object: unknown): boolean {
-    return Explosion.isInstance(object);
-}

@@ -101,6 +101,18 @@ export const createExplosionOrder = {
     },
 };
 
+export type CreateNebulaOrderArg = {
+    position: XY;
+    radius: number;
+};
+
+export const createNebulaOrder = {
+    cmdName: 'createNebulaOrder',
+    setValue: (state: SpaceState, value: CreateNebulaOrderArg) => {
+        state.createNebulaCommands.push(value);
+    },
+};
+
 export type CreateWaypointOrderArg = {
     position: XY;
     owner?: string | null;

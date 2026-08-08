@@ -316,6 +316,52 @@ test.describe('GM Screen', () => {
         expect(asteroid.velocity.y).toBeCloseTo(30, 0);
     });
 
+    test('creates a nebula through the GM UI (issue #2123)', async ({ page }) => {
+        // Unlike Asteroid, a nebula has no collision effects, so it can be placed right next to
+        // the origin ship with no zoom-out / clearance dance.
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const createTab = page.locator('.lm_title', { hasText: 'create' });
+        await createTab.click();
+        const createNebulaButton = page.locator('button.tp-btnv_b', { hasText: 'Create Nebula' });
+        await expect(createNebulaButton).toBeVisible({ timeout: 5000 });
+        await createNebulaButton.click();
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2 + 80, y: box.height / 2 + 80 } });
+
+        await expect(() => {
+            expect([...gameDriver.gameManager.spaceManager.state.getAll('Nebula')].length).toBe(1);
+        }).toPass({ timeout: 10000 });
+        const [nebula] = gameDriver.gameManager.spaceManager.state.getAll('Nebula');
+        expect(nebula.radius).toBeGreaterThanOrEqual(500);
+        expect(nebula.radius).toBeLessThanOrEqual(5_000);
+
+        // A GM must be able to select the nebula (to edit its radius) by clicking anywhere inside
+        // its huge rendered circle, not only its exact center pixel. It was placed 80 world units
+        // off-origin (see the click above) with a radius of at least 500, so a click 150px off the
+        // *canvas* center is ~99px from the nebula's own center -- well past the small selection
+        // grace a plain center-click relies on, but still comfortably inside its radius.
+        const zoom = Number(await radarCanvas.getAttribute('data-zoom'));
+        const offCenterScreen = { x: box.width / 2 + 150 * zoom, y: box.height / 2 + 150 * zoom };
+        await radarCanvas.click({ position: offCenterScreen });
+        const tweakTab = page.locator('.lm_title', { hasText: 'tweak' });
+        await tweakTab.click();
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const radiusLabel = tweakPanel.getByText('radius', { exact: true });
+        await expect(radiusLabel).toBeVisible({ timeout: 5000 });
+
+        // and the GM can then change its radius from the tweak panel.
+        const radiusInput = radiusLabel.locator('..').locator('input');
+        await radiusInput.fill('1234');
+        await radiusInput.press('Enter');
+        await expect(() => {
+            expect(nebula.radius).toBeCloseTo(1234, 0);
+        }).toPass({ timeout: 5000 });
+    });
+
     test('tweak panel opens on a hull whose mounts are all bearingLimit: 0 without throwing (issue #2051, A17)', async ({
         page,
     }) => {

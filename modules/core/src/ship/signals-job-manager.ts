@@ -6,7 +6,7 @@ import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
 import { Spaceship } from '../space';
 import { findLastIndex } from '../utils';
-import { isSensorInvisible } from '../space/explosion';
+import { isSensorInvisible } from '../space/sensor-visibility';
 import { makeId } from '../id';
 
 export class SignalsJobManager implements Updateable {

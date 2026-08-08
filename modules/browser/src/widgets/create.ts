@@ -4,6 +4,7 @@ import { Asteroid, Faction, shipModels } from '@starwards/core';
 import {
     CreateAsteroidTemplate,
     CreateExplosionTemplate,
+    CreateNebulaTemplate,
     CreateSpaceshipTemplate,
     CreateWaypointTemplate,
     InteractiveLayerCommands,
@@ -79,6 +80,23 @@ export function createWidget(createContainer: InteractiveLayerCommands): Dashboa
             makeExplosionFolder
                 .addButton({ title: 'Create Explosion' })
                 .on('click', () => createContainer.createByTemplate(createExplosionTemplate));
+
+            // Nebula
+            const makeNebulaFolder = this.pane.addFolder({
+                title: 'Create Nebula',
+                expanded: true,
+            });
+            const createNebulaTemplate: CreateNebulaTemplate = {
+                type: 'Nebula',
+                radius: { min: 500, max: 5_000 },
+            };
+            makeNebulaFolder.addBinding(createNebulaTemplate, 'radius', {
+                ...createNebulaTemplate.radius,
+                step: 1,
+            });
+            makeNebulaFolder
+                .addButton({ title: 'Create Nebula' })
+                .on('click', () => createContainer.createByTemplate(createNebulaTemplate));
 
             // Waypoint
             const makeWaypointFolder = this.pane.addFolder({

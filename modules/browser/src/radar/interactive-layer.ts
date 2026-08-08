@@ -103,15 +103,13 @@ export class InteractiveLayer {
     }
 
     private getObjectAtPoint(objects: Iterable<SpaceObject>, pointInWorld: XY): SpaceObject | null {
-        // TODO: simplify and refer to object radius by measuring distance?
-        const grace = {
-            x: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
-            y: InteractiveLayer.selectPointGrace / this.parent.camera.zoom,
-        };
-        const from = XY.add(pointInWorld, XY.negate(grace));
-        const to = XY.add(pointInWorld, grace);
+        // A click anywhere inside an object's rendered radius selects it, not only a click near its
+        // exact center pixel -- otherwise a large blip (a nebula spanning thousands of world units)
+        // is nearly impossible to click, since the grace margin below is sized for small objects.
+        const graceDistance = InteractiveLayer.selectPointGrace / this.parent.camera.zoom;
         for (const spaceObject of objects) {
-            if (XY.inRange(spaceObject.position, from, to)) {
+            const distance = XY.lengthOf(XY.difference(pointInWorld, spaceObject.position));
+            if (distance <= spaceObject.radius + graceDistance) {
                 return spaceObject;
             }
         }
@@ -216,6 +214,12 @@ export class InteractiveLayer {
                     this.spaceDriver.command(spaceCommands.createExplosionOrder, {
                         position,
                         damageFactor,
+                    });
+                } else if (this.createTemplate.type === 'Nebula') {
+                    const radius = lerp([0, 1], literal2Range(this.createTemplate.radius), Math.random());
+                    this.spaceDriver.command(spaceCommands.createNebulaOrder, {
+                        position,
+                        radius,
                     });
                 } else if (this.createTemplate.type === 'Waypoint') {
                     this.spaceDriver.command(spaceCommands.createWaypointOrder, {

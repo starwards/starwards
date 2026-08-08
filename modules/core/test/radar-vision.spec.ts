@@ -2,6 +2,7 @@ import {
     Asteroid,
     Faction,
     FieldOfView,
+    Nebula,
     RadarSector,
     SpaceManager,
     Spaceship,
@@ -145,6 +146,57 @@ describe('radar vision (beam adds visibility end-to-end)', () => {
             const visible = spaceMgr.getFactionVisibleObjects(Faction.Gravitas);
             const ids = [...visible].map((o) => o.id);
             expect(ids).to.include('X');
+        });
+    });
+
+    // 4. A nebula obstructs line of sight like any other corporal body, but never itself becomes a
+    //    contact: player-facing consumers (the faction visible set here) must drop it even while
+    //    it sits in plain FOV range, while the raw state — what the GM sees — keeps it.
+    describe('nebula occlusion & invisibility', () => {
+        function makeNebula(x: number, y: number, radius: number, id = 'fog') {
+            return new Nebula().init(id, new Vec2(x, y), radius);
+        }
+
+        it('hides a contact shadowed behind it, and un-hides it once it no longer blocks the bearing', () => {
+            const spaceMgr = new SpaceManager();
+            const shipA = new Spaceship();
+            shipA.id = 'A';
+            shipA.faction = Faction.Gravitas;
+            shipA.position = new Vec2(0, 0);
+            shipA.radarSectors.push(makeSector(0, 360, 10000));
+
+            const blocker = makeNebula(1000, 0, 500);
+            const hidden = makeAsteroid(2000, 0, 'hidden', 50);
+
+            spaceMgr.insert(shipA);
+            spaceMgr.insert(blocker);
+            spaceMgr.insert(hidden);
+            spaceMgr.update(tick(1 / 60));
+
+            let ids = [...spaceMgr.getFactionVisibleObjects(Faction.Gravitas)].map((o) => o.id);
+            expect(ids).to.not.include('hidden');
+
+            blocker.position = new Vec2(0, 5000); // move off the 0-bearing line
+            spaceMgr.update(tick(2 / 60));
+            ids = [...spaceMgr.getFactionVisibleObjects(Faction.Gravitas)].map((o) => o.id);
+            expect(ids).to.include('hidden');
+        });
+
+        it('never appears in a faction visible set itself, though the game state (the GM view) still holds it', () => {
+            const spaceMgr = new SpaceManager();
+            const shipA = new Spaceship();
+            shipA.id = 'A';
+            shipA.faction = Faction.Gravitas;
+            shipA.position = new Vec2(0, 0);
+            shipA.radarSectors.push(makeSector(0, 360, 10000));
+
+            spaceMgr.insert(shipA);
+            spaceMgr.insert(makeNebula(1000, 0, 500));
+            spaceMgr.update(tick(1 / 60));
+
+            const visibleIds = [...spaceMgr.getFactionVisibleObjects(Faction.Gravitas)].map((o) => o.id);
+            expect(visibleIds).to.not.include('fog');
+            expect([...spaceMgr.state.getAll('Nebula')].map((o) => o.id)).to.include('fog');
         });
     });
 });

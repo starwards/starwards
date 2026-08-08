@@ -11,7 +11,7 @@ import {
     rotateToTarget,
     rotationFromTargetTurnSpeed,
 } from '../logic';
-import { SpaceObject, Spaceship } from '../space';
+import { Nebula, SpaceObject, Spaceship } from '../space';
 
 import { Circle } from 'detect-collisions';
 import { DamageManager } from './damage-manager';
@@ -131,7 +131,7 @@ export class MovementManager implements Updateable {
         if (!this.state.warp) return;
         const queryArea = new Circle(XY.clone(this.state.position), this.state.warp.design.maxProximity);
         const objectInRange = new Iterator(this.spaceManager.spatialIndex.queryArea(queryArea))
-            .filter((v) => v.id !== this.spaceObject.id && v.isCorporal)
+            .filter((v) => v.id !== this.spaceObject.id && v.isCorporal && !Nebula.isInstance(v))
             .firstOr(null);
         this.state.warp.jammed = !!objectInRange;
         this.lastJamTime = CHECK_JAM_INTERVAL_SECONDS;
