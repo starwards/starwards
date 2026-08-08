@@ -42,6 +42,18 @@ describe('recording/replay HTTP API (issue #2101)', () => {
         expect(recordings[0]).toMatchObject({ name: startBody.name, mapName: 'test_map_1' });
     });
 
+    it('POST /stop-game stops an active recording before another game can start', async () => {
+        gameDriver.pauseGameCommand();
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+        await supertest(gameDriver.httpServer).post('/start-recording').expect(200);
+
+        await supertest(gameDriver.httpServer).post('/stop-game').expect(200);
+
+        expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
+    });
+
     it('POST /start-replay rejects a missing name with 400', async () => {
         await supertest(gameDriver.httpServer).post('/start-replay').send({}).expect(HTTP_BAD_REQUEST_STATUS);
     });

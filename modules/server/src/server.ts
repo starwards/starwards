@@ -94,6 +94,7 @@ export async function server(
         '/stop-game',
         asyncHandler(async (_, res) => {
             replayPlayer.stop();
+            await gameRecorder.stopRecording();
             await manager.stopGame();
             res.send();
         }),
