@@ -1,11 +1,11 @@
 import { type InputDescription, InputManager } from './input-manager';
+import hotkeys, { type KeyHandler } from 'hotkeys-js';
 
 import { HotkeyHelpModal } from '../components/hotkey-help-modal';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import hotkeys from 'hotkeys-js';
 
-export function setupHotkeyHelp(...inputManagers: InputManager[]) {
+export function setupHotkeyHelp(...inputManagers: InputManager[]): () => void {
     const container = document.createElement('div');
     container.id = 'hotkey-help-root';
     document.body.appendChild(container);
@@ -24,10 +24,17 @@ export function setupHotkeyHelp(...inputManagers: InputManager[]) {
         render();
     }
 
-    hotkeys('space', (e) => {
+    const onSpace: KeyHandler = (e) => {
         e.preventDefault();
         toggle();
-    });
+    };
+    hotkeys('space', onSpace);
 
     render();
+
+    return () => {
+        hotkeys.unbind('space', onSpace);
+        root.unmount();
+        container.remove();
+    };
 }

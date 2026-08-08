@@ -23,6 +23,7 @@ export class CameraView extends Application {
         container.on('resize', () => {
             this.resizeView(container.width, container.height);
         });
+        container.on('destroy', () => this.destroy());
         this.resizeView(container.width, container.height);
         if (pixiOptions.backgroundColor) {
             container.getElement().css('background-color', toCss(pixiOptions.backgroundColor));
