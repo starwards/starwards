@@ -12,6 +12,7 @@ import { MapSchema, Schema } from '@colyseus/schema';
 import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
 import { Asteroid } from './asteroid';
+import { Derelict } from './derelict';
 import { Explosion } from './explosion';
 import { Projectile } from './projectile';
 import { Spaceship } from './spaceship';
@@ -38,6 +39,9 @@ export class SpaceState extends Schema {
     @gameField({ map: Waypoint })
     private readonly Waypoint = new MapSchema<Waypoint>();
 
+    @gameField({ map: Derelict })
+    private readonly Derelict = new MapSchema<Derelict>();
+
     // server only, used for commands
     // commands handled by space manager:
     public moveCommands = Array.of<BulkMoveArg>();
@@ -57,7 +61,8 @@ export class SpaceState extends Schema {
             this.Asteroid.get(id) ??
             this.Spaceship.get(id) ??
             this.Explosion.get(id) ??
-            this.Waypoint.get(id)
+            this.Waypoint.get(id) ??
+            this.Derelict.get(id)
         );
     }
 
@@ -87,6 +92,7 @@ export class SpaceState extends Schema {
         yield this.Asteroid;
         yield this.Spaceship;
         yield this.Waypoint;
+        yield this.Derelict;
     }
 
     public *[Symbol.iterator](destroyed = false): IterableIterator<SpaceObject> {
