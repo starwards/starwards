@@ -53,6 +53,13 @@ describe('recording/replay HTTP API (issue #2101)', () => {
             .expect(HTTP_BAD_REQUEST_STATUS);
     });
 
+    it.each(['../../../etc/passwd', '..\\..\\secret.swr.jsonl', 'sub/dir.swr.jsonl', '.swr.jsonl', 'notes.txt'])(
+        'POST /start-replay rejects the out-of-directory name %p with 400',
+        async (name) => {
+            await supertest(gameDriver.httpServer).post('/start-replay').send({ name }).expect(HTTP_BAD_REQUEST_STATUS);
+        },
+    );
+
     it('POST /start-replay rejects while a game is running with 409', async () => {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
         await supertest(gameDriver.httpServer)

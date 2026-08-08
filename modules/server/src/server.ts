@@ -2,6 +2,7 @@ import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
 
+import { GameRecorder, isRecordingName } from './recording/game-recorder';
 import { GameStatus, createLogger } from '@starwards/core/internal';
 import { NextFunction, Request, Response } from 'express';
 import { Server, matchMaker } from '@colyseus/core';
@@ -11,7 +12,6 @@ import { AddressInfo } from 'node:net';
 import { AdminRoom } from './admin/room';
 import { CleanLocalPresence } from './clean-local-presence';
 import { GameManager } from './admin/game-manager';
-import { GameRecorder } from './recording/game-recorder';
 import { ReplayPlayer } from './recording/replay-player';
 import { SavedGame } from './serialization/game-state-protocol';
 import { ShipRoom } from './ship/room';
@@ -133,6 +133,13 @@ export async function server(
             const { name } = req.body;
             if (typeof name !== 'string') {
                 logError(`missing "name" field to start replay`);
+                res.sendStatus(HTTP_BAD_REQUEST_STATUS);
+                return;
+            }
+            // `name` is client-supplied and joined onto recordingsDir — a path component
+            // would escape the directory and read arbitrary files.
+            if (!isRecordingName(name)) {
+                logError(`invalid recording name "${name}"`);
                 res.sendStatus(HTTP_BAD_REQUEST_STATUS);
                 return;
             }

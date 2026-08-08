@@ -109,6 +109,18 @@ describe('GameRecorder', () => {
         );
     });
 
+    it('never appends to a finalized file, even while the timer keeps firing', async () => {
+        gameDriver.gameManager.state.speed = 1;
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const filename = await recorder.startRecording();
+        await recorder.stopRecording();
+
+        const linesAtStop = (await readLines(path.join(tmpDir, filename))).length;
+        await new Promise((res) => setTimeout(res, 200)); // several intervals' worth
+        expect(await readLines(path.join(tmpDir, filename))).toHaveLength(linesAtStop);
+    });
+
     it('stopRecording is idempotent', async () => {
         gameDriver.pauseGameCommand();
         await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);

@@ -19,7 +19,17 @@ interface RecordingSummary {
     frameCount: number;
 }
 
-const RECORDING_EXT = '.swr.jsonl';
+export const RECORDING_EXT = '.swr.jsonl';
+
+/** True for a plain recording file name — no directory part, correct extension. */
+export function isRecordingName(name: string): boolean {
+    return (
+        name.endsWith(RECORDING_EXT) &&
+        name.length > RECORDING_EXT.length &&
+        !/[/\\]/.test(name) &&
+        path.basename(name) === name
+    );
+}
 
 /**
  * Records a running game to a JSONL file on a wall-clock interval, for later replay
@@ -74,11 +84,29 @@ export class GameRecorder {
     }
 
     public async stopRecording(): Promise<void> {
+        this.clearTimer();
+        await this.inFlight;
+        this.finalize();
+    }
+
+    private clearTimer() {
         if (this.timer) {
             clearInterval(this.timer);
             this.timer = null;
         }
-        await this.inFlight;
+    }
+
+    /**
+     * Closes the current recording. Safe to call from inside a frame write (unlike
+     * `stopRecording()`, which awaits the in-flight write and would self-deadlock there).
+     * Clearing `filePath` also makes any later stray write a no-op, so nothing can append
+     * to a finalized file.
+     */
+    private finalize() {
+        this.clearTimer();
+        this.filePath = null;
+        this.lastWrittenT = null;
+        this.frameCount = 0;
         this.manager.state.isRecordingGame = false;
     }
 
@@ -91,7 +119,7 @@ export class GameRecorder {
         }
         const summaries: RecordingSummary[] = [];
         for (const name of entries) {
-            if (!name.endsWith(RECORDING_EXT)) continue;
+            if (!isRecordingName(name)) continue;
             const summary = await summarizeRecording(path.join(this.dir, name), name);
             if (summary) summaries.push(summary);
         }
@@ -108,9 +136,11 @@ export class GameRecorder {
     }
 
     private async writeFrame(): Promise<void> {
+        const filePath = this.filePath;
+        if (!filePath) return;
         const savedGame = this.manager.saveGame();
         if (!savedGame) {
-            await this.stopRecording();
+            this.finalize();
             return;
         }
         const t = this.manager.totalSeconds;
@@ -118,7 +148,8 @@ export class GameRecorder {
             return;
         }
         const frame = await schemaToString(savedGame);
-        await fs.appendFile(this.filePath!, encodeFrameLine({ t, frame }), 'utf-8');
+        if (this.filePath !== filePath) return; // finalized (or restarted) while serializing
+        await fs.appendFile(filePath, encodeFrameLine({ t, frame }), 'utf-8');
         this.lastWrittenT = t;
         this.frameCount++;
     }
