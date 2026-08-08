@@ -3,8 +3,8 @@ import { ShipDesign } from '../ship';
 export const largeStationArmor = {
     numberOfPlates: 36,
     layers: [
-        { type: 'hardened' as const, plateMaxHealth: 80, withFaradayLayer: true },
-        { type: 'composite' as const, plateMaxHealth: 120 },
+        { type: 'hardened' as const, plateMaxHealth: 16.6667, withFaradayLayer: true },
+        { type: 'composite' as const, plateMaxHealth: 25 },
     ],
 };
 

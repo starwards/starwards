@@ -215,8 +215,8 @@ const hulls: HullExpectation[] = [
         coolant: 24,
         plates: 36,
         layers: [
-            { type: 'whipple', health: 40, faraday: true },
-            { type: 'composite', health: 60 },
+            { type: 'whipple', health: 8.3333, faraday: true },
+            { type: 'composite', health: 12.5 },
         ],
         speed: 0,
         speedFromAfterBurner: 0,
@@ -240,8 +240,8 @@ const hulls: HullExpectation[] = [
         coolant: 24,
         plates: 36,
         layers: [
-            { type: 'hardened', health: 60, faraday: true },
-            { type: 'composite', health: 120 },
+            { type: 'hardened', health: 12.5, faraday: true },
+            { type: 'composite', health: 25 },
         ],
         speed: 0,
         speedFromAfterBurner: 0,
@@ -267,8 +267,8 @@ const hulls: HullExpectation[] = [
         coolant: 24,
         plates: 36,
         layers: [
-            { type: 'hardened', health: 80, faraday: true },
-            { type: 'composite', health: 120 },
+            { type: 'hardened', health: 16.6667, faraday: true },
+            { type: 'composite', health: 25 },
         ],
         speed: 0,
         speedFromAfterBurner: 0,
