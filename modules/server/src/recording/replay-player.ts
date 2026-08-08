@@ -253,6 +253,10 @@ export class ReplayPlayer {
 
     /** Tears the replay down and hands `AdminState.speed` back to whatever set it before. */
     public stop(): void {
+        // Unhook the tick first: while the game is still in REPLAY status (loadGame() only
+        // flips it later, and may throw before it does) it would otherwise keep firing
+        // against this torn-down player.
+        this.manager.replayTick = undefined;
         this.closeReader();
         this.currentFrame = null;
         this.ended = true;

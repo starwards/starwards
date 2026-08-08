@@ -193,6 +193,7 @@ export function trackObservationMode(container: WidgetContainer, adminDriver: Ad
         }
     };
     adminDriver.events.on('**', render);
+    container.on('destroy', () => adminDriver.events.off('**', render));
     render();
 }
 
