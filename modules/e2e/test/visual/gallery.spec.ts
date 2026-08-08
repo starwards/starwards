@@ -16,8 +16,6 @@ const scenes = [
     'armor-critical',
     'armor-sector-damage',
     // Engineering Status
-    'engineering-status-ecr-control',
-    'engineering-status-bridge-control',
     'engineering-status-low-energy',
     'engineering-status-full-energy',
     'engineering-status-hull-ok',

@@ -59,7 +59,6 @@ Interactive UI control panels using Tweakpane library.
 **Fields:**
 | Field               | Type    | Format            | Description           |
 | ------------------- | ------- | ----------------- | --------------------- |
-| `control`           | Boolean | "ECR" \| "Bridge" | Control location      |
 | `hull`              | Boolean | "DAMAGED" \| "OK" | Hull damage indicator |
 | `energy`            | float32 | Graph             | Reactor energy level  |
 | `after-burner fuel` | float32 | Graph             | Maneuvering fuel      |
@@ -560,7 +559,7 @@ HTML components for game lobby.
 | ------------ | ----------------------- | ------------------------------------------ |
 | **float32**  | Most numeric game state | energy, speed, heat                        |
 | **int8**     | Enums                   | IdleStrategy, Order, PowerLevel, HackLevel |
-| **boolean**  | Toggles                 | ecrControl, isPlayerShip, auto-load        |
+| **boolean**  | Toggles                 | isPlayerShip, auto-load, hullDamaged       |
 | **string**   | IDs, names              | targetId, shipId, currentTask              |
 | **Computed** | Aggregated values       | ammo format, status calculations           |
 
