@@ -5,10 +5,10 @@ import {
     SpaceManager,
     XY,
     calcRangediff,
+    capToRange,
     getShellAimVelocityCompensation,
     isInRange,
     isTargetInKillZone,
-    lerp,
     matchGlobalSpeed,
     moveToTarget,
     predictHitLocation,
@@ -17,6 +17,7 @@ import {
 } from '../logic';
 import { Order, ShipState } from './ship-state';
 
+import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
 import { ShipManager } from './ship-manager-abstract';
@@ -119,8 +120,11 @@ export class AutomationManager implements Updateable {
             this.shipManager.setTarget(targetId);
             switchToAvailableAmmo(controlWeapon, this.state.magazine);
             const destination = predictHitLocation(this.state, controlWeapon, target);
-            rotationCompensation = getShellAimVelocityCompensation(this.state, controlWeapon);
-            const range = controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange;
+            rotationCompensation =
+                controlWeapon.bearingLimit > 0
+                    ? getShellAimVelocityCompensation(this.state, controlWeapon)
+                    : this.boltedGunAimCompensation(controlWeapon, target);
+            const aimRange = (controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange) / 2;
             const rangeDiff = calcRangediff(this.state, target, destination);
             // Position-holding needs a stable band. getKillZoneRadiusRange is keyed on
             // shellSecondsToLive, which is derived from the ship's own velocity — using it here
@@ -129,7 +133,25 @@ export class AutomationManager implements Updateable {
             // The gun's static design envelope gives a fixed band instead; the real (dynamic)
             // kill zone below still governs firing.
             trackRange = [controlWeapon.design.minShellRange, controlWeapon.design.maxShellRange];
-            controlWeapon.shellRange = lerp([-range / 2, range / 2], [-1, 1], rangeDiff);
+            if (controlWeapon.shellRangeMode === SmartPilotMode.TARGET) {
+                // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
+                // already — shellRange only carries rangeDiff's small target-motion lead correction.
+                controlWeapon.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
+            } else {
+                // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
+                // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
+                // player-facing visibility/radar range, an unrelated concern for an NPC's own
+                // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
+                // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
+                const midRange = controlWeapon.design.minShellRange + aimRange;
+                const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
+                const desiredRange = capToRange(
+                    controlWeapon.design.minShellRange,
+                    controlWeapon.design.maxShellRange,
+                    actualDistance + rangeDiff,
+                );
+                controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
+            }
             controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
             this.aimMountsAtTarget(target);
         } else {
@@ -153,6 +175,20 @@ export class AutomationManager implements Updateable {
         for (const chainGun of this.state.chainGuns) {
             chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
         }
+    }
+
+    /**
+     * A mount with no traverse left (bolted by design, or a turret whose `bearingLimitFactor` was
+     * damaged to 0) can't correct its own aim — `bearingCommand` always clamps to 0, so its global
+     * bearing is locked to `ship.angle + fittedBearing`. Bringing it to bear is the hull's job: aim
+     * the hull at the target rotated by `-fittedBearing`, so the muzzle (not the bow) ends up on the
+     * firing line. Returned as a `positionNearTarget`-style offset added to the target's position,
+     * matching `getShellAimVelocityCompensation`'s shape for the traversable-mount case.
+     */
+    private boltedGunAimCompensation(chainGun: ChainGun, target: SpaceObject): XY {
+        const shipToTarget = XY.difference(target.position, this.state.position);
+        const aimPoint = XY.add(this.state.position, XY.rotate(shipToTarget, -chainGun.fittedBearing));
+        return XY.difference(aimPoint, target.position);
     }
 
     private undock(dockingTargetId: string, dockingTarget: SpaceObject, deltaSecondsAvg: number) {

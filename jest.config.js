@@ -45,6 +45,11 @@ module.exports = {
         },
         {
             ...baseConfig,
+            displayName: 'mcp',
+            testRegex: 'modules/mcp/.*\\.spec\\.ts$',
+        },
+        {
+            ...baseConfig,
             displayName: 'browser',
             testRegex: 'modules/browser/.*\\.spec\\.ts$',
         },

@@ -82,6 +82,21 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
+    // --- Per-tube safety toggle (dedicated hotkey per tube index) ---
+    // Tubes spawn with their safety locked, so pressing tube 0's dedicated key unlocks it.
+
+    test('1 key: tubes[0].safetyLocked toggles to false', async ({ page }) => {
+        await page.keyboard.press('1');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => {
+                const tube = ship.state.tubes.at(0);
+                return tube != null && tube.safetyLocked === false;
+            },
+            3000,
+        );
+    });
+
     // --- Momentary commands — whitelist admission checks ---
     // For these we only verify no whitelist rejection (no throw). The server
     // processes and immediately resets the command field; the transient window
@@ -102,7 +117,7 @@ test.describe('Weapons hotkeys', () => {
         await page.waitForTimeout(200);
     });
 
-    test('x key: tubes[0].isFiring admitted without whitelist rejection', async ({ page }) => {
+    test('x key: fireTubesCommand admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('x');
         await page.waitForTimeout(200);
     });
@@ -112,7 +127,7 @@ test.describe('Weapons hotkeys', () => {
         await page.waitForTimeout(200);
     });
 
-    test('f key: chainGuns[0].isFiring admitted without whitelist rejection', async ({ page }) => {
+    test('f key: every chainGuns[*].isFiring admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('f');
         await page.waitForTimeout(200);
     });

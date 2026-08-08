@@ -1,11 +1,10 @@
 import { BlipData, BlipRenderer } from './blip-renderer';
 import { Container, UPDATE_PRIORITY } from 'pixi.js';
-import { Faction, ScanLevel, SpaceDriver, SpaceObject, SpaceObjects, XY } from '@starwards/core';
+import { Faction, ScanLevel, SpaceDriver, SpaceObject, SpaceObjects, XY, playerScanLevel } from '@starwards/core';
 
 import { radar, white } from '../../colors';
 import { CameraView } from '../camera-view';
 import { TrackObjects } from '../track-objects';
-import { playerScanLevel } from '../../space-object-intel';
 
 type RenderFunctions<K extends keyof SpaceObjects> = {
     [T in K]: {

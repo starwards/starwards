@@ -35,6 +35,12 @@ export function drawTubesStatus(container: WidgetContainer, shipDriver: ShipDriv
         addBarBlade(tubeFolder, loading, { label: 'loading' }, panelCleanup.add);
         addInputBlade(
             tubeFolder,
+            readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
+            { label: 'safety locked' },
+            panelCleanup.add,
+        );
+        addInputBlade(
+            tubeFolder,
             readProp(shipDriver, `/tubes/${tube.index}/loadAmmo`),
             { label: 'auto load' },
             panelCleanup.add,

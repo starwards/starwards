@@ -1,19 +1,28 @@
 import { Add, Remove } from 'colyseus-events';
 import { Body, System } from 'detect-collisions';
-import { SpaceDriver, SpaceObject, XY } from '@starwards/core';
 
-const indexes = new WeakMap<SpaceDriver, SpatialIndex>();
-export function getSpatialIndex(driver: SpaceDriver): SpatialIndex {
+import { SpaceDriver } from './space';
+import { SpaceObject } from '../space';
+import { XY } from '../logic/xy';
+
+const indexes = new WeakMap<SpaceDriver, ClientSpatialIndex>();
+
+/**
+ * The client-side spatial index over the space state, kept in sync from `SpaceDriver` events.
+ * Satisfies {@link SpatialIndex}, so client code can feed synced state to the same core logic
+ * (`FieldOfView`, `getClosestDockingTarget`) the server runs on its authoritative index.
+ */
+export function getSpatialIndex(driver: SpaceDriver): ClientSpatialIndex {
     let index = indexes.get(driver);
     if (index) {
         return index;
     }
-    index = new SpatialIndex(driver);
+    index = new ClientSpatialIndex(driver);
     indexes.set(driver, index);
     return index;
 }
 
-class SpatialIndex {
+class ClientSpatialIndex {
     private collisions = new System(1);
     private collisionToId = new WeakMap<Body, string>();
     private stateToCollisions = new Map<string, Body>();

@@ -8,7 +8,7 @@
 |---|---|---|
 | Background (full screen) | `tacticalRadar` | range = 5000m, with crosshairs from `chainGun` and speed lines |
 | Top-right | `systemsStatus` | filtered to tubes, chainGun, magazine, radar |
-| Top-left | `tubesStatus` | per-tube: ammo to use, ammo loaded, loading bar, auto-load toggle |
+| Top-left | `tubesStatus` | per-tube: ammo to use, ammo loaded, loading bar, safety-locked toggle, auto-load toggle |
 | Middle-left | `ammoStatus` | per-projectile-type magazine count / max |
 | Middle-right | `targetingStatus` | targetId + filter toggles (Ship Only, Enemy Only, Short Range) |
 | Bottom-left | `gunStatus` | chainGun: projectile, loaded projectile, loading slider, auto-load |
@@ -28,10 +28,11 @@ their tracer fire even past sensor range).
 | Toggle Ships Only | `p` |
 | Toggle Enemy Only | `o` |
 | Toggle Short Range Only | `i` |
-| Fire Tube | `x` |
+| Fire Tubes (ship-level: every loaded, unlocked tube) | `x` |
 | Toggle Load Tube | `c` |
 | Change Tube Ammo | `v` |
-| Fire Chain Gun | `f` |
+| Toggle Tube 0/1/2/3 Safety (one dedicated key per tube index) | `1` `2` `3` `4` |
+| Fire Chain Gun (every mount) | `f` |
 | Toggle Load Chain Gun | `g` |
 | Change Gun Ammo | `b` |
 
@@ -54,6 +55,11 @@ their tracer fire even past sensor range).
   promotion is GM-controlled via tweak panel.
 - `3010cca` — chaingun widget wired into weapons station screen.
 - `ba492f8` — interactive hotkey help modal (SPACE).
+- closes #2089 — ship-level `fireTubesCommand` fires every loaded, unlocked
+  tube (fixing tubes past index 0 being unreachable); each fired tube
+  re-locks its own `safetyLocked` immediately. Chain-gun fire (`f`)
+  generalizes the same way to every mount. Unlocking is per-tube via a
+  dedicated hotkey (`1`-`4`) or the `tubesStatus` widget.
 
 ## Open tickets that could touch the weapons station
 

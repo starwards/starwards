@@ -1,10 +1,9 @@
 import { DeepReadonly, noop } from 'ts-essentials';
-import { FieldOfView, SpaceDriver, SpaceObject, XY, degToRad } from '@starwards/core';
+import { FieldOfView, SpaceDriver, SpaceObject, XY, degToRad, getSpatialIndex } from '@starwards/core';
 
 import { CameraView } from '../camera-view';
 import { Graphics } from 'pixi.js';
 import { TrackObjects } from '../track-objects';
-import { getSpatialIndex } from '../spatial-index';
 
 class DrawableFieldOfView extends FieldOfView {
     draw(parent: CameraView, fovGraphics: Graphics) {

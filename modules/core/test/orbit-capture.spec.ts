@@ -21,6 +21,12 @@ const largeStationConfig = shipConfigurations['large-station'];
  * A stationary large-station target and an ATTACK-ordered dragonfly-MK1 raider, 140km out —
  * the failing regime from issue #2083 (a 40km approach reliably recovers; 140km lets the
  * raider reach and hold max speed for 200+ seconds before arrival).
+ *
+ * This suite is about the raider's own flight control, not target physics — `runSimMinutes` pins
+ * the target's position/velocity every tick to keep it the "stationary" target the scenario
+ * describes. Without this, an accurate gun (issue #2082) landing real hits exposes an unrelated,
+ * pre-existing blast-collision quirk (an unarmored target flung to hundreds of m/s by its own
+ * explosion) that swamps the raider-flight-path assertions this suite exists to check.
  */
 function createAttackScenario(dieRoll: number) {
     const spaceMgr = new SpaceManager();
@@ -53,12 +59,15 @@ function runSimMinutes(
     target: Spaceship,
     minutes: number,
 ): { closestApproach: number; maxDistanceAfterCapture: number } {
+    const stationaryPosition = XY.clone(target.position);
     let closestApproach = Infinity;
     let captured = false;
     let maxDistanceAfterCapture = 0;
     for (const id of makeIterationsData(minutes * 60, minutes * 60 * 5)) {
         raiderMgr.update(id);
         spaceMgr.update(id);
+        target.position.setValue(stationaryPosition);
+        target.velocity.setValue(XY.zero);
         const distance = XY.lengthOf(XY.difference(target.position, raiderObj.position));
         closestApproach = Math.min(closestApproach, distance);
         if (closestApproach < 15_000) {
