@@ -1,8 +1,8 @@
+import { DockingMode, PowerLevel } from '@starwards/core';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
 import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForPropertyValue } from './driver';
 
-import { DockingMode } from '@starwards/core';
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
@@ -88,6 +88,35 @@ test.describe('ECR Screen', () => {
         // cancelled repair is not indistinguishable from one that simply vanished
         await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
         await expect(repairQueuePanel.getByText('state', { exact: true })).not.toBeVisible({ timeout: 5000 });
+    });
+
+    test('radar traverse servo alignment (#2109) is listed as a field-tier protocol and drives visible progress', async ({
+        page,
+    }) => {
+        const ship = gameDriver.getShip(shipId);
+        ship.state.radars[1].turnSpeedFactor = 0.6;
+
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const enqueueButton = repairQueuePanel.locator('button.tp-btnv_b', {
+            hasText: 'Radar traverse servo alignment',
+        });
+        await expect(enqueueButton).toBeVisible();
+        await enqueueButton.click();
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
+        await page.screenshot({ path: 'radar-traverse-servo-alignment-active.png' });
+        const firstProgress = await waitForPropertyValue(
+            page,
+            'progress',
+            (v) => parseFloat(v) > 0,
+            'Repair Queue',
+            5000,
+        );
+        await page.waitForTimeout(500);
+        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
+        expect(ship.state.radars[1].power).toBe(PowerLevel.SHUTDOWN); // side effect: radar dark while the op runs
     });
 
     test('crew station cannot enqueue a docked-tier protocol', async ({ page }) => {

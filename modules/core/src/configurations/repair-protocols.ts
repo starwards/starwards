@@ -146,6 +146,16 @@ export const sensorArrayDegauss: RepairProtocolStats = {
     tier: 'field',
 };
 
+export const radarTraverseServoAlignment: RepairProtocolStats = {
+    name: 'Radar traverse servo alignment',
+    targets: [{ system: 'radars', field: 'turnSpeedFactor' }],
+    duration: 30,
+    energyDraw: 3,
+    heat: 15,
+    sideEffectSystems: ['radars'],
+    tier: 'field',
+};
+
 export const signalProcessorRetune: RepairProtocolStats = {
     name: 'Signal-processor retune',
     targets: [
@@ -271,6 +281,7 @@ export const repairProtocols = {
     thrustLinePurge,
     feedSystemOverhaul,
     sensorArrayDegauss,
+    radarTraverseServoAlignment,
     signalProcessorRetune,
     powerTrainReset,
     containmentFieldTuning,
