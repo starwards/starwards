@@ -22,6 +22,7 @@ import {
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { deepAssignSchema } from '../serialization/deep-assign-schema';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
@@ -35,7 +36,13 @@ export class GameManager {
     public spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     private deltaSecondsAvg = 1 / 20;
-    private totalSeconds = 0;
+    private _totalSeconds = 0;
+    /**
+     * Set by a ReplayPlayer to receive game-time ticks while `state.gameStatus === REPLAY`,
+     * instead of the normal simulation block. `totalSeconds` already scales by `state.speed`,
+     * giving replay pause/rate control for free.
+     */
+    public replayTick?: (totalSeconds: number) => void;
     public readonly scriptApi: GameApi = {
         getShip: (shipId: string) => this.shipManagers.get(shipId) as ShipApi | undefined,
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
@@ -72,10 +79,18 @@ export class GameManager {
         },
     };
 
+    public get totalSeconds() {
+        return this._totalSeconds;
+    }
+
     update(currDeltaSeconds: number) {
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
-        this.totalSeconds = this.totalSeconds + adjustedDeltaSeconds;
+        this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
+        if (this.state.gameStatus === GameStatus.REPLAY) {
+            this.replayTick?.(this._totalSeconds);
+            return;
+        }
         // The loop keeps running even at speed 0 (paused): queued commands (GM edits, scan
         // level, waypoints, ...) must still drain every tick. deltaSeconds is 0 while paused,
         // which freezes simulation math that scales with it; anything that doesn't scale with
@@ -110,7 +125,8 @@ export class GameManager {
 
     public async stopGame() {
         this.map = null;
-        if (this.state.gameStatus === GameStatus.RUNNING) {
+        if (this.state.gameStatus === GameStatus.RUNNING || this.state.gameStatus === GameStatus.REPLAY) {
+            this.replayTick = undefined;
             this.state.gameStatus = GameStatus.STOPPING;
             // Use registered ship cleanup functions which await pending
             // room creation before disconnecting, preventing race conditions
@@ -187,6 +203,38 @@ export class GameManager {
         }
         await this.waitForAllShipRoomsInit();
         this.state.gameStatus = GameStatus.RUNNING;
+    }
+
+    /**
+     * Applies a decoded replay frame onto the live game state in place, instead of tearing
+     * down and recreating rooms (see `loadGame`). Space objects are reconciled field-by-field
+     * via `deepAssignSchema`; ships additionally get their room lifecycle (create/teardown)
+     * driven through the same paths `addShip`/`cleanupShip` already use, since viewers need a
+     * real ShipRoom to join, not just synced state.
+     */
+    public applyReplayFrame(frame: SavedGame) {
+        if (this.state.gameStatus !== GameStatus.REPLAY) {
+            return;
+        }
+        deepAssignSchema(this.spaceManager.state, frame.fragment.space);
+
+        const frameShipIds = new Set(frame.fragment.ship.keys());
+        for (const id of [...this.shipManagers.keys()]) {
+            if (!frameShipIds.has(id)) {
+                this.cleanupShip(id);
+            }
+        }
+        for (const [id, shipState] of frame.fragment.ship) {
+            const existingManager = this.shipManagers.get(id);
+            if (existingManager) {
+                deepAssignSchema(existingManager.state, shipState);
+            } else {
+                const spaceObject = this.spaceManager.state.getShip(id);
+                if (spaceObject) {
+                    this.initShipManagerAndRoom(spaceObject, shipState.clone(), shipState.isPlayerShip);
+                }
+            }
+        }
     }
 
     private cleanupShip(id: string) {

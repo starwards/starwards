@@ -9,10 +9,15 @@ export enum GameStatus {
     STARTING,
     RUNNING,
     STOPPING,
+    REPLAY,
 }
 export class AdminState extends Schema {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
+
+    /** True while the running game is being recorded to disk for later replay. */
+    @gameField('boolean')
+    isRecordingGame = false;
 
     @gameField(['string'])
     shipIds = new ArraySchema<string>();

@@ -18,6 +18,15 @@ const emitter2Options = {
     delimiter: '/',
     maxListeners: 0,
 };
+
+export type RecordingInfo = {
+    name: string;
+    mapName: string;
+    startedAt: string;
+    durationSeconds: number;
+    frameCount: number;
+};
+
 export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminState>) => {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
     // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state
@@ -49,6 +58,18 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
             });
             return response.text();
         },
+        listRecordings: async (): Promise<RecordingInfo[]> => {
+            const response = await fetch(endpoint + '/recordings');
+            return (await response.json()) as RecordingInfo[];
+        },
+        startRecording: async (): Promise<string> => {
+            const response = await fetch(endpoint + '/start-recording', { ...requestInfo, body: '{}' });
+            const { name } = (await response.json()) as { name: string };
+            return name;
+        },
+        stopRecording: (): undefined => void fetch(endpoint + '/stop-recording', { ...requestInfo, body: '{}' }),
+        startReplay: (name: string): undefined =>
+            void fetch(endpoint + '/start-replay', { ...requestInfo, body: JSON.stringify({ name }) }),
     };
 };
 

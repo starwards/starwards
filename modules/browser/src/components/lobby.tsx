@@ -1,11 +1,19 @@
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
 import { Driver, VERSION } from '@starwards/core';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
-import { useAdminDriver, useCanStartGame, useIsGameRunning, usePlayerShips } from '../react/hooks';
+import {
+    useAdminDriver,
+    useCanStartGame,
+    useIsGameRunning,
+    useIsRecording,
+    useIsReplaying,
+    usePlayerShips,
+} from '../react/hooks';
 
 import { AnimatorGeneralProvider } from './arwes-compat';
 import { BleepsProvider } from './arwes-compat';
 import React from 'react';
+import { ReplayMenu } from './replay-menu';
 import WebFont from 'webfontloader';
 
 WebFont.load({
@@ -29,6 +37,7 @@ const InGameMenu = (p: Props) => {
     const ships = usePlayerShips(p.driver);
     const adminDriver = useAdminDriver(p.driver);
     const saveGame = useSaveGameHandler(adminDriver);
+    const isRecording = useIsRecording(adminDriver);
     return (
         <>
             {adminDriver && (
@@ -38,6 +47,18 @@ const InGameMenu = (p: Props) => {
                     </Button>
                     <Button palette="success" onClick={saveGame}>
                         <div data-id="save game">Save Game</div>
+                    </Button>
+                    <Button
+                        palette={isRecording ? 'error' : 'success'}
+                        onClick={() => {
+                            if (isRecording) {
+                                adminDriver.stopRecording();
+                            } else {
+                                void adminDriver.startRecording();
+                            }
+                        }}
+                    >
+                        <div data-id="toggle recording">{isRecording ? 'Stop Recording' : 'Record'}</div>
                     </Button>
                 </pre>
             )}
@@ -148,6 +169,7 @@ function ShipOptions({ shipId }: { shipId: string }) {
 
 export const Lobby = (p: Props) => {
     const isGameRunning = useIsGameRunning(p.driver);
+    const isReplaying = useIsReplaying(p.driver);
     const canStartGame = useCanStartGame(p.driver);
     const adminDriver = useAdminDriver(p.driver);
     return (
@@ -162,6 +184,14 @@ export const Lobby = (p: Props) => {
                     <div style={{ padding: 20, textAlign: 'center' }}>
                         <h1 data-id="title">Starwards</h1>
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
+                        {isReplaying && adminDriver && (
+                            <pre key="Replaying">
+                                <div data-id="replaying-note">Replaying</div>
+                                <Button palette="error" onClick={adminDriver.stopGame}>
+                                    <div data-id="stop replay">Stop</div>
+                                </Button>
+                            </pre>
+                        )}
                         {canStartGame && adminDriver && (
                             <pre key="2V1 game">
                                 <LoadGame adminDriver={adminDriver} />
@@ -176,6 +206,7 @@ export const Lobby = (p: Props) => {
                                 <Button palette="success" onClick={() => adminDriver.startGame('wave_defence')}>
                                     <div data-id="wave defence game">Wave Defence</div>
                                 </Button>
+                                <ReplayMenu adminDriver={adminDriver} />
                             </pre>
                         )}
                         <pre key="Utilities">
