@@ -7,6 +7,7 @@ import {
     SpaceObject,
     SpatialIndex,
     getSpatialIndex,
+    isSensorInvisible,
 } from '@starwards/core/internal';
 
 /**
@@ -48,13 +49,15 @@ export class RadarView {
                 visible.add(object);
                 continue;
             }
-            if (object.faction !== faction) {
+            if (isSensorInvisible(object) || object.faction !== faction) {
                 continue;
             }
             const fov = new FieldOfView(this.spatial, object);
             visible.add(object);
             for (const visibleArc of fov.view) {
-                visibleArc.object && visibleArc.object.isRadarContact && visible.add(visibleArc.object);
+                if (visibleArc.object && !isSensorInvisible(visibleArc.object)) {
+                    visible.add(visibleArc.object);
+                }
             }
         }
         return visible;

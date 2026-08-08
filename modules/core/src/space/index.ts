@@ -28,6 +28,7 @@ export * from './derelict';
 export * from './projectile';
 export * from './explosion';
 export * from './nebula';
+export * from './sensor-visibility';
 export * from './waypoint';
 export * from './vec2';
 export * from './radar-sector';

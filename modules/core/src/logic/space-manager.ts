@@ -1,4 +1,13 @@
-import { Asteroid, Derelict, Faction, RadarSectorValues, Spaceship, Waypoint, applyRadarSectors } from '../space';
+import {
+    Asteroid,
+    Derelict,
+    Faction,
+    RadarSectorValues,
+    Spaceship,
+    Waypoint,
+    applyRadarSectors,
+    isSensorInvisible,
+} from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import {
     EPSILON,
@@ -343,7 +352,7 @@ export class SpaceManager implements Updateable {
             const data = this.stateToExtraData.get(object);
             if (data) {
                 for (const visibleArc of data.fov.view) {
-                    visibleArc.object && visibleArc.object.isRadarContact && visibleObjects.add(visibleArc.object);
+                    visibleArc.object && !isSensorInvisible(visibleArc.object) && visibleObjects.add(visibleArc.object);
                 }
             } else {
                 logError(`object leak! ${object.id} has no extra data`);
@@ -360,7 +369,9 @@ export class SpaceManager implements Updateable {
                 const data = this.stateToExtraData.get(object);
                 if (data) {
                     for (const visibleArc of data.fov.view) {
-                        visibleArc.object && visibleArc.object.isRadarContact && visibleObjects.add(visibleArc.object);
+                        visibleArc.object &&
+                            !isSensorInvisible(visibleArc.object) &&
+                            visibleObjects.add(visibleArc.object);
                     }
                 } else {
                     logError(`object leak! ${object.id} has no extra data`);
@@ -844,7 +855,7 @@ export class SpaceManager implements Updateable {
         const [scanner] = this.getObjectPtr(scannerId);
         const [target] = this.getObjectPtr(targetId);
 
-        if (!scanner || !target || !target.isRadarContact) {
+        if (!scanner || !target || isSensorInvisible(target)) {
             return false;
         }
 
