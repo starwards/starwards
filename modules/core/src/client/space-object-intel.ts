@@ -1,4 +1,4 @@
-import { Faction, ScanLevel, SpaceObject, Spaceship } from '../space';
+import { Derelict, Faction, ScanLevel, SpaceObject, Spaceship } from '../space';
 
 /**
  * The scan level a player holds on an object. A GM view (no faction) sees everything; same-faction
@@ -64,7 +64,7 @@ export function objectDisplayName(
     if (!object || scanLevel < ScanLevel.BASIC) {
         return id;
     }
-    if (Spaceship.isInstance(object) && object.callsign) {
+    if ((Spaceship.isInstance(object) || Derelict.isInstance(object)) && object.callsign) {
         return object.callsign;
     }
     return `${object.type} ${object.id}`;
