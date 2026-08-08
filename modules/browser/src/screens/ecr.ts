@@ -9,8 +9,11 @@ import {
     Status,
     WarpFrequency,
     createLogger,
+    repairCommands,
+    repairProtocols,
 } from '@starwards/core';
 import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { drawRepairQueue, getRepairProtocolHotkey } from '../widgets/repair-queue';
 import { radarFogOfWar, toCss } from '../colors';
 import { readProp, readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
@@ -22,7 +25,6 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
-import { drawRepairQueue } from '../widgets/repair-queue';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
@@ -125,6 +127,23 @@ function wireInput(shipDriver: ShipDriver) {
             { offsetKeys: new KeysRangeConfig('shift+' + keys[0], 'shift+' + keys[1], '', 0.1) },
             `${name} Coolant`,
         );
+    }
+
+    // repair-protocol catalog is a display-only readout (widgets/repair-queue.ts); enqueueing is
+    // hotkey-driven here, on the same control-gated manager as power/coolant, since it's the same
+    // kind of engineering action. Bound unconditionally (not only for currently-available
+    // protocols) — the server refuses an unavailable protocol with a visible notice, same as it
+    // already does for a full queue, so a docked-tier key pressed while undocked is a no-op, not
+    // a crash.
+    for (const [protocolId, protocol] of Object.entries(repairProtocols)) {
+        const key = getRepairProtocolHotkey(protocolId);
+        if (key) {
+            controlledInput.addClickAction(
+                () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
+                key,
+                `Enqueue: ${protocol.name}`,
+            );
+        }
     }
 
     const inputManagers: InputManager[] = [controlledInput];
