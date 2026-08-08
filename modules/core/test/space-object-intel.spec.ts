@@ -1,4 +1,4 @@
-import { Asteroid, Faction, ScanLevel, SpaceObject, Spaceship } from '@starwards/core';
+import { Asteroid, Derelict, Faction, ScanLevel, SpaceObject, Spaceship, Vec2 } from '@starwards/core';
 import { objectDisplayName, scanCycleTargets } from '../src/client/space-object-intel';
 
 describe('objectDisplayName', () => {
@@ -14,6 +14,10 @@ describe('objectDisplayName', () => {
         o.callsign = callsign;
         o.faction = Faction.Gravitas;
         return o;
+    }
+
+    function derelict(id: string, callsign: string) {
+        return new Derelict().init(id, Vec2.make({ x: 0, y: 0 }), 10, Faction.Gravitas, callsign, 0);
     }
 
     test('names a non-ship by type and id', () => {
@@ -36,6 +40,14 @@ describe('objectDisplayName', () => {
 
     test('falls back to the id for an object missing from the space state', () => {
         expect(objectDisplayName(undefined, 'gone', ScanLevel.FULL)).toEqual('gone');
+    });
+
+    test('a derelict keeps its dead ship callsign instead of a generic label', () => {
+        expect(objectDisplayName(derelict('12', 'Dragonfly'), '12', ScanLevel.BASIC)).toEqual('Dragonfly');
+    });
+
+    test('a callsign-less derelict falls back to the type', () => {
+        expect(objectDisplayName(derelict('12', ''), '12', ScanLevel.FULL)).toEqual('Derelict 12');
     });
 });
 
