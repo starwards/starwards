@@ -7,7 +7,7 @@ export interface RecordingHeader {
 }
 
 interface RecordingFrameLine {
-    /** game time (seconds) this frame was captured at. */
+    /** game time (seconds) this frame was captured at, relative to the recording's first frame. */
     t: number;
     /** `schemaToString(SavedGame)` — gzip+base64 encoded Colyseus snapshot. */
     frame: string;

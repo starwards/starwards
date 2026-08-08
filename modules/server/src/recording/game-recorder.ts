@@ -43,7 +43,8 @@ export class GameRecorder {
     private inFlight: Promise<unknown> | null = null;
     private filePath: string | null = null;
     private lastWrittenT: number | null = null;
-    private frameCount = 0;
+    /** `GameManager.totalSeconds` when this recording started; frame `t` is relative to it. */
+    private baseSeconds = 0;
 
     constructor(
         private manager: GameManager,
@@ -73,11 +74,20 @@ export class GameRecorder {
             startedAt,
             intervalMs: this.intervalMs,
         };
-        await fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
-        this.frameCount = 0;
         this.lastWrittenT = null;
-        await this.writeFrame();
+        this.baseSeconds = this.manager.totalSeconds;
         this.manager.state.isRecordingGame = true;
+        try {
+            await fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
+            await this.writeFrame();
+        } catch (e) {
+            this.finalize();
+            throw e;
+        }
+        if (!this.filePath) {
+            // the game stopped while frame 0 was being written; writeFrame already finalized
+            throw new Error("can't start recording: the game stopped before the first frame");
+        }
         this.timer = setInterval(() => this.tick(), this.intervalMs);
         this.timer.unref();
         return filename;
@@ -106,7 +116,6 @@ export class GameRecorder {
         this.clearTimer();
         this.filePath = null;
         this.lastWrittenT = null;
-        this.frameCount = 0;
         this.manager.state.isRecordingGame = false;
     }
 
@@ -143,7 +152,7 @@ export class GameRecorder {
             this.finalize();
             return;
         }
-        const t = this.manager.totalSeconds;
+        const t = this.manager.totalSeconds - this.baseSeconds;
         if (this.lastWrittenT !== null && t === this.lastWrittenT) {
             return;
         }
@@ -151,7 +160,6 @@ export class GameRecorder {
         if (this.filePath !== filePath) return; // finalized (or restarted) while serializing
         await fs.appendFile(filePath, encodeFrameLine({ t, frame }), 'utf-8');
         this.lastWrittenT = t;
-        this.frameCount++;
     }
 }
 
@@ -160,7 +168,10 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
     const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
     let header: RecordingHeader | null = null;
     let frameCount = 0;
-    let lastT = 0;
+    // Only the last frame's `t` is needed, and every frame line carries a multi-KB encoded
+    // snapshot — so lines are counted, not parsed, and only the tail is decoded.
+    let lastLine: string | null = null;
+    let prevLine: string | null = null;
     try {
         for await (const line of rl) {
             if (!line) continue;
@@ -168,11 +179,9 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
                 header = parseHeader(line);
                 continue;
             }
-            const frame = parseFrameLine(line);
-            if (frame) {
-                frameCount++;
-                lastT = frame.t;
-            }
+            prevLine = lastLine;
+            lastLine = line;
+            frameCount++;
         }
     } catch (e) {
         logError(`can't read recording ${filePath}:`, e);
@@ -182,11 +191,16 @@ async function summarizeRecording(filePath: string, name: string): Promise<Recor
         fileStream.close();
     }
     if (!header) return null;
+    let lastFrame = lastLine === null ? null : parseFrameLine(lastLine);
+    if (!lastFrame && lastLine !== null) {
+        frameCount--; // truncated tail line of an in-progress recording, not a frame
+        lastFrame = prevLine === null ? null : parseFrameLine(prevLine);
+    }
     return {
         name,
         mapName: header.mapName,
         startedAt: header.startedAt,
-        durationSeconds: lastT,
+        durationSeconds: lastFrame?.t ?? 0,
         frameCount,
     };
 }

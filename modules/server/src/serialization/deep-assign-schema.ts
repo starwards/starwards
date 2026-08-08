@@ -35,7 +35,7 @@ function assignField(target: Record<string, unknown>, source: Record<string, unk
         return;
     }
     if ('array' in type) {
-        reconcileArray(target[name] as ArraySchema, sourceValue as ArraySchema, type.array);
+        reconcileArray(target[name] as ArraySchema<unknown>, sourceValue as ArraySchema<unknown>, type.array);
         return;
     }
     if ('map' in type) {
@@ -78,14 +78,19 @@ function reconcileMap(target: MapSchema, source: MapSchema, elementType: FieldTy
     }
 }
 
-function reconcileArray(target: ArraySchema, source: ArraySchema, elementType: FieldType) {
-    if (typeof elementType === 'string' || !isSchemaConstructor(elementType)) {
-        target.splice(0, target.length, ...source);
-        return;
-    }
+function reconcileArray(target: ArraySchema<unknown>, source: ArraySchema<unknown>, elementType: FieldType) {
+    const schemaElements = isSchemaConstructor(elementType);
+    // Element-wise, never `splice(0, length, ...source)`: a wholesale splice marks every index
+    // dirty, so an unchanged array would still be re-broadcast to every client each frame.
     const minLen = Math.min(target.length, source.length);
     for (let i = 0; i < minLen; i++) {
-        const existing = target[i] as Schema;
+        if (!schemaElements) {
+            if (target[i] !== source[i]) {
+                target[i] = source[i];
+            }
+            continue;
+        }
+        const existing = target[i] as Schema | undefined;
         const sourceValue = source[i] as Schema;
         if (existing && existing.constructor === sourceValue.constructor) {
             deepAssignSchema(existing, sourceValue);
@@ -93,11 +98,10 @@ function reconcileArray(target: ArraySchema, source: ArraySchema, elementType: F
             target[i] = sourceValue.clone();
         }
     }
-    if (source.length > target.length) {
-        for (let i = target.length; i < source.length; i++) {
-            target.push((source[i] as Schema).clone());
-        }
-    } else if (target.length > source.length) {
+    for (let i = minLen; i < source.length; i++) {
+        target.push(schemaElements ? (source[i] as Schema).clone() : source[i]);
+    }
+    if (target.length > source.length) {
         target.splice(source.length, target.length - source.length);
     }
 }

@@ -82,6 +82,12 @@ export class ReplayPlayer {
     private reader: FrameReader | null = null;
     private currentFrame: DecodedFrame | null = null;
     private ended = false;
+    /** `GameManager.totalSeconds` that frame time 0 maps to. Set when a replay starts. */
+    private clockOffset = 0;
+    /** `AdminState.speed` from before the replay took it over; `null` while no replay is loaded. */
+    private speedBeforeReplay: number | null = null;
+    private advancing: Promise<void> | null = null;
+    private queuedTarget: number | null = null;
 
     constructor(
         private manager: GameManager,
@@ -114,41 +120,102 @@ export class ReplayPlayer {
         this.reader = reader;
         this.currentFrame = frame0;
         this.ended = false;
+        this.advancing = null;
+        this.queuedTarget = null;
+        // Frame timestamps are relative to the start of the recording, while GameManager's
+        // clock keeps running for the lifetime of the process. Anchor one to the other here,
+        // or every recorded timestamp is already "in the past" and the whole recording is
+        // consumed on the first tick.
+        this.clockOffset = this.manager.totalSeconds - frame0.t;
+        this.speedBeforeReplay = this.manager.state.speed;
         this.manager.state.gameStatus = GameStatus.REPLAY;
         this.manager.replayTick = (totalSeconds) => {
             this.advanceTo(totalSeconds).catch((e: unknown) => logError('error advancing replay:', e));
         };
     }
 
-    /** Applies the latest frame at or before `totalSeconds`, skipping intermediates. */
-    public async advanceTo(totalSeconds: number): Promise<void> {
-        if (!this.reader || this.ended) {
+    /**
+     * Applies the latest frame at or before `totalSeconds` (a `GameManager.totalSeconds`
+     * reading), skipping intermediates. Runs are serialized: `replayTick` fires far more
+     * often than a frame takes to decode, and two passes over the same reader would consume
+     * each other's frames and apply them out of order. A call arriving mid-pass only raises
+     * the target the running pass finishes at, and resolves once that target is reached.
+     */
+    public advanceTo(totalSeconds: number): Promise<void> {
+        if (this.advancing) {
+            this.queuedTarget = Math.max(this.queuedTarget ?? totalSeconds, totalSeconds);
+            return this.advancing;
+        }
+        this.advancing = this.runAdvance(totalSeconds);
+        return this.advancing;
+    }
+
+    private async runAdvance(totalSeconds: number): Promise<void> {
+        let target: number | null = totalSeconds;
+        try {
+            while (target !== null) {
+                await this.advanceOnce(target);
+                target = this.queuedTarget;
+                this.queuedTarget = null;
+            }
+        } finally {
+            // synchronous, so no window exists where the loop has exited but a caller still
+            // queues onto it
+            this.advancing = null;
+        }
+    }
+
+    private async advanceOnce(totalSeconds: number): Promise<void> {
+        const reader = this.reader;
+        if (!reader || this.ended) {
             return;
         }
+        const replaySeconds = totalSeconds - this.clockOffset;
         let latest = this.currentFrame;
         for (;;) {
-            const next = await this.reader.peekNext();
+            const next = await reader.peekNext();
+            if (this.reader !== reader) {
+                return; // stopped (or restarted) while decoding
+            }
             if (!next) {
                 this.ended = true;
-                if (latest) {
-                    this.manager.applyReplayFrame(latest.savedGame);
-                }
+                this.applyFrame(latest);
+                this.closeReader();
                 this.manager.state.speed = 0;
                 this.manager.state.message = 'Replay ended';
                 return;
             }
-            if (next.t > totalSeconds) {
+            if (next.t > replaySeconds) {
                 break;
             }
-            latest = await this.reader.consumeNext();
+            latest = await reader.consumeNext();
+            if (this.reader !== reader) {
+                return;
+            }
         }
-        if (latest && latest !== this.currentFrame) {
-            this.currentFrame = latest;
-            this.manager.applyReplayFrame(latest.savedGame);
+        this.applyFrame(latest);
+    }
+
+    private applyFrame(frame: DecodedFrame | null) {
+        if (frame && frame !== this.currentFrame) {
+            this.currentFrame = frame;
+            this.manager.applyReplayFrame(frame.savedGame);
         }
     }
 
+    /** Tears the replay down and hands `AdminState.speed` back to whatever set it before. */
     public stop(): void {
+        this.closeReader();
+        this.currentFrame = null;
+        this.ended = true;
+        this.queuedTarget = null;
+        if (this.speedBeforeReplay !== null) {
+            this.manager.state.speed = this.speedBeforeReplay;
+            this.speedBeforeReplay = null;
+        }
+    }
+
+    private closeReader() {
         this.reader?.close();
         this.reader = null;
     }

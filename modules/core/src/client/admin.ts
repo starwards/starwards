@@ -64,6 +64,10 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
         },
         startRecording: async (): Promise<string> => {
             const response = await fetch(endpoint + '/start-recording', { ...requestInfo, body: '{}' });
+            if (!response.ok) {
+                // error responses carry a status text body, not JSON — parsing it would throw
+                throw new Error(`can't start recording (HTTP ${response.status})`);
+            }
             const { name } = (await response.json()) as { name: string };
             return name;
         },

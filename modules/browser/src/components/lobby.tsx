@@ -1,5 +1,5 @@
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
-import { Driver, VERSION } from '@starwards/core';
+import { Driver, VERSION, createLogger } from '@starwards/core';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
 import {
     useAdminDriver,
@@ -33,6 +33,8 @@ const bleepsSettings = {
 };
 const generalAnimator = { duration: { enter: 200, exit: 200 } };
 
+const { error: logError } = createLogger('component:lobby');
+
 const InGameMenu = (p: Props) => {
     const ships = usePlayerShips(p.driver);
     const adminDriver = useAdminDriver(p.driver);
@@ -54,7 +56,7 @@ const InGameMenu = (p: Props) => {
                             if (isRecording) {
                                 adminDriver.stopRecording();
                             } else {
-                                void adminDriver.startRecording();
+                                adminDriver.startRecording().catch(logError);
                             }
                         }}
                     >

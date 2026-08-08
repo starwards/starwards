@@ -113,6 +113,57 @@ describe('ReplayPlayer', () => {
         player.stop();
     });
 
+    it('anchors frame timestamps to the clock at replay start, not to the process-wide game clock', async () => {
+        const frame0 = await recordedFramesFromLiveGame('test_map_1');
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        const originalX = frame0.fragment.space.getShip(shipId)!.position.x;
+        const frame1 = frame0.clone();
+        frame1.fragment.space.getShip(shipId)!.position.x = 777;
+
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'test_map_1', [
+            { t: 0, game: frame0 },
+            { t: 5, game: frame1 },
+        ]);
+
+        // GameManager's clock runs for the lifetime of the process, so by the time a
+        // recording is replayed its timestamps are all "in the past"
+        gameDriver.gameManager.state.speed = 1;
+        gameDriver.gameManager.update(100);
+        gameDriver.gameManager.state.speed = 0;
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.test_map_1.name, maps.test_map_1]]));
+        await player.startReplay(file);
+        const startedAt = gameDriver.gameManager.totalSeconds;
+
+        await player.advanceTo(startedAt + 1); // 1 replay-second in: still before frame1's t=5
+        expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).toBe(originalX);
+
+        await player.advanceTo(startedAt + 6);
+        expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).toBe(777);
+
+        player.stop();
+    });
+
+    it('hands AdminState.speed back when a replay that ran to its end is stopped', async () => {
+        const frame0 = await recordedFramesFromLiveGame('test_map_1');
+        await gameDriver.gameManager.stopGame();
+        gameDriver.gameManager.state.speed = 2;
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'test_map_1', [{ t: 0, game: frame0 }]);
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.test_map_1.name, maps.test_map_1]]));
+        await player.startReplay(file);
+        await player.advanceTo(gameDriver.gameManager.totalSeconds + 100); // past the end
+        expect(gameDriver.gameManager.state.speed).toBe(0);
+
+        player.stop();
+        expect(gameDriver.gameManager.state.speed).toBe(2);
+    });
+
     it('at end of recording: applies the last frame, pauses, and sets a message, staying in REPLAY', async () => {
         const frame0 = await recordedFramesFromLiveGame('test_map_1');
         const shipId = gameDriver.gameManager.state.playerShipIds[0];

@@ -193,6 +193,7 @@ export async function server(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { data } = req.body;
             if (typeof data === 'string') {
+                replayPlayer.stop(); // loadGame() stops a running replay; release its reader too
                 const savedGameData = await stringToSchema(SavedGame, data);
                 const map = mapsMap.get(savedGameData.mapName);
                 if (map) {
@@ -230,6 +231,10 @@ export async function server(
         httpServer,
         addressInfo,
         close: async () => {
+            // Close the recording before the transport goes away, so no frame write outlives
+            // the server (and races whoever cleans up the recordings directory).
+            replayPlayer.stop();
+            await gameRecorder.stopRecording();
             // Stats.persist() schedules a 1 s setTimeout when createRoom() runs shortly
             // after the previous persist.  That handle outlives gracefullyShutdown() and
             // keeps Jest worker processes alive.  Calling reset(true) here clears the
