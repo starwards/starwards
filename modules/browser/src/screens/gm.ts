@@ -56,17 +56,29 @@ void driver.waitForGame().then(
                             { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
                             {
                                 content: [
-                                    { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
-                                    { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
-                                    { ...getGoldenLayoutItemConfig(gameControls), isClosable: false },
+                                    {
+                                        content: [
+                                            { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
+                                            { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                                        ],
+                                        height: 70,
+                                        isClosable: false,
+                                        title: '',
+                                        type: 'stack',
+                                    },
+                                    // Its own row rather than a third tab: the GM has to see what
+                                    // the game is doing without selecting anything, and a third
+                                    // tab in this column overflows into golden-layout's dropdown,
+                                    // taking tweak and create with it.
+                                    {
+                                        ...getGoldenLayoutItemConfig(gameControls),
+                                        height: 30,
+                                        isClosable: false,
+                                    },
                                 ],
-                                // The GM has to see what the game is doing without going looking
-                                // for it, so game controls is the tab open on load. golden-layout
-                                // honours activeItemIndex on a stack, but its typings omit it.
-                                ...({ activeItemIndex: 2 } as object),
                                 isClosable: false,
                                 title: '',
-                                type: 'stack',
+                                type: 'column',
                                 width: 20,
                             },
                         ],
