@@ -60,9 +60,10 @@ void driver.waitForGame().then(
                                     { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
                                     { ...getGoldenLayoutItemConfig(gameControls), isClosable: false },
                                 ],
-                                // the GM has to see what the game is doing without going
-                                // looking for it, so its tab is the one open on load
-                                activeItemIndex: 2,
+                                // The GM has to see what the game is doing without going looking
+                                // for it, so game controls is the tab open on load. golden-layout
+                                // honours activeItemIndex on a stack, but its typings omit it.
+                                ...({ activeItemIndex: 2 } as object),
                                 isClosable: false,
                                 title: '',
                                 type: 'stack',
