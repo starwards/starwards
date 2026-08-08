@@ -1,5 +1,5 @@
 import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
-import { Faction, demoShip, makeShipState } from '@starwards/core';
+import { Faction, ShipModel, demoShip, makeShipState } from '@starwards/core';
 import { blue, radarVisibleBg, red, yellow } from '../../colors';
 import { createMockAsteroid, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../../radar/blips/blip-renderer';
@@ -50,12 +50,20 @@ function addFovRendering(root: CameraView, mockSpaceDriver: ReturnType<typeof cr
     }
 }
 
-function createFactionShip(id: string, x: number, y: number, faction: Faction, angle = 0) {
+function createFactionShip(
+    id: string,
+    x: number,
+    y: number,
+    faction: Faction,
+    angle = 0,
+    model: ShipModel = 'demo-ship',
+) {
     const state = makeShipState(id, demoShip);
     state.spaceship.position.x = x;
     state.spaceship.position.y = y;
     state.spaceship.angle = angle;
     state.spaceship.faction = faction;
+    state.spaceship.model = model;
     setOmniRadarSector(state.spaceship, 5000);
     for (const radar of state.radars) {
         radar.power = 1;
@@ -85,17 +93,19 @@ export const gmRadarScenes: Record<string, Scene> = {
 
     'gm-radar-ships': {
         name: 'gm-radar-ships',
-        description: 'GM radar with multiple ships of different factions and FOV',
+        description: 'GM radar with multiple ships of different factions and FOV, including a mapped station blip',
         async setup(container: HTMLElement) {
             const gravitasShip = createFactionShip('gravitas-1', 0, 0, Faction.Gravitas, 0);
             const raidersShip = createFactionShip('raiders-1', 3000, 2000, Faction.Raiders, 90);
             const neutralShip = createFactionShip('neutral-1', -2500, 1500, Faction.NONE, 45);
+            const stationShip = createFactionShip('station-1', -3200, -2200, Faction.NONE, 0, 'large-station');
 
             const mockContainer = createMockContainer(container);
             const mockSpaceDriver = createMockSpaceDriver([
                 gravitasShip.spaceship,
                 raidersShip.spaceship,
                 neutralShip.spaceship,
+                stationShip.spaceship,
             ]);
 
             const camera = new Camera();
