@@ -99,11 +99,14 @@ export abstract class SpaceObjectBase extends Schema {
     public readonly isCorporal: boolean = true;
 
     /**
-     * True for objects that occlude the field of view (via `isCorporal`) but never surface as a
-     * contact themselves — every radar/scan-job/targeting consumer that reads a `FieldOfView`
-     * arc's object must skip one. The game master's view is exempt; it never filters by this.
+     * False for objects that occlude the field of view (via `isCorporal`) but are never a scan-job
+     * or weapons target, and never enter a faction's tracked-contact set — a passive environmental
+     * body a crew simply sees, not one they scan or lock onto. This is independent of whether the
+     * object *renders* on a radar display: that is each object type's own choice in the browser's
+     * `RadarRangeFilter`/the MCP `RadarView`, not gated by this flag. The game master's view is
+     * exempt; it never filters by this.
      */
-    public readonly isRadarInvisible: boolean = false;
+    public readonly isRadarContact: boolean = true;
     /*!
      *The direction of the object. (in degrees, 0 is right, 90 is up)
      */

@@ -28,6 +28,7 @@ export const radar = {
     unknownTint: 0x666666, // Dim gray for UFO/unscanned objects
     mountArc: 0x888888, // Dim gray - static structural firing arc, not a live overlay
     derelictTint: 0x3a3a3a, // Darker than unknownTint - an inert hulk, not just unidentified
+    nebulaTint: 0xff66cc, // Pink - a visible optical hazard, not a faction-colored contact
 };
 
 // ============================================================================

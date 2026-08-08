@@ -52,8 +52,13 @@ export class RadarRangeFilter {
         for (const fov of this.fieldsOfView()) {
             this.visibleObjects.add(fov.object);
             for (const visibleArc of fov.view) {
-                visibleArc.object && !visibleArc.object.isRadarInvisible && this.visibleObjects.add(visibleArc.object);
+                visibleArc.object && visibleArc.object.isRadarContact && this.visibleObjects.add(visibleArc.object);
             }
+        }
+        // a nebula is a visible optical hazard, not a scanned contact: every radar shows it
+        // regardless of field of view, so crews can navigate around it.
+        for (const nebula of this.spaceDriver.state.getAll('Nebula')) {
+            this.visibleObjects.add(nebula);
         }
     };
 

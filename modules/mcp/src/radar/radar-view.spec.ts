@@ -69,7 +69,12 @@ function browserVisibleSet(spatial: SpatialIndex, objects: SpaceObject[], factio
         const fov = new FieldOfView(spatial, observer);
         visible.add(observer);
         for (const arc of fov.view) {
-            arc.object && !arc.object.isRadarInvisible && visible.add(arc.object);
+            arc.object && arc.object.isRadarContact && visible.add(arc.object);
+        }
+    }
+    for (const object of objects) {
+        if (Nebula.isInstance(object)) {
+            visible.add(object);
         }
     }
     return visible;
@@ -150,22 +155,28 @@ describe('RadarView', () => {
         expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['own']);
     });
 
-    it('a nebula occludes like a solid body but never itself becomes a contact (issue #2123)', () => {
+    it('a nebula occludes like a solid body and is itself always visible, even with no radar of its own (issue #2123)', () => {
         const objects = [
             ship('own', 0, 0, Faction.Gravitas, 50_000),
             nebula('fog', 1000, 0, 500),
             asteroid('hidden', 2000, 0, 50),
         ];
         const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
-        expect(visible).to.not.include('fog');
+        expect(visible).to.include('fog');
         expect(visible).to.not.include('hidden');
         expect(visible).to.deep.equal(ids(browserVisibleSet(makeSpatialIndex(objects), objects, Faction.Gravitas)));
     });
 
-    it('shows the game master a nebula, unlike any faction radar', () => {
-        const objects = [ship('own', 0, 0, Faction.Gravitas), nebula('fog', 100_000, 0, 500)];
-        expect(ids(viewOf(objects).visibleObjects(undefined))).to.deep.equal(['fog', 'own']);
-        expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['own']);
+    it('shows every faction the same nebula, unlike an enemy radar contact', () => {
+        // 'fog' is out of every ship's radar reach, and belongs to no faction (unlike 'foe'
+        // below) -- it is visible anyway, on both the Gravitas and Raiders faction radars.
+        const objects = [
+            ship('own', 0, 0, Faction.Gravitas),
+            ship('foe', 0, 0, Faction.Raiders),
+            nebula('fog', 100_000, 0, 500),
+        ];
+        expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['fog', 'own']);
+        expect(ids(viewOf(objects).visibleObjects(Faction.Raiders))).to.deep.equal(['foe', 'fog']);
     });
 
     it('shows the game master everything, unfiltered', () => {
