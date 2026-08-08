@@ -1,7 +1,12 @@
 import { AlphaFilter, Graphics, UPDATE_PRIORITY } from 'pixi.js';
 import { Faction, demoShip, makeShipState } from '@starwards/core';
 import { blue, radarVisibleBg, red, yellow } from '../../colors';
-import { createMockAsteroid, createMockSpaceDriver, createMockWaypoint } from '../mocks/space-driver';
+import {
+    createMockAsteroid,
+    createMockExplosion,
+    createMockSpaceDriver,
+    createMockWaypoint,
+} from '../mocks/space-driver';
 import { tacticalDrawFunctions, tacticalDrawWaypoints } from '../../radar/blips/blip-renderer';
 
 import { Camera } from '../../radar/camera';
@@ -183,6 +188,42 @@ export const gmRadarScenes: Record<string, Scene> = {
                 tacticalDrawWaypoints,
             );
             root.addLayer(waypointsLayer.renderRoot);
+
+            return root;
+        },
+    },
+
+    'gm-radar-explosion': {
+        name: 'gm-radar-explosion',
+        description: 'GM radar still renders an explosion as a blip — GM view is unfiltered by design',
+        async setup(container: HTMLElement) {
+            const gravitasShip = createFactionShip('gravitas-1', 0, 0, Faction.Gravitas, 0);
+
+            const blast = createMockExplosion({ id: 'blast-1', position: { x: 1500, y: 0 }, radius: 250 });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([gravitasShip.spaceship, blast]);
+
+            const camera = new Camera();
+            camera.setZoom(ZOOM);
+
+            const root = new CameraView(camera);
+            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer);
+            root.canvas.setAttribute('data-id', 'GM Radar');
+
+            const grid = new GridLayer(root);
+            root.addLayer(grid.renderRoot);
+
+            addFovRendering(root, mockSpaceDriver);
+
+            const blipLayer = new ObjectsLayer(
+                root,
+                mockSpaceDriver as never,
+                64,
+                (s) => getFactionColor(s.faction),
+                tacticalDrawFunctions,
+            );
+            root.addLayer(blipLayer.renderRoot);
 
             return root;
         },
