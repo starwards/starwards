@@ -1,6 +1,7 @@
 import * as _spaceCommands from './space-commands';
 
 import { Asteroid } from './asteroid';
+import { Derelict } from './derelict';
 import { Explosion } from './explosion';
 import { Nebula } from './nebula';
 import { Projectile } from './projectile';
@@ -14,6 +15,7 @@ export interface SpaceObjects {
     Explosion: Explosion;
     Nebula: Nebula;
     Waypoint: Waypoint;
+    Derelict: Derelict;
 }
 
 export type SpaceObject = SpaceObjects[keyof SpaceObjects];
@@ -22,6 +24,7 @@ export * from './asteroid';
 export * from './damage-profile';
 export * from './space-object-base';
 export * from './spaceship';
+export * from './derelict';
 export * from './projectile';
 export * from './explosion';
 export * from './nebula';

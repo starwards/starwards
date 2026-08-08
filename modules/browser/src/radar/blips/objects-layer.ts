@@ -8,7 +8,7 @@ import { TrackObjects } from '../track-objects';
 
 type RenderFunctions<K extends keyof SpaceObjects> = {
     [T in K]: {
-        new (stage: Container, blipSize: number): BlipRenderer<SpaceObjects[T]>;
+        new (stage: Container, blipSize: number, spaceObject: SpaceObjects[T]): BlipRenderer<SpaceObjects[T]>;
     };
 };
 type Selection = { has(o: SpaceObject): boolean };
@@ -25,7 +25,7 @@ export class ObjectsLayer<K extends keyof SpaceObjects = keyof SpaceObjects> {
 
     private createBlip = (spaceObject: SpaceObjects[K]): Blip<K> => {
         const stage = new Container();
-        const renderer = new this.drawFunctions[spaceObject.type as K](stage, this.blipSize);
+        const renderer = new this.drawFunctions[spaceObject.type as K](stage, this.blipSize, spaceObject);
         const data: BlipData = {
             isSelected: false,
             color: white,
