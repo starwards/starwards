@@ -1,5 +1,6 @@
 import {
     Asteroid,
+    Derelict,
     Explosion,
     Faction,
     HackLevel,
@@ -224,6 +225,25 @@ describe('SignalsJobManager', () => {
             // 0.5s lifetime would otherwise expire mid-test and drop any job for the wrong reason
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             expect(scanJobs(shipMgr).map((j) => j.targetId)).to.not.include('blast1');
+        });
+
+        it('scans a derelict to BASIC and no further, keeping its identity (issue #2111)', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
+            const derelict = new Derelict().init(
+                'hulk1',
+                Vec2.make({ x: 0, y: 1000 }),
+                10,
+                Faction.Raiders,
+                'Wreck',
+                0,
+            );
+            spaceMgr.insert(derelict);
+            spaceMgr.forceFlushEntities();
+
+            runTicks(spaceMgr, 12, 20, 0.05, shipMgr);
+            expect(spaceMgr.factionIntel.getScanLevel('hulk1', Faction.Gravitas)).to.equal(ScanLevel.BASIC);
+            // and it gives up its queue slot instead of burning tiers that reveal nothing
+            expect(shipMgr.state.signals.jobs.length).to.equal(0);
         });
 
         it('does not let a field of rocks hold the queue — every slot frees up once identified', () => {

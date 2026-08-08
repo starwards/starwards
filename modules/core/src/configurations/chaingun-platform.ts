@@ -87,7 +87,7 @@ export const chaingunPlatformReactor = {
 export const chaingunPlatformProperties = {
     modelName: 'Chaingun Platform',
     totalCoolant: 24,
-    systemKillRatio: 0.5,
+    systemKillRatio: 0.6,
 };
 
 export const chaingunPlatformMagazine = {

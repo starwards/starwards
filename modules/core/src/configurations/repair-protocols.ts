@@ -146,6 +146,16 @@ export const sensorArrayDegauss: RepairProtocolStats = {
     tier: 'field',
 };
 
+export const radarTraverseServoAlignment: RepairProtocolStats = {
+    name: 'Radar traverse servo alignment',
+    targets: [{ system: 'radars', field: 'turnSpeedFactor' }],
+    duration: 30,
+    energyDraw: 3,
+    heat: 15,
+    sideEffectSystems: ['radars'],
+    tier: 'field',
+};
+
 export const signalProcessorRetune: RepairProtocolStats = {
     name: 'Signal-processor retune',
     targets: [
@@ -187,6 +197,33 @@ export const containmentFieldTuning: RepairProtocolStats = {
     heat: 30,
     sideEffectSystems: ['warp'],
     tier: 'field',
+};
+
+/**
+ * `onComplete` for `launcherServoRecalibration`: forces every tube's safety back to locked —
+ * the #2097 default — rather than leaving it however the crew left it mid-operation. Without this,
+ * a tube unlocked while dark (side-effect power === SHUTDOWN, so it couldn't fire anyway) would
+ * fire the instant power returns, which is not an "explicit per-tube player action" on the
+ * now-repaired tube (see `Tube.safetyLocked`'s own doc comment).
+ */
+function relockTubeSafeties(state: ShipState): void {
+    for (const tube of state.tubes) {
+        tube.safetyLocked = true;
+    }
+}
+
+export const launcherServoRecalibration: RepairProtocolStats = {
+    name: 'Launcher servo recalibration',
+    targets: [
+        { system: 'tubes', field: 'bearingSkew' },
+        { system: 'tubes', field: 'rateOfFireFactor' },
+    ],
+    duration: 45,
+    energyDraw: 2,
+    heat: 20,
+    sideEffectSystems: ['tubes'],
+    tier: 'field',
+    onComplete: relockTubeSafeties,
 };
 
 export const fireControlAlignment: RepairProtocolStats = {
@@ -271,12 +308,14 @@ export const repairProtocols = {
     thrustLinePurge,
     feedSystemOverhaul,
     sensorArrayDegauss,
+    radarTraverseServoAlignment,
     signalProcessorRetune,
     powerTrainReset,
     containmentFieldTuning,
     fireControlAlignment,
     hullWideSystemsOverhaul,
     armorPlateRenewal,
+    launcherServoRecalibration,
 } as const satisfies Record<string, RepairProtocolStats>;
 
 export type RepairProtocolName = keyof typeof repairProtocols;

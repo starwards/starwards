@@ -237,6 +237,59 @@ describe('wave_defence map (integration)', () => {
         expect(npcWaveIds().length).toBeGreaterThan(0);
     });
 
+    it('advances the wave when every raider was converted to a Derelict instead of destroyed (issue #2111)', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+        gameDriver.gameManager.update(1 / 20);
+
+        const wave1Ids = npcWaveIds();
+        for (const id of wave1Ids) {
+            gameDriver.spaceManager.convertToDerelict(id);
+        }
+        gameDriver.gameManager.update(1 / 20); // drains destroy commands + inserts derelicts
+        await waitForShipManagersGone(wave1Ids);
+
+        for (let i = 0; i < 14; i++) {
+            gameDriver.gameManager.update(1);
+        }
+        expect(npcWaveIds()).toHaveLength(0); // wave 2 not spawned yet
+
+        gameDriver.gameManager.update(1.5); // crosses the 15s wave-clear mark
+        expect(npcWaveIds().length).toBeGreaterThan(0); // wave 2 spawned: raiders-as-derelicts still counted as gone
+
+        const derelicts = [...gameDriver.spaceManager.state.getAll('Derelict')];
+        expect(derelicts).toHaveLength(wave1Ids.length);
+    });
+
+    it('still declares defeat when a station is converted to a Derelict instead of destroyed (issue #2111)', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+
+        for (const station of STATIONS) {
+            gameDriver.spaceManager.convertToDerelict(station.id);
+        }
+        gameDriver.gameManager.update(1 / 20); // drains destroy commands
+        await waitForShipManagersGone(STATIONS.map((s) => s.id));
+
+        gameDriver.gameManager.update(1 / 20); // map.update() now sees no alive stations -> defeat
+
+        expect(gameDriver.gameManager.state.message).toContain('wave 1');
+        expect(gameDriver.gameManager.state.speed).toEqual(0);
+    });
+
+    it('never converts the player ship, even if convertToDerelict is called directly on it', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+        gameDriver.gameManager.update(1 / 20);
+
+        gameDriver.spaceManager.convertToDerelict('GVTS');
+
+        expect(gameDriver.getShip('GVTS')).not.toEqual(undefined);
+        expect([...gameDriver.spaceManager.state.getAll('Derelict')]).toHaveLength(0);
+    });
+
     it('declares defeat exactly once, pauses via setSpeed(0), and never calls stopGame', async () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
