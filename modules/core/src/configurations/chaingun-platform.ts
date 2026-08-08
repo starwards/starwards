@@ -3,8 +3,8 @@ import { ShipDesign } from '../ship';
 export const chaingunPlatformArmor = {
     numberOfPlates: 36,
     layers: [
-        { type: 'hardened' as const, plateMaxHealth: 60, withFaradayLayer: true },
-        { type: 'composite' as const, plateMaxHealth: 120 },
+        { type: 'hardened' as const, plateMaxHealth: 12.5, withFaradayLayer: true },
+        { type: 'composite' as const, plateMaxHealth: 25 },
     ],
 };
 
