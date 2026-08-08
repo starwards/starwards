@@ -1,5 +1,5 @@
 import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { Asteroid, ScanLevel, ShipModel, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
+import { Asteroid, Derelict, ScanLevel, ShipModel, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
 import { radar, selectionColor, white } from '../../colors';
 
 import { CameraView } from '../camera-view';
@@ -115,6 +115,48 @@ class DradisSpaceshipRenderer implements BlipRenderer<Spaceship> {
         this.circleBevelSprite.alpha = alpha;
     }
 }
+class DradisDerelictRenderer implements BlipRenderer<Derelict> {
+    protected readonly showRadius: boolean = true;
+    private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
+    private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
+    private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
+    private fighterSprite = blipSprite('dradis_fighter', this.blipSize, white);
+    private text = renderText(this.blipSize / 2, [], white);
+    private collisionOutline = new Graphics();
+
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
+        stage.addChild(this.circleBaseSprite);
+        stage.addChild(this.circleBevelSprite);
+        stage.addChild(this.fighterSprite);
+        stage.addChild(this.text);
+        stage.addChild(this.collisionOutline);
+        stage.addChild(this.selectionSprite);
+    }
+
+    redraw(spaceObject: Derelict, { parent, isSelected, alpha, scanLevel }: BlipData): void {
+        const identified = scanLevel >= ScanLevel.BASIC;
+        this.fighterSprite.visible = identified;
+        this.text.visible = identified;
+        if (identified) {
+            this.text.text = `ID: ${spaceObject.id}`;
+            this.text.x = -this.text.getLocalBounds().width / 2;
+            this.fighterSprite.tint = radar.derelictTint;
+            this.fighterSprite.alpha = alpha;
+        }
+        this.collisionOutline.clear();
+        if (this.showRadius) {
+            this.collisionOutline
+                .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+                .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
+        }
+        this.selectionSprite.visible = isSelected;
+        this.circleBevelSprite.tint = radar.derelictTint;
+        this.circleBevelSprite.alpha = alpha;
+    }
+}
 class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
     protected readonly showRadius: boolean = true;
     private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
@@ -205,6 +247,44 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
         this.selectionSprite.width = blipSize;
     }
 }
+class TacticalDerelictRenderer implements BlipRenderer<Derelict> {
+    private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
+    private fighterSprite = blipSprite('tactical_fighter', this.blipSize, white);
+    private text = renderText(this.blipSize / 2, [], white);
+    private collisionOutline = new Graphics();
+
+    constructor(
+        stage: Container,
+        private blipSize: number,
+    ) {
+        stage.addChild(this.fighterSprite);
+        stage.addChild(this.text);
+        stage.addChild(this.collisionOutline);
+        stage.addChild(this.selectionSprite);
+    }
+
+    redraw(spaceObject: Derelict, { parent, isSelected, blipSize, alpha, scanLevel }: BlipData): void {
+        const identified = scanLevel >= ScanLevel.BASIC;
+        this.fighterSprite.visible = identified;
+        this.text.visible = identified;
+        if (identified) {
+            this.fighterSprite.angle = (spaceObject.angle - parent.camera.angle) % 360;
+            this.fighterSprite.tint = radar.derelictTint;
+            this.fighterSprite.alpha = alpha;
+            this.fighterSprite.height = blipSize;
+            this.fighterSprite.width = blipSize;
+            this.text.text = `ID: ${spaceObject.id}`;
+            this.text.x = -this.text.getLocalBounds().width / 2;
+        }
+        this.collisionOutline.clear();
+        this.collisionOutline
+            .circle(0, 0, parent.metersToPixles(spaceObject.radius))
+            .stroke({ width: 1, color: radar.collisionOutline, alpha: 0.5 });
+        this.selectionSprite.visible = isSelected;
+        this.selectionSprite.height = blipSize;
+        this.selectionSprite.width = blipSize;
+    }
+}
 class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
     private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
     private iconSprite = blipSprite('tactical_waypoint', this.blipSize, white);
@@ -236,6 +316,7 @@ class TacticalWaypointRenderer implements BlipRenderer<Waypoint> {
 export const dradisDrawFunctions = {
     Spaceship: DradisSpaceshipRenderer,
     Asteroid: DradisAsteroidRenderer,
+    Derelict: DradisDerelictRenderer,
 };
 
 class DradisNoRadiusSpaceshipRenderer extends DradisSpaceshipRenderer {
@@ -244,10 +325,14 @@ class DradisNoRadiusSpaceshipRenderer extends DradisSpaceshipRenderer {
 class DradisNoRadiusAsteroidRenderer extends DradisAsteroidRenderer {
     protected override readonly showRadius = false;
 }
+class DradisNoRadiusDerelictRenderer extends DradisDerelictRenderer {
+    protected override readonly showRadius = false;
+}
 
 export const dradisNoRadiusDrawFunctions = {
     Spaceship: DradisNoRadiusSpaceshipRenderer,
     Asteroid: DradisNoRadiusAsteroidRenderer,
+    Derelict: DradisNoRadiusDerelictRenderer,
 };
 
 export const tacticalDrawWaypoints = {
@@ -259,4 +344,5 @@ export const tacticalDrawFunctions = {
     Asteroid: CircleRenderer,
     Projectile: CircleRenderer,
     Explosion: CircleRenderer,
+    Derelict: TacticalDerelictRenderer,
 };
