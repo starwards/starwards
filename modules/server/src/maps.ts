@@ -73,3 +73,16 @@ export const single_ship = {
         game.addPlayerSpaceship(spaceObject);
     },
 };
+
+const testTargetShipId = 'GVTS2';
+export const two_ships = {
+    name: 'two_ships',
+    testShipId,
+    testTargetShipId,
+    init: (game: GameApi) => {
+        const spaceObject = new Spaceship().init(testShipId, new Vec2(0, 0), 'demo-ship', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
+        const target = new Spaceship().init(testTargetShipId, new Vec2(1000, 0), 'gravitas', Faction.Gravitas);
+        game.addPlayerSpaceship(target);
+    },
+};
