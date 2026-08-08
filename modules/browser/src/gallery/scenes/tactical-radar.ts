@@ -1,6 +1,7 @@
 import { cataphract, demoShip, makeShipState } from '@starwards/core';
 import {
     createMockAsteroid,
+    createMockExplosion,
     createMockProjectile,
     createMockShip,
     createMockSpaceDriver,
@@ -142,6 +143,31 @@ export const tacticalRadarScenes: Record<string, Scene> = {
 
             const mockContainer = createMockContainer(container);
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, enemyShip, shell1, shell2, shell3]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: RANGE,
+            });
+        },
+    },
+
+    'tactical-radar-with-explosion': {
+        name: 'tactical-radar-with-explosion',
+        description:
+            'An explosion sits between the ship and an asteroid: no blip for the blast itself, but the ' +
+            'asteroid behind it stays hidden — the explosion still shadows the field of view',
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 0);
+
+            const blast = createMockExplosion({ id: 'blast-1', position: { x: 1000, y: 0 }, radius: 250 });
+            const hiddenAsteroid = createMockAsteroid({
+                id: 'hidden-rock',
+                position: { x: 1800, y: 0 },
+                radius: 100,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, blast, hiddenAsteroid]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
             return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {

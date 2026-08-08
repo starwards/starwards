@@ -78,7 +78,7 @@ async function initScreen(driver: Driver, shipId: string) {
     radar.addLayer(new SignalsJobsLayer(radar, spaceDriver, shipDriver).renderRoot);
 
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
-    drawTargetInfo(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipDriver, stationTarget);
+    drawTargetInfo(container.subContainer(VPos.MIDDLE, HPos.RIGHT), driver, spaceDriver, shipDriver, stationTarget);
     const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
     drawSystemsStatus(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver, radarSystems);
     // the scan beam is the ship's steerable radar — the one whose arc has room to trade for reach

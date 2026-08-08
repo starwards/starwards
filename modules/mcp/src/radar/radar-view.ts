@@ -1,11 +1,13 @@
 import {
     Faction,
     FieldOfView,
+    Nebula,
     Projectile,
     SpaceDriver,
     SpaceObject,
     SpatialIndex,
     getSpatialIndex,
+    isSensorInvisible,
 } from '@starwards/core/internal';
 
 /**
@@ -41,13 +43,21 @@ export class RadarView {
                 visible.add(object);
                 continue;
             }
-            if (object.faction !== faction) {
+            if (Nebula.isInstance(object)) {
+                // a nebula is a visible optical hazard, not a scanned contact: every radar shows
+                // it regardless of field of view, matching the browser's RadarRangeFilter.
+                visible.add(object);
+                continue;
+            }
+            if (isSensorInvisible(object) || object.faction !== faction) {
                 continue;
             }
             const fov = new FieldOfView(this.spatial, object);
             visible.add(object);
             for (const visibleArc of fov.view) {
-                visibleArc.object && visible.add(visibleArc.object);
+                if (visibleArc.object && !isSensorInvisible(visibleArc.object)) {
+                    visible.add(visibleArc.object);
+                }
             }
         }
         return visible;

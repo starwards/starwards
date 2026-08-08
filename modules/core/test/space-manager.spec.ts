@@ -4,6 +4,7 @@ import {
     Asteroid,
     Explosion,
     Faction,
+    Nebula,
     Projectile,
     REAR_ARC,
     RTuple2,
@@ -150,6 +151,26 @@ describe('SpaceManager', () => {
                 },
             ),
         );
+    });
+    it('a ship passes through a nebula unharmed, with no velocity or health effects (issue #2123)', () => {
+        const timeInSeconds = 3;
+        const numIterationsPerSecond = 20;
+        const nebula = new Nebula();
+        nebula.init('fog', Vec2.make({ x: 0, y: 0 }), 300);
+
+        const collider = new Asteroid();
+        collider.radius = GENERIC_SHIP_RADIUS;
+        const initialHealth = collider.health;
+        const { velocity, position } = calcCollider(timeInSeconds, nebula, bulletSpeed);
+        collider.velocity = Vec2.make(velocity);
+        collider.init('collider', Vec2.make(position));
+
+        new SpaceSimulator(numIterationsPerSecond).withObjects(nebula, collider).simulateUntilTime(timeInSeconds * 1.5);
+
+        expect(collider.health).to.equal(initialHealth);
+        expect(collider.velocity.x).to.be.closeTo(velocity.x, 0.01);
+        expect(collider.velocity.y).to.be.closeTo(velocity.y, 0.01);
+        expect(nebula.destroyed).to.equal(false);
     });
     it('solid-collision damage per second is frame-rate independent', () => {
         function totalDamageForOneTick(deltaSeconds: number) {

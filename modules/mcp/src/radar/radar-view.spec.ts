@@ -1,13 +1,16 @@
 import {
     Asteroid,
+    Explosion,
     Faction,
     FieldOfView,
+    Nebula,
     Projectile,
     RadarSector,
     SpaceObject,
     Spaceship,
     SpatialIndex,
     Vec2,
+    isSensorInvisible,
 } from '@starwards/core/internal';
 
 import { RadarView } from './radar-view';
@@ -50,17 +53,38 @@ function asteroid(id: string, x: number, y: number, radius = 50) {
     return a;
 }
 
+function nebula(id: string, x: number, y: number, radius = 50) {
+    const n = new Nebula();
+    n.id = id;
+    n.position = new Vec2(x, y);
+    n.radius = radius;
+    return n;
+}
+
+function explosion(id: string, x: number, y: number, radius = 200) {
+    const e = new Explosion().init(id, new Vec2(x, y), 20);
+    e.radius = radius;
+    return e;
+}
+
 /**
  * The browser's `RadarRangeFilter.update()`, reduced to the set it produces. The production code
  * must agree with this on every case below — this is the definition of "sees what the station sees".
  */
 function browserVisibleSet(spatial: SpatialIndex, objects: SpaceObject[], faction: Faction): Set<SpaceObject> {
     const visible = new Set<SpaceObject>();
-    for (const observer of objects.filter((o) => o.faction === faction)) {
+    for (const observer of objects.filter((o) => o.faction === faction && !isSensorInvisible(o))) {
         const fov = new FieldOfView(spatial, observer);
         visible.add(observer);
         for (const arc of fov.view) {
-            arc.object && visible.add(arc.object);
+            if (arc.object && !isSensorInvisible(arc.object)) {
+                visible.add(arc.object);
+            }
+        }
+    }
+    for (const object of objects) {
+        if (Nebula.isInstance(object)) {
+            visible.add(object);
         }
     }
     return visible;
@@ -141,6 +165,30 @@ describe('RadarView', () => {
         expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['own']);
     });
 
+    it('a nebula occludes like a solid body and is itself always visible, even with no radar of its own (issue #2123)', () => {
+        const objects = [
+            ship('own', 0, 0, Faction.Gravitas, 50_000),
+            nebula('fog', 1000, 0, 500),
+            asteroid('hidden', 2000, 0, 50),
+        ];
+        const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
+        expect(visible).to.include('fog');
+        expect(visible).to.not.include('hidden');
+        expect(visible).to.deep.equal(ids(browserVisibleSet(makeSpatialIndex(objects), objects, Faction.Gravitas)));
+    });
+
+    it('shows every faction the same nebula, unlike an enemy radar contact', () => {
+        // 'fog' is out of every ship's radar reach, and belongs to no faction (unlike 'foe'
+        // below) -- it is visible anyway, on both the Gravitas and Raiders faction radars.
+        const objects = [
+            ship('own', 0, 0, Faction.Gravitas),
+            ship('foe', 0, 0, Faction.Raiders),
+            nebula('fog', 100_000, 0, 500),
+        ];
+        expect(ids(viewOf(objects).visibleObjects(Faction.Gravitas))).to.deep.equal(['fog', 'own']);
+        expect(ids(viewOf(objects).visibleObjects(Faction.Raiders))).to.deep.equal(['foe', 'fog']);
+    });
+
     it('shows the game master everything, unfiltered', () => {
         const objects = [
             ship('own', 0, 0, Faction.Gravitas),
@@ -148,6 +196,29 @@ describe('RadarView', () => {
             asteroid('rock', 500_000, 0),
         ];
         expect(ids(viewOf(objects).visibleObjects(undefined))).to.deep.equal(['foe', 'own', 'rock']);
+    });
+
+    it('drops an explosion from a player radar — it is a shadow, not a contact', () => {
+        const objects = [ship('own', 0, 0, Faction.Gravitas, 5000), explosion('blast', 1000, 0)];
+        const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
+        expect(visible).to.not.include('blast');
+        expect(visible).to.deep.equal(ids(browserVisibleSet(makeSpatialIndex(objects), objects, Faction.Gravitas)));
+    });
+
+    it('still shows the explosion to the game master', () => {
+        const objects = [ship('own', 0, 0, Faction.Gravitas, 5000), explosion('blast', 1000, 0)];
+        expect(ids(viewOf(objects).visibleObjects(undefined))).to.deep.equal(['blast', 'own']);
+    });
+
+    it('an explosion still shadows what lies behind it, even though it produces no contact of its own', () => {
+        const objects = [
+            ship('own', 0, 0, Faction.Gravitas, 50_000),
+            explosion('blast', 1000, 0),
+            asteroid('hidden', 2000, 0, 50),
+        ];
+        const visible = ids(viewOf(objects).visibleObjects(Faction.Gravitas));
+        expect(visible).to.not.include('blast');
+        expect(visible).to.not.include('hidden');
     });
 
     describe('ownProjectiles', () => {
