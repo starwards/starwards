@@ -2,7 +2,7 @@ import * as http from 'http';
 import * as maps from './maps';
 import * as path from 'path';
 
-import { GameRecorder, isRecordingName } from './recording/game-recorder';
+import { GameRecorder, RecordingConflictError, isRecordingName } from './recording/game-recorder';
 import { GameStatus, createLogger } from '@starwards/core/internal';
 import { NextFunction, Request, Response } from 'express';
 import { Server, matchMaker } from '@colyseus/core';
@@ -36,6 +36,7 @@ function recordingsDirPath(env: Record<string, string | undefined> = process.env
 
 export const HTTP_CONFLICT_STATUS = 409;
 const HTTP_BAD_REQUEST_STATUS = 400;
+const HTTP_INTERNAL_SERVER_ERROR_STATUS = 500;
 export async function server(
     port: number,
     staticDirs: string | string[],
@@ -113,7 +114,9 @@ export async function server(
                 res.json({ name });
             } catch (e) {
                 logError(`can't start recording:`, e);
-                res.sendStatus(HTTP_CONFLICT_STATUS);
+                res.sendStatus(
+                    e instanceof RecordingConflictError ? HTTP_CONFLICT_STATUS : HTTP_INTERNAL_SERVER_ERROR_STATUS,
+                );
             }
         }),
     );

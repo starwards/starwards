@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { GameRecorder } from './game-recorder';
+import { GameRecorder, RecordingConflictError } from './game-recorder';
 import { makeDriver } from '../test/driver';
 import { parseFrameLine } from './recording-format';
 import { waitFor } from '@starwards/core/internal';
@@ -42,6 +42,17 @@ describe('GameRecorder', () => {
         expect(parseFrameLine(lines[1])).not.toBeNull();
 
         await recorder.stopRecording();
+    });
+
+    it('reports an unwritable recordings dir as an I/O failure, not a conflict', async () => {
+        gameDriver.pauseGameCommand();
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        const blocked = path.join(tmpDir, 'a-file');
+        await fs.writeFile(blocked, 'not a directory', 'utf-8');
+        const recorder = new GameRecorder(gameDriver.gameManager, path.join(blocked, 'recordings'), 15);
+
+        await expect(recorder.startRecording()).rejects.not.toBeInstanceOf(RecordingConflictError);
+        expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
     });
 
     it('rejects starting a second recording while one is already running', async () => {
@@ -129,6 +140,19 @@ describe('GameRecorder', () => {
         await recorder.stopRecording();
         await expect(recorder.stopRecording()).resolves.not.toThrow();
         expect(gameDriver.gameManager.state.isRecordingGame).toBe(false);
+    });
+
+    it('lists recordings newest first', async () => {
+        gameDriver.pauseGameCommand();
+        await gameDriver.gameManager.startGame((await import('../maps')).test_map_1);
+        const recorder = new GameRecorder(gameDriver.gameManager, tmpDir, 15);
+        const older = await recorder.startRecording();
+        await recorder.stopRecording();
+        await new Promise((res) => setTimeout(res, 5)); // distinct startedAt / filename
+        const newer = await recorder.startRecording();
+        await recorder.stopRecording();
+
+        expect((await recorder.listRecordings()).map((r) => r.name)).toEqual([newer, older]);
     });
 
     it('listRecordings summarizes name / mapName / startedAt / duration / frame count', async () => {

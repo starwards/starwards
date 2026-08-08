@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
-import { GameStatus, waitFor } from '@starwards/core/internal';
+import { Asteroid, GameStatus, Vec2, XY, makeId, waitFor } from '@starwards/core/internal';
 import { encodeFrameLine, encodeHeader } from './recording-format';
 
 import { ReplayPlayer } from './replay-player';
@@ -221,6 +221,52 @@ describe('ReplayPlayer', () => {
             2000,
             20,
         );
+
+        player.stop();
+    });
+
+    it('gives an object that appears mid-replay a collision body, so the manager can find it', async () => {
+        const frame0 = await recordedFramesFromLiveGame('test_map_1');
+        const asteroid = new Asteroid().init(makeId(), Vec2.make({ x: 5000, y: 5000 }), 50);
+        const frame1 = frame0.clone();
+        frame1.fragment.space.set(asteroid);
+
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'test_map_1', [
+            { t: 0, game: frame0 },
+            { t: 1, game: frame1 },
+        ]);
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.test_map_1.name, maps.test_map_1]]));
+        await player.startReplay(file);
+        await player.advanceTo(gameDriver.gameManager.totalSeconds + 5);
+
+        const spaceManager = gameDriver.spaceManager;
+        expect(spaceManager.state.get(asteroid.id)).toBeDefined();
+        const probe = spaceManager.collisions.createCircle(XY.clone(asteroid.position), 100);
+        const nearby = [...spaceManager.spatialIndex.queryArea(probe)].map((o) => o.id);
+        expect(nearby).toContain(asteroid.id);
+
+        player.stop();
+    });
+
+    it('discards commands queued while a replay is playing, instead of piling them up', async () => {
+        const frame0 = await recordedFramesFromLiveGame('test_map_1');
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'test_map_1', [{ t: 0, game: frame0 }]);
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.test_map_1.name, maps.test_map_1]]));
+        await player.startReplay(file);
+
+        const shipId = gameDriver.gameManager.state.shipIds[0];
+        gameDriver.spaceManager.state.moveCommands.push({ ids: [shipId], delta: { x: 10, y: 10 } });
+        gameDriver.gameManager.update(0.1);
+
+        expect(gameDriver.spaceManager.state.moveCommands).toHaveLength(0);
 
         player.stop();
     });

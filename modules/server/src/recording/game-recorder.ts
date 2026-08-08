@@ -32,6 +32,13 @@ export function isRecordingName(name: string): boolean {
 }
 
 /**
+ * A precondition on the game itself, not a failure of the recording machinery — the caller
+ * can retry once the game state allows it. Everything else (disk full, unwritable directory)
+ * is a server-side failure and must not be reported as a conflict.
+ */
+export class RecordingConflictError extends Error {}
+
+/**
  * Records a running game to a JSONL file on a wall-clock interval, for later replay
  * (see `ReplayPlayer`). Owned by the server layer, like `startSnapshotPersistence` — not by
  * `GameManager` — so a stopped game (via any path) is simply the next tick's `saveGame()`
@@ -54,14 +61,14 @@ export class GameRecorder {
 
     public async startRecording(): Promise<string> {
         if (!this.manager.state.isGameRunning) {
-            throw new Error("can't start recording: no game is running");
+            throw new RecordingConflictError("can't start recording: no game is running");
         }
         if (this.manager.state.isRecordingGame) {
-            throw new Error('a recording is already in progress');
+            throw new RecordingConflictError('a recording is already in progress');
         }
         const savedGame = this.manager.saveGame();
         if (!savedGame) {
-            throw new Error("can't start recording: no game is running");
+            throw new RecordingConflictError("can't start recording: no game is running");
         }
         const startedAt = new Date().toISOString();
         const filename = `${savedGame.mapName}_${Date.now()}${RECORDING_EXT}`;
@@ -86,7 +93,7 @@ export class GameRecorder {
         }
         if (!this.filePath) {
             // the game stopped while frame 0 was being written; writeFrame already finalized
-            throw new Error("can't start recording: the game stopped before the first frame");
+            throw new RecordingConflictError("can't start recording: the game stopped before the first frame");
         }
         this.timer = setInterval(() => this.tick(), this.intervalMs);
         this.timer.unref();
@@ -132,6 +139,8 @@ export class GameRecorder {
             const summary = await summarizeRecording(path.join(this.dir, name), name);
             if (summary) summaries.push(summary);
         }
+        // newest first: the recording a GM wants to replay is nearly always the last one made
+        summaries.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
         return summaries;
     }
 

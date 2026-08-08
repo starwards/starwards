@@ -32,6 +32,8 @@ export class GameManager {
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
+    /** Ships whose replay-driven teardown was already scheduled but hasn't finished yet. */
+    private replayCleanedShips = new Set<string>();
     private die = new ShipDie();
     public spaceManager = new SpaceManager();
     private map: GameMap | null = null;
@@ -89,6 +91,10 @@ export class GameManager {
         this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
         if (this.state.gameStatus === GameStatus.REPLAY) {
             this.replayTick?.(this._totalSeconds);
+            // A replay is read-only: the recording is the source of truth, and anything applied
+            // here would be overwritten by the next frame. Discard rather than let the queues
+            // grow for the length of the replay and then fire at once when it ends.
+            this.spaceManager.state.discardQueuedCommands();
             return;
         }
         // The loop keeps running even at speed 0 (paused): queued commands (GM edits, scan
@@ -143,6 +149,7 @@ export class GameManager {
             this.state.message = '';
             this.shipCleanups.clear();
             this.shipManagers.clear();
+            this.replayCleanedShips.clear();
             this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
         }
@@ -216,11 +223,35 @@ export class GameManager {
         if (this.state.gameStatus !== GameStatus.REPLAY) {
             return;
         }
-        deepAssignSchema(this.spaceManager.state, frame.fragment.space);
+        // Objects entering and leaving the frame go through SpaceManager, not through
+        // deepAssignSchema's own map add/delete: only insert() builds a collision body and a
+        // field-of-view for an object, and only the destroyed sweep tears them down again.
+        // deepAssignSchema then reconciles the fields of objects that exist in both.
+        const frameSpace = frame.fragment.space;
+        let removedAny = false;
+        for (const existing of this.spaceManager.state) {
+            if (!frameSpace.get(existing.id)) {
+                existing.destroyed = true;
+                removedAny = true;
+            }
+        }
+        if (removedAny) {
+            this.spaceManager.forceFlushDestroyed();
+        }
+        for (const object of frameSpace) {
+            if (!this.spaceManager.state.get(object.id)) {
+                this.spaceManager.insert(object.clone());
+            }
+        }
+        this.spaceManager.forceFlushEntities();
+        deepAssignSchema(this.spaceManager.state, frameSpace);
 
         const frameShipIds = new Set(frame.fragment.ship.keys());
         for (const id of [...this.shipManagers.keys()]) {
-            if (!frameShipIds.has(id)) {
+            // teardown is asynchronous and leaves the id in shipManagers until it completes, so
+            // without this guard every later frame would schedule the same cleanup again
+            if (!frameShipIds.has(id) && !this.replayCleanedShips.has(id)) {
+                this.replayCleanedShips.add(id);
                 this.cleanupShip(id);
             }
         }
@@ -283,6 +314,7 @@ export class GameManager {
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean): ShipManager;
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean) {
         const id = spaceObject.id;
+        this.replayCleanedShips.delete(id);
         const managerCtor = isPlayerShip ? ShipManagerPc : ShipManagerNpc;
         const shipManager = new managerCtor(spaceObject, shipState, this.spaceManager, this.die, this.shipManagers); // create a manager to manage the ship
         this.shipManagers.set(id, shipManager);
