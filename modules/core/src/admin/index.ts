@@ -1,6 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -49,6 +49,7 @@ export class AdminState extends Schema {
      * replay player on its next tick — a seek has to reopen the recording, so it can't be a
      * plain write to {@link replayPosition}.
      */
+    @commandable()
     @gameField('float32')
     replaySeekCommand = -1;
 
