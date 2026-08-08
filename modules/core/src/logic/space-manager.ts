@@ -660,9 +660,16 @@ export class SpaceManager implements Updateable {
             ) {
                 let positionChange: XY | null = null;
                 if (Projectile.isInstance(subject)) {
-                    if (subject.fuze.type === 'proximity') {
+                    // A proximity fuze reacts to solid contacts, not to blast clouds. Without this
+                    // guard, a sustained cannonade leaves a trail of still-expanding Explosion
+                    // bodies along the firing line; a later shell physically collides with that
+                    // trail and self-detonates short of its real target. Each shot then detonates
+                    // a little earlier than the last, walking the blast back toward the shooter
+                    // until one overlaps the shooter itself and its impulse flings it out of range
+                    // (issue #2108).
+                    if (subject.fuze.type === 'proximity' && !Explosion.isInstance(object)) {
                         this.explodeProjectile(subject);
-                    } else {
+                    } else if (subject.fuze.type !== 'proximity') {
                         this.resolveProjectileContactDamage(subject, object, deltaSeconds);
                     }
                 } else if (Explosion.isInstance(subject)) {
