@@ -66,6 +66,11 @@ export class Dashboard extends GoldenLayout {
         this.updateSize(this.container.width(), this.container.height());
     };
 
+    public destroy(): void {
+        window.removeEventListener('resize', this.resize);
+        super.destroy();
+    }
+
     public setup(): void {
         this.destroy();
         if (this.dragContainer) {
