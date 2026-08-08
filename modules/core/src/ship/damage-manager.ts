@@ -57,7 +57,7 @@ export class DamageManager {
                     broken: 0,
                 });
             if (count * this.state.design.systemKillRatio < broken) {
-                this.spaceManager.destroyObject(this.spaceObject.id);
+                this.spaceManager.convertToDerelict(this.spaceObject.id);
             }
         }
     }
