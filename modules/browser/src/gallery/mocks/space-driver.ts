@@ -1,4 +1,4 @@
-import { Asteroid, Projectile, SpaceObject, Spaceship, Waypoint, XY } from '@starwards/core';
+import { Asteroid, Explosion, Projectile, SpaceObject, Spaceship, Vec2, Waypoint, XY } from '@starwards/core';
 
 import EventEmitter2 from 'eventemitter2';
 
@@ -57,6 +57,22 @@ export function createMockAsteroid(
     }
     asteroid.radius = overrides.radius ?? 50;
     return asteroid;
+}
+
+export function createMockExplosion(
+    overrides: Partial<{
+        id: string;
+        position: XY;
+        radius: number;
+    }> = {},
+): Explosion {
+    const explosion = new Explosion().init(
+        overrides.id ?? `explosion-${Math.random().toString(36).substr(2, 9)}`,
+        Vec2.make(overrides.position ?? { x: 0, y: 0 }),
+        20,
+    );
+    explosion.radius = overrides.radius ?? 200;
+    return explosion;
 }
 
 export function createMockWaypoint(

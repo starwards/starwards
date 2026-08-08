@@ -6,6 +6,7 @@ import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
 import { Spaceship } from '../space';
 import { findLastIndex } from '../utils';
+import { isSensorInvisible } from '../space/explosion';
 import { makeId } from '../id';
 
 export class SignalsJobManager implements Updateable {
@@ -213,7 +214,7 @@ export class SignalsJobManager implements Updateable {
             if (jobs.length >= this.state.signals.currentMaxJobs) {
                 break;
             }
-            if (target.id === this.state.id || target.destroyed) {
+            if (target.id === this.state.id || target.destroyed || isSensorInvisible(target)) {
                 continue;
             }
             if (
