@@ -11,7 +11,7 @@ import { schemaToString } from '../serialization/game-state-serialization';
 
 const { error: logError } = createLogger('server:game-recorder');
 
-interface RecordingSummary {
+export interface RecordingSummary {
     name: string;
     mapName: string;
     startedAt: string;
@@ -172,13 +172,16 @@ export class GameRecorder {
     }
 }
 
-async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
+/**
+ * Reads a recording's header and scans to its last frame for the total length. Counts lines
+ * rather than decoding them: every frame line carries a multi-KB encoded snapshot, and only
+ * the tail's timestamp is needed.
+ */
+export async function summarizeRecording(filePath: string, name: string): Promise<RecordingSummary | null> {
     const fileStream = createReadStream(filePath, { encoding: 'utf-8' });
     const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
     let header: RecordingHeader | null = null;
     let frameCount = 0;
-    // Only the last frame's `t` is needed, and every frame line carries a multi-KB encoded
-    // snapshot — so lines are counted, not parsed, and only the tail is decoded.
     let lastLine: string | null = null;
     let prevLine: string | null = null;
     try {

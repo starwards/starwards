@@ -16,6 +16,7 @@ import { WaypointPlacementLayer } from '../radar/waypoint-placement-layer';
 import { WaypointSelectionLayer } from '../radar/waypoint-selection-layer';
 
 import { drawPlacementSettings } from '../widgets/waypoint-placement-settings';
+import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { drawWaypointGroups } from '../widgets/waypoint-groups';
 import { setupHotkeyHelp } from '../input/hotkey-help';
@@ -59,6 +60,8 @@ async function initScreen(driver: Driver, shipId: string) {
 
     const { root: radarView, layers, follow } = await drawRelayRadar(spaceDriver, shipDriver, container, zoomEvents);
     container.getElement().on('contextmenu', (e) => e.preventDefault());
+
+    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
 
     const waypointSelection = new SelectionContainer().init(spaceDriver);
     const layersPanel = new RadarLayersPanel(container.subContainer(VPos.TOP, HPos.RIGHT));

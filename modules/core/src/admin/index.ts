@@ -36,6 +36,14 @@ export class AdminState extends Schema {
     @gameField('string')
     message = '';
 
+    /** Seconds into the recording currently being replayed. Meaningless unless `gameStatus` is `REPLAY`. */
+    @gameField('float32')
+    replayPosition = 0;
+
+    /** Full length in seconds of the recording currently being replayed. 0 while not replaying. */
+    @gameField('float32')
+    replayDuration = 0;
+
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;
     }

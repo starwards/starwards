@@ -1,8 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 import { makeDriver } from './driver';
+import { maps } from '@starwards/server';
+import { navigateToScreen } from './test-infrastructure';
 
 const gameDriver = makeDriver(test);
+const { single_ship } = maps;
 
 test('record a game session and replay it from the lobby', async ({ page }) => {
     await page.goto(`${gameDriver.baseURL}/`);
@@ -28,4 +31,28 @@ test('record a game session and replay it from the lobby', async ({ page }) => {
 
     await page.locator('[data-id="stop replay"]').click({ delay: 200 });
     await newGame.waitFor({ state: 'visible' });
+});
+
+test('a station watching a replay shows the observation chip, and drops it when the replay ends', async ({ page }) => {
+    const shipId = single_ship.testShipId;
+    await gameDriver.gameManager.startGame(single_ship);
+
+    await page.request.post(`${gameDriver.baseURL}/start-recording`);
+    await page.waitForTimeout(1200); // at least one frame past frame 0
+    await page.request.post(`${gameDriver.baseURL}/stop-recording`);
+    await page.request.post(`${gameDriver.baseURL}/stop-game`);
+
+    const recordings = (await (await page.request.get(`${gameDriver.baseURL}/recordings`)).json()) as Array<{
+        name: string;
+    }>;
+    await page.request.post(`${gameDriver.baseURL}/start-replay`, { data: { name: recordings[0].name } });
+
+    await navigateToScreen(page, `/weapons.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
+    const chip = page.locator('[data-id="observation-mode"]');
+    await expect(chip).toBeVisible({ timeout: 10000 });
+    await expect(chip).toContainText('REPLAY');
+    await expect(chip).toContainText('OBSERVATION');
+
+    await page.request.post(`${gameDriver.baseURL}/stop-game`);
+    await expect(chip).toBeHidden();
 });

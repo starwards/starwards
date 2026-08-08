@@ -20,6 +20,7 @@ import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { replayControlsWidget } from '../widgets/replay-controls';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
@@ -73,6 +74,7 @@ void driver.waitForGame().then(
         dashboard.registerWidget(gmWidgets.radar);
         dashboard.registerWidget(gmWidgets.tweak);
         dashboard.registerWidget(gmWidgets.create);
+        dashboard.registerWidget(replayControlsWidget(await driver.getAdminDriver()));
 
         dashboard.setup();
         // constantly scan for new ships and add widgets for them

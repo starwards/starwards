@@ -9,6 +9,7 @@ import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
 import { drawGunStatus } from '../widgets/gun';
+import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTacticalRadar } from '../widgets/tactical-radar';
 import { drawTargetingStatus } from '../widgets/targeting';
@@ -50,6 +51,7 @@ async function initScreen(driver: Driver, shipId: string) {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
+    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),

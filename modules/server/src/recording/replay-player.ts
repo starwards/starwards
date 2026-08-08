@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import * as readline from 'node:readline';
 
 import { GameMap, GameStatus, createLogger } from '@starwards/core/internal';
@@ -7,6 +8,7 @@ import { GameManager } from '../admin/game-manager';
 import { SavedGame } from '../serialization/game-state-protocol';
 import { createReadStream } from 'node:fs';
 import { stringToSchema } from '../serialization/game-state-serialization';
+import { summarizeRecording } from './game-recorder';
 
 const { error: logError } = createLogger('server:replay-player');
 
@@ -116,6 +118,8 @@ export class ReplayPlayer {
             reader.close();
             throw new Error('recording has no frames');
         }
+        // scanned up front so every station can show how far into the recording it is watching
+        const summary = await summarizeRecording(filePath, path.basename(filePath));
         await this.manager.loadGame(frame0.savedGame, map);
         this.reader = reader;
         this.currentFrame = frame0;
@@ -128,6 +132,8 @@ export class ReplayPlayer {
         // consumed on the first tick.
         this.clockOffset = this.manager.totalSeconds - frame0.t;
         this.speedBeforeReplay = this.manager.state.speed;
+        this.manager.state.replayDuration = summary?.durationSeconds ?? 0;
+        this.manager.state.replayPosition = frame0.t;
         this.manager.state.gameStatus = GameStatus.REPLAY;
         this.manager.replayTick = (totalSeconds) => {
             this.advanceTo(totalSeconds).catch((e: unknown) => logError('error advancing replay:', e));
@@ -171,6 +177,9 @@ export class ReplayPlayer {
             return;
         }
         const replaySeconds = totalSeconds - this.clockOffset;
+        // the clock, not the last frame applied: the position readout moves smoothly between
+        // frames instead of stepping once per recorded second
+        this.manager.state.replayPosition = Math.min(replaySeconds, this.manager.state.replayDuration);
         let latest = this.currentFrame;
         for (;;) {
             const next = await reader.peekNext();
@@ -209,6 +218,8 @@ export class ReplayPlayer {
         this.currentFrame = null;
         this.ended = true;
         this.queuedTarget = null;
+        this.manager.state.replayPosition = 0;
+        this.manager.state.replayDuration = 0;
         if (this.speedBeforeReplay !== null) {
             this.manager.state.speed = this.speedBeforeReplay;
             this.speedBeforeReplay = null;
