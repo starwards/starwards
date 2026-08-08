@@ -56,7 +56,7 @@ export const largeStationReactor = {
 export const largeStationProperties = {
     modelName: 'Large Station',
     totalCoolant: 24,
-    systemKillRatio: 0.5,
+    systemKillRatio: 0.6,
 };
 
 export const largeStationMagazine = {

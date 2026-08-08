@@ -5,6 +5,7 @@ type MissileCounts = Partial<Record<(typeof ammoTypes)[number], number>>;
 type HullExpectation = {
     key: string;
     coolant: number;
+    systemKillRatio: number;
     plates: number;
     layers: Array<{ type: string; health: number; faraday?: boolean }>;
     speed: number;
@@ -36,6 +37,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'dragonfly-MK1',
         coolant: 6,
+        systemKillRatio: 0.5,
         plates: 8,
         layers: [{ type: 'composite', health: 50 }],
         speed: 600,
@@ -58,6 +60,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'dragonfly-MK2',
         coolant: 6,
+        systemKillRatio: 0.5,
         plates: 8,
         layers: [{ type: 'composite', health: 75 }],
         speed: 400,
@@ -80,6 +83,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'gravitas',
         coolant: 10,
+        systemKillRatio: 0.5,
         plates: 16,
         layers: [
             { type: 'whipple', health: 50 },
@@ -112,6 +116,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'predator',
         coolant: 10,
+        systemKillRatio: 0.5,
         plates: 16,
         layers: [
             { type: 'whipple', health: 50 },
@@ -137,6 +142,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'glaive',
         coolant: 16,
+        systemKillRatio: 0.5,
         plates: 24,
         layers: [{ type: 'composite', health: 175 }],
         speed: 300,
@@ -162,6 +168,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'cataphract',
         coolant: 20,
+        systemKillRatio: 0.5,
         plates: 32,
         layers: [
             { type: 'hardened', health: 70 },
@@ -191,6 +198,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'freighter',
         coolant: 10,
+        systemKillRatio: 0.5,
         plates: 24,
         layers: [{ type: 'composite', health: 65 }],
         speed: 200,
@@ -213,6 +221,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'small-station',
         coolant: 24,
+        systemKillRatio: 0.6,
         plates: 36,
         layers: [
             { type: 'whipple', health: 8.3333, faraday: true },
@@ -238,6 +247,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'chaingun-platform',
         coolant: 24,
+        systemKillRatio: 0.6,
         plates: 36,
         layers: [
             { type: 'hardened', health: 12.5, faraday: true },
@@ -265,6 +275,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'large-station',
         coolant: 24,
+        systemKillRatio: 0.6,
         plates: 36,
         layers: [
             { type: 'hardened', health: 16.6667, faraday: true },
@@ -294,7 +305,7 @@ describe('ship roster MVP hull configurations (issue #2042)', () => {
         const design = shipConfigurations[hull.key as keyof typeof shipConfigurations] as ShipDesign;
         expect(design).toBeTruthy();
 
-        expect(design.properties.systemKillRatio).toBe(0.5);
+        expect(design.properties.systemKillRatio).toBe(hull.systemKillRatio);
         expect(design.properties.totalCoolant).toBe(hull.coolant);
 
         expect(design.armor.numberOfPlates).toBe(hull.plates);
