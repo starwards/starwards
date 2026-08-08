@@ -3,8 +3,8 @@ import { ShipDesign } from '../ship';
 export const smallStationArmor = {
     numberOfPlates: 36,
     layers: [
-        { type: 'whipple' as const, plateMaxHealth: 40, withFaradayLayer: true },
-        { type: 'composite' as const, plateMaxHealth: 60 },
+        { type: 'whipple' as const, plateMaxHealth: 8.3333, withFaradayLayer: true },
+        { type: 'composite' as const, plateMaxHealth: 12.5 },
     ],
 };
 
