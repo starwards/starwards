@@ -308,6 +308,73 @@ describe('ReplayPlayer', () => {
         player.stop();
     });
 
+    it('seeks backwards by reopening the recording, and forwards without one', async () => {
+        const frame0 = await recordedFramesFromLiveGame('test_map_1');
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        const originalX = frame0.fragment.space.getShip(shipId)!.position.x;
+        const frame1 = frame0.clone();
+        frame1.fragment.space.getShip(shipId)!.position.x = 111;
+        const frame2 = frame0.clone();
+        frame2.fragment.space.getShip(shipId)!.position.x = 222;
+
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'test_map_1', [
+            { t: 0, game: frame0 },
+            { t: 10, game: frame1 },
+            { t: 20, game: frame2 },
+        ]);
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.test_map_1.name, maps.test_map_1]]));
+        await player.startReplay(file);
+
+        await player.seekTo(20);
+        expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).toBe(222);
+
+        await player.seekTo(10); // backwards: only a reopened reader can reach this
+        expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).toBe(111);
+
+        await player.seekTo(0);
+        expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).toBe(originalX);
+
+        player.stop();
+    });
+
+    it('drains AdminState.replaySeekCommand on the next tick', async () => {
+        const frame0 = await recordedFramesFromLiveGame('test_map_1');
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        const frame1 = frame0.clone();
+        frame1.fragment.space.getShip(shipId)!.position.x = 888;
+
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'test_map_1', [
+            { t: 0, game: frame0 },
+            { t: 30, game: frame1 },
+        ]);
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.test_map_1.name, maps.test_map_1]]));
+        await player.startReplay(file);
+
+        gameDriver.gameManager.state.replaySeekCommand = 30;
+        gameDriver.gameManager.update(1 / 20);
+
+        await waitFor(
+            () => {
+                if (gameDriver.spaceManager.state.getShip(shipId)!.position.x !== 888) {
+                    throw new Error('waiting for the seek to land');
+                }
+            },
+            2000,
+            20,
+        );
+        expect(gameDriver.gameManager.state.replaySeekCommand).toBe(-1);
+
+        player.stop();
+    });
+
     it('stopGame() returns a replay to STOPPED', async () => {
         const frame0 = await recordedFramesFromLiveGame('test_map_1');
         await gameDriver.gameManager.stopGame();

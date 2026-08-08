@@ -13,6 +13,7 @@ import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
+import { gameTransportWidget } from '../widgets/game-transport';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
@@ -20,7 +21,7 @@ import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
-import { replayControlsWidget } from '../widgets/replay-controls';
+
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
@@ -74,7 +75,7 @@ void driver.waitForGame().then(
         dashboard.registerWidget(gmWidgets.radar);
         dashboard.registerWidget(gmWidgets.tweak);
         dashboard.registerWidget(gmWidgets.create);
-        dashboard.registerWidget(replayControlsWidget(await driver.getAdminDriver()));
+        dashboard.registerWidget(gameTransportWidget(await driver.getAdminDriver()));
 
         dashboard.setup();
         // constantly scan for new ships and add widgets for them

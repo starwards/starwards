@@ -81,6 +81,7 @@ class FrameReader {
  * separate one.
  */
 export class ReplayPlayer {
+    private filePath: string | null = null;
     private reader: FrameReader | null = null;
     private currentFrame: DecodedFrame | null = null;
     private ended = false;
@@ -121,6 +122,7 @@ export class ReplayPlayer {
         // scanned up front so every station can show how far into the recording it is watching
         const summary = await summarizeRecording(filePath, path.basename(filePath));
         await this.manager.loadGame(frame0.savedGame, map);
+        this.filePath = filePath;
         this.reader = reader;
         this.currentFrame = frame0;
         this.ended = false;
@@ -135,7 +137,14 @@ export class ReplayPlayer {
         this.manager.state.replayDuration = summary?.durationSeconds ?? 0;
         this.manager.state.replayPosition = frame0.t;
         this.manager.state.gameStatus = GameStatus.REPLAY;
+        this.manager.state.replaySeekCommand = -1;
         this.manager.replayTick = (totalSeconds) => {
+            const seek = this.manager.state.replaySeekCommand;
+            if (seek >= 0) {
+                this.manager.state.replaySeekCommand = -1;
+                this.seekTo(seek).catch((e: unknown) => logError('error seeking replay:', e));
+                return;
+            }
             this.advanceTo(totalSeconds).catch((e: unknown) => logError('error advancing replay:', e));
         };
     }
@@ -154,6 +163,36 @@ export class ReplayPlayer {
         }
         this.advancing = this.runAdvance(totalSeconds);
         return this.advancing;
+    }
+
+    /**
+     * Moves the replay to `seconds` into the recording. Seeking backwards means reopening the
+     * file and decoding forward from frame 0 — the reader is a one-way stream over a format
+     * with no index — so a rewind costs one pass over everything before the target.
+     */
+    public async seekTo(seconds: number): Promise<void> {
+        const filePath = this.filePath;
+        if (!filePath) return;
+        const target = Math.max(0, seconds);
+        while (this.advancing) {
+            await this.advancing;
+        }
+        if (!this.reader || !this.currentFrame || target < this.currentFrame.t) {
+            this.closeReader();
+            const reader = new FrameReader(filePath);
+            await reader.readHeader();
+            const frame0 = await reader.consumeNext();
+            if (!frame0) {
+                reader.close();
+                return;
+            }
+            this.reader = reader;
+            this.currentFrame = null;
+            this.applyFrame(frame0);
+        }
+        this.ended = false;
+        this.clockOffset = this.manager.totalSeconds - target;
+        await this.advanceTo(this.manager.totalSeconds);
     }
 
     private async runAdvance(totalSeconds: number): Promise<void> {
@@ -218,8 +257,10 @@ export class ReplayPlayer {
         this.currentFrame = null;
         this.ended = true;
         this.queuedTarget = null;
+        this.filePath = null;
         this.manager.state.replayPosition = 0;
         this.manager.state.replayDuration = 0;
+        this.manager.state.replaySeekCommand = -1;
         if (this.speedBeforeReplay !== null) {
             this.manager.state.speed = this.speedBeforeReplay;
             this.speedBeforeReplay = null;

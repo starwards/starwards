@@ -44,6 +44,14 @@ export class AdminState extends Schema {
     @gameField('float32')
     replayDuration = 0;
 
+    /**
+     * Seek request, in recording seconds; -1 when there is nothing to seek. Drained by the
+     * replay player on its next tick — a seek has to reopen the recording, so it can't be a
+     * plain write to {@link replayPosition}.
+     */
+    @gameField('float32')
+    replaySeekCommand = -1;
+
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;
     }
