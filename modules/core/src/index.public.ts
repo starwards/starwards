@@ -70,6 +70,7 @@ export {
     SmartPilotMode,
     TargetedStatus,
     WarpFrequency,
+    isRestockingAmmo,
     makeShipState,
     repairCommands,
 } from './ship';
