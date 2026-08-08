@@ -181,7 +181,16 @@ export class GameManager {
         for (const [shipId, shipManager] of this.shipManagers.entries()) {
             state.fragment.ship.set(shipId, shipManager.state);
         }
-        return state.clone();
+        const snapshot = state.clone();
+        // Objects flagged destroyed are still in state until SpaceManager's next GC. They are
+        // gone as far as any player is concerned, so a snapshot must not carry them: a replay
+        // never runs that GC, and a loaded save would resurrect them for a tick. Drop a
+        // destroyed ship's bridge with it, or the frame describes a ship with no hull.
+        for (const destroyed of snapshot.fragment.space[Symbol.iterator](true)) {
+            snapshot.fragment.space.delete(destroyed);
+            snapshot.fragment.ship.delete(destroyed.id);
+        }
+        return snapshot;
     }
 
     public async loadGame(source: SavedGame, map: GameMap) {

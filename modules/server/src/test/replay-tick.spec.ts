@@ -31,6 +31,25 @@ describe('GameManager replay hooks (issue #2101)', () => {
         expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).toBe(before);
     });
 
+    it('leaves destroyed objects out of a snapshot, along with the bridge of a destroyed ship', async () => {
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'two_vs_one' }).expect(200);
+        const asteroid = new Asteroid().init('doomed-rock', Vec2.make({ x: 100, y: 100 }), 50);
+        gameDriver.spaceManager.insert(asteroid);
+        gameDriver.spaceManager.forceFlushEntities();
+        const shipId = gameDriver.gameManager.state.shipIds[0];
+
+        expect(gameDriver.gameManager.saveGame()!.fragment.space.get(asteroid.id)).toBeDefined();
+
+        // flagged, but SpaceManager's GC has not run yet — the state still holds both
+        asteroid.destroyed = true;
+        gameDriver.spaceManager.state.getShip(shipId)!.destroyed = true;
+
+        const saved = gameDriver.gameManager.saveGame()!;
+        expect(saved.fragment.space.get(asteroid.id)).toBeUndefined();
+        expect(saved.fragment.space.getShip(shipId)).toBeUndefined();
+        expect(saved.fragment.ship.has(shipId)).toBe(false);
+    });
+
     it('stopGame() tears a REPLAY down to STOPPED', async () => {
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
         gameDriver.gameManager.state.gameStatus = GameStatus.REPLAY;

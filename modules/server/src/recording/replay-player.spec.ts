@@ -271,6 +271,43 @@ describe('ReplayPlayer', () => {
         player.stop();
     });
 
+    it('creates a ship room for a ship that appears mid-replay', async () => {
+        const full = await recordedFramesFromLiveGame('two_vs_one');
+        const addedShipId = gameDriver.gameManager.state.playerShipIds[0];
+
+        // frame 0 is the same game without that ship, so replaying into `full` adds it
+        const frame0 = full.clone();
+        frame0.fragment.ship.delete(addedShipId);
+        frame0.fragment.space.delete(frame0.fragment.space.getShip(addedShipId)!);
+
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'two_vs_one', [
+            { t: 0, game: frame0 },
+            { t: 1, game: full },
+        ]);
+
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.two_vs_one.name, maps.two_vs_one]]));
+        await player.startReplay(file);
+        expect(gameDriver.gameManager.state.shipIds).not.toContain(addedShipId);
+
+        await player.advanceTo(gameDriver.gameManager.totalSeconds + 5);
+
+        await waitFor(
+            () => {
+                if (!gameDriver.gameManager.state.shipIds.includes(addedShipId)) {
+                    throw new Error('waiting for the ship room to come up');
+                }
+            },
+            2000,
+            20,
+        );
+        expect(gameDriver.spaceManager.state.getShip(addedShipId)).toBeDefined();
+
+        player.stop();
+    });
+
     it('stopGame() returns a replay to STOPPED', async () => {
         const frame0 = await recordedFramesFromLiveGame('test_map_1');
         await gameDriver.gameManager.stopGame();
