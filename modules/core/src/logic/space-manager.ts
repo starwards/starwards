@@ -25,6 +25,12 @@ const { warn: logWarn, error: logError } = createLogger('space-manager');
 
 const GC_TIMEOUT = 5;
 const ZERO_VELOCITY_THRESHOLD = 0;
+/**
+ * dragonfly-MK1's hull radius (modules/core/src/configurations/dragonfly-mk1.ts) — the mass-scaling
+ * normalization point for blast-impulse pushback, so the smallest combat hull keeps today's feel
+ * exactly (issue #2092 design redirect).
+ */
+const BLAST_IMPULSE_MASS_REFERENCE_RADIUS = 11.2;
 
 // hard clamp on any object's speed, enforced at the physics layer after every velocity mutation
 // (thrust, collision/blast impulse, explosion velocity-inheritance). Sits above the ship
@@ -703,10 +709,15 @@ export class SpaceManager implements Updateable {
     ) {
         if (Explosion.isInstance(object)) {
             const exposure = deltaSeconds * Math.min(response.overlap, object.radius * 2);
+            // Treat mass as proportional to radius^3: a blast's momentum transfer accelerates a
+            // heavier (larger) hull proportionally less, same as a real explosion barely budging
+            // a much bigger mass. Damage is untouched -- only the physical pushback scales down
+            // (issue #2092 design redirect).
+            const massScale = (BLAST_IMPULSE_MASS_REFERENCE_RADIUS / subject.radius) ** 3;
             return {
                 damageAmount: object.damageFactor * deltaSeconds * Math.min(response.overlap, object.radius * 2),
                 positionChange: null,
-                velocityChange: XY.scale(response.overlapV, -exposure * object.blastFactor),
+                velocityChange: XY.scale(response.overlapV, -exposure * object.blastFactor * massScale),
             };
         } else {
             const collisionVector = XY.scale(response.overlapV, -0.5);

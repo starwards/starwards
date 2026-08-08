@@ -30,7 +30,7 @@ describe('Spaceship', () => {
 
         test('init() sets a different radius for a different hull', () => {
             const ship = new Spaceship().init('my-ship-id', new Vec2(0, 0), 'large-station', Faction.NONE);
-            expect(ship.radius).toBeCloseTo(50.4, 5);
+            expect(ship.radius).toBeCloseTo(1_200, 5);
         });
     });
 

@@ -88,12 +88,17 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     }
                     // damage arc is expressed in ship-local frame; account for ship's world rotation
                     const explosionLocalAngle = toPositiveDegreesDelta(explosionAngleToShip - shipAngle);
+                    // Mass-scaled blast pushback (issue #2092 design redirect: velocityChange scales by
+                    // (referenceRadius / subject.radius) ** 3) shoves this GENERIC_SHIP_RADIUS=50
+                    // fixture out of the blast much more slowly than pre-#2092, so it stays overlapping
+                    // for close to the blast's full growth instead of escaping partway through -- one
+                    // extra plate's width of contact arc, and 2-4 broken plates instead of 2-3.
                     const expectedHitPlatesRange = padArch(
                         [explosionLocalAngle, explosionLocalAngle],
-                        sizeOfPlate + EPSILON,
+                        2 * sizeOfPlate + EPSILON,
                     );
                     const brokenTotal = countBrokenPlatesInRange(shipMgr.state, [EPSILON, 360]);
-                    expect(brokenTotal).to.oneOf([2, 3]);
+                    expect(brokenTotal).to.oneOf([2, 3, 4]);
 
                     const brokenInsideExplosion = countBrokenPlatesInRange(shipMgr.state, expectedHitPlatesRange);
                     expect(brokenInsideExplosion).to.equal(brokenTotal);
