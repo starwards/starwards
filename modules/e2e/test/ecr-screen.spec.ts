@@ -246,11 +246,16 @@ test.describe('ECR Screen', () => {
     test('a refused enqueue (queue full) shows a notice instead of silently doing nothing', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const ship = gameDriver.getShip(shipId);
 
-        // 16 is the queue cap; the 17th must be refused.
-        for (let i = 0; i < 17; i++) {
+        // 16 is the queue cap. Waiting for each press to land server-side before the next (rather
+        // than firing all 17 back-to-back) keeps this reliable under CI's heavier load, where a
+        // tight keydown/keyup loop can outrun the hotkeys-js -> command round trip.
+        for (let i = 0; i < 16; i++) {
             await page.keyboard.press('Alt+4'); // sensorArrayDegauss
+            await expect.poll(() => ship.state.repairQueue.operations.length, { timeout: 5000 }).toBe(i + 1);
         }
+        await page.keyboard.press('Alt+4'); // the 17th must be refused
 
         await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);
     });
