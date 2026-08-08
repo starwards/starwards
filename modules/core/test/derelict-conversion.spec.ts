@@ -1,4 +1,4 @@
-import { Derelict, Faction, SpaceManager, Spaceship, Vec2, XY } from '../src';
+import { Derelict, Faction, SpaceManager, Spaceship, Vec2 } from '../src';
 
 import { expect } from 'chai';
 
@@ -20,18 +20,21 @@ function makeShip(id: string, x = 0, y = 0, faction = Faction.Raiders) {
     ship.faction = faction;
     ship.callsign = `Raider ${id}`;
     ship.angle = 42;
+    ship.velocity.x = 12;
+    ship.velocity.y = -7;
+    ship.turnSpeed = 15;
     return ship;
 }
 
 describe('SpaceManager.convertToDerelict', () => {
-    it('replaces an expendable ship with a Derelict carrying its position, radius, faction, callsign and angle', () => {
+    it('replaces an expendable ship with a Derelict carrying its position, radius, faction, callsign, angle, velocity and turn speed', () => {
         const spaceMgr = new SpaceManager();
         const ship = makeShip('doomed', 100, 200);
         spaceMgr.insert(ship);
         spaceMgr.forceFlushEntities();
 
         spaceMgr.convertToDerelict('doomed');
-        tick(spaceMgr, 0.01);
+        spaceMgr.forceFlushEntities();
 
         expect(spaceMgr.state.get('doomed')).to.equal(undefined);
         const derelicts = [...spaceMgr.state.getAll('Derelict')];
@@ -43,7 +46,9 @@ describe('SpaceManager.convertToDerelict', () => {
         expect(derelict.faction).to.equal(Faction.Raiders);
         expect(derelict.callsign).to.equal('Raider doomed');
         expect(derelict.angle).to.equal(42);
-        expect(XY.isZero(derelict.velocity, 0)).to.equal(true);
+        expect(derelict.velocity.x).to.be.closeTo(12, 0.01);
+        expect(derelict.velocity.y).to.be.closeTo(-7, 0.01);
+        expect(derelict.turnSpeed).to.be.closeTo(15, 0.01);
     });
 
     it('queues a destroySpaceshipCommand so the ship room still gets torn down', () => {
