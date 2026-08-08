@@ -55,7 +55,40 @@ test.describe('ECR Screen', () => {
         await expectNonInteractiveBar(warpPanel.locator('.sw-bar').first());
     });
 
-    test('damage report shows a defect, and enqueueing/cancelling a repair drives the queue', async ({ page }) => {
+    test('catalog entries render as a readout (name, hotkey, duration, tier, dark systems) — no enqueue buttons', async ({
+        page,
+    }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+
+        // A1: the catalog is display-only — no clickable button anywhere in it enqueues.
+        await expect(repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Sensor-array degauss' })).toHaveCount(0);
+
+        const readout = await getPropertyValue(page, 'Sensor-array degauss', 'Repair Queue');
+        expect(readout).toContain('ALT+4');
+        expect(readout).toContain('30s');
+        expect(readout).toContain('field');
+
+        const ship = gameDriver.getShip(shipId);
+        expect(ship.state.repairQueue.operations.length).toBe(0);
+    });
+
+    test('clicking a catalog readout has no effect (A1)', async ({ page }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+
+        const label = repairQueuePanel.getByText('Sensor-array degauss', { exact: true });
+        await expect(label).toBeVisible();
+        await label.click({ force: true });
+        await page.waitForTimeout(300);
+
+        const ship = gameDriver.getShip(shipId);
+        expect(ship.state.repairQueue.operations.length).toBe(0);
+    });
+
+    test('damage report shows a defect, and enqueueing/cancelling a repair via hotkey drives the queue', async ({
+        page,
+    }) => {
         const ship = gameDriver.getShip(shipId);
         ship.state.radars[0].malfunctionRangeFactor = 0.5;
 
@@ -65,8 +98,8 @@ test.describe('ECR Screen', () => {
 
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible();
-        const enqueueButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Sensor-array degauss' });
-        await enqueueButton.click();
+        // sensorArrayDegauss is the 4th catalog entry -> alt+4 (see repair-queue.ts hotkey order)
+        await page.keyboard.press('Alt+4');
 
         await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
         const firstProgress = await waitForPropertyValue(
@@ -90,25 +123,33 @@ test.describe('ECR Screen', () => {
         await expect(repairQueuePanel.getByText('state', { exact: true })).not.toBeVisible({ timeout: 5000 });
     });
 
-    test('crew station cannot enqueue a docked-tier protocol', async ({ page }) => {
+    test('crew station cannot enqueue a docked-tier protocol, even via its hotkey (A2)', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        await expect(
-            repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Hull-wide systems overhaul' }),
-        ).toHaveCount(0);
+        await expect(repairQueuePanel.getByText('Hull-wide systems overhaul', { exact: true })).not.toBeVisible();
+
+        // hullWideSystemsOverhaul is the 9th catalog entry -> alt+9. The key is always bound; the
+        // server-side tier gate is what actually refuses it while undocked.
+        await page.keyboard.press('Alt+9');
+        await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);
+
+        const ship = gameDriver.getShip(shipId);
+        expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'hullWideSystemsOverhaul')).toBe(false);
     });
 
-    test('docking live-reveals a docked-tier protocol, and enqueueing it drives the queue', async ({ page }) => {
+    test('docking live-reveals a docked-tier protocol, and enqueueing it via hotkey drives the queue', async ({
+        page,
+    }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const overhaulButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Hull-wide systems overhaul' });
-        await expect(overhaulButton).toHaveCount(0);
+        const overhaulLabel = repairQueuePanel.getByText('Hull-wide systems overhaul', { exact: true });
+        await expect(overhaulLabel).not.toBeVisible();
 
         const ship = gameDriver.getShip(shipId);
         ship.state.docking.mode = DockingMode.DOCKED;
 
-        await expect(overhaulButton).toHaveCount(1, { timeout: 5000 });
-        await overhaulButton.click();
+        await expect(overhaulLabel).toBeVisible({ timeout: 5000 });
+        await page.keyboard.press('Alt+9');
 
         await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
         expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'hullWideSystemsOverhaul')).toBe(true);
@@ -118,19 +159,22 @@ test.describe('ECR Screen', () => {
         await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
     });
 
-    test('docking live-reveals armor plate renewal, and enqueueing it drives visible progress', async ({ page }) => {
+    test('docking live-reveals armor plate renewal, and enqueueing it via hotkey drives visible progress', async ({
+        page,
+    }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
-        const renewalButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Armor plate renewal' });
-        await expect(renewalButton).toHaveCount(0);
+        const renewalLabel = repairQueuePanel.getByText('Armor plate renewal', { exact: true });
+        await expect(renewalLabel).not.toBeVisible();
 
         const ship = gameDriver.getShip(shipId);
         ship.state.armor.plateRepairSeconds = 10;
         ship.state.armor.armorPlates[0].layers[0].health = 0;
         ship.state.docking.mode = DockingMode.DOCKED;
 
-        await expect(renewalButton).toHaveCount(1, { timeout: 5000 });
-        await renewalButton.click();
+        await expect(renewalLabel).toBeVisible({ timeout: 5000 });
+        // armorPlateRenewal is the 10th (last) catalog entry -> alt+0
+        await page.keyboard.press('Alt+0');
 
         await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
         expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'armorPlateRenewal')).toBe(true);
@@ -152,9 +196,10 @@ test.describe('ECR Screen', () => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
 
-        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Actuator recalibration' }).click();
-        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Thrust-line purge' }).click();
-        await repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Feed-system overhaul' }).click();
+        // actuatorRecalibration=alt+1, thrustLinePurge=alt+2, feedSystemOverhaul=alt+3
+        await page.keyboard.press('Alt+1');
+        await page.keyboard.press('Alt+2');
+        await page.keyboard.press('Alt+3');
 
         const ship = gameDriver.getShip(shipId);
         await expect
@@ -174,12 +219,9 @@ test.describe('ECR Screen', () => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
 
-        const enqueueButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Sensor-array degauss' });
+        // 16 is the queue cap; the 17th must be refused.
         for (let i = 0; i < 17; i++) {
-            // 16 is the queue cap; the 17th must be refused. dispatchEvent (not click) because the
-            // growing queue list pushes this button out of the panel's scrollable viewport as rows
-            // accumulate, which a real click requires but the handler itself doesn't care about.
-            await enqueueButton.dispatchEvent('click');
+            await page.keyboard.press('Alt+4'); // sensorArrayDegauss
         }
 
         await waitForPropertyValue(page, 'notice', (v) => v !== '', 'Repair Queue', 5000);

@@ -1,6 +1,7 @@
 import {
     Destructors,
     RepairOperationStatus,
+    RepairProtocolStats,
     ShipDriver,
     getAvailableRepairProtocols,
     repairCommands,
@@ -10,6 +11,36 @@ import { addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { WidgetContainer } from '../container';
+
+/**
+ * ECR screen is the only bearer of engineering hotkeys and already exhausts the alphanumeric
+ * keyboard on per-system power/coolant pairs (see `ecr.ts`'s `keyPairs`), so the catalog gets its
+ * own modifier namespace rather than fighting over what's left. Alt (not Ctrl) specifically:
+ * Ctrl+1..9 is bound to browser tab-switching in Chrome/Firefox and would never reach the page.
+ * Assigned by fixed position in `repairProtocols` (not the per-ship filtered/visible subset), so a
+ * protocol's key never shifts as tier/equipment availability changes it in and out of view.
+ */
+const REPAIR_PROTOCOL_HOTKEYS = [
+    'alt+1',
+    'alt+2',
+    'alt+3',
+    'alt+4',
+    'alt+5',
+    'alt+6',
+    'alt+7',
+    'alt+8',
+    'alt+9',
+    'alt+0',
+];
+
+/** The hotkey assigned to `protocolId`, or `undefined` if the catalog has grown past `REPAIR_PROTOCOL_HOTKEYS`. */
+export function getRepairProtocolHotkey(
+    protocolId: string,
+    catalog: Record<string, RepairProtocolStats> = repairProtocols,
+): string | undefined {
+    const index = Object.keys(catalog).indexOf(protocolId);
+    return index >= 0 ? REPAIR_PROTOCOL_HOTKEYS[index] : undefined;
+}
 
 function formatStatus(status: RepairOperationStatus): string {
     switch (status) {
@@ -65,10 +96,17 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             // dynamicDuration (e.g. armorPlateRenewal's GM-tweakable Armor.plateRepairSeconds) always
             // overrides the static catalog number — same rule RepairManager.getDuration() applies.
             const duration = protocol.dynamicDuration ? protocol.dynamicDuration(shipDriver.state) : protocol.duration;
-            addButton(
+            const hotkey = getRepairProtocolHotkey(protocolId)?.toUpperCase();
+            const darkSystems = protocol.sideEffectSystems.length
+                ? `, dark: ${protocol.sideEffectSystems.join(', ')}`
+                : '';
+            const summary = `${hotkey ?? '—'} · ${duration}s · ${protocol.tier}${darkSystems}`;
+            // display-only readout (issue: catalog is not mouse-interactive) — enqueueing happens
+            // via the hotkey wired in ecr.ts's wireInput, on the same InputManager as power/coolant
+            addTextBlade(
                 catalogFolder,
-                () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
-                { label: '', title: `${protocol.name} (${duration}s)` },
+                { getValue: () => summary, onChange: () => () => undefined },
+                { label: protocol.name },
                 catalogSession.add,
             );
         }
