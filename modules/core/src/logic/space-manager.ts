@@ -1,4 +1,4 @@
-import { Asteroid, Faction, RadarSectorValues, Spaceship, Waypoint, applyRadarSectors } from '../space';
+import { Asteroid, Derelict, Faction, RadarSectorValues, Spaceship, Waypoint, applyRadarSectors } from '../space';
 import { Body, Circle, System } from 'detect-collisions';
 import {
     EPSILON,
@@ -169,6 +169,31 @@ export class SpaceManager implements Updateable {
 
     destroyObject(id: string) {
         SpaceManager.destroyObject(this.state, id);
+    }
+
+    /**
+     * NPC systems-broken death (issue #2111): instead of vanishing, an expendable ship is
+     * replaced with an inert Derelict at the same position, carrying its radius, faction,
+     * callsign and angle. Velocity is not carried over -- the hulk comes to rest. No
+     * type-conversion machinery exists for space objects, so this is delete (via
+     * `destroyObject`, which also still queues the ship-room teardown) + insert a new object,
+     * same as every other object-type transition.
+     */
+    convertToDerelict(id: string) {
+        const subject = this.state.getShip(id);
+        if (!subject || subject.destroyed || !subject.expendable) {
+            return;
+        }
+        const derelict = new Derelict().init(
+            makeId(),
+            Vec2.make(subject.position),
+            subject.radius,
+            subject.faction,
+            subject.callsign,
+            subject.angle,
+        );
+        SpaceManager.destroyObject(this.state, id);
+        this.insert(derelict);
     }
 
     private calcAttachmentCliques() {
@@ -674,7 +699,7 @@ export class SpaceManager implements Updateable {
                     this.clampToAbsoluteMaxSpeed(subject);
                     if (Spaceship.isInstance(subject)) {
                         this.handleShipCollisionDamage(deltaSeconds, res.damageAmount, subject, object, response);
-                    } else {
+                    } else if (Asteroid.isInstance(subject)) {
                         subject.health -= res.damageAmount;
                     }
                 }
