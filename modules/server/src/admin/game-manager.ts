@@ -267,6 +267,10 @@ export class GameManager {
         for (const [id, shipState] of frame.fragment.ship) {
             const existingManager = this.shipManagers.get(id);
             if (existingManager) {
+                // A previous frame may have scheduled this manager's asynchronous teardown.
+                // The current frame makes it live again, so invalidate that replay-only
+                // cleanup before its continuation can remove the restored ship room.
+                this.replayCleanedShips.delete(id);
                 deepAssignSchema(existingManager.state, shipState);
             } else {
                 const spaceObject = this.spaceManager.state.getShip(id);
@@ -338,6 +342,12 @@ export class GameManager {
         });
         this.shipCleanups.set(id, async () => {
             await createRoomPromise;
+            // Replay reconciliation can restore this ship while the cleanup waits for its
+            // room to finish creating. A restored ship keeps the same manager, so this
+            // stale cleanup must become a no-op instead of deleting its room afterward.
+            if (this.state.gameStatus === GameStatus.REPLAY && !this.replayCleanedShips.has(id)) {
+                return;
+            }
             if (this.shipCleanups.delete(id)) {
                 if (isPlayerShip) {
                     this.state.playerShipIds.splice(this.state.playerShipIds.indexOf(id), 1);

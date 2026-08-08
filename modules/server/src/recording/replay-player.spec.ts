@@ -225,6 +225,30 @@ describe('ReplayPlayer', () => {
         player.stop();
     });
 
+    it('keeps a ship room when a backward seek restores it before replay cleanup settles', async () => {
+        const full = await recordedFramesFromLiveGame('two_vs_one');
+        const shipId = gameDriver.gameManager.state.playerShipIds[0];
+        const removed = full.clone();
+        removed.fragment.ship.delete(shipId);
+        removed.fragment.space.delete(removed.fragment.space.getShip(shipId)!);
+
+        await gameDriver.gameManager.stopGame();
+        const file = path.join(tmpDir, 'rec.swr.jsonl');
+        await writeRecording(file, 'two_vs_one', [{ t: 0, game: full }]);
+        const maps = await import('../maps');
+        const player = new ReplayPlayer(gameDriver.gameManager, new Map([[maps.two_vs_one.name, maps.two_vs_one]]));
+        await player.startReplay(file);
+
+        gameDriver.gameManager.applyReplayFrame(removed);
+        gameDriver.gameManager.applyReplayFrame(full);
+
+        await new Promise<void>((resolve) => setTimeout(resolve, 50));
+        expect(gameDriver.gameManager.state.shipIds).toContain(shipId);
+        expect(gameDriver.shipManagers.has(shipId)).toBe(true);
+
+        player.stop();
+    });
+
     it('gives an object that appears mid-replay a collision body, so the manager can find it', async () => {
         const frame0 = await recordedFramesFromLiveGame('test_map_1');
         const asteroid = new Asteroid().init(makeId(), Vec2.make({ x: 5000, y: 5000 }), 50);
