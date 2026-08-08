@@ -186,6 +186,12 @@ describe('ReplayPlayer', () => {
         expect(gameDriver.gameManager.state.speed).toBe(0);
         expect(gameDriver.gameManager.state.message).toBe('Replay ended');
         expect(gameDriver.gameManager.state.gameStatus).toBe(GameStatus.REPLAY);
+        expect(gameDriver.gameManager.state.replayEnded).toBe(true);
+
+        // rewinding an ended replay makes it playable again, instead of leaving it stuck
+        await player.seekTo(0);
+        expect(gameDriver.gameManager.state.replayEnded).toBe(false);
+        expect(gameDriver.spaceManager.state.getShip(shipId)!.position.x).not.toBe(555);
 
         player.stop();
     });

@@ -15,6 +15,12 @@ export type ObservationView = {
     duration: number;
     /** The timeline is not advancing — paused by the GM, or run to its end. */
     held: boolean;
+    /** Headline word for what is being observed. Defaults to `REPLAY`. */
+    label?: string;
+    /** Sub-label under the headline. Defaults to `OBSERVATION`. */
+    mode?: string;
+    /** Replaces the `HELD` suffix when the timeline is held for a specific reason. */
+    holdText?: string;
 };
 
 const STYLE_ELEMENT_ID = 'observation-mode-style';
@@ -136,7 +142,7 @@ function clock(seconds: number) {
  * (not a Tweakpane panel) so it reads as an instrument: one accent color, the radar's font,
  * a live timeline. It never intercepts pointer events — a station stays fully usable behind it.
  */
-export function drawObservationMode(container: Pick<WidgetContainer, 'getElement'>) {
+export function drawObservationMode(container: { getElement(): { append(node: HTMLElement): unknown } }) {
     installStyle();
     const element = container.getElement();
     const chip = document.createElement('div');
@@ -146,7 +152,7 @@ export function drawObservationMode(container: Pick<WidgetContainer, 'getElement
     chip.innerHTML = `
         <span class="observation-scanline"></span>
         <span class="observation-glyph">&#9672;</span>
-        <span>REPLAY</span>
+        <span class="observation-label">REPLAY</span>
         <span class="observation-mode">OBSERVATION</span>
         <span class="observation-track">
             <span class="observation-progress"></span>
@@ -160,16 +166,26 @@ export function drawObservationMode(container: Pick<WidgetContainer, 'getElement
     const cursor = chip.querySelector<HTMLElement>('.observation-cursor');
     const clockText = chip.querySelector<HTMLElement>('.observation-clock');
     const hold = chip.querySelector<HTMLElement>('.observation-hold');
+    const label = chip.querySelector<HTMLElement>('.observation-label');
+    const mode = chip.querySelector<HTMLElement>('.observation-mode');
+    const track = chip.querySelector<HTMLElement>('.observation-track');
 
     return {
         show(view: ObservationView) {
             chip.dataset.active = 'true';
             const fraction = view.duration > 0 ? Math.min(1, Math.max(0, view.position / view.duration)) : 0;
             const percent = `${(fraction * 100).toFixed(1)}%`;
+            if (label) label.textContent = view.label ?? 'REPLAY';
+            if (mode) mode.textContent = view.mode ?? 'OBSERVATION';
+            // an open-ended timeline (a recording in progress) has nothing to fill a bar with
+            if (track) track.style.display = view.duration > 0 ? '' : 'none';
             if (progress) progress.style.width = percent;
             if (cursor) cursor.style.left = percent;
-            if (clockText) clockText.textContent = `${clock(view.position)} / ${clock(view.duration)}`;
-            if (hold) hold.textContent = view.held ? 'HELD' : '';
+            if (clockText) {
+                clockText.textContent =
+                    view.duration > 0 ? `${clock(view.position)} / ${clock(view.duration)}` : clock(view.position);
+            }
+            if (hold) hold.textContent = view.held ? (view.holdText ?? 'HELD') : '';
         },
         hide() {
             chip.dataset.active = 'false';
@@ -186,7 +202,8 @@ export function trackObservationMode(container: WidgetContainer, adminDriver: Ad
             chip.show({
                 position: state.replayPosition,
                 duration: state.replayDuration,
-                held: state.speed === 0,
+                held: state.speed === 0 || state.replayEnded,
+                holdText: state.replayEnded ? 'ENDED' : 'HELD',
             });
         } else {
             chip.hide();
@@ -200,4 +217,41 @@ export function trackObservationMode(container: WidgetContainer, adminDriver: Ad
 /** Convenience for station screens, which hold a {@link Driver} rather than an admin driver. */
 export async function drawStationObservationMode(container: WidgetContainer, driver: Driver) {
     trackObservationMode(container, await driver.getAdminDriver());
+}
+
+/**
+ * The same chip for the GM, hung off the top of the window rather than inside a widget: the GM
+ * has to know a recording is running whichever dashboard tab happens to be focused, and a panel
+ * they docked away cannot tell them. Recording is production state, so this half never appears
+ * on a station.
+ */
+export function drawGmStatusChip(adminDriver: AdminDriver) {
+    const holder = document.createElement('div');
+    holder.style.cssText =
+        'position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none;';
+    document.body.appendChild(holder);
+    const chip = drawObservationMode({ getElement: () => holder });
+    const render = () => {
+        const state = adminDriver.state;
+        if (state.gameStatus === GameStatus.REPLAY) {
+            chip.show({
+                position: state.replayPosition,
+                duration: state.replayDuration,
+                held: state.speed === 0 || state.replayEnded,
+                holdText: state.replayEnded ? 'ENDED' : 'HELD',
+            });
+        } else if (state.isRecordingGame) {
+            chip.show({
+                position: state.recordingSeconds,
+                duration: 0,
+                held: state.speed === 0,
+                label: 'REC',
+                mode: state.recordingName,
+            });
+        } else {
+            chip.hide();
+        }
+    };
+    adminDriver.events.on('**', render);
+    render();
 }

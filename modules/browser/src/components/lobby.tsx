@@ -1,5 +1,5 @@
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
-import { Driver, VERSION, createLogger } from '@starwards/core';
+import { Driver, VERSION } from '@starwards/core';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
 import {
     useAdminDriver,
@@ -33,37 +33,14 @@ const bleepsSettings = {
 };
 const generalAnimator = { duration: { enter: 200, exit: 200 } };
 
-const { error: logError } = createLogger('component:lobby');
-
-const InGameMenu = (p: Props) => {
+/**
+ * The station links. Offered during a replay too — watching a recorded session from a bridge
+ * station is the point of a replay, and the server drops those stations' commands while it runs.
+ */
+const StationsMenu = (p: Props) => {
     const ships = usePlayerShips(p.driver);
-    const adminDriver = useAdminDriver(p.driver);
-    const saveGame = useSaveGameHandler(adminDriver);
-    const isRecording = useIsRecording(adminDriver);
     return (
         <>
-            {adminDriver && (
-                <pre key="Stop Game">
-                    <Button palette="error" onClick={adminDriver?.stopGame}>
-                        <div data-id="stop game">Stop Game</div>
-                    </Button>
-                    <Button palette="success" onClick={saveGame}>
-                        <div data-id="save game">Save Game</div>
-                    </Button>
-                    <Button
-                        palette={isRecording ? 'error' : 'success'}
-                        onClick={() => {
-                            if (isRecording) {
-                                adminDriver.stopRecording();
-                            } else {
-                                adminDriver.startRecording().catch(logError);
-                            }
-                        }}
-                    >
-                        <div data-id="toggle recording">{isRecording ? 'Stop Recording' : 'Record'}</div>
-                    </Button>
-                </pre>
-            )}
             <Card
                 key="Game Master"
                 title="Game Master"
@@ -83,6 +60,27 @@ const InGameMenu = (p: Props) => {
             {[...ships].flatMap((shipId: string) => (
                 <ShipOptions key={`ship-${shipId}`} shipId={shipId} />
             ))}
+        </>
+    );
+};
+
+const InGameMenu = (p: Props) => {
+    const adminDriver = useAdminDriver(p.driver);
+    const saveGame = useSaveGameHandler(adminDriver);
+    const isRecording = useIsRecording(adminDriver);
+    return (
+        <>
+            {adminDriver && (
+                <pre key="Stop Game">
+                    <Button palette="error" onClick={adminDriver?.stopGame}>
+                        <div data-id="stop game">Stop Game</div>
+                    </Button>
+                    <Button palette="success" onClick={saveGame}>
+                        <div data-id="save game">Save Game</div>
+                    </Button>
+                    {isRecording && <div data-id="recording-note">Recording</div>}
+                </pre>
+            )}
         </>
     );
 };
@@ -194,6 +192,7 @@ export const Lobby = (p: Props) => {
                                 </Button>
                             </pre>
                         )}
+                        {(isGameRunning || isReplaying) && adminDriver && <StationsMenu driver={p.driver} />}
                         {canStartGame && adminDriver && (
                             <pre key="2V1 game">
                                 <LoadGame adminDriver={adminDriver} />

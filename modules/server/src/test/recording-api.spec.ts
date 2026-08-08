@@ -42,6 +42,21 @@ describe('recording/replay HTTP API (issue #2101)', () => {
         expect(recordings[0]).toMatchObject({ name: startBody.name, mapName: 'test_map_1' });
     });
 
+    it('publishes the recording name and elapsed time, and confirms the file on stop', async () => {
+        gameDriver.pauseGameCommand();
+        await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);
+
+        const startRes = await supertest(gameDriver.httpServer).post('/start-recording').expect(200);
+        const { name } = startRes.body as StartRecordingResponse;
+        expect(gameDriver.gameManager.state.recordingName).toEqual(name);
+
+        const stopRes = await supertest(gameDriver.httpServer).post('/stop-recording').expect(200);
+        expect(stopRes.body).toMatchObject({ name, mapName: 'test_map_1' });
+        expect((stopRes.body as RecordingSummary).frameCount).toBeGreaterThan(0);
+        expect(gameDriver.gameManager.state.recordingName).toEqual('');
+        expect(gameDriver.gameManager.state.recordingSeconds).toEqual(0);
+    });
+
     it('POST /stop-game stops an active recording before another game can start', async () => {
         gameDriver.pauseGameCommand();
         await supertest(gameDriver.httpServer).post('/start-game').send({ mapName: 'test_map_1' }).expect(200);

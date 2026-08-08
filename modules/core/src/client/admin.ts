@@ -71,7 +71,14 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
             const { name } = (await response.json()) as { name: string };
             return name;
         },
-        stopRecording: (): undefined => void fetch(endpoint + '/stop-recording', { ...requestInfo, body: '{}' }),
+        /** Resolves with what was written, so the caller can confirm the recording landed. */
+        stopRecording: async (): Promise<RecordingInfo | null> => {
+            const response = await fetch(endpoint + '/stop-recording', { ...requestInfo, body: '{}' });
+            if (!response.ok) {
+                throw new Error(`can't stop recording (HTTP ${response.status})`);
+            }
+            return (await response.json()) as RecordingInfo | null;
+        },
         startReplay: (name: string): undefined =>
             void fetch(endpoint + '/start-replay', { ...requestInfo, body: JSON.stringify({ name }) }),
     };

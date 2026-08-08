@@ -125,8 +125,9 @@ export async function server(
     app.post(
         '/stop-recording',
         asyncHandler(async (_, res) => {
-            await gameRecorder.stopRecording();
-            res.send();
+            // the summary is the GM's confirmation that the file landed, so it goes back in
+            // the response instead of making them hunt for it in the recordings list
+            res.json(await gameRecorder.stopRecording());
         }),
     );
 

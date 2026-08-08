@@ -19,6 +19,14 @@ export class AdminState extends Schema {
     @gameField('boolean')
     isRecordingGame = false;
 
+    /** Seconds of game time captured by the recording in progress. 0 while not recording. */
+    @gameField('float32')
+    recordingSeconds = 0;
+
+    /** File name of the recording in progress. Empty string while not recording. */
+    @gameField('string')
+    recordingName = '';
+
     @gameField(['string'])
     shipIds = new ArraySchema<string>();
 
@@ -52,6 +60,10 @@ export class AdminState extends Schema {
     @commandable()
     @gameField('float32')
     replaySeekCommand = -1;
+
+    /** The replay reached its last frame and is holding there. Cleared by any seek. */
+    @gameField('boolean')
+    replayEnded = false;
 
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;

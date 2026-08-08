@@ -39,8 +39,9 @@ HTTP:
 
 `modules/browser/src/widgets/game-transport.ts` becomes `game-controls.ts`; the widget name
 becomes `game controls` and its pane title `Game Controls`. It is registered as before and added
-to the default GM layout as the tab after `create` in the right-hand stack (`screens/gm.ts`). The
-GM layout is not persisted in `localStorage`, so the default applies on every load.
+to the default GM layout as the tab after `create` in the right-hand stack (`screens/gm.ts`), and
+is the stack's active tab on load. The GM layout is not persisted in `localStorage`, so the
+default applies on every load.
 
 Contents:
 

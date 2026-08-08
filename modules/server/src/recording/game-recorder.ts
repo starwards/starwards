@@ -84,6 +84,8 @@ export class GameRecorder {
         this.lastWrittenT = null;
         this.baseSeconds = this.manager.totalSeconds;
         this.manager.state.isRecordingGame = true;
+        this.manager.state.recordingName = filename;
+        this.manager.state.recordingSeconds = 0;
         try {
             await fs.writeFile(this.filePath, encodeHeader(header), 'utf-8');
             await this.writeFrame();
@@ -100,10 +102,17 @@ export class GameRecorder {
         return filename;
     }
 
-    public async stopRecording(): Promise<void> {
+    /**
+     * Closes the recording and reports what was written, so the GM gets a confirmed result
+     * rather than having to go looking for the file. Null when no recording was in progress.
+     */
+    public async stopRecording(): Promise<RecordingSummary | null> {
         this.clearTimer();
         await this.inFlight;
+        const filePath = this.filePath;
         this.finalize();
+        if (!filePath) return null;
+        return await summarizeRecording(filePath, path.basename(filePath));
     }
 
     private clearTimer() {
@@ -124,6 +133,8 @@ export class GameRecorder {
         this.filePath = null;
         this.lastWrittenT = null;
         this.manager.state.isRecordingGame = false;
+        this.manager.state.recordingName = '';
+        this.manager.state.recordingSeconds = 0;
     }
 
     public async listRecordings(): Promise<RecordingSummary[]> {
@@ -169,6 +180,7 @@ export class GameRecorder {
         if (this.filePath !== filePath) return; // finalized (or restarted) while serializing
         await fs.appendFile(filePath, encodeFrameLine({ t, frame }), 'utf-8');
         this.lastWrittenT = t;
+        this.manager.state.recordingSeconds = t;
     }
 }
 

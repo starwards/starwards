@@ -7,18 +7,18 @@ import { navigateToScreen } from './test-infrastructure';
 const gameDriver = makeDriver(test);
 const { single_ship } = maps;
 
-test('record a game session and replay it from the lobby', async ({ page }) => {
+test('record a game session and replay it from the lobby, with stations reachable', async ({ page }) => {
     await page.goto(`${gameDriver.baseURL}/`);
     const newGame = page.locator('[data-id="new game"]').first();
     await newGame.click({ delay: 200 });
     await newGame.waitFor({ state: 'detached' });
 
-    const recordButton = page.locator('[data-id="toggle recording"]').first();
-    await recordButton.click({ delay: 200 });
-    await expect(recordButton).toHaveText('Stop Recording');
-
-    await recordButton.click({ delay: 200 });
-    await expect(recordButton).toHaveText('Record');
+    // recording is driven from the GM screen; the lobby only reports that one is running
+    await page.request.post(`${gameDriver.baseURL}/start-recording`);
+    await expect(page.locator('[data-id="recording-note"]')).toBeVisible();
+    await page.waitForTimeout(1200); // at least one frame past frame 0
+    await page.request.post(`${gameDriver.baseURL}/stop-recording`);
+    await expect(page.locator('[data-id="recording-note"]')).toBeHidden();
 
     await page.locator('[data-id="stop game"]').first().click({ delay: 200 });
     await newGame.waitFor({ state: 'visible' });
@@ -28,6 +28,8 @@ test('record a game session and replay it from the lobby', async ({ page }) => {
     await replayButton.click({ delay: 200 });
 
     await expect(page.locator('[data-id="replaying-note"]')).toBeVisible();
+    // a replay is watched from the bridge, so the station links stay on offer
+    await expect(page.getByText('Weapons').first()).toBeVisible({ timeout: 10000 });
 
     await page.locator('[data-id="stop replay"]').click({ delay: 200 });
     await newGame.waitFor({ state: 'visible' });

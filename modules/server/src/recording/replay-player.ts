@@ -138,6 +138,7 @@ export class ReplayPlayer {
         this.manager.state.replayPosition = frame0.t;
         this.manager.state.gameStatus = GameStatus.REPLAY;
         this.manager.state.replaySeekCommand = -1;
+        this.manager.state.replayEnded = false;
         this.manager.replayTick = (totalSeconds) => {
             const seek = this.manager.state.replaySeekCommand;
             if (seek >= 0) {
@@ -191,6 +192,7 @@ export class ReplayPlayer {
             this.applyFrame(frame0);
         }
         this.ended = false;
+        this.manager.state.replayEnded = false;
         this.clockOffset = this.manager.totalSeconds - target;
         await this.advanceTo(this.manager.totalSeconds);
     }
@@ -230,6 +232,7 @@ export class ReplayPlayer {
                 this.applyFrame(latest);
                 this.closeReader();
                 this.manager.state.speed = 0;
+                this.manager.state.replayEnded = true;
                 this.manager.state.message = 'Replay ended';
                 return;
             }
@@ -265,6 +268,7 @@ export class ReplayPlayer {
         this.manager.state.replayPosition = 0;
         this.manager.state.replayDuration = 0;
         this.manager.state.replaySeekCommand = -1;
+        this.manager.state.replayEnded = false;
         if (this.speedBeforeReplay !== null) {
             this.manager.state.speed = this.speedBeforeReplay;
             this.speedBeforeReplay = null;

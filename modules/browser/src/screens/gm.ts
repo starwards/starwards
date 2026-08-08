@@ -11,9 +11,10 @@ import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
+import { drawGmStatusChip } from '../widgets/observation-mode';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
-import { gameTransportWidget } from '../widgets/game-transport';
+import { gameControlsWidget } from '../widgets/game-controls';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
@@ -45,6 +46,8 @@ void driver.waitForGame().then(
             if (status !== Status.GAME_RUNNING) location.reload();
         });
         const gmWidgets = new GmWidgets(driver);
+        const adminDriver = await driver.getAdminDriver();
+        const gameControls = gameControlsWidget(adminDriver);
         const dashboard = new Dashboard(
             {
                 content: [
@@ -55,7 +58,11 @@ void driver.waitForGame().then(
                                 content: [
                                     { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
                                     { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                                    { ...getGoldenLayoutItemConfig(gameControls), isClosable: false },
                                 ],
+                                // the GM has to see what the game is doing without going
+                                // looking for it, so its tab is the one open on load
+                                activeItemIndex: 2,
                                 isClosable: false,
                                 title: '',
                                 type: 'stack',
@@ -75,7 +82,8 @@ void driver.waitForGame().then(
         dashboard.registerWidget(gmWidgets.radar);
         dashboard.registerWidget(gmWidgets.tweak);
         dashboard.registerWidget(gmWidgets.create);
-        dashboard.registerWidget(gameTransportWidget(await driver.getAdminDriver()));
+        dashboard.registerWidget(gameControls);
+        drawGmStatusChip(adminDriver);
 
         dashboard.setup();
         // constantly scan for new ships and add widgets for them

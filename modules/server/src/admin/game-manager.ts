@@ -333,13 +333,16 @@ export class GameManager {
         this.shipManagers.set(id, shipManager);
 
         // All ships get rooms (PC and NPC alike)
-        const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-            await this.waitForRoom({ roomId: id, name: 'ship' });
-            this.state.shipIds.push(id);
-            if (isPlayerShip) {
-                this.state.playerShipIds.push(id);
-            }
-        });
+        const isReplaying = () => this.state.gameStatus === GameStatus.REPLAY;
+        const createRoomPromise = matchMaker
+            .createRoom('ship', { manager: shipManager, isReplaying })
+            .then(async () => {
+                await this.waitForRoom({ roomId: id, name: 'ship' });
+                this.state.shipIds.push(id);
+                if (isPlayerShip) {
+                    this.state.playerShipIds.push(id);
+                }
+            });
         this.shipCleanups.set(id, async () => {
             await createRoomPromise;
             // Replay reconciliation can restore this ship while the cleanup waits for its
