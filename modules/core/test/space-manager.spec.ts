@@ -86,6 +86,49 @@ describe('SpaceManager', () => {
             ),
         );
     });
+    it('proximity-fuzed shell passes through an Explosion in its path instead of detonating on it (issue #2108)', () => {
+        // A sustained cannonade (proximity-fuzed HiExp/Frag) leaves a trail of still-expanding
+        // Explosion bodies (secondsToLive=1s) along the firing line. Without this exclusion, a
+        // later shell from the same barrage physically collides with that trailing blast and
+        // self-detonates well short of its real target -- and since detonation range keeps
+        // shrinking shot over shot, the point of detonation walks back toward the shooter until
+        // an Explosion overlaps the shooter itself and its blast impulse flings the shooter out
+        // of engagement range (see calcSolidCollision's Explosion branch).
+        const numIterationsPerSecond = 20;
+        const target = new Asteroid();
+        target.radius = GENERIC_SHIP_RADIUS;
+        target.init('target', Vec2.make({ x: 2000, y: 0 }));
+
+        const blockingExplosion = new Explosion();
+        blockingExplosion.init('blocking-explosion', Vec2.make({ x: 1000, y: 0 }), 20);
+        blockingExplosion.expansionSpeed = 0;
+        blockingExplosion.secondsToLive = 100;
+        blockingExplosion.radius = 150;
+
+        const shell = new Projectile('HiExpShell');
+        shell.shipId = 'shooter';
+        shell.velocity = Vec2.make(XY.byLengthAndDirection(bulletSpeed, 0));
+        shell.secondsToLive = 5;
+        shell.init('shell', Vec2.make({ x: 0, y: 0 }));
+
+        const sim = new SpaceSimulator(numIterationsPerSecond).withObjects(target, blockingExplosion, shell);
+
+        let sawShellInsideExplosionAlive = false;
+        sim.simulateUntilTime(1.5, (spaceMgr) => {
+            const liveShell = spaceMgr.state.get('shell');
+            if (liveShell && !liveShell.destroyed) {
+                const distanceToExplosion = XY.lengthOf(XY.difference(liveShell.position, blockingExplosion.position));
+                if (distanceToExplosion < blockingExplosion.radius) {
+                    sawShellInsideExplosionAlive = true;
+                }
+            }
+        });
+        expect(sawShellInsideExplosionAlive, 'shell should fly through the friendly explosion alive').to.equal(true);
+
+        sim.simulateUntilCondition((spaceMgr) => !spaceMgr.state.get('shell'));
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(sim.spaceMgr.state.get('shell')).to.be.undefined;
+    });
     it('upon collision, target takes damage', () => {
         fc.assert(
             fc.property(

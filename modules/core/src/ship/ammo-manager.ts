@@ -47,3 +47,12 @@ export class AmmoManager {
         this.progress.set(at, progress - wholeRounds);
     }
 }
+
+/**
+ * Whether `AmmoManager` is currently (or about to start, this tick) accruing rounds for this ship
+ * — same gate `AmmoManager.update` applies, exposed for UI so a client-visible "restocking" state
+ * can never drift from the server's actual accrual condition.
+ */
+export function isRestockingAmmo(state: ShipState): boolean {
+    return state.docking.isDocked && ammoTypes.some((at) => state.magazine.getCount(at) < state.magazine.getMax(at));
+}

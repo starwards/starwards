@@ -1,7 +1,14 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
-import { expectNonInteractiveBar, getPropertyValue, makeDriver, waitForShipCondition } from './driver';
+import {
+    expectNonInteractiveBar,
+    getPropertyValue,
+    makeDriver,
+    waitForPropertyValue,
+    waitForShipCondition,
+} from './driver';
 
+import { DockingMode } from '@starwards/core';
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
@@ -66,5 +73,29 @@ test.describe('Weapons Screen', () => {
         await expect(ammoPanel).toBeVisible({ timeout: 10000 });
         await expect(ammoPanel.getByText('Shells', { exact: true })).toBeVisible();
         await expect(ammoPanel.getByText('Missiles', { exact: true })).toBeVisible();
+    });
+
+    test('the ammunition panel shows a restocking indicator while docked with room to fill, and clears it on undock', async ({
+        page,
+    }) => {
+        const ammoPanel = page.locator('[data-id="Ammunition"]');
+        await expect(ammoPanel).toBeVisible({ timeout: 10000 });
+
+        // idle before docking: the ammo panel exists but carries no active-restock marker
+        expect(await getPropertyValue(page, 'Restock', 'Ammunition')).toBe('IDLE');
+
+        const ship = gameDriver.getShip(shipId);
+        ship.state.magazine.setCount('HiExpMissile', 0);
+        ship.state.docking.mode = DockingMode.DOCKED;
+
+        await waitForPropertyValue(page, 'Restock', (v) => v === 'RESTOCKING', 'Ammunition', 5000);
+        const statusLabel = ammoPanel.getByText('Restock', { exact: true });
+        const statusRow = statusLabel.locator('..');
+        await expect(statusRow).toHaveAttribute('data-status', 'OK');
+
+        ship.state.docking.mode = DockingMode.UNDOCKED;
+
+        await waitForPropertyValue(page, 'Restock', (v) => v === 'IDLE', 'Ammunition', 5000);
+        await expect(statusRow).not.toHaveAttribute('data-status', 'OK');
     });
 });

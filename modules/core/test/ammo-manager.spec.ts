@@ -5,7 +5,9 @@ import { DockingMode } from '../src/ship/docking';
 import { MockDie } from './ship-test-harness';
 import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
+import { ammoTypes } from '../src/space/projectile';
 import { expect } from 'chai';
+import { isRestockingAmmo } from '../src/ship/ammo-manager';
 import { makeIterationsData } from './ship-test-harness';
 
 function setUpShip() {
@@ -141,5 +143,43 @@ describe('AmmoManager', () => {
 
         expect(pcState.magazine.getCount('HiExpMissile')).to.equal(pcState.magazine.getMax('HiExpMissile'));
         expect(npcState.magazine.getCount('HiExpMissile')).to.equal(npcState.magazine.getMax('HiExpMissile'));
+    });
+});
+
+describe('isRestockingAmmo', () => {
+    it('is false while undocked, even with an empty magazine', () => {
+        const { state } = setUpShip();
+        state.magazine.setCount('HiExpMissile', 0);
+        state.docking.mode = DockingMode.UNDOCKED;
+
+        expect(isRestockingAmmo(state)).to.equal(false);
+    });
+
+    it('is true while docked with at least one ammo type below its max', () => {
+        const { state } = setUpShip();
+        state.magazine.setCount('HiExpMissile', 0);
+        state.docking.mode = DockingMode.DOCKED;
+
+        expect(isRestockingAmmo(state)).to.equal(true);
+    });
+
+    it('is false while docked once every ammo type is at its max', () => {
+        const { state } = setUpShip();
+        for (const at of ammoTypes) {
+            state.magazine.setCount(at, state.magazine.getMax(at));
+        }
+        state.docking.mode = DockingMode.DOCKED;
+
+        expect(isRestockingAmmo(state)).to.equal(false);
+    });
+
+    it('turns false the instant the ship undocks mid-restock', () => {
+        const { state } = setUpShip();
+        state.magazine.setCount('HiExpMissile', 0);
+        state.docking.mode = DockingMode.DOCKED;
+        expect(isRestockingAmmo(state)).to.equal(true);
+
+        state.docking.mode = DockingMode.UNDOCKED;
+        expect(isRestockingAmmo(state)).to.equal(false);
     });
 });

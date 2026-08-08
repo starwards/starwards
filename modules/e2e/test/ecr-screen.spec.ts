@@ -118,6 +118,34 @@ test.describe('ECR Screen', () => {
         await waitForPropertyValue(page, 'state', (v) => v === 'CANCELLED', 'Repair Queue', 2000);
     });
 
+    test('docking live-reveals armor plate renewal, and enqueueing it drives visible progress', async ({ page }) => {
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const renewalButton = repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Armor plate renewal' });
+        await expect(renewalButton).toHaveCount(0);
+
+        const ship = gameDriver.getShip(shipId);
+        ship.state.armor.plateRepairSeconds = 10;
+        ship.state.armor.armorPlates[0].layers[0].health = 0;
+        ship.state.docking.mode = DockingMode.DOCKED;
+
+        await expect(renewalButton).toHaveCount(1, { timeout: 5000 });
+        await renewalButton.click();
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
+        expect(ship.state.repairQueue.operations.some((o) => o.protocolId === 'armorPlateRenewal')).toBe(true);
+        const firstProgress = await waitForPropertyValue(
+            page,
+            'progress',
+            (v) => parseFloat(v) > 0,
+            'Repair Queue',
+            5000,
+        );
+        await page.waitForTimeout(500);
+        const laterProgress = await getPropertyValue(page, 'progress', 'Repair Queue');
+        expect(parseFloat(laterProgress)).toBeGreaterThan(parseFloat(firstProgress));
+    });
+
     test('reordering via Move up drives the server-side queue order through the real command path', async ({
         page,
     }) => {

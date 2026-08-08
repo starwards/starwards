@@ -9,6 +9,7 @@ import {
     Vec2,
     XY,
     makeShipState,
+    shellAmmoTypes,
     shipConfigurations,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
@@ -270,6 +271,67 @@ describe('NPC ATTACK order with a bolted (non-traversing) chain gun', () => {
         // rounding and varies between environments — so this pins presence, not a specific rate.
         expect(firingTicks / totalTicks).to.be.greaterThan(0);
         // A3: player ships are unaffected (pinned by existing tests in this file)
+    });
+
+    it('sustains a non-zero firing duty cycle for 10 sim-minutes with no permanent stoppage (issue #2108)', () => {
+        const spaceMgr = new SpaceManager();
+        const die = new MockDie();
+        die.expectedRoll = 1;
+
+        const attacker = new Spaceship().init(
+            'attacker',
+            Vec2.make(XY.byLengthAndDirection(20_000, 0)),
+            'dragonfly-MK1',
+            Faction.Raiders,
+        );
+        const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
+        attackerState.isPlayerShip = false;
+        const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
+
+        const target = new Spaceship().init('target', Vec2.make(XY.zero), 'large-station', Faction.Gravitas);
+        const targetState = makeShipState(target.id, shipConfigurations['large-station']);
+        const targetMgr = new ShipManagerNpc(target, targetState, spaceMgr, die);
+
+        spaceMgr.insert(attacker);
+        spaceMgr.insert(target);
+        spaceMgr.forceFlushEntities();
+
+        attackerMgr.state.order = Order.ATTACK;
+        attackerMgr.state.orderTargetId = target.id;
+
+        const gun = attackerMgr.state.chainGuns[0];
+        const totalAmmoRemaining = () =>
+            shellAmmoTypes.reduce((sum, ammoType) => sum + attackerState.magazine.getCount(ammoType), 0);
+        let everFired = false;
+        let falseStreakSeconds = 0;
+        let maxFalseStreakSecondsWithAmmo = 0;
+        let firingTicks = 0;
+        let totalTicks = 0;
+        for (const id of makeIterationsData(600, 12000)) {
+            attackerMgr.update(id);
+            targetMgr.update(id);
+            spaceMgr.update(id);
+            totalTicks++;
+            if (gun.isFiring) {
+                everFired = true;
+                firingTicks++;
+                falseStreakSeconds = 0;
+            } else if (everFired) {
+                // only count stoppages once the engagement has actually started — closing the
+                // initial 20km approach legitimately keeps the gun quiet for a while.
+                falseStreakSeconds += id.deltaSeconds;
+                if (totalAmmoRemaining() > 0) {
+                    maxFalseStreakSecondsWithAmmo = Math.max(maxFalseStreakSecondsWithAmmo, falseStreakSeconds);
+                }
+            }
+        }
+
+        // A2: once engaged, a healthy raider with ammo and the target in its envelope should
+        // never go permanently silent — no stoppage should outlast a normal reposition/reload.
+        expect(maxFalseStreakSecondsWithAmmo).to.be.lessThan(30);
+        expect(firingTicks / totalTicks).to.be.greaterThan(0);
+        // A4: the gun itself stays healthy throughout
+        expect(gun.effectiveness).to.be.greaterThan(0);
     });
 
     it('A4: two raiders spawned together in a wave bring measurable damage to the shared target', () => {
