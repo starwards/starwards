@@ -118,7 +118,7 @@ export class DamageManager {
     private applyDefect(system: ShipSystem, defectId: string) {
         if (Thruster.isInstance(system)) {
             this.damageThruster(system, defectId);
-        } else if (ChainGun.isInstance(system)) {
+        } else if (system instanceof ChainGun) {
             this.damageChainGun(system, defectId);
         } else if (Radar.isInstance(system)) {
             this.damageRadar(system, defectId);
