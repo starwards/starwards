@@ -51,6 +51,7 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
             OK: 'OK',
             STARVED: 'WARN',
             DAMAGED: 'WARN',
+            DAMAGED_STARVED: 'WARN',
             DISABLED: 'ERROR',
         });
 

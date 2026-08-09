@@ -77,6 +77,14 @@ describe('System.getStatus', () => {
         const [system] = getSystems(target);
         expect(system.getStatus()).to.equal('DISABLED');
     });
+
+    it('reports DAMAGED_STARVED, not just STARVED, when the system is both damaged and starved — starving must not hide a real defect', () => {
+        const target = new Target();
+        target.property = 1; // off its DEFECTIBLE normal (0) — damaged
+        target.energyStarved = true;
+        const [system] = getSystems(target);
+        expect(system.getStatus()).to.equal('DAMAGED_STARVED');
+    });
 });
 
 describe('defectible', () => {

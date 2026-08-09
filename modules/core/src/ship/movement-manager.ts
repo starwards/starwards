@@ -54,6 +54,11 @@ export class MovementManager implements Updateable {
         this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
         this.calcRotation(deltaSeconds);
+        // maneuvering.energyStarved is written by two independently-gated draws below (rotation,
+        // afterburner charge) that share this one system — reset once per tick so a tick where
+        // NEITHER attempts (no rotation commanded, afterburner tank already full) reports "not
+        // starved" instead of replaying whichever draw last touched the flag.
+        this.state.maneuvering.energyStarved = false;
         this.updateRotation(deltaSeconds);
         const maneuveringAction = this.calcManeuveringAction();
         this.updateThrustersFromManeuvering(maneuveringAction, deltaSeconds);

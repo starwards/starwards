@@ -92,6 +92,20 @@ describe('MovementManager', () => {
         expect(shipMgr.state.thrusters.every((t) => !t.energyStarved)).to.equal(true);
     });
 
+    it('clears a stale maneuvering.energyStarved once nothing is trying to draw energy from it, without needing a new rotation command', () => {
+        // simulate a stale flag left over from an earlier failed draw (rotation or afterburner
+        // charge — both share this one system) — no rotation commanded and the afterburner tank
+        // is already full, so neither draw runs this tick to naturally clear it
+        shipMgr.state.maneuvering.energyStarved = true;
+        shipMgr.state.smartPilot.rotation = 0;
+        shipMgr.state.maneuvering.afterBurnerFuel = shipMgr.state.maneuvering.design.maxAfterBurnerFuel;
+
+        const [tick] = makeIterationsData(1, 20);
+        shipMgr.update(tick);
+
+        expect(shipMgr.state.maneuvering.energyStarved).to.equal(false);
+    });
+
     it('a ship built with warp: null does not throw during construction or a tick', () => {
         const warplessState = makeShipState('warpless', { ...demoShipConfig, warp: null });
         expect(warplessState.warp).to.equal(null);
