@@ -415,4 +415,46 @@ test.describe('GM Screen', () => {
         await page.waitForTimeout(1000);
         expect(ship.radius).toBeCloseTo(120, 0);
     });
+
+    test('locking a tweakable property via its 🔒 toggle blocks writes until unlocked (issue #2139)', async ({
+        page,
+    }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const smartPilotFolderTitle = tweakPanel.locator('.tp-fldv_t', { hasText: 'Smart pilot' }).first();
+        await expect(smartPilotFolderTitle).toBeVisible({ timeout: 5000 });
+        await smartPilotFolderTitle.click(); // starts collapsed
+
+        // maneuveringMode is a @tweakable enum field; tweak.ts's addTweakables precedes every
+        // tweakable field's own blade with a 🔒 lock toggle row (addLockToggle) — this is the
+        // exact field named in issue #2139 ("maneuveringMode kept reverting to direct").
+        const maneuveringModeRow = tweakPanel.locator('.tp-lblv', { hasText: 'maneuveringMode' }).first();
+        await expect(maneuveringModeRow).toBeVisible({ timeout: 5000 });
+        const lockRow = maneuveringModeRow.locator('xpath=preceding-sibling::div[1]');
+        await expect(lockRow.locator('.tp-ckbv_w')).toBeVisible({ timeout: 5000 });
+        const lockCheckboxInput = lockRow.locator('input[type="checkbox"]');
+        await expect(lockCheckboxInput).toHaveAttribute('data-checked', 'false');
+
+        const [ship] = gameDriver.gameManager.spaceManager.state.getAll('Spaceship');
+        const shipState = gameDriver.getShip(ship.id).state;
+        expect(shipState.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(false);
+
+        await lockRow.locator('.tp-ckbv_w').click();
+        await expect(() => {
+            expect(shipState.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(true);
+        }).toPass({ timeout: 5000 });
+        await expect(lockCheckboxInput).toHaveAttribute('data-checked', 'true');
+
+        await lockRow.locator('.tp-ckbv_w').click(); // unlock again
+        await expect(() => {
+            expect(shipState.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(false);
+        }).toPass({ timeout: 5000 });
+        await expect(lockCheckboxInput).toHaveAttribute('data-checked', 'false');
+    });
 });

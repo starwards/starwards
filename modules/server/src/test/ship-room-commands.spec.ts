@@ -101,4 +101,24 @@ describe('ShipRoom JSON pointer commands', () => {
         await waitForServer(() => shipManager.state.warp!.jammed === true);
         expect(shipManager.state.warp!.jammed).toEqual(true);
     });
+
+    it('a GM lockPath command blocks writes to that path until unlockPath is sent (issue #2139)', async () => {
+        const { client, room, shipId } = await connectShip('gm-locker');
+        const shipManager = driver.serverDriver.getShip(shipId);
+
+        const initialPower = shipManager.state.radars[0].power; // PowerLevel.NORMAL by default
+        await client.sendCommand(room, 'lockPath', { value: '/radars/0/power', path: undefined });
+        await waitForServer(() => shipManager.state.lockedPaths.includes('/radars/0/power'));
+
+        await client.sendCommand(room, '/radars/0/power', { value: 1 });
+        await sleep(200);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(initialPower, 2);
+
+        await client.sendCommand(room, 'unlockPath', { value: '/radars/0/power', path: undefined });
+        await waitForServer(() => !shipManager.state.lockedPaths.includes('/radars/0/power'));
+
+        await client.sendCommand(room, '/radars/0/power', { value: 1 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 1) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(1, 2);
+    });
 });
