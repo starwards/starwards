@@ -1,4 +1,4 @@
-import { TargetedStatus } from '@starwards/core';
+import { GameStatus, TargetedStatus } from '@starwards/core';
 import { makeMultiClientDriver } from './multi-client-driver';
 import { sleep } from '@starwards/core/internal';
 import supertest from 'supertest';
@@ -91,6 +91,23 @@ describe('ShipRoom JSON pointer commands', () => {
         await client.sendCommand(room, '/radars/1/arc', { value: 9999 });
         await waitForServer(() => Math.abs(shipManager.state.radars[1].arc - maxArc) < 0.01);
         expect(shipManager.state.radars[1].arc).toBeCloseTo(maxArc, 2);
+    });
+
+    it('drops station commands while the game is playing back a recording', async () => {
+        const { client, room, shipId } = await connectShip('replay-viewer');
+        const shipManager = driver.serverDriver.getShip(shipId);
+        await client.sendCommand(room, '/radars/0/power', { value: 0.25 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.25) < 0.01);
+
+        driver.serverDriver.gameManager.state.gameStatus = GameStatus.REPLAY;
+        await client.sendCommand(room, '/radars/0/power', { value: 0.9 });
+
+        // ordering: once a command sent after the status returns lands, the dropped one is
+        // already through the handler
+        driver.serverDriver.gameManager.state.gameStatus = GameStatus.RUNNING;
+        await client.sendCommand(room, '/radars/0/power', { value: 0.5 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.5) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(0.5, 2);
     });
 
     it('applies a GM write to warp.jammed (GM override lever, issue #2033)', async () => {
