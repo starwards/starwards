@@ -16,12 +16,12 @@ import {
     toDegreesDelta,
 } from '../logic';
 import { Order, ShipState } from './ship-state';
-import { PowerLevel, PowerLevelStep } from './system';
 
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
 import { MAX_SYSTEM_HEAT } from './heat-manager';
+import { PowerLevel } from './system';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
@@ -35,15 +35,10 @@ import { switchToAvailableAmmo } from './chain-gun-manager';
  */
 const COOLANT_REALLOCATION_INTERVAL_SECONDS = 0.5;
 
-/** Heat (of `MAX_SYSTEM_HEAT`) at which a gun's power starts backing off. */
-const POWER_BACKOFF_START_HEAT = MAX_SYSTEM_HEAT * 0.6;
-/**
- * Heat at which power backoff bottoms out at `POWER_BACKOFF_MIN` — deliberately never lower.
- * Power backoff alone must never fully silence a gun; that is the ceasefire latch's job, kept rare.
- */
-const POWER_BACKOFF_FLOOR_HEAT = MAX_SYSTEM_HEAT * 0.9;
-/** Power backoff's floor — a duty-cycle throttle, not a cutoff, so the gun can still land shots. */
-const POWER_BACKOFF_MIN = PowerLevelStep;
+/** Heat (of `MAX_SYSTEM_HEAT`) at which a gun's power backs off from `NORMAL` to `LOW` (hysteresis-latched). */
+const POWER_BACKOFF_ENGAGE_HEAT = MAX_SYSTEM_HEAT * 0.6;
+/** Heat the mount must cool back below before power backoff releases back to `NORMAL`. */
+const POWER_BACKOFF_RELEASE_HEAT = MAX_SYSTEM_HEAT * 0.4;
 /** Heat at which the ceasefire hard-stop engages — a rare backstop above where backoff bottoms out. */
 const CEASEFIRE_ENGAGE_HEAT = MAX_SYSTEM_HEAT * 0.95;
 /** Heat the mount must cool back below before the ceasefire latch releases (hysteresis, prevents chatter). */
@@ -58,6 +53,14 @@ export class AutomationManager implements Updateable {
     private coolantCadenceInitialized = false;
     /** Mounts currently latched into a ceasefire hard-stop, keyed by hysteresis (see `CEASEFIRE_RELEASE_HEAT`). */
     private readonly ceasefireLatched = new WeakSet<ChainGun>();
+    /**
+     * Mounts currently latched into power backoff (see `backOffPower`). Membership is how
+     * automation knows which mounts' `power` it currently owns — it must never write a mount it
+     * hasn't itself backed off, or it would stomp a GM's or scenario's deliberately chosen level.
+     */
+    private readonly powerBackoffLatched = new WeakSet<ChainGun>();
+    /** Escape hatch for A/B comparison (e.g. a baseline DPS run with heat management off). Defaults on. */
+    private heatManagementEnabled = true;
 
     constructor(
         private state: ShipState,
@@ -67,6 +70,16 @@ export class AutomationManager implements Updateable {
 
     public cancelTask() {
         this.cleanup();
+    }
+
+    /** Test/ops-only toggle: lets a baseline run disable heat management for an A/B comparison. */
+    public setHeatManagementEnabled(enabled: boolean) {
+        this.heatManagementEnabled = enabled;
+    }
+
+    /** Whether `chainGun` is currently latched into the ceasefire hard-stop (see `applyCeasefireLatch`). */
+    public isCeasefireLatched(chainGun: ChainGun): boolean {
+        return this.ceasefireLatched.has(chainGun);
     }
 
     private cleanup() {
@@ -291,7 +304,7 @@ export class AutomationManager implements Updateable {
      * ceasefire backstop. Player ships are flown by their crew — never touched here.
      */
     private manageHeat(id: IterationData) {
-        if (this.state.isPlayerShip || id.deltaSeconds <= 0) {
+        if (this.state.isPlayerShip || id.deltaSeconds <= 0 || !this.heatManagementEnabled) {
             return;
         }
         this.reallocateCoolant(id);
@@ -306,6 +319,12 @@ export class AutomationManager implements Updateable {
      * split. Runs on `COOLANT_REALLOCATION_INTERVAL_SECONDS` game-time cadence rather than every
      * tick, phase-staggered per ship (via the ship's own die, keyed on its id) so a fleet of NPCs
      * doesn't all reallocate — and all sync their `coolantFactor` — on the same tick.
+     *
+     * The phase offset is only sampled once, at construction-time heat; it is not reproducible
+     * from the ship id alone across runs, since `ShipDie.getRoll`'s salt advances with accumulated
+     * game time (see `ship-die.ts`) and this roll's actual game-time offset varies with when each
+     * ship first ticks. Harmless here (only spread matters, not a specific value) — flagged so
+     * nobody later assumes determinism from the key.
      */
     private reallocateCoolant({ deltaSeconds }: IterationData) {
         if (!this.coolantCadenceInitialized) {
@@ -331,22 +350,28 @@ export class AutomationManager implements Updateable {
 
     /**
      * Duty-cycle-style power throttle: the primary defense against overheat damage, preferred over
-     * the ceasefire hard-stop (see `applyCeasefireLatch`). Backs `power` off linearly starting at
-     * `POWER_BACKOFF_START_HEAT`, bottoming out at `POWER_BACKOFF_MIN` — never 0, so a gun kept hot
-     * by a saturated coolant budget can still land some shots instead of going fully silent.
-     * Recomputed fresh from current heat every tick, so it restores automatically as the mount cools.
+     * the ceasefire hard-stop (see `applyCeasefireLatch`). `power` is a `PowerLevel` enum rendered
+     * by name in the status UI (`system-status.ts`) — backoff must land on one of its discrete
+     * values, never an arbitrary float, or the UI shows `undefined`. Steps down one level, from
+     * `NORMAL` to `LOW` (never `SHUTDOWN` — a backed-off gun can still land some shots; only the
+     * ceasefire latch fully silences one), hysteresis-latched between `POWER_BACKOFF_ENGAGE_HEAT`
+     * and `POWER_BACKOFF_RELEASE_HEAT` so it doesn't chatter at the threshold.
+     *
+     * Only ever writes `power` for a mount it currently latches — a mount automation hasn't backed
+     * off is left exactly as a GM or scenario set it (never forced to `NORMAL`).
      */
     private backOffPower(chainGun: ChainGun) {
-        if (chainGun.heat <= POWER_BACKOFF_START_HEAT) {
-            chainGun.power = PowerLevel.NORMAL;
-            return;
+        if (this.powerBackoffLatched.has(chainGun)) {
+            if (chainGun.heat <= POWER_BACKOFF_RELEASE_HEAT) {
+                this.powerBackoffLatched.delete(chainGun);
+                chainGun.power = PowerLevel.NORMAL;
+            } else {
+                chainGun.power = PowerLevel.LOW;
+            }
+        } else if (chainGun.heat >= POWER_BACKOFF_ENGAGE_HEAT) {
+            this.powerBackoffLatched.add(chainGun);
+            chainGun.power = PowerLevel.LOW;
         }
-        const overheatFraction = capToRange(
-            0,
-            1,
-            (chainGun.heat - POWER_BACKOFF_START_HEAT) / (POWER_BACKOFF_FLOOR_HEAT - POWER_BACKOFF_START_HEAT),
-        );
-        chainGun.power = PowerLevel.NORMAL - overheatFraction * (PowerLevel.NORMAL - POWER_BACKOFF_MIN);
     }
 
     /**

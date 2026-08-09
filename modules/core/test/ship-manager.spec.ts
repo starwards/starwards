@@ -158,9 +158,10 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                // isolates raw ChainGunManager mechanics from NPC heat-management automation
-                // (#2175), which would otherwise back off the power this test pins to MAX
-                shipMgr.state.isPlayerShip = true;
+                // isolates raw ChainGunManager ammo bookkeeping from NPC heat-management automation
+                // (#2175), which would otherwise back off the power this test pins to MAX once
+                // sustained max-rate fire pushes heat past the backoff threshold
+                shipMgr.automationManager.setHeatManagementEnabled(false);
                 shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
                 shipMgr.state.chainGuns[0].isFiring = true;
                 switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
@@ -200,9 +201,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    // isolates raw ChainGunManager mechanics from NPC heat-management automation
-                    // (#2175), which would otherwise back off the power this test pins to MAX
-                    shipMgr.state.isPlayerShip = true;
                     shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
                     shipMgr.state.chainGuns[0].rateOfFireFactor = 1;
                     shipMgr.state.chainGuns[0].design.use_FragShell = false;
@@ -279,14 +277,13 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 spaceMgr.insert(shipObj);
                 shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                 shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                // isolates raw ChainGunManager mechanics from NPC heat-management automation
-                // (#2175), which would otherwise back off the power this test pins to MAX
-                shipMgr.state.isPlayerShip = true;
                 shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
                 shipMgr.state.chainGuns[0].isFiring = true;
-                // disable cooling and reactor heat to isolate weapon heat
+                // disable cooling, reactor heat, and NPC heat-management automation (#2175, which
+                // would otherwise back off power once heat passes its threshold) to isolate weapon heat
                 shipMgr.state.design.totalCoolant = 0;
                 shipMgr.state.reactor.design.energyHeatEPMThreshold = Infinity;
+                shipMgr.automationManager.setHeatManagementEnabled(false);
                 switchToAvailableAmmo(shipMgr.state.chainGuns[0], shipMgr.state.magazine);
                 const heatPerShell = ammoDesigns.HiExpShell.heatPerShot;
 
@@ -355,9 +352,6 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                     spaceMgr.insert(shipObj);
                     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
                     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-                    // isolates raw ChainGunManager mechanics from NPC heat-management automation
-                    // (#2175), which would otherwise back off the power this test pins to MAX
-                    shipMgr.state.isPlayerShip = true;
                     shipMgr.state.chainGuns[0].power = PowerLevel.MAX;
                     shipMgr.state.chainGuns[0].rateOfFireFactor = 0.5;
                     shipMgr.state.chainGuns[0].design.bulletsPerSecond = bulletsPerSecond;
