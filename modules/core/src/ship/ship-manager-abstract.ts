@@ -3,6 +3,8 @@ import {
     Docking,
     Faction,
     Order,
+    RADAR_MALFUNCTION_MAX_DRIFT_HZ,
+    RADAR_MALFUNCTION_MIN_DRIFT_HZ,
     Radar,
     RadarSectorValues,
     Reactor,
@@ -15,6 +17,7 @@ import {
     ammoTypes,
     applyRadarSectors,
     malfunctionAreaFactor,
+    malfunctionNoiseFrequencyHz,
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
@@ -37,11 +40,14 @@ import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
+
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
-import { sinWave } from '../logic';
 
 const { error: logError } = createLogger('ship-manager');
+
+/** rate (Hz) at which a malfunctioning radar's noise-wander frequency itself wanders around its damage-derived median (`malfunctionNoiseFrequencyHz`). */
+const RADAR_MALFUNCTION_FREQUENCY_META_HZ = 0.15;
 
 function fixArmor(armor: Armor) {
     for (const plate of armor.armorPlates) {
@@ -329,14 +335,14 @@ export abstract class ShipManager implements Updateable {
      * each radar its energy, refresh its malfunction easing, and mirror the resulting geometry
      * onto the space object so both the server and every client see the same union.
      */
-    protected updateRadarSectors({ totalSeconds, deltaSeconds }: IterationData) {
+    protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
             radar.powered = this.internalProxy.trySpendEnergy(
                 radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
-            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
+            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
             sectors.push({
                 direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,
@@ -346,18 +352,27 @@ export abstract class ShipManager implements Updateable {
         this.spaceManager.changeShipRadarSectors(this.spaceObject.id, sectors);
     }
 
-    private calcRadarAreaFactor(radar: Radar, index: number, totalSeconds: number) {
-        if (!radar.malfunctionRangeFactor || !radar.effectiveness) {
+    /**
+     * `areaFactor` for a malfunctioning radar wanders via smooth, non-periodic value noise
+     * (`ShipDie.getDrift`) rather than a fixed sine — a struggling radar should not pulse on a
+     * predictable beat. The noise's own wander frequency is itself damage-derived
+     * (`malfunctionNoiseFrequencyHz`) so amplitude and frequency move inversely together. Both
+     * drift calls key on ship id + radar index so radars never fluctuate in lockstep, on one hull
+     * or across ships.
+     */
+    private calcRadarAreaFactor(radar: Radar, index: number) {
+        if (radar.malfunctionRangeFactor <= 0) {
             return 1;
         }
+        const medianFrequency = malfunctionNoiseFrequencyHz(radar.malfunctionRangeFactor);
         const frequency = this.die.getDriftInRange(
-            `updateRadarRangeFrequency:${this.spaceObject.id}:${index}`,
-            0.2,
-            1,
-            0.15,
+            `radarMalfunctionFrequency:${this.spaceObject.id}:${index}`,
+            Math.max(RADAR_MALFUNCTION_MIN_DRIFT_HZ, medianFrequency * 0.7),
+            Math.min(RADAR_MALFUNCTION_MAX_DRIFT_HZ, medianFrequency * 1.3),
+            RADAR_MALFUNCTION_FREQUENCY_META_HZ,
         );
-        const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
-        return malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, wave);
+        const noiseSample = this.die.getDrift(`radarMalfunctionNoise:${this.spaceObject.id}:${index}`, frequency);
+        return malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, noiseSample);
     }
 
     protected calcTargetedStatus() {

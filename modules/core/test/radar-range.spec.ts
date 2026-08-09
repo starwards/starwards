@@ -1,4 +1,16 @@
-import { Radar, degToRad, getRange, malfunctionAreaFactor, radarRangeFromArea } from '../src';
+import {
+    RADAR_MALFUNCTION_MAX_DRIFT_HZ,
+    RADAR_MALFUNCTION_MIN_DRIFT_HZ,
+    RADAR_MALFUNCTION_RATE_CONSTANT_HZ,
+    Radar,
+    degToRad,
+    getRange,
+    malfunctionAreaFactor,
+    malfunctionNoiseFrequencyHz,
+    malfunctionSeverity,
+    radarRangeFromArea,
+    shipConfigurations,
+} from '../src';
 
 import { HackLevel } from '../src';
 import { JsonPointer } from '../src/json-ptr';
@@ -131,7 +143,8 @@ describe('Radar effectiveness scaling', () => {
 });
 
 describe('Radar damage never blacks out the radar', () => {
-    // per-issue design: damage must degrade range smoothly toward a floor, never cut it to 0 outright.
+    // per-issue design: damage must degrade range smoothly toward a floor, never cut it to 0 outright,
+    // and the areaFactor blend (not a `broken` short-circuit) always governs range.
     const damagedBeamDesign = {
         range: 20_000,
         minArc: 5,
@@ -152,6 +165,7 @@ describe('Radar damage never blacks out the radar', () => {
         const radar = makeDamagedBeamRadar();
         radar.malfunctionRangeFactor = 5; // far past the broken threshold
         expect(radar.broken).to.equal(true); // still counts toward the kill-ratio / DISABLED status
+        radar.areaFactor = malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, 0.5);
         expect(radar.range).to.be.closeTo(radar.design.malfunctionRange, 1); // but never blacks out
     });
 
@@ -160,13 +174,13 @@ describe('Radar damage never blacks out the radar', () => {
             fc.property(
                 fc.double({ min: 0, max: 20, noNaN: true }),
                 fc.double({ min: 0, max: 1, noNaN: true }),
-                (malfunctionRangeFactor, waveSample) => {
+                (malfunctionRangeFactor, noiseSample) => {
                     const radar = makeDamagedBeamRadar();
                     radar.malfunctionRangeFactor = malfunctionRangeFactor;
                     radar.areaFactor = malfunctionAreaFactor(
                         malfunctionRangeFactor,
                         radar.design.rangeEaseFactor,
-                        waveSample,
+                        noiseSample,
                     );
                     expect(radar.range).to.be.greaterThan(0);
                 },
@@ -176,29 +190,129 @@ describe('Radar damage never blacks out the radar', () => {
     it('under even the worst malfunction sample, a close-range (2-4km) contact stays within reach', () => {
         const radar = makeDamagedBeamRadar();
         radar.malfunctionRangeFactor = 5; // severe accumulated damage
-        radar.areaFactor = 0; // worst-case wave sample: fully at the malfunction floor
+        radar.areaFactor = 0; // worst-case blend weight: fully at the malfunction floor
         expect(radar.range).to.be.closeTo(radar.design.malfunctionRange, 1);
+    });
+
+    it('a lightly damaged radar never dips toward the floor, at any noise sample (fast-check)', () =>
+        fc.assert(
+            fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (noiseSample) => {
+                const radar = makeDamagedBeamRadar();
+                radar.malfunctionRangeFactor = 0.05; // one hit's worth of damage
+                radar.areaFactor = malfunctionAreaFactor(
+                    radar.malfunctionRangeFactor,
+                    radar.design.rangeEaseFactor,
+                    noiseSample,
+                );
+                // full range is 20km, floor is 2km — light damage must stay close to full, nowhere near the floor
+                expect(radar.range).to.be.greaterThan(15_000);
+            }),
+        ));
+
+    it('range decreases monotonically with damage, at a fixed noise sample, across every shipped radar design and several arc settings', () => {
+        const damageLevels = [0, 0.1, 0.3, 0.5, 0.8, 1, 2];
+        const arcs = [10, 45, 90, 180, 360];
+        const noiseSample = 0.5; // fixed "typical" sample — isolates the damage trend from noise
+        for (const [modelName, config] of Object.entries(shipConfigurations)) {
+            for (const radarDesign of config.radars) {
+                for (const arc of arcs) {
+                    const radar = new Radar();
+                    radar.design.assign(radarDesign);
+                    radar.power = 1;
+                    if (radar.design.minArc > arc || radar.design.maxArc < arc) {
+                        continue; // arc setting not valid for this radar's design envelope
+                    }
+                    radar.arc = arc;
+                    let previousRange = Infinity;
+                    for (const damage of damageLevels) {
+                        radar.malfunctionRangeFactor = damage;
+                        radar.areaFactor = malfunctionAreaFactor(damage, radar.design.rangeEaseFactor, noiseSample);
+                        expect(
+                            radar.range,
+                            `${modelName}/arc=${arc}: range must not increase from damage ${damage}`,
+                        ).to.be.at.most(previousRange + 1e-6);
+                        previousRange = radar.range;
+                    }
+                }
+            }
+        }
     });
 });
 
 describe('malfunctionAreaFactor', () => {
     it('healthy radar (malfunctionRangeFactor = 0) returns 1', () => {
-        for (const waveSample of [0, 0.25, 0.5, 0.75, 1]) {
-            expect(malfunctionAreaFactor(0, 0.1, waveSample)).to.equal(1);
+        for (const noiseSample of [0, 0.25, 0.5, 0.75, 1]) {
+            expect(malfunctionAreaFactor(0, 0.1, noiseSample)).to.equal(1);
         }
     });
 
-    it('damaged radar stays within [floor, 1] across wave samples (fast-check)', () =>
+    it('fully malfunctioning radar (malfunctionRangeFactor >= 1) pins at the floor (0), regardless of noise (fast-check)', () =>
+        fc.assert(
+            fc.property(
+                fc.double({ min: 1, max: 20, noNaN: true }),
+                fc.double({ min: 0, max: Math.fround(0.4), noNaN: true }),
+                fc.double({ min: 0, max: 1, noNaN: true }),
+                (malfunctionRangeFactor, rangeEaseFactor, noiseSample) => {
+                    expect(malfunctionAreaFactor(malfunctionRangeFactor, rangeEaseFactor, noiseSample)).to.equal(0);
+                },
+            ),
+        ));
+
+    it('damaged radar stays within [floor, 1] across noise samples (fast-check)', () =>
         fc.assert(
             fc.property(
                 fc.double({ min: Math.fround(0.01), max: Math.fround(0.9), noNaN: true }),
                 fc.double({ min: 0, max: Math.fround(0.4), noNaN: true }),
                 fc.double({ min: 0, max: 1, noNaN: true }),
-                (malfunctionRangeFactor, rangeEaseFactor, waveSample) => {
-                    const factor = malfunctionAreaFactor(malfunctionRangeFactor, rangeEaseFactor, waveSample);
+                (malfunctionRangeFactor, rangeEaseFactor, noiseSample) => {
+                    const factor = malfunctionAreaFactor(malfunctionRangeFactor, rangeEaseFactor, noiseSample);
                     expect(factor).to.be.at.most(1);
                     expect(factor).to.be.at.least(0);
                 },
             ),
         ));
+
+    it('amplitude tapers to 0 (no fluctuation) at both damage extremes, and is widest around mid-damage (fast-check)', () =>
+        fc.assert(
+            fc.property(fc.double({ min: 0.01, max: 0.4, noNaN: true }), (rangeEaseFactor) => {
+                const spread = (d: number) =>
+                    malfunctionAreaFactor(d, rangeEaseFactor, 1) - malfunctionAreaFactor(d, rangeEaseFactor, 0);
+                // near-zero damage: negligible spread. Mid damage (0.5): the widest possible spread.
+                expect(spread(0.01)).to.be.lessThan(spread(0.5));
+                expect(spread(0.99)).to.be.lessThan(spread(0.5));
+            }),
+        ));
+});
+
+describe('malfunctionNoiseFrequencyHz (amplitude x frequency invariant)', () => {
+    it('frequency is inversely proportional to severity, within its unclamped band', () => {
+        // light, moderate, heavy — all inside [RATE/MAX_HZ, RATE/MIN_HZ] so the clamp never engages
+        expect(malfunctionNoiseFrequencyHz(0.1)).to.be.closeTo(1.0, 1e-6); // severity 0.1
+        expect(malfunctionNoiseFrequencyHz(0.3)).to.be.closeTo(0.333, 1e-3); // severity 0.3
+        expect(malfunctionNoiseFrequencyHz(0.5)).to.be.closeTo(0.2, 1e-6); // severity 0.5 (peak)
+        // light damage jitters faster than heavy damage, as the design table specifies
+        expect(malfunctionNoiseFrequencyHz(0.1)).to.be.greaterThan(malfunctionNoiseFrequencyHz(0.5));
+    });
+
+    it('stays within its declared band regardless of how extreme the damage input is (fast-check)', () =>
+        fc.assert(
+            fc.property(fc.double({ min: 0, max: 50, noNaN: true }), (malfunctionRangeFactor) => {
+                const frequency = malfunctionNoiseFrequencyHz(malfunctionRangeFactor);
+                expect(frequency).to.be.at.least(RADAR_MALFUNCTION_MIN_DRIFT_HZ);
+                expect(frequency).to.be.at.most(RADAR_MALFUNCTION_MAX_DRIFT_HZ);
+            }),
+        ));
+
+    it('amplitude × frequency is constant across representative light/medium/heavy damage levels, by construction', () => {
+        // rangeEaseFactor is a per-design knob (0.2 on every shipped radar); amplitude here mirrors
+        // malfunctionAreaFactor's own `rangeEaseFactor * malfunctionSeverity`.
+        const rangeEaseFactor = 0.2;
+        const expectedProduct = rangeEaseFactor * RADAR_MALFUNCTION_RATE_CONSTANT_HZ;
+        for (const damage of [0.1, 0.3, 0.5]) {
+            // light, medium, heavy — chosen inside the unclamped band so the invariant holds exactly
+            const amplitude = rangeEaseFactor * malfunctionSeverity(damage);
+            const frequency = malfunctionNoiseFrequencyHz(damage);
+            expect(amplitude * frequency, `damage=${damage}`).to.be.closeTo(expectedProduct, 1e-9);
+        }
+    });
 });

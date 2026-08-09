@@ -1,5 +1,5 @@
+import { EPSILON, capToRange, degToRad, lerp } from '../logic/formulas';
 import { Turret, TurretDesign, TurretDesignState } from './turret';
-import { capToRange, degToRad, lerp } from '../logic/formulas';
 
 import { commandable, gameField } from '../game-field';
 import { defectible } from './system';
@@ -85,21 +85,68 @@ export function areaFromRadarRange(rangeMeters: number, arcDeg: number) {
 }
 
 /**
- * blend weight in [0, 1] between a radar's degraded floor area (0) and its full design area (1).
- * A healthy radar (`malfunctionRangeFactor` 0) always returns 1. A damaged one fluctuates: the
- * wave sample sweeps an easing window `[malfunctionRangeFactor, malfunctionRangeFactor + rangeEaseFactor]`,
- * below which the radar sits at its floor and above which it reaches full area.
+ * how far accumulated radar damage sits from either extreme: 0 when undamaged or fully pinned to
+ * the floor, peaking at 0.5 around mid-damage. Both the malfunction wobble's amplitude
+ * (`malfunctionAreaFactor` below) and its frequency (`ShipManagerAbstract.calcRadarAreaFactor`)
+ * derive from this single curve — amplitude scales with it directly, frequency inversely — so
+ * "amplitude × frequency stays roughly constant across damage levels" is a property of sharing
+ * one driver, not a coincidence of two independently-tuned curves.
  */
-export function malfunctionAreaFactor(malfunctionRangeFactor: number, rangeEaseFactor: number, waveSample: number) {
+export function malfunctionSeverity(malfunctionRangeFactor: number) {
+    const damage = capToRange(0, 1, malfunctionRangeFactor);
+    return Math.min(damage, 1 - damage);
+}
+
+/**
+ * blend weight in [0, 1] between a radar's degraded floor area (0) and its full design area (1),
+ * for a given damage severity and a smooth noise sample.
+ *
+ * `malfunctionRangeFactor` (damage severity) is clamped to [0, 1] for the shape of the curve: 0
+ * is undamaged (always 1, full area, `noiseSample` has no effect) and 1+ is fully malfunctioning
+ * (always 0, floor area, pinned regardless of `noiseSample`). In between, the blend centers on
+ * `1 - damage` and wobbles around that center with an amplitude that is widest at the midpoint
+ * and tapers to 0 at both damage extremes (`malfunctionSeverity`). So a lightly damaged radar
+ * only wavers near full area — it never dips toward the floor — and a nearly-destroyed one
+ * settles at the floor without spiking back toward full. `rangeEaseFactor` caps how wide that
+ * wobble can ever get.
+ *
+ * `noiseSample` is expected in [0, 1) (e.g. `ShipDie.getDrift`'s value-noise output): smooth and
+ * non-periodic, so the resulting curve reads as an unpredictable radar struggling, not a metronome.
+ */
+export function malfunctionAreaFactor(malfunctionRangeFactor: number, rangeEaseFactor: number, noiseSample: number) {
     if (malfunctionRangeFactor <= 0) {
         return 1;
     }
-    const easeFrom = malfunctionRangeFactor;
-    const easeTo = malfunctionRangeFactor + rangeEaseFactor;
-    if (easeTo <= easeFrom) {
-        return waveSample >= easeFrom ? 1 : 0;
-    }
-    return capToRange(0, 1, lerp([easeFrom, easeTo], [0, 1], capToRange(easeFrom, easeTo, waveSample)));
+    const center = 1 - capToRange(0, 1, malfunctionRangeFactor);
+    const amplitude = rangeEaseFactor * malfunctionSeverity(malfunctionRangeFactor);
+    const offset = (noiseSample - 0.5) * 2; // rescale [0, 1) noise to [-1, 1)
+    return capToRange(0, 1, center + amplitude * offset);
+}
+
+/** bounds (Hz) `malfunctionNoiseFrequencyHz` clamps its result to — see that function. */
+export const RADAR_MALFUNCTION_MIN_DRIFT_HZ = 0.15;
+export const RADAR_MALFUNCTION_MAX_DRIFT_HZ = 1.5;
+/**
+ * `malfunctionNoiseFrequencyHz`'s inverse-proportionality constant: `frequency = this / severity`
+ * (clamped), paired with `malfunctionAreaFactor`'s `amplitude = rangeEaseFactor * severity` — see
+ * `malfunctionSeverity`'s doc for why that keeps `amplitude × frequency` roughly constant.
+ */
+export const RADAR_MALFUNCTION_RATE_CONSTANT_HZ = 0.1;
+
+/**
+ * median wander frequency (Hz) for a malfunctioning radar's noise, given its damage severity.
+ * Inversely proportional to `malfunctionSeverity` — light damage (severity near 0, close to
+ * either damage extreme) wanders fast and shallow (jitter); mid-range damage (severity near its
+ * 0.5 peak) wanders slow and deep. Clamped to a sane band so it never free-falls to 0 or spikes
+ * to an unplayable flicker rate as severity approaches 0.
+ */
+export function malfunctionNoiseFrequencyHz(malfunctionRangeFactor: number) {
+    const severity = malfunctionSeverity(malfunctionRangeFactor);
+    return capToRange(
+        RADAR_MALFUNCTION_MIN_DRIFT_HZ,
+        RADAR_MALFUNCTION_MAX_DRIFT_HZ,
+        RADAR_MALFUNCTION_RATE_CONSTANT_HZ / Math.max(severity, EPSILON),
+    );
 }
 
 export class Radar extends Turret {
@@ -162,22 +209,22 @@ export class Radar extends Turret {
     }
 
     /**
-     * the radius this radar currently reaches, given its effectiveness, malfunction state and arc.
-     * Scales with the square root of effectiveness, since effectiveness scales the swept area.
+     * the radius this radar currently reaches, given its power/hack state, malfunction damage and
+     * arc. Scales with the square root of effectiveness, since effectiveness scales the swept area.
      *
-     * A broken radar (skew-jammed, or malfunction damage past the ease window) never drops to a
-     * literal 0: it still holds its degraded floor (`design.malfunctionRange`), same as a radar
-     * mid-fluctuation. Only losing power blacks it out outright — see `powered` above.
+     * Malfunction damage (`malfunctionRangeFactor`) always flows through the `areaFactor` blend —
+     * it never forces this to a literal 0, only smoothly toward `design.malfunctionRange`. That
+     * includes a fully `broken` radar: `broken` still governs turn speed, kill-ratio accounting
+     * and DISABLED status (see the `broken` getter above), but not range — deliberately not read
+     * here. Only losing power (`!this.powered`) blacks the radar out entirely, a distinct failure
+     * mode from malfunction.
      */
     get range() {
         if (!this.powered) {
             return 0;
         }
-        if (this.broken) {
-            return this.design.malfunctionRange;
-        }
         const effectiveArea =
-            lerp([0, 1], [this.design.malfunctionArea, this.design.area], this.areaFactor) * this.effectiveness;
+            lerp([0, 1], [this.design.malfunctionArea, this.design.area], this.areaFactor) * this.power * this.hacked;
         return radarRangeFromArea(effectiveArea, this.arc);
     }
 }
