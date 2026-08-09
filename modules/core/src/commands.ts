@@ -100,11 +100,25 @@ export function isSetValueCommand(val: unknown): val is SetValueCommand {
     return (val as { value: unknown })?.value !== undefined;
 }
 
+/**
+ * Structural check for `ShipState`-shaped lock support, without importing `ShipState` itself —
+ * `commands.ts` is shared by every room type (ship/space/admin), while property locks are a
+ * ship-only concept today (see `ship/property-lock.ts`).
+ */
+function isLockableState(root: Schema): root is Schema & { lockedPaths: { includes(path: string): boolean } } {
+    const lockedPaths = (root as { lockedPaths?: unknown }).lockedPaths;
+    return !!lockedPaths && typeof (lockedPaths as { includes?: unknown }).includes === 'function';
+}
+
 export function handleJsonPointerCommand(message: unknown, type: string | number, root: Schema) {
     if (isSetValueCommand(message)) {
         let { value } = message;
         const pointer = getJsonPointer(type);
         if (pointer) {
+            if (isLockableState(root) && root.lockedPaths.includes(String(type))) {
+                // GM value wins: silently ignore writes to a locked path until it's unlocked.
+                return true;
+            }
             try {
                 if (typeof value === 'number') {
                     const range = tryGetRange(root, pointer);

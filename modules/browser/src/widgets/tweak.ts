@@ -10,6 +10,7 @@ import {
     IdleStrategy,
     ScanLevel,
     ShipDriver,
+    ShipState,
     SmartPilotMode,
     SpaceDriver,
     SpaceObject,
@@ -18,7 +19,9 @@ import {
     TypeFilter,
     createLogger,
     getTweakables,
+    lockPath,
     spaceCommands,
+    unlockPath,
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
 import {
@@ -247,6 +250,29 @@ const singleSelectionDetails = async (
     }
 };
 
+/**
+ * Per-property GM lock (issue #2139): while locked, the GM-set value wins and every other writer
+ * — JSON pointer commands and manager-driven runtime writes alike — silently ignores writes to
+ * `fieldPointer` (see `handleJsonPointerCommand` / `setSmartPilotManeuveringMode` in core).
+ * Ship-scoped only: `ShipState.lockedPaths` has no SpaceState equivalent yet.
+ */
+function addLockToggle(
+    shipDriver: ShipDriver,
+    guiFolder: FolderApi,
+    fieldPointer: string,
+    cleanup: (d: Destructor) => void,
+) {
+    const lockToggle = {
+        getValue: () => shipDriver.state.lockedPaths.includes(fieldPointer),
+        setValue: (locked: boolean) => shipDriver.command(locked ? lockPath : unlockPath, fieldPointer),
+        onChange: (cb: () => unknown) => {
+            shipDriver.events.on('/lockedPaths', cb);
+            return () => shipDriver.events.off('/lockedPaths', cb);
+        },
+    };
+    addInputBlade(guiFolder, lockToggle, { label: '🔒' }, cleanup);
+}
+
 function addTweakables(
     driver: SpaceDriver | ShipDriver,
     guiFolder: FolderApi,
@@ -256,9 +282,13 @@ function addTweakables(
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
     if (!state) return;
+    const shipDriver = driver.state instanceof ShipState ? (driver as ShipDriver) : null;
     for (const tweakable of getTweakables(state)) {
         if (exclude?.has(tweakable.field)) {
             continue;
+        }
+        if (shipDriver) {
+            addLockToggle(shipDriver, guiFolder, `${pointer}/${tweakable.field}`, cleanup);
         }
         if (tweakable.config === 'number') {
             const prop = readWriteNumberProp(driver, `${pointer}/${tweakable.field}`);

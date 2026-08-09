@@ -1,3 +1,4 @@
+import * as _propertyLockCommands from './property-lock';
 import * as _repairCommands from './repair-commands';
 
 export * from './ammo-manager';
@@ -7,6 +8,7 @@ export * from './chain-gun';
 export * from './damage-manager';
 export * from './docking';
 export * from './make-ship-state';
+export * from './property-lock';
 export * from './radar';
 export * from './reactor';
 export * from './repair-commands';
@@ -27,7 +29,8 @@ export * from './thruster';
 export * from './turret';
 export * from './warp';
 
-// Named for what it aggregates today (only repair-commands.ts) rather than "all ship commands" —
-// a future ship command module must be added to this bundle explicitly, the same as
-// `spaceCommands` in `../space/index.ts`.
+// Named for what it aggregates today rather than "all ship commands" — a future ship command
+// module must be added to these bundles explicitly, the same as `spaceCommands` in
+// `../space/index.ts`.
 export const repairCommands = _repairCommands;
+export const propertyLockCommands = _propertyLockCommands;

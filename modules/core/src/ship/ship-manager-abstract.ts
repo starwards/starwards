@@ -21,6 +21,8 @@ import { ChainGunManager, resetChainGun } from './chain-gun-manager';
 import { IterationData, Updateable } from '../updateable';
 import { Turret, updateTurret } from './turret';
 
+import { drainLockCommands, isPathLocked } from './property-lock';
+
 import { AmmoManager } from './ammo-manager';
 import { Armor } from './armor';
 import { AutomationManager } from './automation-manager';
@@ -89,6 +91,8 @@ export function resetShipState(state: ShipState) {
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
     state.repairQueue.reorderCommands = [];
+    state.lockPathCommands = [];
+    state.unlockPathCommands = [];
     // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;
@@ -195,6 +199,9 @@ export abstract class ShipManager implements Updateable {
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
+        if (isPathLocked(this.state, '/smartPilot/maneuveringMode')) {
+            return;
+        }
         if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
             logError(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
         } else {
@@ -259,6 +266,7 @@ export abstract class ShipManager implements Updateable {
     update(id: IterationData) {
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
+        drainLockCommands(this.state);
         this.damageManager.update();
         this.heatManager.update(id);
         this.automationManager.update(id);

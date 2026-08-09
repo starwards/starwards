@@ -182,6 +182,16 @@ export class ShipState extends Schema {
     @commandable()
     public fireTubesCommand = false;
 
+    /**
+     * JSON paths locked by the GM tweak panel — while a path is present here, every writer other
+     * than the lock/unlock commands themselves is silently ignored (see `property-lock.ts`).
+     */
+    @gameField(['string'])
+    lockedPaths = new ArraySchema<string>();
+    // server only, used for the lockPath/unlockPath commands
+    public lockPathCommands = Array.of<string>();
+    public unlockPathCommands = Array.of<string>();
+
     // Read-only delegates to the composed spaceship. These satisfy the Craft
     // interface used by helm-assist / gunner-assist without @gameField, so they
     // don't create Colyseus serialization conflicts.

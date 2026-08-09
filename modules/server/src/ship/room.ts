@@ -4,6 +4,7 @@ import {
     cmdReceivers,
     createLogger,
     handleJsonPointerCommand,
+    propertyLockCommands,
     repairCommands,
 } from '@starwards/core/internal';
 
@@ -27,6 +28,9 @@ export class ShipRoom extends Room<ShipState> {
             for (const [cmdName, handler] of cmdReceivers(repairCommands, manager)) {
                 this.onMessage(cmdName, handler);
             }
+        }
+        for (const [cmdName, handler] of cmdReceivers(propertyLockCommands, manager)) {
+            this.onMessage(cmdName, handler);
         }
         this.onMessage('*', (_, type, message: unknown) => {
             if (!handleJsonPointerCommand(message, type, manager.state)) {
