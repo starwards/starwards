@@ -457,8 +457,9 @@ export class SpaceManager implements Updateable {
                 if (target) {
                     const destination = target.position;
                     const relativeDestination = XY.difference(destination, projectile.position);
+                    const distanceToTarget = XY.lengthOf(relativeDestination);
                     const fuze = projectile.fuze;
-                    if (fuze.type === 'proximity' && XY.lengthOf(relativeDestination) - target.radius < fuze.range) {
+                    if (fuze.type === 'proximity' && distanceToTarget - target.radius < fuze.range) {
                         this.explodeProjectile(projectile);
                     } else {
                         const velocityDestinationDiff = toDegreesDelta(
@@ -481,16 +482,23 @@ export class SpaceManager implements Updateable {
                             boost = moveToTarget(deltaSeconds, projectile, destination).boost;
                         }
 
+                        // terminal sprint: a dramatic-but-plausible acceleration burst once
+                        // within `terminalSprint.range` of the tracked target (issue #2151)
+                        const sprint = projectile.design.homing.terminalSprint;
+                        const sprintMultiplier =
+                            sprint && distanceToTarget <= sprint.range ? sprint.speedMultiplier : 1;
+
                         projectile.turnSpeed += rotation * deltaSeconds * projectile.rotationCapacity;
                         if (boost > 0) {
                             const desiredSpeed = XY.scale(
                                 XY.rotate(XY.one, projectile.angle),
-                                boost * deltaSeconds * projectile.design.homing.velocityCapacity,
+                                boost * deltaSeconds * projectile.design.homing.velocityCapacity * sprintMultiplier,
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
-                        if (XY.lengthOf(projectile.velocity) > projectile.design.homing.maxSpeed) {
-                            projectile.velocity.normalize(projectile.design.homing.maxSpeed);
+                        const maxSpeed = projectile.design.homing.maxSpeed * sprintMultiplier;
+                        if (XY.lengthOf(projectile.velocity) > maxSpeed) {
+                            projectile.velocity.normalize(maxSpeed);
                         }
                     }
                 }
