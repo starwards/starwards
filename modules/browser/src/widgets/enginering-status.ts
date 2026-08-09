@@ -44,6 +44,14 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
     const energy = readNumberProp(shipDriver, `/reactor/energy`);
     addGraph(pane, energy, { label: 'energy' }, panelCleanup.add);
 
+    const energyCells = readNumberProp(shipDriver, `/reactor/energyCells`);
+    addTextBlade(
+        pane,
+        energyCells,
+        { label: 'energy cells', format: (cells) => `${cells}/${shipDriver.state.reactor.design.maxEnergyCells}` },
+        panelCleanup.add,
+    );
+
     const afterBurnerFuel = readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`);
     addGraph(pane, afterBurnerFuel, { label: 'after-burner fuel' }, panelCleanup.add);
 }

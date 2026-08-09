@@ -1,4 +1,16 @@
-import { Asteroid, Explosion, Projectile, SpaceObject, Spaceship, Vec2, Waypoint, XY } from '@starwards/core';
+import {
+    Asteroid,
+    Derelict,
+    Explosion,
+    Faction,
+    Projectile,
+    ShipModel,
+    SpaceObject,
+    Spaceship,
+    Vec2,
+    Waypoint,
+    XY,
+} from '@starwards/core';
 
 import EventEmitter2 from 'eventemitter2';
 
@@ -57,6 +69,28 @@ export function createMockAsteroid(
     }
     asteroid.radius = overrides.radius ?? 50;
     return asteroid;
+}
+
+export function createMockDerelict(
+    overrides: Partial<{
+        id: string;
+        position: XY;
+        radius: number;
+        faction: Faction;
+        callsign: string;
+        angle: number;
+        model: ShipModel | null;
+    }> = {},
+): Derelict {
+    return new Derelict().init(
+        overrides.id ?? `derelict-${Math.random().toString(36).substr(2, 9)}`,
+        Vec2.make(overrides.position ?? { x: 0, y: 0 }),
+        overrides.radius ?? 50,
+        overrides.faction ?? Faction.NONE,
+        overrides.callsign ?? '',
+        overrides.angle ?? 0,
+        overrides.model ?? null,
+    );
 }
 
 export function createMockExplosion(

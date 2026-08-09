@@ -31,6 +31,7 @@ import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
+import { ReactorCellManager } from './reactor-cell-manager';
 import { Signals } from './signals';
 import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
@@ -53,6 +54,7 @@ function fixArmor(armor: Armor) {
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
+    state.reactor.energyCells = state.reactor.design.maxEnergyCells;
     state.maneuvering.afterBurnerFuel = state.maneuvering.design.maxAfterBurnerFuel;
     fixArmor(state.armor);
     for (const chainGun of state.chainGuns) {
@@ -139,6 +141,7 @@ export abstract class ShipManager implements Updateable {
     protected damageManager: DamageManager;
     protected heatManager: HeatManager;
     protected ammoManager: AmmoManager;
+    protected reactorCellManager: ReactorCellManager;
     public signalsJobManager: SignalsJobManager;
 
     constructor(
@@ -156,6 +159,7 @@ export abstract class ShipManager implements Updateable {
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.ammoManager = new AmmoManager(this.state);
+        this.reactorCellManager = new ReactorCellManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         for (const [index, chainGun] of this.state.chainGuns.entries()) {
             this.chainGunManagers.push(
@@ -281,6 +285,7 @@ export abstract class ShipManager implements Updateable {
 
         this.signalsJobManager.update(id);
         this.ammoManager.update(id);
+        this.reactorCellManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
     }
