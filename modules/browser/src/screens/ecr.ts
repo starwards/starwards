@@ -25,6 +25,7 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDamageReport } from '../widgets/damage-report';
 import { drawEngineeringStatus } from '../widgets/enginering-status';
 import { drawFullSystemsStatus } from '../widgets/full-system-status';
+import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
@@ -73,6 +74,7 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
     drawDamageReport(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver);
     drawRepairQueue(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
+    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     return teardownInput;
 }
 

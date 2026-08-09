@@ -20,7 +20,7 @@ export {
     playerScanLevel,
     scanCycleTargets,
 } from './client';
-export type { ShipDriverRead, SpaceEventEmitter } from './client';
+export type { RecordingInfo, ShipDriverRead, SpaceEventEmitter } from './client';
 
 // --- configurations ---
 export { demoShip, getAvailableRepairProtocols, repairProtocols, shipModels } from './configurations';
