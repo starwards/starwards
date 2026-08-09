@@ -96,7 +96,14 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     const range = new RangeIndicators(root, p.range / 5);
     range.setSizeFactor(sizeFactor);
     allElements.addChild(range.renderRoot);
-    allElements.addChild(azimuthCircle(root, shipDriver.state, () => p.range * 1.2));
+    let trackedShip: SpaceObject | undefined;
+    allElements.addChild(
+        azimuthCircle(
+            root,
+            () => trackedShip,
+            () => p.range * 1.2,
+        ),
+    );
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
 
     contentElements.addChild(speedLines(root, shipDriver.state, shipTarget));
@@ -188,7 +195,8 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     container.on('resize', onRadarShapeChange);
     isWarpProp.onChange(onRangeChange);
     onRangeChange();
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true),
-    );
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        trackedShip = tracked;
+        camera.followSpaceObject(tracked, spaceDriver.events, true);
+    });
 }

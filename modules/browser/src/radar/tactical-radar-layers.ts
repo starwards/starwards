@@ -14,13 +14,22 @@ import { LineLayer } from './line-layer';
 import { SelectionContainer } from './selection-container';
 import { SpriteLayer } from './sprite-layer';
 
-export function azimuthCircle(root: CameraView, shipState: ShipState, rangeInMeters: () => number) {
+/**
+ * `getShip` must resolve to the same live object the radar's camera follows (the SpaceRoom-authoritative
+ * SpaceObject), not the ShipState mirror — the mirror is synced over a separate Colyseus room connection
+ * and drifts out of phase with the camera, making the ring jitter relative to it as the ship moves.
+ */
+export function azimuthCircle(
+    root: CameraView,
+    getShip: () => { position: XY; angle: number } | undefined,
+    rangeInMeters: () => number,
+) {
     const stage = new Container();
     const layer = new SpriteLayer(
         root,
         { tint: radar.azimuthTint },
-        () => shipState.position,
-        () => degToRad * -shipState.angle,
+        () => getShip()?.position,
+        () => degToRad * -(getShip()?.angle ?? 0),
         () => root.metersToPixles(rangeInMeters()),
     );
     stage.addChild(layer.renderRoot);
