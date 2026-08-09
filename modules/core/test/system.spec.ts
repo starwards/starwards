@@ -62,6 +62,23 @@ describe('SystemState', () => {
     });
 });
 
+describe('System.getStatus', () => {
+    it('reports STARVED, not OK, when the system could not draw the energy it needed', () => {
+        const target = new Target();
+        target.energyStarved = true;
+        const [system] = getSystems(target);
+        expect(system.getStatus()).to.equal('STARVED');
+    });
+
+    it('broken still wins over energyStarved', () => {
+        const target = new Target();
+        target.broken = true;
+        target.energyStarved = true;
+        const [system] = getSystems(target);
+        expect(system.getStatus()).to.equal('DISABLED');
+    });
+});
+
 describe('defectible', () => {
     it('getSystems() gets all defectible properties', () => {
         const target = new Target();

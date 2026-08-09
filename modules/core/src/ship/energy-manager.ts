@@ -28,6 +28,7 @@ export class EnergyManager implements EnergySource, Updateable {
         }
         if (this.state.reactor.energy > value) {
             if (system) {
+                system.energyStarved = false;
                 if (!this.epm.has(system)) {
                     this.epm.set(system, new EpmEntry());
                 }
@@ -49,6 +50,9 @@ export class EnergyManager implements EnergySource, Updateable {
             return true;
         }
         this.state.reactor.energy = 0;
+        if (system) {
+            system.energyStarved = true;
+        }
         return false;
     };
 

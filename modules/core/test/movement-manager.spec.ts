@@ -66,6 +66,32 @@ describe('MovementManager', () => {
         expect(XY.lengthOf(shipObj.velocity)).to.be.greaterThan(0);
     });
 
+    it('marks a thruster energyStarved when it cannot draw the energy boost needs, so the reason is visible', () => {
+        shipMgr.state.reactor.energy = 0;
+        shipMgr.state.smartPilot.maneuvering.x = 1; // boost commanded
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipObj.velocity.x).to.equal(0); // thrust silently did nothing...
+        expect(shipMgr.state.thrusters.some((t) => t.energyStarved)).to.equal(true); // ...but it's visible why
+    });
+
+    it('clears energyStarved once the thruster can draw energy again', () => {
+        shipMgr.state.reactor.energy = 0;
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+        const [tick] = makeIterationsData(1, 20);
+        shipMgr.update(tick);
+        expect(shipMgr.state.thrusters.some((t) => t.energyStarved)).to.equal(true);
+
+        shipMgr.state.reactor.energy = shipMgr.state.reactor.design.maxEnergy;
+        shipMgr.update(tick);
+
+        expect(shipMgr.state.thrusters.every((t) => !t.energyStarved)).to.equal(true);
+    });
+
     it('a ship built with warp: null does not throw during construction or a tick', () => {
         const warplessState = makeShipState('warpless', { ...demoShipConfig, warp: null });
         expect(warplessState.warp).to.equal(null);

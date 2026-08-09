@@ -122,6 +122,15 @@ export abstract class SystemState extends Schema {
     @gameField('float32')
     public energyPerMinute = 0;
 
+    /**
+     * Set by whatever tried to spend energy on this system's behalf (see `EnergyManager.trySpendEnergy`)
+     * the moment the reactor can't cover the draw, and cleared the moment it can again. Lets a system
+     * that is otherwise fully intact (not `broken`, no active defect) still show the crew *why* it did
+     * nothing this tick — see `getStatus()`.
+     */
+    @gameField('boolean')
+    public energyStarved = false;
+
     @range([0, MAX_SYSTEM_HEAT])
     @tweakable('number')
     @gameField('float32')
@@ -157,7 +166,7 @@ export function defectible(config: DefectibleConfig) {
 export type System = {
     pointer: string;
     state: SystemState;
-    getStatus: () => 'DISABLED' | 'DAMAGED' | 'OK';
+    getStatus: () => 'DISABLED' | 'STARVED' | 'DAMAGED' | 'OK';
     getHeatStatus: () => 'OVERHEAT' | 'WARMING' | 'OK';
     defectibles: DefectibleValue[];
 };
@@ -171,6 +180,9 @@ function System(systemPointer: string, state: SystemState): System {
         getStatus: () => {
             if (state.broken) {
                 return 'DISABLED';
+            }
+            if (state.energyStarved) {
+                return 'STARVED';
             }
             if (
                 defectibles.some((d) => {

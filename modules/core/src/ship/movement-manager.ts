@@ -271,6 +271,7 @@ export class MovementManager implements Updateable {
             if (
                 this.energyManager.trySpendEnergy(
                     Math.abs(enginePower) * this.state.maneuvering.design.rotationEnergyCost,
+                    this.state.maneuvering,
                 )
             ) {
                 speedToChange += enginePower * this.state.maneuvering.efficiency;

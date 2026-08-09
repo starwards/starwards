@@ -1,7 +1,7 @@
+import { PropertyPanel, addThresholdTextBlade, createWidgetPane } from '../panel';
 import { ShipDriver, SmartPilotMode } from '@starwards/core';
 
 import { DashboardWidget } from './dashboard';
-import { PropertyPanel } from '../panel';
 import { WidgetContainer } from '../container';
 import { readNumberProp } from '../property-wrappers';
 
@@ -25,7 +25,8 @@ export function drawPilotStats(container: WidgetContainer, shipDriver: ShipDrive
         panel.destroy();
     });
 
-    panel.addProperty('energy', readNumberProp(shipDriver, `/reactor/energy`));
+    const energy = readNumberProp(shipDriver, `/reactor/energy`);
+    panel.addProperty('energy', energy);
     panel.addProperty('afterBurnerFuel', readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`));
 
     panel.addProperty('heading', readNumberProp(shipDriver, `/spaceship/angle`));
@@ -47,4 +48,21 @@ export function drawPilotStats(container: WidgetContainer, shipDriver: ShipDrive
     panel.addProperty('antiDrift', readNumberProp(shipDriver, `/antiDrift`));
     panel.addProperty('breaks', readNumberProp(shipDriver, `/breaks`));
     panel.addText('targeted', { getValue: () => String(shipDriver.state.targeted) });
+
+    // a healthy-looking Systems Status panel doesn't explain why boost/thrusters do nothing when
+    // the reactor is nearly dry — this makes the shortfall itself obvious, right where the pilot looks
+    const { pane: reactorPane, cleanup: reactorCleanup } = createWidgetPane(container, 'Reactor');
+    addThresholdTextBlade(
+        reactorPane,
+        energy,
+        {
+            label: 'energy level',
+            format: (e: number) => Math.round(e).toString(),
+            // a starved reactor rarely sits at a literal 0 — it's fighting a constant tiny recharge
+            // against constant draw — so ERROR needs a "critically low" band, not an exact-zero check
+            warnBelow: energy.range[1] * 0.25,
+            errorAt: energy.range[1] * 0.05,
+        },
+        reactorCleanup.add,
+    );
 }
