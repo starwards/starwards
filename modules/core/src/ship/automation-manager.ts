@@ -350,22 +350,24 @@ export class AutomationManager implements Updateable {
 
     /**
      * Gunnery is on by default for every NPC, independent of `state.order` — orders govern
-     * movement only (MOVE/FOLLOW/ATTACK/docking decide where the hull goes; they never decide
-     * whether the guns work). While `order === Order.NONE`, `idleStrategy` is the fallback:
-     * `PLAY_DEAD` holds fire, `ROAM`/`STAND_GROUND` don't. Any explicit order fires regardless of
-     * `idleStrategy`.
+     * movement only (MOVE/FOLLOW/ATTACK/docking, including while docking/undocking — a docking
+     * NPC still defends itself; nothing about docking suppresses gunnery). While `order ===
+     * Order.NONE`, `idleStrategy` is the fallback: `PLAY_DEAD` holds fire, `ROAM`/`STAND_GROUND`
+     * don't. Any explicit order fires regardless of `idleStrategy`.
      *
      * An `Order.ATTACK` target has absolute priority: whenever it's still structurally reachable
      * (in range and within some mount's bearing coverage — `canBearOn`, independent of the
      * mount's current in-flight bearing, so a target that's merely mid-swing-to is never treated
      * as unreachable and shoved aside), the mount commits to it every tick and only it, so the
      * swing can actually converge instead of being re-aimed at something else before it gets
-     * there. Only while the ordered target is genuinely unreachable (out of range, or outside
-     * every mount's bearing envelope) does a free opportunity shot at the nearest other hostile
-     * happen instead — never in preference to a reachable primary, never causing movement, hull
-     * rotation, or a delay once the primary becomes reachable again. With no ATTACK order, the
-     * nearest hostile in range is engaged autonomously the same way (rescanned at most once every
-     * {@link GUNNERY_RESCAN_INTERVAL_SECONDS} while no valid target is held, not every tick).
+     * there. Only while the ordered target is genuinely unreachable does a free opportunity shot
+     * at the nearest other *reachable* hostile happen instead (`resolveOpportunityTarget` —
+     * reachability-filtered so a nearer unbearable hostile never starves a bearable one further
+     * out, and rescanned at most once every {@link GUNNERY_RESCAN_INTERVAL_SECONDS} on this
+     * branch too, not per-tick) — never in preference to a reachable primary, never causing
+     * movement, hull rotation, or a delay once the primary becomes reachable again. With no
+     * ATTACK order, the nearest reachable hostile is engaged autonomously the same way, through
+     * the same cache.
      *
      * Never touches position, velocity, hull angle, or `state.order`. `setTarget()` is
      * deliberately not called here (that's reserved for the explicit-order path in `follow()`),
@@ -384,46 +386,59 @@ export class AutomationManager implements Updateable {
         }
         const firingAllowed = this.state.order !== Order.NONE || this.state.idleStrategy !== IdleStrategy.PLAY_DEAD;
         if (!firingAllowed) {
-            this.disengageGunnery(controlWeapon);
+            this.disengageGunnery();
             return;
         }
         if (this.state.order === Order.ATTACK && this.state.orderTargetId) {
             const orderedTarget = this.spaceManager.state.get(this.state.orderTargetId) || null;
             if (orderedTarget && !orderedTarget.destroyed) {
-                this.gunneryTargetId = null;
                 if (this.canBearOn(controlWeapon, orderedTarget)) {
+                    this.gunneryTargetId = null;
                     this.engageGunnery(controlWeapon, orderedTarget);
                     return;
                 }
-                // Primary unreachable right now: a free opportunity shot at some other hostile,
-                // or — with none available — keep the primary's fuze/aim dialed in (ready for
-                // when it's reachable again) without ever reporting it as actually firing.
-                const opportunityId = this.findNearestHostileTarget(orderedTarget.id);
-                const opportunityTarget = opportunityId ? this.spaceManager.state.get(opportunityId) || null : null;
+                // Primary unreachable right now: a free opportunity shot at some other reachable
+                // hostile, or — with none available — keep the primary's fuze/aim dialed in
+                // (ready for when it's reachable again) without ever reporting it as firing.
+                const opportunityTarget = this.resolveOpportunityTarget(controlWeapon, id, orderedTarget.id);
                 this.engageGunnery(controlWeapon, opportunityTarget ?? orderedTarget);
                 return;
             }
         }
+        const target = this.resolveOpportunityTarget(controlWeapon, id);
+        if (!target) {
+            this.disengageGunnery();
+            return;
+        }
+        this.engageGunnery(controlWeapon, target);
+    }
+
+    /**
+     * The ship's currently held (or freshly re-scanned) autonomous/opportunistic target: reused
+     * verbatim by both the plain no-ATTACK-order path and the ATTACK-target-unreachable path, so
+     * both share one cache and one {@link GUNNERY_RESCAN_INTERVAL_SECONDS} rescan cooldown — the
+     * cached target is dropped, not just on destruction or leaving `maxShellRange`, but the
+     * instant it stops being bearable at all (`canBearOn`, which also covers `minShellRange`),
+     * so a nearer unbearable hostile can never be cached in preference to — and so starve — a
+     * bearable one further out.
+     */
+    private resolveOpportunityTarget(
+        controlWeapon: ChainGun,
+        id: IterationData,
+        excludeId?: string,
+    ): SpaceObject | null {
         let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
-        if (
-            target &&
-            (target.destroyed ||
-                XY.lengthOf(XY.difference(target.position, this.state.position)) > controlWeapon.design.maxShellRange)
-        ) {
+        if (target && (target.destroyed || target.id === excludeId || !this.canBearOn(controlWeapon, target))) {
             target = null;
         }
         this.gunneryRescanCooldown -= id.deltaSecondsAvg;
         if (!target && this.gunneryRescanCooldown <= 0) {
-            const foundId = this.findNearestHostileTarget();
+            const foundId = this.findNearestHostileTarget(excludeId, true);
             target = foundId ? this.spaceManager.state.get(foundId) || null : null;
             this.gunneryTargetId = foundId;
             this.gunneryRescanCooldown = GUNNERY_RESCAN_INTERVAL_SECONDS;
         }
-        if (!target) {
-            this.disengageGunnery(controlWeapon);
-            return;
-        }
-        this.engageGunnery(controlWeapon, target);
+        return target;
     }
 
     private engageGunnery(controlWeapon: ChainGun, target: SpaceObject) {
@@ -431,9 +446,11 @@ export class AutomationManager implements Updateable {
         this.aimAndFire(controlWeapon, target);
     }
 
-    private disengageGunnery(controlWeapon: ChainGun) {
+    private disengageGunnery() {
         if (this.gunneryEngaged) {
-            controlWeapon.isFiring = false;
+            for (const chainGun of this.state.chainGuns) {
+                chainGun.isFiring = false;
+            }
         }
         this.gunneryEngaged = false;
         this.gunneryTargetId = null;
@@ -461,18 +478,24 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Picks the nearest non-destroyed hostile-faction Spaceship within the ship's own chain-gun
-     * range, used both by the default-fire gunnery routine (`excludeId` keeps it from picking an
-     * unreachable ATTACK-ordered primary right back out as its own "opportunity") and to let any
-     * NPC whose ATTACK order just completed (target destroyed or gone) re-engage instead of
-     * sitting dead in the water.
+     * Picks the nearest non-destroyed hostile-faction Spaceship, used for two different questions
+     * that need two different filters:
+     * - Gunnery's own target search (`requireBearable: true`, from `resolveOpportunityTarget`)
+     *   must skip anything `canBearOn` rejects — gunnery never moves or rotates to correct for a
+     *   target it can't actually point at, so a nearer unbearable hostile must never be preferred
+     *   over a bearable one further out.
+     * - An NPC's ATTACK order re-acquiring after its target dies (`update()`) only needs
+     *   `maxShellRange` — the order drives movement, so a target merely unbearable *right now*
+     *   (mid-swing, or requiring the hull to reposition) is still a legitimate new order target.
+     *
+     * `excludeId` keeps it from picking an unreachable ATTACK-ordered primary right back out as
+     * its own "opportunity".
      */
-    private findNearestHostileTarget(excludeId?: string): string | null {
+    private findNearestHostileTarget(excludeId?: string, requireBearable = false): string | null {
         const controlWeapon = this.state.chainGuns[0] ?? null;
         if (!controlWeapon) {
             return null;
         }
-        const engagementRadius = controlWeapon.design.maxShellRange;
         let nearestId: string | null = null;
         let nearestDistance = Infinity;
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
@@ -486,7 +509,10 @@ export class AutomationManager implements Updateable {
                 continue;
             }
             const distance = XY.lengthOf(XY.difference(candidate.position, this.state.position));
-            if (distance <= engagementRadius && distance < nearestDistance) {
+            const reachable = requireBearable
+                ? this.canBearOn(controlWeapon, candidate)
+                : distance <= controlWeapon.design.maxShellRange;
+            if (reachable && distance < nearestDistance) {
                 nearestDistance = distance;
                 nearestId = candidate.id;
             }

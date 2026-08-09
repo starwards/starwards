@@ -1,5 +1,6 @@
 import {
     ChaingunDesign,
+    DockingMode,
     Faction,
     IdleStrategy,
     Order,
@@ -507,6 +508,163 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(XY.equals(withOpportunity.position, control.position, 0.001)).to.equal(true);
         expect(XY.equals(withOpportunity.velocity, control.velocity, 0.001)).to.equal(true);
         expect(withOpportunity.angle).to.be.closeTo(control.angle, 0.001);
+    });
+
+    it('selects the nearest bearable hostile, not a nearer one no mount can bear on', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        // Nearer, but 180 degrees off the FWD-fitted mount's 10-degree arc.
+        const nearUnbearable = createHostile('near-unbearable', Faction.Gravitas, XY.byLengthAndDirection(3000, 180));
+        // Farther, but dead ahead -- squarely in the arc.
+        const farBearable = createHostile('far-bearable', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(nearUnbearable);
+        spaceMgr.insert(farBearable);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
+    });
+
+    it('drops a cached target the instant it stops being bearable, instead of starving a bearable one', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
+
+        // The same (cached) hostile swings around to well outside the 10-degree arc.
+        hostile.position.setValue(XY.byLengthAndDirection(5000, 180));
+        spaceMgr.forceFlushEntities();
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+    });
+
+    it('drops a cached target that closes inside minShellRange, consistent with canBearOn', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const minShellRange = shipMgr.state.chainGuns[0]?.design.minShellRange ?? 0;
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+
+        // Closes inside the gun's own dead zone.
+        hostile.position.setValue(XY.byLengthAndDirection(minShellRange - 500, 0));
+        spaceMgr.forceFlushEntities();
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+    });
+
+    it('throttles the rescan on the ATTACK-target-unreachable branch, not per-tick', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const maxShellRange = shipMgr.state.chainGuns[0]?.design.maxShellRange ?? 0;
+        const unreachableOrderedTarget = createHostile(
+            'unreachable-ordered-target',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(maxShellRange + 5_000, 0),
+        );
+        spaceMgr.insert(unreachableOrderedTarget);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = unreachableOrderedTarget.id;
+
+        // A single 0.05s tick: no opportunity hostile yet, so the cooldown-starts-at-zero initial
+        // scan finds nothing and arms the 1s rescan cooldown.
+        for (const id of makeIterationsData(0.05, 1)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+
+        // A hostile now appears, well within the still-running cooldown window.
+        const opportunityHostile = createHostile(
+            'opportunity-hostile',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(5000, 90),
+        );
+        spaceMgr.insert(opportunityHostile);
+        spaceMgr.forceFlushEntities();
+
+        // 0.75s more: short of the 1s cooldown -- still throttled, not yet picked up.
+        for (const id of makeIterationsData(0.75, 15)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1); // still aimed at the (unreachable) primary's bearing
+
+        // Crosses the 1s cooldown mark: the rescan now runs and picks up the opportunity hostile.
+        for (const id of makeIterationsData(0.3, 6)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
+    });
+
+    it('disengaging clears isFiring on every mount, not only the control weapon', () => {
+        const twoMountConfig = {
+            ...shipConfigurations['chaingun-platform'],
+            chainGuns: [
+                ['FWD', chaingunPlatformChaingun],
+                ['STBD', chaingunPlatformChaingun],
+            ] as [ShipDirectionConfig, ChaingunDesign][],
+        };
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, twoMountConfig);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+        // Simulates the second mount having been left firing by some other path -- disengaging
+        // must not leave it behind.
+        shipMgr.state.chainGuns[1].isFiring = true;
+
+        shipMgr.state.idleStrategy = IdleStrategy.PLAY_DEAD;
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+        expect(shipMgr.state.chainGuns[1]?.isFiring).to.equal(false);
+    });
+
+    it('a docking NPC still fires on a hostile in range -- docking suppresses movement, not gunnery', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const dockTarget = createHostile('dock-target', Faction.Raiders, XY.byLengthAndDirection(1000, 45));
+        spaceMgr.insert(dockTarget);
+        shipMgr.state.docking.targetId = dockTarget.id;
+        shipMgr.state.docking.mode = DockingMode.DOCKING;
+
+        // Same bearing (45 degrees) as the dock target, so the hull rotation docking induces
+        // doesn't also move the mount's desired bearing away from the hostile mid-swing.
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 45));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
     });
 });
 
