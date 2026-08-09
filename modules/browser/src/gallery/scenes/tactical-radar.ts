@@ -176,40 +176,28 @@ export const tacticalRadarScenes: Record<string, Scene> = {
         },
     },
 
-    'tactical-radar-with-explosion-variants': {
-        name: 'tactical-radar-with-explosion-variants',
+    'tactical-radar-with-breach-hit': {
+        name: 'tactical-radar-with-breach-hit',
         description:
-            'Three blasts of the same radius: a missile blast (left), a cannon shell blast at half render ' +
-            'scale (center), and a breach hit with its hull-penetration flash (right)',
+            'Two blasts of the same radius: a normal exterior hit (left) vs a breach hit with its ' +
+            'hull-penetration flash (right)',
         async setup(container: HTMLElement) {
             const playerShip = createShipWithState('player', 0, 0, 0);
 
-            const missileBlast = createMockExplosion({
-                id: 'missile-blast',
-                position: { x: 1000, y: -600 },
+            const normalBlast = createMockExplosion({
+                id: 'normal-blast',
+                position: { x: 1000, y: -300 },
                 radius: 250,
-            });
-            const shellBlast = createMockExplosion({
-                id: 'shell-blast',
-                position: { x: 1000, y: 0 },
-                radius: 250,
-                isShellBlast: true,
             });
             const breachBlast = createMockExplosion({
                 id: 'breach-blast',
-                position: { x: 1000, y: 600 },
+                position: { x: 1000, y: 300 },
                 radius: 250,
-                isShellBlast: true,
                 breachHit: true,
             });
 
             const mockContainer = createMockContainer(container);
-            const mockSpaceDriver = createMockSpaceDriver([
-                playerShip.spaceship,
-                missileBlast,
-                shellBlast,
-                breachBlast,
-            ]);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, normalBlast, breachBlast]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
             return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {

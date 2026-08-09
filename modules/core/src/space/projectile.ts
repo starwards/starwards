@@ -328,7 +328,6 @@ export class Projectile extends SpaceObjectBase implements Craft {
         const explosion = new Explosion();
         explosion.assign(warhead.explosion);
         explosion.damageType = warhead.damageType;
-        explosion.isShellBlast = isShellAmmo(this.model);
         return explosion;
     }
 

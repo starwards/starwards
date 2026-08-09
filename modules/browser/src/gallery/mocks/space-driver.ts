@@ -98,7 +98,6 @@ export function createMockExplosion(
         id: string;
         position: XY;
         radius: number;
-        isShellBlast: boolean;
         breachHit: boolean;
     }> = {},
 ): Explosion {
@@ -108,7 +107,6 @@ export function createMockExplosion(
         20,
     );
     explosion.radius = overrides.radius ?? 200;
-    explosion.isShellBlast = overrides.isShellBlast ?? false;
     explosion.breachHit = overrides.breachHit ?? false;
     return explosion;
 }

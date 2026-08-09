@@ -27,13 +27,6 @@ export class Explosion extends SpaceObjectBase {
     public blastFactor = 1;
 
     /**
-     * True for blasts detonated by cannon shell ammo (as opposed to missiles) — drives the
-     * smaller shell-blast render scale on the client.
-     */
-    @gameField('boolean')
-    public isShellBlast = false;
-
-    /**
      * Set once this blast lands a hit on an armor section that was already fully broken —
      * drives the distinct hull-penetration render on the client.
      */
