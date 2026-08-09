@@ -1,9 +1,11 @@
-import { AdminDriver, ClientStatus, Driver, Status } from '@starwards/core';
+import { AdminDriver, ClientStatus, Driver, Status, createLogger } from '@starwards/core';
 
 import $ from 'jquery';
 import { hsl } from '../colors';
 import { shouldShowGameMessage } from './game-message-overlay';
 import { wrapRootWidgetContainer } from '../container';
+
+const { error: logError } = createLogger('screen:station-lifecycle');
 
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;
@@ -32,6 +34,12 @@ function renderStandby(element: JQuery<HTMLElement>, text: string) {
  * paused state, not a glitch — behind the message.
  */
 function attachGameMessageOverlay(wrapperEl: JQuery<HTMLElement>, adminDriver: AdminDriver): () => void {
+    // The overlay's `position: absolute` needs a positioned ancestor to anchor to. #wrapper is
+    // `position: relative` in static/styles/index.css today, but that's an assumption this
+    // shared lifecycle shouldn't silently depend on — enforce it here instead.
+    if (wrapperEl.css('position') === 'static') {
+        wrapperEl.css('position', 'relative');
+    }
     const overlay = $('<div />')
         .attr('data-id', 'Game Message')
         .css({
@@ -113,9 +121,16 @@ export function runScreenLifecycle(
             };
             teardown = () => cleanups.splice(0).forEach((fn) => fn());
             void init(freshWrapper).then(addCleanup);
-            void driver.getAdminDriver().then((adminDriver) => {
-                addCleanup(attachGameMessageOverlay(freshWrapper, adminDriver));
-            });
+            void driver
+                .getAdminDriver()
+                .then((adminDriver) => {
+                    addCleanup(attachGameMessageOverlay(freshWrapper, adminDriver));
+                })
+                .catch((err: unknown) => {
+                    // Missing the end-of-game banner is a far better failure than an unhandled
+                    // rejection on all seven station screens at once.
+                    logError('failed to attach game message overlay', err);
+                });
         } else {
             renderStandby(freshWrapper, text);
         }
