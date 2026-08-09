@@ -99,7 +99,10 @@ test.describe('ECR Screen — energy starvation visibility', () => {
 
         ship.state.reactor.energy = 0; // sustained shortfall — past ENERGY_STARVATION_GRACE_SECONDS
 
-        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 5000 }).toContain('energy');
+        // ENERGY_STARVATION_GRACE_SECONDS (2s) is simulated time, not wall-clock — under a busy CI
+        // runner running the full suite in parallel, this game's tick cadence can lag real time by
+        // more than a plain 5s poll tolerates, so give it generous real-time headroom here.
+        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 20000 }).toContain('energy');
         expect(ship.state.repairQueue.operations.length).toBe(0); // aborted, not stuck silently
 
         const readout = await getPropertyValue(page, 'notice', 'Repair Queue');
