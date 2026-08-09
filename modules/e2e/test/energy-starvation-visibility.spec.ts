@@ -42,6 +42,9 @@ test.describe('Pilot Screen — energy starvation visibility', () => {
         await expect(systemsPanel).toBeVisible({ timeout: 10000 });
 
         const ship = gameDriver.getShip(shipId);
+        // effeciencyFactor=0 stops the reactor's own per-tick recharge (EnergyManager.update), so
+        // energy stays pinned at 0 deterministically instead of creeping back up between assertions
+        ship.state.reactor.effeciencyFactor = 0;
         ship.state.reactor.energy = 0;
         ship.state.smartPilot.maneuveringMode = SmartPilotMode.DIRECT;
         ship.state.smartPilot.maneuvering.x = 1; // boost commanded — thrusters try to draw energy every tick
@@ -97,12 +100,15 @@ test.describe('ECR Screen — energy starvation visibility', () => {
             .poll(() => ship.state.repairQueue.operations[0]?.status, { timeout: 5000 })
             .toBe(RepairOperationStatus.ACTIVE);
 
-        ship.state.reactor.energy = 0; // sustained shortfall — past ENERGY_STARVATION_GRACE_SECONDS
+        // "reactor too damaged to replenish energy" (the issue's actual root cause) — not just a
+        // momentary energy=0. The reactor recharges every tick (EnergyManager.update); the repair's
+        // own draw is small (2/s) so a live, still-recharging reactor recovers enough between ticks
+        // to keep succeeding and never accumulates a SUSTAINED shortfall. Killing effeciencyFactor
+        // stops recharge outright, so energy stays pinned at 0 deterministically.
+        ship.state.reactor.effeciencyFactor = 0;
+        ship.state.reactor.energy = 0;
 
-        // ENERGY_STARVATION_GRACE_SECONDS (2s) is simulated time, not wall-clock — under a busy CI
-        // runner running the full suite in parallel, this game's tick cadence can lag real time by
-        // more than a plain 5s poll tolerates, so give it generous real-time headroom here.
-        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 20000 }).toContain('energy');
+        await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 10000 }).toContain('energy');
         expect(ship.state.repairQueue.operations.length).toBe(0); // aborted, not stuck silently
 
         const readout = await getPropertyValue(page, 'notice', 'Repair Queue');
