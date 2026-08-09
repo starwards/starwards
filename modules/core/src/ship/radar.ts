@@ -164,10 +164,17 @@ export class Radar extends Turret {
     /**
      * the radius this radar currently reaches, given its effectiveness, malfunction state and arc.
      * Scales with the square root of effectiveness, since effectiveness scales the swept area.
+     *
+     * A broken radar (skew-jammed, or malfunction damage past the ease window) never drops to a
+     * literal 0: it still holds its degraded floor (`design.malfunctionRange`), same as a radar
+     * mid-fluctuation. Only losing power blacks it out outright — see `powered` above.
      */
     get range() {
         if (!this.powered) {
             return 0;
+        }
+        if (this.broken) {
+            return this.design.malfunctionRange;
         }
         const effectiveArea =
             lerp([0, 1], [this.design.malfunctionArea, this.design.area], this.areaFactor) * this.effectiveness;

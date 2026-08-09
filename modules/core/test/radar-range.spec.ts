@@ -121,21 +121,63 @@ describe('Radar effectiveness scaling', () => {
         expect(radar.range).to.equal(0);
     });
 
-    it('a broken radar yields range 0', () => {
-        const radar = makeBeamRadar();
-        radar.power = 1;
-        radar.malfunctionRangeFactor = 1; // clamped by @range to the broken threshold
-        expect(radar.broken).to.equal(true);
-        expect(radar.effectiveness).to.equal(0);
-        expect(radar.range).to.equal(0);
-    });
-
     it('range scales with sqrt(effectiveness): power 1 vs 0.25 → range ratio ≈ 2', () => {
         const full = makeBeamRadar();
         const quarter = makeBeamRadar();
         full.power = 1;
         quarter.power = 0.25;
         expect(full.range / quarter.range).to.be.closeTo(2, 1e-3);
+    });
+});
+
+describe('Radar damage never blacks out the radar', () => {
+    // per-issue design: damage must degrade range smoothly toward a floor, never cut it to 0 outright.
+    const damagedBeamDesign = {
+        range: 20_000,
+        minArc: 5,
+        maxArc: 90,
+        defaultArc: 20,
+        rangeEaseFactor: 0.2,
+        malfunctionRange: 2_000,
+    };
+
+    function makeDamagedBeamRadar() {
+        const radar = new Radar();
+        radar.design.assign(damagedBeamDesign);
+        radar.power = 1;
+        return radar;
+    }
+
+    it('a radar broken by accumulated malfunction damage still holds its floor range, not 0', () => {
+        const radar = makeDamagedBeamRadar();
+        radar.malfunctionRangeFactor = 5; // far past the broken threshold
+        expect(radar.broken).to.equal(true); // still counts toward the kill-ratio / DISABLED status
+        expect(radar.range).to.be.closeTo(radar.design.malfunctionRange, 1); // but never blacks out
+    });
+
+    it('range never drops to 0 from malfunction damage alone, however severe (fast-check)', () =>
+        fc.assert(
+            fc.property(
+                fc.double({ min: 0, max: 20, noNaN: true }),
+                fc.double({ min: 0, max: 1, noNaN: true }),
+                (malfunctionRangeFactor, waveSample) => {
+                    const radar = makeDamagedBeamRadar();
+                    radar.malfunctionRangeFactor = malfunctionRangeFactor;
+                    radar.areaFactor = malfunctionAreaFactor(
+                        malfunctionRangeFactor,
+                        radar.design.rangeEaseFactor,
+                        waveSample,
+                    );
+                    expect(radar.range).to.be.greaterThan(0);
+                },
+            ),
+        ));
+
+    it('under even the worst malfunction sample, a close-range (2-4km) contact stays within reach', () => {
+        const radar = makeDamagedBeamRadar();
+        radar.malfunctionRangeFactor = 5; // severe accumulated damage
+        radar.areaFactor = 0; // worst-case wave sample: fully at the malfunction floor
+        expect(radar.range).to.be.closeTo(radar.design.malfunctionRange, 1);
     });
 });
 
