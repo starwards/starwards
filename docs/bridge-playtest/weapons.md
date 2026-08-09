@@ -29,7 +29,7 @@ their tracer fire even past sensor range).
 | Toggle Enemy Only | `o` |
 | Toggle Short Range Only | `i` |
 | Fire Tubes (ship-level: every loaded, unlocked tube) | `x` |
-| Toggle Load Tube | `c` |
+| Toggle Load Tubes (every tube) | `c` |
 | Change Tube Ammo | `v` |
 | Toggle Tube 0/1/2/3 Safety (one dedicated key per tube index) | `1` `2` `3` `4` |
 | Fire Chain Gun (every mount) | `f` |

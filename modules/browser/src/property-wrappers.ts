@@ -98,6 +98,21 @@ export function writeAllProp<T extends Primitive>(driver: Driver, pointerStrs: s
     return { setValue: (value: T) => pointerStrs.forEach((pointerStr) => driver.sendJsonCmd(pointerStr, value)) };
 }
 
+/** Fans a toggle out to several JSON pointers — reads the first pointer, writes every write to all of them, keeping them in sync from one control. An empty list is a safe no-op, matching writeAllProp. */
+export function readWriteAllProp<T extends Primitive>(driver: Driver, pointerStrs: string[]) {
+    if (pointerStrs.length === 0) {
+        return {
+            getValue: () => undefined as T | undefined,
+            onChange: () => () => undefined,
+            ...writeAllProp<T>(driver, pointerStrs),
+        };
+    }
+    return {
+        ...readProp<T>(driver, pointerStrs[0]),
+        ...writeAllProp<T>(driver, pointerStrs),
+    };
+}
+
 export function readWriteNumberProp(driver: Driver, pointerStr: JsonStringPointer) {
     const api = readWriteProp<number>(driver, pointerStr);
     return { ...api, range: getRange(driver.state, api.pointer) };

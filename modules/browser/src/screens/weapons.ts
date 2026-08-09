@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
-import { readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
+import { readWriteAllProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
@@ -68,7 +68,16 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i', 'Short Range Only');
 
     input.addMomentaryClickAction(writeProp(shipDriver, '/fireTubesCommand'), 'x', 'Fire Tubes');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
+    if (shipDriver.state.tubes.length > 0) {
+        input.addToggleClickAction(
+            readWriteAllProp(
+                shipDriver,
+                shipDriver.state.tubes.map((tube) => `/tubes/${tube.index}/loadAmmo`),
+            ),
+            'c',
+            'Load Tubes',
+        );
+    }
     input.addMomentaryClickAction(
         writeAllProp(
             shipDriver,

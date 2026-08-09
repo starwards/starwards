@@ -167,4 +167,14 @@ test.describe('Weapons hotkeys — multi-tube fan-out', () => {
             3000,
         );
     });
+
+    // gravitas spawns with 2 tubes; c fans out to all of them instead of only tube 0.
+    test('c key: every tube.loadAmmo toggles to false, not just tube 0', async ({ page }) => {
+        await page.keyboard.press('c');
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => ship.state.tubes.length >= 2 && ship.state.tubes.every((tube) => tube.loadAmmo === false),
+            3000,
+        );
+    });
 });
