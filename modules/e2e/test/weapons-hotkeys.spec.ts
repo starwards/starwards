@@ -137,6 +137,26 @@ test.describe('Weapons hotkeys', () => {
         await page.keyboard.press('b');
         await page.waitForTimeout(200);
     });
+
+    // --- Chain gun shell range / time fuse (./, keys — see #2149) ---
+
+    test('. key: chainGuns[0].shellRange increases by one step', async ({ page }) => {
+        await page.keyboard.press('.');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => (ship.state.chainGuns.at(0)?.shellRange ?? 0) > 0.01,
+            3000,
+        );
+    });
+
+    test(', key: chainGuns[0].shellRange decreases by one step', async ({ page }) => {
+        await page.keyboard.press(',');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => (ship.state.chainGuns.at(0)?.shellRange ?? 0) < -0.01,
+            3000,
+        );
+    });
 });
 
 test.describe('Weapons hotkeys — multi-tube fan-out', () => {

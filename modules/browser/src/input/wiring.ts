@@ -70,8 +70,18 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
         'Rotation Mode',
     );
     input.addMomentaryClickAction(
+        writeProp(shipDriver, '/rotationModeCommand'),
+        shipInputConfig.rotationModeKey,
+        'Rotation Mode',
+    );
+    input.addMomentaryClickAction(
         writeProp(shipDriver, '/maneuveringModeCommand'),
         shipInputConfig.maneuveringMode,
+        'Maneuvering Mode',
+    );
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/maneuveringModeCommand'),
+        shipInputConfig.maneuveringModeKey,
         'Maneuvering Mode',
     );
     input.addMomentaryClickAction(
