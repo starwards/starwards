@@ -165,6 +165,34 @@ describe('AI heat-management automation', () => {
             expect(gun.power, 'latch released once cooled').to.equal(PowerLevel.NORMAL);
         });
 
+        it('restores a MAX-pinned gun to MAX, not NORMAL, once it cools', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-restore-max');
+            const gun = shipMgr.state.chainGuns[0];
+            gun.power = PowerLevel.MAX; // e.g. a GM deliberately overdrove this mount
+            gun.heat = 75;
+
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.power, 'backs off from MAX while hot').to.equal(PowerLevel.LOW);
+
+            gun.heat = 10;
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.power, 'restores the pre-backoff level (MAX), not a hardcoded NORMAL').to.equal(PowerLevel.MAX);
+        });
+
+        it('leaves a SHUTDOWN-pinned gun at SHUTDOWN even if it somehow heats up', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-shutdown-stays-off');
+            const gun = shipMgr.state.chainGuns[0];
+            gun.power = PowerLevel.SHUTDOWN; // e.g. a GM deliberately powered this mount down
+            gun.heat = 75; // residual heat from before it was shut down
+
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.power, 'already at/below the backoff floor — nothing to back off').to.equal(PowerLevel.SHUTDOWN);
+
+            gun.heat = 10;
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.power, 'stays SHUTDOWN once cooled too').to.equal(PowerLevel.SHUTDOWN);
+        });
+
         it('never touches power on a mount it has not itself backed off, even while hot below the engage threshold', () => {
             const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-untouched-below-threshold');
             const gun = shipMgr.state.chainGuns[0];
@@ -272,6 +300,7 @@ describe('AI heat-management automation', () => {
             let totalTicks = 0;
             let ceasefireLatchedTicks = 0;
             let sawPowerBackoff = false;
+            let maxHeat = 0;
             for (const id of makeIterationsData(600, 12000)) {
                 attackerMgr.update(id);
                 targetMgr.update(id);
@@ -279,6 +308,7 @@ describe('AI heat-management automation', () => {
                 totalTicks++;
                 if (gun.power < PowerLevel.NORMAL) sawPowerBackoff = true;
                 if (attackerMgr.automationManager.isCeasefireLatched(gun)) ceasefireLatchedTicks++;
+                maxHeat = Math.max(maxHeat, gun.heat);
             }
 
             return {
@@ -286,6 +316,7 @@ describe('AI heat-management automation', () => {
                 sawPowerBackoff,
                 ceasefireLatchedFraction: ceasefireLatchedTicks / totalTicks,
                 gunEffectiveness: gun.effectiveness,
+                maxHeat,
             };
         }
 
@@ -303,20 +334,34 @@ describe('AI heat-management automation', () => {
             expect(result.gunEffectiveness).to.be.greaterThan(0);
         });
 
-        it('reports the net sustained-DPS effect: same seeded scenario with and without the automation', () => {
+        it('asserts the net sustained-DPS effect: same seeded scenario with and without the automation', () => {
             const withAutomation = runSustainedEngagement(true);
             const withoutAutomation = runSustainedEngagement(false);
 
             // eslint-disable-next-line no-console
             console.log(
                 `[#2175 sustained-DPS baseline] armor plates lost over 600s — ` +
-                    `withAutomation=${withAutomation.armorLost} withoutAutomation=${withoutAutomation.armorLost}`,
+                    `withAutomation=${withAutomation.armorLost} withoutAutomation=${withoutAutomation.armorLost}, ` +
+                    `maxHeat withAutomation=${withAutomation.maxHeat} withoutAutomation=${withoutAutomation.maxHeat}`,
             );
 
-            // heat management protects the gun (see the previous test) without neutering its
-            // offense — both runs still measurably damage the target
+            // both runs still measurably damage the target — heat management does not neuter offense
             expect(withAutomation.armorLost, 'with automation').to.be.greaterThan(0);
             expect(withoutAutomation.armorLost, 'without automation (baseline)').to.be.greaterThan(0);
+            // regression guard: backoff only ever throttles down from the unthrottled baseline, so
+            // automation must never deal MORE damage than the baseline — catches e.g. a future change
+            // that silently doubles NPC DPS. Pinned loosely (measured 6 vs 7) to survive minor tuning.
+            expect(withAutomation.armorLost, 'automation must not out-damage the unthrottled baseline').to.be.at.most(
+                withoutAutomation.armorLost,
+            );
+            expect(withAutomation.armorLost).to.be.closeTo(6, 3);
+            expect(withoutAutomation.armorLost).to.be.closeTo(7, 3);
+            // the actual point of heat management: with it, heat never approaches the ceasefire
+            // threshold; without it, the gun sits pegged at the overheat ceiling for the fight
+            expect(withAutomation.maxHeat, 'heat management keeps heat well clear of the ceiling').to.be.lessThan(
+                MAX_SYSTEM_HEAT * 0.9,
+            );
+            expect(withoutAutomation.maxHeat, 'unmanaged NPC heat pegs at the ceiling').to.equal(MAX_SYSTEM_HEAT);
         });
     });
 });

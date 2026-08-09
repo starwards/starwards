@@ -54,11 +54,13 @@ export class AutomationManager implements Updateable {
     /** Mounts currently latched into a ceasefire hard-stop, keyed by hysteresis (see `CEASEFIRE_RELEASE_HEAT`). */
     private readonly ceasefireLatched = new WeakSet<ChainGun>();
     /**
-     * Mounts currently latched into power backoff (see `backOffPower`). Membership is how
-     * automation knows which mounts' `power` it currently owns — it must never write a mount it
-     * hasn't itself backed off, or it would stomp a GM's or scenario's deliberately chosen level.
+     * Mounts currently latched into power backoff (see `backOffPower`), mapped to the `power` level
+     * each had the moment automation engaged. Membership is how automation knows which mounts'
+     * `power` it currently owns — it must never write a mount it hasn't itself backed off, and on
+     * release it restores exactly this stored level (a GM's `MAX`, a scenario's `SHUTDOWN`, ...),
+     * never a hardcoded default.
      */
-    private readonly powerBackoffLatched = new WeakSet<ChainGun>();
+    private readonly powerBackoffLatched = new WeakMap<ChainGun, PowerLevel>();
     /** Escape hatch for A/B comparison (e.g. a baseline DPS run with heat management off). Defaults on. */
     private heatManagementEnabled = true;
 
@@ -352,24 +354,29 @@ export class AutomationManager implements Updateable {
      * Duty-cycle-style power throttle: the primary defense against overheat damage, preferred over
      * the ceasefire hard-stop (see `applyCeasefireLatch`). `power` is a `PowerLevel` enum rendered
      * by name in the status UI (`system-status.ts`) — backoff must land on one of its discrete
-     * values, never an arbitrary float, or the UI shows `undefined`. Steps down one level, from
-     * `NORMAL` to `LOW` (never `SHUTDOWN` — a backed-off gun can still land some shots; only the
-     * ceasefire latch fully silences one), hysteresis-latched between `POWER_BACKOFF_ENGAGE_HEAT`
-     * and `POWER_BACKOFF_RELEASE_HEAT` so it doesn't chatter at the threshold.
+     * values, never an arbitrary float, or the UI shows `undefined`. Caps at `LOW` (never
+     * `SHUTDOWN` — a backed-off gun can still land some shots; only the ceasefire latch fully
+     * silences one), hysteresis-latched between `POWER_BACKOFF_ENGAGE_HEAT` and
+     * `POWER_BACKOFF_RELEASE_HEAT` so it doesn't chatter at the threshold.
      *
      * Only ever writes `power` for a mount it currently latches — a mount automation hasn't backed
-     * off is left exactly as a GM or scenario set it (never forced to `NORMAL`).
+     * off is left exactly as a GM or scenario set it. On release it restores the exact level that
+     * mount had the moment backoff engaged (a GM's `MAX`, a scenario's `SHUTDOWN`, ...), never a
+     * hardcoded default — automation undoes only what it did. A mount already at or below `LOW`
+     * when it gets hot (e.g. a GM already parked it at `SHUTDOWN`) has no headroom to back off from,
+     * so it never even latches.
      */
     private backOffPower(chainGun: ChainGun) {
-        if (this.powerBackoffLatched.has(chainGun)) {
+        const preBackoffLevel = this.powerBackoffLatched.get(chainGun);
+        if (preBackoffLevel !== undefined) {
             if (chainGun.heat <= POWER_BACKOFF_RELEASE_HEAT) {
                 this.powerBackoffLatched.delete(chainGun);
-                chainGun.power = PowerLevel.NORMAL;
+                chainGun.power = preBackoffLevel;
             } else {
-                chainGun.power = PowerLevel.LOW;
+                chainGun.power = Math.min(preBackoffLevel, PowerLevel.LOW);
             }
-        } else if (chainGun.heat >= POWER_BACKOFF_ENGAGE_HEAT) {
-            this.powerBackoffLatched.add(chainGun);
+        } else if (chainGun.heat >= POWER_BACKOFF_ENGAGE_HEAT && chainGun.power > PowerLevel.LOW) {
+            this.powerBackoffLatched.set(chainGun, chainGun.power);
             chainGun.power = PowerLevel.LOW;
         }
     }
