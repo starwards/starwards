@@ -6,6 +6,7 @@ import {
     handleJsonPointerCommand,
     isJsonPointer,
     isSetValueCommand,
+    lockCommands,
     spaceCommands,
 } from '@starwards/core/internal';
 
@@ -25,6 +26,9 @@ export class SpaceRoom extends Room<SpaceState> {
         this.roomId = SpaceRoom.id;
         this.setState(manager.state);
         for (const [cmdName, handler] of cmdReceivers(spaceCommands, manager)) {
+            this.onMessage(cmdName, handler);
+        }
+        for (const [cmdName, handler] of cmdReceivers(lockCommands, manager)) {
             this.onMessage(cmdName, handler);
         }
         this.onMessage('*', (_, type, message: unknown) => {

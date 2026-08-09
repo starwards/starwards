@@ -1,22 +1,39 @@
-import { LockPropertyArg, ShipState } from './ship-state';
+import { ArraySchema, Schema } from '@colyseus/schema';
 
-import { Schema } from '@colyseus/schema';
-import { getJsonPointer } from '../json-ptr';
-import { isCommandable } from '../game-field';
-import { setFieldLocked } from '../lock-registry';
+import { StateCommand } from './commands';
+import { getJsonPointer } from './json-ptr';
+import { isCommandable } from './game-field';
+import { setFieldLocked } from './lock-registry';
+
+export type LockPropertyArg = { path: string; locked: boolean };
 
 /**
- * `ShipState.lockCommands` queue element. `setValue` never touches state
- * directly (see the "Commands" pattern in CLAUDE.md) — it enqueues, and
- * `applyLockCommands` drains the queue from `ShipManager.update()`, the same
- * place every other ship-scoped command queue is drained.
+ * A room-root state (`ShipState`, `SpaceState`) that carries a GM property-lock
+ * queue and its synced mirror. `lockCommands` is drained each tick by
+ * `applyLockCommands`, exactly like every other command queue in this codebase
+ * (see the "Commands" pattern in CLAUDE.md) — `lockProperty.setValue` never
+ * touches state directly.
  */
-export const lockProperty = {
+export interface Lockable {
+    lockCommands: LockPropertyArg[];
+    lockedPaths: ArraySchema<string>;
+}
+
+/**
+ * `lockProperty` command (`{path, locked}`), shared by every room whose root
+ * state implements `Lockable` — today `ShipState` and `SpaceState`. One
+ * instance is reused across rooms; `cmdReceivers` only needs `cmdName`/
+ * `setValue`, so the broader `Schema & Lockable` parameter type is compatible
+ * with any specific room's `Stateful<S>` manager.
+ */
+export const lockProperty: StateCommand<LockPropertyArg, Schema & Lockable, void> = {
     cmdName: 'lockProperty',
-    setValue: (state: ShipState, value: LockPropertyArg) => {
+    setValue: (state, value) => {
         state.lockCommands.push(value);
     },
 };
+
+export const lockCommands = { lockProperty };
 
 /**
  * Resolves a JSON Pointer (relative to `root`) down to the Schema instance
@@ -49,7 +66,7 @@ function resolveLockTarget(root: Schema, pointer: string): { parent: Schema; fie
  * player command surface (`isCommandable`) can be locked — otherwise a
  * malformed path could silently freeze an internal, non-tweakable field.
  */
-export function applyLockCommands(state: ShipState) {
+export function applyLockCommands(state: Schema & Lockable) {
     if (state.lockCommands.length === 0) {
         return;
     }

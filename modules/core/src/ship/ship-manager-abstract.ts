@@ -37,7 +37,7 @@ import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-import { applyLockCommands } from './lock-commands';
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
 import { sinWave } from '../logic';

@@ -1,3 +1,4 @@
+import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
 import {
     BulkBotOrderArg,
     BulkMoveArg,
@@ -9,7 +10,7 @@ import {
     CreateWaypointOrderArg,
     SetScanLevelArg,
 } from './space-commands';
-import { MapSchema, Schema } from '@colyseus/schema';
+import { LockPropertyArg, Lockable } from '../lock-commands';
 import { SpaceObject, SpaceObjects, Waypoint } from '.';
 
 import { Asteroid } from './asteroid';
@@ -23,7 +24,7 @@ import { gameField } from '../game-field';
 function isSpaceObject(k: SpaceObject | undefined): k is SpaceObject {
     return !!k;
 }
-export class SpaceState extends Schema {
+export class SpaceState extends Schema implements Lockable {
     // the names of each map is the type of the objects it contains
     // this is part of the events API
     @gameField({ map: Projectile })
@@ -47,6 +48,15 @@ export class SpaceState extends Schema {
     @gameField({ map: Derelict })
     private readonly Derelict = new MapSchema<Derelict>();
 
+    /**
+     * JSON Pointer paths (relative to this state root, e.g. `/Spaceship/ship-1/scanLevels/0`)
+     * whose GM lock is currently active — see `lock-commands.ts`. Synced so the GM tweak panel's
+     * lock toggle reflects current state across reconnects/other GM clients; the write guard
+     * itself lives in `lock-registry.ts`.
+     */
+    @gameField(['string'])
+    lockedPaths = new ArraySchema<string>();
+
     // server only, used for commands
     // commands handled by space manager:
     public moveCommands = Array.of<BulkMoveArg>();
@@ -56,6 +66,8 @@ export class SpaceState extends Schema {
     public createNebulaCommands = Array.of<CreateNebulaOrderArg>();
     public createWaypointCommands = Array.of<CreateWaypointOrderArg>();
     public setScanLevelCommands = Array.of<SetScanLevelArg>();
+    /** Drained by `applyLockCommands` (`lock-commands.ts`) each tick. */
+    public lockCommands = Array.of<LockPropertyArg>();
     // commands handled by game manager:
     public createSpaceshipCommands = Array.of<CreateSpaceshipOrderArg>();
     public destroySpaceshipCommands = Array.of<string>();

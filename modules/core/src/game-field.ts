@@ -82,27 +82,45 @@ function decodeCommandablePointerPath(ptr: string): string[] {
  * so a bare `@commandable` would crash the Unity codegen build step.
  */
 export function commandable(descendants?: CommandablePaths): PropertyDecorator {
-    return (target: object, field: string | symbol) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((target: object, field: string | symbol, accessorDescriptor?: PropertyDescriptor): any => {
         if (typeof field !== 'string') {
-            return;
+            return undefined;
         }
         if (descendants != null) {
             // Descendant admission: store the admitted sub-paths on the property's
             // prototype metadata. The ancestor walk in `json-ptr.ts` checks this
             // when a leaf write fails the direct-admission check.
             appendCommandableDescendants(target, field, descendants);
-        } else {
-            // Leaf admission: add to COMMANDABLE_FIELDS set on constructor.
-            // Use hasOwnProperty so subclasses get their own Set instead of
-            // mutating a parent class's Set in place.
-            const ctor = (target as { constructor: SchemaCtor }).constructor;
-            if (!Object.prototype.hasOwnProperty.call(ctor, COMMANDABLE_FIELDS)) {
-                const inherited = ctor[COMMANDABLE_FIELDS];
-                ctor[COMMANDABLE_FIELDS] = new Set<string>(inherited ?? []);
-            }
-            ctor[COMMANDABLE_FIELDS]!.add(field);
+            return undefined;
         }
-    };
+        // Leaf admission: add to COMMANDABLE_FIELDS set on constructor.
+        // Use hasOwnProperty so subclasses get their own Set instead of
+        // mutating a parent class's Set in place.
+        const ctor = (target as { constructor: SchemaCtor }).constructor;
+        if (!Object.prototype.hasOwnProperty.call(ctor, COMMANDABLE_FIELDS)) {
+            const inherited = ctor[COMMANDABLE_FIELDS];
+            ctor[COMMANDABLE_FIELDS] = new Set<string>(inherited ?? []);
+        }
+        ctor[COMMANDABLE_FIELDS]!.add(field);
+        // A @gameField's setter is guarded by `gameField()`/`withLockGuard` instead (its
+        // descriptor doesn't exist on `target` yet at decoration time — see withLockGuard's
+        // comment — so this is a no-op for those, and `accessorDescriptor` is undefined for
+        // them too: TS's `__decorate` only passes an existing descriptor for *real* accessor
+        // members). A *plain* accessor pair like `Turret.bearingCommand` (get/set defined
+        // directly in the class body, never @gameField) has no such wrapping otherwise: its
+        // real backing store is a @gameField (`bearingCommandRaw`) under a *different* field
+        // name, so locking "bearingCommand" would silently do nothing without this.
+        //
+        // Must be returned (not applied via a direct `Object.defineProperty` inside
+        // guardOwnAccessorSetter): TypeScript's compiled `__decorate` helper captures the
+        // accessor's descriptor BEFORE calling this decorator and — for real accessors —
+        // unconditionally re-applies whatever the decorator chain returns (or the original
+        // captured descriptor, if every decorator returns undefined) via its own trailing
+        // `Object.defineProperty` call. A wrap applied only as a side effect inside this
+        // function body would be silently clobbered by that.
+        return guardOwnAccessorSetter(target, field, accessorDescriptor);
+    }) as PropertyDecorator;
 }
 
 /**
@@ -294,6 +312,42 @@ const number2Digits = ((target: typeof Schema, field: string) => {
  */
 const SCHEMA_METADATA_KEY = Symbol.for('Symbol.metadata');
 const SCHEMA_DESCRIPTORS_KEY = '~descriptors';
+
+/**
+ * Wraps `target`'s own (already-installed) setter for `field` with the same
+ * lock check as `withLockGuard`, if one exists, and returns the new
+ * descriptor. Unlike @gameField properties (see withLockGuard), a plain
+ * class accessor pair is installed on the prototype synchronously during
+ * class body evaluation, so `existing` (or a fresh
+ * `Object.getOwnPropertyDescriptor` lookup, if the caller didn't already
+ * have it) reflects the real getter/setter right away.
+ *
+ * Returns `undefined` (rather than calling `Object.defineProperty` itself)
+ * when there's nothing to wrap — the caller must return this value from the
+ * decorator function itself; see `commandable()` for why.
+ */
+function guardOwnAccessorSetter(
+    target: object,
+    field: string,
+    existing?: PropertyDescriptor,
+): PropertyDescriptor | undefined {
+    const descriptor = existing ?? Object.getOwnPropertyDescriptor(target, field);
+    if (!descriptor?.set) {
+        return undefined;
+    }
+    const originalSetter = descriptor.set;
+    return {
+        get: descriptor.get,
+        set(this: Schema, value: unknown) {
+            if (isFieldLocked(this, field)) {
+                return;
+            }
+            originalSetter.call(this, value);
+        },
+        enumerable: descriptor.enumerable,
+        configurable: descriptor.configurable,
+    };
+}
 
 /**
  * Wraps a property decorator so the setter it defines refuses to run while

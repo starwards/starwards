@@ -1,3 +1,4 @@
+import { PowerLevel, Radar } from '../src';
 import { commandable, gameField } from '../src/game-field';
 import { isFieldLocked, setFieldLocked } from '../src/lock-registry';
 
@@ -65,5 +66,51 @@ describe('property lock', () => {
         setFieldLocked(a, 'value', true);
         b.value = 3;
         expect(b.value).to.equal(3);
+    });
+
+    // Mirrors Turret.bearingCommand: a plain accessor pair (not itself @gameField) that
+    // clamps and forwards to a differently-named backing @gameField. The lock is addressed
+    // by the accessor's own name, so the guard must live on the accessor's setter too — a
+    // lock on the backing field's name alone would not stop writes made through the accessor.
+    class ClampedAccessor extends Schema {
+        @gameField('float32')
+        rawValue = 0;
+
+        @commandable()
+        get clamped(): number {
+            return this.rawValue;
+        }
+        set clamped(value: number) {
+            this.rawValue = Math.min(10, value);
+        }
+    }
+
+    it('silently ignores writes through a locked plain accessor backed by a differently-named @gameField', () => {
+        const t = new ClampedAccessor();
+        t.clamped = 5;
+        setFieldLocked(t, 'clamped', true);
+        t.clamped = 9;
+        expect(t.clamped).to.equal(5);
+    });
+
+    it('restores writes through the accessor once unlocked', () => {
+        const t = new ClampedAccessor();
+        t.clamped = 5;
+        setFieldLocked(t, 'clamped', true);
+        setFieldLocked(t, 'clamped', false);
+        t.clamped = 9;
+        expect(t.clamped).to.equal(9);
+    });
+
+    // Turret.bearingCommand is the real production instance of the ClampedAccessor pattern
+    // above: a @commandable get/set pair whose actual storage (bearingCommandRaw) has a
+    // different name.
+    it('locking Turret.bearingCommand actually blocks writes through it', () => {
+        const radar = new Radar();
+        radar.power = PowerLevel.MAX;
+        radar.bearingCommand = 10;
+        setFieldLocked(radar, 'bearingCommand', true);
+        radar.bearingCommand = 45;
+        expect(radar.bearingCommand).to.be.closeTo(10, 0.001);
     });
 });

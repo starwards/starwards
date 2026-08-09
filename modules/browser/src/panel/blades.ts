@@ -328,3 +328,85 @@ export function addBarCellToRow(
     wireBlade(blade, model, cleanup);
     return blade;
 }
+
+/**
+ * Add an interactive slider cell to a table row (tweakpane-table v0.4+) — the row-cell
+ * counterpart of `addSliderBlade`.
+ */
+export function addSliderCellToRow(
+    row: RowApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(configSliderBlade(params, model.range, model.getValue)) as BladeGuiApi<number>;
+    wireBlade(blade, model, cleanup);
+    return blade;
+}
+
+/**
+ * Add a list (dropdown) cell to a table row (tweakpane-table v0.4+) — the row-cell counterpart
+ * of `addListBlade`.
+ */
+export function addListCellToRow<T>(
+    row: RowApi,
+    model: Model<T>,
+    params: Partial<ListBladeParams<T>>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(configListBlade<T>(params, model.getValue)) as ListBladeApi<T>;
+    wireBlade(blade, model, cleanup);
+    return blade;
+}
+
+/**
+ * Wires a plain `text`-blade instance (already added to either a folder or a table row) as a
+ * clickable 🔒/🔓 lock indicator for `lockedProp`. A `text` blade rather than a checkbox
+ * binding — see `addLockCellToRow` for why a checkbox can't be used for the row-cell case;
+ * `addLockBlade` reuses the same rendering for consistency (and, incidentally, the same
+ * always-hit-testable click target) even where a checkbox binding would have been possible.
+ */
+function wireLockGlyph(blade: BladeGuiApi<string>, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+    const glyph = () => (lockedProp.getValue() ? '🔒' : '🔓');
+    blade.element.classList.add('sw-lock-cell');
+    blade.element.addEventListener('click', () => {
+        void lockedProp.setValue?.(!lockedProp.getValue());
+    });
+    cleanup(
+        lockedProp.onChange(() => {
+            blade.value = glyph();
+        }),
+    );
+    cleanup(() => blade.dispose());
+    return blade;
+}
+
+/**
+ * Add a clickable lock-indicator cell to a table row: a compact 🔒/🔓 readout that toggles
+ * `lockedProp` on click. A plain `text` cell rather than a checkbox binding — `RowApi.addCell`
+ * only resolves *blade*-view plugins (text/slider/list/separator), not the binding-based
+ * `checkbox` input Tweakpane normally renders for a bound boolean, so a checkbox cannot be
+ * placed in a table row at all. `disabled: true` keeps the text cell from being edited by
+ * keyboard; the click listener drives the actual toggle.
+ */
+export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+    const blade = row.addCell(
+        configTextBlade({ disabled: true, width: '28px' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
+    ) as BladeGuiApi<string>;
+    return wireLockGlyph(blade, lockedProp, cleanup);
+}
+
+/**
+ * Add a clickable 🔒/🔓 lock indicator as its own folder-level blade — for the handful of
+ * tweakable widgets that can't be expressed as a `tweakpane-table` cell at all (camera-ring
+ * dials, the velocity point2d drag pad): those are Tweakpane *binding* plugins (`addBinding`),
+ * and `RowApi.addCell` only resolves blade-view plugins, the same restriction `addLockCellToRow`
+ * works around for text/slider/list. Kept as a sibling blade next to the widget it locks rather
+ * than a `tweakpane-table` row.
+ */
+export function addLockBlade(guiFolder: FolderApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+    const blade = guiFolder.addBlade(
+        configTextBlade({ disabled: true, label: 'lock' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
+    ) as BladeGuiApi<string>;
+    return wireLockGlyph(blade, lockedProp, cleanup);
+}

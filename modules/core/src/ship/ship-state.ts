@@ -1,5 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { Faction, Spaceship, Vec2 } from '../space';
+import { LockPropertyArg, Lockable } from '../lock-commands';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
@@ -41,9 +42,6 @@ export enum Order {
     FOLLOW,
 }
 
-/** Command payload for `lockProperty` (`lock-commands.ts`): GM-lock/unlock a JSON Pointer path. */
-export type LockPropertyArg = { path: string; locked: boolean };
-
 export type ShipPropertiesDesign = {
     modelName?: string;
     totalCoolant: number;
@@ -55,7 +53,7 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') systemKillRatio = 0;
 }
 @rangeSchema({ '/spaceship/turnSpeed': [-90, 90] })
-export class ShipState extends Schema {
+export class ShipState extends Schema implements Lockable {
     /**
      * Composed space object - a mirror of the authoritative Spaceship in SpaceState,
      * updated every game tick by syncShipProperties(). This is NOT the source of truth
