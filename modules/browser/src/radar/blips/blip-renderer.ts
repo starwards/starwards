@@ -120,13 +120,14 @@ class DradisDerelictRenderer implements BlipRenderer<Derelict> {
     private selectionSprite = blipSprite('dradis_select', this.blipSize, selectionColor);
     private circleBaseSprite = blipSprite('dradis_circleBase', this.blipSize, white);
     private circleBevelSprite = blipSprite('dradis_circleBevel', this.blipSize, white);
-    private fighterSprite = blipSprite('dradis_fighter', this.blipSize, white);
+    private fighterSprite = blipSprite(shipBlipTexture('dradis', this.spaceObject.model), this.blipSize, white);
     private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
 
     constructor(
         stage: Container,
         private blipSize: number,
+        private spaceObject: Derelict,
     ) {
         stage.addChild(this.circleBaseSprite);
         stage.addChild(this.circleBevelSprite);
@@ -273,13 +274,14 @@ class TacticalSpaceshipRenderer implements BlipRenderer<Spaceship> {
 }
 class TacticalDerelictRenderer implements BlipRenderer<Derelict> {
     private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
-    private fighterSprite = blipSprite('tactical_fighter', this.blipSize, white);
+    private fighterSprite = blipSprite(shipBlipTexture('tactical', this.spaceObject.model), this.blipSize, white);
     private text = renderText(this.blipSize / 2, [], white);
     private collisionOutline = new Graphics();
 
     constructor(
         stage: Container,
         private blipSize: number,
+        private spaceObject: Derelict,
     ) {
         stage.addChild(this.fighterSprite);
         stage.addChild(this.text);
