@@ -332,12 +332,8 @@ export abstract class ShipManager implements Updateable {
     protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
-            // power * hacked, not `effectiveness`: a malfunctioning (but not skew-jammed) radar
-            // still sweeps at its degraded floor (see Radar.range), so it still draws energy for
-            // that — `effectiveness` would zero the cost the moment `broken` flips, same bug as
-            // the range short-circuit this PR removes.
             radar.powered = this.internalProxy.trySpendEnergy(
-                radar.design.range * radar.power * radar.hacked * (radar.design.energyCost / 1000) * deltaSeconds,
+                radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
             radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
