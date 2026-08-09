@@ -18,6 +18,7 @@ import {
     TypeFilter,
     createLogger,
     getTweakables,
+    lockCommands,
     spaceCommands,
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
@@ -247,6 +248,42 @@ const singleSelectionDetails = async (
     }
 };
 
+// ShipDriver is the only tweakable subject with a `propertyLocks` write surface (see
+// `ShipState.propertyLocks`) — `addTweakables()` is also called with a `SpaceDriver` for
+// generic SpaceObject fields (asteroids, ship position/scanLevels/etc. in SpaceState), which have
+// no lock table, so the lock toggle only renders for the ShipDriver branch.
+function isShipDriver(driver: SpaceDriver | ShipDriver): driver is ShipDriver {
+    return 'systems' in driver;
+}
+
+/**
+ * GM tweak panel per-property lock toggle (issue #2139). "GM value wins": while locked, the
+ * server (`JsonPointer.set` and, for `maneuveringMode`, `ShipManager.setSmartPilotManeuveringMode`)
+ * silently ignores every write to `fieldPointer`, GM tweak panel included — see
+ * `modules/core/src/json-ptr.ts`'s `isPointerLocked`. To change a locked value, unlock it first.
+ */
+function addLockToggle(
+    guiFolder: FolderApi,
+    shipDriver: ShipDriver,
+    field: string,
+    fieldPointer: string,
+    cleanup: (d: Destructor) => void,
+) {
+    const model = {
+        getValue: () => shipDriver.state.propertyLocks.includes(fieldPointer),
+        setValue: (locked: boolean) =>
+            shipDriver.command(lockCommands.setPropertyLock, { pointer: fieldPointer, locked }),
+        onChange: (cb: () => unknown) => {
+            shipDriver.events.on('/propertyLocks', cb);
+            return () => shipDriver.events.off('/propertyLocks', cb);
+        },
+    };
+    // Per-field label (rather than a generic "locked") keeps every checkbox uniquely findable —
+    // by label text, the same way every other tweak-panel property already is (see
+    // `getPropertyValue` in modules/e2e/test/driver.ts).
+    addInputBlade(guiFolder, model, { label: `${field} locked` }, cleanup);
+}
+
 function addTweakables(
     driver: SpaceDriver | ShipDriver,
     guiFolder: FolderApi,
@@ -256,6 +293,7 @@ function addTweakables(
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
     if (!state) return;
+    const lockableDriver = isShipDriver(driver) ? driver : null;
     for (const tweakable of getTweakables(state)) {
         if (exclude?.has(tweakable.field)) {
             continue;
@@ -302,6 +340,9 @@ function addTweakables(
             addListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
         } else {
             throw new Error(`unknown tweakable type :"${JSON.stringify(tweakable.config)}"`);
+        }
+        if (lockableDriver) {
+            addLockToggle(guiFolder, lockableDriver, tweakable.field, `${pointer}/${tweakable.field}`, cleanup);
         }
     }
 }

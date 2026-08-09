@@ -1,3 +1,4 @@
+import * as _lockCommands from './lock-commands';
 import * as _repairCommands from './repair-commands';
 
 export * from './ammo-manager';
@@ -6,6 +7,7 @@ export * from './attack-resolution-manager';
 export * from './chain-gun';
 export * from './damage-manager';
 export * from './docking';
+export * from './lock-commands';
 export * from './make-ship-state';
 export * from './radar';
 export * from './reactor';
@@ -31,3 +33,4 @@ export * from './warp';
 // a future ship command module must be added to this bundle explicitly, the same as
 // `spaceCommands` in `../space/index.ts`.
 export const repairCommands = _repairCommands;
+export const lockCommands = _lockCommands;

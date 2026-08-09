@@ -11,6 +11,22 @@ export function isJsonPointer(ptr: unknown): ptr is JsonStringPointer {
     return typeof ptr === 'string' && jsonPtrRegexp.test(ptr);
 }
 
+/**
+ * True if `pointer` (the full JSON Pointer string, relative to `root`) is in `root`'s
+ * `propertyLocks` — the GM tweak panel's per-property lock table (see `ShipState.propertyLocks`).
+ * Duck-typed on the `propertyLocks` field rather than importing `ShipState`, so any future
+ * lock-bearing root (e.g. `SpaceState`) is covered for free without a dependency edge.
+ */
+export function isPointerLocked(root: unknown, pointer: string): boolean {
+    if (root && typeof root === 'object' && 'propertyLocks' in root) {
+        const locks = root.propertyLocks;
+        if (locks instanceof ArraySchema) {
+            return locks.includes(pointer);
+        }
+    }
+    return false;
+}
+
 export function getJsonPointer(ptr: unknown) {
     const existing = cache.get(ptr as JsonStringPointer);
     if (existing) {
@@ -119,6 +135,13 @@ export class JsonPointer {
     set(target: unknown, value: unknown, force?: boolean): unknown {
         if (this.path.length === 0) {
             throw new Error('Cannot set root object');
+        }
+
+        // GM tweak panel per-property lock: "GM value wins" — a locked pointer silently ignores
+        // every write, GM tweak panel included. There is no connection-level GM identity (see
+        // docs/json-ptr.md), so the only way to change a locked value is to unlock it first.
+        if (isPointerLocked(target, this.pointer)) {
+            return this.get(target);
         }
 
         // Track each Schema ancestor as we traverse so the commandable

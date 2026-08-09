@@ -5,6 +5,7 @@ import { makeDriver } from './driver';
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
+const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
 test.describe('GM Screen', () => {
@@ -414,5 +415,60 @@ test.describe('GM Screen', () => {
         // radius has no ongoing physics correcting it, unlike velocity — confirm it holds.
         await page.waitForTimeout(1000);
         expect(ship.radius).toBeCloseTo(120, 0);
+    });
+
+    test('per-property lock: locking maneuveringMode blocks further writes; unlocking restores them (issue #2139)', async ({
+        page,
+    }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        // The folder title is "Smart pilot — <modelName>" (design-dependent), so match the prefix.
+        const smartPilotFolderTitle = page.getByText(/^Smart pilot/);
+        const smartPilotFolder = tweakPanel.locator('.tp-fldv', { has: smartPilotFolderTitle }).last();
+        await expect(smartPilotFolder).toBeVisible({ timeout: 5000 });
+        await smartPilotFolder.getByText(/^Smart pilot/).click(); // folder starts collapsed
+
+        const maneuveringModeLabel = smartPilotFolder.getByText('maneuveringMode', { exact: true });
+        await expect(maneuveringModeLabel).toBeVisible({ timeout: 5000 });
+        const maneuveringModeSelect = maneuveringModeLabel.locator('..').locator('select');
+
+        const ship = gameDriver.getShip(shipId);
+        // Tweakpane builds each <option> from textContent alone (no value attribute — see the
+        // 'Scan Levels' test above), so select by label, not by SmartPilotMode's numeric value.
+        await maneuveringModeSelect.selectOption({ label: 'VELOCITY' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toEqual(1); // SmartPilotMode.VELOCITY
+        }).toPass({ timeout: 2000 });
+
+        const lockLabel = tweakPanel.getByText('maneuveringMode locked', { exact: true });
+        await expect(lockLabel).toBeVisible();
+        // Tweakpane positions the checkbox <input> off-screen; its clickable wrapper is the
+        // '.tp-ckbv_w' parent of the (also off-screen-but-DOM-present) role="checkbox" element.
+        const lockCheckboxWrapper = lockLabel.locator('..').getByRole('checkbox').locator('..');
+        await lockCheckboxWrapper.click();
+        await expect(() => {
+            expect(ship.state.propertyLocks.includes('/smartPilot/maneuveringMode')).toBe(true);
+        }).toPass({ timeout: 2000 });
+
+        // Locked: the tweak panel's own write is silently ignored — "GM value wins" means the
+        // GM must unlock before changing the value again, not that the panel bypasses its own lock.
+        await maneuveringModeSelect.selectOption({ label: 'DIRECT' });
+        await page.waitForTimeout(300);
+        expect(ship.state.smartPilot.maneuveringMode).toEqual(1); // still VELOCITY
+
+        await lockCheckboxWrapper.click(); // unlock
+        await expect(() => {
+            expect(ship.state.propertyLocks.includes('/smartPilot/maneuveringMode')).toBe(false);
+        }).toPass({ timeout: 2000 });
+        await maneuveringModeSelect.selectOption({ label: 'DIRECT' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toEqual(0); // SmartPilotMode.DIRECT
+        }).toPass({ timeout: 2000 });
     });
 });

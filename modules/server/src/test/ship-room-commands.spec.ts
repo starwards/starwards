@@ -101,4 +101,32 @@ describe('ShipRoom JSON pointer commands', () => {
         await waitForServer(() => shipManager.state.warp!.jammed === true);
         expect(shipManager.state.warp!.jammed).toEqual(true);
     });
+
+    // GM tweak panel per-property lock (issue #2139): setPropertyLock is a typed command (not a
+    // JSON pointer write) so it goes through cmdReceivers(lockCommands, manager) in room.ts rather
+    // than handleJsonPointerCommand — a distinct registration path from every other test above.
+    it('a locked property ignores JSON Pointer writes over the wire; unlocking restores them', async () => {
+        const { client, room, shipId } = await connectShip('locker');
+        const shipManager = driver.serverDriver.getShip(shipId);
+
+        await client.sendCommand(room, '/radars/0/power', { value: 0.25 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.25) < 0.01);
+
+        await client.sendCommand(room, 'setPropertyLock', { value: { pointer: '/radars/0/power', locked: true } });
+        await waitForServer(() => shipManager.state.propertyLocks.includes('/radars/0/power'));
+
+        // follow with a second, unrelated write to know the (silently ignored) locked write above
+        // already reached the server — messages are processed in order.
+        await client.sendCommand(room, '/radars/1/power', { value: 0.4 });
+        await client.sendCommand(room, '/radars/0/power', { value: 0.9 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[1].power - 0.4) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(0.25, 2);
+
+        await client.sendCommand(room, 'setPropertyLock', { value: { pointer: '/radars/0/power', locked: false } });
+        await waitForServer(() => !shipManager.state.propertyLocks.includes('/radars/0/power'));
+
+        await client.sendCommand(room, '/radars/0/power', { value: 0.9 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.9) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(0.9, 2);
+    });
 });

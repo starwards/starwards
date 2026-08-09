@@ -47,6 +47,12 @@ export type ShipPropertiesDesign = {
     systemKillRatio: number; // ratio of broken systems to cause ship death. <=0 means death on first hit, >1 means can't be killed
 };
 
+/**
+ * GM tweak panel per-property lock: `pointer` is a JSON Pointer (relative to `ShipState`) whose
+ * write access is being toggled. See `ShipState.propertyLocks` / `propertyLockCommands`.
+ */
+export type SetPropertyLockArg = { pointer: string; locked: boolean };
+
 export class ShipPropertiesDesignState extends DesignState implements ShipPropertiesDesign {
     @gameField('float32') totalCoolant = 0;
     @gameField('float32') systemKillRatio = 0;
@@ -129,6 +135,18 @@ export class ShipState extends Schema {
 
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();
+
+    /**
+     * JSON Pointers (relative to this `ShipState`) currently locked by the GM tweak panel.
+     * "GM value wins": while a pointer is present here, `JsonPointer.set` (all remote writers —
+     * GM tweak panel, Node-RED, MCP) and the ship-manager setters that guard against it silently
+     * ignore writes to that property. Synced so every client renders the current lock state.
+     */
+    @gameField(['string'])
+    propertyLocks = new ArraySchema<string>();
+
+    // server only, used for commands
+    public propertyLockCommands = Array.of<SetPropertyLockArg>();
 
     @range([-1, 1])
     @gameField('float32')

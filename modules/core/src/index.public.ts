@@ -71,6 +71,7 @@ export {
     TargetedStatus,
     WarpFrequency,
     isRestockingAmmo,
+    lockCommands,
     makeShipState,
     repairCommands,
 } from './ship';

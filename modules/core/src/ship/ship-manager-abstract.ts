@@ -14,6 +14,7 @@ import {
     TargetedStatus,
     ammoTypes,
     applyRadarSectors,
+    isPointerLocked,
     malfunctionAreaFactor,
     toPositiveDegreesDelta,
 } from '..';
@@ -89,6 +90,7 @@ export function resetShipState(state: ShipState) {
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
     state.repairQueue.reorderCommands = [];
+    state.propertyLockCommands = [];
     // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;
@@ -195,6 +197,9 @@ export abstract class ShipManager implements Updateable {
     }
 
     public setSmartPilotManeuveringMode(value: SmartPilotMode) {
+        if (isPointerLocked(this.state, '/smartPilot/maneuveringMode')) {
+            return;
+        }
         if (value === SmartPilotMode.TARGET && !this.weaponsTarget) {
             logError(new Error(`attempt to set smartPilot.maneuveringMode to TARGET with no target`));
         } else {
@@ -256,7 +261,22 @@ export abstract class ShipManager implements Updateable {
         return result.filter((v) => visibleObjects.has(v)).map((s) => s.id);
     }
 
+    private applyPropertyLockCommands() {
+        for (const { pointer, locked } of this.state.propertyLockCommands) {
+            const index = this.state.propertyLocks.indexOf(pointer);
+            if (locked) {
+                if (index < 0) {
+                    this.state.propertyLocks.push(pointer);
+                }
+            } else if (index >= 0) {
+                this.state.propertyLocks.splice(index, 1);
+            }
+        }
+        this.state.propertyLockCommands = [];
+    }
+
     update(id: IterationData) {
+        this.applyPropertyLockCommands();
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
         this.damageManager.update();
