@@ -15,6 +15,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
+import { isOwnWaypoint } from '../radar/waypoint-radar-visibility';
 
 WebFont.load({
     custom: {
@@ -95,7 +96,14 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     const range = new RangeIndicators(root, p.range / 5);
     range.setSizeFactor(sizeFactor);
     allElements.addChild(range.renderRoot);
-    allElements.addChild(azimuthCircle(root, shipDriver.state, () => p.range * 1.2));
+    let trackedShip: SpaceObject | undefined;
+    allElements.addChild(
+        azimuthCircle(
+            root,
+            () => trackedShip,
+            () => p.range * 1.2,
+        ),
+    );
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
 
     contentElements.addChild(speedLines(root, shipDriver.state, shipTarget));
@@ -130,10 +138,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) =>
-            w.owner === shipDriver.id &&
-            w.collection === 'route' &&
-            XY.lengthOf(XY.difference(w.position, camera)) > p.range,
+        (w) => isOwnWaypoint(w, shipDriver.id) && XY.lengthOf(XY.difference(w.position, camera)) > p.range,
         (w) =>
             root.worldToScreen(
                 XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera)))),
@@ -190,7 +195,8 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
     container.on('resize', onRadarShapeChange);
     isWarpProp.onChange(onRangeChange);
     onRangeChange();
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true),
-    );
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        trackedShip = tracked;
+        camera.followSpaceObject(tracked, spaceDriver.events, true);
+    });
 }

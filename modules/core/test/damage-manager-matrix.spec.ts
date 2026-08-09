@@ -20,6 +20,7 @@ import {
 } from '../src';
 
 import { MockDie } from './ship-test-harness';
+import { ShipDie } from '../src/ship/ship-die';
 import { ShipState } from '../src/ship/ship-state';
 import { Vec2 } from '../src';
 import { expect } from 'chai';
@@ -388,6 +389,28 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             state.maneuvering.design.isElectronics = true;
             damageManager.takeWeaponDamage(frontDamage(1000, 'Elec'));
             expect(state.maneuvering.efficiency).to.be.lessThan(1);
+        });
+    });
+
+    describe('sustained overheat damage (issue #2152)', () => {
+        it('repeated overheat damage never drives thruster availableCapacity below 0', () => {
+            const ship = new Spaceship();
+            ship.id = 'test-ship-overheat';
+            const state = makeShipState(ship.id, demoShip);
+            const spaceManager = new SpaceManager();
+            spaceManager.insert(ship);
+            // real (seeded) die, not MockDie: MockDie returns one fixed roll for every id, which
+            // can never independently satisfy both the spillover trigger (needs a low roll) and
+            // the availableCapacity-vs-bearingSkew branch pick (needs a high roll) — a real die
+            // varies per id and reproduces what actually happens over many overheat ticks
+            const damageManager = new DamageManager(ship, state, spaceManager, new ShipDie(1));
+            const thruster = state.thrusters[0];
+            // simulate many overheat ticks (heat-manager.addHeat -> damageSystem) hammering the
+            // same thruster, as happens over a long sustained flight at elevated power
+            for (let i = 0; i < 50 && thruster.availableCapacity > 0; i++) {
+                damageManager.damageSystem(thruster, { id: `overheat:${i}`, amount: 1000 }, 1);
+            }
+            expect(thruster.availableCapacity).to.be.at.least(0);
         });
     });
 
