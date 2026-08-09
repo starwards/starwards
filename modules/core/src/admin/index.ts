@@ -1,6 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 
-import { gameField } from '../game-field';
+import { commandable, gameField } from '../game-field';
 import { range } from '../range';
 import { tweakable } from '../tweakable';
 
@@ -9,10 +9,23 @@ export enum GameStatus {
     STARTING,
     RUNNING,
     STOPPING,
+    REPLAY,
 }
 export class AdminState extends Schema {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
+
+    /** True while the running game is being recorded to disk for later replay. */
+    @gameField('boolean')
+    isRecordingGame = false;
+
+    /** Seconds of game time captured by the recording in progress. 0 while not recording. */
+    @gameField('float32')
+    recordingSeconds = 0;
+
+    /** File name of the recording in progress. Empty string while not recording. */
+    @gameField('string')
+    recordingName = '';
 
     @gameField(['string'])
     shipIds = new ArraySchema<string>();
@@ -30,6 +43,27 @@ export class AdminState extends Schema {
     @tweakable('string')
     @gameField('string')
     message = '';
+
+    /** Seconds into the recording currently being replayed. Meaningless unless `gameStatus` is `REPLAY`. */
+    @gameField('float32')
+    replayPosition = 0;
+
+    /** Full length in seconds of the recording currently being replayed. 0 while not replaying. */
+    @gameField('float32')
+    replayDuration = 0;
+
+    /**
+     * Seek request, in recording seconds; -1 when there is nothing to seek. Drained by the
+     * replay player on its next tick — a seek has to reopen the recording, so it can't be a
+     * plain write to {@link replayPosition}.
+     */
+    @commandable()
+    @gameField('float32')
+    replaySeekCommand = -1;
+
+    /** The replay reached its last frame and is holding there. Cleared by any seek. */
+    @gameField('boolean')
+    replayEnded = false;
 
     get isGameRunning() {
         return this.gameStatus === GameStatus.RUNNING;

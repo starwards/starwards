@@ -18,6 +18,15 @@ const emitter2Options = {
     delimiter: '/',
     maxListeners: 0,
 };
+
+export type RecordingInfo = {
+    name: string;
+    mapName: string;
+    startedAt: string;
+    durationSeconds: number;
+    frameCount: number;
+};
+
 export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminState>) => {
     const events = new EventEmitter2(emitter2Options) as RoomEventEmitter;
     // IMPORTANT: colyseus-events v4 requires passing the room instead of room.state
@@ -49,6 +58,29 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
             });
             return response.text();
         },
+        listRecordings: async (): Promise<RecordingInfo[]> => {
+            const response = await fetch(endpoint + '/recordings');
+            return (await response.json()) as RecordingInfo[];
+        },
+        startRecording: async (): Promise<string> => {
+            const response = await fetch(endpoint + '/start-recording', { ...requestInfo, body: '{}' });
+            if (!response.ok) {
+                // error responses carry a status text body, not JSON — parsing it would throw
+                throw new Error(`can't start recording (HTTP ${response.status})`);
+            }
+            const { name } = (await response.json()) as { name: string };
+            return name;
+        },
+        /** Resolves with what was written, so the caller can confirm the recording landed. */
+        stopRecording: async (): Promise<RecordingInfo | null> => {
+            const response = await fetch(endpoint + '/stop-recording', { ...requestInfo, body: '{}' });
+            if (!response.ok) {
+                throw new Error(`can't stop recording (HTTP ${response.status})`);
+            }
+            return (await response.json()) as RecordingInfo | null;
+        },
+        startReplay: (name: string): undefined =>
+            void fetch(endpoint + '/start-replay', { ...requestInfo, body: JSON.stringify({ name }) }),
     };
 };
 
