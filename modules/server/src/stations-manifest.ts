@@ -5,9 +5,6 @@ import { StationsManifest } from '@starwards/core/internal';
  * screen draws and the input actions it wires. Headless clients read this to scope themselves to the
  * same seat a player would occupy.
  *
- * `ecr` and `bridge-engineer` share a screen (`ecr.html?station=`) and differ only in which side of
- * `/ecrControl` holds the systems input — that gate is enforced at command time, not by these lists.
- *
  * The game master seat ships disabled: it sees all of space at full scan level and can tweak any
  * commandable field, so it is opened deliberately rather than by default.
  */
@@ -58,7 +55,7 @@ const defaultStationsManifest: StationsManifest = {
             ],
             prompt: 'You run the guns and tubes. You pick targets, manage ammunition, and shoot.',
         },
-        ecr: {
+        engineer: {
             enabled: true,
             widgets: [
                 'engineering-status',
@@ -71,7 +68,6 @@ const defaultStationsManifest: StationsManifest = {
             commands: [
                 'systemPower',
                 'systemCoolant',
-                'ecrControl',
                 'warpFrequency',
                 'changeFrequency',
                 'enqueueRepair',
@@ -79,24 +75,8 @@ const defaultStationsManifest: StationsManifest = {
                 'reorderRepair',
             ],
             prompt:
-                'You are in the engineering control room, off the bridge. You balance power and coolant across ' +
-                'systems, run damage control, and set warp frequency. Systems input is yours only while you hold ' +
-                'ECR control.',
-        },
-        'bridge-engineer': {
-            enabled: true,
-            widgets: [
-                'engineering-status',
-                'warp-status',
-                'full-systems-status',
-                'armor-status',
-                'damage-report',
-                'repair-queue',
-            ],
-            commands: ['systemPower', 'systemCoolant'],
-            prompt:
-                'You are the engineer at the bridge console. You watch the ship and advise the captain, and you ' +
-                'hold systems input only while ECR has handed it over.',
+                'You run engineering. You balance power and coolant across systems, run damage control, and set ' +
+                'warp frequency.',
         },
         signals: {
             enabled: true,

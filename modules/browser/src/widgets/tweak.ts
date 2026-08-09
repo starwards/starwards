@@ -186,9 +186,6 @@ const singleSelectionDetails = async (
             cleanup,
         );
 
-        const ecrControl = readWriteProp(shipDriver, `/ecrControl`);
-        addInputBlade(guiFolder, ecrControl, { label: 'ECR control' }, cleanup);
-
         const armorFolder = guiFolder.addFolder({
             title: `Armor`,
             expanded: false,

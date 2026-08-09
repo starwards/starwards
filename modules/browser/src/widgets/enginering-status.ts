@@ -25,14 +25,6 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Engineering Status');
     pane.registerPlugin(TweakpaneTablePlugin);
 
-    const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
-    addTextBlade(
-        pane,
-        ecrControl,
-        { label: 'control', format: (isEcr) => (isEcr ? 'ECR' : 'Bridge') },
-        panelCleanup.add,
-    );
-
     const hullDamaged = readProp<boolean>(shipDriver, `/hullDamaged`);
     addTextBlade(
         pane,

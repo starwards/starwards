@@ -59,7 +59,7 @@ describe('starwards mcp server', () => {
             prompt?: string;
         }[];
         const names = stations.map((s) => s.station);
-        expect(names).toEqual(expect.arrayContaining(['pilot', 'weapons', 'ecr', 'signals']));
+        expect(names).toEqual(expect.arrayContaining(['pilot', 'weapons', 'engineer', 'signals']));
         expect(stations.find((s) => s.station === 'pilot')?.prompt).toBeTruthy();
     });
 
@@ -144,11 +144,11 @@ describe('starwards mcp server', () => {
         });
     });
 
-    describe('a station granted nothing', () => {
-        it('can see nothing and do nothing', async () => {
+    describe('a station denied a widget/command it does not hold', () => {
+        it('can see nothing and do nothing outside its seat', async () => {
             // the manifest is the server's, so this exercises the deny-by-default path through a real
-            // seat: the bridge engineer holds two commands and no radar of its own
-            payload(await call('login', { shipId: test_map_1.testShipId, station: 'bridge-engineer' }));
+            // seat: the engineer station holds no radar and no pilot commands
+            payload(await call('login', { shipId: test_map_1.testShipId, station: 'engineer' }));
             expect(refusal(await call('get_radar_contacts'))).toContain('no radar');
             expect(refusal(await call('execute_command', { command: 'rotation', value: 0.5 }))).toContain(
                 'cannot rotation',

@@ -29,6 +29,6 @@ The codebase lives in this repo (root is two levels up at `../../`). Technical i
 
 - Starwards replaces the legacy EmptyEpsilon fork for Helios LARP events
 - 2-person team (Amir + Daniel), day jobs, AI-assisted development workflow
-- Current strategy: ship a 4-station bridge (Pilot, Weapons, ECR, Signals) first, expand later (see `decisions/004-ship-early-expand-later.md`)
+- Current strategy: ship a 4-station bridge (Pilot, Weapons, Engineer, Signals) first, expand later (see `decisions/004-ship-early-expand-later.md`)
 - GitHub issues: https://github.com/starwards/starwards/issues
 - Dev blog: https://starwards.github.io

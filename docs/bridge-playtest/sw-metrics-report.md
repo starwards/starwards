@@ -16,7 +16,7 @@ absent — the report measures what exists, not what's planned.
 | From → To | Edge | Type | Recurrence |
 |-----------|------|------|------------|
 | Eng → Pilot | Power for thrusters/warp/maneuvering/radar | resource-flow | continuous |
-| Eng → Pilot | Warp frequency (ECR only) | info-push | per-session (~1×) |
+| Eng → Pilot | Warp frequency | info-push | per-session (~1×) |
 | Eng → Weapons | Power for chainGun/tubes/magazine/radar | resource-flow | continuous |
 | Eng → Weapons | Coolant allocation (heat management) | resource-flow | continuous |
 | Eng → Signals | Power for /radar (shared subsystem) | resource-flow | continuous |
@@ -134,7 +134,7 @@ contributes no unique data to verbal exchange.
 
 | Data | Source (A) | Consumer (B) | Lock? |
 |------|-----------|-------------|-------|
-| Warp frequency | Eng (ECR) | Pilot (warp level) | Yes |
+| Warp frequency | Eng | Pilot (warp level) | Yes |
 | Per-system power detail | Eng | Cap (planning) | Yes |
 | Scan level (⬜ once actionable) | Signals | Pilot/Weapons (radar gating) | Partial — auto-applied, not verbal |
 

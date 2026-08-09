@@ -16,7 +16,7 @@ import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
 import { drawRepairQueue, getRepairProtocolHotkey } from '../widgets/repair-queue';
 import { radarFogOfWar, toCss } from '../colors';
-import { readProp, readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
+import { readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
@@ -29,7 +29,7 @@ import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
-const { error: logError } = createLogger('screen:ecr');
+const { error: logError } = createLogger('screen:engineer');
 
 ElementQueries.listen();
 
@@ -51,7 +51,6 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
 // document.head.appendChild(style);
 
 const urlParams = new URLSearchParams(window.location.search);
-const isEcr = (urlParams.get('station') || '').toLowerCase() === 'ecr';
 const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
@@ -126,11 +125,10 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     }
 
     // repair-protocol catalog is a display-only readout (widgets/repair-queue.ts); enqueueing is
-    // hotkey-driven here, on the same control-gated manager as power/coolant, since it's the same
-    // kind of engineering action. Bound unconditionally (not only for currently-available
-    // protocols) — the server refuses an unavailable protocol with a visible notice, same as it
-    // already does for a full queue, so a docked-tier key pressed while undocked is a no-op, not
-    // a crash.
+    // hotkey-driven here, on the same manager as power/coolant, since it's the same kind of
+    // engineering action. Bound unconditionally (not only for currently-available protocols) — the
+    // server refuses an unavailable protocol with a visible notice, same as it already does for a
+    // full queue, so a docked-tier key pressed while undocked is a no-op, not a crash.
     for (const [protocolId, protocol] of Object.entries(repairProtocols)) {
         const key = getRepairProtocolHotkey(protocolId);
         if (key) {
@@ -142,45 +140,29 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         }
     }
 
-    const inputManagers: InputManager[] = [controlledInput];
-    let ecrControlInput: InputManager | undefined;
-    if (isEcr) {
-        ecrControlInput = new InputManager();
-        ecrControlInput.addToggleClickAction(
-            readWriteProp<boolean>(shipDriver, `/ecrControl`),
-            '`',
-            'Toggle ECR Control',
+    if (shipDriver.state.warp) {
+        controlledInput.addRangeAction(
+            {
+                ...readWriteProp<number>(shipDriver, `/warp/standbyFrequency`),
+                range: [0, WarpFrequency.WARP_FREQUENCY_COUNT - 1],
+            },
+            {
+                offsetKeys: new KeysRangeConfig(']', '[', '', 1),
+            },
+            'Warp Frequency',
         );
-        if (shipDriver.state.warp) {
-            ecrControlInput.addRangeAction(
-                {
-                    ...readWriteProp<number>(shipDriver, `/warp/standbyFrequency`),
-                    range: [0, WarpFrequency.WARP_FREQUENCY_COUNT - 1],
-                },
-                {
-                    offsetKeys: new KeysRangeConfig(']', '[', '', 1),
-                },
-                'Warp Frequency',
-            );
-            ecrControlInput.addMomentaryClickAction(
-                writeProp(shipDriver, `/warp/changeFrequencyCommand`),
-                '\\',
-                'Change Frequency',
-            );
-        }
-        ecrControlInput.init();
-        inputManagers.push(ecrControlInput);
+        controlledInput.addMomentaryClickAction(
+            writeProp(shipDriver, `/warp/changeFrequencyCommand`),
+            '\\',
+            'Change Frequency',
+        );
     }
-    const teardownHelp = setupHotkeyHelp(...inputManagers);
-    const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
-    const updateControl = () => (ecrControl.getValue() === isEcr ? controlledInput.init() : controlledInput.destroy());
-    const unsubControl = ecrControl.onChange(updateControl);
-    updateControl();
+
+    const teardownHelp = setupHotkeyHelp(controlledInput);
+    controlledInput.init();
 
     return () => {
-        unsubControl();
         controlledInput.destroy();
-        ecrControlInput?.destroy();
         teardownHelp();
     };
 }

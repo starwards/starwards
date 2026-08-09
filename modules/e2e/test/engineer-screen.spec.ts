@@ -9,16 +9,13 @@ const { single_ship } = maps;
 const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
-test.describe('ECR Screen', () => {
+test.describe('Engineer Screen', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
 
         await gameDriver.gameManager.startGame(single_ship);
 
-        const ship = gameDriver.getShip(shipId);
-        ship.state.ecrControl = true;
-
-        await navigateToScreen(page, `/ecr.html?station=ecr&ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, `/engineer.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
     });
 
     test.afterEach(async ({ page }) => {
@@ -31,10 +28,6 @@ test.describe('ECR Screen', () => {
         await expect(page.locator('[data-id="Warp"]')).toBeVisible();
         await expect(page.locator('[data-id="Armor"]')).toBeVisible();
         await expect(page.locator('[data-id="Full Systems Status"]')).toBeVisible();
-
-        // Verify ECR control state is synced
-        const control = await getPropertyValue(page, 'control', 'Engineering Status');
-        expect(control).toBe('ECR');
 
         // Verify warp state syncs: set known value and check UI
         // Note: Energy uses addGraph() which has no input element, so we test warp level instead

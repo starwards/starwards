@@ -88,7 +88,6 @@ export const stationCommands = [
     // engineering
     'systemPower',
     'systemCoolant',
-    'ecrControl',
     'warpFrequency',
     'changeFrequency',
     'enqueueRepair',

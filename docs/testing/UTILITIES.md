@@ -45,7 +45,7 @@ E2E Tests (modules/e2e/test/):
   ├─ integration.spec.ts - Core workflows
   ├─ pilot-screen.spec.ts / pilot-hotkeys.spec.ts - Helm UI & navigation
   ├─ weapons-screen.spec.ts / weapons-hotkeys.spec.ts - Gunner UI & combat
-  ├─ ecr-screen.spec.ts / ecr-hotkeys.spec.ts - ECR UI & power systems
+  ├─ engineer-screen.spec.ts / engineer-hotkeys.spec.ts - Engineer UI & power systems
   ├─ gm-screen.spec.ts - GM view
   ├─ signals-screen.spec.ts - Signals station
   └─ visual/gallery.spec.ts - Visual regression
