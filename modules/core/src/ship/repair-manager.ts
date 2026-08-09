@@ -143,6 +143,16 @@ export class RepairManager implements Updateable {
         return this.operations.find((o) => o.status === RepairOperationStatus.ACTIVE);
     }
 
+    /**
+     * How many of the ship's finite `Reactor.energyCells` are already spoken for by QUEUED/ACTIVE
+     * operations — derived live from `this.operations` rather than tracked separately, since a cell
+     * is only actually spent in `jumpStartReactor`'s `onComplete`, once an operation leaves the
+     * queue for good (issue #2137).
+     */
+    private reservedEnergyCells(): number {
+        return this.operations.filter((o) => this.getProtocol(o.protocolId)?.consumesEnergyCell).length;
+    }
+
     /** Real-time countdown, not "one manager tick" — see `RepairOperation.terminalSecondsRemaining`. */
     private tickRecentlyFinished(deltaSeconds: number) {
         for (let i = this.recentlyFinished.length - 1; i >= 0; i--) {
@@ -268,6 +278,10 @@ export class RepairManager implements Updateable {
                 this.notifyRefusal(`${protocol.name} needs equipment this ship doesn't have`);
                 continue;
             }
+            if (protocol.consumesEnergyCell && this.reservedEnergyCells() >= this.state.reactor.energyCells) {
+                this.notifyRefusal(`${protocol.name} needs an energy cell but none are available`);
+                continue;
+            }
             const op = new RepairOperation();
             op.id = makeId();
             op.protocolId = protocolId;
@@ -322,7 +336,11 @@ export class RepairManager implements Updateable {
             this.abort(active);
             return;
         }
-        if (!this.energySource.trySpendEnergy(protocol.energyDraw * deltaSeconds)) {
+        // A zero-draw protocol (e.g. reactorJumpStart, armorPlateRenewal) must be runnable from
+        // true zero energy — but EnergyManager.trySpendEnergy checks `energy > value` (strictly
+        // greater), so spending even nothing out of an exactly-empty reactor reads as a refusal.
+        // Skip the spend attempt entirely rather than let that edge case starve a free operation.
+        if (protocol.energyDraw > 0 && !this.energySource.trySpendEnergy(protocol.energyDraw * deltaSeconds)) {
             // brief dip: no progress/heat this tick, but the operation survives until the shortfall
             // is sustained past the grace window (R3) — then it's still all-or-nothing
             active.starvedSeconds += deltaSeconds;

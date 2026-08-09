@@ -264,4 +264,32 @@ test.describe('ECR Screen', () => {
         // "did the hotkey's enqueue get refused".
         await expect.poll(() => ship.state.repairQueue.refusalReason, { timeout: 5000 }).not.toBe('');
     });
+
+    test('reactor jump-start (#2137) recovers a zero-energy, damaged reactor and spends one energy cell', async ({
+        page,
+    }) => {
+        const ship = gameDriver.getShip(shipId);
+        ship.state.reactor.energy = 0;
+        ship.state.reactor.effeciencyFactor = 0;
+        ship.state.reactor.energyCells = 1;
+
+        const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
+        await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
+        const engineeringStatusPanel = page.locator('[data-id="Engineering Status"]');
+        await expect(engineeringStatusPanel).toBeVisible({ timeout: 10000 });
+        await waitForPropertyValue(page, 'energy cells', (v) => v === '1/2', 'Engineering Status');
+
+        // reactorJumpStart is the 13th catalog entry -> alt+e
+        await page.keyboard.press('Alt+e');
+
+        await waitForPropertyValue(page, 'state', (v) => v === 'ACTIVE', 'Repair Queue', 5000);
+        await waitForPropertyValue(page, 'state', (v) => v === 'DONE', 'Repair Queue', 15000);
+
+        await expect.poll(() => ship.state.reactor.effeciencyFactor, { timeout: 5000 }).toBeCloseTo(0.3, 1);
+        // reactor.energy keeps regenerating every tick once effeciencyFactor is off zero, so this
+        // only asserts the jump-start itself landed a meaningful recovery — not an exact value.
+        await expect.poll(() => ship.state.reactor.energy, { timeout: 5000 }).toBeGreaterThan(250);
+        await expect.poll(() => ship.state.reactor.energyCells, { timeout: 5000 }).toBe(0);
+        await waitForPropertyValue(page, 'energy cells', (v) => v === '0/2', 'Engineering Status');
+    });
 });
