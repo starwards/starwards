@@ -165,15 +165,19 @@ export class AutomationManager implements Updateable {
     /**
      * Points every chain-gun mount at the current target, hull-relative bearing only — no lead, no
      * can't-bear handling, no per-mount fire discipline (that belongs to the deferred NPC-aiming
-     * design). `bearingCommand`'s own clamp is what stops a mount from swinging past the hull it
-     * is bolted to; this only ever asks.
+     * design). Compensates each mount's own tracked (lagged) skew estimate, never the true
+     * `bearingSkew` — a fresh defect is felt immediately and only "dialed out" over the following
+     * seconds, see `trackedBearingSkew`. `bearingCommand`'s own clamp is what stops a mount from
+     * swinging past the hull it is bolted to; this only ever asks.
      */
     private aimMountsAtTarget(target: SpaceObject) {
         const hullBearing = toDegreesDelta(
             XY.angleOf(XY.difference(target.position, this.state.position)) - this.state.angle,
         );
         for (const chainGun of this.state.chainGuns) {
-            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
+            chainGun.bearingCommand = toDegreesDelta(
+                hullBearing - chainGun.fittedBearing - chainGun.trackedBearingSkew,
+            );
         }
     }
 

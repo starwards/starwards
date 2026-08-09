@@ -207,6 +207,52 @@ describe('turret hull bearing and global bearing (A1, A4, A5)', () => {
     });
 });
 
+describe('turret tracked bearing-skew estimate (learned/lagged, not instant, #2176)', () => {
+    it('does not compensate a fresh skew the instant it lands', () => {
+        const turret = makeTurret(0);
+        turret.bearingSkew = 30;
+
+        updateTurret(turret, 0.01);
+
+        expect(turret.trackedBearingSkew).to.be.closeTo(0, 0.5);
+    });
+
+    it('converges toward the true skew over several seconds of continued operation', () => {
+        const turret = makeTurret(0);
+        turret.bearingSkew = 30;
+
+        for (let i = 0; i < 120; i++) {
+            updateTurret(turret, 0.1); // 12 simulated seconds
+        }
+
+        expect(turret.trackedBearingSkew).to.be.closeTo(30, 3);
+    });
+
+    it('decays back down when the underlying defect is repaired', () => {
+        const turret = makeTurret(0);
+        turret.bearingSkew = 30;
+        for (let i = 0; i < 120; i++) updateTurret(turret, 0.1); // converge first
+
+        turret.bearingSkew = 0; // repaired
+
+        for (let i = 0; i < 120; i++) updateTurret(turret, 0.1); // 12 more seconds
+
+        expect(turret.trackedBearingSkew).to.be.closeTo(0, 1.5);
+    });
+
+    it('is frame-rate independent — same elapsed time converges to the same estimate regardless of tick size', () => {
+        const coarse = makeTurret(0);
+        coarse.bearingSkew = 30;
+        updateTurret(coarse, 3); // one big 3s tick
+
+        const fine = makeTurret(0);
+        fine.bearingSkew = 30;
+        for (let i = 0; i < 30; i++) updateTurret(fine, 0.1); // thirty 0.1s ticks, same 3s total
+
+        expect(coarse.trackedBearingSkew).to.be.closeTo(fine.trackedBearingSkew, 0.05);
+    });
+});
+
 describe('unified defectibles gate on design capability (A6, A9)', () => {
     it('an omni radar (no skew, no traverse surface) is never broken by skew', () => {
         const radar = new Radar();

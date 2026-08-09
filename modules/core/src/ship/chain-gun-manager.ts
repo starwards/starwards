@@ -19,6 +19,7 @@ const { error: logError } = createLogger('chain-gun');
 
 export function resetChainGun(chainGun: ChainGun) {
     chainGun.bearingSkew = 0;
+    chainGun.trackedBearingSkew = 0;
     chainGun.rateOfFireFactor = 1;
     chainGun.shellRangeMode = SmartPilotMode.DIRECT;
 }

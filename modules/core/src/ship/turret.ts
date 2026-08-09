@@ -98,6 +98,19 @@ export abstract class Turret extends SystemState {
     bearingSkew = 0;
 
     /**
+     * this mount's own lagged estimate of `bearingSkew`, maintained by `updateTurret` (a
+     * first-order lag toward the true value, `BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS`
+     * time constant). A fresh skew defect therefore costs accuracy the instant it lands — the
+     * estimate starts at whatever it was before, not at the new true value — and the crew
+     * "dials in" the correction over the following seconds instead of a damaged mount firing
+     * true again the very next tick. Automation aiming (`AutomationManager.aimMountsAtTarget`)
+     * reads this, never `bearingSkew` directly, so a mount defect has a real, temporary tactical
+     * consequence for an NPC gunner.
+     */
+    @gameField('float32')
+    trackedBearingSkew = 0;
+
+    /**
      * fraction of `design.turnSpeed` this mount currently retains. Declared only where
      * `design.turnSpeed > 0` — a bolted mount has no turn speed to lose.
      */
@@ -194,6 +207,14 @@ export abstract class Turret extends SystemState {
 }
 
 /**
+ * Time constant for `trackedBearingSkew`'s first-order lag toward `bearingSkew`. Chosen in
+ * playable terms: after one time constant (3s) of continued operation the estimate is ~63% caught
+ * up, and after three time constants (9s) it is ~95% caught up — a bent mount stays a real
+ * liability for several seconds of sustained engagement, not just an instant twitch.
+ */
+const BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS = 3;
+
+/**
  * Swings a mount toward its commanded bearing, as far as this tick's time budget allows. Takes the
  * short way around, so a mount never spins the long way to reach a bearing right next to it. The
  * commanded bearing is already clamped to the mount's arc by `bearingCommand`'s own setter — no
@@ -207,4 +228,7 @@ export function updateTurret(turret: Turret, deltaSeconds: number) {
     } else {
         turret.bearing = toDegreesDelta(turret.bearing + Math.sign(delta) * maxStep);
     }
+    // exact continuous-time exponential lag: frame-rate independent regardless of tick size.
+    const trackingFraction = 1 - Math.exp(-deltaSeconds / BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS);
+    turret.trackedBearingSkew += (turret.bearingSkew - turret.trackedBearingSkew) * trackingFraction;
 }
