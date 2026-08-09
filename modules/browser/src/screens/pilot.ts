@@ -33,7 +33,9 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
+    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
+        initScreen(driver, shipUrlParam, container),
+    );
 } else {
     logError('missing "ship" url query param');
 }
