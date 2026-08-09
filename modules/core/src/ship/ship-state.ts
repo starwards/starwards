@@ -29,8 +29,14 @@ export enum TargetedStatus {
 }
 
 export enum IdleStrategy {
+    /** Hold fire — the only idle strategy that suppresses default NPC gunnery. */
     PLAY_DEAD,
+    /**
+     * Fires on hostiles like every other idle strategy. Wandering movement is not yet
+     * implemented, so this currently behaves exactly like {@link STAND_GROUND}.
+     */
     ROAM,
+    /** Fires on hostiles; never moves (no movement order is ever attached to this strategy). */
     STAND_GROUND,
 }
 
@@ -70,6 +76,12 @@ export class ShipState extends Schema {
     @gameField('boolean')
     isPlayerShip = true;
 
+    /**
+     * The fallback behind `order`: consulted only while `order === Order.NONE`, otherwise the
+     * order governs and this is ignored. Default left as `PLAY_DEAD` (hold fire) pending a
+     * ruling on flipping it — a map whose NPCs never receive an order (e.g. wave-defence's
+     * stations) must set this explicitly to have them fire back.
+     */
     @tweakable({ type: 'enum', enum: IdleStrategy })
     @gameField('int8')
     idleStrategy = IdleStrategy.PLAY_DEAD;

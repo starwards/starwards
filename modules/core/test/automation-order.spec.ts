@@ -1,6 +1,10 @@
 import {
+    ChaingunDesign,
     Faction,
+    IdleStrategy,
     Order,
+    ShipDesign,
+    ShipDirectionConfig,
     ShipManagerNpc,
     ShipManagerPc,
     SmartPilotMode,
@@ -8,6 +12,7 @@ import {
     Spaceship,
     Vec2,
     XY,
+    chaingunPlatformChaingun,
     makeShipState,
     shellAmmoTypes,
     shipConfigurations,
@@ -19,10 +24,7 @@ import { resetShipState } from '../src/ship/ship-manager-abstract';
 
 const demoShipConfig = shipConfigurations['demo-ship'];
 
-function createShipSetup(
-    Ctor: typeof ShipManagerPc | typeof ShipManagerNpc,
-    config: (typeof shipConfigurations)[keyof typeof shipConfigurations] = demoShipConfig,
-) {
+function createShipSetup(Ctor: typeof ShipManagerPc | typeof ShipManagerNpc, config: ShipDesign = demoShipConfig) {
     const spaceMgr = new SpaceManager();
     const shipObj = new Spaceship();
     shipObj.id = '1';
@@ -33,6 +35,16 @@ function createShipSetup(
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
     shipMgr.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
     return { spaceMgr, shipObj, shipMgr, die };
+}
+
+function narrowArcPlatformConfig(bearingLimit: number) {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [['FWD', { ...chaingunPlatformChaingun, bearingLimit }]];
+    // Also zeroes rotationCapacity so an ATTACK order's own pursuit/hull-facing behavior (which
+    // rotates the hull toward the ordered target regardless of any mount's bearing limit — a
+    // movement concern, unrelated to gunnery) can't confound a bearingCommand assertion that's
+    // meant to isolate the mount's own aiming decision.
+    const maneuvering = { ...shipConfigurations['chaingun-platform'].maneuvering, rotationCapacity: 0 };
+    return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
 }
 
 function runOneTick(shipMgr: ShipManagerPc | ShipManagerNpc, spaceMgr: SpaceManager) {
@@ -217,24 +229,63 @@ describe('NPC threat re-acquisition', () => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(shipMgr.state.orderTargetId).to.be.null;
     });
+});
 
-    it('stationary weapon platform auto-engages a nearby hostile without any order', () => {
+describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
+    function createHostile(id: string, faction: Faction, position: XY) {
+        const hostile = new Spaceship();
+        hostile.id = id;
+        hostile.faction = faction;
+        hostile.position.setValue(position);
+        return hostile;
+    }
+
+    it('an idle NPC (idleStrategy PLAY_DEAD, the default) does not fire on a nearby hostile', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
         shipObj.faction = Faction.Raiders;
+        expect(shipMgr.state.idleStrategy).to.equal(IdleStrategy.PLAY_DEAD);
 
-        const nearbyHostile = createHostile('nearby-hostile', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
-        spaceMgr.insert(nearbyHostile);
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
         spaceMgr.forceFlushEntities();
 
         runOneTick(shipMgr, spaceMgr);
 
-        expect(shipMgr.state.order).to.equal(Order.ATTACK);
-        expect(shipMgr.state.orderTargetId).to.equal(nearbyHostile.id);
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+        expect(shipMgr.state.order).to.equal(Order.NONE);
     });
 
-    it('stationary weapon platform ignores a hostile outside its weapons range', () => {
+    it('STAND_GROUND fires on a hostile in range without moving, changing velocity, rotating the hull, or setting an order', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
         shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        const positionBefore = XY.clone(shipObj.position);
+        const velocityBefore = XY.clone(shipObj.velocity);
+        const angleBefore = shipObj.angle;
+
+        // A single tick is enough for the mount to settle (target is dead ahead of the
+        // FWD-fitted gun); running much longer would run into the unrelated heat-based
+        // cooldown that throttles sustained fire.
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+        expect(shipMgr.state.order).to.equal(Order.NONE);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(shipMgr.state.orderTargetId).to.be.null;
+        expect(XY.equals(shipObj.position, positionBefore, 0.001)).to.equal(true);
+        expect(XY.equals(shipObj.velocity, velocityBefore, 0.001)).to.equal(true);
+        expect(shipObj.angle).to.be.closeTo(angleBefore, 0.001);
+    });
+
+    it('ignores a hostile outside weapons range', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
 
         const maxShellRange = shipMgr.state.chainGuns[0]?.design.maxShellRange ?? 0;
         const farHostile = createHostile(
@@ -247,9 +298,215 @@ describe('NPC threat re-acquisition', () => {
 
         runOneTick(shipMgr, spaceMgr);
 
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
         expect(shipMgr.state.order).to.equal(Order.NONE);
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        expect(shipMgr.state.orderTargetId).to.be.null;
+    });
+
+    it('a hostile outside the mount bearing arc is not fired upon and the hull does not rotate to compensate', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        // Directly behind the FWD-fitted mount: 180 degrees off, well outside its 10-degree arc.
+        const behindHostile = createHostile('behind-hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 180));
+        spaceMgr.insert(behindHostile);
+        spaceMgr.forceFlushEntities();
+
+        const angleBefore = shipObj.angle;
+        for (let i = 0; i < 5; i++) {
+            runOneTick(shipMgr, spaceMgr);
+        }
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+        expect(shipObj.angle).to.be.closeTo(angleBefore, 0.001);
+    });
+
+    it('switching idleStrategy back to PLAY_DEAD stops firing and it stays stopped across ticks', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+
+        shipMgr.state.idleStrategy = IdleStrategy.PLAY_DEAD;
+        runOneTick(shipMgr, spaceMgr);
+        runOneTick(shipMgr, spaceMgr);
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+    });
+
+    it('an explicit MOVE order still fires on a hostile in range despite idleStrategy PLAY_DEAD', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        expect(shipMgr.state.idleStrategy).to.equal(IdleStrategy.PLAY_DEAD);
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        // Same bearing (0 degrees) the ship already faces and the hostile sits on, so the MOVE
+        // order needs no hull rotation and doesn't interfere with the mount settling on target.
+        shipMgr.state.order = Order.MOVE;
+        shipMgr.state.orderPosition.x = 50_000;
+        shipMgr.state.orderPosition.y = 0;
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+    });
+
+    it('a reachable ATTACK-ordered target is engaged exclusively, ignoring a nearer opportunistic hostile', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const orderedTarget = createHostile('ordered-target', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        const nearerHostile = createHostile('nearer-hostile', Faction.Gravitas, XY.byLengthAndDirection(3000, 90));
+        spaceMgr.insert(orderedTarget);
+        spaceMgr.insert(nearerHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = orderedTarget.id;
+
+        runOneTick(shipMgr, spaceMgr);
+
+        // Aimed at the ordered target's bearing (0 degrees), not the nearer hostile's (90).
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
+    });
+
+    it('an ATTACK order on an out-of-range target takes a free opportunity shot at the nearest in-range hostile', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const maxShellRange = shipMgr.state.chainGuns[0]?.design.maxShellRange ?? 0;
+        const unreachableOrderedTarget = createHostile(
+            'unreachable-ordered-target',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(maxShellRange + 5_000, 0),
+        );
+        const opportunityHostile = createHostile(
+            'opportunity-hostile',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(5000, 90),
+        );
+        spaceMgr.insert(unreachableOrderedTarget);
+        spaceMgr.insert(opportunityHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = unreachableOrderedTarget.id;
+
+        const positionBefore = XY.clone(shipObj.position);
+        const angleBefore = shipObj.angle;
+        runOneTick(shipMgr, spaceMgr);
+
+        // Aimed at the opportunity hostile's bearing (90 degrees), not the unreachable order's (0).
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
+        // The order itself is untouched — gunnery never rewrites it.
+        expect(shipMgr.state.order).to.equal(Order.ATTACK);
+        expect(shipMgr.state.orderTargetId).to.equal(unreachableOrderedTarget.id);
+        // Opportunity fire never moves or turns the hull.
+        expect(XY.equals(shipObj.position, positionBefore, 0.001)).to.equal(true);
+        expect(shipObj.angle).to.be.closeTo(angleBefore, 0.001);
+    });
+
+    it('an ATTACK order on a target no mount can bear on (but in range) takes an opportunity shot instead', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
+        shipObj.faction = Faction.Raiders;
+
+        // Directly behind the FWD-fitted mount: outside its 10-degree arc, though well in range.
+        const unbearableOrderedTarget = createHostile(
+            'unbearable-ordered-target',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(2000, 180),
+        );
+        const opportunityHostile = createHostile(
+            'opportunity-hostile',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(5000, 0),
+        );
+        spaceMgr.insert(unbearableOrderedTarget);
+        spaceMgr.insert(opportunityHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = unbearableOrderedTarget.id;
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
+    });
+
+    it('returns fire to the ordered target within one tick of it becoming reachable again', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const maxShellRange = shipMgr.state.chainGuns[0]?.design.maxShellRange ?? 0;
+        const orderedTarget = createHostile(
+            'ordered-target',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(maxShellRange + 5_000, 0),
+        );
+        const opportunityHostile = createHostile(
+            'opportunity-hostile',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(5000, 90),
+        );
+        spaceMgr.insert(orderedTarget);
+        spaceMgr.insert(opportunityHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = orderedTarget.id;
+
+        runOneTick(shipMgr, spaceMgr);
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1); // opportunity fire
+
+        orderedTarget.position.setValue(XY.byLengthAndDirection(5000, 0)); // now back in range
+        spaceMgr.forceFlushEntities();
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1); // back on the primary
+    });
+
+    it('opportunity fire changes nothing about position, velocity, or hull angle vs. a control run with no opportunity hostile', () => {
+        const maxShellRange = shipConfigurations['chaingun-platform'].chainGuns[0][1].maxShellRange;
+        const orderedTargetPosition = XY.byLengthAndDirection(maxShellRange + 5_000, 0);
+
+        function runScenario(withOpportunityHostile: boolean) {
+            const { spaceMgr, shipObj, shipMgr } = createShipSetup(
+                ShipManagerNpc,
+                shipConfigurations['chaingun-platform'],
+            );
+            shipObj.faction = Faction.Raiders;
+            const orderedTarget = createHostile('ordered-target', Faction.Gravitas, orderedTargetPosition);
+            spaceMgr.insert(orderedTarget);
+            if (withOpportunityHostile) {
+                spaceMgr.insert(
+                    createHostile('opportunity-hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 90)),
+                );
+            }
+            spaceMgr.forceFlushEntities();
+            shipMgr.state.order = Order.ATTACK;
+            shipMgr.state.orderTargetId = orderedTarget.id;
+            for (let i = 0; i < 5; i++) {
+                runOneTick(shipMgr, spaceMgr);
+            }
+            return { position: XY.clone(shipObj.position), velocity: XY.clone(shipObj.velocity), angle: shipObj.angle };
+        }
+
+        const withOpportunity = runScenario(true);
+        const control = runScenario(false);
+
+        expect(XY.equals(withOpportunity.position, control.position, 0.001)).to.equal(true);
+        expect(XY.equals(withOpportunity.velocity, control.velocity, 0.001)).to.equal(true);
+        expect(withOpportunity.angle).to.be.closeTo(control.angle, 0.001);
     });
 });
 

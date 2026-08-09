@@ -84,7 +84,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Custom GM buttons | — | Planned | Configurable GM actions |
 | Difficulty settings | — | Planned | Ship balance tuning |
 | Victory/defeat conditions | — | Planned | Event-driven, not automated |
-| NPC AI behaviors | Bot AI | Done | MOVE, ATTACK, FOLLOW, ROAM, STAND_GROUND, PLAY_DEAD |
+| NPC AI behaviors | Bot AI | Partial | MOVE, ATTACK, FOLLOW, STAND_GROUND, PLAY_DEAD done; ROAM fires on hostiles but its wandering movement isn't built yet ([#2145](https://github.com/starwards/starwards/issues/2145)) |
 | Reputation system | — | Skip | LARP narratives don't need mechanical reputation |
 
 ## Environment

@@ -1,3 +1,4 @@
+import { IdleStrategy, Order, ShipState } from './ship-state';
 import { IterationData, Updateable } from '../updateable';
 import {
     ManeuveringCommand,
@@ -15,7 +16,6 @@ import {
     rotateToTarget,
     toDegreesDelta,
 } from '../logic';
-import { Order, ShipState } from './ship-state';
 
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
@@ -26,7 +26,20 @@ import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
 import { switchToAvailableAmmo } from './chain-gun-manager';
 
+/** How often an NPC with no ordered/cached target re-scans for a hostile to fire on. */
+const GUNNERY_RESCAN_INTERVAL_SECONDS = 1;
+
 export class AutomationManager implements Updateable {
+    private gunneryTargetId: string | null = null;
+    private gunneryRescanCooldown = 0;
+    /**
+     * Whether gunnery itself last drove `chainGuns[0].isFiring` (via `aimAndFire`). Only then does
+     * disengaging reset it to `false` — a hull whose order/idleStrategy have never allowed gunnery
+     * to engage (e.g. still `PLAY_DEAD`) is one gunnery has never touched, so it doesn't clobber
+     * `isFiring` managed by anything else for such a hull (ammo/heat tests drive it directly).
+     */
+    private gunneryEngaged = false;
+
     constructor(
         private state: ShipState,
         private shipManager: ShipManager, // TODO: use ShipApi
@@ -117,15 +130,13 @@ export class AutomationManager implements Updateable {
         this.state.currentTask = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
         let trackRange: RTuple2, rotationCompensation: XY;
         if (fire && controlWeapon) {
+            // Marks the UI-facing weapons-target slot for this explicit order; actual gunnery
+            // (aiming/firing) is handled uniformly for every NPC by runGunnery(), not here.
             this.shipManager.setTarget(targetId);
-            switchToAvailableAmmo(controlWeapon, this.state.magazine);
-            const destination = predictHitLocation(this.state, controlWeapon, target);
             rotationCompensation =
                 controlWeapon.bearingLimit > 0
                     ? getShellAimVelocityCompensation(this.state, controlWeapon)
                     : this.boltedGunAimCompensation(controlWeapon, target);
-            const aimRange = (controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange) / 2;
-            const rangeDiff = calcRangediff(this.state, target, destination);
             // Position-holding needs a stable band. getKillZoneRadiusRange is keyed on
             // shellSecondsToLive, which is derived from the ship's own velocity — using it here
             // would make the approach/hold boundary chase the very velocity it's trying to
@@ -133,33 +144,46 @@ export class AutomationManager implements Updateable {
             // The gun's static design envelope gives a fixed band instead; the real (dynamic)
             // kill zone below still governs firing.
             trackRange = [controlWeapon.design.minShellRange, controlWeapon.design.maxShellRange];
-            if (controlWeapon.shellRangeMode === SmartPilotMode.TARGET) {
-                // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
-                // already — shellRange only carries rangeDiff's small target-motion lead correction.
-                controlWeapon.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
-            } else {
-                // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
-                // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
-                // player-facing visibility/radar range, an unrelated concern for an NPC's own
-                // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
-                // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
-                const midRange = controlWeapon.design.minShellRange + aimRange;
-                const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
-                const desiredRange = capToRange(
-                    controlWeapon.design.minShellRange,
-                    controlWeapon.design.maxShellRange,
-                    actualDistance + rangeDiff,
-                );
-                controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
-            }
-            controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
-            this.aimMountsAtTarget(target);
         } else {
             trackRange = [1000, 3000];
             rotationCompensation = XY.zero;
         }
         this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id);
         return false;
+    }
+
+    /**
+     * Aims a control weapon at `target` and sets its firing/fuze state: switches ammo, computes
+     * the fuze/`shellRange` the same way for an order-driven attack and autonomous gunnery, and
+     * points the mount (never the hull — `aimMountsAtTarget` only ever asks `bearingCommand`,
+     * whose own clamp is what stops a mount from swinging past the hull it is bolted to).
+     */
+    private aimAndFire(controlWeapon: ChainGun, target: SpaceObject) {
+        switchToAvailableAmmo(controlWeapon, this.state.magazine);
+        const destination = predictHitLocation(this.state, controlWeapon, target);
+        const aimRange = (controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange) / 2;
+        const rangeDiff = calcRangediff(this.state, target, destination);
+        if (controlWeapon.shellRangeMode === SmartPilotMode.TARGET) {
+            // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
+            // already — shellRange only carries rangeDiff's small target-motion lead correction.
+            controlWeapon.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
+        } else {
+            // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
+            // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
+            // player-facing visibility/radar range, an unrelated concern for an NPC's own
+            // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
+            // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
+            const midRange = controlWeapon.design.minShellRange + aimRange;
+            const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
+            const desiredRange = capToRange(
+                controlWeapon.design.minShellRange,
+                controlWeapon.design.maxShellRange,
+                actualDistance + rangeDiff,
+            );
+            controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
+        }
+        controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
+        this.aimMountsAtTarget(target);
     }
 
     /**
@@ -251,6 +275,9 @@ export class AutomationManager implements Updateable {
                 this.clearOrder();
             }
         }
+        // Runs last so gunnery's isFiring/aim decision for this tick is never clobbered by a
+        // cancelAllTasks() above (order changes, completed tasks).
+        this.runGunnery(id);
     }
 
     private getAndApplyOrder() {
@@ -288,9 +315,6 @@ export class AutomationManager implements Updateable {
             return false;
         }
         if (this.state.order === Order.NONE) {
-            if (this.tryAutoEngage()) {
-                return this.follow(true, id);
-            }
             return this.runAutoPilotRoutines(id);
         } else if (this.state.order === Order.MOVE) {
             return this.goto(id);
@@ -325,31 +349,125 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * A stationary weapon platform (maxSpeed 0, e.g. chaingun-platform) is autonomous point
-     * defense: it engages any hostile in its own chain-gun range unconditionally, with no
-     * stance/arming step. A mobile NPC still stays idle until a script issues an order, per the
-     * GameApi contract that scripts gate their engagement.
+     * Gunnery is on by default for every NPC, independent of `state.order` — orders govern
+     * movement only (MOVE/FOLLOW/ATTACK/docking decide where the hull goes; they never decide
+     * whether the guns work). While `order === Order.NONE`, `idleStrategy` is the fallback:
+     * `PLAY_DEAD` holds fire, `ROAM`/`STAND_GROUND` don't. Any explicit order fires regardless of
+     * `idleStrategy`.
+     *
+     * An `Order.ATTACK` target has absolute priority: whenever it's still structurally reachable
+     * (in range and within some mount's bearing coverage — `canBearOn`, independent of the
+     * mount's current in-flight bearing, so a target that's merely mid-swing-to is never treated
+     * as unreachable and shoved aside), the mount commits to it every tick and only it, so the
+     * swing can actually converge instead of being re-aimed at something else before it gets
+     * there. Only while the ordered target is genuinely unreachable (out of range, or outside
+     * every mount's bearing envelope) does a free opportunity shot at the nearest other hostile
+     * happen instead — never in preference to a reachable primary, never causing movement, hull
+     * rotation, or a delay once the primary becomes reachable again. With no ATTACK order, the
+     * nearest hostile in range is engaged autonomously the same way (rescanned at most once every
+     * {@link GUNNERY_RESCAN_INTERVAL_SECONDS} while no valid target is held, not every tick).
+     *
+     * Never touches position, velocity, hull angle, or `state.order`. `setTarget()` is
+     * deliberately not called here (that's reserved for the explicit-order path in `follow()`),
+     * so gunnery — ordered or opportunistic — never hijacks the ship's weapons-target UI slot.
+     * Disengaging (`disengageGunnery`) only resets `isFiring` if gunnery itself was the one
+     * driving it — a hull gunnery has never been allowed to engage (still `PLAY_DEAD`, never
+     * given an order) is left alone, so `isFiring` set by anything else is never clobbered.
      */
-    private tryAutoEngage(): boolean {
-        if (this.state.isPlayerShip || this.state.maxSpeed > 0) {
+    private runGunnery(id: IterationData) {
+        if (this.state.isPlayerShip) {
+            return;
+        }
+        const controlWeapon = this.state.chainGuns[0] ?? null;
+        if (!controlWeapon) {
+            return;
+        }
+        const firingAllowed = this.state.order !== Order.NONE || this.state.idleStrategy !== IdleStrategy.PLAY_DEAD;
+        if (!firingAllowed) {
+            this.disengageGunnery(controlWeapon);
+            return;
+        }
+        if (this.state.order === Order.ATTACK && this.state.orderTargetId) {
+            const orderedTarget = this.spaceManager.state.get(this.state.orderTargetId) || null;
+            if (orderedTarget && !orderedTarget.destroyed) {
+                this.gunneryTargetId = null;
+                if (this.canBearOn(controlWeapon, orderedTarget)) {
+                    this.engageGunnery(controlWeapon, orderedTarget);
+                    return;
+                }
+                // Primary unreachable right now: a free opportunity shot at some other hostile,
+                // or — with none available — keep the primary's fuze/aim dialed in (ready for
+                // when it's reachable again) without ever reporting it as actually firing.
+                const opportunityId = this.findNearestHostileTarget(orderedTarget.id);
+                const opportunityTarget = opportunityId ? this.spaceManager.state.get(opportunityId) || null : null;
+                this.engageGunnery(controlWeapon, opportunityTarget ?? orderedTarget);
+                return;
+            }
+        }
+        let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
+        if (
+            target &&
+            (target.destroyed ||
+                XY.lengthOf(XY.difference(target.position, this.state.position)) > controlWeapon.design.maxShellRange)
+        ) {
+            target = null;
+        }
+        this.gunneryRescanCooldown -= id.deltaSecondsAvg;
+        if (!target && this.gunneryRescanCooldown <= 0) {
+            const foundId = this.findNearestHostileTarget();
+            target = foundId ? this.spaceManager.state.get(foundId) || null : null;
+            this.gunneryTargetId = foundId;
+            this.gunneryRescanCooldown = GUNNERY_RESCAN_INTERVAL_SECONDS;
+        }
+        if (!target) {
+            this.disengageGunnery(controlWeapon);
+            return;
+        }
+        this.engageGunnery(controlWeapon, target);
+    }
+
+    private engageGunnery(controlWeapon: ChainGun, target: SpaceObject) {
+        this.gunneryEngaged = true;
+        this.aimAndFire(controlWeapon, target);
+    }
+
+    private disengageGunnery(controlWeapon: ChainGun) {
+        if (this.gunneryEngaged) {
+            controlWeapon.isFiring = false;
+        }
+        this.gunneryEngaged = false;
+        this.gunneryTargetId = null;
+    }
+
+    /**
+     * Whether `controlWeapon` could ever be pointed at `target` right now — within the gun's
+     * shell-range envelope (including its minimum — a target inside minShellRange is as
+     * unreachable as one beyond maxShellRange), and within the mount's bearing envelope relative
+     * to the hull's *current* angle. Deliberately ignores the mount's actual in-flight bearing
+     * (which lags `bearingCommand` at `turnSpeed`): this answers "is it worth committing the
+     * swing to this target", not "has the swing finished yet" — the latter is what
+     * `isTargetInKillZone` (via `aimAndFire`) still separately governs for the fire decision
+     * itself.
+     */
+    private canBearOn(controlWeapon: ChainGun, target: SpaceObject): boolean {
+        const shipToTarget = XY.difference(target.position, this.state.position);
+        const distance = XY.lengthOf(shipToTarget);
+        if (distance > controlWeapon.design.maxShellRange || distance < controlWeapon.design.minShellRange) {
             return false;
         }
-        const targetId = this.findNearestHostileTarget();
-        if (!targetId) {
-            return false;
-        }
-        this.state.order = Order.ATTACK;
-        this.state.orderTargetId = targetId;
-        return true;
+        const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - this.state.angle);
+        const desiredBearing = toDegreesDelta(hullBearing - controlWeapon.fittedBearing);
+        return Math.abs(desiredBearing) <= controlWeapon.bearingLimit;
     }
 
     /**
      * Picks the nearest non-destroyed hostile-faction Spaceship within the ship's own chain-gun
-     * range, used both to auto-engage an idle stationary platform and to let any NPC whose ATTACK
-     * order just completed (target destroyed or gone) re-engage instead of sitting dead in the
-     * water.
+     * range, used both by the default-fire gunnery routine (`excludeId` keeps it from picking an
+     * unreachable ATTACK-ordered primary right back out as its own "opportunity") and to let any
+     * NPC whose ATTACK order just completed (target destroyed or gone) re-engage instead of
+     * sitting dead in the water.
      */
-    private findNearestHostileTarget(): string | null {
+    private findNearestHostileTarget(excludeId?: string): string | null {
         const controlWeapon = this.state.chainGuns[0] ?? null;
         if (!controlWeapon) {
             return null;
@@ -360,6 +478,7 @@ export class AutomationManager implements Updateable {
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
             if (
                 candidate.id === this.state.id ||
+                candidate.id === excludeId ||
                 candidate.destroyed ||
                 candidate.faction === Faction.NONE ||
                 candidate.faction === this.state.faction

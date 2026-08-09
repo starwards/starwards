@@ -67,7 +67,8 @@ export const chaingunPlatformChaingun = {
     use_ElecMissile: false,
     damage50: 20,
     energyCost: 1,
-    // arc 360°, unrestricted: the whole platform slews to track its target
+    // bearingLimit 180 (relative to fittedBearing) covers the full 360°: the mount alone tracks
+    // its target, the hull never turns.
     turnSpeed: 45,
     bearingLimit: 180,
     maxBearingSkew: 90,
@@ -114,7 +115,7 @@ export const chaingunPlatformSmartPilot = {
     isElectronics: true,
     maxTargetAimOffset: 30,
     aimOffsetSpeed: 15,
-    // rotates in place to bring its gun to bear
+    // no thrusters, no movement order ever issued to this hull -- only relevant if that changes
     maxTurnSpeed: 45,
     offsetBrokenThreshold: 0.6,
     damage50: 90,

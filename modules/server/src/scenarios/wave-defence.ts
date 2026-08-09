@@ -2,6 +2,7 @@ import {
     Faction,
     GameApi,
     GameMap,
+    IdleStrategy,
     PowerLevel,
     ShipModel,
     Spaceship,
@@ -179,6 +180,10 @@ export function createWaveDefenceMap(rng: () => number = Math.random): GameMap {
                 for (const radar of stationApi.state.radars) {
                     radar.power = PowerLevel.MAX;
                 }
+                // Stations never receive an order, so the fallback governs: without this, the
+                // engine-wide idleStrategy default (PLAY_DEAD, hold fire) would leave
+                // station-platform's chain gun silent against raiders passing in range.
+                stationApi.state.idleStrategy = IdleStrategy.STAND_GROUND;
             }
             spawnWave();
         },

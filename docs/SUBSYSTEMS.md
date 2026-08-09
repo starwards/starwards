@@ -74,22 +74,40 @@ last_verified: 2026-08-01
 
 ## Bot AI
 
+### Gunnery (issue #2145) — independent of `order`
+
+Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; `order`
+governs movement only (below), never whether the gun works. An `Order.ATTACK` target has
+priority whenever it's structurally reachable (in range and within some mount's bearing
+coverage); only while it isn't does a free opportunity shot at another hostile happen instead —
+never in preference to a reachable ordered target, never causing movement or hull rotation. A
+target no mount can bear on is simply not fired upon — the resulting blind arc is a roster/mount-
+coverage question, not something automation papers over by turning the hull.
+
+`idleStrategy` (below) is the *only* thing that can turn this off, and only while `order ===
+Order.NONE` — `PLAY_DEAD` holds fire; every other idle strategy, and every explicit order,
+fires. A map whose NPCs never receive an order (e.g. wave-defence's stations) must set
+`idleStrategy` to `STAND_GROUND` explicitly for them to fire back — the engine-wide default
+(`PLAY_DEAD`) is unchanged.
+
 ### Orders (priority: high → low)
 
 | Order | Args | Behavior |
 |-------|------|----------|
 | NONE | - | Uses idle strategy |
 | MOVE | position | Navigate to coords, stop when in tolerance |
-| ATTACK | targetId | Pursue target, fire when in range, maintain optimal distance |
+| ATTACK | targetId | Pursue target, hold at optimal distance; that target has firing priority (see Gunnery above) |
 | FOLLOW | targetId, distance | Formation position, match velocity |
 
 ### Idle Strategies
 
+Consulted only while `order === Order.NONE`.
+
 | Strategy | Behavior |
 |----------|----------|
-| PLAY_DEAD | No movement, minimal power, appears inactive |
-| ROAM | Random patrol, scan threats, engage on detection |
-| STAND_GROUND | Hold position, track threats, fire on approach, don't pursue |
+| PLAY_DEAD | Holds fire; no automated movement (the default) |
+| ROAM | Fires on hostiles like every other idle strategy; wandering movement is **not yet implemented**, so this currently behaves exactly like STAND_GROUND |
+| STAND_GROUND | Fires on hostiles; never moves or rotates the hull |
 
 **Task tracking:** `@gameField('string') currentTask` (human-readable status set by the automation manager, e.g., `"Go to 100,200"`, `"Attack <targetId>"`, `"Follow <targetId>"`, `"Dock at  <targetId>"`, `"Undock from  <targetId>"`; empty string `""` when idle)
 

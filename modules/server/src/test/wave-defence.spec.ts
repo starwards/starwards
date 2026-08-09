@@ -393,22 +393,25 @@ describe('weapon platforms always auto-engage (issue #2145)', () => {
         const map = createWaveDefenceMap(() => 0);
         await gameDriver.gameManager.startGame(map);
 
-        const raiderId = gameDriver.gameManager.scriptApi.addNpcSpaceship(
+        gameDriver.gameManager.scriptApi.addNpcSpaceship(
             new Spaceship().init(
                 makeId(),
                 Vec2.make(XY.add(stationPlatformPosition, XY.byLengthAndDirection(5_000, 0))),
                 'dragonfly-MK1',
                 Faction.Raiders,
             ),
-        ).spaceObject.id;
+        );
 
-        for (let i = 0; i < 3; i++) {
+        // A freshly-spawned NPC's systems ramp up to full effectiveness over ~1 sim-second before
+        // the chain gun can actually fire; give it comfortably more than that.
+        for (let i = 0; i < 40; i++) {
             gameDriver.gameManager.update(1 / 20);
         }
 
         const platform = gameDriver.getShip('station-platform');
-        expect(platform.state.order).toEqual(Order.ATTACK);
-        expect(platform.state.orderTargetId).toEqual(raiderId);
+        // Stations never receive an order; idleStrategy STAND_GROUND (set explicitly in
+        // wave-defence's init) is what makes gunnery fire without one.
+        expect(platform.state.order).toEqual(Order.NONE);
         expect(platform.state.chainGuns[0]?.isFiring).toBe(true);
     });
 });
