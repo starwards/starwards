@@ -530,6 +530,15 @@ export class SpaceManager implements Updateable {
         this.handleToInsert();
     }
 
+    /**
+     * Drops the collision body and field-of-view of every object flagged `destroyed`, and
+     * removes it from state. `update()` does this on its own schedule; a caller that mutates
+     * state outside the tick loop (replay frames) must invoke it to keep the indexes in step.
+     */
+    public forceFlushDestroyed() {
+        this.gc();
+    }
+
     public attach(attacherId: string, attacheeId: string) {
         this.attachments.set(attacherId, attacheeId);
     }

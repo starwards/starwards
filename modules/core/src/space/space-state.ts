@@ -61,6 +61,23 @@ export class SpaceState extends Schema {
     public destroySpaceshipCommands = Array.of<string>();
     public convertShipTypeCommands = Array.of<ConvertShipTypeArg>();
 
+    /**
+     * Empties every server-side command queue. The queues are plain arrays that only a tick
+     * drains, so a mode that doesn't tick them (replay) must discard them instead — otherwise
+     * they grow for as long as that mode lasts and then all apply at once when it ends.
+     */
+    public discardQueuedCommands() {
+        this.moveCommands = [];
+        this.botOrderCommands = [];
+        this.createAsteroidCommands = [];
+        this.createExplosionCommands = [];
+        this.createWaypointCommands = [];
+        this.setScanLevelCommands = [];
+        this.createSpaceshipCommands = [];
+        this.destroySpaceshipCommands = [];
+        this.convertShipTypeCommands = [];
+    }
+
     public get(id: string): SpaceObject | undefined {
         return (
             this.Projectile.get(id) ??

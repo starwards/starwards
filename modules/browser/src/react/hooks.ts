@@ -20,6 +20,18 @@ export function useCanStartGame(driver: Driver): boolean | null {
     return gamesCount;
 }
 
+export function useIsReplaying(driver: Driver): boolean | null {
+    const [isReplaying, setIsReplaying] = useState<boolean | null>(null);
+    useLoop(async () => setIsReplaying((await driver.getGameStatus()) === GameStatus.REPLAY), 500, [driver]);
+    return isReplaying;
+}
+
+export function useIsRecording(adminDriver: AdminDriver | null): boolean {
+    const [isRecording, setIsRecording] = useState(false);
+    useLoop(() => setIsRecording(!!adminDriver?.state.isRecordingGame), 500, [adminDriver]);
+    return isRecording;
+}
+
 export function usePlayerShips(driver: Driver): string[] {
     const [ships, setShips] = useState<string[]>([]);
     useLoop(async () => setShips([...(await driver.getCurrentPlayerShipIds())]), 500, [driver]);

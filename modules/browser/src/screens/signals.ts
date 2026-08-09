@@ -21,6 +21,7 @@ import { SelectionContainer } from '../radar/selection-container';
 import { SignalsJobsLayer } from '../radar/signals-jobs-layer';
 import { drawLongRangeRadar } from '../widgets/long-range-radar';
 import { drawSignalsJobs } from '../widgets/signals-jobs';
+import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawTargetInfo } from '../widgets/target-info';
 import { readWriteNumberProp } from '../property-wrappers';
@@ -67,6 +68,7 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
     );
     radar.addLayer(new SignalsJobsLayer(radar, spaceDriver, shipDriver).renderRoot);
 
+    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     drawTargetInfo(container.subContainer(VPos.MIDDLE, HPos.RIGHT), driver, spaceDriver, shipDriver, stationTarget);
     const radarSystems = shipDriver.systems.filter((s) => Radar.isInstance(s.state));
     drawSystemsStatus(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver, radarSystems);
