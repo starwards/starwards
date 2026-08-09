@@ -71,17 +71,14 @@ test.describe('Pilot Screen — energy starvation visibility', () => {
     });
 });
 
-test.describe('ECR Screen — energy starvation visibility', () => {
+test.describe('Engineer Screen — energy starvation visibility', () => {
     const gameDriver = makeDriver(test);
 
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(single_ship);
 
-        const ship = gameDriver.getShip(shipId);
-        ship.state.ecrControl = true;
-
-        await navigateToScreen(page, `/ecr.html?station=ecr&ship=${shipId}`, { baseURL: gameDriver.baseURL });
+        await navigateToScreen(page, `/engineer.html?ship=${shipId}`, { baseURL: gameDriver.baseURL });
     });
 
     test.afterEach(async ({ page }) => {
