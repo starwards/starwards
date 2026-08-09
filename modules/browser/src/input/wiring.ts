@@ -1,5 +1,11 @@
 import { InputManager, numberAction } from '../input/input-manager';
-import { readWriteNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
+import {
+    readWriteAllNumberProp,
+    readWriteNumberProp,
+    readWriteProp,
+    writeAllProp,
+    writeProp,
+} from '../property-wrappers';
 
 import { ShipDriver } from '@starwards/core';
 import { shipInputConfig } from '../input/input-config';
@@ -7,7 +13,10 @@ import { shipInputConfig } from '../input/input-config';
 export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
     const input = new InputManager();
     input.addRangeAction(
-        readWriteNumberProp(shipDriver, '/chainGuns/0/shellRange'),
+        readWriteAllNumberProp(
+            shipDriver,
+            shipDriver.state.chainGuns.map((_, index) => `/chainGuns/${index}/shellRange`),
+        ),
         shipInputConfig.shellRange,
         'Shell Range',
     );

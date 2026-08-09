@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
-import { readWriteNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
+import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
@@ -100,7 +100,10 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         'Change Gun Ammo',
     );
     input.addRangeAction(
-        readWriteNumberProp(shipDriver, '/chainGuns/0/shellRange'),
+        readWriteAllNumberProp(
+            shipDriver,
+            shipDriver.state.chainGuns.map((_, index) => `/chainGuns/${index}/shellRange`),
+        ),
         shipInputConfig.shellRange,
         'Shell Range',
     );
