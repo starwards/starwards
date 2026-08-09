@@ -238,8 +238,11 @@ export class DamageManager {
                 (this.die.getSuccess('thrusterAngleSign:' + damageId, 0.5) ? 1 : -1);
             thruster.bearingSkew = capToRange(-180, 180, thruster.bearingSkew);
         } else {
-            thruster.availableCapacity -= limitPercision(
-                this.die.getRollInRange('availableCapacity:' + damageId, 0.01, 0.1),
+            thruster.availableCapacity = capToRange(
+                0,
+                1,
+                thruster.availableCapacity -
+                    limitPercision(this.die.getRollInRange('availableCapacity:' + damageId, 0.01, 0.1)),
             );
         }
     }

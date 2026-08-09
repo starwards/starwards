@@ -12,7 +12,7 @@ export class WaypointPlacementLayer {
         private parent: CameraView,
         private spaceDriver: SpaceDriver,
         private shipId?: string,
-        private getSettings?: () => { collection: string; color: number },
+        public getSettings?: () => { collection: string; color: number },
     ) {
         // only intercept pointer events while placement mode is on, so layers below
         // (e.g. waypoint selection) get the clicks otherwise
