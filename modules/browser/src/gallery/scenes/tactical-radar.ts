@@ -176,6 +176,48 @@ export const tacticalRadarScenes: Record<string, Scene> = {
         },
     },
 
+    'tactical-radar-with-explosion-variants': {
+        name: 'tactical-radar-with-explosion-variants',
+        description:
+            'Three blasts of the same radius: a missile blast (left), a cannon shell blast at half render ' +
+            'scale (center), and a breach hit with its hull-penetration flash (right)',
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 0);
+
+            const missileBlast = createMockExplosion({
+                id: 'missile-blast',
+                position: { x: 1000, y: -600 },
+                radius: 250,
+            });
+            const shellBlast = createMockExplosion({
+                id: 'shell-blast',
+                position: { x: 1000, y: 0 },
+                radius: 250,
+                isShellBlast: true,
+            });
+            const breachBlast = createMockExplosion({
+                id: 'breach-blast',
+                position: { x: 1000, y: 600 },
+                radius: 250,
+                isShellBlast: true,
+                breachHit: true,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([
+                playerShip.spaceship,
+                missileBlast,
+                shellBlast,
+                breachBlast,
+            ]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: RANGE,
+            });
+        },
+    },
+
     'tactical-radar-firing-arcs': {
         name: 'tactical-radar-firing-arcs',
         description: "Cataphract's three chain gun mounts, each with a differing fitted bearing",

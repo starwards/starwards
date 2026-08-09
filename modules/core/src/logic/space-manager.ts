@@ -146,6 +146,16 @@ export class SpaceManager implements Updateable {
             this.clampToAbsoluteMaxSpeed(subject);
         }
     }
+    /**
+     * Flags the explosion (by id) as having landed a hit on an already-broken armor section, so
+     * clients render it as a hull-penetration hit instead of an exterior surface burst.
+     */
+    public markBreachHit(id: string) {
+        const [object] = this.getObjectPtr(id);
+        if (object && Explosion.isInstance(object)) {
+            object.breachHit = true;
+        }
+    }
     public setVelocity(id: string, velocity: XY) {
         if (isNaN(velocity.x) || isNaN(velocity.y)) {
             logWarn(`trying to set "NaN" in velocity of ${id}`);
