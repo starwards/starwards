@@ -41,6 +41,9 @@ export enum Order {
     FOLLOW,
 }
 
+/** Command payload for `lockProperty` (`lock-commands.ts`): GM-lock/unlock a JSON Pointer path. */
+export type LockPropertyArg = { path: string; locked: boolean };
+
 export type ShipPropertiesDesign = {
     modelName?: string;
     totalCoolant: number;
@@ -130,6 +133,15 @@ export class ShipState extends Schema {
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();
 
+    /**
+     * JSON Pointer paths (relative to this ship's state root) whose GM lock is
+     * currently active — see `lock-commands.ts`. Synced so the GM tweak
+     * panel's lock toggle reflects current state across reconnects/other GM
+     * clients; the write guard itself lives in `lock-registry.ts`.
+     */
+    @gameField(['string'])
+    lockedPaths = new ArraySchema<string>();
+
     @range([-1, 1])
     @gameField('float32')
     rotation = 0;
@@ -181,6 +193,9 @@ export class ShipState extends Schema {
     public maneuveringModeCommand = false;
     @commandable()
     public fireTubesCommand = false;
+
+    /** Drained by `applyLockCommands` (`lock-commands.ts`) each tick. */
+    public lockCommands = Array.of<LockPropertyArg>();
 
     // Read-only delegates to the composed spaceship. These satisfy the Craft
     // interface used by helm-assist / gunner-assist without @gameField, so they

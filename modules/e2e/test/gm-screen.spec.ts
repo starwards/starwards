@@ -1,5 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
+import { SmartPilotMode } from '@starwards/core';
 import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
@@ -414,5 +415,69 @@ test.describe('GM Screen', () => {
         // radius has no ongoing physics correcting it, unlike velocity — confirm it holds.
         await page.waitForTimeout(1000);
         expect(ship.radius).toBeCloseTo(120, 0);
+    });
+
+    test('locking a tweakable via the GM tweak panel blocks further writes until unlocked', async ({ page }) => {
+        // Regression from bridge testplay: a GM-set value (smartPilot.maneuveringMode) kept
+        // reverting because something else kept writing it. The lock toggle next to every
+        // tweakable field makes the GM's value win — every write is silently ignored while
+        // locked, including the GM's own subsequent edits through this very panel.
+        const shipId = single_ship.testShipId;
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await expect(tweakPanel.getByText('velocity', { exact: true })).toBeVisible({ timeout: 5000 });
+
+        // Smart pilot system folder — starts collapsed like every per-system folder.
+        const smartPilotFolder = tweakPanel
+            .locator('.tp-fldv', { has: page.getByText('Smart pilot', { exact: false }) })
+            .last();
+        await expect(smartPilotFolder).toBeVisible({ timeout: 5000 });
+        await smartPilotFolder.getByText('Smart pilot', { exact: false }).first().click();
+
+        const modeLabel = smartPilotFolder.getByText('maneuveringMode', { exact: true });
+        await expect(modeLabel).toBeVisible({ timeout: 5000 });
+        const modeSelect = modeLabel.locator('..').locator('select');
+        await expect(modeSelect).toBeVisible({ timeout: 5000 });
+
+        const lockLabel = smartPilotFolder.getByText('maneuveringMode 🔒', { exact: true });
+        await expect(lockLabel).toBeVisible({ timeout: 5000 });
+        const lockCheckbox = lockLabel.locator('..').locator('input');
+
+        const ship = gameDriver.getShip(shipId);
+
+        // unlocked: a GM write round-trips normally
+        await modeSelect.selectOption({ label: 'VELOCITY' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
+        }).toPass({ timeout: 2000 });
+
+        // Tweakpane renders the native checkbox zero-size, hidden behind its own SVG control, so
+        // neither a plain nor a force click can compute a click point — dispatch the DOM 'click'
+        // event directly, which still toggles `checked` and fires Tweakpane's own listener.
+        await lockCheckbox.dispatchEvent('click');
+        await expect(() => {
+            expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(true);
+        }).toPass({ timeout: 2000 });
+
+        // locked: the GM's own next edit through the same control is silently ignored
+        await modeSelect.selectOption({ label: 'DIRECT' });
+        await page.waitForTimeout(500);
+        expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
+
+        // unlocking restores normal write behavior
+        await lockCheckbox.dispatchEvent('click');
+        await expect(() => {
+            expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(false);
+        }).toPass({ timeout: 2000 });
+        await modeSelect.selectOption({ label: 'DIRECT' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.DIRECT);
+        }).toPass({ timeout: 2000 });
     });
 });

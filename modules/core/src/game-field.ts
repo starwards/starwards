@@ -6,6 +6,7 @@ import './serialization-buffers';
 import { DefinitionType, Schema, type } from '@colyseus/schema';
 
 import { hasTweakableMetadata } from './tweakable';
+import { isFieldLocked } from './lock-registry';
 
 /**
  * Marker symbol used to record the set of fields a Schema subclass exposes
@@ -279,8 +280,50 @@ const number2Digits = ((target: typeof Schema, field: string) => {
     }
 }) as PropertyDecorator;
 
-export const gameField = (dt: DefinitionType) => {
-    if (dt === 'float32') {
-        return number2Digits;
-    } else return type(dt);
-};
+/**
+ * Colyseus@3 stores each field's {get, set} descriptor pair in class
+ * metadata (keyed by the well-known `Symbol.metadata`, under a `~descriptors`
+ * property — see `@colyseus/schema`'s `Metadata.addField`/`getPropertyDescriptor`)
+ * rather than defining it on the prototype at decoration time; the descriptor
+ * is only applied per-instance (`Object.defineProperties(instance, ...)`)
+ * inside the `Schema` constructor. `Symbol.for('Symbol.metadata')` is used
+ * instead of the bare `Symbol.metadata` global so this doesn't depend on a
+ * particular TS `lib`/polyfill ordering — `@colyseus/schema` seeds the same
+ * registry symbol (`Symbol.metadata ??= Symbol.for('Symbol.metadata')`) on
+ * import, so a registry lookup always resolves to the identical symbol.
+ */
+const SCHEMA_METADATA_KEY = Symbol.for('Symbol.metadata');
+const SCHEMA_DESCRIPTORS_KEY = '~descriptors';
+
+/**
+ * Wraps a property decorator so the setter it defines refuses to run while
+ * the field is locked (see `lock-registry.ts`). This is the single choke
+ * point for all writes to any `@gameField` — whether via `JsonPointer.set`
+ * (which calls `Reflect.set`, invoking this setter) or a plain `instance.field
+ * = value` assignment from server-side game logic (which invokes the exact
+ * same Colyseus-generated setter).
+ */
+function withLockGuard(decorator: PropertyDecorator): PropertyDecorator {
+    return (target: object, field: string | symbol) => {
+        decorator(target, field);
+        if (typeof field !== 'string') {
+            return;
+        }
+        const ctor = (target as { constructor: Record<symbol, unknown> }).constructor;
+        const metadata = ctor[SCHEMA_METADATA_KEY] as Record<string, unknown> | undefined;
+        const descriptors = metadata?.[SCHEMA_DESCRIPTORS_KEY] as Record<string, PropertyDescriptor> | undefined;
+        const descriptor = descriptors?.[field];
+        if (!descriptor?.set) {
+            return;
+        }
+        const originalSetter = descriptor.set;
+        descriptor.set = function (this: Schema, value: unknown) {
+            if (isFieldLocked(this, field)) {
+                return;
+            }
+            originalSetter.call(this, value);
+        };
+    };
+}
+
+export const gameField = (dt: DefinitionType) => withLockGuard(dt === 'float32' ? number2Digits : type(dt));

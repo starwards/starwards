@@ -4,6 +4,7 @@ import {
     cmdReceivers,
     createLogger,
     handleJsonPointerCommand,
+    lockCommands,
     repairCommands,
 } from '@starwards/core/internal';
 
@@ -27,6 +28,10 @@ export class ShipRoom extends Room<ShipState> {
             for (const [cmdName, handler] of cmdReceivers(repairCommands, manager)) {
                 this.onMessage(cmdName, handler);
             }
+        }
+        // GM property locks apply to any ship (NPC or player) — the GM tweak panel tweaks both.
+        for (const [cmdName, handler] of cmdReceivers(lockCommands, manager)) {
+            this.onMessage(cmdName, handler);
         }
         this.onMessage('*', (_, type, message: unknown) => {
             if (!handleJsonPointerCommand(message, type, manager.state)) {

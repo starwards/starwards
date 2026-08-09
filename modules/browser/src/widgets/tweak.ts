@@ -10,6 +10,7 @@ import {
     IdleStrategy,
     ScanLevel,
     ShipDriver,
+    ShipState,
     SmartPilotMode,
     SpaceDriver,
     SpaceObject,
@@ -18,6 +19,7 @@ import {
     TypeFilter,
     createLogger,
     getTweakables,
+    lockCommands,
     spaceCommands,
 } from '@starwards/core';
 import { FolderApi, Pane } from 'tweakpane';
@@ -247,6 +249,34 @@ const singleSelectionDetails = async (
     }
 };
 
+/**
+ * A lock toggle next to a tweakable field's own blade: while locked, GM value
+ * wins — every write to the field (GM's own subsequent edits included, pilot/
+ * station writes, anything) is silently ignored server-side (see
+ * `lock-registry.ts`/`lock-commands.ts` in `@starwards/core`) until unlocked.
+ * Ship-rooted only: the lock command is addressed relative to `ShipState`
+ * (`lockCommands.lockProperty`), so this has no equivalent yet for
+ * SpaceObject-rooted tweakables (asteroids, etc. selected on this same panel).
+ */
+function addLockToggle(
+    shipDriver: ShipDriver,
+    guiFolder: FolderApi,
+    fieldPointer: string,
+    field: string,
+    cleanup: (d: Destructor) => void,
+) {
+    const prop = {
+        getValue: () => shipDriver.state.lockedPaths.includes(fieldPointer),
+        setValue: (locked: boolean) => shipDriver.command(lockCommands.lockProperty, { path: fieldPointer, locked }),
+        onChange: (cb: () => unknown) => {
+            const listener = () => cb();
+            shipDriver.events.on('/lockedPaths', listener);
+            return () => shipDriver.events.off('/lockedPaths', listener);
+        },
+    };
+    addInputBlade(guiFolder, prop, { label: `${field} 🔒` }, cleanup);
+}
+
 function addTweakables(
     driver: SpaceDriver | ShipDriver,
     guiFolder: FolderApi,
@@ -256,26 +286,28 @@ function addTweakables(
 ) {
     const state = readProp<Schema>(driver, pointer).getValue();
     if (!state) return;
+    const shipDriver = driver.state instanceof ShipState ? (driver as ShipDriver) : null;
     for (const tweakable of getTweakables(state)) {
         if (exclude?.has(tweakable.field)) {
             continue;
         }
+        const fieldPointer = `${pointer}/${tweakable.field}`;
         if (tweakable.config === 'number') {
-            const prop = readWriteNumberProp(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteNumberProp(driver, fieldPointer);
             addSliderBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
         } else if (tweakable.config === 'boolean') {
-            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteProp(driver, fieldPointer);
             addInputBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
         } else if (tweakable.config === 'string') {
-            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteProp(driver, fieldPointer);
             addTextBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
         } else if (tweakable.config === 'vec2') {
-            const prop = readWriteVec2Prop(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteVec2Prop(driver, fieldPointer);
             addInputBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
         } else if (tweakable.config === 'shipId') {
             const rootState = driver.state;
             if (rootState instanceof SpaceState) {
-                const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+                const prop = readWriteProp(driver, fieldPointer);
                 const list = addListBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
                 const shipsProp = readProp<SpaceState['Spaceship']>(driver, `/Spaceship`);
                 const updateOptions = () => {
@@ -290,18 +322,21 @@ function addTweakables(
                 logError('shipId tweak property found outside of space state');
             }
         } else if (tweakable.config.type === 'number') {
-            const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteProp<number>(driver, fieldPointer);
             const config = tweakable.config.number || {};
             addCameraRingBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
         } else if (tweakable.config.type === 'enum') {
-            const prop = readWriteProp<number>(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteProp<number>(driver, fieldPointer);
             addEnumListBlade(guiFolder, prop, tweakable.field, tweakable.config.enum, cleanup);
         } else if (tweakable.config.type === 'string enum') {
-            const prop = readWriteProp(driver, `${pointer}/${tweakable.field}`);
+            const prop = readWriteProp(driver, fieldPointer);
             const options = tweakable.config.enum.map((value) => ({ value, text: value }));
             addListBlade(guiFolder, prop, { label: tweakable.field, options }, cleanup);
         } else {
             throw new Error(`unknown tweakable type :"${JSON.stringify(tweakable.config)}"`);
+        }
+        if (shipDriver) {
+            addLockToggle(shipDriver, guiFolder, fieldPointer, tweakable.field, cleanup);
         }
     }
 }

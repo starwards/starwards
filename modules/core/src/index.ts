@@ -27,6 +27,7 @@ export * from './events';
 export * from './game-field';
 export * from './id';
 export * from './json-ptr';
+export * from './lock-registry';
 export * from './logic';
 export * from './range';
 export * from './scripts-api';
