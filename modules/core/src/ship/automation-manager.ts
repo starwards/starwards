@@ -16,17 +16,49 @@ import {
     toDegreesDelta,
 } from '../logic';
 import { Order, ShipState } from './ship-state';
+import { PowerLevel, PowerLevelStep } from './system';
 
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
 import { switchToAvailableAmmo } from './chain-gun-manager';
 
+/**
+ * How often (game-time seconds) NPC automation re-derives `coolantFactor` for every system, from
+ * the maintainer ruling on #2146/#2165: bounds the sync traffic of a `@gameField` written on every
+ * system without needing a change-deadband. Not every-tick.
+ */
+const COOLANT_REALLOCATION_INTERVAL_SECONDS = 0.5;
+
+/** Heat (of `MAX_SYSTEM_HEAT`) at which a gun's power starts backing off. */
+const POWER_BACKOFF_START_HEAT = MAX_SYSTEM_HEAT * 0.6;
+/**
+ * Heat at which power backoff bottoms out at `POWER_BACKOFF_MIN` — deliberately never lower.
+ * Power backoff alone must never fully silence a gun; that is the ceasefire latch's job, kept rare.
+ */
+const POWER_BACKOFF_FLOOR_HEAT = MAX_SYSTEM_HEAT * 0.9;
+/** Power backoff's floor — a duty-cycle throttle, not a cutoff, so the gun can still land shots. */
+const POWER_BACKOFF_MIN = PowerLevelStep;
+/** Heat at which the ceasefire hard-stop engages — a rare backstop above where backoff bottoms out. */
+const CEASEFIRE_ENGAGE_HEAT = MAX_SYSTEM_HEAT * 0.95;
+/** Heat the mount must cool back below before the ceasefire latch releases (hysteresis, prevents chatter). */
+const CEASEFIRE_RELEASE_HEAT = MAX_SYSTEM_HEAT * 0.7;
+
 export class AutomationManager implements Updateable {
+    /**
+     * Game-time seconds accumulated toward the next coolant reallocation. Seeded with a per-ship
+     * phase offset (see `manageHeat`) so NPCs don't all reallocate on the same tick.
+     */
+    private coolantCadenceAccumulator = 0;
+    private coolantCadenceInitialized = false;
+    /** Mounts currently latched into a ceasefire hard-stop, keyed by hysteresis (see `CEASEFIRE_RELEASE_HEAT`). */
+    private readonly ceasefireLatched = new WeakSet<ChainGun>();
+
     constructor(
         private state: ShipState,
         private shipManager: ShipManager, // TODO: use ShipApi
@@ -250,6 +282,90 @@ export class AutomationManager implements Updateable {
             } else {
                 this.clearOrder();
             }
+        }
+        this.manageHeat(id);
+    }
+
+    /**
+     * NPC-only heat management (#2175): proportional coolant allocation, power backoff and a
+     * ceasefire backstop. Player ships are flown by their crew — never touched here.
+     */
+    private manageHeat(id: IterationData) {
+        if (this.state.isPlayerShip || id.deltaSeconds <= 0) {
+            return;
+        }
+        this.reallocateCoolant(id);
+        for (const chainGun of this.state.chainGuns) {
+            this.backOffPower(chainGun);
+            this.applyCeasefireLatch(chainGun);
+        }
+    }
+
+    /**
+     * Sends coolant to the systems that are actually hot instead of `HeatManager`'s flat default
+     * split. Runs on `COOLANT_REALLOCATION_INTERVAL_SECONDS` game-time cadence rather than every
+     * tick, phase-staggered per ship (via the ship's own die, keyed on its id) so a fleet of NPCs
+     * doesn't all reallocate — and all sync their `coolantFactor` — on the same tick.
+     */
+    private reallocateCoolant({ deltaSeconds }: IterationData) {
+        if (!this.coolantCadenceInitialized) {
+            this.coolantCadenceInitialized = true;
+            this.coolantCadenceAccumulator = this.shipManager.die.getRollInRange(
+                `coolantPhase:${this.state.id}`,
+                0,
+                COOLANT_REALLOCATION_INTERVAL_SECONDS,
+            );
+        }
+        this.coolantCadenceAccumulator += deltaSeconds;
+        if (this.coolantCadenceAccumulator < COOLANT_REALLOCATION_INTERVAL_SECONDS) {
+            return;
+        }
+        this.coolantCadenceAccumulator -= COOLANT_REALLOCATION_INTERVAL_SECONDS;
+        for (const system of this.state.systems()) {
+            // HeatManager only cares about the ratio between systems (heat-manager.ts:36-49), so
+            // normalizing by MAX_SYSTEM_HEAT keeps the write within coolantFactor's declared [0,1]
+            // range without changing the resulting allocation.
+            system.coolantFactor = system.heat / MAX_SYSTEM_HEAT;
+        }
+    }
+
+    /**
+     * Duty-cycle-style power throttle: the primary defense against overheat damage, preferred over
+     * the ceasefire hard-stop (see `applyCeasefireLatch`). Backs `power` off linearly starting at
+     * `POWER_BACKOFF_START_HEAT`, bottoming out at `POWER_BACKOFF_MIN` — never 0, so a gun kept hot
+     * by a saturated coolant budget can still land some shots instead of going fully silent.
+     * Recomputed fresh from current heat every tick, so it restores automatically as the mount cools.
+     */
+    private backOffPower(chainGun: ChainGun) {
+        if (chainGun.heat <= POWER_BACKOFF_START_HEAT) {
+            chainGun.power = PowerLevel.NORMAL;
+            return;
+        }
+        const overheatFraction = capToRange(
+            0,
+            1,
+            (chainGun.heat - POWER_BACKOFF_START_HEAT) / (POWER_BACKOFF_FLOOR_HEAT - POWER_BACKOFF_START_HEAT),
+        );
+        chainGun.power = PowerLevel.NORMAL - overheatFraction * (PowerLevel.NORMAL - POWER_BACKOFF_MIN);
+    }
+
+    /**
+     * Rare final backstop (per #2175's review ruling): a hysteresis-latched hard stop on `isFiring`,
+     * evaluated per mount so one overheating gun never silences the others on a multi-mount hull.
+     * Engages at `CEASEFIRE_ENGAGE_HEAT` — well above where power backoff already bottomed out — and
+     * stays latched until the mount cools back below `CEASEFIRE_RELEASE_HEAT`, so it doesn't chatter
+     * on/off around the engage threshold.
+     */
+    private applyCeasefireLatch(chainGun: ChainGun) {
+        if (this.ceasefireLatched.has(chainGun)) {
+            if (chainGun.heat <= CEASEFIRE_RELEASE_HEAT) {
+                this.ceasefireLatched.delete(chainGun);
+            } else {
+                chainGun.isFiring = false;
+            }
+        } else if (chainGun.heat >= CEASEFIRE_ENGAGE_HEAT) {
+            this.ceasefireLatched.add(chainGun);
+            chainGun.isFiring = false;
         }
     }
 

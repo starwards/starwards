@@ -1,0 +1,270 @@
+import {
+    ChainGun,
+    Faction,
+    Order,
+    PowerLevel,
+    ShipDie,
+    ShipManagerNpc,
+    ShipManagerPc,
+    SpaceManager,
+    Spaceship,
+    Vec2,
+    XY,
+    makeShipState,
+    shipConfigurations,
+} from '../src';
+import { MockDie, makeIterationsData } from './ship-test-harness';
+
+import { MAX_SYSTEM_HEAT } from '../src/ship/heat-manager';
+import { expect } from 'chai';
+
+function createNpcShip(
+    configName: keyof typeof shipConfigurations,
+    id: string,
+    die: ShipDie | MockDie = new MockDie(),
+) {
+    const spaceMgr = new SpaceManager();
+    const shipObj = new Spaceship();
+    shipObj.id = id;
+    const state = makeShipState(id, shipConfigurations[configName]);
+    state.isPlayerShip = false;
+    const shipMgr = new ShipManagerNpc(shipObj, state, spaceMgr, die);
+    spaceMgr.insert(shipObj);
+    return { spaceMgr, shipObj, shipMgr };
+}
+
+function singleTick(shipMgr: ShipManagerNpc | ShipManagerPc, spaceMgr: SpaceManager, deltaSeconds = 0.05) {
+    const id = { deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds };
+    shipMgr.update(id);
+    spaceMgr.update(id);
+}
+
+describe('AI heat-management automation', () => {
+    describe('proportional coolant allocation', () => {
+        it('a hot system receives more coolant than a cold one on the same hull', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('glaive', 'npc-hot-cold');
+            const [gunA, gunB] = shipMgr.state.chainGuns;
+            gunA.heat = 80;
+            gunB.heat = 10;
+
+            for (const id of makeIterationsData(2, 80)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+
+            expect(gunA.coolantFactor).to.be.greaterThan(gunB.coolantFactor);
+        });
+    });
+
+    describe('player ships', () => {
+        it('never has coolantFactor written by automation', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = 'pc-untouched';
+            const state = makeShipState(shipObj.id, shipConfigurations.glaive);
+            const shipMgr = new ShipManagerPc(shipObj, state, spaceMgr, new MockDie());
+            spaceMgr.insert(shipObj);
+            state.chainGuns[0].heat = 90;
+
+            for (const id of makeIterationsData(2, 80)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+
+            expect(state.chainGuns[0].coolantFactor).to.equal(0);
+        });
+
+        it('never has power backed off or fire ceased by automation', () => {
+            const spaceMgr = new SpaceManager();
+            const shipObj = new Spaceship();
+            shipObj.id = 'pc-untouched-2';
+            const state = makeShipState(shipObj.id, shipConfigurations.glaive);
+            const shipMgr = new ShipManagerPc(shipObj, state, spaceMgr, new MockDie());
+            spaceMgr.insert(shipObj);
+            const gun = state.chainGuns[0];
+            gun.heat = MAX_SYSTEM_HEAT;
+            gun.isFiring = true;
+
+            singleTick(shipMgr, spaceMgr);
+
+            expect(gun.power).to.equal(PowerLevel.NORMAL);
+        });
+    });
+
+    describe('cadence gating', () => {
+        it('does not reallocate coolant while the game is paused (deltaSeconds = 0)', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('glaive', 'npc-paused');
+            shipMgr.state.chainGuns[0].heat = 90;
+
+            for (let i = 0; i < 50; i++) {
+                singleTick(shipMgr, spaceMgr, 0);
+            }
+
+            expect(shipMgr.state.chainGuns[0].coolantFactor).to.equal(0);
+        });
+    });
+
+    describe('phase stagger', () => {
+        it('two ships reallocate coolant on different ticks so they are not synchronized', () => {
+            const { spaceMgr: spaceA, shipMgr: shipA } = createNpcShip('glaive', 'ship-alpha', new ShipDie(0));
+            const { spaceMgr: spaceB, shipMgr: shipB } = createNpcShip('glaive', 'ship-beta', new ShipDie(0));
+            shipA.state.chainGuns[0].heat = 80;
+            shipB.state.chainGuns[0].heat = 80;
+
+            let firstReallocTickA = -1;
+            let firstReallocTickB = -1;
+            let tickIndex = 0;
+            for (const id of makeIterationsData(1, 100)) {
+                shipA.update(id);
+                spaceA.update(id);
+                shipB.update(id);
+                spaceB.update(id);
+                tickIndex++;
+                if (firstReallocTickA === -1 && shipA.state.chainGuns[0].coolantFactor > 0) {
+                    firstReallocTickA = tickIndex;
+                }
+                if (firstReallocTickB === -1 && shipB.state.chainGuns[0].coolantFactor > 0) {
+                    firstReallocTickB = tickIndex;
+                }
+            }
+
+            expect(firstReallocTickA).to.be.greaterThan(0);
+            expect(firstReallocTickB).to.be.greaterThan(0);
+            expect(firstReallocTickA).to.not.equal(firstReallocTickB);
+        });
+    });
+
+    describe('power backoff', () => {
+        it('reduces power on an overheating gun before it reaches ceasefire', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-backoff');
+            const gun = shipMgr.state.chainGuns[0];
+            gun.heat = 75; // above backoff-start, below ceasefire-engage
+
+            singleTick(shipMgr, spaceMgr);
+
+            expect(gun.power).to.be.lessThan(PowerLevel.NORMAL);
+            expect(gun.power).to.be.greaterThan(0);
+        });
+
+        it('restores full power once the gun has cooled below the backoff threshold', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-restore');
+            const gun = shipMgr.state.chainGuns[0];
+            gun.heat = 75;
+
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.power).to.be.lessThan(PowerLevel.NORMAL);
+
+            gun.heat = 10;
+            singleTick(shipMgr, spaceMgr);
+
+            expect(gun.power).to.equal(PowerLevel.NORMAL);
+        });
+    });
+
+    describe('ceasefire hard stop', () => {
+        it('forces isFiring off once heat crosses the ceasefire threshold', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-ceasefire');
+            const gun = shipMgr.state.chainGuns[0];
+            gun.isFiring = true;
+            gun.heat = 96;
+
+            singleTick(shipMgr, spaceMgr);
+
+            expect(gun.isFiring).to.equal(false);
+        });
+
+        it('keeps ceasefire latched until heat drops below the release threshold (hysteresis)', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('demo-ship', 'npc-hysteresis');
+            const gun = shipMgr.state.chainGuns[0];
+            gun.heat = 96;
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.isFiring).to.equal(false);
+
+            gun.heat = 80; // cooled, but still above the release threshold
+            gun.isFiring = true;
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.isFiring, 'still latched above release threshold').to.equal(false);
+
+            gun.heat = 60; // below the release threshold
+            gun.isFiring = true;
+            singleTick(shipMgr, spaceMgr);
+            expect(gun.isFiring, 'latch released once cooled').to.equal(true);
+        });
+    });
+
+    describe('per-mount heat evaluation', () => {
+        it('gates each mount independently — a hot mount does not silence a cool one', () => {
+            const { spaceMgr, shipMgr } = createNpcShip('glaive', 'npc-multi-mount');
+            const [hot, cool]: ChainGun[] = [...shipMgr.state.chainGuns];
+            hot.heat = 96;
+            hot.isFiring = true;
+            cool.heat = 10;
+            cool.isFiring = true;
+
+            singleTick(shipMgr, spaceMgr);
+
+            expect(hot.isFiring, 'hot mount ceasefires').to.equal(false);
+            expect(cool.isFiring, 'cool mount keeps firing').to.equal(true);
+        });
+    });
+
+    describe('sustained engagement', () => {
+        function armorHealthSum(state: ReturnType<typeof makeShipState>) {
+            let sum = 0;
+            for (const plate of state.armor.armorPlates) {
+                sum += plate.healthRatio;
+            }
+            return sum;
+        }
+
+        it('backs off power under sustained fire and keeps ceasefire a rare backstop while still damaging the target', () => {
+            const spaceMgr = new SpaceManager();
+            const die = new MockDie();
+            die.expectedRoll = 1;
+
+            const attacker = new Spaceship().init(
+                'attacker',
+                Vec2.make(XY.byLengthAndDirection(20_000, 0)),
+                'dragonfly-MK1',
+                Faction.Raiders,
+            );
+            const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
+            attackerState.isPlayerShip = false;
+            const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
+
+            const target = new Spaceship().init('target', Vec2.make(XY.zero), 'large-station', Faction.Gravitas);
+            const targetState = makeShipState(target.id, shipConfigurations['large-station']);
+            const targetMgr = new ShipManagerNpc(target, targetState, spaceMgr, die);
+
+            spaceMgr.insert(attacker);
+            spaceMgr.insert(target);
+            spaceMgr.forceFlushEntities();
+
+            attackerMgr.state.order = Order.ATTACK;
+            attackerMgr.state.orderTargetId = target.id;
+
+            const gun = attackerMgr.state.chainGuns[0];
+            const initialArmor = armorHealthSum(targetState);
+            let totalTicks = 0;
+            let ceasefireActiveTicks = 0;
+            let sawPowerBackoff = false;
+            for (const id of makeIterationsData(600, 12000)) {
+                attackerMgr.update(id);
+                targetMgr.update(id);
+                spaceMgr.update(id);
+                totalTicks++;
+                if (gun.power < PowerLevel.NORMAL) sawPowerBackoff = true;
+                if (gun.heat >= 95) ceasefireActiveTicks++;
+            }
+
+            // the engagement still measurably damages the target
+            expect(armorHealthSum(targetState)).to.be.lessThan(initialArmor);
+            // power backoff actually engages at some point during sustained fire
+            expect(sawPowerBackoff, 'power backoff engaged during the engagement').to.equal(true);
+            // the ceasefire hard-stop stays a rare backstop, not the primary throttle
+            expect(ceasefireActiveTicks / totalTicks).to.be.lessThan(0.05);
+            // the gun never takes overheat damage past its own defenses
+            expect(gun.effectiveness).to.be.greaterThan(0);
+        });
+    });
+});
