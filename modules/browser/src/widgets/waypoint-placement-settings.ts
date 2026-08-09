@@ -1,4 +1,4 @@
-import { addColorBlade, createWidgetPane } from '../panel';
+import { addButton, addColorBlade, createWidgetPane } from '../panel';
 
 import EventEmitter from 'eventemitter3';
 import { SpaceDriver } from '@starwards/core';
@@ -22,6 +22,7 @@ export function drawPlacementSettings(
     container: WidgetContainer,
     spaceDriver: SpaceDriver,
     shipId: string,
+    togglePlacement: () => unknown,
 ): PlacementSettingsPanel {
     const { pane, cleanup } = createWidgetPane(container, 'New Waypoint');
 
@@ -41,6 +42,7 @@ export function drawPlacementSettings(
 
     addGroupComboBlade(pane, model('collection'), 'group', spaceDriver, shipId, cleanup.add);
     addColorBlade(pane, model('color'), { label: 'color' }, cleanup.add);
+    addButton(pane, togglePlacement, { label: '', title: 'Place Waypoint' }, cleanup.add);
 
     return { getSettings: () => ({ ...settings }) };
 }

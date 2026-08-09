@@ -7,6 +7,7 @@ import {
 } from '../src/game-field';
 import { DesignState, SystemState, defectible } from '../src/ship/system';
 import { JsonPointer, getJsonPointer, isJsonPointer } from '../src/json-ptr';
+import { AdminState } from '../src/admin';
 
 import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
@@ -61,6 +62,12 @@ describe('JsonPointer @commandable whitelist', () => {
     it('subclass @commandable additions do NOT leak to parent class', () => {
         const parent = new WriteableThing();
         expect(() => JsonPointer.create('/forbidden').set(parent, 1)).to.throw();
+    });
+
+    it('allows replay seek commands from the admin scrub control', () => {
+        const state = new AdminState();
+        JsonPointer.create('/replaySeekCommand').set(state, 42);
+        expect(state.replaySeekCommand).to.equal(42);
     });
 });
 
