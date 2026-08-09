@@ -3,12 +3,14 @@ import {
     RADAR_MALFUNCTION_MIN_DRIFT_HZ,
     RADAR_MALFUNCTION_RATE_CONSTANT_HZ,
     Radar,
+    ShipDie,
     degToRad,
     getRange,
     malfunctionAreaFactor,
     malfunctionNoiseFrequencyHz,
     malfunctionSeverity,
     radarRangeFromArea,
+    sampleRadarAreaFactor,
     shipConfigurations,
 } from '../src';
 
@@ -140,6 +142,18 @@ describe('Radar effectiveness scaling', () => {
         quarter.power = 0.25;
         expect(full.range / quarter.range).to.be.closeTo(2, 1e-3);
     });
+
+    it('a skew-jammed radar (aimed past its physical limit) reads range 0, not the malfunction floor', () => {
+        // maxBearingSkew: 45 gives this beam a skew surface at all — an omni radar (maxBearingSkew
+        // 0) can never be skew-jammed, per the unified-defectibles rule in turret.spec.ts.
+        const radar = new Radar();
+        radar.design.assign({ ...beamDesign, maxBearingSkew: 45, turnSpeed: 30 });
+        radar.power = 1;
+        radar.malfunctionRangeFactor = 0; // undamaged: only the skew jam is in play
+        radar.bearingSkew = 45; // pinned at the design's physical limit
+        expect(radar.broken).to.equal(true);
+        expect(radar.range).to.equal(0); // stuck pointed away from where it's commanded — sees nothing
+    });
 });
 
 describe('Radar damage never blacks out the radar', () => {
@@ -209,34 +223,44 @@ describe('Radar damage never blacks out the radar', () => {
             }),
         ));
 
-    it('range decreases monotonically with damage, at a fixed noise sample, across every shipped radar design and several arc settings', () => {
-        const damageLevels = [0, 0.1, 0.3, 0.5, 0.8, 1, 2];
-        const arcs = [10, 45, 90, 180, 360];
-        const noiseSample = 0.5; // fixed "typical" sample — isolates the damage trend from noise
-        for (const [modelName, config] of Object.entries(shipConfigurations)) {
-            for (const radarDesign of config.radars) {
-                for (const arc of arcs) {
-                    const radar = new Radar();
-                    radar.design.assign(radarDesign);
-                    radar.power = 1;
-                    if (radar.design.minArc > arc || radar.design.maxArc < arc) {
-                        continue; // arc setting not valid for this radar's design envelope
-                    }
-                    radar.arc = arc;
-                    let previousRange = Infinity;
-                    for (const damage of damageLevels) {
-                        radar.malfunctionRangeFactor = damage;
-                        radar.areaFactor = malfunctionAreaFactor(damage, radar.design.rangeEaseFactor, noiseSample);
-                        expect(
-                            radar.range,
-                            `${modelName}/arc=${arc}: range must not increase from damage ${damage}`,
-                        ).to.be.at.most(previousRange + 1e-6);
-                        previousRange = radar.range;
+    it('range decreases monotonically with damage, at a fixed-but-arbitrary noise sample, across every shipped radar design and several arc settings (fast-check)', () =>
+        fc.assert(
+            fc.property(fc.double({ min: 0, max: 1, noNaN: true }), (noiseSample) => {
+                // the noise sample is fixed *within* one damage sweep (isolating the damage trend)
+                // but fast-check varies it across runs, so the property holds for the actual signal
+                // — not only at the one sample (0.5) that happens to zero the noise offset.
+                const damageLevels = [0, 0.1, 0.3, 0.5, 0.8, 1, 2];
+                const arcs = [10, 45, 90, 180, 360];
+                for (const [modelName, config] of Object.entries(shipConfigurations)) {
+                    for (const radarDesign of config.radars) {
+                        for (const arc of arcs) {
+                            const radar = new Radar();
+                            radar.design.assign(radarDesign);
+                            radar.power = 1;
+                            if (radar.design.minArc > arc || radar.design.maxArc < arc) {
+                                continue; // arc setting not valid for this radar's design envelope
+                            }
+                            radar.arc = arc;
+                            let previousRange = Infinity;
+                            for (const damage of damageLevels) {
+                                radar.malfunctionRangeFactor = damage;
+                                radar.areaFactor = malfunctionAreaFactor(
+                                    damage,
+                                    radar.design.rangeEaseFactor,
+                                    noiseSample,
+                                );
+                                expect(
+                                    radar.range,
+                                    `${modelName}/arc=${arc}/noise=${noiseSample}: range must not increase from damage ${damage}`,
+                                ).to.be.at.most(previousRange + 1e-6);
+                                previousRange = radar.range;
+                            }
+                        }
                     }
                 }
-            }
-        }
-    });
+            }),
+            { numRuns: 20 }, // the inner sweep is already large (configs x radars x arcs x damage); a few dozen noise samples is enough
+        ));
 });
 
 describe('malfunctionAreaFactor', () => {
@@ -314,5 +338,54 @@ describe('malfunctionNoiseFrequencyHz (amplitude x frequency invariant)', () => 
             const frequency = malfunctionNoiseFrequencyHz(damage);
             expect(amplitude * frequency, `damage=${damage}`).to.be.closeTo(expectedProduct, 1e-9);
         }
+    });
+
+    it('measured against a real Die: max |d(range)/dt| stays within the same order of magnitude at light/medium/heavy damage', () => {
+        // Unlike the closed-form product above, this drives the actual noise pipeline
+        // (sampleRadarAreaFactor over a real ShipDie, ticking through simulated time) and reads
+        // range off a real Radar — so a regression in either curve (or their coupling) that the
+        // closed-form check can't see would show up here as a lopsided ratio.
+        const design = {
+            range: 20_000,
+            minArc: 5,
+            maxArc: 90,
+            defaultArc: 20,
+            rangeEaseFactor: 0.2,
+            malfunctionRange: 2_000,
+        };
+        const dt = 0.05;
+        const durationSeconds = 20;
+
+        function maxRateOfChange(damage: number) {
+            const die = new ShipDie(42);
+            const radar = new Radar();
+            radar.design.assign(design);
+            radar.power = 1;
+            radar.malfunctionRangeFactor = damage;
+            let previousRange: number | null = null;
+            let maxRate = 0;
+            for (let t = 0; t <= durationSeconds; t += dt) {
+                die.update({ deltaSeconds: dt, deltaSecondsAvg: dt, totalSeconds: t });
+                radar.areaFactor = sampleRadarAreaFactor(die, 'trace:0', damage, design.rangeEaseFactor);
+                const range = radar.range;
+                if (previousRange !== null) {
+                    maxRate = Math.max(maxRate, Math.abs(range - previousRange) / dt);
+                }
+                previousRange = range;
+            }
+            return maxRate;
+        }
+
+        const light = maxRateOfChange(0.1);
+        const medium = maxRateOfChange(0.3);
+        const heavy = maxRateOfChange(0.5);
+        const spread = Math.max(light, medium, heavy) / Math.min(light, medium, heavy);
+        // stated tolerance: a real sampled trace carries discretization/clamping noise the
+        // closed-form product doesn't, so this is looser than exact — but a regression that
+        // decouples amplitude from frequency would blow well past this, not just graze it.
+        expect(
+            spread,
+            `light=${light.toFixed(0)} medium=${medium.toFixed(0)} heavy=${heavy.toFixed(0)} m/s`,
+        ).to.be.at.most(3);
     });
 });

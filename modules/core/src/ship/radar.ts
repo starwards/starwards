@@ -37,7 +37,10 @@ export type RadarDesign = TurretDesign & {
      */
     rangeEaseFactor: number;
     /**
-     * degraded floor (m): the radius a fully malfunctioning radar falls back to.
+     * degraded floor (m): the radius a fully malfunctioning radar falls back to, stated at
+     * `defaultArc` — same convention as `range`. Widening the arc trades this floor for coverage
+     * exactly as it trades the nominal `range`, since both derive from the same fixed sweep area
+     * (`RadarDesignState.malfunctionArea`) via `radarRangeFromArea(area, arc)`.
      */
     malfunctionRange: number;
 };
@@ -86,11 +89,19 @@ export function areaFromRadarRange(rangeMeters: number, arcDeg: number) {
 
 /**
  * how far accumulated radar damage sits from either extreme: 0 when undamaged or fully pinned to
- * the floor, peaking at 0.5 around mid-damage. Both the malfunction wobble's amplitude
- * (`malfunctionAreaFactor` below) and its frequency (`ShipManagerAbstract.calcRadarAreaFactor`)
- * derive from this single curve — amplitude scales with it directly, frequency inversely — so
- * "amplitude × frequency stays roughly constant across damage levels" is a property of sharing
- * one driver, not a coincidence of two independently-tuned curves.
+ * the floor, peaking at 0.5 around mid-damage. Deliberately symmetric (`min(d, 1-d)`, not merely
+ * decreasing past the midpoint): a nearly-destroyed radar (damage near 1) settles at its floor
+ * with the same small, fast jitter a lightly damaged one (damage near 0) has near full range,
+ * rather than spiking back toward full or dwelling in a slow, wide swing right at the floor.
+ *
+ * Both the malfunction wobble's amplitude (`malfunctionAreaFactor` below) and its noise frequency
+ * (`malfunctionNoiseFrequencyHz`) derive from this single curve — amplitude scales with it
+ * directly, frequency inversely — so "amplitude × frequency stays roughly constant across damage
+ * levels" is a property of sharing one driver, not a coincidence of two independently-tuned
+ * curves. One consequence worth calling out: because both peak/trough together at `d = 0.5`, the
+ * slowest, widest swings happen with the wobble centered at the range *midpoint* — never near the
+ * floor, since severity (and therefore amplitude and slow frequency) has already receded by the
+ * time damage pulls the center that low.
  */
 export function malfunctionSeverity(malfunctionRangeFactor: number) {
     const damage = capToRange(0, 1, malfunctionRangeFactor);
@@ -147,6 +158,45 @@ export function malfunctionNoiseFrequencyHz(malfunctionRangeFactor: number) {
         RADAR_MALFUNCTION_MAX_DRIFT_HZ,
         RADAR_MALFUNCTION_RATE_CONSTANT_HZ / Math.max(severity, EPSILON),
     );
+}
+
+/** duck-typed subset of `ShipManagerAbstract`'s `Die` — narrow to avoid a circular import. */
+export type NoiseSource = {
+    getDrift(id: string, frequencyHz?: number): number;
+    getDriftInRange(id: string, min: number, max: number, frequencyHz?: number): number;
+};
+
+/** how far the noise frequency wanders (as a fraction) around its damage-derived median. */
+const RADAR_MALFUNCTION_FREQUENCY_WANDER_FRACTION = 0.3;
+/** rate (Hz) at which the noise frequency itself wanders around its damage-derived median. */
+const RADAR_MALFUNCTION_FREQUENCY_META_HZ = 0.15;
+
+/**
+ * samples a malfunctioning radar's `areaFactor` at the die's current game time: the noise
+ * frequency wanders (`getDriftInRange`) around `malfunctionNoiseFrequencyHz`'s damage-derived
+ * median, then the noise itself is sampled (`getDrift`) at that frequency and fed through
+ * `malfunctionAreaFactor`. Exported (not folded into `ShipManagerAbstract`) so its rate-of-change
+ * — the `amplitude × frequency` invariant — is directly measurable in tests against a real `Die`,
+ * not re-derived from the implementation's own formula.
+ */
+export function sampleRadarAreaFactor(
+    die: NoiseSource,
+    key: string,
+    malfunctionRangeFactor: number,
+    rangeEaseFactor: number,
+) {
+    if (malfunctionRangeFactor <= 0) {
+        return 1;
+    }
+    const medianFrequency = malfunctionNoiseFrequencyHz(malfunctionRangeFactor);
+    const frequency = die.getDriftInRange(
+        `${key}:frequency`,
+        Math.max(RADAR_MALFUNCTION_MIN_DRIFT_HZ, medianFrequency * (1 - RADAR_MALFUNCTION_FREQUENCY_WANDER_FRACTION)),
+        Math.min(RADAR_MALFUNCTION_MAX_DRIFT_HZ, medianFrequency * (1 + RADAR_MALFUNCTION_FREQUENCY_WANDER_FRACTION)),
+        RADAR_MALFUNCTION_FREQUENCY_META_HZ,
+    );
+    const noiseSample = die.getDrift(`${key}:noise`, frequency);
+    return malfunctionAreaFactor(malfunctionRangeFactor, rangeEaseFactor, noiseSample);
 }
 
 export class Radar extends Turret {
@@ -213,14 +263,16 @@ export class Radar extends Turret {
      * arc. Scales with the square root of effectiveness, since effectiveness scales the swept area.
      *
      * Malfunction damage (`malfunctionRangeFactor`) always flows through the `areaFactor` blend —
-     * it never forces this to a literal 0, only smoothly toward `design.malfunctionRange`. That
-     * includes a fully `broken` radar: `broken` still governs turn speed, kill-ratio accounting
-     * and DISABLED status (see the `broken` getter above), but not range — deliberately not read
-     * here. Only losing power (`!this.powered`) blacks the radar out entirely, a distinct failure
-     * mode from malfunction.
+     * it never forces this to a literal 0, only smoothly toward `design.malfunctionRange`. A radar
+     * `broken` purely from malfunction still floors this way (see the `broken` getter above: it
+     * still governs turn speed, kill-ratio accounting and DISABLED status, but not range here).
+     *
+     * `super.broken` (skew jammed past the mount's physical limit) is a distinct failure: the dish
+     * is stuck pointed away from where it's commanded, not merely weak-signaled, so unlike
+     * malfunction it does black this out — same as losing power (`!this.powered`).
      */
     get range() {
-        if (!this.powered) {
+        if (!this.powered || super.broken) {
             return 0;
         }
         const effectiveArea =

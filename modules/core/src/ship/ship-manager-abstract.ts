@@ -3,8 +3,6 @@ import {
     Docking,
     Faction,
     Order,
-    RADAR_MALFUNCTION_MAX_DRIFT_HZ,
-    RADAR_MALFUNCTION_MIN_DRIFT_HZ,
     Radar,
     RadarSectorValues,
     Reactor,
@@ -16,8 +14,7 @@ import {
     TargetedStatus,
     ammoTypes,
     applyRadarSectors,
-    malfunctionAreaFactor,
-    malfunctionNoiseFrequencyHz,
+    sampleRadarAreaFactor,
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
@@ -45,9 +42,6 @@ import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
 
 const { error: logError } = createLogger('ship-manager');
-
-/** rate (Hz) at which a malfunctioning radar's noise-wander frequency itself wanders around its damage-derived median (`malfunctionNoiseFrequencyHz`). */
-const RADAR_MALFUNCTION_FREQUENCY_META_HZ = 0.15;
 
 function fixArmor(armor: Armor) {
     for (const plate of armor.armorPlates) {
@@ -338,8 +332,12 @@ export abstract class ShipManager implements Updateable {
     protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
+            // power * hacked, not `effectiveness`: a malfunctioning (but not skew-jammed) radar
+            // still sweeps at its degraded floor (see Radar.range), so it still draws energy for
+            // that — `effectiveness` would zero the cost the moment `broken` flips, same bug as
+            // the range short-circuit this PR removes.
             radar.powered = this.internalProxy.trySpendEnergy(
-                radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
+                radar.design.range * radar.power * radar.hacked * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
             radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
@@ -354,25 +352,17 @@ export abstract class ShipManager implements Updateable {
 
     /**
      * `areaFactor` for a malfunctioning radar wanders via smooth, non-periodic value noise
-     * (`ShipDie.getDrift`) rather than a fixed sine — a struggling radar should not pulse on a
-     * predictable beat. The noise's own wander frequency is itself damage-derived
-     * (`malfunctionNoiseFrequencyHz`) so amplitude and frequency move inversely together. Both
-     * drift calls key on ship id + radar index so radars never fluctuate in lockstep, on one hull
-     * or across ships.
+     * rather than a fixed sine — a struggling radar should not pulse on a predictable beat. See
+     * `sampleRadarAreaFactor` for the noise construction; the key carries ship id + radar index so
+     * radars never fluctuate in lockstep, on one hull or across ships.
      */
     private calcRadarAreaFactor(radar: Radar, index: number) {
-        if (radar.malfunctionRangeFactor <= 0) {
-            return 1;
-        }
-        const medianFrequency = malfunctionNoiseFrequencyHz(radar.malfunctionRangeFactor);
-        const frequency = this.die.getDriftInRange(
-            `radarMalfunctionFrequency:${this.spaceObject.id}:${index}`,
-            Math.max(RADAR_MALFUNCTION_MIN_DRIFT_HZ, medianFrequency * 0.7),
-            Math.min(RADAR_MALFUNCTION_MAX_DRIFT_HZ, medianFrequency * 1.3),
-            RADAR_MALFUNCTION_FREQUENCY_META_HZ,
+        return sampleRadarAreaFactor(
+            this.die,
+            `radarMalfunction:${this.spaceObject.id}:${index}`,
+            radar.malfunctionRangeFactor,
+            radar.design.rangeEaseFactor,
         );
-        const noiseSample = this.die.getDrift(`radarMalfunctionNoise:${this.spaceObject.id}:${index}`, frequency);
-        return malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, noiseSample);
     }
 
     protected calcTargetedStatus() {
