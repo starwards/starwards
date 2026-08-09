@@ -1,3 +1,6 @@
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+
 import { AddressInfo, Socket } from 'net';
 
 import { EventEmitter } from 'eventemitter3';
@@ -44,6 +47,7 @@ export function makeDriver() {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     let sockets: ReturnType<typeof makeSocketsControls> | null = null;
+    let recordingsDir: string | null = null;
 
     const url = () => {
         if (!serverInfo) throw new Error('missing serverInfo');
@@ -52,11 +56,16 @@ export function makeDriver() {
 
     beforeEach(async () => {
         gameManager = new GameManager();
+        recordingsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'starwards-recordings-'));
         // pingInterval: 0 avoids a lingering setInterval outliving gracefullyShutdown()
         // during Jest teardown; see server.ts for why this is test-only.
-        serverInfo = await server(0, path.resolve(__dirname, '..', '..', '..', 'static'), gameManager, {
-            pingInterval: 0,
-        });
+        serverInfo = await server(
+            0,
+            path.resolve(__dirname, '..', '..', '..', 'static'),
+            gameManager,
+            { pingInterval: 0 },
+            recordingsDir,
+        );
         sockets = makeSocketsControls(serverInfo.httpServer);
     });
 
@@ -64,6 +73,7 @@ export function makeDriver() {
         await gameManager?.stopGame();
         await serverInfo?.close();
         await sockets?.waitForNoSockets(10_000); // Increase timeout for multi-client tests
+        if (recordingsDir) await fs.rm(recordingsDir, { recursive: true, force: true });
     });
 
     return {
