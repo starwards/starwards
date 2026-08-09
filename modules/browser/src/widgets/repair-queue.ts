@@ -107,7 +107,12 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             const darkSystems = protocol.sideEffectSystems.length
                 ? `, dark: ${protocol.sideEffectSystems.join(', ')}`
                 : '';
-            const summary = `${hotkey ?? '—'} · ${duration}s · ${protocol.tier}${darkSystems}`;
+            // energyCells is finite (issue #2137) — shown so the crew can see how many jump-starts
+            // are left before this protocol drops out of `availableProtocols` entirely.
+            const cells = protocol.consumesEnergyCell
+                ? `, cells: ${shipDriver.state.reactor.energyCells}/${shipDriver.state.reactor.design.maxEnergyCells}`
+                : '';
+            const summary = `${hotkey ?? '—'} · ${duration}s · ${protocol.tier}${darkSystems}${cells}`;
             // display-only readout (issue: catalog is not mouse-interactive) — enqueueing happens
             // via the hotkey wired in ecr.ts's wireInput, on the same InputManager as power/coolant
             addTextBlade(
@@ -119,7 +124,11 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         }
     }
     shipDriver.events.on('/docking/mode', renderCatalog);
-    panelCleanup.add(() => shipDriver.events.off('/docking/mode', renderCatalog));
+    shipDriver.events.on('/reactor/energyCells', renderCatalog);
+    panelCleanup.add(() => {
+        shipDriver.events.off('/docking/mode', renderCatalog);
+        shipDriver.events.off('/reactor/energyCells', renderCatalog);
+    });
     renderCatalog();
 
     const operations = () => shipDriver.state.repairQueue.operations;
