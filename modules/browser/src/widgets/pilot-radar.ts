@@ -15,6 +15,7 @@ import { RadarRangeFilter } from '../radar/blips/radar-range-filter';
 import { RangeIndicators } from '../radar/range-indicators';
 import WebFont from 'webfontloader';
 import { WidgetContainer } from '../container';
+import { isOwnWaypoint } from '../radar/waypoint-radar-visibility';
 
 WebFont.load({
     custom: {
@@ -137,10 +138,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) =>
-            w.owner === shipDriver.id &&
-            w.collection === 'route' &&
-            XY.lengthOf(XY.difference(w.position, camera)) > p.range,
+        (w) => isOwnWaypoint(w, shipDriver.id) && XY.lengthOf(XY.difference(w.position, camera)) > p.range,
         (w) =>
             root.worldToScreen(
                 XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera)))),

@@ -59,7 +59,14 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
     for (const [name, layer] of Object.entries(layers)) {
         layersPanel.addLayer(name, layer);
     }
-    const placementSettings = drawPlacementSettings(container.subContainer(VPos.TOP, HPos.LEFT), spaceDriver, shipId);
+    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId);
+    const placementSettings = drawPlacementSettings(
+        container.subContainer(VPos.TOP, HPos.LEFT),
+        spaceDriver,
+        shipId,
+        () => waypointLayer.toggle(),
+    );
+    waypointLayer.getSettings = placementSettings.getSettings;
     const focus = (position: XY) => {
         follow.setFollow(false);
         radarView.camera.set(position);
@@ -103,8 +110,6 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
         () => follow.setFollow(false),
     );
     radarView.addLayer(selectionLayer.renderRoot);
-
-    const waypointLayer = new WaypointPlacementLayer(radarView, spaceDriver, shipId, placementSettings.getSettings);
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection, focus);
