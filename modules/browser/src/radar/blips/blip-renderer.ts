@@ -200,7 +200,6 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
     }
 }
 
-// render-only shrink for cannon shell blasts — the blast radius itself still drives damage AOE
 // bright inner flash marking a hit that punched through already-breached armor
 const BREACH_FLASH_SCALE = 0.4;
 
