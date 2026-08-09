@@ -66,6 +66,20 @@ describe('MovementManager', () => {
         expect(XY.lengthOf(shipObj.velocity)).to.be.greaterThan(0);
     });
 
+    it('boost does not move the ship and marks thrusters energyStarved when the reactor cannot supply energy (issue #2136)', () => {
+        shipMgr.state.reactor.effeciencyFactor = 0; // stops regeneration — reactor stays empty, matching the reported scenario
+        shipMgr.state.reactor.energy = 0;
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(XY.isZero(shipObj.velocity, 0.01)).to.equal(true);
+        expect(shipMgr.state.thrusters.some((t) => t.energyStarved)).to.equal(true);
+    });
+
     it('a ship built with warp: null does not throw during construction or a tick', () => {
         const warplessState = makeShipState('warpless', { ...demoShipConfig, warp: null });
         expect(warplessState.warp).to.equal(null);

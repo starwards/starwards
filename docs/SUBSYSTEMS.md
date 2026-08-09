@@ -14,7 +14,7 @@ last_verified: 2026-08-01
 ## Base: SystemState
 **Location:** `modules/core/src/ship/system.ts`
 
-**Properties:** `name|design|broken|energyPerMinute|heat:[0,100]|coolantFactor:[0,1]|power:PowerLevel|hacked:HackLevel`
+**Properties:** `name|design|broken|energyPerMinute|heat:[0,100]|coolantFactor:[0,1]|power:PowerLevel|hacked:HackLevel|energyStarved:boolean`
 
 **Computed:** `effectiveness = broken ? 0 : power × hacked` (where HackLevel.OK=1, COMPROMISED=0.5, DISABLED=0; coolantFactor does not affect effectiveness)
 
@@ -31,6 +31,7 @@ last_verified: 2026-08-01
 | coolantFactor | [0,1] | Cooling allocation | Increases heat dissipation |
 | hacked | [0,1] | Cyber warfare | Reduces effectiveness |
 | broken | boolean | Offline status | Zero effectiveness |
+| energyStarved | boolean | Reactor couldn't cover the last energy draw | Doesn't change `effectiveness`, but `getSystems()[].getStatus()` reports `DAMAGED` instead of `OK` — a starved system must not read green (#2136) |
 
 **Effectiveness:** Output = maxOutput × effectiveness, where `effectiveness = broken ? 0 : power × hacked` (see `SystemState.effectiveness` in modules/core/src/ship/system.ts). `hacked` is a HackLevel multiplier (OK=1, COMPROMISED=0.5, DISABLED=0), so it scales output directly — not as (1-hacked). coolantFactor does not affect output; it only governs heat dissipation in heat-manager.ts.
 
@@ -43,7 +44,7 @@ last_verified: 2026-08-01
 
 | System | Location | Key Properties | Notes |
 |--------|----------|----------------|-------|
-| **Reactor** | `reactor.ts` | energy, effeciencyFactor | Primary energy generation |
+| **Reactor** | `reactor.ts` | energy, effeciencyFactor | Primary energy generation. `energyStarved` is set once `energy` hits 0 (`EnergyManager.update`); every other system's `energyStarved` is set by `EnergyManager.trySpendEnergy(value, system)` when the reactor can't cover that system's draw, and cleared on its next successful draw |
 | **Maneuvering** | `maneuvering.ts` | afterBurnerFuel, efficiency (design: rotationCapacity, afterBurnerCharge) | Rotation + afterburner control |
 | **Thrusters** | `thruster.ts` | fittedBearing, active, afterBurnerActive, availableCapacity, bearingSkew | Directional thrust (Fwd/Back/L/R array); bolted mounts (turnSpeed 0), so `fittedBearing` is what's fixed and `bearing` stays 0 |
 | **Radar** | `radar.ts` | arc, bearing, malfunctionRangeFactor | One vision sector each; a ship carries a `radars` collection and sees their union |

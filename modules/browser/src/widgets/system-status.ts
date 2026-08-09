@@ -45,7 +45,8 @@ export function drawSystemsStatus(container: WidgetContainer, shipDriver: ShipDr
         }) as RowApi;
 
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
-        const defectibleProps = [brokenProp, ...system.defectibles.map(defectReadProp(shipDriver))];
+        const energyStarvedProp = readProp(shipDriver, `${system.pointer}/energyStarved`);
+        const defectibleProps = [brokenProp, energyStarvedProp, ...system.defectibles.map(defectReadProp(shipDriver))];
         addStatusBlade(standardRowApi, aggregate(defectibleProps, system.getStatus), (p) => p, panelCleanup, {
             OK: 'OK',
             DAMAGED: 'WARN',

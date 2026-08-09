@@ -143,6 +143,15 @@ export abstract class SystemState extends Schema {
     @gameField('float32')
     public hacked = HackLevel.OK;
 
+    /**
+     * Set by `EnergyManager.trySpendEnergy` (and, for the reactor itself, `EnergyManager.update`)
+     * whenever this system's last energy draw was denied for lack of reactor charge. The system
+     * isn't broken — it's starved — so `getStatus()` folds this in as its own reason to stop
+     * reading OK (#2136: a starved thruster/reactor previously showed a fully green status panel).
+     */
+    @gameField('boolean')
+    public energyStarved = false;
+
     public get effectiveness() {
         return this.broken ? 0 : this.power * this.hacked;
     }
@@ -171,6 +180,9 @@ function System(systemPointer: string, state: SystemState): System {
         getStatus: () => {
             if (state.broken) {
                 return 'DISABLED';
+            }
+            if (state.energyStarved) {
+                return 'DAMAGED';
             }
             if (
                 defectibles.some((d) => {

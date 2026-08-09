@@ -42,6 +42,13 @@ export class RepairOperation extends Schema {
     @gameField('float32') starvedSeconds = 0;
 
     /**
+     * True for exactly the ticks this ACTIVE operation's energy draw was denied — a live "why isn't
+     * this progressing" signal, distinct from `starvedSeconds` (which only measures how long the
+     * shortfall has lasted toward the abort threshold). See `RepairManager.tickActive` (#2136).
+     */
+    @gameField('boolean') energyStarved = false;
+
+    /**
      * Seconds left before a DONE/CANCELLED operation is removed from `RepairQueue.recentlyFinished`
      * (real time, not ticks — a quantity measured in "one manager tick" silently changes meaning
      * with the tick rate and is invisible whenever the tick is shorter than the network patch

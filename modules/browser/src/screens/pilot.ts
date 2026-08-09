@@ -5,13 +5,13 @@ import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../inpu
 import { HPos, VPos } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
+import { drawPilotStats, drawReactorEnergyStatus } from '../widgets/pilot';
 import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
 import { drawPilotRadar } from '../widgets/pilot-radar';
-import { drawPilotStats } from '../widgets/pilot';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { isPilotSystem } from './station-system-filters';
@@ -48,6 +48,7 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
         shipDriver.systems.filter((s) => isPilotSystem(s.pointer)),
     );
     drawPilotStats(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
+    drawReactorEnergyStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
     if (shipDriver.state.warp) {
         drawWarpStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
     }

@@ -194,6 +194,29 @@ describe('RepairManager', () => {
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
+    it('flags the active operation energyStarved while it cannot draw energy, so the engineer sees why progress stalled (issue #2136)', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine');
+        tickOnce(repairManager, 0.1); // promote to active
+        expect(state.repairQueue.operations[0].energyStarved).to.equal(false);
+
+        state.reactor.energy = 0;
+        tickOnce(repairManager, 0.1);
+
+        expect(state.repairQueue.operations[0].energyStarved).to.equal(true);
+    });
+
+    it('names the abort reason "insufficient reactor energy" so the notice is not silent (issue #2136)', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine');
+        tickOnce(repairManager, 0.1); // promote to active
+
+        state.reactor.energy = 0; // sustained shortfall — longer than the grace window
+        runTicks(repairManager, 3, 20);
+
+        expect(state.repairQueue.refusalReason).to.contain('insufficient reactor energy');
+    });
+
     it('cancelling a queued operation removes it at no cost', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixThrusters');

@@ -149,6 +149,27 @@ export function addTextBlade<T>(
     return blade;
 }
 
+/**
+ * A text blade themed like a table status cell (see `.tp-rotv` / `data-status` in tweakpane.css,
+ * and the equivalent cell-based theming in `system-status.ts` / `full-system-status.ts`) — for a
+ * status readout that isn't part of a table, e.g. a standalone reactor energy indicator.
+ */
+export function addStatusTextBlade<T>(
+    guiFolder: FolderApi,
+    model: Model<T>,
+    params: Partial<TextBladeParams<T>>,
+    statusOf: (value: T | undefined) => 'OK' | 'WARN' | 'ERROR',
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = addTextBlade(guiFolder, model, params, cleanup);
+    blade.element.classList.add('tp-rotv');
+    const applyTheme = () => (blade.element.dataset.status = statusOf(model.getValue()));
+    const removeStateListener = model.onChange(applyTheme);
+    cleanup(removeStateListener);
+    applyTheme();
+    return blade;
+}
+
 export function addEnumListBlade(
     guiFolder: FolderApi,
     model: Model<number>,

@@ -1,7 +1,7 @@
+import { PropertyPanel, addStatusTextBlade, createWidgetPane } from '../panel';
 import { ShipDriver, SmartPilotMode } from '@starwards/core';
 
 import { DashboardWidget } from './dashboard';
-import { PropertyPanel } from '../panel';
 import { WidgetContainer } from '../container';
 import { readNumberProp } from '../property-wrappers';
 
@@ -47,4 +47,22 @@ export function drawPilotStats(container: WidgetContainer, shipDriver: ShipDrive
     panel.addProperty('antiDrift', readNumberProp(shipDriver, `/antiDrift`));
     panel.addProperty('breaks', readNumberProp(shipDriver, `/breaks`));
     panel.addText('targeted', { getValue: () => String(shipDriver.state.targeted) });
+}
+
+/**
+ * `/reactor` isn't in `isPilotSystem`'s filtered systems table (see `station-system-filters.ts`),
+ * so without a dedicated readout a starved reactor — thrusters unresponsive, no visible cause —
+ * had nothing on the Pilot screen pointing at it (#2136). Drawn as its own widget (not folded into
+ * `drawPilotStats`, which several gallery scenes snapshot) so this addition doesn't perturb those
+ * baselines.
+ */
+export function drawReactorEnergyStatus(container: WidgetContainer, shipDriver: ShipDriver) {
+    const { pane, cleanup } = createWidgetPane(container, 'Reactor');
+    addStatusTextBlade(
+        pane,
+        readNumberProp(shipDriver, `/reactor/energy`),
+        { label: 'energy' },
+        (energy) => (energy !== undefined && energy <= 0 ? 'ERROR' : 'OK'),
+        cleanup.add,
+    );
 }

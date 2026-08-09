@@ -28,6 +28,7 @@ export class EnergyManager implements EnergySource, Updateable {
         }
         if (this.state.reactor.energy > value) {
             if (system) {
+                system.energyStarved = false;
                 if (!this.epm.has(system)) {
                     this.epm.set(system, new EpmEntry());
                 }
@@ -48,6 +49,9 @@ export class EnergyManager implements EnergySource, Updateable {
             }
             return true;
         }
+        if (system) {
+            system.energyStarved = true;
+        }
         this.state.reactor.energy = 0;
         return false;
     };
@@ -59,6 +63,7 @@ export class EnergyManager implements EnergySource, Updateable {
             this.state.reactor.energy +
                 this.state.reactor.energyPerSecond * this.state.reactor.effectiveness * deltaSeconds,
         );
+        this.state.reactor.energyStarved = this.state.reactor.energy <= 0;
         for (const [system, entry] of this.epm.entries()) {
             system.energyPerMinute = system.energyPerMinute * (1 - deltaSeconds) + entry.total;
             if (entry.total < system.energyPerMinute) {

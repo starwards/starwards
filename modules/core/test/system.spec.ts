@@ -62,6 +62,26 @@ describe('SystemState', () => {
     });
 });
 
+describe('getSystems()[].getStatus() — energy starvation (issue #2136)', () => {
+    it('reports DAMAGED, not OK, when a system is energyStarved even with no defectible deviation', () => {
+        const target = new Target();
+        target.energyStarved = true;
+
+        const [system] = getSystems(target);
+
+        expect(system.getStatus()).to.equal('DAMAGED');
+    });
+
+    it('reports OK when not energyStarved and nothing else is wrong', () => {
+        const target = new Target();
+        target.energyStarved = false;
+
+        const [system] = getSystems(target);
+
+        expect(system.getStatus()).to.equal('OK');
+    });
+});
+
 describe('defectible', () => {
     it('getSystems() gets all defectible properties', () => {
         const target = new Target();
