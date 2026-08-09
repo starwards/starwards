@@ -23,6 +23,7 @@ function makeShip(id: string, x = 0, y = 0, faction = Faction.Raiders) {
     ship.velocity.x = 12;
     ship.velocity.y = -7;
     ship.turnSpeed = 15;
+    ship.model = 'dragonfly-MK1';
     return ship;
 }
 
@@ -49,6 +50,7 @@ describe('SpaceManager.convertToDerelict', () => {
         expect(derelict.velocity.x).to.be.closeTo(12, 0.01);
         expect(derelict.velocity.y).to.be.closeTo(-7, 0.01);
         expect(derelict.turnSpeed).to.be.closeTo(15, 0.01);
+        expect(derelict.model).to.equal('dragonfly-MK1');
     });
 
     it('queues a destroySpaceshipCommand so the ship room still gets torn down', () => {
@@ -106,8 +108,29 @@ describe('SpaceManager.convertToDerelict', () => {
 
 describe('Derelict', () => {
     it('is identified by Derelict.isInstance', () => {
-        const derelict = new Derelict().init('d1', Vec2.make({ x: 0, y: 0 }), 10, Faction.Gravitas, 'Hulk', 0);
+        const derelict = new Derelict().init(
+            'd1',
+            Vec2.make({ x: 0, y: 0 }),
+            10,
+            Faction.Gravitas,
+            'Hulk',
+            0,
+            'dragonfly-MK1',
+        );
         expect(Derelict.isInstance(derelict)).to.equal(true);
         expect(Derelict.isInstance(new Spaceship())).to.equal(false);
+    });
+
+    it('carries the source ship model for blip identity', () => {
+        const derelict = new Derelict().init(
+            'd1',
+            Vec2.make({ x: 0, y: 0 }),
+            10,
+            Faction.Gravitas,
+            'Hulk',
+            0,
+            'gravitas',
+        );
+        expect(derelict.model).to.equal('gravitas');
     });
 });
