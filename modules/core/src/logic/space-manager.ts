@@ -457,10 +457,16 @@ export class SpaceManager implements Updateable {
                 if (target) {
                     const destination = target.position;
                     const relativeDestination = XY.difference(destination, projectile.position);
+                    const distanceToTarget = XY.lengthOf(relativeDestination) - target.radius;
                     const fuze = projectile.fuze;
-                    if (fuze.type === 'proximity' && XY.lengthOf(relativeDestination) - target.radius < fuze.range) {
+                    if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
                         this.explodeProjectile(projectile);
                     } else {
+                        const homing = projectile.design.homing;
+                        // terminal sprint: dramatic acceleration burst once inside the sprint range,
+                        // so a target can't idly out-maneuver a missile it's already spotted
+                        const sprintMultiplier =
+                            homing.sprint && distanceToTarget < homing.sprint.range ? homing.sprint.speedMultiplier : 1;
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
@@ -485,12 +491,13 @@ export class SpaceManager implements Updateable {
                         if (boost > 0) {
                             const desiredSpeed = XY.scale(
                                 XY.rotate(XY.one, projectile.angle),
-                                boost * deltaSeconds * projectile.design.homing.velocityCapacity,
+                                boost * deltaSeconds * homing.velocityCapacity * sprintMultiplier,
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
-                        if (XY.lengthOf(projectile.velocity) > projectile.design.homing.maxSpeed) {
-                            projectile.velocity.normalize(projectile.design.homing.maxSpeed);
+                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
+                        if (XY.lengthOf(projectile.velocity) > maxSpeed) {
+                            projectile.velocity.normalize(maxSpeed);
                         }
                     }
                 }
