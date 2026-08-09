@@ -22,6 +22,7 @@ import {
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
+import { deepAssignSchema } from '../serialization/deep-assign-schema';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
@@ -31,11 +32,19 @@ export class GameManager {
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
+    /** Ships whose replay-driven teardown was already scheduled but hasn't finished yet. */
+    private replayCleanedShips = new Set<string>();
     private die = new ShipDie();
     public spaceManager = new SpaceManager();
     private map: GameMap | null = null;
     private deltaSecondsAvg = 1 / 20;
-    private totalSeconds = 0;
+    private _totalSeconds = 0;
+    /**
+     * Set by a ReplayPlayer to receive game-time ticks while `state.gameStatus === REPLAY`,
+     * instead of the normal simulation block. `totalSeconds` already scales by `state.speed`,
+     * giving replay pause/rate control for free.
+     */
+    public replayTick?: (totalSeconds: number) => void;
     public readonly scriptApi: GameApi = {
         getShip: (shipId: string) => this.shipManagers.get(shipId) as ShipApi | undefined,
         addObject: (obj: Exclude<SpaceObject, Spaceship>) => {
@@ -72,10 +81,22 @@ export class GameManager {
         },
     };
 
+    public get totalSeconds() {
+        return this._totalSeconds;
+    }
+
     update(currDeltaSeconds: number) {
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
-        this.totalSeconds = this.totalSeconds + adjustedDeltaSeconds;
+        this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
+        if (this.state.gameStatus === GameStatus.REPLAY) {
+            this.replayTick?.(this._totalSeconds);
+            // A replay is read-only: the recording is the source of truth, and anything applied
+            // here would be overwritten by the next frame. Discard rather than let the queues
+            // grow for the length of the replay and then fire at once when it ends.
+            this.spaceManager.state.discardQueuedCommands();
+            return;
+        }
         // The loop keeps running even at speed 0 (paused): queued commands (GM edits, scan
         // level, waypoints, ...) must still drain every tick. deltaSeconds is 0 while paused,
         // which freezes simulation math that scales with it; anything that doesn't scale with
@@ -110,7 +131,8 @@ export class GameManager {
 
     public async stopGame() {
         this.map = null;
-        if (this.state.gameStatus === GameStatus.RUNNING) {
+        if (this.state.gameStatus === GameStatus.RUNNING || this.state.gameStatus === GameStatus.REPLAY) {
+            this.replayTick = undefined;
             this.state.gameStatus = GameStatus.STOPPING;
             // Use registered ship cleanup functions which await pending
             // room creation before disconnecting, preventing race conditions
@@ -127,6 +149,7 @@ export class GameManager {
             this.state.message = '';
             this.shipCleanups.clear();
             this.shipManagers.clear();
+            this.replayCleanedShips.clear();
             this.convertingShips.clear();
             this.state.gameStatus = GameStatus.STOPPED;
         }
@@ -158,7 +181,16 @@ export class GameManager {
         for (const [shipId, shipManager] of this.shipManagers.entries()) {
             state.fragment.ship.set(shipId, shipManager.state);
         }
-        return state.clone();
+        const snapshot = state.clone();
+        // Objects flagged destroyed are still in state until SpaceManager's next GC. They are
+        // gone as far as any player is concerned, so a snapshot must not carry them: a replay
+        // never runs that GC, and a loaded save would resurrect them for a tick. Drop a
+        // destroyed ship's bridge with it, or the frame describes a ship with no hull.
+        for (const destroyed of snapshot.fragment.space[Symbol.iterator](true)) {
+            snapshot.fragment.space.delete(destroyed);
+            snapshot.fragment.ship.delete(destroyed.id);
+        }
+        return snapshot;
     }
 
     public async loadGame(source: SavedGame, map: GameMap) {
@@ -187,6 +219,66 @@ export class GameManager {
         }
         await this.waitForAllShipRoomsInit();
         this.state.gameStatus = GameStatus.RUNNING;
+    }
+
+    /**
+     * Applies a decoded replay frame onto the live game state in place, instead of tearing
+     * down and recreating rooms (see `loadGame`). Space objects are reconciled field-by-field
+     * via `deepAssignSchema`; ships additionally get their room lifecycle (create/teardown)
+     * driven through the same paths `addShip`/`cleanupShip` already use, since viewers need a
+     * real ShipRoom to join, not just synced state.
+     */
+    public applyReplayFrame(frame: SavedGame) {
+        if (this.state.gameStatus !== GameStatus.REPLAY) {
+            return;
+        }
+        // Objects entering and leaving the frame go through SpaceManager, not through
+        // deepAssignSchema's own map add/delete: only insert() builds a collision body and a
+        // field-of-view for an object, and only the destroyed sweep tears them down again.
+        // deepAssignSchema then reconciles the fields of objects that exist in both.
+        const frameSpace = frame.fragment.space;
+        let removedAny = false;
+        for (const existing of this.spaceManager.state) {
+            if (!frameSpace.get(existing.id)) {
+                existing.destroyed = true;
+                removedAny = true;
+            }
+        }
+        if (removedAny) {
+            this.spaceManager.forceFlushDestroyed();
+        }
+        for (const object of frameSpace) {
+            if (!this.spaceManager.state.get(object.id)) {
+                this.spaceManager.insert(object.clone());
+            }
+        }
+        this.spaceManager.forceFlushEntities();
+        deepAssignSchema(this.spaceManager.state, frameSpace);
+
+        const frameShipIds = new Set(frame.fragment.ship.keys());
+        for (const id of [...this.shipManagers.keys()]) {
+            // teardown is asynchronous and leaves the id in shipManagers until it completes, so
+            // without this guard every later frame would schedule the same cleanup again
+            if (!frameShipIds.has(id) && !this.replayCleanedShips.has(id)) {
+                this.replayCleanedShips.add(id);
+                this.cleanupShip(id);
+            }
+        }
+        for (const [id, shipState] of frame.fragment.ship) {
+            const existingManager = this.shipManagers.get(id);
+            if (existingManager) {
+                // A previous frame may have scheduled this manager's asynchronous teardown.
+                // The current frame makes it live again, so invalidate that replay-only
+                // cleanup before its continuation can remove the restored ship room.
+                this.replayCleanedShips.delete(id);
+                deepAssignSchema(existingManager.state, shipState);
+            } else {
+                const spaceObject = this.spaceManager.state.getShip(id);
+                if (spaceObject) {
+                    this.initShipManagerAndRoom(spaceObject, shipState.clone(), shipState.isPlayerShip);
+                }
+            }
+        }
     }
 
     private cleanupShip(id: string) {
@@ -235,20 +327,30 @@ export class GameManager {
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean): ShipManager;
     private initShipManagerAndRoom(spaceObject: Spaceship, shipState: ShipState, isPlayerShip: boolean) {
         const id = spaceObject.id;
+        this.replayCleanedShips.delete(id);
         const managerCtor = isPlayerShip ? ShipManagerPc : ShipManagerNpc;
         const shipManager = new managerCtor(spaceObject, shipState, this.spaceManager, this.die, this.shipManagers); // create a manager to manage the ship
         this.shipManagers.set(id, shipManager);
 
         // All ships get rooms (PC and NPC alike)
-        const createRoomPromise = matchMaker.createRoom('ship', { manager: shipManager }).then(async () => {
-            await this.waitForRoom({ roomId: id, name: 'ship' });
-            this.state.shipIds.push(id);
-            if (isPlayerShip) {
-                this.state.playerShipIds.push(id);
-            }
-        });
+        const isReplaying = () => this.state.gameStatus === GameStatus.REPLAY;
+        const createRoomPromise = matchMaker
+            .createRoom('ship', { manager: shipManager, isReplaying })
+            .then(async () => {
+                await this.waitForRoom({ roomId: id, name: 'ship' });
+                this.state.shipIds.push(id);
+                if (isPlayerShip) {
+                    this.state.playerShipIds.push(id);
+                }
+            });
         this.shipCleanups.set(id, async () => {
             await createRoomPromise;
+            // Replay reconciliation can restore this ship while the cleanup waits for its
+            // room to finish creating. A restored ship keeps the same manager, so this
+            // stale cleanup must become a no-op instead of deleting its room afterward.
+            if (this.state.gameStatus === GameStatus.REPLAY && !this.replayCleanedShips.has(id)) {
+                return;
+            }
             if (this.shipCleanups.delete(id)) {
                 if (isPlayerShip) {
                     this.state.playerShipIds.splice(this.state.playerShipIds.indexOf(id), 1);

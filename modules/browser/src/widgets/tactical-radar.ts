@@ -97,7 +97,12 @@ export async function drawTacticalRadar(
     const range = new RangeIndicators(root, p.range / 5);
     range.setSizeFactor(sizeFactor);
     root.addLayer(range.renderRoot);
-    const asimuthCircle = azimuthCircle(root, shipDriver.state, () => 6000);
+    let trackedShip: SpaceObject | undefined;
+    const asimuthCircle = azimuthCircle(
+        root,
+        () => trackedShip,
+        () => 6000,
+    );
     root.addLayer(asimuthCircle);
     const shipTarget = trackTargetObject(spaceDriver, shipDriver);
     for (const chainGun of shipDriver.state.chainGuns) {
@@ -129,9 +134,10 @@ export async function drawTacticalRadar(
     blipLayer.renderRoot.mask = circleMask;
     root.addLayer(blipLayer.renderRoot);
 
-    void waitForShip(spaceDriver, shipDriver.id).then((tracked) =>
-        camera.followSpaceObject(tracked, spaceDriver.events, true),
-    );
+    void waitForShip(spaceDriver, shipDriver.id).then((tracked) => {
+        trackedShip = tracked;
+        camera.followSpaceObject(tracked, spaceDriver.events, true);
+    });
 
     return root;
 }

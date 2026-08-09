@@ -1,3 +1,5 @@
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'path';
 
 import { GameManager, server } from '@starwards/server';
@@ -22,19 +24,22 @@ export function makeDriver(t: typeof test) {
     let gameManager: GameManager | null = null;
     let serverInfo: Awaited<ReturnType<typeof server>> | null = null;
     let port = 8080;
+    let recordingsDir = '';
 
     // eslint-disable-next-line no-empty-pattern
     t.beforeAll(async ({}, workerInfo) => {
         // Each worker gets a unique port for parallel execution
         port = 8080 + workerInfo.parallelIndex;
         gameManager = new GameManager();
+        recordingsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'starwards-e2e-recordings-'));
         // Serve browser build from modules/browser/dist, static assets from static/
         const browserDistPath = path.resolve(__dirname, '..', '..', 'browser', 'dist');
         const staticAssetsPath = path.resolve(__dirname, '..', '..', '..', 'static');
-        serverInfo = await server(port, [browserDistPath, staticAssetsPath], gameManager);
+        serverInfo = await server(port, [browserDistPath, staticAssetsPath], gameManager, undefined, recordingsDir);
     });
     t.afterAll(async () => {
         await serverInfo?.close();
+        await fs.rm(recordingsDir, { recursive: true, force: true });
     });
     t.beforeEach(async () => {
         await expectServerHealthy(port);

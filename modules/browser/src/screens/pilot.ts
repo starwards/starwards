@@ -12,6 +12,7 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
 import { drawPilotRadar } from '../widgets/pilot-radar';
 import { drawPilotStats } from '../widgets/pilot';
+import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { isPilotSystem } from './station-system-filters';
@@ -41,6 +42,7 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawPilotRadar(spaceDriver, shipDriver, container);
+    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
