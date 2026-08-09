@@ -13,6 +13,7 @@ import {
     moveToTarget,
     predictHitLocation,
     rotateToTarget,
+    sinWave,
     toDegreesDelta,
 } from '../logic';
 import { Order, ShipState } from './ship-state';
@@ -20,13 +21,33 @@ import { Order, ShipState } from './ship-state';
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
+import { MAX_SYSTEM_HEAT } from './heat-manager';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
 import { switchToAvailableAmmo } from './chain-gun-manager';
 
+/** cease fire at/above this fraction of `MAX_SYSTEM_HEAT`; enough margin below 100% that the
+ * single tick's worth of shots still in flight when the check trips can't push heat over the top
+ * (a single shell shot adds up to ~5 heat, and the check only sees last tick's value). */
+const HEAT_CEASEFIRE_FRACTION = 0.9;
+/** resume fire once heat drops to/below this fraction -- hysteresis so the gun doesn't chatter
+ * on/off right at the ceasefire line. Kept close to the ceasefire line (not a deep cooldown): a
+ * weak-coolant hull (e.g. dragonfly-MK1) only sheds a few heat/second once other systems' share of
+ * `HeatManager`'s total coolant goes unused, so a wide band stalls fire for tens of seconds. */
+const HEAT_RESUME_FRACTION = 0.8;
+
+/** cheap lateral weave overlaid on attack-order steering (issue #2146): a slow sinusoid, not a
+ * full evade-while-tracking objective, so it stays gentle enough to keep the target in arc. */
+const COMBAT_WEAVE_AMPLITUDE = 0.4;
+const COMBAT_WEAVE_FREQUENCY_HZ = 0.08;
+
 export class AutomationManager implements Updateable {
+    /** hysteresis latch for `heatAllowsFiring` -- ceasefire persists until heat cools past the
+     * (lower) resume threshold, not just until it dips back under the ceasefire one. */
+    private ceasefireForHeat = false;
+
     constructor(
         private state: ShipState,
         private shipManager: ShipManager, // TODO: use ShipApi
@@ -64,6 +85,7 @@ export class AutomationManager implements Updateable {
         rotationCompensation: XY,
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
+        lateralWeave = 0,
     ) {
         const ship = this.state;
         const shipToTarget = XY.difference(targetPosition, ship.position);
@@ -89,8 +111,34 @@ export class AutomationManager implements Updateable {
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         ship.smartPilot.maneuvering.x = maneuvering.boost;
-        ship.smartPilot.maneuvering.y = maneuvering.strafe;
+        ship.smartPilot.maneuvering.y = capToRange(-1, 1, maneuvering.strafe + lateralWeave);
         ship.smartPilot.rotation = rotation;
+    }
+
+    /**
+     * Cheap pseudo-random lateral weave (issue #2146): a slow sinusoid in ship-local strafe,
+     * decorrelated per ship via a die-drawn phase so a wave of raiders doesn't weave in lockstep.
+     * Rotation still tracks the target every tick (see `positionNearTarget`), so the mount keeps
+     * bearing on target through the weave -- this only makes the hull harder to hit, not evasive.
+     */
+    private combatWeave({ totalSeconds }: IterationData): number {
+        const phase = this.shipManager.die.getRoll(`combatWeave:${this.state.id}`);
+        return sinWave(totalSeconds, COMBAT_WEAVE_FREQUENCY_HZ, COMBAT_WEAVE_AMPLITUDE, phase);
+    }
+
+    /**
+     * Gates weapon fire on heat, hysteresis-latched: cease fire at `HEAT_CEASEFIRE_FRACTION` of
+     * `MAX_SYSTEM_HEAT`, don't resume until heat drops all the way to `HEAT_RESUME_FRACTION` (issue
+     * #2146) -- otherwise an NPC would burn its own gun down to a defect through the overheat-damage
+     * path in `HeatManager.addHeat` instead of ever letting it cool.
+     */
+    private heatAllowsFiring(weapon: ChainGun): boolean {
+        if (weapon.heat >= MAX_SYSTEM_HEAT * HEAT_CEASEFIRE_FRACTION) {
+            this.ceasefireForHeat = true;
+        } else if (weapon.heat <= MAX_SYSTEM_HEAT * HEAT_RESUME_FRACTION) {
+            this.ceasefireForHeat = false;
+        }
+        return !this.ceasefireForHeat;
     }
 
     private goto(id: IterationData) {
@@ -116,6 +164,7 @@ export class AutomationManager implements Updateable {
         }
         this.state.currentTask = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
         let trackRange: RTuple2, rotationCompensation: XY;
+        let lateralWeave = 0;
         if (fire && controlWeapon) {
             this.shipManager.setTarget(targetId);
             switchToAvailableAmmo(controlWeapon, this.state.magazine);
@@ -152,13 +201,15 @@ export class AutomationManager implements Updateable {
                 );
                 controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
             }
-            controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
+            controlWeapon.isFiring =
+                isTargetInKillZone(this.state, controlWeapon, target) && this.heatAllowsFiring(controlWeapon);
             this.aimMountsAtTarget(target);
+            lateralWeave = this.combatWeave(id);
         } else {
             trackRange = [1000, 3000];
             rotationCompensation = XY.zero;
         }
-        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id);
+        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id, lateralWeave);
         return false;
     }
 
@@ -167,13 +218,18 @@ export class AutomationManager implements Updateable {
      * can't-bear handling, no per-mount fire discipline (that belongs to the deferred NPC-aiming
      * design). `bearingCommand`'s own clamp is what stops a mount from swinging past the hull it
      * is bolted to; this only ever asks.
+     *
+     * Subtracts `bearingSkew`: a mount's real bearing is `fittedBearing + bearingSkew +
+     * bearingCommand` (`Turret.hullBearing`), so commanding the raw hull-relative bearing leaves a
+     * damaged mount permanently off by its skew (issue #2146) -- pre-cancel it here so the
+     * commanded bearing still lands on target once the mount settles.
      */
     private aimMountsAtTarget(target: SpaceObject) {
         const hullBearing = toDegreesDelta(
             XY.angleOf(XY.difference(target.position, this.state.position)) - this.state.angle,
         );
         for (const chainGun of this.state.chainGuns) {
-            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
+            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing - chainGun.bearingSkew);
         }
     }
 
