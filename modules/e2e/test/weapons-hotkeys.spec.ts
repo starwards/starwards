@@ -13,8 +13,9 @@ import { makeDriver, waitForShipCondition } from './driver';
 import { maps } from '@starwards/server';
 import { test } from '@playwright/test';
 
-const { single_ship } = maps;
+const { single_ship, weapons_multi_tube } = maps;
 const shipId = single_ship.testShipId;
+const twoTubeShipId = weapons_multi_tube.testShipId;
 const gameDriver = makeDriver(test);
 
 test.describe('Weapons hotkeys', () => {
@@ -135,5 +136,35 @@ test.describe('Weapons hotkeys', () => {
     test('b key: chainGuns[0].changeProjectileCommand admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('b');
         await page.waitForTimeout(200);
+    });
+});
+
+test.describe('Weapons hotkeys — multi-tube fan-out', () => {
+    test.beforeEach(async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(weapons_multi_tube);
+        await navigateToScreen(page, `/weapons.html?ship=${twoTubeShipId}`, { baseURL: gameDriver.baseURL });
+        await page.waitForTimeout(500);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('v key: changeProjectileCommand cycles ammo on every tube, not just tube 0', async ({ page }) => {
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => ship.state.tubes.at(0)?.projectile !== 'None' && ship.state.tubes.at(1)?.projectile !== 'None',
+            3000,
+        );
+        const before = gameDriver.getShip(twoTubeShipId).state.tubes.at(1)?.projectile;
+
+        await page.keyboard.press('v');
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => ship.state.tubes.at(1)?.projectile !== before,
+            3000,
+        );
     });
 });

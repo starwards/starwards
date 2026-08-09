@@ -65,7 +65,14 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
 
     input.addMomentaryClickAction(writeProp(shipDriver, '/fireTubesCommand'), 'x', 'Fire Tubes');
     input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v', 'Change Tube Ammo');
+    input.addMomentaryClickAction(
+        writeAllProp(
+            shipDriver,
+            shipDriver.state.tubes.map((tube) => `/tubes/${tube.index}/changeProjectileCommand`),
+        ),
+        'v',
+        'Change Tube Ammo',
+    );
     for (const tube of shipDriver.state.tubes) {
         input.addToggleClickAction(
             readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
