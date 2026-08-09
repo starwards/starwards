@@ -10,10 +10,10 @@ import {
     createLogger,
     scanCycleTargets,
 } from '@starwards/core';
-import { HPos, VPos, WidgetContainer, wrapRootWidgetContainer } from '../container';
+import { HPos, VPos, WidgetContainer } from '../container';
+import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
 import { addSliderBlade, createWidgetPane } from '../panel';
 
-import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
 import { InputManager } from '../input/input-manager';
@@ -44,23 +44,14 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    void driver.waitForShip(shipUrlParam).then(
-        async () => {
-            statusTracker.onStatusChange(({ status }) => {
-                if (status !== Status.SHIP_FOUND) location.reload();
-            });
-            await initScreen(driver, shipUrlParam);
-        },
-        (e) => logError(e),
-    );
+    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
 } else {
     logError('missing "ship" url query param');
 }
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
-async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapRootWidgetContainer($('#wrapper'));
+async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
@@ -90,7 +81,7 @@ async function initScreen(driver: Driver, shipId: string) {
     }
     // drawn last so its buttons stack above earlier fixed-position panes
     drawSignalsJobs(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, spaceDriver, stationTarget);
-    wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
+    return wireInput(spaceDriver, shipDriver, shipId, stationTarget, zoomEvents, scanBeam?.pointer);
 }
 
 function drawScanBeamControls(container: WidgetContainer, shipDriver: ShipDriver, beamPointer: string) {
@@ -111,7 +102,7 @@ function wireInput(
     stationTarget: SelectionContainer,
     zoomEvents: EventEmitter<ZoomEvent>,
     beamPointer?: string,
-) {
+): ScreenTeardown {
     let currentIndex = -1;
 
     function getTargets() {
@@ -160,5 +151,9 @@ function wireInput(
         );
     }
     input.init();
-    setupHotkeyHelp(input);
+    const teardownHelp = setupHotkeyHelp(input);
+    return () => {
+        input.destroy();
+        teardownHelp();
+    };
 }

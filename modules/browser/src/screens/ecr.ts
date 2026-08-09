@@ -12,12 +12,12 @@ import {
     repairCommands,
     repairProtocols,
 } from '@starwards/core';
-import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { HPos, VPos } from '../container';
+import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
 import { drawRepairQueue, getRepairProtocolHotkey } from '../widgets/repair-queue';
 import { radarFogOfWar, toCss } from '../colors';
 import { readProp, readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
 
-import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { KeysRangeConfig } from '../input/input-config';
@@ -56,24 +56,15 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    void driver.waitForShip(shipUrlParam).then(
-        async () => {
-            statusTracker.onStatusChange(({ status }) => {
-                if (status !== Status.SHIP_FOUND) location.reload();
-            });
-            await initScreen(driver, shipUrlParam);
-        },
-        (e) => logError(e),
-    );
+    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
 } else {
     logError('missing "ship" url query param');
 }
 
-async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapRootWidgetContainer($('#wrapper'));
+async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     container.getElement().css('background-color', toCss(radarFogOfWar));
     const shipDriver = await driver.getShipDriver(shipId);
-    wireInput(shipDriver);
+    const teardownInput = wireInput(shipDriver);
 
     drawEngineeringStatus(container.subContainer(VPos.TOP, HPos.LEFT), shipDriver);
     if (shipDriver.state.warp) {
@@ -84,6 +75,7 @@ async function initScreen(driver: Driver, shipId: string) {
     drawDamageReport(container.subContainer(VPos.TOP, HPos.RIGHT), shipDriver);
     drawRepairQueue(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
+    return teardownInput;
 }
 
 function systemLabel(pointer: string): string {
@@ -94,7 +86,7 @@ function systemLabel(pointer: string): string {
         .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function wireInput(shipDriver: ShipDriver) {
+function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     const controlledInput = new InputManager();
     const keyPairs: [string, string][] = [
         ['1', 'q'],
@@ -149,8 +141,9 @@ function wireInput(shipDriver: ShipDriver) {
     }
 
     const inputManagers: InputManager[] = [controlledInput];
+    let ecrControlInput: InputManager | undefined;
     if (isEcr) {
-        const ecrControlInput = new InputManager();
+        ecrControlInput = new InputManager();
         ecrControlInput.addToggleClickAction(
             readWriteProp<boolean>(shipDriver, `/ecrControl`),
             '`',
@@ -176,9 +169,16 @@ function wireInput(shipDriver: ShipDriver) {
         ecrControlInput.init();
         inputManagers.push(ecrControlInput);
     }
-    setupHotkeyHelp(...inputManagers);
+    const teardownHelp = setupHotkeyHelp(...inputManagers);
     const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
     const updateControl = () => (ecrControl.getValue() === isEcr ? controlledInput.init() : controlledInput.destroy());
-    ecrControl.onChange(updateControl);
+    const unsubControl = ecrControl.onChange(updateControl);
     updateControl();
+
+    return () => {
+        unsubControl();
+        controlledInput.destroy();
+        ecrControlInput?.destroy();
+        teardownHelp();
+    };
 }

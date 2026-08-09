@@ -2,9 +2,9 @@ import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, Status, Waypoint, XY, createLogger } from '@starwards/core';
 import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
-import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { HPos, VPos } from '../container';
+import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
 
-import $ from 'jquery';
 import { CameraView } from '../radar/camera-view';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import EventEmitter from 'eventemitter3';
@@ -36,23 +36,14 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    void driver.waitForShip(shipUrlParam).then(
-        async () => {
-            statusTracker.onStatusChange(({ status }) => {
-                if (status !== Status.SHIP_FOUND) location.reload();
-            });
-            await initScreen(driver, shipUrlParam);
-        },
-        (e) => logError(e),
-    );
+    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
 } else {
     logError('missing "ship" url query param');
 }
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
-async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapRootWidgetContainer($('#wrapper'));
+async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 
@@ -117,7 +108,7 @@ async function initScreen(driver: Driver, shipId: string) {
     radarView.addLayer(waypointLayer.renderRoot);
 
     drawWaypointEdit(container.subContainer(VPos.MIDDLE, HPos.RIGHT), spaceDriver, shipId, waypointSelection, focus);
-    wireInput(radarView, follow, zoomEvents, waypointLayer);
+    return wireInput(radarView, follow, zoomEvents, waypointLayer);
 }
 
 const PAN_SCREEN_FRACTION = 0.1;
@@ -127,7 +118,7 @@ function wireInput(
     follow: FollowController,
     zoomEvents: EventEmitter<ZoomEvent>,
     waypointLayer: WaypointPlacementLayer,
-) {
+): ScreenTeardown {
     function pan(direction: XY) {
         follow.setFollow(false);
         const step = Math.min(radarView.renderer.width, radarView.renderer.height) * PAN_SCREEN_FRACTION;
@@ -144,5 +135,9 @@ function wireInput(
     input.addClickAction(() => waypointLayer.toggle(), 'w', 'Place Waypoint');
     input.addClickAction(() => follow.setFollow(!follow.isFollowing()), 'f', 'Follow Ship');
     input.init();
-    setupHotkeyHelp(input);
+    const teardownHelp = setupHotkeyHelp(input);
+    return () => {
+        input.destroy();
+        teardownHelp();
+    };
 }

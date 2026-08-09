@@ -2,11 +2,11 @@ import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
-import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { HPos, VPos } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
+import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
 import { readWriteNumberProp, writeProp } from '../property-wrappers';
 
-import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
@@ -33,26 +33,17 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    void driver.waitForShip(shipUrlParam).then(
-        async () => {
-            statusTracker.onStatusChange(({ status }) => {
-                if (status !== Status.SHIP_FOUND) location.reload();
-            });
-            await initScreen(driver, shipUrlParam);
-        },
-        (e) => logError(e),
-    );
+    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
 } else {
     logError('missing "ship" url query param');
 }
 
-async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapRootWidgetContainer($('#wrapper'));
+async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawPilotRadar(spaceDriver, shipDriver, container);
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
-    wireInput(shipDriver);
+    const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
@@ -64,9 +55,10 @@ async function initScreen(driver: Driver, shipId: string) {
     }
     drawDockingStatus(container.subContainer(VPos.BOTTOM, HPos.RIGHT), spaceDriver, shipDriver);
     await drawArmorStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver, 200);
+    return teardownInput;
 }
 
-function wireInput(shipDriver: ShipDriver) {
+function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     const input = new InputManager();
 
     input.addRangeAction(
@@ -127,5 +119,9 @@ function wireInput(shipDriver: ShipDriver) {
     input.addMomentaryClickAction(writeProp(shipDriver, '/warp/levelDownCommand'), 'f', 'Warp Down');
     input.addMomentaryClickAction(writeProp(shipDriver, '/docking/toggleCommand'), 'z', 'Toggle Dock');
     input.init();
-    setupHotkeyHelp(input);
+    const teardownHelp = setupHotkeyHelp(input);
+    return () => {
+        input.destroy();
+        teardownHelp();
+    };
 }

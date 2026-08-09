@@ -1,10 +1,10 @@
 import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
-import { HPos, VPos, wrapRootWidgetContainer } from '../container';
+import { HPos, VPos } from '../container';
+import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
 import { readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
-import $ from 'jquery';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
 import { drawAmmoStatus } from '../widgets/ammo';
@@ -33,26 +33,17 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    void driver.waitForShip(shipUrlParam).then(
-        async () => {
-            statusTracker.onStatusChange(({ status }) => {
-                if (status !== Status.SHIP_FOUND) location.reload();
-            });
-            await initScreen(driver, shipUrlParam);
-        },
-        (e) => logError(e),
-    );
+    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
 } else {
     logError('missing "ship" url query param');
 }
 
-async function initScreen(driver: Driver, shipId: string) {
-    const container = wrapRootWidgetContainer($('#wrapper'));
+async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
     await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
-    wireInput(shipDriver);
+    const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
         shipDriver,
@@ -62,9 +53,10 @@ async function initScreen(driver: Driver, shipId: string) {
     drawAmmoStatus(container.subContainer(VPos.MIDDLE, HPos.LEFT), shipDriver);
     drawTargetingStatus(container.subContainer(VPos.MIDDLE, HPos.RIGHT), shipDriver);
     drawGunStatus(container.subContainer(VPos.BOTTOM, HPos.LEFT), shipDriver);
+    return teardownInput;
 }
 
-function wireInput(shipDriver: ShipDriver) {
+function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     const input = new InputManager();
     input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/nextTargetCommand'), ']', 'Next Target');
     input.addMomentaryClickAction(writeProp(shipDriver, '/weaponsTarget/prevTargetCommand'), '[', 'Prev Target');
@@ -99,5 +91,9 @@ function wireInput(shipDriver: ShipDriver) {
         'Change Gun Ammo',
     );
     input.init();
-    setupHotkeyHelp(input);
+    const teardownHelp = setupHotkeyHelp(input);
+    return () => {
+        input.destroy();
+        teardownHelp();
+    };
 }

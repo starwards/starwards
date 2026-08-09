@@ -2,8 +2,8 @@
 
 import { ClientStatus, Driver, Status, createLogger, spaceCommands } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
+import { ScreenTeardown, runScreenLifecycle } from './station-lifecycle';
 
-import $ from 'jquery';
 import { GmWidgets } from '../widgets/gm';
 import { InputManager } from '../input/input-manager';
 import { ammoWidget } from '../widgets/ammo';
@@ -40,107 +40,110 @@ const { error: logError } = createLogger('screen:gm');
 const driver = new Driver(window.location).connect();
 const statusTracker = new ClientStatus(driver);
 
-void driver.waitForGame().then(
-    async () => {
-        statusTracker.onStatusChange(({ status }) => {
-            if (status !== Status.GAME_RUNNING) location.reload();
-        });
-        const gmWidgets = new GmWidgets(driver);
-        const adminDriver = await driver.getAdminDriver();
-        const gameControls = gameControlsWidget(adminDriver);
-        const dashboard = new Dashboard(
-            {
-                content: [
-                    {
-                        content: [
-                            { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
-                            {
-                                content: [
-                                    {
-                                        content: [
-                                            { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
-                                            { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
-                                        ],
-                                        height: 70,
-                                        isClosable: false,
-                                        title: '',
-                                        type: 'stack',
-                                    },
-                                    // Its own row rather than a third tab: the GM has to see what
-                                    // the game is doing without selecting anything, and a third
-                                    // tab in this column overflows into golden-layout's dropdown,
-                                    // taking tweak and create with it.
-                                    {
-                                        ...getGoldenLayoutItemConfig(gameControls),
-                                        height: 30,
-                                        isClosable: false,
-                                    },
-                                ],
-                                isClosable: false,
-                                title: '',
-                                type: 'column',
-                                width: 20,
-                            },
-                        ],
-                        isClosable: false,
-                        title: '',
-                        type: 'row',
-                    },
-                ],
-            },
-            $('#layoutContainer'),
-            $('#menuContainer'),
-        );
+runScreenLifecycle(statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
 
-        dashboard.registerWidget(gmWidgets.radar);
-        dashboard.registerWidget(gmWidgets.tweak);
-        dashboard.registerWidget(gmWidgets.create);
-        dashboard.registerWidget(gameControls);
-        drawGmStatusChip(adminDriver);
+async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardown> {
+    wrapperEl.append('<ul id="menuContainer"></ul><div id="layoutContainer"></div>');
+    const gmWidgets = new GmWidgets(driver);
+    const adminDriver = await driver.getAdminDriver();
+    const gameControls = gameControlsWidget(adminDriver);
+    const dashboard = new Dashboard(
+        {
+            content: [
+                {
+                    content: [
+                        { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
+                        {
+                            content: [
+                                {
+                                    content: [
+                                        { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
+                                        { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                                    ],
+                                    height: 70,
+                                    isClosable: false,
+                                    title: '',
+                                    type: 'stack',
+                                },
+                                // Its own row rather than a third tab: the GM has to see what
+                                // the game is doing without selecting anything, and a third
+                                // tab in this column overflows into golden-layout's dropdown,
+                                // taking tweak and create with it.
+                                {
+                                    ...getGoldenLayoutItemConfig(gameControls),
+                                    height: 30,
+                                    isClosable: false,
+                                },
+                            ],
+                            isClosable: false,
+                            title: '',
+                            type: 'column',
+                            width: 20,
+                        },
+                    ],
+                    isClosable: false,
+                    title: '',
+                    type: 'row',
+                },
+            ],
+        },
+        wrapperEl.find('#layoutContainer'),
+        wrapperEl.find('#menuContainer'),
+    );
 
-        dashboard.setup();
-        // constantly scan for new ships and add widgets for them
-        const spaceDriver = await driver.getSpaceDriver();
-        const input = new InputManager();
-        input.addStepsAction(
-            {
-                setValue: (delta: number) =>
-                    spaceDriver.command(spaceCommands.bulkRotate, {
-                        ids: gmWidgets.selectionContainer.selectedItemsIds,
-                        delta,
-                    }),
-            },
-            gmInputConfig.rotate,
-            'Rotate Selection',
-        );
-        input.addMomentaryClickAction(
-            {
-                setValue: (v: boolean) =>
-                    v &&
-                    spaceDriver.command(spaceCommands.bulkFreezeToggle, {
-                        ids: gmWidgets.selectionContainer.selectedItemsIds,
-                    }),
-            },
-            gmInputConfig.toggleFreeze,
-            'Toggle Freeze',
-        );
-        input.addMomentaryClickAction(
-            {
-                setValue: (v: boolean) =>
-                    v &&
-                    spaceDriver.command(spaceCommands.bulkDeleteOrder, {
-                        ids: gmWidgets.selectionContainer.selectedItemsIds,
-                    }),
-            },
-            gmInputConfig.delete,
-            'Delete Selection',
-        );
+    dashboard.registerWidget(gmWidgets.radar);
+    dashboard.registerWidget(gmWidgets.tweak);
+    dashboard.registerWidget(gmWidgets.create);
+    dashboard.registerWidget(gameControls);
+    drawGmStatusChip(adminDriver);
 
-        input.init();
-        setupHotkeyHelp(input);
+    dashboard.setup();
+    const spaceDriver = await driver.getSpaceDriver();
+    const input = new InputManager();
+    input.addStepsAction(
+        {
+            setValue: (delta: number) =>
+                spaceDriver.command(spaceCommands.bulkRotate, {
+                    ids: gmWidgets.selectionContainer.selectedItemsIds,
+                    delta,
+                }),
+        },
+        gmInputConfig.rotate,
+        'Rotate Selection',
+    );
+    input.addMomentaryClickAction(
+        {
+            setValue: (v: boolean) =>
+                v &&
+                spaceDriver.command(spaceCommands.bulkFreezeToggle, {
+                    ids: gmWidgets.selectionContainer.selectedItemsIds,
+                }),
+        },
+        gmInputConfig.toggleFreeze,
+        'Toggle Freeze',
+    );
+    input.addMomentaryClickAction(
+        {
+            setValue: (v: boolean) =>
+                v &&
+                spaceDriver.command(spaceCommands.bulkDeleteOrder, {
+                    ids: gmWidgets.selectionContainer.selectedItemsIds,
+                }),
+        },
+        gmInputConfig.delete,
+        'Delete Selection',
+    );
 
+    input.init();
+    const teardownHelp = setupHotkeyHelp(input);
+
+    // constantly scan for new ships and add widgets for them, until torn down
+    let cancelled = false;
+    void (async () => {
         for await (const shipId of driver.getUniqueShipIds()) {
+            if (cancelled) break;
             const shipDriver = await driver.getShipDriver(shipId);
+            if (cancelled) break;
             dashboard.registerWidget(radarWidget(spaceDriver, shipDriver), {}, shipId + ' radar');
             dashboard.registerWidget(tacticalRadarWidget(spaceDriver, shipDriver), {}, shipId + ' tactical radar');
             dashboard.registerWidget(pilotRadarWidget(spaceDriver, shipDriver), {}, shipId + ' pilot radar');
@@ -164,6 +167,12 @@ void driver.waitForGame().then(
             dashboard.registerWidget(targetInfoWidget(spaceDriver, shipDriver, driver), {}, shipId + ' target info');
             dashboard.registerWidget(longRangeRadarWidget(spaceDriver, shipDriver), {}, shipId + ' long range radar');
         }
-    },
-    (e) => logError(e),
-);
+    })().catch(logError);
+
+    return () => {
+        cancelled = true;
+        input.destroy();
+        teardownHelp();
+        dashboard.destroy();
+    };
+}
