@@ -19,12 +19,15 @@ import { resetShipState } from '../src/ship/ship-manager-abstract';
 
 const demoShipConfig = shipConfigurations['demo-ship'];
 
-function createShipSetup(Ctor: typeof ShipManagerPc | typeof ShipManagerNpc) {
+function createShipSetup(
+    Ctor: typeof ShipManagerPc | typeof ShipManagerNpc,
+    config: (typeof shipConfigurations)[keyof typeof shipConfigurations] = demoShipConfig,
+) {
     const spaceMgr = new SpaceManager();
     const shipObj = new Spaceship();
     shipObj.id = '1';
     const die = new MockDie();
-    const shipMgr = new Ctor(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, die);
+    const shipMgr = new Ctor(shipObj, makeShipState(shipObj.id, config), spaceMgr, die);
     die.expectedRoll = 1;
     spaceMgr.insert(shipObj);
     shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
@@ -207,6 +210,40 @@ describe('NPC threat re-acquisition', () => {
 
         const nearbyHostile = createHostile('nearby-hostile', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
         spaceMgr.insert(nearbyHostile);
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.order).to.equal(Order.NONE);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        expect(shipMgr.state.orderTargetId).to.be.null;
+    });
+
+    it('stationary weapon platform auto-engages a nearby hostile without any order', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const nearbyHostile = createHostile('nearby-hostile', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
+        spaceMgr.insert(nearbyHostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.order).to.equal(Order.ATTACK);
+        expect(shipMgr.state.orderTargetId).to.equal(nearbyHostile.id);
+    });
+
+    it('stationary weapon platform ignores a hostile outside its weapons range', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const maxShellRange = shipMgr.state.chainGuns[0]?.design.maxShellRange ?? 0;
+        const farHostile = createHostile(
+            'far-hostile',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(maxShellRange + 1000, 0),
+        );
+        spaceMgr.insert(farHostile);
+        spaceMgr.forceFlushEntities();
 
         runOneTick(shipMgr, spaceMgr);
 

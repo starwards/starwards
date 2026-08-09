@@ -384,3 +384,31 @@ describe('station radar power (issue #2084 design redirect)', () => {
         expect(player.state.radars.every((radar) => radar.power === PowerLevel.NORMAL)).toBe(true);
     });
 });
+
+describe('weapon platforms always auto-engage (issue #2145)', () => {
+    const gameDriver = makeDriver();
+    const stationPlatformPosition = Vec2.make(stationPositionsById['station-platform']);
+
+    it('station-platform opens fire on a raider inside its weapon envelope with no orderAttack given', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+
+        const raiderId = gameDriver.gameManager.scriptApi.addNpcSpaceship(
+            new Spaceship().init(
+                makeId(),
+                Vec2.make(XY.add(stationPlatformPosition, XY.byLengthAndDirection(5_000, 0))),
+                'dragonfly-MK1',
+                Faction.Raiders,
+            ),
+        ).spaceObject.id;
+
+        for (let i = 0; i < 3; i++) {
+            gameDriver.gameManager.update(1 / 20);
+        }
+
+        const platform = gameDriver.getShip('station-platform');
+        expect(platform.state.order).toEqual(Order.ATTACK);
+        expect(platform.state.orderTargetId).toEqual(raiderId);
+        expect(platform.state.chainGuns[0]?.isFiring).toBe(true);
+    });
+});

@@ -288,6 +288,9 @@ export class AutomationManager implements Updateable {
             return false;
         }
         if (this.state.order === Order.NONE) {
+            if (this.tryAutoEngage()) {
+                return this.follow(true, id);
+            }
             return this.runAutoPilotRoutines(id);
         } else if (this.state.order === Order.MOVE) {
             return this.goto(id);
@@ -322,11 +325,29 @@ export class AutomationManager implements Updateable {
     }
 
     /**
+     * A stationary weapon platform (maxSpeed 0, e.g. chaingun-platform) is autonomous point
+     * defense: it engages any hostile in its own chain-gun range unconditionally, with no
+     * stance/arming step. A mobile NPC still stays idle until a script issues an order, per the
+     * GameApi contract that scripts gate their engagement.
+     */
+    private tryAutoEngage(): boolean {
+        if (this.state.isPlayerShip || this.state.maxSpeed > 0) {
+            return false;
+        }
+        const targetId = this.findNearestHostileTarget();
+        if (!targetId) {
+            return false;
+        }
+        this.state.order = Order.ATTACK;
+        this.state.orderTargetId = targetId;
+        return true;
+    }
+
+    /**
      * Picks the nearest non-destroyed hostile-faction Spaceship within the ship's own chain-gun
-     * range, so an NPC whose ATTACK order just completed (target destroyed or gone) re-engages
-     * instead of sitting dead in the water. Only consulted at that transition — an NPC that was
-     * never given an order stays idle, per the GameApi contract that scripts gate engagement. No
-     * weapon, no threat routine — an unarmed NPC has nothing to re-acquire for.
+     * range, used both to auto-engage an idle stationary platform and to let any NPC whose ATTACK
+     * order just completed (target destroyed or gone) re-engage instead of sitting dead in the
+     * water.
      */
     private findNearestHostileTarget(): string | null {
         const controlWeapon = this.state.chainGuns[0] ?? null;
