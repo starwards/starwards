@@ -124,4 +124,54 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
         }
         expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.lessThan(5);
     });
+
+    it('is blind to a pre-existing defect until it actually engages — belief comes only from observation, never from the defect field', () => {
+        const design: ShipDesign = {
+            ...demoShipConfig,
+            chainGuns: [['FWD', { ...turretedChaingun, maxBearingSkew: 45 }]],
+        };
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = 'attacker';
+        shipObj.faction = Faction.Raiders;
+        const targetObj = new Spaceship();
+        targetObj.id = 'target';
+        targetObj.faction = Faction.Gravitas;
+        targetObj.position.x = 0;
+        targetObj.position.y = 3000;
+        const die = new MockDie();
+        die.expectedRoll = 1;
+        const shipMgr = new ShipManagerNpc(shipObj, makeShipState(shipObj.id, design), spaceMgr, die);
+        spaceMgr.insert(shipObj);
+        spaceMgr.insert(targetObj);
+        spaceMgr.forceFlushEntities();
+
+        const [mount] = shipMgr.state.chainGuns;
+        for (const ammoType of ammoTypes) {
+            shipMgr.state.magazine.setCount(ammoType, 0);
+        }
+        // the mount is bent long before the ship ever gets an order — nothing has observed it yet
+        mount.bearingSkew = 20;
+        shipMgr.state.order = Order.NONE;
+        for (const id of makeIterationsData(30, 600)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = targetObj.id;
+        for (const id of makeIterationsData(0.05, 1)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        // engagement opens exactly as blind as a fresh defect would — 30 idle seconds with the
+        // defect already present bought the AI no head start, because it was never observing
+        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.greaterThan(15);
+
+        for (const id of makeIterationsData(12, 240)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.lessThan(5);
+    });
 });

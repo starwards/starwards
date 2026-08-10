@@ -105,7 +105,6 @@ export function resetShipState(state: ShipState) {
 
 function resetThruster(thruster: Thruster) {
     thruster.bearingSkew = 0;
-    thruster.trackedBearingSkew = 0;
     thruster.availableCapacity = 1.0;
 }
 export type ShipSystem =
