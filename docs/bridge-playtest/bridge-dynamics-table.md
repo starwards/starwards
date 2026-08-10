@@ -17,7 +17,7 @@ Each cell = what that station **controls** (⚙), **sees** (👁), or is **blind
 
 ## Starwards: 4 Stations + Captain
 
-| Domain | Phase | Flow | Pattern | Status | Pilot | Weapons | Bridge Eng | Signals | Captain |
+| Domain | Phase | Flow | Pattern | Status | Pilot | Weapons | Engineer | Signals | Captain |
 |--------|-------|------|---------|--------|-------|---------|------------|---------|---------|
 | **Radar range** | both | info | Scale Differential | ✅ | 👁 pilot radar | 👁 tactical, 5km | — no radar | 👁 long-range, 50–250km | — no screen |
 | **Contact detection** | both | info | Scale Differential | ✅ | 👁 blips gated by scan level | 👁 blips gated by scan level | — blind | 👁 earliest detection, widest view | — asks Signals 🗣 |
@@ -27,7 +27,7 @@ Each cell = what that station **controls** (⚙), **sees** (👁), or is **blind
 | **Thrust / strafe / boost** | both | action | Per-Role Input | ✅ | ⚙ WASD + gamepad | — | — | — | 🗣 orders Pilot |
 | **Afterburner** | combat | action | — | ✅ | ⚙ fuel + activation | — | — | — | — |
 | **Warp level** | cruise | action | — | ✅ | ⚙ level up/down | — | — | — | 🗣 orders Pilot |
-| **Warp frequency** | cruise | info | Info Lock | ✅ | — blind 🗣 must be told | — | ⚙ sets freq (ECR only) | — | 🗣 routes Eng→Pilot |
+| **Warp frequency** | cruise | info | Info Lock | ✅ | — blind 🗣 must be told | — | ⚙ sets freq | — | 🗣 routes Eng→Pilot |
 | **Docking** | cruise | action | — | ✅ | ⚙ toggle | — | — | — | — |
 | **Chain gun** | combat | action | Per-Role Input | ✅ | — | ⚙ fire, load, select ammo | — | — | — |
 | **Torpedo tubes** | combat | action | Per-Role Input | ✅ | — | ⚙ fire, load, select ammo/tube | — | — | — |

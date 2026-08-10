@@ -155,13 +155,13 @@ flowchart TB
         W4["read tactical radar<br/><small>5000m range</small>"]
     end
 
-    subgraph ENGINEERING ["🟢 BRIDGE ENGINEERING"]
+    subgraph ENGINEERING ["🟢 ENGINEERING"]
         direction TB
         E1["allocate power per system<br/><small>0 / 0.25 / 0.5 / 0.75 / 1.0</small>"]
         E2["allocate coolant per system<br/><small>finite total pool</small>"]
         E3["monitor full systems table<br/><small>status, heat, defectibles</small>"]
         E4["⬜ repair damaged systems<br/><small>NOT YET BUILT — mini-game TBD</small>"]
-        E5["set warp frequency<br/><small>ECR control only</small>"]
+        E5["set warp frequency"]
     end
 
     subgraph SIGNALS ["🟡 SIGNALS"]

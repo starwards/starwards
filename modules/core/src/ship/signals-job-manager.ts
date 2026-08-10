@@ -1,6 +1,8 @@
 import { IterationData, Updateable } from '../updateable';
 import { JobStatus, SignalsJob } from './signals-job';
 
+import { Projectile, isShellAmmo } from '../space/projectile';
+
 import { ScanLevel } from '../space/scan-level';
 import { ShipState } from './ship-state';
 import { SpaceManager } from '../logic/space-manager';
@@ -215,6 +217,9 @@ export class SignalsJobManager implements Updateable {
                 break;
             }
             if (target.id === this.state.id || target.destroyed || isSensorInvisible(target)) {
+                continue;
+            }
+            if (Projectile.isInstance(target) && isShellAmmo(target.model)) {
                 continue;
             }
             if (

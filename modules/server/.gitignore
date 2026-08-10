@@ -1,2 +1,5 @@
 # dev-only game state snapshots (STARWARDS_RESTORE=1)
 .state-snapshot/
+
+# recorded game sessions (STARWARDS_RECORDINGS_DIR)
+.recordings/

@@ -25,7 +25,7 @@ export function drawAmmoStatus(container: WidgetContainer, shipDriver: ShipDrive
     // isRestockingAmmo has no synced gameField of its own (AmmoManager's fractional accrual is
     // deliberately not player-facing) — it's a pure function of docking mode plus every ammo
     // type's count/max, so it's re-derived from those already-synced fields on each of their
-    // changes rather than cached, the same rule the ECR repair-queue catalog applies to
+    // changes rather than cached, the same rule the engineer repair-queue catalog applies to
     // `dynamicDuration`.
     const dockingModeProp = readProp<number>(shipDriver, '/docking/mode');
     const magazineCapacityProp = readProp<number>(shipDriver, '/magazine/capacity');

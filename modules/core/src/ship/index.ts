@@ -9,6 +9,7 @@ export * from './docking';
 export * from './make-ship-state';
 export * from './radar';
 export * from './reactor';
+export * from './reactor-cell-manager';
 export * from './repair-commands';
 export * from './repair-manager';
 export * from './repair-queue';

@@ -30,7 +30,7 @@ export const demoShipOmniRadar = {
     defaultArc: 360,
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 5_000,
+    malfunctionRange: 2_000,
     // the omni sweeps every bearing at once, so its mount has nothing to turn
     turnSpeed: 0,
     bearingLimit: 0,
@@ -48,7 +48,7 @@ export const demoShipScanBeam = {
     defaultArc: 20,
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 10_000,
+    malfunctionRange: 2_000,
     // a full sweep from bow to stern takes 6 seconds at full effectiveness
     turnSpeed: 30,
     bearingLimit: 180,
@@ -89,6 +89,7 @@ export const demoShipReactor = {
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
+    maxEnergyCells: 2,
 };
 export const demoShipProperties = {
     modelName: 'Demo Ship Frame',

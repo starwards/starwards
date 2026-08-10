@@ -64,7 +64,7 @@
   toggles are momentary buttons with no visible state on the pilot screen.
 - The SPACE-key hotkey help modal is the only built-in onboarding affordance.
 - Warp frequency is **not** displayed on pilot — it lives on engineering
-  (`screens/ecr.ts` shows it). Pilot only sees Warp Up/Down outcomes via
+  (`screens/engineer.ts` shows it). Pilot only sees Warp Up/Down outcomes via
   `warpStatus`.
 - `#745` server-side target clear shipped via `bb379fa`, but the ticket file
   is still in `.issues/open/`. Verify on GitHub whether the issue is fully

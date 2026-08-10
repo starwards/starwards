@@ -11,7 +11,7 @@
 1. [Overview](#overview)
 2. [UI Architecture](#ui-architecture)
 3. [Pilot Screen](#pilot-screen)
-4. [ECR Screen](#ecr-screen)
+4. [Engineer Screen](#engineer-screen)
 5. [Weapons Screen](#weapons-screen)
 6. [GM Screen](#gm-screen)
 7. [Ship Screen](#ship-screen)
@@ -227,29 +227,26 @@ The Pilot screen provides flight controls, navigation instruments, and situation
 
 ---
 
-## ECR Screen
+## Engineer Screen
 
-**File**: `modules/browser/src/screens/ecr.ts`
-**URL**: `/ecr.html?station=ecr&ship={shipId}`
+**File**: `modules/browser/src/screens/engineer.ts`
+**URL**: `/engineer.html?ship={shipId}`
 **Role**: Engineering officer - power and coolant management
 
 ### Overview
-The Engineering Control Room (ECR) screen provides detailed system management, power distribution, and coolant allocation. Primary focus on keeping systems operational and balanced.
+The Engineer screen provides detailed system management, power distribution, and coolant allocation. Primary focus on keeping systems operational and balanced. It is the ship's single engineering seat — always in full control of power, coolant, damage control and warp frequency.
 
 ### Functional Elements
 
 #### 1. Engineering Status Panel (Top-Left)
 - **Widget**: `drawEngineeringStatus()` - Tweakpane panel
 - **Properties**:
-  - `control`: Shows "ECR" or "Bridge" (who has control)
   - `hull`: Shows "OK" or "DAMAGED" (bound to `/hullDamaged`)
   - `energy`: Graph of reactor energy over time
   - `after-burner fuel`: Graph of afterburner fuel over time
 - **Features**:
   - Graphs show history (Tweakpane graph blade)
-  - Control status indicates if ECR or Bridge has system control
-- **Data Source**: `/ecrControl`, `/hullDamaged`, `/reactor/energy`, `/maneuvering/afterBurnerFuel`
-- **Control Toggle**: Backtick key (`) toggles ECR control on/off
+- **Data Source**: `/hullDamaged`, `/reactor/energy`, `/maneuvering/afterBurnerFuel`
 
 #### 2. Full Systems Status Panel (Center)
 - **Widget**: `drawFullSystemsStatus()` - Large table with all ship systems
@@ -266,12 +263,12 @@ The Engineering Control Room (ECR) screen provides detailed system management, p
   - Radar, Smart Pilot, Warp, Docking, Magazine, Chain Gun
 - **Sub-rows**: Each system has expandable defectibles row showing individual component health
 - **Visual**: Color-coded by status (OK=green, WARN=yellow, ERROR=red)
-- **Interactions**: Coolant sliders are adjustable when ECR has control
+- **Interactions**: Coolant sliders are always adjustable
 - **Data Source**: All `/systems/*/power`, `/systems/*/heat`, `/systems/*/coolantFactor`, `/systems/*/hacked`, `/systems/*/broken`, defectibles
 
 #### 3. Warp Status Panel (Middle-Left)
 - **Widget**: `drawWarpStatus()` - Same as Pilot screen
-- **Additional ECR Controls**:
+- **Additional Engineer Controls**:
   - `[` / `]` keys: Adjust standby frequency
   - `\` key: Trigger frequency change command
 - **Data Source**: `/warp/*` (same as Pilot)
@@ -306,7 +303,7 @@ The Engineering Control Room (ECR) screen provides detailed system management, p
 4. Reallocate coolant from disabled systems to functional ones
 5. Report to captain which systems are offline
 
-#### Quaternary Workflow: Warp Frequency Management (ECR only)
+#### Quaternary Workflow: Warp Frequency Management
 1. Monitor **Warp Status** panel
 2. Check if **Proximity Jam** is active
 3. Use `[` or `]` to change **Designated FRQ**
@@ -319,13 +316,12 @@ The Engineering Control Room (ECR) screen provides detailed system management, p
 1. **Keyboard Mapping Complexity**: 19 key pairs (number + lower row) mapped to dynamic system list - not discoverable
 2. **System Order Unknown**: Systems are listed in code order, not intuitive grouping - hard to find specific system quickly
 3. **No Visual Keyboard Guide**: Users must memorize which key controls which system
-4. **Control Confusion**: `/ecrControl` flag determines who can control - not always clear when bridge overrides
-5. **Coolant Pool Not Shown**: Total coolant available not displayed - users don't know limits
-6. **EPM vs Energy**: Energy Per Minute shown but no prediction of when energy will run out
-7. **Heat Status**: No threshold indicators - when does heat become critical?
-8. **Defectibles Hidden**: Sub-rows with component health require scrolling/expansion
-9. **No Damage History**: Can't see what got damaged when
-10. **Table Scrolling**: 600px panel with many systems requires scrolling - can't see all at once
+4. **Coolant Pool Not Shown**: Total coolant available not displayed - users don't know limits
+5. **EPM vs Energy**: Energy Per Minute shown but no prediction of when energy will run out
+6. **Heat Status**: No threshold indicators - when does heat become critical?
+7. **Defectibles Hidden**: Sub-rows with component health require scrolling/expansion
+8. **No Damage History**: Can't see what got damaged when
+9. **Table Scrolling**: 600px panel with many systems requires scrolling - can't see all at once
 
 ### Data Dependencies
 
@@ -343,7 +339,6 @@ The Engineering Control Room (ECR) screen provides detailed system management, p
 - Defectibles health - changes on damage to components
 
 #### Low Frequency / Event-driven
-- ECR control flag toggle
 - Warp frequency changes
 - System broken status
 
@@ -1159,7 +1154,6 @@ cleanup.add(() => stopSomething());
 - **Colyseus**: Multiplayer game server framework
 - **Defectible**: Individual component within a system that can be damaged
 - **Driver**: Client-side wrapper for server state (ShipDriver, SpaceDriver)
-- **ECR**: Engineering Control Room
 - **FOV**: Field of View (radar visibility area)
 - **GM**: Game Master
 - **JSON Pointer**: Path syntax for addressing nested properties (e.g., `/thrusters/0/power`)

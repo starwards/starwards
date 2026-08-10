@@ -25,14 +25,6 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Engineering Status');
     pane.registerPlugin(TweakpaneTablePlugin);
 
-    const ecrControl = readProp<boolean>(shipDriver, `/ecrControl`);
-    addTextBlade(
-        pane,
-        ecrControl,
-        { label: 'control', format: (isEcr) => (isEcr ? 'ECR' : 'Bridge') },
-        panelCleanup.add,
-    );
-
     const hullDamaged = readProp<boolean>(shipDriver, `/hullDamaged`);
     addTextBlade(
         pane,
@@ -43,6 +35,14 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
 
     const energy = readNumberProp(shipDriver, `/reactor/energy`);
     addGraph(pane, energy, { label: 'energy' }, panelCleanup.add);
+
+    const energyCells = readNumberProp(shipDriver, `/reactor/energyCells`);
+    addTextBlade(
+        pane,
+        energyCells,
+        { label: 'energy cells', format: (cells) => `${cells}/${shipDriver.state.reactor.design.maxEnergyCells}` },
+        panelCleanup.add,
+    );
 
     const afterBurnerFuel = readNumberProp(shipDriver, `/maneuvering/afterBurnerFuel`);
     addGraph(pane, afterBurnerFuel, { label: 'after-burner fuel' }, panelCleanup.add);
