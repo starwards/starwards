@@ -153,37 +153,48 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Aims a control weapon at `target` and sets its firing/fuze state: switches ammo, computes
-     * the fuze/`shellRange` the same way for an order-driven attack and autonomous gunnery, and
-     * points the mount (never the hull — `aimMountsAtTarget` only ever asks `bearingCommand`,
-     * whose own clamp is what stops a mount from swinging past the hull it is bolted to).
+     * Ship-level fire at `target`, mounts self-select — the same model already shipped for the
+     * player's fire key (`writeAllProp`-broadcast `isFiring`, #2089/#2097) and for
+     * `fireTubesCommand`/`consumeFireTubesCommand`: one decision for the whole ship, every mount
+     * points at the target (`aimMountsAtTarget`, hull-relative bearing only — no lead, no
+     * can't-bear handling, `bearingCommand`'s own clamp is what stops a mount from swinging past
+     * the hull it's bolted to), and each mount's own `isTargetInKillZone` independently decides
+     * whether *that* mount actually reports firing — a mount that can't bear on the target simply
+     * doesn't. Still exactly one target for the whole ship per tick; mounts never split fire
+     * across different targets (per-mount target selection is parked, card 5.5c).
+     *
+     * A future per-mount ceasefire/heat latch (#2178) needs to gate this same per-mount
+     * `isFiring` assignment — the loop below — to stay consistent with `canBearOn`/
+     * `anyMountCanBearOn`, which already reason per-mount rather than about `chainGuns[0]`.
      */
-    private aimAndFire(controlWeapon: ChainGun, target: SpaceObject) {
-        switchToAvailableAmmo(controlWeapon, this.state.magazine);
-        const destination = predictHitLocation(this.state, controlWeapon, target);
-        const aimRange = (controlWeapon.design.maxShellRange - controlWeapon.design.minShellRange) / 2;
-        const rangeDiff = calcRangediff(this.state, target, destination);
-        if (controlWeapon.shellRangeMode === SmartPilotMode.TARGET) {
-            // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
-            // already — shellRange only carries rangeDiff's small target-motion lead correction.
-            controlWeapon.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
-        } else {
-            // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
-            // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
-            // player-facing visibility/radar range, an unrelated concern for an NPC's own
-            // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
-            // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
-            const midRange = controlWeapon.design.minShellRange + aimRange;
-            const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
-            const desiredRange = capToRange(
-                controlWeapon.design.minShellRange,
-                controlWeapon.design.maxShellRange,
-                actualDistance + rangeDiff,
-            );
-            controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
-        }
-        controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
+    private aimAndFire(target: SpaceObject) {
         this.aimMountsAtTarget(target);
+        for (const chainGun of this.state.chainGuns) {
+            switchToAvailableAmmo(chainGun, this.state.magazine);
+            const destination = predictHitLocation(this.state, chainGun, target);
+            const aimRange = (chainGun.design.maxShellRange - chainGun.design.minShellRange) / 2;
+            const rangeDiff = calcRangediff(this.state, target, destination);
+            if (chainGun.shellRangeMode === SmartPilotMode.TARGET) {
+                // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
+                // already — shellRange only carries rangeDiff's small target-motion lead correction.
+                chainGun.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
+            } else {
+                // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
+                // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
+                // player-facing visibility/radar range, an unrelated concern for an NPC's own
+                // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
+                // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
+                const midRange = chainGun.design.minShellRange + aimRange;
+                const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
+                const desiredRange = capToRange(
+                    chainGun.design.minShellRange,
+                    chainGun.design.maxShellRange,
+                    actualDistance + rangeDiff,
+                );
+                chainGun.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
+            }
+            chainGun.isFiring = isTargetInKillZone(this.state, chainGun, target);
+        }
     }
 
     /**
@@ -377,11 +388,7 @@ export class AutomationManager implements Updateable {
      * given an order) is left alone, so `isFiring` set by anything else is never clobbered.
      */
     private runGunnery(id: IterationData) {
-        if (this.state.isPlayerShip) {
-            return;
-        }
-        const controlWeapon = this.state.chainGuns[0] ?? null;
-        if (!controlWeapon) {
+        if (this.state.isPlayerShip || this.state.chainGuns.length === 0) {
             return;
         }
         const firingAllowed = this.state.order !== Order.NONE || this.state.idleStrategy !== IdleStrategy.PLAY_DEAD;
@@ -392,25 +399,25 @@ export class AutomationManager implements Updateable {
         if (this.state.order === Order.ATTACK && this.state.orderTargetId) {
             const orderedTarget = this.spaceManager.state.get(this.state.orderTargetId) || null;
             if (orderedTarget && !orderedTarget.destroyed) {
-                if (this.canBearOn(controlWeapon, orderedTarget)) {
+                if (this.anyMountCanBearOn(orderedTarget)) {
                     this.gunneryTargetId = null;
-                    this.engageGunnery(controlWeapon, orderedTarget);
+                    this.engageGunnery(orderedTarget);
                     return;
                 }
                 // Primary unreachable right now: a free opportunity shot at some other reachable
                 // hostile, or — with none available — keep the primary's fuze/aim dialed in
                 // (ready for when it's reachable again) without ever reporting it as firing.
-                const opportunityTarget = this.resolveOpportunityTarget(controlWeapon, id, orderedTarget.id);
-                this.engageGunnery(controlWeapon, opportunityTarget ?? orderedTarget);
+                const opportunityTarget = this.resolveOpportunityTarget(id, orderedTarget.id);
+                this.engageGunnery(opportunityTarget ?? orderedTarget);
                 return;
             }
         }
-        const target = this.resolveOpportunityTarget(controlWeapon, id);
+        const target = this.resolveOpportunityTarget(id);
         if (!target) {
             this.disengageGunnery();
             return;
         }
-        this.engageGunnery(controlWeapon, target);
+        this.engageGunnery(target);
     }
 
     /**
@@ -418,17 +425,13 @@ export class AutomationManager implements Updateable {
      * verbatim by both the plain no-ATTACK-order path and the ATTACK-target-unreachable path, so
      * both share one cache and one {@link GUNNERY_RESCAN_INTERVAL_SECONDS} rescan cooldown — the
      * cached target is dropped, not just on destruction or leaving `maxShellRange`, but the
-     * instant it stops being bearable at all (`canBearOn`, which also covers `minShellRange`),
-     * so a nearer unbearable hostile can never be cached in preference to — and so starve — a
-     * bearable one further out.
+     * instant no mount can bear on it anymore (`anyMountCanBearOn`, which also covers
+     * `minShellRange`), so a hostile no mount can bear on can never be cached in preference to —
+     * and so starve — one some mount can.
      */
-    private resolveOpportunityTarget(
-        controlWeapon: ChainGun,
-        id: IterationData,
-        excludeId?: string,
-    ): SpaceObject | null {
+    private resolveOpportunityTarget(id: IterationData, excludeId?: string): SpaceObject | null {
         let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
-        if (target && (target.destroyed || target.id === excludeId || !this.canBearOn(controlWeapon, target))) {
+        if (target && (target.destroyed || target.id === excludeId || !this.anyMountCanBearOn(target))) {
             target = null;
         }
         this.gunneryRescanCooldown -= id.deltaSecondsAvg;
@@ -441,9 +444,9 @@ export class AutomationManager implements Updateable {
         return target;
     }
 
-    private engageGunnery(controlWeapon: ChainGun, target: SpaceObject) {
+    private engageGunnery(target: SpaceObject) {
         this.gunneryEngaged = true;
-        this.aimAndFire(controlWeapon, target);
+        this.aimAndFire(target);
     }
 
     private disengageGunnery() {
@@ -457,36 +460,46 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Whether `controlWeapon` could ever be pointed at `target` right now — within the gun's
-     * shell-range envelope (including its minimum — a target inside minShellRange is as
-     * unreachable as one beyond maxShellRange), and within the mount's bearing envelope relative
-     * to the hull's *current* angle. Deliberately ignores the mount's actual in-flight bearing
-     * (which lags `bearingCommand` at `turnSpeed`): this answers "is it worth committing the
-     * swing to this target", not "has the swing finished yet" — the latter is what
-     * `isTargetInKillZone` (via `aimAndFire`) still separately governs for the fire decision
-     * itself.
+     * Whether `chainGun` could ever be pointed at `target` right now — within its own shell-range
+     * envelope (including its minimum — a target inside minShellRange is as unreachable as one
+     * beyond maxShellRange), and within its own bearing envelope relative to the hull's *current*
+     * angle. Deliberately ignores the mount's actual in-flight bearing (which lags
+     * `bearingCommand` at `turnSpeed`): this answers "is it worth committing the swing to this
+     * target", not "has the swing finished yet" — the latter is what `isTargetInKillZone` (via
+     * `aimAndFire`) still separately governs for the fire decision itself.
      */
-    private canBearOn(controlWeapon: ChainGun, target: SpaceObject): boolean {
+    private canBearOn(chainGun: ChainGun, target: SpaceObject): boolean {
         const shipToTarget = XY.difference(target.position, this.state.position);
         const distance = XY.lengthOf(shipToTarget);
-        if (distance > controlWeapon.design.maxShellRange || distance < controlWeapon.design.minShellRange) {
+        if (distance > chainGun.design.maxShellRange || distance < chainGun.design.minShellRange) {
             return false;
         }
         const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - this.state.angle);
-        const desiredBearing = toDegreesDelta(hullBearing - controlWeapon.fittedBearing);
-        return Math.abs(desiredBearing) <= controlWeapon.bearingLimit;
+        const desiredBearing = toDegreesDelta(hullBearing - chainGun.fittedBearing);
+        return Math.abs(desiredBearing) <= chainGun.bearingLimit;
+    }
+
+    /**
+     * A target is reachable for gunnery purposes if *any* mount can bear on it — mirroring the
+     * ship-level fire model in `aimAndFire`'s doc comment: the ship makes one targeting decision,
+     * individual mounts self-select. On a single-mount hull this is just `canBearOn` on that one
+     * mount.
+     */
+    private anyMountCanBearOn(target: SpaceObject): boolean {
+        return this.state.chainGuns.some((chainGun) => this.canBearOn(chainGun, target));
     }
 
     /**
      * Picks the nearest non-destroyed hostile-faction Spaceship, used for two different questions
      * that need two different filters:
      * - Gunnery's own target search (`requireBearable: true`, from `resolveOpportunityTarget`)
-     *   must skip anything `canBearOn` rejects — gunnery never moves or rotates to correct for a
-     *   target it can't actually point at, so a nearer unbearable hostile must never be preferred
-     *   over a bearable one further out.
+     *   must skip anything `anyMountCanBearOn` rejects — gunnery never moves or rotates to
+     *   correct for a target no mount can actually point at, so a hostile no mount can bear on
+     *   must never be preferred over one some mount can, regardless of distance.
      * - An NPC's ATTACK order re-acquiring after its target dies (`update()`) only needs
-     *   `maxShellRange` — the order drives movement, so a target merely unbearable *right now*
-     *   (mid-swing, or requiring the hull to reposition) is still a legitimate new order target.
+     *   `maxShellRange` on the first mount — the order drives movement, so a target merely
+     *   unbearable *right now* (mid-swing, or requiring the hull to reposition) is still a
+     *   legitimate new order target.
      *
      * `excludeId` keeps it from picking an unreachable ATTACK-ordered primary right back out as
      * its own "opportunity".
@@ -510,7 +523,7 @@ export class AutomationManager implements Updateable {
             }
             const distance = XY.lengthOf(XY.difference(candidate.position, this.state.position));
             const reachable = requireBearable
-                ? this.canBearOn(controlWeapon, candidate)
+                ? this.anyMountCanBearOn(candidate)
                 : distance <= controlWeapon.design.maxShellRange;
             if (reachable && distance < nearestDistance) {
                 nearestDistance = distance;

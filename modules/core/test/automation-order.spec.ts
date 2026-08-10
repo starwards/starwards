@@ -17,6 +17,7 @@ import {
     makeShipState,
     shellAmmoTypes,
     shipConfigurations,
+    toDegreesDelta,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
 
@@ -44,6 +45,33 @@ function narrowArcPlatformConfig(bearingLimit: number) {
     // rotates the hull toward the ordered target regardless of any mount's bearing limit — a
     // movement concern, unrelated to gunnery) can't confound a bearingCommand assertion that's
     // meant to isolate the mount's own aiming decision.
+    const maneuvering = { ...shipConfigurations['chaingun-platform'].maneuvering, rotationCapacity: 0 };
+    return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
+}
+
+/** Three narrow-arc mounts covering distinct, non-overlapping sectors (FWD/STBD/AFT). */
+function threeMountNarrowArcConfig(bearingLimit: number) {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['FWD', { ...chaingunPlatformChaingun, bearingLimit }],
+        ['STBD', { ...chaingunPlatformChaingun, bearingLimit }],
+        ['AFT', { ...chaingunPlatformChaingun, bearingLimit }],
+    ];
+    const maneuvering = { ...shipConfigurations['chaingun-platform'].maneuvering, rotationCapacity: 0 };
+    return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
+}
+
+/**
+ * Three full-traverse mounts (bearingLimit 180, like chaingun-platform's real FWD gun), all
+ * fitted FWD so all three start already aligned with a dead-ahead target -- turnSpeed-limited
+ * swing convergence is a physical/movement concern unrelated to what these tests assert about
+ * gunnery's own per-mount firing decision.
+ */
+function threeMountFullTraverseConfig() {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['FWD', chaingunPlatformChaingun],
+        ['FWD', chaingunPlatformChaingun],
+        ['FWD', chaingunPlatformChaingun],
+    ];
     const maneuvering = { ...shipConfigurations['chaingun-platform'].maneuvering, rotationCapacity: 0 };
     return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
 }
@@ -665,6 +693,64 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         runOneTick(shipMgr, spaceMgr);
 
         expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+    });
+
+    it('selects a target bearable by only one of several mounts, and only that mount fires', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, threeMountNarrowArcConfig(10));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        // Dead on the STBD mount's fitted bearing (-90); well outside FWD's (0) and AFT's (180)
+        // 10-degree arcs.
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, -90));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        const [fwd, stbd, aft] = shipMgr.state.chainGuns;
+        expect(stbd.isFiring, 'STBD (the only mount that bears) should be firing').to.equal(true);
+        expect(fwd.isFiring, "FWD (can't bear) should not be firing").to.equal(false);
+        expect(aft.isFiring, "AFT (can't bear) should not be firing").to.equal(false);
+    });
+
+    it('fires from every mount that bears on the chosen target -- a 3-mount hull fires all three', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, threeMountFullTraverseConfig());
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns.length).to.equal(3);
+        for (const chainGun of shipMgr.state.chainGuns) {
+            expect(chainGun.isFiring, `mount fitted at ${chainGun.fittedBearing} should be firing`).to.equal(true);
+        }
+    });
+
+    it('still engages exactly one target per tick -- every mount aims at the same hostile, never split', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, threeMountFullTraverseConfig());
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostileA = createHostile('hostile-a', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        const hostileB = createHostile('hostile-b', Faction.Gravitas, XY.byLengthAndDirection(5000, 120));
+        spaceMgr.insert(hostileA);
+        spaceMgr.insert(hostileB);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        // Every mount's desired global bearing points at the SAME hostile (whichever the ship
+        // picked), never split between the two.
+        const globalBearings = shipMgr.state.chainGuns.map((gun) =>
+            toDegreesDelta(gun.bearingCommand + gun.fittedBearing + shipObj.angle),
+        );
+        const uniqueBearings = new Set(globalBearings.map((b) => Math.round(b)));
+        expect(uniqueBearings.size, `expected one shared bearing, got ${[...uniqueBearings].join(',')}`).to.equal(1);
     });
 });
 
