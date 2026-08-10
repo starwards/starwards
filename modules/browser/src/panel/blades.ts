@@ -365,6 +365,16 @@ export function addListCellToRow<T>(
  * binding — see `addLockCellToRow` for why a checkbox can't be used for the row-cell case;
  * `addLockBlade` reuses the same rendering for consistency (and, incidentally, the same
  * always-hit-testable click target) even where a checkbox binding would have been possible.
+ *
+ * Deliberately NOT `disabled: true`: Tweakpane's base CSS sets `pointer-events: none` on any
+ * blade carrying the `tp-v-disabled` class (`.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled
+ * {pointer-events:none}`), which made the click listener below completely unreachable by real
+ * pointer input — a synthetic `dispatchEvent('click')` still invoked it directly (bypassing
+ * hit-testing/CSS entirely), which is exactly why an earlier e2e version of this control passed
+ * while being dead in a real browser. Nothing here wires keyboard input back to `lockedProp` (no
+ * `wireBlade`/`parse`-to-value round trip is set up), so leaving the cell technically editable
+ * has no functional effect — a stray keystroke never reaches the lock state, and the next
+ * `lockedProp.onChange` refresh overwrites the displayed glyph regardless.
  */
 function wireLockGlyph(blade: BladeGuiApi<string>, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
     const glyph = () => (lockedProp.getValue() ? '🔒' : '🔓');
@@ -386,12 +396,11 @@ function wireLockGlyph(blade: BladeGuiApi<string>, lockedProp: Model<boolean>, c
  * `lockedProp` on click. A plain `text` cell rather than a checkbox binding — `RowApi.addCell`
  * only resolves *blade*-view plugins (text/slider/list/separator), not the binding-based
  * `checkbox` input Tweakpane normally renders for a bound boolean, so a checkbox cannot be
- * placed in a table row at all. `disabled: true` keeps the text cell from being edited by
- * keyboard; the click listener drives the actual toggle.
+ * placed in a table row at all.
  */
 export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
     const blade = row.addCell(
-        configTextBlade({ disabled: true, width: '28px' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
+        configTextBlade({ width: '28px' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
     ) as BladeGuiApi<string>;
     return wireLockGlyph(blade, lockedProp, cleanup);
 }
@@ -406,7 +415,7 @@ export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanu
  */
 export function addLockBlade(guiFolder: FolderApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
     const blade = guiFolder.addBlade(
-        configTextBlade({ disabled: true, label: 'lock' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
+        configTextBlade({ label: 'lock' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
     ) as BladeGuiApi<string>;
     return wireLockGlyph(blade, lockedProp, cleanup);
 }

@@ -457,7 +457,7 @@ test.describe('GM Screen', () => {
             expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
         }).toPass({ timeout: 2000 });
 
-        await modeLockCell.dispatchEvent('click');
+        await modeLockCell.click();
         await expect(() => {
             expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(true);
         }).toPass({ timeout: 2000 });
@@ -468,7 +468,7 @@ test.describe('GM Screen', () => {
         expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
 
         // unlocking restores normal write behavior
-        await modeLockCell.dispatchEvent('click');
+        await modeLockCell.click();
         await expect(() => {
             expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(false);
         }).toPass({ timeout: 2000 });
@@ -509,7 +509,7 @@ test.describe('GM Screen', () => {
         const ship = gameDriver.getShip(shipId);
         ship.state.smartPilot.offsetFactor = 0.4;
 
-        await lockCell.dispatchEvent('click');
+        await lockCell.click();
         await expect(() => {
             expect(ship.state.lockedPaths.includes('/smartPilot/offsetFactor')).toBe(true);
         }).toPass({ timeout: 2000 });
@@ -521,7 +521,7 @@ test.describe('GM Screen', () => {
         expect(ship.state.smartPilot.offsetFactor).toBeCloseTo(0.4, 5);
 
         // unlocking restores normal write behavior
-        await lockCell.dispatchEvent('click');
+        await lockCell.click();
         await expect(() => {
             expect(ship.state.lockedPaths.includes('/smartPilot/offsetFactor')).toBe(false);
         }).toPass({ timeout: 2000 });
