@@ -13,7 +13,6 @@ import {
     moveToTarget,
     predictHitLocation,
     rotateToTarget,
-    sinWave,
     toDegreesDelta,
 } from '../logic';
 import { Order, ShipState } from './ship-state';
@@ -27,9 +26,17 @@ import { SpaceObject } from '../space';
 import { assertUnreachable } from '../utils';
 import { switchToAvailableAmmo } from './chain-gun-manager';
 
-/** cheap lateral weave overlaid on attack-order steering (issue #2146): a slow sinusoid, not a
- * full evade-while-tracking objective, so it stays gentle enough to keep the target in arc. */
-const COMBAT_WEAVE_AMPLITUDE = 0.4;
+/**
+ * Cheap lateral weave overlaid on attack-order steering (issue #2146): a slow sinusoid in the
+ * *steering goal* (a position offset for the closing/`moveToTarget` phase, the matching velocity
+ * offset for the in-range/`matchGlobalSpeed` holding phase) -- not a full evade-while-tracking
+ * objective, so it stays gentle enough to keep the target in arc, and not a raw thrust/maneuvering
+ * perturbation: `moveToTarget`/`matchGlobalSpeed` are themselves feedback controllers that treat any
+ * velocity not aimed at their goal as error to correct, so a perturbation added on top of their
+ * output gets mostly cancelled by their own next-tick correction. Retargeting the goal itself makes
+ * the controller drive the weave instead of fighting it.
+ */
+const COMBAT_WEAVE_AMPLITUDE_METERS = 400;
 const COMBAT_WEAVE_FREQUENCY_HZ = 0.08;
 
 export class AutomationManager implements Updateable {
@@ -70,7 +77,7 @@ export class AutomationManager implements Updateable {
         rotationCompensation: XY,
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
-        lateralWeave = 0,
+        weave: { offset: XY; velocity: XY } = { offset: XY.zero, velocity: XY.zero },
     ) {
         const ship = this.state;
         const shipToTarget = XY.difference(targetPosition, ship.position);
@@ -78,9 +85,12 @@ export class AutomationManager implements Updateable {
         const inRange = isInRange(trackRange[0], trackRange[1], distanceToTarget);
         let maneuvering: ManeuveringCommand;
         if (inRange) {
-            maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, targetVelocity);
+            // matchGlobalSpeed only ever tracks a velocity, so the weave rides along as an addend to
+            // the velocity it's asked to hold -- the controller drives toward the (moving) goal
+            // instead of the weave being a disturbance the same controller then fights.
+            maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, XY.add(targetVelocity, weave.velocity));
         } else {
-            maneuvering = moveToTarget(deltaSecondsAvg, ship, targetPosition);
+            maneuvering = moveToTarget(deltaSecondsAvg, ship, XY.add(targetPosition, weave.offset));
             if (distanceToTarget < trackRange[0]) {
                 maneuvering.boost = -maneuvering.boost;
                 maneuvering.strafe = -maneuvering.strafe;
@@ -96,19 +106,38 @@ export class AutomationManager implements Updateable {
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         ship.smartPilot.maneuvering.x = maneuvering.boost;
-        ship.smartPilot.maneuvering.y = capToRange(-1, 1, maneuvering.strafe + lateralWeave);
+        ship.smartPilot.maneuvering.y = capToRange(-1, 1, maneuvering.strafe);
         ship.smartPilot.rotation = rotation;
     }
 
     /**
-     * Cheap pseudo-random lateral weave (issue #2146): a slow sinusoid in ship-local strafe,
-     * decorrelated per ship via a die-drawn phase so a wave of raiders doesn't weave in lockstep.
-     * Rotation still tracks the target every tick (see `positionNearTarget`), so the mount keeps
-     * bearing on target through the weave -- this only makes the hull harder to hit, not evasive.
+     * Cheap pseudo-random lateral weave (issue #2146): a slow sinusoid perpendicular to the
+     * ship->target line, decorrelated per ship via a per-ship phase so a wave of raiders doesn't
+     * weave in lockstep. Returns both the position offset (for the closing/`moveToTarget` phase) and
+     * its time-derivative, the matching velocity offset (for the in-range/`matchGlobalSpeed` holding
+     * phase) -- see `positionNearTarget` for why the goal itself carries the weave rather than a
+     * perturbation on the controller's output. Rotation still tracks the *real* target position every
+     * tick (see `positionNearTarget`'s `aimPoint`), so the mount keeps bearing on target through the
+     * weave -- this only makes the hull harder to hit, not evasive.
+     *
+     * The phase must be constant for the ship's whole lifetime. `die.getRoll` is an *event* roll --
+     * its salt rotates every `EVENT_SALT_WINDOW_SECONDS` (3s), so used as a phase it would re-roll
+     * mid-engagement and shred the sinusoid into a stair-step. `die.getDrift` sampled at frequency 0
+     * evaluates `noise(seed, gameTime * 0)` = `noise(seed, 0)` -- a fixed point on the seed's own
+     * noise channel, i.e. a time-invariant per-ship constant, unlike an event roll.
      */
-    private combatWeave({ totalSeconds }: IterationData): number {
-        const phase = this.shipManager.die.getRoll(`combatWeave:${this.state.id}`);
-        return sinWave(totalSeconds, COMBAT_WEAVE_FREQUENCY_HZ, COMBAT_WEAVE_AMPLITUDE, phase);
+    private combatWeave({ totalSeconds }: IterationData, targetPosition: XY): { offset: XY; velocity: XY } {
+        const phase = this.shipManager.die.getDrift(`combatWeave:${this.state.id}`, 0);
+        const angularFrequency = 2 * Math.PI * COMBAT_WEAVE_FREQUENCY_HZ;
+        const wavePhase = totalSeconds * angularFrequency + phase * 2 * Math.PI;
+        const perpendicularBearing = XY.angleOf(XY.difference(targetPosition, this.state.position)) + 90;
+        return {
+            offset: XY.byLengthAndDirection(COMBAT_WEAVE_AMPLITUDE_METERS * Math.sin(wavePhase), perpendicularBearing),
+            velocity: XY.byLengthAndDirection(
+                COMBAT_WEAVE_AMPLITUDE_METERS * angularFrequency * Math.cos(wavePhase),
+                perpendicularBearing,
+            ),
+        };
     }
 
     private goto(id: IterationData) {
@@ -134,7 +163,7 @@ export class AutomationManager implements Updateable {
         }
         this.state.currentTask = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
         let trackRange: RTuple2, rotationCompensation: XY;
-        let lateralWeave = 0;
+        let weave: { offset: XY; velocity: XY } = { offset: XY.zero, velocity: XY.zero };
         if (fire && controlWeapon) {
             this.shipManager.setTarget(targetId);
             switchToAvailableAmmo(controlWeapon, this.state.magazine);
@@ -173,12 +202,12 @@ export class AutomationManager implements Updateable {
             }
             controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
             this.aimMountsAtTarget(target);
-            lateralWeave = this.combatWeave(id);
+            weave = this.combatWeave(id, target.position);
         } else {
             trackRange = [1000, 3000];
             rotationCompensation = XY.zero;
         }
-        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id, lateralWeave);
+        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id, weave);
         return false;
     }
 

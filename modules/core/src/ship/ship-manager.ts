@@ -105,18 +105,30 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     }
 
     private handleManeuvering(deltaSeconds: number) {
-        const speed = XY.lengthOf(this.spaceObject.velocity);
-        if (speed > this.state.maxSpeed) {
-            this.state.smartPilot.maneuvering.setValue(
-                XY.normalize(this.state.globalToLocal(XY.negate(this.spaceObject.velocity))),
-            );
-        }
         const moveDirections = vector2ShipDirections(this.state.smartPilot.maneuvering);
         const localVelocity = {
             x: this.state.smartPilot.maneuvering.x * this.state.velocityCapacity(moveDirections.x) * deltaSeconds,
             y: this.state.smartPilot.maneuvering.y * this.state.velocityCapacity(moveDirections.y) * deltaSeconds,
         };
         this.changeVelocity(this.state.localToGlobal(localVelocity));
+        this.capMaxSpeed();
+    }
+
+    /**
+     * Enforces `state.maxSpeed` by clamping the resulting velocity's magnitude, not by overwriting
+     * the commanded `smartPilot.maneuvering` with a pure retrograde-thrust vector. The overwrite
+     * approach discarded whatever the automation actually asked for the instant speed crossed the
+     * cap -- including a lateral weave overlay (issue #2146), which needs the ship over the cap
+     * (closing at full boost) to ever have room to add sideways motion -- and then re-triggered
+     * every tick once pinned there, a full-throttle bang-bang loop that issue #2099 identifies as a
+     * resonance risk on zero-`maxSpeed` hulls. A direct clamp has no overshoot to resonate with.
+     */
+    private capMaxSpeed() {
+        const speed = XY.lengthOf(this.spaceObject.velocity);
+        if (speed > this.state.maxSpeed) {
+            const capped = XY.byLengthAndDirection(this.state.maxSpeed, XY.angleOf(this.spaceObject.velocity));
+            this.changeVelocity(XY.difference(capped, this.spaceObject.velocity));
+        }
     }
 
     private changeVelocity(speedToChange: XY) {
