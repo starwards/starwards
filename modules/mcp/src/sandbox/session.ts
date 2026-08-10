@@ -85,31 +85,12 @@ export class StationSession {
         )?.pointer;
     }
 
-    /**
-     * ECR and the bridge engineer share one systems console, and `/ecrControl` says which end of the
-     * ship is holding it. The browser destroys the other end's input rather than let both steer at
-     * once; refusing the command is the headless equivalent.
-     */
-    private checkEcrControl(command: StationCommand): void {
-        if (command !== 'systemPower' && command !== 'systemCoolant') {
-            return;
-        }
-        const ecrHasControl = this.shipDriver.state.ecrControl;
-        if (this.stationName === 'ecr' && !ecrHasControl) {
-            throw new NotPermittedError('the bridge engineer is holding systems control right now, not ECR');
-        }
-        if (this.stationName === 'bridge-engineer' && ecrHasControl) {
-            throw new NotPermittedError('ECR is holding systems control right now, not the bridge');
-        }
-    }
-
     requireCommand(command: StationCommand): CommandBinding {
         if (!this.isGameMaster && !this.commands.includes(command)) {
             throw new NotPermittedError(
                 `station "${this.stationName}" cannot ${command}. It can: ${this.commands.join(', ') || '(nothing)'}`,
             );
         }
-        this.checkEcrControl(command);
         return commandBindings[command];
     }
 

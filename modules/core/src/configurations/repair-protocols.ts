@@ -455,7 +455,7 @@ export function isProtocolAvailable(state: ShipState, protocol: RepairProtocolSt
 /**
  * The subset of `catalog` that `isProtocolAvailable` on this particular ship — "the protocols
  * available to this ship" as a real, reusable concept, rather than every caller (the enqueue
- * command handler, the ECR catalog widget) re-deriving it independently.
+ * command handler, the engineer catalog widget) re-deriving it independently.
  */
 export function getAvailableRepairProtocols(
     state: ShipState,

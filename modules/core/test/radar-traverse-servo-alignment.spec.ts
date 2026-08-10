@@ -44,7 +44,7 @@ function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPe
 }
 
 describe('radarTraverseServoAlignment (field-tier repair-queue protocol, #2109)', () => {
-    it('A2: appears in the ECR catalog at field tier and takes radars offline while active', () => {
+    it('A2: appears in the engineer catalog at field tier and takes radars offline while active', () => {
         const { state } = setUpShip();
         const available = getAvailableRepairProtocols(state, repairProtocols);
         expect(available).to.have.property('radarTraverseServoAlignment');

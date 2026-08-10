@@ -74,4 +74,15 @@ describe('AttackResolutionManager', () => {
             expect(hit.damage.amount).to.be.closeTo(40 * 0.05 * damageProfiles.HiExp.surfaceDamageFactor, 0.0001);
         }
     });
+
+    it('reports breachHit only once the plate a hit lands on was already broken (issue #2150)', () => {
+        const thinComposite: ArmorLayerDesign[] = [{ type: 'composite', plateMaxHealth: 1 }];
+        const { resolution } = setUpLayeredShip(thinComposite);
+        // FRONT_ARC spans several plates; a large enough blast zeroes every plate it touches in one hit
+        const first = resolution.resolveWeaponAttack(frontDamage(400, 'HiExp', 'explosion'));
+        expect(first.breachHit).to.equal(false);
+        // a follow-up hit on the same, now-broken section reads as a breach hit
+        const second = resolution.resolveWeaponAttack(frontDamage(50, 'HiExp', 'explosion'));
+        expect(second.breachHit).to.equal(true);
+    });
 });

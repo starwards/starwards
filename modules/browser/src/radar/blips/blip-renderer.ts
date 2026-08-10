@@ -1,5 +1,15 @@
 import { Assets, Container, Graphics, Sprite, Text, TextStyle, Texture } from 'pixi.js';
-import { Asteroid, Derelict, Nebula, ScanLevel, ShipModel, SpaceObject, Spaceship, Waypoint } from '@starwards/core';
+import {
+    Asteroid,
+    Derelict,
+    Explosion,
+    Nebula,
+    ScanLevel,
+    ShipModel,
+    SpaceObject,
+    Spaceship,
+    Waypoint,
+} from '@starwards/core';
 import { radar, selectionColor, white } from '../../colors';
 
 import { CameraView } from '../camera-view';
@@ -190,20 +200,29 @@ class DradisAsteroidRenderer implements BlipRenderer<Asteroid> {
     }
 }
 
+// bright inner flash marking a hit that punched through already-breached armor
+const BREACH_FLASH_SCALE = 0.4;
+
 class CircleRenderer implements BlipRenderer<SpaceObject> {
     private shellCircle = new Graphics();
+    private breachFlash = new Graphics();
     private selectionSprite = blipSprite('tactical_select', this.blipSize, selectionColor);
     constructor(
         stage: Container,
         private blipSize: number,
     ) {
         stage.addChild(this.shellCircle);
+        stage.addChild(this.breachFlash);
         stage.addChild(this.selectionSprite);
     }
     redraw(spaceObject: SpaceObject, { parent, isSelected, blipSize, color, alpha }: BlipData): void {
         const radius = Math.max(parent.metersToPixles(spaceObject.radius), 2);
         this.shellCircle.clear();
         this.shellCircle.circle(0, 0, radius).fill({ color, alpha });
+        this.breachFlash.clear();
+        if (Explosion.isInstance(spaceObject) && spaceObject.breachHit) {
+            this.breachFlash.circle(0, 0, radius * BREACH_FLASH_SCALE).fill({ color: white, alpha });
+        }
         this.selectionSprite.visible = isSelected;
         this.selectionSprite.height = blipSize;
         this.selectionSprite.width = blipSize;

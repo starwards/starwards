@@ -164,8 +164,7 @@ Each card represents one player ship in the game:
   - "Empty Screen" (secondary palette)
   - "Weapons" (primary palette)
   - "Pilot" (primary palette)
-  - "E.C.R" (Engineering Control Room, primary palette)
-  - "Bridge Engineer" (primary palette)
+  - "Engineer" (primary palette, navigates to engineer.html?ship={id})
   - "Signals" (primary palette, navigates to signals.html?ship={id})
 
 **Layout:** Cards displayed in horizontal wrap or grid (max 3 per row)
@@ -346,7 +345,7 @@ Lobby Screen
 ├─ Click ship station button → Navigate to ship.html?ship={id}
 ├─ Click "Weapons" → Navigate to weapons.html?ship={id}
 ├─ Click "Pilot" → Navigate to pilot.html?ship={id}
-├─ Click "E.C.R" → Navigate to ecr.html?station=ecr&ship={id}
+├─ Click "Engineer" → Navigate to engineer.html?ship={id}
 ├─ Click "Signals" → Navigate to signals.html?ship={id}
 ├─ Click "Input" → Navigate to input.html
 └─ Click "Colyseus Monitor" → Navigate to colyseus-monitor
