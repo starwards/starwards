@@ -19,7 +19,7 @@ export const smallStationOmniRadar = {
     defaultArc: 360,
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 60_000,
+    malfunctionRange: 2_000,
     turnSpeed: 0,
     bearingLimit: 0,
     maxBearingSkew: 0,
@@ -36,7 +36,7 @@ export const smallStationScanBeam = {
     defaultArc: 20,
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 50_000,
+    malfunctionRange: 2_000,
     turnSpeed: 30,
     bearingLimit: 180,
     maxBearingSkew: 45,
@@ -51,6 +51,7 @@ export const smallStationReactor = {
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
+    maxEnergyCells: 2,
 };
 
 export const smallStationProperties = {

@@ -100,7 +100,6 @@ export const widgetReaders: Partial<Record<StationWidget, WidgetReader>> = {
             energy: ship.reactor?.energy,
             afterBurnerFuel: ship.maneuvering?.afterBurnerFuel,
             hullDamaged: ship.hullDamaged,
-            ecrControl: ship.ecrControl,
         };
     },
 

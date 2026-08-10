@@ -13,8 +13,10 @@ import { makeDriver, waitForShipCondition } from './driver';
 import { maps } from '@starwards/server';
 import { test } from '@playwright/test';
 
-const { single_ship } = maps;
+const { single_ship, weapons_multi_tube, weapons_multi_gun } = maps;
 const shipId = single_ship.testShipId;
+const twoTubeShipId = weapons_multi_tube.testShipId;
+const multiGunShipId = weapons_multi_gun.testShipId;
 const gameDriver = makeDriver(test);
 
 test.describe('Weapons hotkeys', () => {
@@ -135,5 +137,80 @@ test.describe('Weapons hotkeys', () => {
     test('b key: chainGuns[0].changeProjectileCommand admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('b');
         await page.waitForTimeout(200);
+    });
+
+    // --- Chain gun shell range / time fuse (./, keys — see #2149) ---
+
+    test('. key: chainGuns[0].shellRange increases by one step', async ({ page }) => {
+        await page.keyboard.press('.');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => (ship.state.chainGuns.at(0)?.shellRange ?? 0) > 0.01,
+            3000,
+        );
+    });
+
+    test(', key: chainGuns[0].shellRange decreases by one step', async ({ page }) => {
+        await page.keyboard.press(',');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => (ship.state.chainGuns.at(0)?.shellRange ?? 0) < -0.01,
+            3000,
+        );
+    });
+});
+
+test.describe('Weapons hotkeys — multi-tube fan-out', () => {
+    test.beforeEach(async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(weapons_multi_tube);
+        await navigateToScreen(page, `/weapons.html?ship=${twoTubeShipId}`, { baseURL: gameDriver.baseURL });
+        await page.waitForTimeout(500);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('v key: changeProjectileCommand cycles ammo on every tube, not just tube 0', async ({ page }) => {
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => ship.state.tubes.at(0)?.projectile !== 'None' && ship.state.tubes.at(1)?.projectile !== 'None',
+            3000,
+        );
+        const before = gameDriver.getShip(twoTubeShipId).state.tubes.at(1)?.projectile;
+
+        await page.keyboard.press('v');
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => ship.state.tubes.at(1)?.projectile !== before,
+            3000,
+        );
+    });
+});
+
+test.describe('Weapons hotkeys — multi-gun fan-out', () => {
+    test.beforeEach(async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(weapons_multi_gun);
+        await navigateToScreen(page, `/weapons.html?ship=${multiGunShipId}`, { baseURL: gameDriver.baseURL });
+        await page.waitForTimeout(500);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('. key: shellRange increases on every chain-gun mount, not just mount 0', async ({ page }) => {
+        await page.keyboard.press('.');
+        await waitForShipCondition(
+            () => gameDriver.getShip(multiGunShipId),
+            (ship) =>
+                (ship.state.chainGuns.at(0)?.shellRange ?? 0) > 0.01 &&
+                (ship.state.chainGuns.at(1)?.shellRange ?? 0) > 0.01 &&
+                (ship.state.chainGuns.at(2)?.shellRange ?? 0) > 0.01,
+            3000,
+        );
     });
 });

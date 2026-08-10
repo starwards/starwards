@@ -103,6 +103,25 @@ export function readWriteNumberProp(driver: Driver, pointerStr: JsonStringPointe
     return { ...api, range: getRange(driver.state, api.pointer) };
 }
 
+/**
+ * Fans a range control out to several JSON pointers — e.g. one shell-range
+ * hotkey driving every chain-gun mount. Reads/tracks the first pointer (all
+ * mounts share the same @range) but writes every step to all of them, so a
+ * multi-mount hull's mounts move together instead of only mount 0 responding.
+ */
+export function readWriteAllNumberProp(driver: Driver, pointerStrs: JsonStringPointer[]) {
+    const props = pointerStrs.map((pointerStr) => readWriteProp<number>(driver, pointerStr));
+    const [first] = props;
+    if (!first) {
+        throw new Error('readWriteAllNumberProp requires at least one pointer');
+    }
+    return {
+        ...aggregate(props, first.getValue),
+        setValue: (value: number) => props.forEach((prop) => prop.setValue(value)),
+        range: getRange(driver.state, first.pointer),
+    };
+}
+
 export function readWriteVec2Prop(driver: Driver, pointerStr: JsonStringPointer) {
     const xProp = readWriteProp<number>(driver, `${pointerStr}/x`);
     const yProp = readWriteProp<number>(driver, `${pointerStr}/y`);

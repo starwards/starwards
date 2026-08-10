@@ -11,8 +11,10 @@ import { armorWidget } from '../widgets/armor';
 import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
+import { drawGmStatusChip } from '../widgets/observation-mode';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
+import { gameControlsWidget } from '../widgets/game-controls';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
@@ -20,6 +22,7 @@ import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
 import { tacticalRadarWidget } from '../widgets/tactical-radar';
@@ -37,11 +40,13 @@ const { error: logError } = createLogger('screen:gm');
 const driver = new Driver(window.location).connect();
 const statusTracker = new ClientStatus(driver);
 
-runScreenLifecycle(statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
+runScreenLifecycle(driver, statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
 
 async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardown> {
     wrapperEl.append('<ul id="menuContainer"></ul><div id="layoutContainer"></div>');
     const gmWidgets = new GmWidgets(driver);
+    const adminDriver = await driver.getAdminDriver();
+    const gameControls = gameControlsWidget(adminDriver);
     const dashboard = new Dashboard(
         {
             content: [
@@ -50,12 +55,29 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
                         { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
                         {
                             content: [
-                                { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
-                                { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                                {
+                                    content: [
+                                        { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
+                                        { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+                                    ],
+                                    height: 70,
+                                    isClosable: false,
+                                    title: '',
+                                    type: 'stack',
+                                },
+                                // Its own row rather than a third tab: the GM has to see what
+                                // the game is doing without selecting anything, and a third
+                                // tab in this column overflows into golden-layout's dropdown,
+                                // taking tweak and create with it.
+                                {
+                                    ...getGoldenLayoutItemConfig(gameControls),
+                                    height: 30,
+                                    isClosable: false,
+                                },
                             ],
                             isClosable: false,
                             title: '',
-                            type: 'stack',
+                            type: 'column',
                             width: 20,
                         },
                     ],
@@ -72,6 +94,8 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
     dashboard.registerWidget(gmWidgets.radar);
     dashboard.registerWidget(gmWidgets.tweak);
     dashboard.registerWidget(gmWidgets.create);
+    dashboard.registerWidget(gameControls);
+    drawGmStatusChip(adminDriver);
 
     dashboard.setup();
     const spaceDriver = await driver.getSpaceDriver();

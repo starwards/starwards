@@ -8,7 +8,7 @@ module.exports = {
         ship: [path.resolve(__dirname, 'src', 'screens', 'ship.ts')],
         weapons: [path.resolve(__dirname, 'src', 'screens', 'weapons.ts')],
         pilot: [path.resolve(__dirname, 'src', 'screens', 'pilot.ts')],
-        ecr: [path.resolve(__dirname, 'src', 'screens', 'ecr.ts')],
+        engineer: [path.resolve(__dirname, 'src', 'screens', 'engineer.ts')],
         relay: [path.resolve(__dirname, 'src', 'screens', 'relay.ts')],
         signals: [path.resolve(__dirname, 'src', 'screens', 'signals.ts')],
         index: [path.resolve(__dirname, 'src', 'screens', 'index.tsx')],
@@ -64,9 +64,9 @@ module.exports = {
             chunks: ['pilot'],
         }),
         new HtmlWebpackPlugin({
-            filename: 'ecr.html',
+            filename: 'engineer.html',
             template: path.resolve(__dirname, 'templates', 'station.html'),
-            chunks: ['ecr'],
+            chunks: ['engineer'],
         }),
         new HtmlWebpackPlugin({
             filename: 'relay.html',

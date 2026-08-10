@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
-import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
+import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig, shipInputConfig } from '../input/input-config';
 import { HPos, VPos } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
@@ -12,6 +12,7 @@ import { drawArmorStatus } from '../widgets/armor';
 import { drawDockingStatus } from '../widgets/docking';
 import { drawPilotRadar } from '../widgets/pilot-radar';
 import { drawPilotStats } from '../widgets/pilot';
+import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawSystemsStatus } from '../widgets/system-status';
 import { drawWarpStatus } from '../widgets/warp';
 import { isPilotSystem } from './station-system-filters';
@@ -32,7 +33,9 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
+    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
+        initScreen(driver, shipUrlParam, container),
+    );
 } else {
     logError('missing "ship" url query param');
 }
@@ -41,6 +44,7 @@ async function initScreen(driver: Driver, shipId: string, container: ScreenConta
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawPilotRadar(spaceDriver, shipDriver, container);
+    await drawStationObservationMode(container.subContainer(VPos.TOP, HPos.MIDDLE), driver);
     const teardownInput = wireInput(shipDriver);
     drawSystemsStatus(
         container.subContainer(VPos.TOP, HPos.RIGHT),
@@ -94,8 +98,18 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         'Rotation Mode',
     );
     input.addMomentaryClickAction(
+        writeProp(shipDriver, '/rotationModeCommand'),
+        shipInputConfig.rotationModeKey,
+        'Rotation Mode',
+    );
+    input.addMomentaryClickAction(
         writeProp(shipDriver, '/maneuveringModeCommand'),
         new GamepadButtonConfig(0, 11),
+        'Maneuvering Mode',
+    );
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/maneuveringModeCommand'),
+        shipInputConfig.maneuveringModeKey,
         'Maneuvering Mode',
     );
     input.addMomentaryClickAction(

@@ -11,7 +11,7 @@ spec or plan.
 - **Format:** LAN party / bridge-only — distinct from the LARP format. See
   [game-formats note](#game-formats) below.
 - **Session length:** 30–60 min playable
-- **Crew:** 5 people / 4 stations — Pilot, Engineer (= Bridge Engineering),
+- **Crew:** 5 people / 4 stations — Pilot, Engineer,
   Weapons, Signal — plus a floating **Captain** with no station and no UI
   (see [interdependency-matrix.md §3a](interdependency-matrix.md))
 - **Audience:** Volunteer testers, never played this kind of game
@@ -35,7 +35,7 @@ in input/output:
 | **LAN party / bridge-only** | Same table, screens + keyboards | On-screen / keyboard | This playtest |
 | **LARP** ("Mission in the Fringe") | Full event, dedicated stations, IoT props | Physical, network API | Tracked by `docs/MS3/PLAN.md` |
 
-Repair is the canonical two-variant feature: bridge-engineering on-screen
+Repair is the canonical two-variant feature: engineer on-screen
 mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 
 ## Ground rules for this session
@@ -58,8 +58,8 @@ mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 
 - [pilot.md](pilot.md)
 - [weapons.md](weapons.md)
-- [bridge-eng.md](bridge-eng.md) — `screens/ecr.ts` without `?station=ecr`; ECR-specific extras called out at the bottom
-- [bridge-eng-design.md](bridge-eng-design.md) — user-stated design intent for adding **damage management** to bridge engineering; compared to current code (`@defectible` reflection, existing damage-report widget) and to #547 repair-station (location conflict flagged)
+- [bridge-eng.md](bridge-eng.md) — `screens/engineer.ts`, the merged engineer station
+- [bridge-eng-design.md](bridge-eng-design.md) — user-stated design intent for adding **damage management** to the engineer station; compared to current code (`@defectible` reflection, existing damage-report widget) and to #547 repair-station (location conflict flagged)
 - [signals.md](signals.md) — minimal first cut (PR #1848); compares to full #1208 spec
 - [signals-design.md](signals-design.md) — user-stated design intent for the signals station, compared to current code and to `SIGNALS_JOBS_DESIGN.md` (flags mini-game vs queued-jobs conflict)
 
