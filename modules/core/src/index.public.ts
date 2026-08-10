@@ -90,6 +90,7 @@ export type {
 // --- space ---
 export {
     Asteroid,
+    Explosion,
     Faction,
     Projectile,
     ScanLevel,

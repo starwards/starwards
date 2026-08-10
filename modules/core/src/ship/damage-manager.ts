@@ -63,8 +63,11 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
-        const { hits, damagedExternals } = this.attackResolution.resolveWeaponAttack(damage);
+        const { hits, damagedExternals, breachHit } = this.attackResolution.resolveWeaponAttack(damage);
         this.applyResolvedHits(hits);
+        if (breachHit) {
+            this.spaceManager.markBreachHit(damage.id);
+        }
         return hits.length > 0 || damagedExternals;
     }
 

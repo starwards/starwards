@@ -176,6 +176,36 @@ export const tacticalRadarScenes: Record<string, Scene> = {
         },
     },
 
+    'tactical-radar-with-breach-hit': {
+        name: 'tactical-radar-with-breach-hit',
+        description:
+            'Two blasts of the same radius: a normal exterior hit (left) vs a breach hit with its ' +
+            'hull-penetration flash (right)',
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 0);
+
+            const normalBlast = createMockExplosion({
+                id: 'normal-blast',
+                position: { x: 1000, y: -300 },
+                radius: 250,
+            });
+            const breachBlast = createMockExplosion({
+                id: 'breach-blast',
+                position: { x: 1000, y: 300 },
+                radius: 250,
+                breachHit: true,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, normalBlast, breachBlast]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: RANGE,
+            });
+        },
+    },
+
     'tactical-radar-firing-arcs': {
         name: 'tactical-radar-firing-arcs',
         description: "Cataphract's three chain gun mounts, each with a differing fitted bearing",
