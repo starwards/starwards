@@ -92,7 +92,7 @@ discoverable only at one station, mechanically required at another.
 |---|---|---|---|---|
 | **Threat ID code** | Signals (scan tier 2) | Weapons (target lock arms) | 4-char alphanumeric revealed by scan; Weapons must enter to enable max-damage shot | +1 |
 | **Hull weak vector** | Signals (scan tier 3) | Pilot (approach angle) + Weapons (shot timing) | A bearing range (e.g. 070°–110° relative) where damage multiplier applies; degrades over 30–60s, must be re-scanned | +2 |
-| **Hostile reactor signature** | Engineering (ECR) | Weapons (torpedo arming) | Engineer reads the contact's own reactor harmonic from passive ECR; weapons enters it to arm a torpedo with proximity fuse | +1 |
+| **Hostile reactor signature** | Engineering | Weapons (torpedo arming) | Engineer reads the contact's own reactor harmonic from a passive engineering readout; weapons enters it to arm a torpedo with proximity fuse | +1 |
 | **Jam window** | Signals | Pilot (warp gate) | Per-encounter time-of-day where enemy comms hiccup; pilot can warp-disengage cleanly only inside window | +1 |
 
 Picking any **two** of these closes the lock gap (2→4–5) without copying EE's

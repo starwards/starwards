@@ -134,6 +134,11 @@ describe('repair protocols catalog', () => {
         it('every real catalog protocol is available on the docked dragonfly (which has every system it references)', () => {
             const state = makeShipState('test-ship', demoShip);
             state.docking.mode = DockingMode.DOCKED;
+            // reactorJumpStart is additionally gated on Reactor.energyCells (issue #2137), a
+            // resource makeShipState leaves at its schema default (0) rather than populating —
+            // same reason armor-plate-renewal.spec.ts sets reactor.energy manually. Stock the
+            // reserve so this test still asserts what it's about: equipment/tier availability.
+            state.reactor.energyCells = state.reactor.design.maxEnergyCells;
             const available = getAvailableRepairProtocols(state, repairProtocols);
             expect(Object.keys(available)).to.deep.equal(Object.keys(repairProtocols));
         });
@@ -152,6 +157,10 @@ describe('repair protocols catalog', () => {
 
         it('every field-tier protocol is equally available docked and undocked', () => {
             const state = makeShipState('test-ship', demoShip);
+            // reactorJumpStart is additionally gated on Reactor.energyCells (issue #2137) — stock
+            // the reserve so this test asserts what it's about: docking state never affects a
+            // field-tier protocol's availability, independent of any resource gate.
+            state.reactor.energyCells = state.reactor.design.maxEnergyCells;
             const fieldProtocols = Object.values(repairProtocols).filter((p) => p.tier === 'field');
             expect(fieldProtocols.every((p) => isProtocolAvailable(state, p))).to.equal(true);
 

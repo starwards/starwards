@@ -137,7 +137,7 @@ export function damageReportWidget(shipDriver: ShipDriver): DashboardWidget {
 
 /**
  * Mounts the damage report into a fixed-grid station container (`wrapRootWidgetContainer` +
- * `subContainer`, e.g. `screens/ecr.ts`) rather than a golden-layout `Dashboard` — the two
+ * `subContainer`, e.g. `screens/engineer.ts`) rather than a golden-layout `Dashboard` — the two
  * layout systems don't mix (see CLAUDE.md), so this bypasses `Dashboard.registerWidget` and
  * renders the same React component directly into the container.
  *

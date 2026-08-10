@@ -169,10 +169,6 @@ export class ShipState extends Schema implements Lockable {
     @gameField('int8')
     targeted = TargetedStatus.NONE;
 
-    @tweakable('boolean')
-    @gameField('boolean')
-    ecrControl = false;
-
     /**
      * Hull damage state - 2-state flag (ok/damaged) for IoT alerts/lights control.
      * Controlled manually by GM in tweak panel. No game logic impact.

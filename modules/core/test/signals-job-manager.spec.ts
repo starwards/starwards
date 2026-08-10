@@ -5,6 +5,7 @@ import {
     Faction,
     HackLevel,
     PowerLevel,
+    Projectile,
     ScanLevel,
     ShipManagerPc,
     SmartPilotMode,
@@ -225,6 +226,28 @@ describe('SignalsJobManager', () => {
             // 0.5s lifetime would otherwise expire mid-test and drop any job for the wrong reason
             tick(spaceMgr, 0.05, 0.1, shipMgr);
             expect(scanJobs(shipMgr).map((j) => j.targetId)).to.not.include('blast1');
+        });
+
+        it('never creates a scan job for a cannon shell — only missiles are worth scanning (issue #2142)', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
+            const shell = new Projectile('HiExpShell').init('shell1', Vec2.make({ x: 0, y: 1000 }));
+            shell.radius = 200;
+            spaceMgr.insert(shell);
+            spaceMgr.forceFlushEntities();
+
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            expect(scanJobs(shipMgr).map((j) => j.targetId)).to.not.include('shell1');
+        });
+
+        it('creates a scan job for a missile — scanning it is important gameplay (issue #2142)', () => {
+            const { shipMgr, spaceMgr } = shipWithContactInSight(ScanLevel.FULL);
+            const missile = new Projectile('HiExpMissile').init('missile1', Vec2.make({ x: 0, y: 1000 }));
+            missile.radius = 200;
+            spaceMgr.insert(missile);
+            spaceMgr.forceFlushEntities();
+
+            tick(spaceMgr, 0.05, 0.1, shipMgr);
+            expect(scanJobs(shipMgr).map((j) => j.targetId)).to.include('missile1');
         });
 
         it('scans a derelict to BASIC and no further, keeping its identity (issue #2111)', () => {

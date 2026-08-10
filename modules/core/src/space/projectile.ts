@@ -65,6 +65,11 @@ export type ProjectileDesign = WarheadDesign & {
         rotationCapacity: number;
         velocityCapacity: number;
         maxSpeed: number;
+        /** terminal sprint: dramatic acceleration burst once within `range` of the target */
+        sprint: {
+            range: number;
+            speedMultiplier: number;
+        };
     };
     // selectable warheads (cluster munitions): overrides the whole warhead per mode
     warheads?: Record<ClusterWarheadMode, WarheadDesign>;
@@ -73,6 +78,10 @@ export type ProjectileDesign = WarheadDesign & {
 export type MissileDesign = ProjectileDesign & {
     homing: NonNullable<ProjectileDesign['homing']>;
 };
+
+// design decision (bridge testplay 2026-08-09): every missile sprints once within 3km of
+// its target, defeating leisurely maneuvering solutions in the terminal phase
+const TERMINAL_SPRINT = { range: 3_000, speedMultiplier: 2.5 } as const;
 
 export const ammoDesigns = {
     HiExpShell: {
@@ -118,6 +127,7 @@ export const ammoDesigns = {
             rotationCapacity: 720,
             velocityCapacity: 600,
             maxSpeed: 600,
+            sprint: TERMINAL_SPRINT,
         },
         // sharp 350m blast (blast size = expansionSpeed * secondsToLive)
         explosion: { secondsToLive: 0.35, expansionSpeed: 1_000, damageFactor: 50, blastFactor: 1 },
@@ -134,6 +144,7 @@ export const ammoDesigns = {
             rotationCapacity: 504,
             velocityCapacity: 960,
             maxSpeed: 960,
+            sprint: TERMINAL_SPRINT,
         },
         // the assassin: a big amount that spills into a burst of defect rolls on one victim
         damage: 60,
@@ -150,6 +161,7 @@ export const ammoDesigns = {
             rotationCapacity: 720,
             velocityCapacity: 600,
             maxSpeed: 600,
+            sprint: TERMINAL_SPRINT,
         },
         // dedicated shrapnel warhead. All frag warheads share the same intensity (damageFactor 10);
         // the missile's edge over the cluster frag mode is size and time: an 800m cloud lingering 1.6s
@@ -168,6 +180,7 @@ export const ammoDesigns = {
             rotationCapacity: 720,
             velocityCapacity: 600,
             maxSpeed: 600,
+            sprint: TERMINAL_SPRINT,
         },
         explosion: { secondsToLive: 1, expansionSpeed: 750, damageFactor: 10, blastFactor: 1 },
         warheads: {
@@ -200,6 +213,7 @@ export const ammoDesigns = {
             rotationCapacity: 936,
             velocityCapacity: 420,
             maxSpeed: 420,
+            sprint: TERMINAL_SPRINT,
         },
         // ArmPen's slightly weaker sibling — its value is the armor matchups
         damage: 50,
@@ -216,6 +230,7 @@ export const ammoDesigns = {
             rotationCapacity: 720,
             velocityCapacity: 780,
             maxSpeed: 780,
+            sprint: TERMINAL_SPRINT,
         },
         // one dart, one discharge — every electronics system ship-wide rolls once
         damage: 25,

@@ -223,6 +223,7 @@ export function addButton(
     cleanup(() => {
         button.dispose();
     });
+    return button;
 }
 
 export function addGraph(

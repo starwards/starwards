@@ -63,8 +63,11 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
-        const { hits, damagedExternals } = this.attackResolution.resolveWeaponAttack(damage);
+        const { hits, damagedExternals, breachHit } = this.attackResolution.resolveWeaponAttack(damage);
         this.applyResolvedHits(hits);
+        if (breachHit) {
+            this.spaceManager.markBreachHit(damage.id);
+        }
         return hits.length > 0 || damagedExternals;
     }
 
@@ -238,8 +241,11 @@ export class DamageManager {
                 (this.die.getSuccess('thrusterAngleSign:' + damageId, 0.5) ? 1 : -1);
             thruster.bearingSkew = capToRange(-180, 180, thruster.bearingSkew);
         } else {
-            thruster.availableCapacity -= limitPercision(
-                this.die.getRollInRange('availableCapacity:' + damageId, 0.01, 0.1),
+            thruster.availableCapacity = capToRange(
+                0,
+                1,
+                thruster.availableCapacity -
+                    limitPercision(this.die.getRollInRange('availableCapacity:' + damageId, 0.01, 0.1)),
             );
         }
     }

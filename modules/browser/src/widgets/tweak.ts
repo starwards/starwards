@@ -264,21 +264,6 @@ const singleSelectionDetails = async (
             cleanup,
         );
 
-        addTweakableRow(
-            guiFolder,
-            'ECR control',
-            (row) =>
-                addListCellToRow(
-                    row,
-                    readWriteProp<boolean>(shipDriver, `/ecrControl`),
-                    { options: booleanOptions },
-                    cleanup,
-                ),
-            shipDriver,
-            ['/ecrControl'],
-            cleanup,
-        );
-
         const armorFolder = guiFolder.addFolder({
             title: `Armor`,
             expanded: false,

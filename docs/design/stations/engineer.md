@@ -1,6 +1,6 @@
-# ECR (Engineering Control Room)
+# Engineer
 
-> **See also:** [`docs/bridge-playtest/bridge-eng.md`](../../bridge-playtest/bridge-eng.md) — code-grounded state of the engineering screen (Bridge mode vs ECR mode, `/ecrControl` toggle). [`docs/bridge-playtest/bridge-eng-design.md`](../../bridge-playtest/bridge-eng-design.md) — user-stated design intent for adding **damage management** as a LAN-party-format mini-game on the bridge engineering seat (coexists with the IoT/LARP repair station #547).
+> **See also:** [`docs/bridge-playtest/bridge-eng-design.md`](../../bridge-playtest/bridge-eng-design.md) — user-stated design intent for adding **damage management** as a LAN-party-format mini-game on the engineering seat (coexists with the IoT/LARP repair station #547).
 
 **Status:** Done
 **Crew role:** Chief Engineer — manages power, heat, and system health.

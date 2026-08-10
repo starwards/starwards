@@ -93,7 +93,7 @@ npm run test:e2e
 # Expected: All tests pass, 0 failures
 
 # Specific test file
-npm run test:e2e -- ecr-screen.spec.ts
+npm run test:e2e -- engineer-screen.spec.ts
 # Expected: All tests in file pass
 
 # With visible browser (debugging only)

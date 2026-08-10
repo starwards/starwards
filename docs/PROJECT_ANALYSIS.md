@@ -313,7 +313,7 @@ public power = PowerLevel.MAX;
 - [`ship`](../modules/browser/src/screens/ship.ts) - Main ship control
 - [`pilot`](../modules/browser/src/screens/pilot.ts) - Pilot station
 - [`weapons`](../modules/browser/src/screens/weapons.ts) - Weapons station
-- [`ecr`](../modules/browser/src/screens/ecr.ts) - Engineering station
+- [`engineer`](../modules/browser/src/screens/engineer.ts) - Engineering station
 - [`gm`](../modules/browser/src/screens/gm.ts) - Game Master view
 
 ### 4.5 Input System

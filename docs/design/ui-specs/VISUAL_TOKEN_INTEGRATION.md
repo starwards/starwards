@@ -308,7 +308,7 @@ sprite.tint = rgb2hex([1 - health, health, 0]);
 ### CSS Integration from PixiJS
 
 ```typescript
-// mirrors: modules/browser/src/screens/ecr.ts
+// mirrors: modules/browser/src/screens/engineer.ts
 import { radarFogOfWar, toCss } from '../colors'; // line 14
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
@@ -368,7 +368,7 @@ const stylesBaseline = {
 ### CSS Background Application
 
 ```typescript
-// mirrors: modules/browser/src/screens/ecr.ts
+// mirrors: modules/browser/src/screens/engineer.ts
 import { radarFogOfWar, toCss } from '../colors';
 
 container.getElement().css('background-color', toCss(radarFogOfWar));
@@ -772,7 +772,7 @@ export function setTheme(theme: Theme) {
 **Styling Applications:**
 - `modules/browser/src/widgets/system-status.ts:107` - Tweakpane status theming
 - `modules/browser/src/widgets/armor.ts:10` - RGB to hex conversion
-- `modules/browser/src/screens/ecr.ts:69` - CSS background from PixiJS color
+- `modules/browser/src/screens/engineer.ts:69` - CSS background from PixiJS color
 
 **Font Loading:**
 - `/static/styles/index.css` - Font-face declarations
