@@ -53,15 +53,14 @@ These three mechanisms are where the matrix actually lives in code:
 | Station | Depends on … | For … | Code reference |
 |---|---|---|---|
 | **Pilot** | Engineering | power for `/thrusters/*`, `/warp`, `/maneuvering`, `/smartPilot`, `/radars/*` | `pilot.ts` (systems-status filter) |
-| Pilot | Engineering | warp **frequency** (only ECR can change) | `ecr.ts` |
+| Pilot | Engineering | warp **frequency** | `engineer.ts` |
 | Pilot | Signals | scan-level gating on pilot-radar — same-faction always BASIC, others UFO until scanned | `fc54991` (#1205) |
 | **Weapons** | Engineering | power for `/chainGuns/*`, `/tubes/*`, `/magazine`, `/radars/*` | `weapons.ts` |
 | Weapons | Engineering | coolant — chaingun fires generate heat (energy spend → heat) | `energy-manager.ts` |
 | Weapons | Pilot | ship orientation — must be pointed roughly at target to hit | implicit; tactical-radar shows crosshairs from `chainGun` |
 | Weapons | Signals | scan-level gating on tactical-radar (UFO ships render as gray, no model) | `fc54991` (#1205) |
-| **Bridge Eng** | Pilot | combat exposure → damage → engineering's job to manage | `damage-manager.ts` |
-| Bridge Eng | Weapons | weapons activity → energy spend → heat → potential overheat damage | `energy-manager.ts` |
-| Bridge Eng | (ECR seat, optional) | warp-frequency authority via `/ecrControl` | `ecr.ts` |
+| **Engineer** | Pilot | combat exposure → damage → engineering's job to manage | `damage-manager.ts` |
+| Engineer | Weapons | weapons activity → energy spend → heat → potential overheat damage | `energy-manager.ts` |
 | **Signals** | Engineering | power for `/signals` (a dedicated `Signals` system class with its own power/coolant/hacked) plus `/radar` (the signals *radar* widget still filters `/radar` for detection range) | `signals.ts` (`Signals extends SystemState`); wired into `ship-state.ts` |
 
 ### 2.3 What each station supplies *to* others
@@ -71,9 +70,9 @@ These three mechanisms are where the matrix actually lives in code:
 | Pilot | Position, heading, velocity | Everyone | implicit via space state |
 | Pilot | Warp level (range / frequency-tuned travel) | Everyone | `/warp` state |
 | Weapons | None directly to friendly stations (target effects are on enemies) | — | — |
-| Bridge Eng | Power level per system | Every other station | `/{system}/power` |
-| Bridge Eng | Coolant allocation per system | Every other station | `/{system}/coolantFactor` |
-| Bridge Eng | (ECR) warp frequency | Pilot (range / hazards) | `/warp/standbyFrequency` |
+| Engineer | Power level per system | Every other station | `/{system}/power` |
+| Engineer | Coolant allocation per system | Every other station | `/{system}/coolantFactor` |
+| Engineer | Warp frequency | Pilot (range / hazards) | `/warp/standbyFrequency` |
 | Signals | Scan level on space objects (per faction) | Pilot/Weapons radars | `/Spaceship/{id}/scanLevels` |
 | Signals | Hack effect (planned) on enemy systems | Weapons (easier targets) | `/{enemy}/{system}/hacked` (effect side shipped #1207) |
 
@@ -84,7 +83,7 @@ In rough adjacency form, ignoring strength:
 ```
                         ┌──────── power, coolant, frequency ───────┐
                         │                                          ▼
-                  Bridge Eng ◄──── damage, heat ─── Pilot ─── orientation ─► Weapons
+                  Engineer ◄──── damage, heat ─── Pilot ─── orientation ─► Weapons
                         ▲                            │                       │
                         │                            │                       │
                         └──── damage, heat ──── Weapons                      │
@@ -207,9 +206,6 @@ Things in code that **amplify** comms (force players to talk):
 
 - Signals' independent `SelectionContainer` (vs `weaponsTarget`) —
   signals must say "the one I'm looking at is the destroyer".
-- ECR's `/ecrControl` toggle — only one engineer holds power/coolant
-  authority at a time; the bridge engineer and ECR must coordinate
-  who's driving.
 - Warp frequency lives only on engineering screens — pilot literally
   cannot see the current frequency. Pilot must ask.
 
@@ -230,7 +226,7 @@ Things in code that **amplify** comms (force players to talk):
   subsystem would give engineering a real allocation choice;
   reusing radar shares fate with pilot/weapons radars.
 
-### 5.2 Bridge-eng damage management (`bridge-eng-design.md`)
+### 5.2 Engineer damage management (`bridge-eng-design.md`)
 
 - **Strengthens Pilot/Weapons → Engineering** by making damage
   visible and requiring active player work to repair. Today damage
@@ -253,7 +249,7 @@ dissolve the captain's role**?
 - **Signals mini-game + scan tiers** (#1899/#1900): strengthens —
   it adds intel that exists at signals but not elsewhere; the
   captain can route "scan that one first" decisions
-- **Bridge-eng repair menu** (#1898): strengthens — engineer's
+- **Engineer repair menu** (#1898): strengthens — engineer's
   workload becomes a real input the captain must triage against
   pilot/weapons priorities
 - **Signal-owned waypoints** (#1893, replacing the cut Relay):
@@ -268,7 +264,3 @@ dissolve the captain's role**?
 - Whether pilot needs a visible engineering-style status (heat
   warning, low-power alert) or whether keeping that info engineering-
   only is the desired comms-amplifier.
-- Whether the warp-frequency ECR/Bridge split is a comms feature
-  or a bug — today the bridge engineer cannot change frequency,
-  only ECR can; this forces a verbal handoff but only matters if
-  ECR is staffed.

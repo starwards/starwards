@@ -71,6 +71,7 @@ export {
     TargetedStatus,
     WarpFrequency,
     isRestockingAmmo,
+    isRestockingEnergyCells,
     makeShipState,
     repairCommands,
 } from './ship';
@@ -89,6 +90,7 @@ export type {
 // --- space ---
 export {
     Asteroid,
+    Explosion,
     Faction,
     Projectile,
     ScanLevel,

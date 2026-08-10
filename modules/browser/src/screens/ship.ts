@@ -44,7 +44,7 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const statusTracker = new ClientStatus(driver, shipUrlParam);
     const layoutUrlParam = urlParams.get('layout');
-    runScreenLifecycle(statusTracker, Status.SHIP_FOUND, (wrapperEl) =>
+    runScreenLifecycle(driver, statusTracker, Status.SHIP_FOUND, (wrapperEl) =>
         initScreen(wrapperEl, shipUrlParam, layoutUrlParam),
     );
 } else {

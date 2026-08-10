@@ -3,6 +3,7 @@ import { Faction, ShipModel, demoShip, makeShipState } from '@starwards/core';
 import { blue, radarVisibleBg, red, yellow } from '../../colors';
 import {
     createMockAsteroid,
+    createMockDerelict,
     createMockExplosion,
     createMockSpaceDriver,
     createMockWaypoint,
@@ -198,6 +199,58 @@ export const gmRadarScenes: Record<string, Scene> = {
                 tacticalDrawWaypoints,
             );
             root.addLayer(waypointsLayer.renderRoot);
+
+            return root;
+        },
+    },
+
+    'gm-radar-derelicts': {
+        name: 'gm-radar-derelicts',
+        description: 'GM radar with derelicts that inherit their source ship model, so blip silhouette follows it',
+        async setup(container: HTMLElement) {
+            const fighterDerelict = createMockDerelict({
+                id: 'derelict-fighter',
+                position: { x: -1500, y: 0 },
+                radius: 60,
+                callsign: 'Hulk-1',
+                model: 'dragonfly-MK1',
+            });
+            const stationDerelict = createMockDerelict({
+                id: 'derelict-station',
+                position: { x: 1500, y: 0 },
+                radius: 120,
+                callsign: 'Hulk-2',
+                model: 'large-station',
+            });
+            const unknownModelDerelict = createMockDerelict({
+                id: 'derelict-unknown',
+                position: { x: 0, y: 1800 },
+                radius: 60,
+                callsign: 'Hulk-3',
+                model: null,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([fighterDerelict, stationDerelict, unknownModelDerelict]);
+
+            const camera = new Camera();
+            camera.setZoom(ZOOM);
+
+            const root = new CameraView(camera);
+            await root.initialize({ backgroundColor: radarVisibleBg }, mockContainer);
+            root.canvas.setAttribute('data-id', 'GM Radar');
+
+            const grid = new GridLayer(root);
+            root.addLayer(grid.renderRoot);
+
+            const blipLayer = new ObjectsLayer(
+                root,
+                mockSpaceDriver as never,
+                64,
+                (s) => getFactionColor(s.faction),
+                tacticalDrawFunctions,
+            );
+            root.addLayer(blipLayer.renderRoot);
 
             return root;
         },

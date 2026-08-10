@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
-import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig } from '../input/input-config';
+import { GamepadAxisConfig, GamepadButtonConfig, KeysRangeConfig, shipInputConfig } from '../input/input-config';
 import { HPos, VPos } from '../container';
 import { InputManager, numberAction } from '../input/input-manager';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
@@ -33,7 +33,9 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
+    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
+        initScreen(driver, shipUrlParam, container),
+    );
 } else {
     logError('missing "ship" url query param');
 }
@@ -96,8 +98,18 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         'Rotation Mode',
     );
     input.addMomentaryClickAction(
+        writeProp(shipDriver, '/rotationModeCommand'),
+        shipInputConfig.rotationModeKey,
+        'Rotation Mode',
+    );
+    input.addMomentaryClickAction(
         writeProp(shipDriver, '/maneuveringModeCommand'),
         new GamepadButtonConfig(0, 11),
+        'Maneuvering Mode',
+    );
+    input.addMomentaryClickAction(
+        writeProp(shipDriver, '/maneuveringModeCommand'),
+        shipInputConfig.maneuveringModeKey,
         'Maneuvering Mode',
     );
     input.addMomentaryClickAction(

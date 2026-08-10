@@ -82,6 +82,7 @@ export const chaingunPlatformReactor = {
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
+    maxEnergyCells: 2,
 };
 
 export const chaingunPlatformProperties = {

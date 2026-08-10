@@ -1,8 +1,11 @@
-import { ClientStatus, Status } from '@starwards/core';
+import { AdminDriver, ClientStatus, Driver, Status, createLogger } from '@starwards/core';
 
 import $ from 'jquery';
 import { hsl } from '../colors';
+import { shouldShowGameMessage } from './game-message-overlay';
 import { wrapRootWidgetContainer } from '../container';
+
+const { error: logError } = createLogger('screen:station-lifecycle');
 
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;
@@ -25,6 +28,53 @@ function renderStandby(element: JQuery<HTMLElement>, text: string) {
 }
 
 /**
+ * Renders the GM's free-text `AdminState.message` (scenario/end-of-game announcements) as a
+ * banner over the given screen wrapper, on every station. It sits above the screen content
+ * without blocking it, so a paused end-state radar stays visible — and legible as an intentional
+ * paused state, not a glitch — behind the message.
+ */
+function attachGameMessageOverlay(wrapperEl: JQuery<HTMLElement>, adminDriver: AdminDriver): () => void {
+    // The overlay's `position: absolute` needs a positioned ancestor to anchor to. #wrapper is
+    // `position: relative` in static/styles/index.css today, but that's an assumption this
+    // shared lifecycle shouldn't silently depend on — enforce it here instead.
+    if (wrapperEl.css('position') === 'static') {
+        wrapperEl.css('position', 'relative');
+    }
+    const overlay = $('<div />')
+        .attr('data-id', 'Game Message')
+        .css({
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            zIndex: 1000,
+            display: 'none',
+            padding: '1em',
+            textAlign: 'center',
+            fontFamily: 'sans-serif',
+            fontSize: '2vw',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            color: hsl.primary.main(3),
+            backgroundColor: 'rgba(10, 10, 10, 0.85)',
+            pointerEvents: 'none',
+        });
+    wrapperEl.append(overlay);
+
+    const render = () => {
+        const message = adminDriver.state.message;
+        overlay.text(message);
+        overlay.css('display', shouldShowGameMessage(message) ? 'block' : 'none');
+    };
+    render();
+    adminDriver.events.on('/message', render);
+    return () => {
+        adminDriver.events.off('/message', render);
+        overlay.remove();
+    };
+}
+
+/**
  * Drives a single `#wrapper`-rooted screen between a standby view and the live UI, keyed off
  * `ClientStatus`. Every transition replaces `#wrapper` wholesale: a `WidgetContainer`'s 'destroy'
  * event (which radar/tweakpane widgets already hook to release PIXI apps and panes) fires exactly
@@ -32,6 +82,7 @@ function renderStandby(element: JQuery<HTMLElement>, text: string) {
  * to reason about a wrapper that outlives its own screen.
  */
 export function runScreenLifecycle(
+    driver: Driver,
     statusTracker: ClientStatus,
     threshold: Status,
     init: (wrapperEl: JQuery<HTMLElement>) => Promise<ScreenTeardown>,
@@ -57,14 +108,29 @@ export function runScreenLifecycle(
         teardown = undefined;
         const freshWrapper = replaceWrapper();
         if (status >= threshold) {
-            void init(freshWrapper).then((result) => {
+            // Two independent async setups (the screen itself, and the message overlay) share one
+            // teardown-on-supersession rule: whichever resolves after a newer generation started
+            // gets torn down immediately instead of being shown.
+            const cleanups: Array<() => void> = [];
+            const addCleanup = (fn: ScreenTeardown) => {
                 if (myGeneration === generation) {
-                    teardown = result;
+                    if (fn) cleanups.push(fn);
                 } else {
-                    // superseded while initializing — tear down immediately, it was never shown
-                    result?.();
+                    fn?.();
                 }
-            });
+            };
+            teardown = () => cleanups.splice(0).forEach((fn) => fn());
+            void init(freshWrapper).then(addCleanup);
+            void driver
+                .getAdminDriver()
+                .then((adminDriver) => {
+                    addCleanup(attachGameMessageOverlay(freshWrapper, adminDriver));
+                })
+                .catch((err: unknown) => {
+                    // Missing the end-of-game banner is a far better failure than an unhandled
+                    // rejection on all seven station screens at once.
+                    logError('failed to attach game message overlay', err);
+                });
         } else {
             renderStandby(freshWrapper, text);
         }
@@ -73,9 +139,10 @@ export function runScreenLifecycle(
 
 /** `runScreenLifecycle` for screens built on `wrapRootWidgetContainer` (the fixed-grid stations). */
 export function runStationScreen(
+    driver: Driver,
     statusTracker: ClientStatus,
     threshold: Status,
     init: (container: ScreenContainer) => Promise<ScreenTeardown>,
 ): void {
-    runScreenLifecycle(statusTracker, threshold, (wrapperEl) => init(wrapRootWidgetContainer(wrapperEl)));
+    runScreenLifecycle(driver, statusTracker, threshold, (wrapperEl) => init(wrapRootWidgetContainer(wrapperEl)));
 }

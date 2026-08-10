@@ -146,6 +146,16 @@ export class SpaceManager implements Updateable {
             this.clampToAbsoluteMaxSpeed(subject);
         }
     }
+    /**
+     * Flags the explosion (by id) as having landed a hit on an already-broken armor section, so
+     * clients render it as a hull-penetration hit instead of an exterior surface burst.
+     */
+    public markBreachHit(id: string) {
+        const [object] = this.getObjectPtr(id);
+        if (object && Explosion.isInstance(object)) {
+            object.breachHit = true;
+        }
+    }
     public setVelocity(id: string, velocity: XY) {
         if (isNaN(velocity.x) || isNaN(velocity.y)) {
             logWarn(`trying to set "NaN" in velocity of ${id}`);
@@ -183,8 +193,9 @@ export class SpaceManager implements Updateable {
     /**
      * NPC systems-broken death (issue #2111): instead of vanishing, an expendable ship is
      * replaced with an inert Derelict at the same position, carrying its radius, faction,
-     * callsign, angle, velocity and turn speed -- the hulk keeps drifting/tumbling as it was at
-     * the moment of death. No type-conversion machinery exists for space objects, so this is
+     * callsign, angle, velocity, turn speed and model -- the hulk keeps drifting/tumbling as it
+     * was at the moment of death, and its blip stays recognizable as the ship it was. No
+     * type-conversion machinery exists for space objects, so this is
      * delete (via `destroyObject`, which also still queues the ship-room teardown) + insert a
      * new object, same as every other object-type transition.
      */
@@ -200,6 +211,7 @@ export class SpaceManager implements Updateable {
             subject.faction,
             subject.callsign,
             subject.angle,
+            subject.model,
         );
         derelict.velocity = Vec2.make(subject.velocity);
         derelict.turnSpeed = subject.turnSpeed;

@@ -7,9 +7,9 @@ across all applicable metrics.
 
 From `bridge-dynamics-table.md`:
 
-| Domain | Phase | Flow | Pattern | Status | Pilot | Weapons | Bridge Eng | Signals | Captain |
-|--------|-------|------|---------|--------|-------|---------|------------|---------|---------|
-| **Warp frequency** | cruise | info | Info Lock | ✅ | — blind 🗣 must be told | — | ⚙ sets freq (ECR only) | — | 🗣 routes Eng→Pilot |
+| Domain | Phase | Flow | Pattern | Status | Pilot | Weapons | Engineer | Signals | Captain |
+|--------|-------|------|---------|--------|-------|---------|----------|---------|---------|
+| **Warp frequency** | cruise | info | Info Lock | ✅ | — blind 🗣 must be told | — | ⚙ sets freq | — | 🗣 routes Eng→Pilot |
 
 ## Scoring
 
