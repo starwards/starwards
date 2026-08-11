@@ -13,10 +13,11 @@ import { makeDriver, waitForShipCondition } from './driver';
 import { maps } from '@starwards/server';
 import { test } from '@playwright/test';
 
-const { single_ship, weapons_multi_tube, weapons_multi_gun } = maps;
+const { single_ship, weapons_multi_tube, weapons_multi_gun, weapons_zero_tubes } = maps;
 const shipId = single_ship.testShipId;
 const twoTubeShipId = weapons_multi_tube.testShipId;
 const multiGunShipId = weapons_multi_gun.testShipId;
+const zeroTubeShipId = weapons_zero_tubes.testShipId;
 const gameDriver = makeDriver(test);
 
 test.describe('Weapons hotkeys', () => {
@@ -60,20 +61,8 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
-    // --- Ammo load toggles (c for tube, g for chainGuns[0]) ---
+    // --- Ammo load toggles (g for chainGuns[0]) ---
     // Both start as `true` (loadAmmo = true by default), so press once → false.
-
-    test('c key: tubes[0].loadAmmo toggles to false', async ({ page }) => {
-        await page.keyboard.press('c');
-        await waitForShipCondition(
-            () => gameDriver.getShip(shipId),
-            (ship) => {
-                const tube = ship.state.tubes.at(0);
-                return tube != null && tube.loadAmmo === false;
-            },
-            3000,
-        );
-    });
 
     test('g key: chainGuns[0].loadAmmo toggles to false', async ({ page }) => {
         await page.keyboard.press('g');
@@ -124,11 +113,6 @@ test.describe('Weapons hotkeys', () => {
         await page.waitForTimeout(200);
     });
 
-    test('v key: tubes[0].changeProjectileCommand admitted without whitelist rejection', async ({ page }) => {
-        await page.keyboard.press('v');
-        await page.waitForTimeout(200);
-    });
-
     test('f key: every chainGuns[*].isFiring admitted without whitelist rejection', async ({ page }) => {
         await page.keyboard.press('f');
         await page.waitForTimeout(200);
@@ -160,7 +144,7 @@ test.describe('Weapons hotkeys', () => {
     });
 });
 
-test.describe('Weapons hotkeys — multi-tube fan-out', () => {
+test.describe('Weapons hotkeys — per-tube actions on multi-tube ship', () => {
     test.beforeEach(async ({ page }) => {
         setupPageErrorHandlers(page);
         await gameDriver.gameManager.startGame(weapons_multi_tube);
@@ -172,19 +156,78 @@ test.describe('Weapons hotkeys — multi-tube fan-out', () => {
         await cleanupPageState(page);
     });
 
-    test('v key: changeProjectileCommand cycles ammo on every tube, not just tube 0', async ({ page }) => {
+    test('shift+1: tube 0 loadAmmo toggles, tube 1 unchanged', async ({ page }) => {
+        const tube1LoadBefore = gameDriver.getShip(twoTubeShipId).state.tubes.at(1)?.loadAmmo;
+
+        await page.keyboard.press('Shift+1');
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => {
+                const tube0 = ship.state.tubes.at(0);
+                const tube1 = ship.state.tubes.at(1);
+                return tube0 != null && tube0.loadAmmo === false && tube1?.loadAmmo === tube1LoadBefore;
+            },
+            3000,
+        );
+    });
+
+    test('shift+2: tube 1 loadAmmo toggles, tube 0 unchanged', async ({ page }) => {
+        const tube0LoadBefore = gameDriver.getShip(twoTubeShipId).state.tubes.at(0)?.loadAmmo;
+
+        await page.keyboard.press('Shift+2');
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => {
+                const tube0 = ship.state.tubes.at(0);
+                const tube1 = ship.state.tubes.at(1);
+                return tube1 != null && tube1.loadAmmo === false && tube0?.loadAmmo === tube0LoadBefore;
+            },
+            3000,
+        );
+    });
+
+    test('alt+1: tube 0 changes ammo, tube 1 unchanged', async ({ page }) => {
         await waitForShipCondition(
             () => gameDriver.getShip(twoTubeShipId),
             (ship) => ship.state.tubes.at(0)?.projectile !== 'None' && ship.state.tubes.at(1)?.projectile !== 'None',
             3000,
         );
-        const before = gameDriver.getShip(twoTubeShipId).state.tubes.at(1)?.projectile;
+        const tube0Before = gameDriver.getShip(twoTubeShipId).state.tubes.at(0)?.projectile;
+        const tube1Before = gameDriver.getShip(twoTubeShipId).state.tubes.at(1)?.projectile;
 
-        await page.keyboard.press('v');
+        await page.keyboard.press('Alt+1');
 
         await waitForShipCondition(
             () => gameDriver.getShip(twoTubeShipId),
-            (ship) => ship.state.tubes.at(1)?.projectile !== before,
+            (ship) => {
+                const tube0 = ship.state.tubes.at(0);
+                const tube1 = ship.state.tubes.at(1);
+                return tube0?.projectile !== tube0Before && tube1?.projectile === tube1Before;
+            },
+            3000,
+        );
+    });
+
+    test('alt+2: tube 1 changes ammo, tube 0 unchanged', async ({ page }) => {
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => ship.state.tubes.at(0)?.projectile !== 'None' && ship.state.tubes.at(1)?.projectile !== 'None',
+            3000,
+        );
+        const tube0Before = gameDriver.getShip(twoTubeShipId).state.tubes.at(0)?.projectile;
+        const tube1Before = gameDriver.getShip(twoTubeShipId).state.tubes.at(1)?.projectile;
+
+        await page.keyboard.press('Alt+2');
+
+        await waitForShipCondition(
+            () => gameDriver.getShip(twoTubeShipId),
+            (ship) => {
+                const tube0 = ship.state.tubes.at(0);
+                const tube1 = ship.state.tubes.at(1);
+                return tube1?.projectile !== tube1Before && tube0?.projectile === tube0Before;
+            },
             3000,
         );
     });
@@ -212,5 +255,37 @@ test.describe('Weapons hotkeys — multi-gun fan-out', () => {
                 (ship.state.chainGuns.at(2)?.shellRange ?? 0) > 0.01,
             3000,
         );
+    });
+});
+
+test.describe('Weapons hotkeys — zero-tube hull', () => {
+    test.beforeEach(async ({ page }) => {
+        setupPageErrorHandlers(page);
+        await gameDriver.gameManager.startGame(weapons_zero_tubes);
+        await navigateToScreen(page, `/weapons.html?ship=${zeroTubeShipId}`, { baseURL: gameDriver.baseURL });
+        await page.waitForTimeout(500);
+    });
+
+    test.afterEach(async ({ page }) => {
+        await cleanupPageState(page);
+    });
+
+    test('weapons screen loads without error on zero-tube hull', async ({ page }) => {
+        // Verify the screen is functional - targeting should still work
+        await page.keyboard.press('p');
+        await waitForShipCondition(
+            () => gameDriver.getShip(zeroTubeShipId),
+            (ship) => ship.state.weaponsTarget.shipOnly === true,
+            3000,
+        );
+    });
+
+    test('tube hotkeys (1, shift+1, alt+1) do nothing and do not throw on zero-tube hull', async ({ page }) => {
+        // These should be no-ops since there are no tubes to bind
+        await page.keyboard.press('1');
+        await page.keyboard.press('Shift+1');
+        await page.keyboard.press('Alt+1');
+        await page.waitForTimeout(200);
+        // If we got here without throwing, the test passes
     });
 });

@@ -94,6 +94,16 @@ export const weapons_multi_gun = {
     },
 };
 
+const zeroTubeShipId = 'GVTS-NOTUBES';
+export const weapons_zero_tubes = {
+    name: 'weapons_zero_tubes',
+    testShipId: zeroTubeShipId,
+    init: (game: GameApi) => {
+        const spaceObject = new Spaceship().init(zeroTubeShipId, new Vec2(0, 0), 'dragonfly-MK1', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
+    },
+};
+
 const testTargetShipId = 'GVTS2';
 export const two_ships = {
     name: 'two_ships',

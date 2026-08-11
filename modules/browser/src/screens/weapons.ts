@@ -68,21 +68,31 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i', 'Short Range Only');
 
     input.addMomentaryClickAction(writeProp(shipDriver, '/fireTubesCommand'), 'x', 'Fire Tubes');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
-    input.addMomentaryClickAction(
-        writeAllProp(
-            shipDriver,
-            shipDriver.state.tubes.map((tube) => `/tubes/${tube.index}/changeProjectileCommand`),
-        ),
-        'v',
-        'Change Tube Ammo',
-    );
+
+    // Per-tube controls: safety (digit), load (shift+digit), change ammo (alt+digit)
     for (const tube of shipDriver.state.tubes) {
-        input.addToggleClickAction(
-            readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
-            shipInputConfig.tubeSafety[tube.index],
-            `Tube ${tube.index} Safety`,
-        );
+        const index = tube.index;
+        if (index < shipInputConfig.tubeSafety.length) {
+            input.addToggleClickAction(
+                readWriteProp(shipDriver, `/tubes/${index}/safetyLocked`),
+                shipInputConfig.tubeSafety[index],
+                `Tube ${index} Safety`,
+            );
+        }
+        if (index < shipInputConfig.tubeLoadAmmo.length) {
+            input.addToggleClickAction(
+                readWriteProp(shipDriver, `/tubes/${index}/loadAmmo`),
+                shipInputConfig.tubeLoadAmmo[index],
+                `Tube ${index} Load`,
+            );
+        }
+        if (index < shipInputConfig.tubeChangeAmmo.length) {
+            input.addMomentaryClickAction(
+                writeProp(shipDriver, `/tubes/${index}/changeProjectileCommand`),
+                shipInputConfig.tubeChangeAmmo[index],
+                `Tube ${index} Change Ammo`,
+            );
+        }
     }
 
     input.addMomentaryClickAction(
