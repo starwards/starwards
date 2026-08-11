@@ -68,6 +68,13 @@ own, `tsc` did not report a mismatch — it exhausted a 4 GB heap trying to comp
 that had been fine moments earlier. Any module that adds zod must land on the same copy; check with
 `npm ls zod --all` and confirm no `modules/*/node_modules/zod` exists.
 
+**`@colyseus/core` is held at `0.16.24`** via root `overrides`. `0.16.25` was published with an
+unresolved pnpm workspace specifier in its manifest — `"@colyseus/greeting-banner": "workspace:^"` —
+which npm cannot resolve. Root `npm ci` is unaffected because the lockfile pins the resolution, but
+every lockfile-free install fails with `EUNSUPPORTEDPROTOCOL`: `scripts/pkg.js` (the `npm run pkg`
+step that produces `starwards.exe`) and the Dockerfile's `cd dist && npm install --omit=dev`. Lift
+the pin once upstream republishes a fixed manifest.
+
 Note that npm will keep reinstalling a nested copy while `package-lock.json` still has an entry for
 it, even after the override is added — delete the `modules/*/node_modules/zod` entry from the lockfile
 and reinstall.
@@ -89,6 +96,7 @@ and reinstall.
 | eslint | 10.x | eslint-plugin-react peers cap at ^9.7 | Blocked on plugin |
 | colyseus | 0.17/0.18 | Breaking 0.x line (0.16.x adopted) | Dedicated migration |
 | esbuild | 0.26+ | Breaking 0.x minors | Held at 0.25.x |
+| @colyseus/core | 0.16.25 | Published with `workspace:^` in its manifest; breaks every lockfile-free `npm install` | Pinned to 0.16.24 via root `overrides` |
 | zod | any second copy | Duplicate copies make `tsc` OOM rather than error (see Version Pins) | Pinned via root `overrides` |
 
 ## Upgrade Checklist
