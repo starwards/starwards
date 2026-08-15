@@ -32,6 +32,8 @@ export type WeaponAttackResolution = {
     hits: ResolvedSystemHit[];
     /** true iff this damage type scrapes hull-mounted systems regardless of armor (profile-level, not hit-count) */
     damagedExternals: boolean;
+    /** true iff any plate this hit landed on was already fully broken before this hit */
+    breachHit: boolean;
 };
 
 type AreaExposure = { hitArea: ShipArea; exposure: number };
@@ -65,19 +67,21 @@ export class AttackResolutionManager {
             }
         }
         const exposures: AreaExposure[] = [];
+        let breachHit = false;
         for (const hitArea of shipAreasInRange(damage.damageSurfaceArc)) {
             const areaArc = hitArea === ShipArea.front ? FRONT_ARC : REAR_ARC;
             const areaHitRangeAngles = archIntersection(areaArc, damage.damageSurfaceArc);
             if (!areaHitRangeAngles) {
                 continue;
             }
-            const exposure = this.walkArmorLayers(damage, areaHitRangeAngles, areaArc);
-            if (exposure > 0) {
-                exposures.push({ hitArea, exposure });
+            const walked = this.walkArmorLayers(damage, areaHitRangeAngles, areaArc);
+            breachHit = breachHit || walked.breachHit;
+            if (walked.exposure > 0) {
+                exposures.push({ hitArea, exposure: walked.exposure });
             }
         }
         hits.push(...this.resolvePenetrationChannel(damage, exposures));
-        return { hits, damagedExternals };
+        return { hits, damagedExternals, breachHit };
     }
 
     resolveCollisionAttack(damage: Damage): ResolvedSystemHit[] {
@@ -177,26 +181,34 @@ export class AttackResolutionManager {
      * the round fully penetrates (Tandem). Explosions erode the cells like ordinary plates — no
      * pop, no defeat.
      */
-    private walkArmorLayers(damage: AttackDamage, areaHitRangeAngles: RTuple2, areaArc: RTuple2): number {
+    private walkArmorLayers(
+        damage: AttackDamage,
+        areaHitRangeAngles: RTuple2,
+        areaArc: RTuple2,
+    ): { exposure: number; breachHit: boolean } {
         const armor = this.state.armor;
         const platesInArea = armor.numberOfPlatesInRange(areaArc);
         if (platesInArea <= 0) {
-            return 0;
+            return { exposure: 0, breachHit: false };
         }
         const totalAreaDegrees = platesInArea * armor.degreesPerPlate;
         const hits = [...armor.plateHitOverlaps(areaHitRangeAngles)];
         const hitSize = hits.reduce((sum, [, overlap]) => sum + overlap, 0);
         if (hitSize <= 0) {
-            return 0;
+            return { exposure: 0, breachHit: false };
         }
         const cellBudget = { popped: false };
         let exposureSum = 0;
+        let breachHit = false;
         for (const [plate, overlap] of hits) {
+            if (plate.broken) {
+                breachHit = true;
+            }
             const share = overlap / hitSize;
             const chain = this.walkPlateLayers(plate, damage, damage.amount * share, cellBudget);
             exposureSum += chain * overlap;
         }
-        return exposureSum / totalAreaDegrees;
+        return { exposure: exposureSum / totalAreaDegrees, breachHit };
     }
 
     /** walks a single plate's own layer stack, independent of every other plate in the hit */

@@ -8,7 +8,7 @@ export type CrewMessage = {
  *
  * Not a ship system: nothing said here is subject to range, jamming or a damaged comms array. It
  * exists because a station sandboxed to its own seat cannot see most of the ship, which is the point
- * — signals is the only seat that can identify a blip, ECR the only seat that knows why power is
+ * — signals is the only seat that can identify a blip, engineer the only seat that knows why power is
  * sagging — and the game only works when those seats tell each other.
  */
 export interface CrewChannel {

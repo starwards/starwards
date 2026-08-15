@@ -146,6 +146,16 @@ export class SpaceManager implements Updateable {
             this.clampToAbsoluteMaxSpeed(subject);
         }
     }
+    /**
+     * Flags the explosion (by id) as having landed a hit on an already-broken armor section, so
+     * clients render it as a hull-penetration hit instead of an exterior surface burst.
+     */
+    public markBreachHit(id: string) {
+        const [object] = this.getObjectPtr(id);
+        if (object && Explosion.isInstance(object)) {
+            object.breachHit = true;
+        }
+    }
     public setVelocity(id: string, velocity: XY) {
         if (isNaN(velocity.x) || isNaN(velocity.y)) {
             logWarn(`trying to set "NaN" in velocity of ${id}`);
@@ -183,8 +193,9 @@ export class SpaceManager implements Updateable {
     /**
      * NPC systems-broken death (issue #2111): instead of vanishing, an expendable ship is
      * replaced with an inert Derelict at the same position, carrying its radius, faction,
-     * callsign, angle, velocity and turn speed -- the hulk keeps drifting/tumbling as it was at
-     * the moment of death. No type-conversion machinery exists for space objects, so this is
+     * callsign, angle, velocity, turn speed and model -- the hulk keeps drifting/tumbling as it
+     * was at the moment of death, and its blip stays recognizable as the ship it was. No
+     * type-conversion machinery exists for space objects, so this is
      * delete (via `destroyObject`, which also still queues the ship-room teardown) + insert a
      * new object, same as every other object-type transition.
      */
@@ -200,6 +211,7 @@ export class SpaceManager implements Updateable {
             subject.faction,
             subject.callsign,
             subject.angle,
+            subject.model,
         );
         derelict.velocity = Vec2.make(subject.velocity);
         derelict.turnSpeed = subject.turnSpeed;
@@ -457,10 +469,16 @@ export class SpaceManager implements Updateable {
                 if (target) {
                     const destination = target.position;
                     const relativeDestination = XY.difference(destination, projectile.position);
+                    const distanceToTarget = XY.lengthOf(relativeDestination) - target.radius;
                     const fuze = projectile.fuze;
-                    if (fuze.type === 'proximity' && XY.lengthOf(relativeDestination) - target.radius < fuze.range) {
+                    if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
                         this.explodeProjectile(projectile);
                     } else {
+                        const homing = projectile.design.homing;
+                        // terminal sprint: dramatic acceleration burst once inside the sprint range,
+                        // so a target can't idly out-maneuver a missile it's already spotted
+                        const sprintMultiplier =
+                            homing.sprint && distanceToTarget < homing.sprint.range ? homing.sprint.speedMultiplier : 1;
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
@@ -485,12 +503,13 @@ export class SpaceManager implements Updateable {
                         if (boost > 0) {
                             const desiredSpeed = XY.scale(
                                 XY.rotate(XY.one, projectile.angle),
-                                boost * deltaSeconds * projectile.design.homing.velocityCapacity,
+                                boost * deltaSeconds * homing.velocityCapacity * sprintMultiplier,
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
-                        if (XY.lengthOf(projectile.velocity) > projectile.design.homing.maxSpeed) {
-                            projectile.velocity.normalize(projectile.design.homing.maxSpeed);
+                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
+                        if (XY.lengthOf(projectile.velocity) > maxSpeed) {
+                            projectile.velocity.normalize(maxSpeed);
                         }
                     }
                 }

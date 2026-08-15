@@ -68,7 +68,6 @@ export const commandBindings: Record<StationCommand, CommandBinding> = {
     // --- engineering ---
     systemPower: { kind: 'system', field: 'power', value: 'number' },
     systemCoolant: { kind: 'system', field: 'coolantFactor', value: 'number' },
-    ecrControl: { kind: 'fixed', pointer: '/ecrControl', value: 'toggle' },
     warpFrequency: { kind: 'fixed', pointer: '/warp/standbyFrequency', value: 'number' },
     changeFrequency: { kind: 'fixed', pointer: '/warp/changeFrequencyCommand', value: 'trigger' },
     enqueueRepair: {
