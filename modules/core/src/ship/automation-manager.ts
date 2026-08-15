@@ -1,3 +1,4 @@
+import { FlightProfile, makeFlightProfile } from './flight-profile';
 import { IdleStrategy, Order, ShipState } from './ship-state';
 import { IterationData, Updateable } from '../updateable';
 import {
@@ -7,7 +8,6 @@ import {
     XY,
     calcRangediff,
     capToRange,
-    getShellAimVelocityCompensation,
     isInRange,
     isTargetInKillZone,
     matchGlobalSpeed,
@@ -20,6 +20,7 @@ import {
 import { ChainGun } from './chain-gun';
 import { DockingMode } from './docking';
 import { Faction } from '../space';
+import { FlightDoctrine } from './flight-doctrine';
 import { ShipManager } from './ship-manager-abstract';
 import { SmartPilotMode } from './smart-pilot';
 import { SpaceObject } from '../space';
@@ -39,6 +40,14 @@ export class AutomationManager implements Updateable {
      * `isFiring` managed by anything else for such a hull (ammo/heat tests drive it directly).
      */
     private gunneryEngaged = false;
+
+    /**
+     * Cached so `headingOffset`'s hysteresis (avoiding heading chatter between two similarly-costed
+     * candidates) survives across ticks — rebuilt only when the resolved doctrine itself changes,
+     * never per tick.
+     */
+    private flightProfile: FlightProfile | null = null;
+    private flightProfileDoctrine: FlightDoctrine | null = null;
 
     constructor(
         private state: ShipState,
@@ -71,10 +80,25 @@ export class AutomationManager implements Updateable {
         this.shipManager.state.orderPosition.setValue(XY.zero);
     }
 
+    /**
+     * Rebuilt only when the resolved doctrine changes, so `headingOffset`'s hysteresis (its
+     * anti-chatter memory of the last heading chosen) survives across ticks instead of resetting
+     * every update.
+     */
+    private getFlightProfile(): FlightProfile {
+        const doctrine = this.state.effectiveFlightDoctrine;
+        if (!this.flightProfile || this.flightProfileDoctrine !== doctrine) {
+            this.flightProfile = makeFlightProfile(this.state, doctrine);
+            this.flightProfileDoctrine = doctrine;
+        }
+        return this.flightProfile;
+    }
+
     private positionNearTarget(
         targetVelocity: XY,
         targetPosition: XY,
-        rotationCompensation: XY,
+        leadCompensation: XY,
+        headingOffset: number,
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
     ) {
@@ -97,8 +121,8 @@ export class AutomationManager implements Updateable {
         // hull away from the target, which (via local-frame boost) accelerates it further off course —
         // a runaway feedback loop (issue #2083). It only makes sense once the ship is holding station
         // in range, where closing speed toward the target is already small.
-        const aimPoint = inRange ? XY.add(targetPosition, rotationCompensation) : targetPosition;
-        const rotation = rotateToTarget(deltaSecondsAvg, ship, aimPoint, 0);
+        const aimPoint = inRange ? XY.add(targetPosition, leadCompensation) : targetPosition;
+        const rotation = rotateToTarget(deltaSecondsAvg, ship, aimPoint, headingOffset);
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         ship.smartPilot.maneuvering.x = maneuvering.boost;
@@ -113,7 +137,7 @@ export class AutomationManager implements Updateable {
         if (XY.equals(this.state.position, destination, trackRange[1]) && XY.isZero(this.state.velocity)) {
             return true;
         }
-        this.positionNearTarget(XY.zero, destination, XY.zero, trackRange, id);
+        this.positionNearTarget(XY.zero, destination, XY.zero, 0, trackRange, id);
         return false;
     }
 
@@ -123,32 +147,24 @@ export class AutomationManager implements Updateable {
             return true;
         }
         const target = this.spaceManager.state.get(targetId) || null;
-        const controlWeapon = this.state.chainGuns[0] ?? null;
-        if (!target || target.destroyed || (fire && !controlWeapon)) {
+        if (!target || target.destroyed || (fire && this.state.chainGuns.length === 0)) {
             return true;
         }
         this.state.currentTask = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
-        let trackRange: RTuple2, rotationCompensation: XY;
-        if (fire && controlWeapon) {
+        if (fire) {
             // Marks the UI-facing weapons-target slot for this explicit order; actual gunnery
             // (aiming/firing) is handled uniformly for every NPC by runGunnery(), not here.
             this.shipManager.setTarget(targetId);
-            rotationCompensation =
-                controlWeapon.bearingLimit > 0
-                    ? getShellAimVelocityCompensation(this.state, controlWeapon)
-                    : this.boltedGunAimCompensation(controlWeapon, target);
-            // Position-holding needs a stable band. getKillZoneRadiusRange is keyed on
-            // shellSecondsToLive, which is derived from the ship's own velocity — using it here
-            // would make the approach/hold boundary chase the very velocity it's trying to
-            // stabilize, chattering between the two positionNearTarget branches (issue #2083).
-            // The gun's static design envelope gives a fixed band instead; the real (dynamic)
-            // kill zone below still governs firing.
-            trackRange = [controlWeapon.design.minShellRange, controlWeapon.design.maxShellRange];
-        } else {
-            trackRange = [1000, 3000];
-            rotationCompensation = XY.zero;
         }
-        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id);
+        const profile = this.getFlightProfile();
+        this.positionNearTarget(
+            target.velocity,
+            target.position,
+            profile.leadCompensation(target),
+            profile.headingOffset(target),
+            profile.trackRange(),
+            id,
+        );
         return false;
     }
 
@@ -210,20 +226,6 @@ export class AutomationManager implements Updateable {
         for (const chainGun of this.state.chainGuns) {
             chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
         }
-    }
-
-    /**
-     * A mount with no traverse left (bolted by design, or a turret whose `bearingLimitFactor` was
-     * damaged to 0) can't correct its own aim — `bearingCommand` always clamps to 0, so its global
-     * bearing is locked to `ship.angle + fittedBearing`. Bringing it to bear is the hull's job: aim
-     * the hull at the target rotated by `-fittedBearing`, so the muzzle (not the bow) ends up on the
-     * firing line. Returned as a `positionNearTarget`-style offset added to the target's position,
-     * matching `getShellAimVelocityCompensation`'s shape for the traversable-mount case.
-     */
-    private boltedGunAimCompensation(chainGun: ChainGun, target: SpaceObject): XY {
-        const shipToTarget = XY.difference(target.position, this.state.position);
-        const aimPoint = XY.add(this.state.position, XY.rotate(shipToTarget, -chainGun.fittedBearing));
-        return XY.difference(aimPoint, target.position);
     }
 
     private undock(dockingTargetId: string, dockingTarget: SpaceObject, deltaSecondsAvg: number) {
@@ -496,19 +498,20 @@ export class AutomationManager implements Updateable {
      *   must skip anything `anyMountCanBearOn` rejects — gunnery never moves or rotates to
      *   correct for a target no mount can actually point at, so a hostile no mount can bear on
      *   must never be preferred over one some mount can, regardless of distance.
-     * - An NPC's ATTACK order re-acquiring after its target dies (`update()`) only needs
-     *   `maxShellRange` on the first mount — the order drives movement, so a target merely
+     * - An NPC's ATTACK order re-acquiring after its target dies (`update()`) needs the *ship's*
+     *   max range — the highest `maxShellRange` across every mount, via the flight profile's
+     *   `isReachable` — not just one mount's: the order drives movement, so a target merely
      *   unbearable *right now* (mid-swing, or requiring the hull to reposition) is still a
-     *   legitimate new order target.
+     *   legitimate new order target, as long as *some* mount could eventually reach it.
      *
      * `excludeId` keeps it from picking an unreachable ATTACK-ordered primary right back out as
      * its own "opportunity".
      */
     private findNearestHostileTarget(excludeId?: string, requireBearable = false): string | null {
-        const controlWeapon = this.state.chainGuns[0] ?? null;
-        if (!controlWeapon) {
+        if (this.state.chainGuns.length === 0) {
             return null;
         }
+        const profile = this.getFlightProfile();
         let nearestId: string | null = null;
         let nearestDistance = Infinity;
         for (const candidate of this.spaceManager.state.getAll('Spaceship')) {
@@ -524,7 +527,7 @@ export class AutomationManager implements Updateable {
             const distance = XY.lengthOf(XY.difference(candidate.position, this.state.position));
             const reachable = requireBearable
                 ? this.anyMountCanBearOn(candidate)
-                : distance <= controlWeapon.design.maxShellRange;
+                : profile.isReachable(candidate, distance);
             if (reachable && distance < nearestDistance) {
                 nearestDistance = distance;
                 nearestId = candidate.id;

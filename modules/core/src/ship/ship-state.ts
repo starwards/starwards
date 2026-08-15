@@ -8,6 +8,7 @@ import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
+import { FlightDoctrine } from './flight-doctrine';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import { Radar } from './radar';
@@ -45,6 +46,20 @@ export enum Order {
     MOVE,
     ATTACK,
     FOLLOW,
+}
+
+/** ATTACK/FOLLOW's doctrine when the ship hasn't been given an explicit `flightDoctrine` override. */
+export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
+    switch (order) {
+        case Order.FOLLOW:
+            return FlightDoctrine.SHADOW;
+        case Order.ATTACK:
+        case Order.MOVE:
+        case Order.NONE:
+        default:
+            // MOVE/NONE never reach follow(); STANDOFF is a harmless, unused default for them.
+            return FlightDoctrine.STANDOFF;
+    }
 }
 
 export type ShipPropertiesDesign = {
@@ -89,6 +104,21 @@ export class ShipState extends Schema {
     @tweakable({ type: 'enum', enum: Order })
     @gameField('int8')
     order = Order.NONE;
+
+    /**
+     * How this ship weighs gunnery aim against propulsion efficiency when choosing hull heading
+     * and standoff distance while following an order. `AUTO` (the default) defers to `order` via
+     * {@link doctrineForOrder}; any other value overrides it — set from a scenario or the GM tweak
+     * panel for a hull whose armament doesn't fit its order's default doctrine.
+     */
+    @tweakable({ type: 'enum', enum: FlightDoctrine })
+    @gameField('int8')
+    flightDoctrine = FlightDoctrine.AUTO;
+
+    /** The doctrine actually flown: the explicit override if set, otherwise the one `order` implies. */
+    get effectiveFlightDoctrine(): FlightDoctrine {
+        return this.flightDoctrine === FlightDoctrine.AUTO ? doctrineForOrder(this.order) : this.flightDoctrine;
+    }
 
     @tweakable('string')
     @gameField('string')

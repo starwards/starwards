@@ -2,6 +2,7 @@ import {
     ChaingunDesign,
     DockingMode,
     Faction,
+    FlightDoctrine,
     IdleStrategy,
     Order,
     ShipDesign,
@@ -74,6 +75,33 @@ function threeMountFullTraverseConfig() {
     ];
     const maneuvering = { ...shipConfigurations['chaingun-platform'].maneuvering, rotationCapacity: 0 };
     return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
+}
+
+/**
+ * Two full-traverse mounts fitted FWD with very different `maxShellRange`: mount 0 is short-range,
+ * mount 1 reaches far beyond it. Used to prove ATTACK re-acquisition considers the ship's best
+ * mount, not just `chainGuns[0]`.
+ */
+function shortAndLongRangeConfig() {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['FWD', { ...chaingunPlatformChaingun, maxShellRange: 4_000 }],
+        ['FWD', { ...chaingunPlatformChaingun, maxShellRange: 20_000 }],
+    ];
+    const maneuvering = { ...shipConfigurations['chaingun-platform'].maneuvering, rotationCapacity: 0 };
+    return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
+}
+
+/**
+ * Same short/long-range mount pair as {@link shortAndLongRangeConfig}, but on a hull with real
+ * thrusters (`demo-ship`'s) so maneuvering commands are non-zero -- used to observe how far the
+ * ship tries to hold from its target, not just whether it can re-acquire one.
+ */
+function shortAndLongRangeThrustedConfig() {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['FWD', { ...chaingunPlatformChaingun, maxShellRange: 4_000 }],
+        ['FWD', { ...chaingunPlatformChaingun, maxShellRange: 20_000 }],
+    ];
+    return { ...shipConfigurations['demo-ship'], chainGuns };
 }
 
 function runOneTick(shipMgr: ShipManagerPc | ShipManagerNpc, spaceMgr: SpaceManager) {
@@ -223,6 +251,29 @@ describe('NPC threat re-acquisition', () => {
         expect(shipMgr.state.orderTargetId).to.equal(nearbyHostile.id);
     });
 
+    it('re-acquires a hostile reachable only by a longer-ranged mount than chainGuns[0]', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shortAndLongRangeConfig());
+        shipObj.faction = Faction.Raiders;
+
+        const originalTarget = createHostile('original-target', Faction.Gravitas, XY.byLengthAndDirection(2000, 0));
+        // Beyond chainGuns[0]'s 4,000 maxShellRange, but within chainGuns[1]'s 20,000 -- fails if
+        // acquisition still keys off chainGuns[0] alone.
+        const farHostile = createHostile('far-hostile', Faction.Gravitas, XY.byLengthAndDirection(15_000, 0));
+        spaceMgr.insert(originalTarget);
+        spaceMgr.insert(farHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = originalTarget.id;
+        runOneTick(shipMgr, spaceMgr);
+
+        originalTarget.destroyed = true;
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.order).to.equal(Order.ATTACK);
+        expect(shipMgr.state.orderTargetId).to.equal(farHostile.id);
+    });
+
     it('NPC degrades gracefully to no order when no hostile remains in range', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc);
         shipObj.faction = Faction.Raiders;
@@ -243,6 +294,37 @@ describe('NPC threat re-acquisition', () => {
         expect(shipMgr.state.order).to.equal(Order.NONE);
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         expect(shipMgr.state.orderTargetId).to.be.null;
+    });
+
+    it('an explicit flightDoctrine override changes hold distance without changing the order', () => {
+        // ATTACK defaults to STANDOFF, whose trackRange spans the guns' own envelope
+        // ([2400, 20000] on this config) -- a target at 3,500 sits inside that band, so the ship
+        // holds station. Overriding to SHADOW switches to the fixed [1000, 3000] band, where the
+        // same 3,500 target sits outside it, so the ship closes distance instead.
+        const distance = 3500;
+
+        function boostAfterOneTick(flightDoctrine: FlightDoctrine) {
+            const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shortAndLongRangeThrustedConfig());
+            shipObj.faction = Faction.Raiders;
+            const target = new Spaceship();
+            target.id = 'target';
+            target.faction = Faction.Gravitas;
+            target.position.setValue(XY.byLengthAndDirection(distance, 0));
+            spaceMgr.insert(target);
+            spaceMgr.forceFlushEntities();
+            shipMgr.state.flightDoctrine = flightDoctrine;
+            shipMgr.state.order = Order.ATTACK;
+            shipMgr.state.orderTargetId = target.id;
+            const [id] = makeIterationsData(0.05, 1);
+            shipMgr.update(id);
+            return shipMgr.state.smartPilot.maneuvering.x;
+        }
+
+        const standoffBoost = boostAfterOneTick(FlightDoctrine.AUTO);
+        const shadowBoost = boostAfterOneTick(FlightDoctrine.SHADOW);
+
+        expect(standoffBoost).to.be.closeTo(0, 0.01);
+        expect(shadowBoost).to.be.greaterThan(0.01);
     });
 
     it('player ship does not auto-engage nearby hostiles when idle', () => {

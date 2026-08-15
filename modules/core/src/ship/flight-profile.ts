@@ -1,0 +1,190 @@
+import {
+    AIM_COST_SCALE,
+    DoctrineWeights,
+    FlightDoctrine,
+    HEADING_HYSTERESIS_MARGIN,
+    SHADOW_TRACK_RANGE,
+    doctrineWeights,
+} from './flight-doctrine';
+import { RTuple2, XY, getShellAimVelocityCompensation, toDegreesDelta } from '../logic';
+import { ShipDirection, ShipDirections } from './ship-direction';
+
+import { ShipState, doctrineForOrder } from './ship-state';
+import { ChainGun } from './chain-gun';
+import { SpaceObject } from '../space';
+
+/**
+ * Everything `automation-manager`'s `follow()` needs to fly and shoot at an ordered target, decided
+ * for the whole ship rather than pinned to `chainGuns[0]` — the standoff band, the lead point, and
+ * which way to point the hull are all derived from the doctrine's weighting of every mount, not
+ * just the first one.
+ */
+export interface FlightProfile {
+    /** The distance band `positionNearTarget` holds from the target. */
+    trackRange(): RTuple2;
+    /**
+     * Shell-lead offset added to the target's position while in range. Velocity-dependent by
+     * design (`getShellAimVelocityCompensation`) — callers must keep gating this on `inRange`
+     * themselves; applying it while still closing distance re-creates the runaway feedback loop
+     * fixed in issue #2083.
+     */
+    leadCompensation(target: SpaceObject): XY;
+    /** Hull-relative bearing (degrees) to park on the target, passed as `rotateToTarget`'s offset. */
+    headingOffset(target: SpaceObject): number;
+    /** Whether `candidate`, at `distance`, is a legitimate re-acquisition target for this ship. */
+    isReachable(candidate: SpaceObject, distance: number): boolean;
+}
+
+class WeightedFlightProfile implements FlightProfile {
+    private lastOffset: number | null = null;
+
+    constructor(
+        private readonly state: ShipState,
+        private readonly weights: DoctrineWeights,
+    ) {}
+
+    trackRange(): RTuple2 {
+        const guns = this.state.chainGuns;
+        if (guns.length === 0 || !this.weights.useGunEnvelope) {
+            return SHADOW_TRACK_RANGE;
+        }
+        return [
+            Math.min(...guns.map((g) => g.design.minShellRange)),
+            Math.max(...guns.map((g) => g.design.maxShellRange)),
+        ];
+    }
+
+    leadCompensation(target: SpaceObject): XY {
+        const guns = this.state.chainGuns;
+        // Doctrines with no interest in gunnery (SHADOW) never bias the aim point toward a gun's
+        // firing line — matching a doctrine's `aim` weight of 0 in `headingOffset`.
+        if (guns.length === 0 || this.weights.aim === 0) {
+            return XY.zero;
+        }
+        const mount = bestTraversableMount(this.state, guns, target) ?? guns[0];
+        return getShellAimVelocityCompensation(this.state, mount);
+    }
+
+    headingOffset(target: SpaceObject): number {
+        const guns = this.state.chainGuns;
+        if (guns.length === 0) {
+            return this.lastOffset ?? 0;
+        }
+        const shipToTarget = XY.difference(target.position, this.state.position);
+        const targetVelocity = XY.difference(target.velocity, this.state.velocity);
+        const capacities = ShipDirections.map((d) => this.state.velocityCapacity(d));
+        const maxCapacity = Math.max(0, ...capacities);
+        const candidates = headingCandidates(guns, shipToTarget, targetVelocity);
+
+        let best = candidates[0];
+        let bestCost = Infinity;
+        for (const candidate of candidates) {
+            const cost =
+                this.weights.aim * aimCost(guns, candidate) +
+                this.weights.thrust * thrustCost(this.state, maxCapacity, candidate, shipToTarget, targetVelocity);
+            const isCurrent = this.lastOffset !== null && toDegreesDelta(candidate - this.lastOffset) === 0;
+            const adjustedCost = isCurrent ? cost - HEADING_HYSTERESIS_MARGIN : cost;
+            if (adjustedCost < bestCost) {
+                bestCost = adjustedCost;
+                best = candidate;
+            }
+        }
+        this.lastOffset = best;
+        return best;
+    }
+
+    isReachable(_candidate: SpaceObject, distance: number): boolean {
+        const guns = this.state.chainGuns;
+        if (guns.length === 0) {
+            return false;
+        }
+        return distance <= Math.max(...guns.map((g) => g.design.maxShellRange));
+    }
+}
+
+/** The mount whose bearing envelope currently covers `target`, or the first mount if none do. */
+function bestTraversableMount(state: ShipState, guns: ChainGun[], target: SpaceObject): ChainGun | null {
+    const shipToTarget = XY.difference(target.position, state.position);
+    const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - state.angle);
+    return (
+        guns.find((g) => Math.abs(toDegreesDelta(hullBearing - g.fittedBearing)) <= g.bearingLimit) ?? guns[0] ?? null
+    );
+}
+
+/**
+ * Candidate hull-relative headings: one per mount (parks that mount's fixed bearing on the firing
+ * line, independent of the target — see the `offset = -fittedBearing` derivation in the module
+ * doc), one per thrust direction (the offset that puts *that* direction's local bearing on the
+ * required-acceleration vector — see {@link thrustCost}'s matching derivation), plus dead-ahead.
+ */
+function headingCandidates(guns: ChainGun[], shipToTarget: XY, targetVelocity: XY): number[] {
+    const required = XY.lengthOf(targetVelocity) > 0.01 ? targetVelocity : shipToTarget;
+    const requiredAngle = XY.angleOf(required);
+    const targetAngle = XY.angleOf(shipToTarget);
+    const fromMounts = guns.map((g) => -g.fittedBearing);
+    const fromDirections = ShipDirections.map((d) => requiredAngle - targetAngle - d);
+    const all = [0, ...fromMounts, ...fromDirections];
+    const deduped: number[] = [];
+    for (const c of all) {
+        const normalized = toDegreesDelta(c);
+        if (!deduped.some((d) => toDegreesDelta(d - normalized) === 0)) {
+            deduped.push(normalized);
+        }
+    }
+    return deduped;
+}
+
+/**
+ * Normalized [0, 1] shortfall for holding heading `offset`: how far past its bearing limit each
+ * mount would be, summed and scaled so a mount that can't bear at all dominates {@link thrustCost},
+ * whose contribution never exceeds 1 (see {@link AIM_COST_SCALE}).
+ */
+function aimCost(guns: ChainGun[], offset: number): number {
+    let shortfall = 0;
+    for (const gun of guns) {
+        const desiredBearing = toDegreesDelta(-offset - gun.fittedBearing);
+        shortfall += Math.max(0, Math.abs(desiredBearing) - gun.bearingLimit) / 180;
+    }
+    return Math.min(1, (shortfall * AIM_COST_SCALE) / guns.length);
+}
+
+/**
+ * Normalized [0, 1] cost of holding heading `offset` given the required approach: 0 when the
+ * strongest thrust axis at that heading matches the required-acceleration vector, 1 when the ship
+ * has no thrust at all (stations) — leaving the whole heading decision to {@link aimCost}. The
+ * predicted hull angle at `offset` is `angleOf(shipToTarget) + offset` (`rotateToTarget`'s steady
+ * state) — using the ship's *current* angle here would close the #2083-class loop this arbitration
+ * is required to avoid.
+ */
+function thrustCost(
+    state: ShipState,
+    maxCapacity: number,
+    offset: number,
+    shipToTarget: XY,
+    targetVelocity: XY,
+): number {
+    if (maxCapacity <= 0) {
+        return 0;
+    }
+    const required = XY.lengthOf(targetVelocity) > 0.01 ? targetVelocity : shipToTarget;
+    const predictedAngle = XY.angleOf(shipToTarget) + offset;
+    const localRequired = XY.rotate(required, -predictedAngle);
+    const direction = strongestAxis(localRequired);
+    return 1 - state.velocityCapacity(direction) / maxCapacity;
+}
+
+function strongestAxis(local: XY): ShipDirection {
+    return Math.abs(local.x) >= Math.abs(local.y)
+        ? local.x >= 0
+            ? ShipDirection.FWD
+            : ShipDirection.AFT
+        : local.y >= 0
+          ? ShipDirection.PORT
+          : ShipDirection.STBD;
+}
+
+export function makeFlightProfile(state: ShipState, doctrine: FlightDoctrine): FlightProfile {
+    const resolved: Exclude<FlightDoctrine, FlightDoctrine.AUTO> =
+        doctrine === FlightDoctrine.AUTO ? doctrineForOrder(state.order) : doctrine;
+    return new WeightedFlightProfile(state, doctrineWeights[resolved]);
+}
