@@ -30,6 +30,15 @@ import { switchToAvailableAmmo } from './chain-gun-manager';
 /** How often an NPC with no ordered/cached target re-scans for a hostile to fire on. */
 const GUNNERY_RESCAN_INTERVAL_SECONDS = 1;
 
+/**
+ * How long a commanded heading must be able to keep sweeping at a measured rate for that rate to be
+ * worth damping against. `rotationCapacity * REFERENCE_SWEEP_HORIZON_SECONDS` is the turn rate the
+ * hull itself could build up over that horizon; a measured reference rate beyond it describes a step
+ * in the heading (a `bestOffset` hysteresis flip, a mount switch, a target reacquire), not a sweep
+ * the hull could ever track — see {@link AutomationManager.commandHeading}.
+ */
+const REFERENCE_SWEEP_HORIZON_SECONDS = 1;
+
 export class AutomationManager implements Updateable {
     private gunneryTargetId: string | null = null;
     private gunneryRescanCooldown = 0;
@@ -48,8 +57,14 @@ export class AutomationManager implements Updateable {
      */
     private flightProfile: FlightProfile | null = null;
     private flightProfileDoctrine: FlightDoctrine | null = null;
-    /** Heading `commandHeading` last aimed at, to measure how fast that reference is sweeping. */
+    /**
+     * Heading `commandHeading` last aimed at, to measure how fast that reference is sweeping.
+     * `null` whenever the previous tick commanded no heading at all, so a measurement never spans a
+     * gap — {@link update} clears it, no caller has to.
+     */
     private lastCommandedHeading: number | null = null;
+    /** Whether {@link commandHeading} ran this tick. Owned by {@link update}'s tick housekeeping. */
+    private commandedHeadingThisTick = false;
     /**
      * Whether the idle give-way turn is under way. Latched until the target itself is gone, because
      * "no mount can bear" is the condition that *starts* the turn and never the one that ends it:
@@ -151,9 +166,7 @@ export class AutomationManager implements Updateable {
         }
         const headingOffset = this.transitHeadingConcession(destination, gunneryTarget);
         this.positionNearTarget(XY.zero, destination, XY.zero, headingOffset, trackRange, id);
-        if (headingOffset === 0) {
-            this.lastCommandedHeading = null;
-        } else {
+        if (headingOffset !== 0) {
             // The concession's reference sweeps as the target passes; `positionNearTarget`'s
             // `rotateToTarget` damps against absolute turn rate and lags it the whole pass.
             this.commandHeading(
@@ -166,18 +179,32 @@ export class AutomationManager implements Updateable {
 
     /**
      * Points the hull at `absoluteAngle`, measuring how fast that heading is itself sweeping so
-     * {@link rotateToAngle} can damp against the rate *relative* to it. Reset
-     * {@link lastCommandedHeading} on any tick that doesn't command a heading, or the next
-     * measurement spans a gap and reads as a spurious sweep.
+     * {@link rotateToAngle} can damp against the rate *relative* to it. {@link update} handles
+     * clearing {@link lastCommandedHeading} on ticks that command no heading, so no caller has to.
+     *
+     * The measurement is a one-tick finite difference, so a *step* in the commanded heading — the
+     * heading arbitration flipping between two similarly-costed candidates, a different mount being
+     * picked, a target reacquired — enters it as an enormous rate that no sweep could produce. Such
+     * a sample is rejected outright and the reference re-anchored (rate 0, the already-exercised
+     * first-tick path), leaving the next tick to measure cleanly: clamping would assert the
+     * reference really is sweeping that fast, and smoothing would add lag to the very term that
+     * exists to remove it. See {@link REFERENCE_SWEEP_HORIZON_SECONDS} for the bound.
      */
     private commandHeading(absoluteAngle: number, deltaSecondsAvg: number) {
-        const referenceTurnSpeed =
-            this.lastCommandedHeading === null || deltaSecondsAvg <= 0
-                ? 0
-                : toDegreesDelta(absoluteAngle - this.lastCommandedHeading) / deltaSecondsAvg;
+        const referenceTurnSpeed = this.measureReferenceTurnSpeed(absoluteAngle, deltaSecondsAvg);
         this.lastCommandedHeading = absoluteAngle;
+        this.commandedHeadingThisTick = true;
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         this.state.smartPilot.rotation = rotateToAngle(deltaSecondsAvg, this.state, absoluteAngle, referenceTurnSpeed);
+    }
+
+    private measureReferenceTurnSpeed(absoluteAngle: number, deltaSecondsAvg: number): number {
+        if (this.lastCommandedHeading === null || deltaSecondsAvg <= 0) {
+            return 0;
+        }
+        const rate = toDegreesDelta(absoluteAngle - this.lastCommandedHeading) / deltaSecondsAvg;
+        const maxTrackableRate = this.state.rotationCapacity * REFERENCE_SWEEP_HORIZON_SECONDS;
+        return Math.abs(rate) > maxTrackableRate ? 0 : rate;
     }
 
     /**
@@ -333,6 +360,7 @@ export class AutomationManager implements Updateable {
     }
 
     update(id: IterationData): void {
+        this.commandedHeadingThisTick = false;
         if (this.getAndApplyOrder()) {
             this.shipManager.cancelAllTasks();
         }
@@ -355,6 +383,13 @@ export class AutomationManager implements Updateable {
             this.engageGunnery(gunneryTarget);
         } else {
             this.disengageGunnery();
+        }
+        // Tick housekeeping for `commandHeading`'s sweep measurement, enforced here rather than at
+        // each site that stops commanding a heading: those are early returns scattered across
+        // `goto()`, the idle path and their callees, and one of them missing the reset is exactly
+        // how the reference rate came to be measured across an arbitrarily long gap.
+        if (!this.commandedHeadingThisTick) {
+            this.lastCommandedHeading = null;
         }
     }
 
@@ -428,8 +463,9 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Runs the idle give-way turn, holding the heading until the hull has actually settled on it —
-     * see {@link idleGiveWayEngaged}. Disengaging zeroes `smartPilot.rotation` rather than simply
+     * Runs the idle give-way turn, holding the heading until the target itself is gone rather than
+     * until a mount comes to bear — see {@link idleGiveWayEngaged} for why the start condition is
+     * not usable as the end condition. Disengaging zeroes `smartPilot.rotation` rather than simply
      * ceasing to write it, since nothing else on the idle path owns that field.
      */
     private updateIdleGiveWay(gunneryTarget: SpaceObject | null, deltaSecondsAvg: number) {
@@ -448,7 +484,6 @@ export class AutomationManager implements Updateable {
     private disengageIdleGiveWay() {
         if (this.idleGiveWayEngaged) {
             this.idleGiveWayEngaged = false;
-            this.lastCommandedHeading = null;
             this.state.smartPilot.rotation = 0;
         }
     }

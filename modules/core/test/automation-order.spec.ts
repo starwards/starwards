@@ -734,6 +734,41 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(toDegreesDelta(shipObj.angle - settled)).to.be.closeTo(0, 1);
     });
 
+    it('does not damp against a step in the commanded heading as if it were a sweep', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, rotatingNarrowArcPlatformConfig(20));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+        const gun = shipMgr.state.chainGuns[0];
+        gun.bearingSkew = 40;
+
+        // Out of the skewed mount's reach, so the idle give-way turn engages and commands a heading.
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 82));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+        const oneTick = () => {
+            for (const id of makeIterationsData(0.05, 1)) {
+                shipMgr.update(id);
+                spaceMgr.update(id);
+            }
+        };
+        oneTick();
+
+        // The hostile jumps 40 degrees, stepping the commanded heading by the same 40 across one
+        // 0.05s tick -- 800 deg/s, more than an order of magnitude past what this hull's own
+        // 60 deg/s^2 could build up in a second, so it is a step and not a sweep. The hull is pinned
+        // where it started so the *only* thing this second tick measures is that reference rate.
+        hostile.position.setValue(XY.byLengthAndDirection(5000, 42));
+        spaceMgr.forceFlushEntities();
+        shipObj.angle = 0;
+        shipObj.turnSpeed = 0;
+        oneTick();
+
+        // The heading now wanted is ~2 degrees away, which a hull at rest answers by turning gently
+        // toward it. Treating the step as a sweep instead reads the hull as already racing past that
+        // heading at 800 deg/s and commands full counter-rotation -- the wrong way, at full scale.
+        expect(shipMgr.state.smartPilot.rotation, 'rotation command after a heading step').to.be.within(0.05, 0.95);
+    });
+
     it('drops a cached target that closes inside minShellRange, consistent with canBearOn', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
         shipObj.faction = Faction.Raiders;
