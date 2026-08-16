@@ -1,9 +1,13 @@
 import {
+    ChainGun,
     Faction,
     Order,
     ShipManagerNpc,
+    ShipState,
     SpaceManager,
+    SpaceObject,
     Spaceship,
+    XY,
     ammoTypes,
     makeShipState,
     shipConfigurations,
@@ -19,6 +23,20 @@ const demoShipConfig = shipConfigurations['demo-ship'];
 
 // A turreted mount, unlike the roster's bolted-forward chain gun, can actually swing.
 const turretedChaingun = { ...demoShipChaingun, turnSpeed: 90, bearingLimit: 180 };
+
+/**
+ * Degrees between where `mount` actually points and where it would need to point to be exactly
+ * on `target` right now. Computed fresh from current ship/target geometry rather than assuming a
+ * fixed bearing — the attacking ship's own combat-weave lateral drift (issue #2146) means "true
+ * bearing to target" legitimately moves tick to tick, so a test can't just assert `hullBearing`
+ * against a constant.
+ */
+function aimOffsetDegrees(ship: ShipState, target: SpaceObject, mount: ChainGun): number {
+    const desiredHullBearing = toDegreesDelta(
+        XY.angleOf(XY.difference(target.position, ship.position)) - ship.angle - mount.fittedBearing,
+    );
+    return Math.abs(toDegreesDelta(mount.hullBearing - desiredHullBearing));
+}
 
 describe('an NPC ship with multiple turreted mounts under attack orders', () => {
     afterEach(() => jest.restoreAllMocks());
@@ -104,7 +122,7 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
             shipMgr.update(id);
             spaceMgr.update(id);
         }
-        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.lessThan(2);
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(2);
 
         // sudden defect bends the mount off its commanded bearing — well short of `broken` (45)
         mount.bearingSkew = 20;
@@ -114,7 +132,7 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
         }
         // one tick in: the AI's lagged estimate has barely moved, so the mount is still bent by
         // close to the full defect — a mount defect has an immediate tactical consequence
-        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.greaterThan(15);
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.greaterThan(15);
 
         // several more seconds of continued engagement: the AI's tracked estimate catches up and
         // the mount swings back close to the target
@@ -122,7 +140,7 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
             shipMgr.update(id);
             spaceMgr.update(id);
         }
-        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.lessThan(5);
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(2);
     });
 
     it('is blind to a pre-existing defect until it actually engages — belief comes only from observation, never from the defect field', () => {
@@ -166,12 +184,12 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
         }
         // engagement opens exactly as blind as a fresh defect would — 30 idle seconds with the
         // defect already present bought the AI no head start, because it was never observing
-        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.greaterThan(15);
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.greaterThan(15);
 
         for (const id of makeIterationsData(12, 240)) {
             shipMgr.update(id);
             spaceMgr.update(id);
         }
-        expect(Math.abs(toDegreesDelta(mount.hullBearing))).to.be.lessThan(5);
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(2);
     });
 });
