@@ -50,6 +50,16 @@ export class AutomationManager implements Updateable {
     private flightProfileDoctrine: FlightDoctrine | null = null;
     /** Heading `commandHeading` last aimed at, to measure how fast that reference is sweeping. */
     private lastCommandedHeading: number | null = null;
+    /**
+     * Whether the idle give-way turn is under way. Latched until the target itself is gone, because
+     * "no mount can bear" is the condition that *starts* the turn and never the one that ends it:
+     * the hull is still carrying turn speed at the moment a mount first comes to bear, so a
+     * controller that stops commanding there leaves that speed in `smartPilot.rotation` with
+     * nothing to arrest it — the hull sails back out of the window and the gate re-arms, once per
+     * revolution. Releasing the heading once merely *settled* hunts for the same reason, more
+     * slowly. Holding it costs nothing: `rotateToAngle` commands ~0 on a heading already held.
+     */
+    private idleGiveWayEngaged = false;
 
     constructor(
         private state: ShipState,
@@ -413,10 +423,34 @@ export class AutomationManager implements Updateable {
             }
             return true;
         }
-        if (gunneryTarget && !this.anyMountCanBearOn(gunneryTarget)) {
-            this.aimIdleHullAtGunneryTarget(gunneryTarget, id.deltaSecondsAvg);
-        }
+        this.updateIdleGiveWay(gunneryTarget, id.deltaSecondsAvg);
         return false;
+    }
+
+    /**
+     * Runs the idle give-way turn, holding the heading until the hull has actually settled on it —
+     * see {@link idleGiveWayEngaged}. Disengaging zeroes `smartPilot.rotation` rather than simply
+     * ceasing to write it, since nothing else on the idle path owns that field.
+     */
+    private updateIdleGiveWay(gunneryTarget: SpaceObject | null, deltaSecondsAvg: number) {
+        if (!gunneryTarget) {
+            this.disengageIdleGiveWay();
+            return;
+        }
+        if (!this.anyMountCanBearOn(gunneryTarget)) {
+            this.idleGiveWayEngaged = true;
+        }
+        if (this.idleGiveWayEngaged) {
+            this.aimIdleHullAtGunneryTarget(gunneryTarget, deltaSecondsAvg);
+        }
+    }
+
+    private disengageIdleGiveWay() {
+        if (this.idleGiveWayEngaged) {
+            this.idleGiveWayEngaged = false;
+            this.lastCommandedHeading = null;
+            this.state.smartPilot.rotation = 0;
+        }
     }
 
     /**
@@ -540,10 +574,9 @@ export class AutomationManager implements Updateable {
      * beyond maxShellRange), and within the traverse `Turret.canBearAt` allows off the mount's rest
      * bearing — where it was fitted *plus* however far damage has skewed it, since a skewed mount's
      * reachable window travels with the skew. Deliberately ignores the mount's actual in-flight
-     * bearing (which lags
-     * `bearingCommand` at `turnSpeed`): this answers "is it worth committing the swing to this
-     * target", not "has the swing finished yet" — the latter is what `isTargetInKillZone` (via
-     * `aimAndFire`) still separately governs for the fire decision itself.
+     * bearing (which lags `bearingCommand` at `turnSpeed`): this answers "is it worth committing
+     * the swing to this target", not "has the swing finished yet" — the latter is what
+     * `isTargetInKillZone` (via `aimAndFire`) still separately governs for the fire decision.
      */
     private canBearOn(chainGun: ChainGun, target: SpaceObject): boolean {
         const shipToTarget = XY.difference(target.position, this.state.position);

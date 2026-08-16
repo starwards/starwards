@@ -64,10 +64,7 @@ class WeightedFlightProfile implements FlightProfile {
         const guns = this.state.chainGuns;
         // Doctrines with no interest in gunnery (SHADOW) never bias the aim point toward a gun's
         // firing line — matching a doctrine's `aim` weight of 0 in `headingOffset`.
-        if (guns.length === 0 || this.weights.aim === 0) {
-            return XY.zero;
-        }
-        const mount = bestTraversableMount(this.state, guns, target);
+        const mount = this.weights.aim === 0 ? null : bestTraversableMount(this.state, guns, target);
         if (!mount) {
             return XY.zero;
         }
@@ -86,13 +83,12 @@ class WeightedFlightProfile implements FlightProfile {
 
     gunneryHullAngle(target: SpaceObject, requiredAcceleration: XY): number | null {
         const guns = this.state.chainGuns;
-        if (guns.length === 0 || this.weights.aim === 0) {
-            return null;
-        }
+        // `null` when the doctrine has no interest in gunnery (aim weight 0 — SHADOW) or the hull
+        // carries no mounts, both of which surface as no mount to pick.
         // A bolted gun's own bearingCommand clamps to 0 — it never swings onto the firing solution
         // the way a traversing mount does, so the hull heading itself has to carry it. That is the
         // same aim point `aimAndFire` lays each mount's firing line on, so hull and mount agree.
-        const mount = bestTraversableMount(this.state, guns, target);
+        const mount = this.weights.aim === 0 ? null : bestTraversableMount(this.state, guns, target);
         if (!mount) {
             return null;
         }

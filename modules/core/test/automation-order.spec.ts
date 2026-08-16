@@ -710,14 +710,24 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         spaceMgr.insert(createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0)));
         spaceMgr.forceFlushEntities();
 
-        const angleBefore = shipObj.angle;
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 60; i++) {
             runOneTick(shipMgr, spaceMgr);
         }
 
         // Reading the window off `fittedBearing` alone calls the target bearable and the hull never
         // gives way; the mount then sits at its clamped limit, 20 degrees off, forever.
-        expect(Math.abs(toDegreesDelta(shipObj.angle - angleBefore))).to.be.greaterThan(1);
+        expect(gun.isFiring, 'mount bears and fires after the give-way turn').to.equal(true);
+        // The hull has yielded exactly the skew, putting the target on the mount's rest bearing.
+        expect(toDegreesDelta(shipObj.angle)).to.be.closeTo(-40, 2);
+
+        // And it holds there: releasing the heading the moment a mount first bears would leave the
+        // hull's turn speed unarrested, sweeping it back out of the window once per revolution.
+        const settled = shipObj.angle;
+        for (let i = 0; i < 100; i++) {
+            runOneTick(shipMgr, spaceMgr);
+            expect(gun.isFiring, `still firing at tick ${i}`).to.equal(true);
+        }
+        expect(toDegreesDelta(shipObj.angle - settled)).to.be.closeTo(0, 1);
     });
 
     it('drops a cached target that closes inside minShellRange, consistent with canBearOn', () => {

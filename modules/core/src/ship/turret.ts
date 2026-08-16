@@ -72,9 +72,9 @@ export abstract class Turret extends SystemState {
     fittedBearing = 0;
 
     /**
-     * where the mount is pointing right now, relative to `fittedBearing` (0 = pointing exactly
-     * where it's fitted). Owned by the ship manager — command it through `bearingCommand` instead
-     * of writing it.
+     * where the mount is pointing right now, relative to `restBearing` (0 = pointing exactly where
+     * it rests). Owned by the ship manager — command it through `bearingCommand` instead of
+     * writing it.
      */
     @range(shipDirectionRange)
     @tweakable('number')
@@ -138,7 +138,7 @@ export abstract class Turret extends SystemState {
     bearingCommandRaw = 0;
 
     /**
-     * the bearing the mount is swinging toward, relative to `fittedBearing`. Clamped to
+     * the bearing the mount is swinging toward, relative to `restBearing`. Clamped to
      * `±bearingLimit` on every write — bot, player command, GM tweak panel, future script alike —
      * so nothing can point a mount through the hull it is bolted to.
      */
