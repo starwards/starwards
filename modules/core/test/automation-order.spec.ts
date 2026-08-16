@@ -617,6 +617,32 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1); // back on the primary
     });
 
+    it('yields to an opportunity hostile while the ordered target outruns the shell', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const bulletSpeed = shipMgr.state.chainGuns[0]?.design.bulletSpeed ?? 0;
+        // Dead ahead and well inside the envelope, so range and bearing both say "take the shot" —
+        // but it recedes faster than the shell flies, which no bearing can compensate for.
+        const outrunningTarget = createHostile('outrunning-target', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        outrunningTarget.velocity.setValue(XY.byLengthAndDirection(bulletSpeed * 1.2, 0));
+        const opportunityHostile = createHostile(
+            'opportunity-hostile',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(5000, 90),
+        );
+        spaceMgr.insert(outrunningTarget);
+        spaceMgr.insert(opportunityHostile);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = outrunningTarget.id;
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
+    });
+
     it('opportunity fire changes nothing about position, velocity, or hull angle vs. a control run with no opportunity hostile', () => {
         const maxShellRange = shipConfigurations['chaingun-platform'].chainGuns[0][1].maxShellRange;
         const orderedTargetPosition = XY.byLengthAndDirection(maxShellRange + 5_000, 0);

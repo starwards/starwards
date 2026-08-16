@@ -60,6 +60,39 @@ describe('solveShellIntercept', () => {
         expect(XY.lengthOf(XY.difference(detonation, targetAtDetonation))).to.be.lessThan(1);
     });
 
+    it('reports a target receding faster than the shell as unreachable, still tracking it', () => {
+        const target = makeTarget({ x: 5000, y: 0 }, { x: config.chainGuns[0][1].bulletSpeed * 1.2, y: 0 });
+        const state = makeShip(config.radius, XY.zero);
+
+        const { reachable, aimPoint, secondsToLive } = solveShellIntercept(state, state.chainGuns[0], target);
+
+        expect(reachable).to.equal(false);
+        // The mount is still given somewhere to point and a fuze to hold, so the hull can keep
+        // turning toward a target whose geometry may yet change — it just isn't a firing solution.
+        expect(XY.equals(aimPoint, target.position, 0.001)).to.equal(true);
+        expect(secondsToLive).to.be.greaterThan(0);
+    });
+
+    it('has a solution for every target slower than the shell', () => {
+        const bulletSpeed = config.chainGuns[0][1].bulletSpeed;
+        fc.assert(
+            fc.property(
+                float(0, 800),
+                xy(bulletSpeed / 4),
+                xy(config.chainGuns[0][1].maxShellRange, config.radius + 1),
+                xy(bulletSpeed / 4),
+                (radius, shipVelocity, targetPosition, targetVelocity) => {
+                    // Both speeds are capped at a quarter of the muzzle speed, so their difference
+                    // can never reach it — the one condition under which a root exists at all.
+                    const state = makeShip(radius, shipVelocity);
+                    const target = makeTarget(targetPosition, targetVelocity);
+
+                    expect(solveShellIntercept(state, state.chainGuns[0], target).reachable).to.equal(true);
+                },
+            ),
+        );
+    });
+
     it('detonates the shell on the target for any geometry inside the gun envelope', () => {
         fc.assert(
             fc.property(

@@ -318,6 +318,10 @@ export class AutomationManager implements Updateable {
                 const midRange = chainGun.design.minShellRange + aimRange;
                 chainGun.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
             }
+            // A target with no firing solution needs no separate gate here: unreachable means it
+            // outruns the shell, so over the fuze it displaces at least as far as the shell travels
+            // from the muzzle, while the kill zone is a few percent of that travel. `canBearOn` is
+            // where reachability changes a decision — which target the ship commits its swing to.
             chainGun.isFiring = isTargetInKillZone(this.state, chainGun, target);
         }
     }
@@ -630,10 +634,15 @@ export class AutomationManager implements Updateable {
      * sight, because that aim point is where `aimAndFire` and `gunneryHullAngle` actually point the
      * mount — tens of degrees away at high closing speed. Keying the gate on the line of sight
      * answers "does the target lie in the arc", when what every caller of it needs to know is
-     * "can this mount take the shot".
+     * "can this mount take the shot". A target that outruns the shell has no aim point to test at
+     * all, so it fails first: the ship is then free to turn or to pick an opportunity target it can
+     * actually hit, instead of committing a swing to a shot that can never land.
      */
     private canBearOn(chainGun: ChainGun, target: SpaceObject): boolean {
-        const { aimPoint } = solveShellIntercept(this.state, chainGun, target);
+        const { aimPoint, reachable } = solveShellIntercept(this.state, chainGun, target);
+        if (!reachable) {
+            return false;
+        }
         const shipToAimPoint = XY.difference(aimPoint, this.state.position);
         const distance = XY.lengthOf(shipToAimPoint);
         if (distance > chainGun.design.maxShellRange || distance < chainGun.design.minShellRange) {

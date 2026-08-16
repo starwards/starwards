@@ -18,6 +18,13 @@ export type ShellIntercept = {
      * mount cannot correct for itself.
      */
     aimPoint: XY;
+    /**
+     * Whether a shell can reach the target at all — `false` exactly when the target's velocity
+     * relative to the firing ship meets or exceeds the muzzle speed along the line of sight. The
+     * other two fields then degrade to tracking the target's present position, so a mount still
+     * follows it and the hull can still turn toward it, but nothing may commit to the shot.
+     */
+    reachable: boolean;
 };
 
 /**
@@ -35,8 +42,8 @@ export type ShellIntercept = {
  *
  * Squaring that range condition gives a quadratic in `T`, solved in closed form — an iterative
  * refinement diverges once `|w|` approaches the muzzle speed, exactly the fast-transit case that
- * needs the answer most. When no positive root exists the shot is unreachable (the target outruns
- * the shell); the mount is then aimed at the target itself and the kill-zone gate refuses the shot.
+ * needs the answer most. When no positive root exists the target outruns the shell: the result is
+ * marked unreachable and degrades to tracking the target's present position.
  */
 export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target: SpaceObject): ShellIntercept {
     const bulletSpeed = Math.max(chainGun.design.bulletSpeed, 1);
@@ -51,10 +58,13 @@ export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target:
         return {
             secondsToLive: Math.max(0, XY.lengthOf(shipToTarget) - ship.radius) / bulletSpeed,
             aimPoint: target.position,
+            reachable: false,
         };
     }
     const aimPoint = addScale(target.position, relativeVelocity, secondsToLive);
-    return XY.isFinite(aimPoint) ? { secondsToLive, aimPoint } : { secondsToLive, aimPoint: target.position };
+    return XY.isFinite(aimPoint)
+        ? { secondsToLive, aimPoint, reachable: true }
+        : { secondsToLive, aimPoint: target.position, reachable: false };
 }
 
 function smallestPositiveRoot(a: number, b: number, c: number): number | null {
