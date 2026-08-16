@@ -38,6 +38,9 @@ export const AIM_COST_SCALE = 5;
 /** Cost advantage a challenger heading needs before it displaces the one already held. */
 export const HEADING_HYSTERESIS_MARGIN = 0.05;
 
+/** Most a movement order will turn the hull off its destination bearing to bring a mount to bear. */
+export const MAX_TRANSIT_HEADING_CONCESSION = 90;
+
 export const doctrineWeights: Record<Exclude<FlightDoctrine, FlightDoctrine.AUTO>, DoctrineWeights> = {
     [FlightDoctrine.INTERCEPT]: { aim: 1, thrust: 0.2, useGunEnvelope: true },
     [FlightDoctrine.STANDOFF]: { aim: 0.4, thrust: 1, useGunEnvelope: true },

@@ -33,6 +33,12 @@ export interface FlightProfile {
     headingOffset(target: SpaceObject): number;
     /** Whether `candidate`, at `distance`, is a legitimate re-acquisition target for this ship. */
     isReachable(candidate: SpaceObject, distance: number): boolean;
+    /**
+     * Absolute hull angle (degrees) that best serves gunnery on `target` while the ship must
+     * accelerate along `requiredAcceleration`. `null` when the doctrine has no interest in gunnery
+     * (`aim` weight 0 — SHADOW) or the ship carries no mounts.
+     */
+    gunneryHullAngle(target: SpaceObject, requiredAcceleration: XY): number | null;
 }
 
 class WeightedFlightProfile implements FlightProfile {
@@ -72,16 +78,44 @@ class WeightedFlightProfile implements FlightProfile {
         }
         const shipToTarget = XY.difference(target.position, this.state.position);
         const targetVelocity = XY.difference(target.velocity, this.state.velocity);
+        return this.bestOffset(shipToTarget, targetVelocity);
+    }
+
+    gunneryHullAngle(target: SpaceObject, requiredAcceleration: XY): number | null {
+        const guns = this.state.chainGuns;
+        if (guns.length === 0 || this.weights.aim === 0) {
+            return null;
+        }
+        // A bolted gun's own bearingCommand clamps to 0 — it never corrects for the shell's
+        // inherited hull velocity the way a traversing mount's aim point can, so the hull heading
+        // itself has to carry that compensation, the same lead trick `leadCompensation` already
+        // applies to the aim point during station-keeping.
+        const mount = bestTraversableMount(this.state, guns, target) ?? guns[0];
+        const aimPoint = XY.add(target.position, getShellAimVelocityCompensation(this.state, mount));
+        const shipToTarget = XY.difference(aimPoint, this.state.position);
+        if (XY.isZero(shipToTarget)) {
+            return null;
+        }
+        return XY.angleOf(shipToTarget) + this.bestOffset(shipToTarget, requiredAcceleration);
+    }
+
+    /**
+     * Cost-minimizing hull-relative offset shared by {@link headingOffset} and
+     * {@link gunneryHullAngle} — and its `lastOffset` hysteresis state, which is genuinely "the
+     * heading currently held" regardless of which caller is asking.
+     */
+    private bestOffset(shipToTarget: XY, required: XY): number {
+        const guns = this.state.chainGuns;
         const capacities = ShipDirections.map((d) => this.state.velocityCapacity(d));
         const maxCapacity = Math.max(0, ...capacities);
-        const candidates = headingCandidates(guns, shipToTarget, targetVelocity);
+        const candidates = headingCandidates(guns, shipToTarget, required);
 
         let best = candidates[0];
         let bestCost = Infinity;
         for (const candidate of candidates) {
             const cost =
                 this.weights.aim * aimCost(guns, candidate) +
-                this.weights.thrust * thrustCost(this.state, maxCapacity, candidate, shipToTarget, targetVelocity);
+                this.weights.thrust * thrustCost(this.state, maxCapacity, candidate, shipToTarget, required);
             const isCurrent = this.lastOffset !== null && toDegreesDelta(candidate - this.lastOffset) === 0;
             const adjustedCost = isCurrent ? cost - HEADING_HYSTERESIS_MARGIN : cost;
             if (adjustedCost < bestCost) {
@@ -98,7 +132,10 @@ class WeightedFlightProfile implements FlightProfile {
         if (guns.length === 0) {
             return false;
         }
-        return distance <= Math.max(...guns.map((g) => g.design.maxShellRange));
+        return (
+            distance <= Math.max(...guns.map((g) => g.design.maxShellRange)) &&
+            distance >= Math.min(...guns.map((g) => g.design.minShellRange))
+        );
     }
 }
 

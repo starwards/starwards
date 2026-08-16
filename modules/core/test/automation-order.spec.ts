@@ -620,12 +620,13 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(withOpportunity.angle).to.be.closeTo(control.angle, 0.001);
     });
 
-    it('selects the nearest bearable hostile, not a nearer one no mount can bear on', () => {
+    it('selects the nearest reachable hostile and starts turning the hull to bring it to bear, even over a farther one already bearable', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
         shipObj.faction = Faction.Raiders;
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
 
-        // Nearer, but 180 degrees off the FWD-fitted mount's 10-degree arc.
+        // Nearer, but 180 degrees off the FWD-fitted mount's 10-degree arc -- reachable by range,
+        // and the idle path (`aimIdleHullAtGunneryTarget`) will turn the hull toward it over time.
         const nearUnbearable = createHostile('near-unbearable', Faction.Gravitas, XY.byLengthAndDirection(3000, 180));
         // Farther, but dead ahead -- squarely in the arc.
         const farBearable = createHostile('far-bearable', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
@@ -635,7 +636,9 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
 
         runOneTick(shipMgr, spaceMgr);
 
-        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
+        // The mount itself hasn't had time to swing; it's still clamped at its own arc limit
+        // pointed toward the nearer target's raw line of sight, not toward the farther one.
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(10, 1);
     });
 
     it('drops a cached target the instant it stops being bearable, instead of starving a bearable one', () => {

@@ -74,21 +74,22 @@ last_verified: 2026-08-01
 
 ## Bot AI
 
-### Gunnery (issue #2145) — independent of `order`
+### Gunnery (issue #2145) — independent of `order`, but not of hull heading
 
-Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; `order`
-governs movement only (below), never whether the gun works. An `Order.ATTACK` target has
-priority whenever it's structurally reachable (in range and within some mount's bearing
-coverage); only while it isn't does a free opportunity shot at another hostile happen instead —
-never in preference to a reachable ordered target, never causing movement or hull rotation. A
-target no mount can bear on is simply not fired upon — the resulting blind arc is a roster/mount-
-coverage question, not something automation papers over by turning the hull.
+Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; whether
+the gun *works* never depends on `order`. An `Order.ATTACK` target has priority whenever it's
+structurally reachable (in range and within some mount's bearing coverage); only while it isn't
+does a free opportunity shot at another hostile happen instead — never in preference to a
+reachable ordered target.
 
-`idleStrategy` (below) is the *only* thing that can turn this off, and only while `order ===
-Order.NONE` — `PLAY_DEAD` holds fire; every other idle strategy, and every explicit order,
-fires. A map whose NPCs never receive an order (e.g. wave-defence's stations) must set
-`idleStrategy` to `STAND_GROUND` explicitly for them to fire back — the engine-wide default
-(`PLAY_DEAD`) is unchanged.
+A target no mount can currently bear on is *not* simply left alone: gunnery claims the hull
+heading to bring a mount to bear, weighted by the ship's flight doctrine (`FlightDoctrine` —
+`INTERCEPT` turns readily, `STANDOFF` mostly holds course, `SHADOW` never turns to shoot) and,
+under a MOVE order, capped at `MAX_TRANSIT_HEADING_CONCESSION` degrees off the destination bearing
+so a bolted-gun NPC takes beam shots without ever flying backwards to reach something behind it.
+This never happens under ATTACK/FOLLOW, where the order's own doctrine-driven steering
+(`FlightProfile.headingOffset`) already governs heading, and never while some mount can already
+bear — the concession releases the instant it's no longer needed.
 
 ### Orders (priority: high → low)
 
@@ -107,7 +108,7 @@ Consulted only while `order === Order.NONE`.
 |----------|----------|
 | PLAY_DEAD | Holds fire; no automated movement (the default) |
 | ROAM | Fires on hostiles like every other idle strategy; wandering movement is **not yet implemented**, so this currently behaves exactly like STAND_GROUND |
-| STAND_GROUND | Fires on hostiles; never moves or rotates the hull |
+| STAND_GROUND | Fires on hostiles; never translates, but will turn the hull to bring a mount to bear (see Gunnery above) |
 
 **Task tracking:** `@gameField('string') currentTask` (human-readable status set by the automation manager, e.g., `"Go to 100,200"`, `"Attack <targetId>"`, `"Follow <targetId>"`, `"Dock at  <targetId>"`, `"Undock from  <targetId>"`; empty string `""` when idle)
 

@@ -48,7 +48,13 @@ export enum Order {
     FOLLOW,
 }
 
-/** ATTACK/FOLLOW's doctrine when the ship hasn't been given an explicit `flightDoctrine` override. */
+/**
+ * A ship's doctrine when it hasn't been given an explicit `flightDoctrine` override. FOLLOW's own
+ * heading is `follow()`'s station-keeping (`FlightProfile.headingOffset`); ATTACK/MOVE/NONE share
+ * STANDOFF, which for MOVE/NONE only ever surfaces as a gunnery heading claim (`goto()`'s transit
+ * concession, the idle path's `aimIdleHullAtGunneryTarget`) — those orders have no station-keeping
+ * of their own to weigh against it.
+ */
 export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
     switch (order) {
         case Order.FOLLOW:
@@ -57,7 +63,6 @@ export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDo
         case Order.MOVE:
         case Order.NONE:
         default:
-            // MOVE/NONE never reach follow(); STANDOFF is a harmless, unused default for them.
             return FlightDoctrine.STANDOFF;
     }
 }
