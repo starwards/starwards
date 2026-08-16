@@ -149,6 +149,31 @@ export function addTextBlade<T>(
     return blade;
 }
 
+/**
+ * A text blade whose background reflects where the live value sits against `warnBelow`/`errorAt`
+ * thresholds (same `data-status`/`tp-rotv` mechanism `system-status.ts` uses for discrete
+ * OK/WARN/ERROR mappings — see tweakpane.css) — for a continuous readout (e.g. reactor energy)
+ * that needs to visibly alarm as it runs low, not just report a number.
+ */
+export function addThresholdTextBlade(
+    guiFolder: FolderApi,
+    model: NumericModel,
+    params: Partial<TextBladeParams<number>> & { warnBelow: number; errorAt?: number },
+    cleanup: (d: Destructor) => void,
+) {
+    const { warnBelow, errorAt = model.range[0], ...textParams } = params;
+    const blade = addTextBlade(guiFolder, model, textParams, cleanup);
+    blade.element.classList.add('tp-rotv');
+    const applyTheme = () => {
+        const value = model.getValue();
+        blade.element.dataset.status =
+            value === undefined ? '' : value <= errorAt ? 'ERROR' : value < warnBelow ? 'WARN' : 'OK';
+    };
+    cleanup(model.onChange(applyTheme));
+    applyTheme();
+    return blade;
+}
+
 export function addEnumListBlade(
     guiFolder: FolderApi,
     model: Model<number>,
