@@ -1,6 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { Faction, Spaceship, Vec2 } from '../space';
-import { ShipArea, XY, notNull, toDegreesDelta } from '..';
+import { ShipArea, XY, capToRange, notNull, toDegreesDelta } from '..';
 import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
 
@@ -242,6 +242,23 @@ export class ShipState extends Schema {
 
     get rotationCapacity() {
         return this.maneuvering.design.rotationCapacity;
+    }
+
+    /**
+     * Single 0..1 scalar summarising how much damage this ship can still absorb before it dies:
+     * 1 is fully intact, 0 is exactly the `systemKillRatio` threshold `DamageManager.update()`
+     * uses to convert an expendable ship to a derelict. Mirrors that threshold rather than
+     * duplicating it, so the two can never drift apart.
+     */
+    @range([0, 1])
+    get healthRatio(): number {
+        const systems = this.systems();
+        const killRatio = this.design.systemKillRatio;
+        if (systems.length === 0 || killRatio <= 0) {
+            return systems.some((s) => s.broken) ? 0 : 1;
+        }
+        const broken = systems.filter((s) => s.broken).length;
+        return capToRange(0, 1, 1 - broken / (systems.length * killRatio));
     }
 
     systems() {

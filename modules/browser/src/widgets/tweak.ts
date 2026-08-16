@@ -24,6 +24,7 @@ import { FolderApi, Pane } from 'tweakpane';
 import {
     OnChange,
     abstractOnChange,
+    readNumberProp,
     readProp,
     readWriteNumberProp,
     readWriteProp,
@@ -37,6 +38,7 @@ import {
     addSearchListBlade,
     addSliderBlade,
     addTextBlade,
+    addThresholdTextBlade,
     createWidgetPane,
 } from '../panel';
 
@@ -113,6 +115,25 @@ const singleSelectionDetails = async (
 
     if (Spaceship.isInstance(subject)) {
         const shipDriver = await driver.getShipDriver(subject.id);
+
+        // Issue #2191: a single at-a-glance readout of how much damage this ship can still
+        // absorb before dying, so the GM doesn't have to inspect each system separately and do
+        // head math to judge a fight's prospects. Thresholds are colored, not just the armor
+        // folder's plain "Healthy Plates" count, since this is the number that decides whether
+        // the ship is about to die.
+        const healthProp = readNumberProp(shipDriver, `/healthRatio`);
+        addThresholdTextBlade(
+            guiFolder,
+            healthProp,
+            {
+                label: 'Health',
+                format: (v: number) => `${Math.round(v * 100)}%`,
+                warnBelow: 0.5,
+                errorAt: 0.2,
+            },
+            cleanup,
+        );
+
         const velocityProp = readWriteVec2Prop(spaceDriver, `/${subject.type}/${subject.id}/velocity`);
         addInputBlade(
             guiFolder,

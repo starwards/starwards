@@ -108,6 +108,24 @@ test.describe('GM Screen', () => {
         await expect(tweakPanel.locator('.tp-search-listv').first()).toBeVisible();
     });
 
+    test('tweak panel shows a single health scalar for the selected ship (issue #2191)', async ({ page }) => {
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        const healthLabel = tweakPanel.getByText('Health', { exact: true });
+        await expect(healthLabel).toBeVisible({ timeout: 5000 });
+
+        // single_ship spawns a fully intact ship: no systems broken yet, so the GM should read a
+        // single "100%" scalar rather than having to inspect each system separately.
+        const healthInput = healthLabel.locator('..').locator('input');
+        await expect(healthInput).toHaveValue('100%');
+    });
+
     test('tweak panel Scan Levels folder offers UFO/BASIC/SNAPSHOT/FULL per faction', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
