@@ -38,7 +38,7 @@ import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
 
@@ -91,6 +91,7 @@ export function resetShipState(state: ShipState) {
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
     state.repairQueue.reorderCommands = [];
+    state.lockCommands = [];
     // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;
@@ -261,6 +262,8 @@ export abstract class ShipManager implements Updateable {
     }
 
     update(id: IterationData) {
+        // apply GM lock/unlock commands before anything else can write a locked field this tick
+        applyLockCommands(this.state);
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
         this.damageManager.update();

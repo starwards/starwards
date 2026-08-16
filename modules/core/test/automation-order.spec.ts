@@ -722,7 +722,7 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(Math.abs(shipMgr.state.chainGuns[0]?.bearingCommand ?? 0)).to.be.closeTo(10, 1);
     });
 
-    it('aims a skewed mount off its skewed rest bearing, not off where it was fitted', () => {
+    it('opens blind on a skewed mount, then dials the skew out of its aim as it observes the error', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(30));
         shipObj.faction = Faction.Raiders;
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
@@ -737,12 +737,15 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
 
         runOneTick(shipMgr, spaceMgr);
 
-        // Dead ahead is 30 degrees back from the mount's rest bearing — a traverse it has, and one
-        // it must actually be commanded to make. Measuring off `fittedBearing` would command 0.
-        expect(gun.bearingCommand).to.be.closeTo(-30, 1);
+        // The automation never reads `bearingSkew` (#2176/#2177) — its belief comes only from
+        // observing where its commands actually landed. One tick in, the exponential filter has
+        // taken a single step toward the defect, nowhere near compensating it, so the mount is
+        // still bent most of the way off target: a fresh defect has an immediate tactical cost.
+        expect(Math.abs(gun.bearingCommand)).to.be.lessThan(10);
 
-        // Once the swing completes the firing line is on the target and the mount opens up.
-        for (let i = 0; i < 30; i++) {
+        // Given seconds of continued engagement the tracked estimate converges on the real defect
+        // and the firing line comes back onto the target, at which point the mount opens up.
+        for (let i = 0; i < 600; i++) {
             runOneTick(shipMgr, spaceMgr);
         }
         expect(gun.hullBearing).to.be.closeTo(0, 1);
