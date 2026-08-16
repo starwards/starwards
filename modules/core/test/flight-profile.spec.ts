@@ -203,33 +203,32 @@ describe('flight-profile', () => {
             expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
         });
 
-        it('does not chatter when the target bearing sits right on a tie between two candidates', () => {
-            // A lone full-traverse turret contributes zero aimCost everywhere, and symmetric
-            // thrust ties FWD/PORT exactly at a 45° bearing — the worst case for oscillation.
-            // Without the hysteresis margin, alternating ±1° around the tie flips the winner on
-            // every call; with it, the profile should stick to whichever it picked first.
-            const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [['FWD', chaingunPlatformChaingun]];
-            const thrusters: [ShipDirectionConfig, ThrusterDesign][] = [
-                ['FWD', demoShipThruster],
-                ['AFT', demoShipThruster],
-                ['PORT', demoShipThruster],
-                ['STBD', demoShipThruster],
-            ];
-            const state = makeShipState('1', { ...demoShipConfig, chainGuns, thrusters });
+        it('holds the heading it is already flying while the required acceleration jitters across a tie', () => {
+            // A lone full-traverse turret costs nothing to aim, so thrust alone decides, and the
+            // hull's strongest axis is FWD. Two candidates then compete: dead ahead, whose thrust
+            // cost depends on where the required acceleration falls relative to the hull's axes,
+            // and the candidate that lays FWD *on* that acceleration, which always costs 0. They
+            // tie exactly while the acceleration sits within 45° of the target's bearing, and dead
+            // ahead loses the moment it passes that. Jitter across the boundary is what the
+            // hysteresis exists for — and the candidate being held drifts with the acceleration
+            // every tick, so recognizing it as the incumbent cannot mean reproducing its value.
+            const state = makeShipState('1', turretOnlyAsymmetricThrustConfig());
             state.spaceship.angle = 0;
             const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            const target = makeTarget({ x: 10_000, y: 0 });
 
-            const bearings = [44, 46, 44, 46, 44, 46, 44, 46];
-            const offsets = bearings.map((bearing) => {
-                const radians = (bearing * Math.PI) / 180;
-                const target = makeTarget({ x: 10_000 * Math.cos(radians), y: 10_000 * Math.sin(radians) });
-                return profile.headingOffset(target, target.velocity);
-            });
+            const requiredBearings = [46, 45.2, 44.4, 45.3, 44.2, 45.4, 44.3, 45.5, 44.1, 45.2];
+            const offsets = requiredBearings.map((bearing) =>
+                profile.headingOffset(target, XY.byLengthAndDirection(100, bearing)),
+            );
 
-            const distinctValues = new Set(offsets);
-            expect(distinctValues.size).to.be.at.most(2);
-            // Once settled, later ticks must not keep flipping back and forth.
-            expect(offsets.slice(-4).every((o) => o === offsets[offsets.length - 1])).to.equal(true);
+            // The first tick has nothing to hold, and picks the only zero-cost candidate.
+            expect(offsets[0]).to.be.closeTo(46, 0.001);
+            // Every later tick keeps flying that same heading, tracking it as it drifts, instead of
+            // handing the hull back to dead ahead each time the tie comes back.
+            for (const [tick, offset] of offsets.entries()) {
+                expect(offset, `tick ${tick}`).to.be.closeTo(requiredBearings[tick], 0.001);
+            }
         });
     });
 });
