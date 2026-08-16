@@ -209,6 +209,59 @@ export function addScale(orig: XY, deriv: XY, time: number) {
     return XY.add(orig, XY.scale(deriv, time));
 }
 
+/**
+ * First-order intercept: the time until a shooter travelling in a straight line at
+ * `shooterSpeed` reaches a target moving at constant `targetVelocity`. Solves
+ * |targetPosition + targetVelocity * t - shooterPosition| = shooterSpeed * t for the
+ * smallest positive t. Returns null when no real positive solution exists (the target
+ * outruns the shooter, or is moving directly away at matching speed) — callers should
+ * fall back to pure pursuit (aiming at the target's current position) in that case.
+ */
+export function calcInterceptTime(
+    shooterPosition: XY,
+    shooterSpeed: number,
+    targetPosition: XY,
+    targetVelocity: XY,
+): number | null {
+    const relPosition = XY.difference(targetPosition, shooterPosition);
+    const a = XY.squaredLength(targetVelocity) - shooterSpeed * shooterSpeed;
+    const b = 2 * XY.dot(relPosition, targetVelocity);
+    const c = XY.squaredLength(relPosition);
+
+    if (Math.abs(a) < EPSILON) {
+        if (Math.abs(b) < EPSILON) {
+            return null;
+        }
+        const t = -c / b;
+        return t > 0 ? t : null;
+    }
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return null;
+    }
+    const sqrtDiscriminant = Math.sqrt(discriminant);
+    const t1 = (-b + sqrtDiscriminant) / (2 * a);
+    const t2 = (-b - sqrtDiscriminant) / (2 * a);
+    const positiveTimes = [t1, t2].filter((t) => t > 0);
+    return positiveTimes.length ? Math.min(...positiveTimes) : null;
+}
+
+/**
+ * Lead point for homing guidance: where a target moving at constant `targetVelocity` will
+ * be when a shooter travelling at `shooterSpeed` reaches it. Falls back to the target's
+ * current position when {@link calcInterceptTime} finds no real interception time, so
+ * callers degrade to pure pursuit instead of steering at a meaningless point.
+ */
+export function calcInterceptionPoint(
+    shooterPosition: XY,
+    shooterSpeed: number,
+    targetPosition: XY,
+    targetVelocity: XY,
+): XY {
+    const t = calcInterceptTime(shooterPosition, shooterSpeed, targetPosition, targetVelocity);
+    return t === null ? targetPosition : XY.add(targetPosition, XY.scale(targetVelocity, t));
+}
+
 // x(t)=x0+v0t+(at^2)/2
 export function equasionOfMotion(x0: number, v0: number, a: number, t: number) {
     return x0 + v0 * t + (a / 2) * t * t;

@@ -2,7 +2,10 @@ import {
     EPSILON,
     RTuple2,
     Tuple2,
+    XY,
     archIntersection,
+    calcInterceptTime,
+    calcInterceptionPoint,
     circlesIntersection,
     equasionOfMotion,
     lerp,
@@ -19,6 +22,7 @@ import {
     orderedTuple2,
     orderedTuple3,
     safeFloat,
+    xy,
 } from './properties';
 
 import { expect } from 'chai';
@@ -210,6 +214,66 @@ describe('formulas', () => {
                     differentSignTuple2().filter((t) => t[0] !== 0 && t[1] !== 0),
                     ([v0, a]: Tuple2) => {
                         expect(whenWillItStop(v0, -a)).to.eql(Infinity);
+                    },
+                ),
+            );
+        });
+    });
+    describe('calcInterceptionPoint / calcInterceptTime', () => {
+        // a shooter faster than its target always catches it (missile guidance, issue #2189):
+        // any target heading/speed slower than the shooter, and any approach geometry, must
+        // resolve to a real intercept time and a lead point the shooter reaches exactly then.
+        it('finds a lead point the shooter reaches at the same instant the target does, for any target velocity/heading and approach geometry', () => {
+            fc.assert(
+                fc.property(
+                    xy(8000), // shooter position
+                    xy(8000, 50), // offset from shooter to target: varies approach geometry, never coincident
+                    float(300, 2500), // shooter speed
+                    floatIn(360), // target heading
+                    float(0, 250), // target speed, always well below the shooter's minimum speed
+                    (
+                        shooterPosition: XY,
+                        offset: XY,
+                        shooterSpeed: number,
+                        targetHeading: number,
+                        targetSpeed: number,
+                    ) => {
+                        const targetPosition = XY.add(shooterPosition, offset);
+                        const targetVelocity = XY.rotate(XY.scale(XY.one, targetSpeed), targetHeading);
+
+                        const interceptTime = calcInterceptTime(
+                            shooterPosition,
+                            shooterSpeed,
+                            targetPosition,
+                            targetVelocity,
+                        );
+                        expect(
+                            interceptTime,
+                            'a shooter faster than its target always has an intercept solution',
+                        ).to.not.equal(null);
+
+                        const interceptPoint = calcInterceptionPoint(
+                            shooterPosition,
+                            shooterSpeed,
+                            targetPosition,
+                            targetVelocity,
+                        );
+
+                        // the target is actually at interceptPoint when interceptTime elapses
+                        const targetAtInterceptTime = XY.add(targetPosition, XY.scale(targetVelocity, interceptTime!));
+                        expect(
+                            interceptPoint.x,
+                            'lead point x matches target position at intercept time',
+                        ).to.be.closeTo(targetAtInterceptTime.x, 1);
+                        expect(
+                            interceptPoint.y,
+                            'lead point y matches target position at intercept time',
+                        ).to.be.closeTo(targetAtInterceptTime.y, 1);
+
+                        // the shooter, travelling at shooterSpeed in a straight line, covers exactly
+                        // that distance in exactly interceptTime — no shorter, no longer
+                        const distance = XY.lengthOf(XY.difference(interceptPoint, shooterPosition));
+                        expect(distance).to.be.closeTo(shooterSpeed * interceptTime!, Math.max(1, distance * 0.001));
                     },
                 ),
             );

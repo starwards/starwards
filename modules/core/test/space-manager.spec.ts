@@ -736,4 +736,38 @@ describe('SpaceManager', () => {
             expect(XY.lengthOf(ship.velocity)).to.be.at.most(ABSOLUTE_MAX_SPEED);
         });
     });
+
+    describe('homing missile guidance', () => {
+        // bridge testplay 2026-08-16, issue #2189: at short range a missile chasing a target's
+        // current position (pure pursuit) overshoots and spirals around it instead of converging
+        // — the target's own movement has to be led, not ignored.
+        it('intercepts a target crossing its path at short range promptly, instead of orbiting it', () => {
+            const numIterationsPerSecond = 20;
+            const target = new Asteroid();
+            target.radius = GENERIC_SHIP_RADIUS;
+            target.init('crossing-target', Vec2.make({ x: 0, y: 0 }));
+            // crosses the missile's approach heading at an angle — the case a naive
+            // chase-the-current-position guidance handles worst: chasing the current position
+            // (instead of leading it) makes this specific geometry spiral outward and never
+            // converge inside the missile's flight time
+            target.velocity = Vec2.make(XY.byLengthAndDirection(400, 135));
+
+            const missile = new Projectile('FragMissile');
+            missile.shipId = 'shooter';
+            missile.targetId = target.id;
+            missile.angle = 0;
+            missile.secondsToLive = missile.design.homing!.secondsToLive;
+            missile.init('homing-missile', Vec2.make({ x: -2000, y: 0 }));
+
+            const sim = new SpaceSimulator(numIterationsPerSecond).withObjects(target, missile);
+            // a lead-based intercept course closes this in ~9.5s; an orbiting missile is still
+            // diverging away from the target well past that
+            sim.simulateUntilTime(12);
+
+            expect(
+                missile.destroyed,
+                'missile should detonate on/near the target promptly, not orbit past it',
+            ).to.equal(true);
+        });
+    });
 });

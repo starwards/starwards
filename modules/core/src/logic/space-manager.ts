@@ -13,6 +13,7 @@ import {
     EPSILON,
     FieldOfView,
     Tuple2,
+    calcInterceptionPoint,
     circlesIntersection,
     limitPercision,
     moveToTarget,
@@ -479,8 +480,21 @@ export class SpaceManager implements Updateable {
                         // so a target can't idly out-maneuver a missile it's already spotted
                         const sprintMultiplier =
                             homing.sprint && distanceToTarget < homing.sprint.range ? homing.sprint.speedMultiplier : 1;
+                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
+                        // lead the target's predicted position instead of chasing where it is right
+                        // now — pure pursuit of a moving target's current position never converges to
+                        // a straight intercept, it spirals in behind the target (issue #2189).
+                        // Falls back to the raw position (pure pursuit) when no lead solution exists,
+                        // e.g. the target outruns the missile's cruise speed.
+                        const steeringPoint = calcInterceptionPoint(
+                            projectile.position,
+                            maxSpeed,
+                            destination,
+                            target.velocity,
+                        );
+                        const relativeSteeringPoint = XY.difference(steeringPoint, projectile.position);
                         const velocityDestinationDiff = toDegreesDelta(
-                            XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
+                            XY.angleOf(relativeSteeringPoint) - XY.angleOf(projectile.velocity),
                         );
 
                         let rotation = 0;
@@ -495,8 +509,8 @@ export class SpaceManager implements Updateable {
                             );
                             boost = 1;
                         } else {
-                            rotation = rotateToTarget(deltaSeconds, projectile, destination, 0);
-                            boost = moveToTarget(deltaSeconds, projectile, destination).boost;
+                            rotation = rotateToTarget(deltaSeconds, projectile, steeringPoint, 0);
+                            boost = moveToTarget(deltaSeconds, projectile, steeringPoint).boost;
                         }
 
                         projectile.turnSpeed += rotation * deltaSeconds * projectile.rotationCapacity;
@@ -507,7 +521,6 @@ export class SpaceManager implements Updateable {
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
-                        const maxSpeed = homing.maxSpeed * sprintMultiplier;
                         if (XY.lengthOf(projectile.velocity) > maxSpeed) {
                             projectile.velocity.normalize(maxSpeed);
                         }
