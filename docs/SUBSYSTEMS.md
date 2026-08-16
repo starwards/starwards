@@ -91,6 +91,17 @@ This never happens under ATTACK/FOLLOW, where the order's own doctrine-driven st
 (`FlightProfile.headingOffset`) already governs heading, and never while some mount can already
 bear — the concession releases the instant it's no longer needed.
 
+Whether a mount can be brought to bear is decided against that mount's own firing solution — where
+the shell and the target will meet — not against the raw line of sight to the target. The two differ
+by tens of degrees against a fast crosser, and the mount is aimed at the solution, so the gate that
+decides "commit the swing" now agrees with the aiming it gates.
+
+The shell's fuze is dialled to that same solution. A shot leaves the muzzle, `radius` along the
+firing line ahead of the hull centre, so a dialled range of *r* detonates at *r* from the muzzle —
+the range the gunner sets, the range the shell flies and the kill-zone ring drawn on the radar all
+now describe the same distance. On a large hull this was previously an overshoot of the ship's whole
+radius, which is why a big station could miss a target sitting squarely in its envelope.
+
 ### Orders (priority: high → low)
 
 | Order | Args | Behavior |

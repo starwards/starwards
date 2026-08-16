@@ -12,10 +12,10 @@ import {
     Spaceship,
     Vec2,
     XY,
-    solveShellIntercept,
     isTargetInKillZone,
     makeShipState,
     shipConfigurations,
+    solveShellIntercept,
     toDegreesDelta,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
