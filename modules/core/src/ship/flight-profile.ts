@@ -3,6 +3,7 @@ import {
     DoctrineWeights,
     FlightDoctrine,
     HEADING_HYSTERESIS_MARGIN,
+    HEADING_MATCH_TOLERANCE_DEGREES,
     SHADOW_TRACK_RANGE,
     doctrineWeights,
 } from './flight-doctrine';
@@ -125,6 +126,11 @@ class WeightedFlightProfile implements FlightProfile {
         const capacities = ShipDirections.map((d) => this.state.velocityCapacity(d));
         const maxCapacity = Math.max(0, ...capacities);
         const candidates = headingCandidates(guns, shipToTarget, required);
+        // The heading held last tick is rarely reproduced bit-for-bit: every candidate derived from
+        // the target's bearing moves with the target. Matching the nearest one within
+        // `HEADING_MATCH_TOLERANCE_DEGREES` — and only ever one, so the discount can't be handed to
+        // two rivals at once — is what makes the margin apply to the candidates that do chatter.
+        const incumbent = this.lastOffset === null ? null : nearestHeading(candidates, this.lastOffset);
 
         let best = candidates[0];
         let bestCost = Infinity;
@@ -132,8 +138,7 @@ class WeightedFlightProfile implements FlightProfile {
             const cost =
                 this.weights.aim * aimCost(guns, candidate) +
                 this.weights.thrust * thrustCost(this.state, maxCapacity, candidate, shipToTarget, required);
-            const isCurrent = this.lastOffset !== null && toDegreesDelta(candidate - this.lastOffset) === 0;
-            const adjustedCost = isCurrent ? cost - HEADING_HYSTERESIS_MARGIN : cost;
+            const adjustedCost = candidate === incumbent ? cost - HEADING_HYSTERESIS_MARGIN : cost;
             if (adjustedCost < bestCost) {
                 bestCost = adjustedCost;
                 best = candidate;
@@ -177,11 +182,35 @@ function headingCandidates(guns: ChainGun[], shipToTarget: XY, targetVelocity: X
     const deduped: number[] = [];
     for (const c of all) {
         const normalized = toDegreesDelta(c);
-        if (!deduped.some((d) => toDegreesDelta(d - normalized) === 0)) {
+        if (!deduped.some((d) => isSameHeading(d, normalized))) {
             deduped.push(normalized);
         }
     }
     return deduped;
+}
+
+/**
+ * Whether two headings are the same one for arbitration purposes — the single definition
+ * {@link headingCandidates}' dedup and {@link WeightedFlightProfile.bestOffset}'s incumbent match
+ * both use, so a candidate list can never distinguish two headings that the hysteresis then treats
+ * as one, or the reverse.
+ */
+function isSameHeading(a: number, b: number): boolean {
+    return Math.abs(toDegreesDelta(a - b)) <= HEADING_MATCH_TOLERANCE_DEGREES;
+}
+
+/** The candidate closest to `heading`, or `null` when none is within {@link isSameHeading}. */
+function nearestHeading(candidates: number[], heading: number): number | null {
+    let nearest: number | null = null;
+    let smallestSeparation = Infinity;
+    for (const candidate of candidates) {
+        const separation = Math.abs(toDegreesDelta(candidate - heading));
+        if (separation < smallestSeparation && isSameHeading(candidate, heading)) {
+            smallestSeparation = separation;
+            nearest = candidate;
+        }
+    }
+    return nearest;
 }
 
 /**

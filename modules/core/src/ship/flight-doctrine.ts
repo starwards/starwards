@@ -44,6 +44,18 @@ export const AIM_COST_SCALE = 5;
 /** Cost advantage a challenger heading needs before it displaces the one already held. */
 export const HEADING_HYSTERESIS_MARGIN = 0.05;
 
+/**
+ * How far a candidate heading may sit from the one held last tick and still be the *same* heading.
+ *
+ * Only the mount candidates are fixed numbers; every candidate derived from the target's bearing
+ * moves as the target does, so an exact match recognizes the incumbent for exactly the headings
+ * that never chatter and never for the ones that do. The tolerance has to clear a tick's worth of
+ * that drift: a target crossing at 300 m/s a kilometre out sweeps ~17°/s, which is ~0.9° per tick at
+ * 20 Hz. 2° covers that with room for a faster crossing, and stays far below the separation between
+ * genuinely distinct candidates — mounts and thrust axes sit tens of degrees apart.
+ */
+export const HEADING_MATCH_TOLERANCE_DEGREES = 2;
+
 /** Most a movement order will turn the hull off its destination bearing to bring a mount to bear. */
 export const MAX_TRANSIT_HEADING_CONCESSION = 90;
 
