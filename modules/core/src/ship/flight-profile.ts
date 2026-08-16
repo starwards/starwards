@@ -6,7 +6,7 @@ import {
     SHADOW_TRACK_RANGE,
     doctrineWeights,
 } from './flight-doctrine';
-import { RTuple2, XY, getShellAimVelocityCompensation, solveShellIntercept, toDegreesDelta } from '../logic';
+import { RTuple2, XY, getShellAimVelocityCompensation, isInRange, solveShellIntercept, toDegreesDelta } from '../logic';
 import { ShipDirection, ShipDirections } from './ship-direction';
 
 import { ShipState, doctrineForOrder } from './ship-state';
@@ -55,15 +55,25 @@ class WeightedFlightProfile implements FlightProfile {
         private readonly weights: DoctrineWeights,
     ) {}
 
+    /**
+     * The band to hold is the widest *single* mount's envelope, not the union of every mount's.
+     * Uniting them describes a band no one gun can shoot across: with two mounts whose envelopes
+     * don't overlap, the union spans the gap between them, and a ship holding station in that gap
+     * has nothing that can fire. Identical to the union for every design that reuses one gun design
+     * across its mounts, which is all of them today.
+     */
     trackRange(): RTuple2 {
         const guns = this.state.chainGuns;
         if (guns.length === 0 || !this.weights.useGunEnvelope) {
             return SHADOW_TRACK_RANGE;
         }
-        return [
-            Math.min(...guns.map((g) => g.design.minShellRange)),
-            Math.max(...guns.map((g) => g.design.maxShellRange)),
-        ];
+        let widest: RTuple2 = [guns[0].design.minShellRange, guns[0].design.maxShellRange];
+        for (const gun of guns) {
+            if (gun.design.maxShellRange - gun.design.minShellRange > widest[1] - widest[0]) {
+                widest = [gun.design.minShellRange, gun.design.maxShellRange];
+            }
+        }
+        return widest;
     }
 
     leadCompensation(target: SpaceObject): XY {
@@ -133,15 +143,14 @@ class WeightedFlightProfile implements FlightProfile {
         return best;
     }
 
+    /**
+     * Reachable means *some one* mount's own envelope covers `distance`. Testing the union of every
+     * mount's min and max instead calls a distance covered when it falls in the gap between two
+     * mounts' bands — a target `resolveOpportunityTarget` would then cache and `anyMountCanBearOn`
+     * refuse, starving a hostile the ship really could engage.
+     */
     isReachable(_candidate: SpaceObject, distance: number): boolean {
-        const guns = this.state.chainGuns;
-        if (guns.length === 0) {
-            return false;
-        }
-        return (
-            distance <= Math.max(...guns.map((g) => g.design.maxShellRange)) &&
-            distance >= Math.min(...guns.map((g) => g.design.minShellRange))
-        );
+        return this.state.chainGuns.some((g) => isInRange(g.design.minShellRange, g.design.maxShellRange, distance));
     }
 }
 

@@ -53,6 +53,20 @@ function turretOnlyAsymmetricThrustConfig(): ShipDesign {
     return { ...demoShipConfig, chainGuns, thrusters };
 }
 
+/**
+ * Two mounts whose shell envelopes leave a deliberate hole: a short mount reaching 2,400-6,000m and
+ * a long one reaching 12,000-20,000m, with nothing at all covering 6,000-12,000m. No shipped design
+ * is heterogeneous like this (every one reuses a single gun design across its mounts), so the
+ * envelope-union arithmetic is only observable against a config built for it.
+ */
+function gappedEnvelopeConfig(): ShipDesign {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['FWD', { ...chaingunPlatformChaingun, minShellRange: 2_400, maxShellRange: 6_000 }],
+        ['FWD', { ...chaingunPlatformChaingun, minShellRange: 12_000, maxShellRange: 20_000 }],
+    ];
+    return { ...stationConfig, chainGuns };
+}
+
 function makeTarget(position: XY, velocity: XY = XY.zero) {
     const target = new Spaceship();
     target.position.setValue(position);
@@ -70,6 +84,15 @@ describe('flight-profile', () => {
 
             expect(min).to.equal(chaingunPlatformChaingun.minShellRange);
             expect(max).to.equal(20_000); // the second (FWD turret) mount's longer range
+        });
+
+        it('holds one mount’s own band rather than a union spanning a gap between two', () => {
+            const state = makeShipState('1', gappedEnvelopeConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.INTERCEPT);
+
+            // The long mount's 8,000m-wide band, not [2,400, 20,000] -- a ship holding station
+            // anywhere in the 6,000-12,000m hole that union describes has nothing that can fire.
+            expect(profile.trackRange()).to.deep.equal([12_000, 20_000]);
         });
 
         it('ignores the gun envelope entirely under SHADOW', () => {
@@ -97,6 +120,19 @@ describe('flight-profile', () => {
             const target = makeTarget({ x: 25_000, y: 0 });
 
             expect(profile.isReachable(target, 25_000)).to.equal(false);
+        });
+
+        it('rejects a distance that falls in the gap between two mounts’ envelopes', () => {
+            const state = makeShipState('1', gappedEnvelopeConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            const target = makeTarget({ x: 9_000, y: 0 });
+
+            // Past the short mount's 6,000 and short of the long mount's 12,000: no gun on the hull
+            // can put a shell here, though the union of their mins and maxes says otherwise.
+            expect(profile.isReachable(target, 9_000)).to.equal(false);
+            // Both mounts' own bands are still reachable.
+            expect(profile.isReachable(makeTarget({ x: 5_000, y: 0 }), 5_000)).to.equal(true);
+            expect(profile.isReachable(makeTarget({ x: 15_000, y: 0 }), 15_000)).to.equal(true);
         });
 
         it('is always false with no chain guns', () => {
