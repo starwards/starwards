@@ -199,9 +199,6 @@ export class ShipState extends Schema {
     get radius(): number {
         return this.spaceship.radius;
     }
-    get hitsLanded(): number {
-        return this.spaceship.hitsLanded;
-    }
     globalToLocal(global: XY) {
         return this.spaceship.globalToLocal(global);
     }

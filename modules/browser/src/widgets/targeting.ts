@@ -21,9 +21,11 @@ export function targetingWidget(shipDriver: ShipDriver): DashboardWidget {
 export function drawTargetingStatus(container: WidgetContainer, shipDriver: ShipDriver) {
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Targeting');
     addTextBlade(pane, readProp(shipDriver, '/weaponsTarget/targetId'), { label: 'target' }, panelCleanup.add);
+    // real field path (not a ShipState delegate getter) -- wireEvents() only emits change events
+    // for literal @gameField paths, so a derived-getter pointer would never live-update (see /speed).
     addTextBlade(
         pane,
-        readProp<number>(shipDriver, '/hitsLanded'),
+        readProp<number>(shipDriver, '/spaceship/hitsLanded'),
         { label: 'hits landed' },
         panelCleanup.add,
     );
