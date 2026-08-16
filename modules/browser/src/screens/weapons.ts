@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
 import { HPos, VPos } from '../container';
 import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
-import { readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
+import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
 import { InputManager } from '../input/input-manager';
@@ -33,7 +33,9 @@ const shipUrlParam = urlParams.get('ship');
 if (shipUrlParam) {
     const driver = new Driver(window.location).connect();
     const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(statusTracker, Status.SHIP_FOUND, (container) => initScreen(driver, shipUrlParam, container));
+    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
+        initScreen(driver, shipUrlParam, container),
+    );
 } else {
     logError('missing "ship" url query param');
 }
@@ -67,7 +69,14 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
 
     input.addMomentaryClickAction(writeProp(shipDriver, '/fireTubesCommand'), 'x', 'Fire Tubes');
     input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
-    input.addMomentaryClickAction(writeProp(shipDriver, '/tubes/0/changeProjectileCommand'), 'v', 'Change Tube Ammo');
+    input.addMomentaryClickAction(
+        writeAllProp(
+            shipDriver,
+            shipDriver.state.tubes.map((tube) => `/tubes/${tube.index}/changeProjectileCommand`),
+        ),
+        'v',
+        'Change Tube Ammo',
+    );
     for (const tube of shipDriver.state.tubes) {
         input.addToggleClickAction(
             readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
@@ -89,6 +98,14 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
         writeProp(shipDriver, '/chainGuns/0/changeProjectileCommand'),
         'b',
         'Change Gun Ammo',
+    );
+    input.addRangeAction(
+        readWriteAllNumberProp(
+            shipDriver,
+            shipDriver.state.chainGuns.map((_, index) => `/chainGuns/${index}/shellRange`),
+        ),
+        shipInputConfig.shellRange,
+        'Shell Range',
     );
     input.init();
     const teardownHelp = setupHotkeyHelp(input);

@@ -261,7 +261,7 @@ Each defect applies that system's own small malfunction.
 | Maneuvering       | internal | no          | efficiency -5% or afterburner fuel x0.9        |
 | Smart pilot       | internal | yes         | aim offset +0.01                               |
 
-Breaking a system takes roughly 10-20 defects (varies per system); repair is ECR gameplay.
+Breaking a system takes roughly 10-20 defects (varies per system); repair is Engineer gameplay.
 
 ## 8. Ammo catalog
 
@@ -335,7 +335,7 @@ section: untouched.
 **HiExp missile vs the same breach:** a 0.35s engulfment delivered as a stream of small
 events; the total delivered damage spills into a handful of rolls per system, so **every
 internal in the section takes a few defects**, plus the externals take the (weak, x0.25)
-scrape. Whole section bleeds; ECR triage.
+scrape. Whole section bleeds; Engineer triage.
 
 **Frag missile vs anyone:** armor row 0/0 everywhere. Plates never touched, ERA never wakes.
 The 800m cloud lingers 1.6s; every external in the arc takes a stream of scrape rolls at x2:

@@ -13,8 +13,8 @@ import { readNumberProp, readProp } from '../property-wrappers';
 import { WidgetContainer } from '../container';
 
 /**
- * ECR screen is the only bearer of engineering hotkeys and already exhausts the alphanumeric
- * keyboard on per-system power/coolant pairs (see `ecr.ts`'s `keyPairs`), so the catalog gets its
+ * Engineer screen is the only bearer of engineering hotkeys and already exhausts the alphanumeric
+ * keyboard on per-system power/coolant pairs (see `engineer.ts`'s `keyPairs`), so the catalog gets its
  * own modifier namespace rather than fighting over what's left. Alt (not Ctrl) specifically:
  * Ctrl+1..9 is bound to browser tab-switching in Chrome/Firefox and would never reach the page.
  * Assigned by fixed position in `repairProtocols` (not the per-ship filtered/visible subset), so a
@@ -69,7 +69,7 @@ function protocolName(protocolId: string): string {
 }
 
 /**
- * ECR damage-control queue: a catalog of repair protocols the Engineer can enqueue, and the live
+ * Engineer damage-control queue: a catalog of repair protocols the Engineer can enqueue, and the live
  * queue (one active operation at a time) with per-operation cancel/reorder controls. Recently
  * finished operations (done or cancelled) show read-only for a few seconds so the crew can see the
  * outcome before the row disappears — see `RepairQueue.recentlyFinished`.
@@ -107,9 +107,14 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
             const darkSystems = protocol.sideEffectSystems.length
                 ? `, dark: ${protocol.sideEffectSystems.join(', ')}`
                 : '';
-            const summary = `${hotkey ?? '—'} · ${duration}s · ${protocol.tier}${darkSystems}`;
+            // energyCells is finite (issue #2137) — shown so the crew can see how many jump-starts
+            // are left before this protocol drops out of `availableProtocols` entirely.
+            const cells = protocol.consumesEnergyCell
+                ? `, cells: ${shipDriver.state.reactor.energyCells}/${shipDriver.state.reactor.design.maxEnergyCells}`
+                : '';
+            const summary = `${hotkey ?? '—'} · ${duration}s · ${protocol.tier}${darkSystems}${cells}`;
             // display-only readout (issue: catalog is not mouse-interactive) — enqueueing happens
-            // via the hotkey wired in ecr.ts's wireInput, on the same InputManager as power/coolant
+            // via the hotkey wired in engineer.ts's wireInput, on the same InputManager as power/coolant
             addTextBlade(
                 catalogFolder,
                 { getValue: () => summary, onChange: () => () => undefined },
@@ -119,7 +124,11 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
         }
     }
     shipDriver.events.on('/docking/mode', renderCatalog);
-    panelCleanup.add(() => shipDriver.events.off('/docking/mode', renderCatalog));
+    shipDriver.events.on('/reactor/energyCells', renderCatalog);
+    panelCleanup.add(() => {
+        shipDriver.events.off('/docking/mode', renderCatalog);
+        shipDriver.events.off('/reactor/energyCells', renderCatalog);
+    });
     renderCatalog();
 
     const operations = () => shipDriver.state.repairQueue.operations;

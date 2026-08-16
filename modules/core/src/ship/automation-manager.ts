@@ -44,6 +44,39 @@ const CEASEFIRE_ENGAGE_HEAT = MAX_SYSTEM_HEAT * 0.95;
 /** Heat the mount must cool back below before the ceasefire latch releases (hysteresis, prevents chatter). */
 const CEASEFIRE_RELEASE_HEAT = MAX_SYSTEM_HEAT * 0.7;
 
+/**
+ * Time constant for `AutomationManager`'s per-mount bearing-skew belief (see
+ * `updateTrackedBearingSkew`). Not a delay on known truth — the automation never reads
+ * `bearingSkew` — but a filter constant on noisy per-tick observations: each fresh observed
+ * error is blended into the running belief at a rate of `1 - exp(-dt/τ)`, so it takes several
+ * seconds of continued engagement for the belief to settle (~63% converged after 3s, ~95% after
+ * 9s) — the same way a real gunner needs a few seconds of fire to be confident their aim is off,
+ * not one glance.
+ */
+const BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS = 3;
+
+/**
+ * How close a mount's mechanical `bearing` must sit to its last `bearingCommand` before an
+ * observation is trusted (see `updateTrackedBearingSkew`). Tight enough to exclude any real
+ * mid-swing transient (tens of degrees) while tolerating float32 round-trip noise on a mount
+ * that has genuinely caught up (which, per `updateTurret`, snaps to the commanded bearing
+ * exactly once within a tick's reach).
+ */
+const MOUNT_SETTLED_EPSILON_DEGREES = 0.05;
+
+/**
+ * Cheap lateral weave overlaid on attack-order steering (issue #2146): a slow sinusoid in the
+ * *steering goal* (a position offset for the closing/`moveToTarget` phase, the matching velocity
+ * offset for the in-range/`matchGlobalSpeed` holding phase) -- not a full evade-while-tracking
+ * objective, so it stays gentle enough to keep the target in arc, and not a raw thrust/maneuvering
+ * perturbation: `moveToTarget`/`matchGlobalSpeed` are themselves feedback controllers that treat any
+ * velocity not aimed at their goal as error to correct, so a perturbation added on top of their
+ * output gets mostly cancelled by their own next-tick correction. Retargeting the goal itself makes
+ * the controller drive the weave instead of fighting it.
+ */
+const COMBAT_WEAVE_AMPLITUDE_METERS = 400;
+const COMBAT_WEAVE_FREQUENCY_HZ = 0.08;
+
 export class AutomationManager implements Updateable {
     /**
      * Game-time seconds accumulated toward the next coolant reallocation. Seeded with a per-ship
@@ -63,6 +96,16 @@ export class AutomationManager implements Updateable {
     private readonly powerBackoffLatched = new WeakMap<ChainGun, PowerLevel>();
     /** Escape hatch for A/B comparison (e.g. a baseline DPS run with heat management off). Defaults on. */
     private heatManagementEnabled = true;
+    /**
+     * Per-mount belief about this mount's own bearing skew, inferred purely from observation —
+     * comparing where a mount was last commanded to point against where it is actually observed
+     * pointing (`ChainGun.hullBearing`). Automation-local, not ship state: an NPC brain's belief
+     * about a defect it hasn't confirmed is not a property of the hardware. Keeping it off
+     * `ShipState` means it costs nothing on the wire (a synced field here would dirty every tick
+     * for every turret on every ship, including player ships, which never run this aiming code)
+     * and it moves cleanly if automation is ever extracted client-side (see `synthetic-roster`).
+     */
+    private trackedBearingSkew = new Map<ChainGun, number>();
 
     constructor(
         private state: ShipState,
@@ -111,6 +154,7 @@ export class AutomationManager implements Updateable {
         rotationCompensation: XY,
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
+        weave: { offset: XY; velocity: XY } = { offset: XY.zero, velocity: XY.zero },
     ) {
         const ship = this.state;
         const shipToTarget = XY.difference(targetPosition, ship.position);
@@ -118,9 +162,12 @@ export class AutomationManager implements Updateable {
         const inRange = isInRange(trackRange[0], trackRange[1], distanceToTarget);
         let maneuvering: ManeuveringCommand;
         if (inRange) {
-            maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, targetVelocity);
+            // matchGlobalSpeed only ever tracks a velocity, so the weave rides along as an addend to
+            // the velocity it's asked to hold -- the controller drives toward the (moving) goal
+            // instead of the weave being a disturbance the same controller then fights.
+            maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, XY.add(targetVelocity, weave.velocity));
         } else {
-            maneuvering = moveToTarget(deltaSecondsAvg, ship, targetPosition);
+            maneuvering = moveToTarget(deltaSecondsAvg, ship, XY.add(targetPosition, weave.offset));
             if (distanceToTarget < trackRange[0]) {
                 maneuvering.boost = -maneuvering.boost;
                 maneuvering.strafe = -maneuvering.strafe;
@@ -136,8 +183,38 @@ export class AutomationManager implements Updateable {
         this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         ship.smartPilot.maneuvering.x = maneuvering.boost;
-        ship.smartPilot.maneuvering.y = maneuvering.strafe;
+        ship.smartPilot.maneuvering.y = capToRange(-1, 1, maneuvering.strafe);
         ship.smartPilot.rotation = rotation;
+    }
+
+    /**
+     * Cheap pseudo-random lateral weave (issue #2146): a slow sinusoid perpendicular to the
+     * ship->target line, decorrelated per ship via a per-ship phase so a wave of raiders doesn't
+     * weave in lockstep. Returns both the position offset (for the closing/`moveToTarget` phase) and
+     * its time-derivative, the matching velocity offset (for the in-range/`matchGlobalSpeed` holding
+     * phase) -- see `positionNearTarget` for why the goal itself carries the weave rather than a
+     * perturbation on the controller's output. Rotation still tracks the *real* target position every
+     * tick (see `positionNearTarget`'s `aimPoint`), so the mount keeps bearing on target through the
+     * weave -- this only makes the hull harder to hit, not evasive.
+     *
+     * The phase must be constant for the ship's whole lifetime. `die.getRoll` is an *event* roll --
+     * its salt rotates every `EVENT_SALT_WINDOW_SECONDS` (3s), so used as a phase it would re-roll
+     * mid-engagement and shred the sinusoid into a stair-step. `die.getDrift` sampled at frequency 0
+     * evaluates `noise(seed, gameTime * 0)` = `noise(seed, 0)` -- a fixed point on the seed's own
+     * noise channel, i.e. a time-invariant per-ship constant, unlike an event roll.
+     */
+    private combatWeave({ totalSeconds }: IterationData, targetPosition: XY): { offset: XY; velocity: XY } {
+        const phase = this.shipManager.die.getDrift(`combatWeave:${this.state.id}`, 0);
+        const angularFrequency = 2 * Math.PI * COMBAT_WEAVE_FREQUENCY_HZ;
+        const wavePhase = totalSeconds * angularFrequency + phase * 2 * Math.PI;
+        const perpendicularBearing = XY.angleOf(XY.difference(targetPosition, this.state.position)) + 90;
+        return {
+            offset: XY.byLengthAndDirection(COMBAT_WEAVE_AMPLITUDE_METERS * Math.sin(wavePhase), perpendicularBearing),
+            velocity: XY.byLengthAndDirection(
+                COMBAT_WEAVE_AMPLITUDE_METERS * angularFrequency * Math.cos(wavePhase),
+                perpendicularBearing,
+            ),
+        };
     }
 
     private goto(id: IterationData) {
@@ -163,6 +240,7 @@ export class AutomationManager implements Updateable {
         }
         this.state.currentTask = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
         let trackRange: RTuple2, rotationCompensation: XY;
+        let weave: { offset: XY; velocity: XY } = { offset: XY.zero, velocity: XY.zero };
         if (fire && controlWeapon) {
             this.shipManager.setTarget(targetId);
             switchToAvailableAmmo(controlWeapon, this.state.magazine);
@@ -200,28 +278,59 @@ export class AutomationManager implements Updateable {
                 controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
             }
             controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
-            this.aimMountsAtTarget(target);
+            this.aimMountsAtTarget(id.deltaSecondsAvg, target);
+            weave = this.combatWeave(id, target.position);
         } else {
             trackRange = [1000, 3000];
             rotationCompensation = XY.zero;
         }
-        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id);
+        this.positionNearTarget(target.velocity, target.position, rotationCompensation, trackRange, id, weave);
         return false;
     }
 
     /**
      * Points every chain-gun mount at the current target, hull-relative bearing only — no lead, no
      * can't-bear handling, no per-mount fire discipline (that belongs to the deferred NPC-aiming
-     * design). `bearingCommand`'s own clamp is what stops a mount from swinging past the hull it
-     * is bolted to; this only ever asks.
+     * design). Compensates each mount's own observed bearing-skew belief (see
+     * `updateTrackedBearingSkew`), never the true `bearingSkew` — a fresh defect is felt
+     * immediately and only "dialed out" as the automation accumulates evidence that its last few
+     * commands landed off-target. `bearingCommand`'s own clamp is what stops a mount from
+     * swinging past the hull it is bolted to; this only ever asks.
      */
-    private aimMountsAtTarget(target: SpaceObject) {
+    private aimMountsAtTarget(deltaSecondsAvg: number, target: SpaceObject) {
         const hullBearing = toDegreesDelta(
             XY.angleOf(XY.difference(target.position, this.state.position)) - this.state.angle,
         );
         for (const chainGun of this.state.chainGuns) {
-            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
+            const estimate = this.updateTrackedBearingSkew(chainGun, deltaSecondsAvg);
+            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing - estimate);
         }
+    }
+
+    /**
+     * Infers `chainGun`'s bearing skew from observation — never reads `bearingSkew` — ahead of
+     * overwriting `bearingCommand` with this tick's fresh command. Compares the mount-relative
+     * bearing last commanded (`bearingCommand`, still holding last tick's value at this point)
+     * against where the mount is actually observed pointing (`hullBearing`, which bakes in the
+     * real skew). That comparison is only meaningful once the mount has physically caught up to
+     * its last command — mid-swing, `bearing` hasn't reached `bearingCommand` yet, so the same
+     * residual would read as a mechanical turn-lag artifact indistinguishable from skew (a fast
+     * traverse across the hull, or simply tracking a moving target, would otherwise get
+     * misread as damage). Settled observations blend into the running belief through the
+     * exponential filter; an unsettled tick contributes nothing and leaves the belief unchanged.
+     */
+    private updateTrackedBearingSkew(chainGun: ChainGun, deltaSecondsAvg: number): number {
+        const priorEstimate = this.trackedBearingSkew.get(chainGun) ?? 0;
+        const swingLag = toDegreesDelta(chainGun.bearing - chainGun.bearingCommand);
+        if (Math.abs(swingLag) > MOUNT_SETTLED_EPSILON_DEGREES) {
+            return priorEstimate;
+        }
+        const expectedHullBearing = chainGun.fittedBearing + chainGun.bearingCommand;
+        const observedError = toDegreesDelta(chainGun.hullBearing - expectedHullBearing);
+        const trackingFraction = 1 - Math.exp(-deltaSecondsAvg / BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS);
+        const estimate = priorEstimate + (observedError - priorEstimate) * trackingFraction;
+        this.trackedBearingSkew.set(chainGun, estimate);
+        return estimate;
     }
 
     /**
@@ -373,7 +482,7 @@ export class AutomationManager implements Updateable {
                 this.powerBackoffLatched.delete(chainGun);
                 chainGun.power = preBackoffLevel;
             } else {
-                const heldLevel = Math.min(preBackoffLevel, PowerLevel.LOW);
+                const heldLevel: PowerLevel = Math.min(preBackoffLevel, PowerLevel.LOW);
                 if (chainGun.power !== heldLevel) {
                     chainGun.power = heldLevel;
                 }

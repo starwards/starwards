@@ -255,6 +255,12 @@ describe('AI heat-management automation', () => {
     });
 
     describe('sustained engagement', () => {
+        /**
+         * Coolant budget (vs the dragonfly-MK1's stock 6) for a hull whose cooling cannot keep up
+         * with sustained fire on its own — the condition under which power backoff has to engage.
+         */
+        const STARVED_COOLANT = 3;
+
         function armorHealthSum(state: ReturnType<typeof makeShipState>) {
             let sum = 0;
             for (const plate of state.armor.armorPlates) {
@@ -267,8 +273,12 @@ describe('AI heat-management automation', () => {
          * dragonfly-MK1 vs large-station, 10 sim-minutes, full ATTACK order, same seed every call —
          * `heatManagementEnabled` toggles NPC heat management entirely via the escape hatch built
          * for exactly this A/B comparison (see `AutomationManager.setHeatManagementEnabled`).
+         *
+         * `totalCoolant` overrides the hull's coolant budget: at the stock dragonfly-MK1 figure,
+         * proportional coolant reallocation alone holds the gun far below the backoff threshold, so
+         * a starved hull is what exercises the second line of defence (see the coolant-starved case).
          */
-        function runSustainedEngagement(heatManagementEnabled: boolean) {
+        function runSustainedEngagement(heatManagementEnabled: boolean, totalCoolant?: number) {
             const spaceMgr = new SpaceManager();
             const die = new MockDie();
             die.expectedRoll = 1;
@@ -281,6 +291,9 @@ describe('AI heat-management automation', () => {
             );
             const attackerState = makeShipState(attacker.id, shipConfigurations['dragonfly-MK1']);
             attackerState.isPlayerShip = false;
+            if (totalCoolant !== undefined) {
+                attackerState.design.totalCoolant = totalCoolant;
+            }
             const attackerMgr = new ShipManagerNpc(attacker, attackerState, spaceMgr, die);
             attackerMgr.automationManager.setHeatManagementEnabled(heatManagementEnabled);
 
@@ -321,7 +334,9 @@ describe('AI heat-management automation', () => {
         }
 
         it('backs off power under sustained fire and keeps ceasefire a rare backstop while still damaging the target', () => {
-            const result = runSustainedEngagement(true);
+            // coolant-starved hull: reallocation alone cannot hold the line, so power backoff — the
+            // second line of defence — is what keeps the mount off the ceasefire threshold.
+            const result = runSustainedEngagement(true, STARVED_COOLANT);
 
             // the engagement still measurably damages the target
             expect(result.armorLost).to.be.greaterThan(0);
@@ -350,12 +365,14 @@ describe('AI heat-management automation', () => {
             expect(withoutAutomation.armorLost, 'without automation (baseline)').to.be.greaterThan(0);
             // regression guard: backoff only ever throttles down from the unthrottled baseline, so
             // automation must never deal MORE damage than the baseline — catches e.g. a future change
-            // that silently doubles NPC DPS. Pinned loosely (measured 6 vs 7) to survive minor tuning.
+            // that silently doubles NPC DPS. Pinned loosely (measured 18 vs 18) to survive minor
+            // tuning: on a stock hull, coolant reallocation alone holds heat clear of the backoff
+            // threshold, so automation costs no offense at all here.
             expect(withAutomation.armorLost, 'automation must not out-damage the unthrottled baseline').to.be.at.most(
                 withoutAutomation.armorLost,
             );
-            expect(withAutomation.armorLost).to.be.closeTo(6, 3);
-            expect(withoutAutomation.armorLost).to.be.closeTo(7, 3);
+            expect(withAutomation.armorLost).to.be.closeTo(18, 5);
+            expect(withoutAutomation.armorLost).to.be.closeTo(18, 5);
             // the actual point of heat management: with it, heat never approaches the ceasefire
             // threshold; without it, the gun sits pegged at the overheat ceiling for the fight
             expect(withAutomation.maxHeat, 'heat management keeps heat well clear of the ceiling').to.be.lessThan(

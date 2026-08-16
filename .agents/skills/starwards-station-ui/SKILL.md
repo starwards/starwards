@@ -1,6 +1,6 @@
 ---
 name: starwards-station-ui
-description: Build and modify station screens (weapons, pilot, ecr, etc.) for Starwards - two layout systems (fixed grid vs golden-layout), widget draw patterns, input wiring, color system, JSON Pointer subsystem access, and design constraints for information asymmetry
+description: Build and modify station screens (weapons, pilot, engineer, etc.) for Starwards - two layout systems (fixed grid vs golden-layout), widget draw patterns, input wiring, color system, JSON Pointer subsystem access, and design constraints for information asymmetry
 version: 2025-12-03
 related_skills:
   - starwards-pixijs (PixiJS rendering in stations)
@@ -12,13 +12,13 @@ related_skills:
 
 # Skill: starwards-station-ui
 
-Build and modify station screens (weapons, pilot, ecr, etc.) for Starwards.
+Build and modify station screens (weapons, pilot, engineer, etc.) for Starwards.
 
 ## Architecture
 
 There are TWO layout systems. Don't mix them.
 
-### Fixed stations (weapons.ts, pilot.ts, ecr.ts)
+### Fixed stations (weapons.ts, pilot.ts, engineer.ts)
 Use `wrapRootWidgetContainer` + `subContainer(VPos, HPos)` grid.
 No golden-layout. No jQuery layout containers.
 
@@ -88,7 +88,7 @@ input.init(); // must call at end
 
 **Weapons station:** `] [ ' p o i x c v f g b` + `1 2 3 4` (per-tube safety toggle)
 **Pilot station:** `q e a d w s r f z` + gamepad axes 0,2,3 + buttons 5,6,7,10,11,14
-**ECR station:** `1-0 a-l` (with shift variants), `` ` `` `] [ \`
+**Engineer station:** `1-0 a-l` (with shift variants), `] [ \`
 
 ## Color system
 
@@ -147,7 +147,6 @@ Access ship state via JSON pointer strings:
 - `/warp/levelUpCommand`, `/warp/levelDownCommand`, `/warp/standbyFrequency`
 - `/docking/toggleCommand`
 - `/afterBurnerCommand`, `/antiDrift`, `/breaks`
-- `/ecrControl`
 - System power/coolant: `/{systemPointer}/power`, `/{systemPointer}/coolantFactor`
 
 ## Design constraints

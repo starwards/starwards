@@ -10,7 +10,7 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 |-----------|---------------------|--------|-------|
 | Helm | Pilot | Done | Newtonian physics instead of EE's simplified flight |
 | Weapons | Weapons | Done | Three engagement circles vs EE's beam weapons |
-| Engineering | ECR (Engineering Control Room) | Done | Same power/heat/coolant concept, different UI |
+| Engineering | Engineer | Done | Same power/heat/coolant concept, different UI |
 | Science | Signals | Partial | Scan levels + signals jobs replace EE's scan/probe |
 | Relay/Comms | Relay | Designed | Route coordination + probes replace EE's hail system |
 | — | Navigator | Designed | No EE equivalent; new station for warp topology |
@@ -18,8 +18,8 @@ Feature-by-feature comparison between EmptyEpsilon (EE) and Starwards. Status re
 | Single Pilot | — | Planned | Combined controls for solo operation |
 | Tactical (Helm+Weapons) | — | Planned | Combined station for smaller crews |
 | Operations (Science+Comms) | — | Planned | Combined station |
-| Damage Control | Part of ECR | Done | Engineering handles damage in Starwards |
-| Power Management | Part of ECR | Done | Integrated into engineering station |
+| Damage Control | Part of Engineer | Done | Engineering handles damage in Starwards |
+| Power Management | Part of Engineer | Done | Integrated into engineering station |
 | Drone Pilot | — | Skip | No drone system; fighters are NPC-only |
 | Dock Master | Part of GM/Relay | Designed | Docking controlled by pilot + GM |
 

@@ -74,6 +74,26 @@ export const single_ship = {
     },
 };
 
+const multiTubeShipId = 'GVTS-2TUBE';
+export const weapons_multi_tube = {
+    name: 'weapons_multi_tube',
+    testShipId: multiTubeShipId,
+    init: (game: GameApi) => {
+        const spaceObject = new Spaceship().init(multiTubeShipId, new Vec2(0, 0), 'gravitas', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
+    },
+};
+
+const multiGunShipId = 'GVTS-3GUN';
+export const weapons_multi_gun = {
+    name: 'weapons_multi_gun',
+    testShipId: multiGunShipId,
+    init: (game: GameApi) => {
+        const spaceObject = new Spaceship().init(multiGunShipId, new Vec2(0, 0), 'cataphract', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
+    },
+};
+
 const testTargetShipId = 'GVTS2';
 export const two_ships = {
     name: 'two_ships',

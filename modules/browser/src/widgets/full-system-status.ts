@@ -47,8 +47,9 @@ export function drawFullSystemsStatus(
     });
     for (const system of systems) {
         const brokenProp = readProp(shipDriver, `${system.pointer}/broken`);
+        const energyStarvedProp = readProp(shipDriver, `${system.pointer}/energyStarved`);
         const defectiblesProps = system.defectibles.map(defectReadProp(shipDriver));
-        const statusChangeProps = [brokenProp, ...defectiblesProps];
+        const statusChangeProps = [brokenProp, energyStarvedProp, ...defectiblesProps];
         const prop = aggregate(statusChangeProps, system.getStatus);
         const standardRowApi = pane.addBlade({
             view: 'tableRow',

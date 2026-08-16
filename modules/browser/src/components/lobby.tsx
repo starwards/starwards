@@ -130,18 +130,11 @@ function ShipOptions({ shipId }: { shipId: string }) {
                         Pilot
                     </Button>
                     <Button
-                        key={`ecr-${shipId}`}
+                        key={`engineer-${shipId}`}
                         palette="primary"
-                        onClick={() => window.location.assign(`ecr.html?station=ecr&ship=${shipId}`)}
+                        onClick={() => window.location.assign(`engineer.html?ship=${shipId}`)}
                     >
-                        E.C.R
-                    </Button>
-                    <Button
-                        key={`bridge-engineer-${shipId}`}
-                        palette="primary"
-                        onClick={() => window.location.assign(`ecr.html?station=bridge-engineer&ship=${shipId}`)}
-                    >
-                        Bridge Engineer
+                        Engineer
                     </Button>
                     <Button
                         key={`signals-${shipId}`}

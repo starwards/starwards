@@ -9,11 +9,11 @@
 
 MS3 originally planned 6 new stations (Signals, Navigator, Relay + docking, repair, ship models) across 6 phases over ~6 months. For a 2-person team with day jobs relying on AI-assisted development, this is high risk for timeline overrun. The project has been in development since 2021 without running a LARP event on Starwards. EmptyEpsilon remains available as fallback.
 
-The three existing stations (Pilot, Weapons, ECR) already form a playable bridge. The question is: how much more is needed before running the first event?
+The three existing stations (Pilot, Weapons, Engineer) already form a playable bridge. The question is: how much more is needed before running the first event?
 
 ## Decision
 
-Ship a 4-station bridge (Pilot, Weapons, ECR, Signals) + GM as the first playable event. Navigator and Relay are expansion content for subsequent events.
+Ship a 4-station bridge (Pilot, Weapons, Engineer, Signals) + GM as the first playable event. Navigator and Relay are expansion content for subsequent events.
 
 Signals was chosen as the fourth station because:
 - Already in progress (#1206 signals jobs system)

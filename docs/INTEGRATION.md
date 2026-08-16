@@ -382,7 +382,7 @@ its type, faction or name.
 ### The crew channel
 
 A sandboxed station is a station that cannot see most of the ship, which is the point: signals is the
-only seat that can identify a blip, ECR the only seat that knows why power is sagging. The game only
+only seat that can identify a blip, the engineer the only seat that knows why power is sagging. The game only
 works when those seats tell each other, so `say` and `listen` carry crew speech over a Discord text
 channel — the one the human crew already uses, which makes an LLM station and a human player the same
 kind of participant in the same room. A testplay can be all-LLM, all-human, or mixed.
@@ -412,7 +412,7 @@ channel is inaudible to the models.
 2. `npm run build:mcp`.
 3. One Discord text channel, a webhook on it, and a bot in the guild with Message Content on.
 4. One MCP client session per station, all pointed at the same game and the same channel, each told
-   which seat to take: `pilot`, `weapons`, `ecr`, `bridge-engineer`, `signals`, `relay`. The seat's
+   which seat to take: `pilot`, `weapons`, `engineer`, `signals`, `relay`. The seat's
    briefing comes back from `login` — that is what the manifest's `prompt` is for.
 5. A captain: either a human typing in the channel, or a session that never calls `login` and so has
    only `say` and `listen` — a fair model of an officer who commands through the crew.

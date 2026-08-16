@@ -28,7 +28,7 @@ export const glaiveOmniRadar = {
     defaultArc: 360,
     energyCost: 0.038,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 50_000,
+    malfunctionRange: 2_000,
     turnSpeed: 0,
     bearingLimit: 0,
     maxBearingSkew: 0,
@@ -45,7 +45,7 @@ export const glaiveScanBeam = {
     defaultArc: 20,
     energyCost: 0.038,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 37_500,
+    malfunctionRange: 2_000,
     turnSpeed: 30,
     bearingLimit: 180,
     maxBearingSkew: 45,
@@ -87,6 +87,7 @@ export const glaiveReactor = {
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
+    maxEnergyCells: 2,
 };
 
 export const glaiveProperties = {

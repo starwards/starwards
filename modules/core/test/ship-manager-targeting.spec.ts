@@ -278,16 +278,17 @@ describe('ShipManager housekeeping', () => {
         expect([...obj.radarSectors].map((s) => s.range)).to.deep.equal([0, 0]);
     });
 
-    it('a fully malfunctioning radar is broken and its range drops to zero', () => {
+    it('a fully malfunctioning radar is broken but still holds its degraded floor, not 0', () => {
         const { makeShipMgr, flush, runTick } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
         flush();
         const radar = mgr.state.radars[0];
+        radar.power = 1; // isolate the malfunction floor from the power dial
         radar.malfunctionRangeFactor = 1; // clamped by @range to the broken threshold
-        expect(radar.broken).to.equal(true);
-        expect(radar.effectiveness).to.equal(0);
+        expect(radar.broken).to.equal(true); // still counts toward turn speed / kill-ratio / DISABLED status
+        expect(radar.effectiveness).to.equal(0); // `broken` still zeroes effectiveness...
         runTick(mgr);
-        expect(radar.range).to.equal(0);
+        expect(radar.range).to.equal(radar.design.malfunctionRange); // ...but never the range: it floors, not blacks out
     });
 
     it('setSmartPilotManeuveringMode rejects TARGET when there is no weapons target', () => {

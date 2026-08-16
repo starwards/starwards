@@ -28,7 +28,7 @@ export const freighterOmniRadar = {
     defaultArc: 360,
     energyCost: 0.05,
     rangeEaseFactor: 0.2,
-    malfunctionRange: 20_000,
+    malfunctionRange: 2_000,
     turnSpeed: 0,
     bearingLimit: 0,
     maxBearingSkew: 0,
@@ -43,6 +43,7 @@ export const freighterReactor = {
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
     damage50: 20,
+    maxEnergyCells: 2,
 };
 
 export const freighterProperties = {
