@@ -1,5 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { Faction, Spaceship, Vec2 } from '../space';
+import { LockPropertyArg, Lockable } from '../lock-commands';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
@@ -52,7 +53,7 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') systemKillRatio = 0;
 }
 @rangeSchema({ '/spaceship/turnSpeed': [-90, 90] })
-export class ShipState extends Schema {
+export class ShipState extends Schema implements Lockable {
     /**
      * Composed space object - a mirror of the authoritative Spaceship in SpaceState,
      * updated every game tick by syncShipProperties(). This is NOT the source of truth
@@ -130,6 +131,15 @@ export class ShipState extends Schema {
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();
 
+    /**
+     * JSON Pointer paths (relative to this ship's state root) whose GM lock is
+     * currently active — see `lock-commands.ts`. Synced so the GM tweak
+     * panel's lock toggle reflects current state across reconnects/other GM
+     * clients; the write guard itself lives in `lock-registry.ts`.
+     */
+    @gameField(['string'])
+    lockedPaths = new ArraySchema<string>();
+
     @range([-1, 1])
     @gameField('float32')
     rotation = 0;
@@ -177,6 +187,9 @@ export class ShipState extends Schema {
     public maneuveringModeCommand = false;
     @commandable()
     public fireTubesCommand = false;
+
+    /** Drained by `applyLockCommands` (`lock-commands.ts`) each tick. */
+    public lockCommands = Array.of<LockPropertyArg>();
 
     // Read-only delegates to the composed spaceship. These satisfy the Craft
     // interface used by helm-assist / gunner-assist without @gameField, so they

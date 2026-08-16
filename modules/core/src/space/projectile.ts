@@ -24,6 +24,13 @@ export type AmmoType = (typeof ammoTypes)[number];
 export const clusterWarheadModes = ['Frag', 'ArmPen'] as const;
 export type ClusterWarheadMode = (typeof clusterWarheadModes)[number];
 
+/**
+ * A cannon shell's blast is physically smaller than a missile's — this scales the shell's
+ * blast growth speed (and so its max radius), by construction, so damage geometry, radar
+ * footprint and render all shrink together. Missile blasts are unaffected.
+ */
+const SHELL_BLAST_SIZE_FACTOR = 0.5;
+
 // contact: a single damage event at the point of impact, no explosion object.
 // proximity: detonates into a growing Explosion, either on approach to a target
 // (within `range`) or on contact — also the backup time-fuze on lifetime expiry.
@@ -328,6 +335,9 @@ export class Projectile extends SpaceObjectBase implements Craft {
         const explosion = new Explosion();
         explosion.assign(warhead.explosion);
         explosion.damageType = warhead.damageType;
+        if (isShellAmmo(this.model)) {
+            explosion.expansionSpeed *= SHELL_BLAST_SIZE_FACTOR;
+        }
         return explosion;
     }
 

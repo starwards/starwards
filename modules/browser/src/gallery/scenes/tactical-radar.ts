@@ -1,4 +1,4 @@
-import { cataphract, demoShip, makeShipState } from '@starwards/core';
+import { Projectile, cataphract, demoShip, makeShipState } from '@starwards/core';
 import {
     createMockAsteroid,
     createMockExplosion,
@@ -198,6 +198,38 @@ export const tacticalRadarScenes: Record<string, Scene> = {
 
             const mockContainer = createMockContainer(container);
             const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, normalBlast, breachBlast]);
+            const mockShipDriver = createMockShipDriver(playerShip);
+
+            return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
+                range: RANGE,
+            });
+        },
+    },
+
+    'tactical-radar-shell-vs-missile-blast': {
+        name: 'tactical-radar-shell-vs-missile-blast',
+        description:
+            'A cannon shell blast (left) next to a missile blast (right) at their max radius — the shell ' +
+            'blast is physically smaller (issue #2150), not just drawn smaller',
+        async setup(container: HTMLElement) {
+            const playerShip = createShipWithState('player', 0, 0, 0);
+
+            const shellExplosionDesign = new Projectile('HiExpShell').makeExplosion();
+            const missileExplosionDesign = new Projectile('HiExpMissile').makeExplosion();
+
+            const shellBlast = createMockExplosion({
+                id: 'shell-blast',
+                position: { x: 700, y: 0 },
+                radius: shellExplosionDesign.expansionSpeed * shellExplosionDesign.secondsToLive,
+            });
+            const missileBlast = createMockExplosion({
+                id: 'missile-blast',
+                position: { x: -700, y: 0 },
+                radius: missileExplosionDesign.expansionSpeed * missileExplosionDesign.secondsToLive,
+            });
+
+            const mockContainer = createMockContainer(container);
+            const mockSpaceDriver = createMockSpaceDriver([playerShip.spaceship, shellBlast, missileBlast]);
             const mockShipDriver = createMockShipDriver(playerShip);
 
             return await drawTacticalRadar(mockSpaceDriver as never, mockShipDriver as never, mockContainer, {
