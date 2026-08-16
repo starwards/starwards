@@ -194,6 +194,18 @@ describe('RepairManager', () => {
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
+    it('surfaces a visible reason when a sustained energy shortfall aborts the active operation', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine');
+        tickOnce(repairManager, 0.1); // promote to active
+
+        state.reactor.energy = 0; // sustained shortfall — longer than the grace window
+        runTicks(repairManager, 3, 20);
+
+        expect(state.repairQueue.refusalReason).to.include('energy');
+        expect(state.repairQueue.refusalSecondsRemaining).to.be.greaterThan(0);
+    });
+
     it('cancelling a queued operation removes it at no cost', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixThrusters');

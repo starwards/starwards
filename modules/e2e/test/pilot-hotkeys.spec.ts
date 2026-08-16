@@ -116,4 +116,24 @@ test.describe('Pilot hotkeys', () => {
         // Wait for server to process; no whitelist throw means success.
         await page.waitForTimeout(200);
     });
+
+    // --- SmartPilot mode switching (n/m keys — previously joystick-only, see #2149) ---
+
+    // rotationMode only cycles between VELOCITY and TARGET (no DIRECT) — with no weapons
+    // target set (as in this map), TARGET is illegal and the toggle settles back on VELOCITY,
+    // so we can only assert the command is admitted, not that the mode value changes.
+    test('n key: rotationModeCommand admitted without whitelist rejection', async ({ page }) => {
+        await page.keyboard.press('n');
+        await page.waitForTimeout(200);
+    });
+
+    test('m key: maneuvering mode toggles away from its initial value', async ({ page }) => {
+        const initial = gameDriver.getShip(shipId).state.smartPilot.maneuveringMode;
+        await page.keyboard.press('m');
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.smartPilot.maneuveringMode !== initial,
+            3000,
+        );
+    });
 });

@@ -28,6 +28,7 @@ import { DamageDelivery } from '../space/projectile';
 import { FactionIntelManager } from './faction-intel-manager';
 import { SWResponse } from './collisions-utils';
 import { SpaceDamageType } from '../space/damage-profile';
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -146,6 +147,16 @@ export class SpaceManager implements Updateable {
             this.clampToAbsoluteMaxSpeed(subject);
         }
     }
+    /**
+     * Flags the explosion (by id) as having landed a hit on an already-broken armor section, so
+     * clients render it as a hull-penetration hit instead of an exterior surface burst.
+     */
+    public markBreachHit(id: string) {
+        const [object] = this.getObjectPtr(id);
+        if (object && Explosion.isInstance(object)) {
+            object.breachHit = true;
+        }
+    }
     public setVelocity(id: string, velocity: XY) {
         if (isNaN(velocity.x) || isNaN(velocity.y)) {
             logWarn(`trying to set "NaN" in velocity of ${id}`);
@@ -183,8 +194,9 @@ export class SpaceManager implements Updateable {
     /**
      * NPC systems-broken death (issue #2111): instead of vanishing, an expendable ship is
      * replaced with an inert Derelict at the same position, carrying its radius, faction,
-     * callsign, angle, velocity and turn speed -- the hulk keeps drifting/tumbling as it was at
-     * the moment of death. No type-conversion machinery exists for space objects, so this is
+     * callsign, angle, velocity, turn speed and model -- the hulk keeps drifting/tumbling as it
+     * was at the moment of death, and its blip stays recognizable as the ship it was. No
+     * type-conversion machinery exists for space objects, so this is
      * delete (via `destroyObject`, which also still queues the ship-room teardown) + insert a
      * new object, same as every other object-type transition.
      */
@@ -200,6 +212,7 @@ export class SpaceManager implements Updateable {
             subject.faction,
             subject.callsign,
             subject.angle,
+            subject.model,
         );
         derelict.velocity = Vec2.make(subject.velocity);
         derelict.turnSpeed = subject.turnSpeed;
@@ -244,6 +257,8 @@ export class SpaceManager implements Updateable {
     }
 
     update({ deltaSeconds, totalSeconds }: IterationData) {
+        // apply GM lock/unlock commands before anything else can write a locked field this tick
+        applyLockCommands(this.state);
         this.calcAttachmentCliques();
         for (const cmd of this.state.createAsteroidCommands) {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);
@@ -734,7 +749,7 @@ export class SpaceManager implements Updateable {
                         this.resolveProjectileContactDamage(subject, object, deltaSeconds);
                     }
                 } else if (Explosion.isInstance(subject)) {
-                    positionChange = this.handleExplosionCollision(subject, response);
+                    positionChange = this.handleExplosionCollision();
                 } else {
                     const res = this.calcSolidCollision(deltaSeconds, subject, object, response);
                     positionChange = res.positionChange;
@@ -758,15 +773,14 @@ export class SpaceManager implements Updateable {
             }
         }
     }
-    private handleExplosionCollision(subject: Explosion, response: SWResponse) {
-        let positionChange: XY | null = null;
-        if (response.aInB) {
-            subject.velocity.setValue(XY.zero);
-            positionChange = XY.scale(response.overlapV, -0.5);
-        } else if (limitPercision(response.overlap) > limitPercision(subject.radius)) {
-            positionChange = XY.scale(response.overlapN, -subject.radius);
-        }
-        return positionChange;
+    /**
+     * An explosion is a region of space, not a body — it has no momentum to trade. Colliding
+     * with it affects the object it strikes (see calcSolidCollision's Explosion branch); the
+     * blast's own position and velocity are never mutated by collision response. This is about
+     * collision response only — velocity inherited at spawn (explodeProjectile) is untouched.
+     */
+    private handleExplosionCollision(): XY | null {
+        return null;
     }
 
     private calcSolidCollision(

@@ -14,7 +14,7 @@ import {
     TargetedStatus,
     ammoTypes,
     applyRadarSectors,
-    malfunctionAreaFactor,
+    sampleRadarAreaFactor,
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
@@ -31,15 +31,16 @@ import { HeatManager } from './heat-manager';
 import { Iterator } from '../logic/iteration';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
+import { ReactorCellManager } from './reactor-cell-manager';
 import { Signals } from './signals';
 import { SignalsJobManager } from './signals-job-manager';
 import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
-import { sinWave } from '../logic';
 
 const { error: logError } = createLogger('ship-manager');
 
@@ -53,6 +54,7 @@ function fixArmor(armor: Armor) {
 
 export function resetShipState(state: ShipState) {
     state.reactor.energy = state.reactor.design.maxEnergy;
+    state.reactor.energyCells = state.reactor.design.maxEnergyCells;
     state.maneuvering.afterBurnerFuel = state.maneuvering.design.maxAfterBurnerFuel;
     fixArmor(state.armor);
     for (const chainGun of state.chainGuns) {
@@ -89,6 +91,7 @@ export function resetShipState(state: ShipState) {
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
     state.repairQueue.reorderCommands = [];
+    state.lockCommands = [];
     // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;
@@ -139,6 +142,7 @@ export abstract class ShipManager implements Updateable {
     protected damageManager: DamageManager;
     protected heatManager: HeatManager;
     protected ammoManager: AmmoManager;
+    protected reactorCellManager: ReactorCellManager;
     public signalsJobManager: SignalsJobManager;
 
     constructor(
@@ -156,6 +160,7 @@ export abstract class ShipManager implements Updateable {
         this.dockingManager = new DockingManager(this.state, this.spaceManager, this.damageManager);
         this.automationManager = new AutomationManager(this.state, this, this.spaceManager);
         this.ammoManager = new AmmoManager(this.state);
+        this.reactorCellManager = new ReactorCellManager(this.state);
         this.signalsJobManager = new SignalsJobManager(this.state, this.spaceManager);
         for (const [index, chainGun] of this.state.chainGuns.entries()) {
             this.chainGunManagers.push(
@@ -257,6 +262,8 @@ export abstract class ShipManager implements Updateable {
     }
 
     update(id: IterationData) {
+        // apply GM lock/unlock commands before anything else can write a locked field this tick
+        applyLockCommands(this.state);
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
         this.damageManager.update();
@@ -281,6 +288,7 @@ export abstract class ShipManager implements Updateable {
 
         this.signalsJobManager.update(id);
         this.ammoManager.update(id);
+        this.reactorCellManager.update(id);
         this.updateAmmo();
         this.dockingManager.update();
     }
@@ -329,14 +337,14 @@ export abstract class ShipManager implements Updateable {
      * each radar its energy, refresh its malfunction easing, and mirror the resulting geometry
      * onto the space object so both the server and every client see the same union.
      */
-    protected updateRadarSectors({ totalSeconds, deltaSeconds }: IterationData) {
+    protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
             radar.powered = this.internalProxy.trySpendEnergy(
                 radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
-            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
+            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
             sectors.push({
                 direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,
@@ -346,18 +354,19 @@ export abstract class ShipManager implements Updateable {
         this.spaceManager.changeShipRadarSectors(this.spaceObject.id, sectors);
     }
 
-    private calcRadarAreaFactor(radar: Radar, index: number, totalSeconds: number) {
-        if (!radar.malfunctionRangeFactor || !radar.effectiveness) {
-            return 1;
-        }
-        const frequency = this.die.getDriftInRange(
-            `updateRadarRangeFrequency:${this.spaceObject.id}:${index}`,
-            0.2,
-            1,
-            0.15,
+    /**
+     * `areaFactor` for a malfunctioning radar wanders via smooth, non-periodic value noise
+     * rather than a fixed sine — a struggling radar should not pulse on a predictable beat. See
+     * `sampleRadarAreaFactor` for the noise construction; the key carries ship id + radar index so
+     * radars never fluctuate in lockstep, on one hull or across ships.
+     */
+    private calcRadarAreaFactor(radar: Radar, index: number) {
+        return sampleRadarAreaFactor(
+            this.die,
+            `radarMalfunction:${this.spaceObject.id}:${index}`,
+            radar.malfunctionRangeFactor,
+            radar.design.rangeEaseFactor,
         );
-        const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
-        return malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, wave);
     }
 
     protected calcTargetedStatus() {

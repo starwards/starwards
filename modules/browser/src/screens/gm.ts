@@ -40,7 +40,7 @@ const { error: logError } = createLogger('screen:gm');
 const driver = new Driver(window.location).connect();
 const statusTracker = new ClientStatus(driver);
 
-runScreenLifecycle(statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
+runScreenLifecycle(driver, statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
 
 async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardown> {
     wrapperEl.append('<ul id="menuContainer"></ul><div id="layoutContainer"></div>');
