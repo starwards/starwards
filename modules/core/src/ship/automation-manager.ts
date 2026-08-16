@@ -373,7 +373,10 @@ export class AutomationManager implements Updateable {
                 this.powerBackoffLatched.delete(chainGun);
                 chainGun.power = preBackoffLevel;
             } else {
-                chainGun.power = Math.min(preBackoffLevel, PowerLevel.LOW);
+                const heldLevel = Math.min(preBackoffLevel, PowerLevel.LOW);
+                if (chainGun.power !== heldLevel) {
+                    chainGun.power = heldLevel;
+                }
             }
         } else if (chainGun.heat >= POWER_BACKOFF_ENGAGE_HEAT && chainGun.power > PowerLevel.LOW) {
             this.powerBackoffLatched.set(chainGun, chainGun.power);
