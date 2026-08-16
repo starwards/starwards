@@ -478,9 +478,12 @@ export class SpaceManager implements Updateable {
                         // steer at the target's projected position, not its current one -- aiming
                         // at "now" against a moving target turns the chase into an ever-curving
                         // pursuit that can circle the target instead of ever closing on it. The lead
-                        // is computed against cruise speed (not sprint) since sprint only actually
-                        // engages once the missile is on-course -- see sprintMultiplier below.
-                        const destination = predictInterceptPoint(projectile.position, homing.maxSpeed, target);
+                        // assumes the missile can reach full sprint speed, since that's the speed
+                        // it'll actually be closing at once it's on-course (see sprintMultiplier).
+                        const leadSpeed = homing.sprint
+                            ? homing.maxSpeed * homing.sprint.speedMultiplier
+                            : homing.maxSpeed;
+                        const destination = predictInterceptPoint(projectile.position, leadSpeed, target);
                         const relativeDestination = XY.difference(destination, projectile.position);
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
@@ -491,7 +494,7 @@ export class SpaceManager implements Updateable {
                         // sprinting while still badly misaligned overshoots into a wide loop instead
                         // of a clean intercept (the orbiting bug). Gating sprint on alignment keeps
                         // the correction phase at cruise speed's much tighter turn radius.
-                        const onCourse = Math.abs(velocityDestinationDiff) < 45;
+                        const onCourse = Math.abs(velocityDestinationDiff) < 35;
                         const sprintMultiplier =
                             homing.sprint && onCourse && distanceToTarget < homing.sprint.range
                                 ? homing.sprint.speedMultiplier
