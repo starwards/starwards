@@ -346,6 +346,7 @@ export class RepairManager implements Updateable {
             active.starvedSeconds += deltaSeconds;
             if (active.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
                 this.abort(active);
+                this.notifyRefusal(`${protocol.name} was cancelled: insufficient energy`);
             }
             return;
         }
