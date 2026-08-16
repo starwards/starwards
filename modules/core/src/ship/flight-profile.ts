@@ -193,8 +193,9 @@ function aimCost(guns: ChainGun[], offset: number): number {
 
 /**
  * Normalized [0, 1] cost of holding heading `offset` given the required approach: 0 when the
- * strongest thrust axis at that heading matches the required-acceleration vector, 1 when the ship
- * has no thrust at all (stations) — leaving the whole heading decision to {@link aimCost}. The
+ * strongest thrust axis at that heading matches the required-acceleration vector, and 1 when it is
+ * the weakest. A ship with no thrust at all (a station) scores 0 on every heading, which leaves the
+ * whole decision to {@link aimCost} — the only term it has left. The
  * predicted hull angle at `offset` is `angleOf(shipToTarget) + offset` (`rotateToTarget`'s steady
  * state) — using the ship's *current* angle here would close the #2083-class loop this arbitration
  * is required to avoid.

@@ -882,6 +882,53 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
     });
 
+    it('does not carry a stale rescan cooldown across an engagement, delaying pickup when the primary dies', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+
+        const maxShellRange = shipMgr.state.chainGuns[0]?.design.maxShellRange ?? 0;
+        const orderedTarget = createHostile(
+            'ordered-target',
+            Faction.Gravitas,
+            XY.byLengthAndDirection(maxShellRange + 5_000, 0),
+        );
+        spaceMgr.insert(orderedTarget);
+        spaceMgr.forceFlushEntities();
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = orderedTarget.id;
+
+        // One tick with the primary unreachable and nothing else around: the scan finds nothing and
+        // arms the 1s cooldown.
+        for (const id of makeIterationsData(0.05, 1)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        // The primary closes to a reachable distance and is engaged for two full seconds -- twice
+        // the cooldown. Elapsed time is elapsed time whether or not a scan is wanted, so by the end
+        // of this the cooldown is long expired.
+        orderedTarget.position.setValue(XY.byLengthAndDirection(5000, 0));
+        spaceMgr.forceFlushEntities();
+        for (const id of makeIterationsData(2, 40)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
+
+        // The primary dies with another hostile already abeam.
+        spaceMgr.insert(createHostile('opportunity-hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 90)));
+        spaceMgr.forceFlushEntities();
+        orderedTarget.destroyed = true;
+        for (const id of makeIterationsData(0.05, 1)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        // Ticking the cooldown only on the branch that scans leaves it frozen for the whole
+        // engagement, so the hull would sit idle for a further second before noticing this hostile.
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
+    });
+
     it('disengaging clears isFiring on every mount, not only the control weapon', () => {
         const twoMountConfig = {
             ...shipConfigurations['chaingun-platform'],

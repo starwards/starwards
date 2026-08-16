@@ -85,9 +85,11 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
 /**
  * Fuze setting that detonates a shell after it has covered `distance` — measured, like every other
  * range in the gunnery chain, in the firing ship's own frame, where the shell only ever travels at
- * muzzle speed. Dialling a range therefore gets that range, both at the detonation
- * ({@link getShellExplosionLocation}) and on the ring the range is drawn as
- * ({@link getKillZoneRadiusRange}).
+ * muzzle speed. Dialling a range therefore gets that range, measured from the muzzle — the shell
+ * starts its flight at `ship.radius` along the firing line, so {@link getShellExplosionLocation}
+ * puts the detonation `radius + distance` from the hull centre, and {@link getKillZoneRadiusRange}
+ * draws the ring the same way. Callers converting a hull-centre distance into a fuze setting
+ * subtract `ship.radius` first.
  */
 export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
     return distance / Math.max(chainGun.design.bulletSpeed, 1);

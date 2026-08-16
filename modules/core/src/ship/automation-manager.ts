@@ -546,6 +546,11 @@ export class AutomationManager implements Updateable {
      * hijacks the ship's weapons-target UI slot.
      */
     private resolveGunneryTarget(id: IterationData): SpaceObject | null {
+        // Ticked here rather than inside `resolveOpportunityTarget`, which the reachable-primary
+        // branch below returns without ever reaching: the cooldown is elapsed time since the last
+        // scan, so freezing it while a primary is being engaged would throttle re-acquisition for a
+        // further full interval at the moment that primary dies — exactly when it is needed.
+        this.gunneryRescanCooldown -= id.deltaSecondsAvg;
         if (this.state.isPlayerShip || this.state.chainGuns.length === 0) {
             return null;
         }
@@ -563,11 +568,11 @@ export class AutomationManager implements Updateable {
                 // Primary unreachable right now: a free opportunity shot at some other reachable
                 // hostile, or — with none available — keep the primary's fuze/aim dialed in
                 // (ready for when it's reachable again) without ever reporting it as firing.
-                const opportunityTarget = this.resolveOpportunityTarget(id, orderedTarget.id);
+                const opportunityTarget = this.resolveOpportunityTarget(orderedTarget.id);
                 return opportunityTarget ?? orderedTarget;
             }
         }
-        return this.resolveOpportunityTarget(id);
+        return this.resolveOpportunityTarget();
     }
 
     /**
@@ -579,7 +584,7 @@ export class AutomationManager implements Updateable {
      * hasn't yet turned to bring into arc is exactly what `goto()`/the idle path need to keep
      * steering toward; `anyMountCanBearOn` still separately gates whether a mount actually fires.
      */
-    private resolveOpportunityTarget(id: IterationData, excludeId?: string): SpaceObject | null {
+    private resolveOpportunityTarget(excludeId?: string): SpaceObject | null {
         const profile = this.getFlightProfile();
         let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
         if (target) {
@@ -588,7 +593,6 @@ export class AutomationManager implements Updateable {
                 target = null;
             }
         }
-        this.gunneryRescanCooldown -= id.deltaSecondsAvg;
         if (!target && this.gunneryRescanCooldown <= 0) {
             const foundId = this.findNearestHostileTarget(excludeId);
             target = foundId ? this.spaceManager.state.get(foundId) || null : null;
