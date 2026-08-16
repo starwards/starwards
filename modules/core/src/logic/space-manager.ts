@@ -749,7 +749,7 @@ export class SpaceManager implements Updateable {
                         this.resolveProjectileContactDamage(subject, object, deltaSeconds);
                     }
                 } else if (Explosion.isInstance(subject)) {
-                    positionChange = this.handleExplosionCollision(subject, response);
+                    positionChange = this.handleExplosionCollision();
                 } else {
                     const res = this.calcSolidCollision(deltaSeconds, subject, object, response);
                     positionChange = res.positionChange;
@@ -773,15 +773,14 @@ export class SpaceManager implements Updateable {
             }
         }
     }
-    private handleExplosionCollision(subject: Explosion, response: SWResponse) {
-        let positionChange: XY | null = null;
-        if (response.aInB) {
-            subject.velocity.setValue(XY.zero);
-            positionChange = XY.scale(response.overlapV, -0.5);
-        } else if (limitPercision(response.overlap) > limitPercision(subject.radius)) {
-            positionChange = XY.scale(response.overlapN, -subject.radius);
-        }
-        return positionChange;
+    /**
+     * An explosion is a region of space, not a body — it has no momentum to trade. Colliding
+     * with it affects the object it strikes (see calcSolidCollision's Explosion branch); the
+     * blast's own position and velocity are never mutated by collision response. This is about
+     * collision response only — velocity inherited at spawn (explodeProjectile) is untouched.
+     */
+    private handleExplosionCollision(): XY | null {
+        return null;
     }
 
     private calcSolidCollision(

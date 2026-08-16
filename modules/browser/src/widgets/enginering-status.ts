@@ -1,4 +1,4 @@
-import { addGraph, addTextBlade, createWidgetPane } from '../panel';
+import { addGraph, addTextBlade, addThresholdTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
 import { DashboardWidget } from './dashboard';
@@ -35,6 +35,21 @@ export function drawEngineeringStatus(container: WidgetContainer, shipDriver: Sh
 
     const energy = readNumberProp(shipDriver, `/reactor/energy`);
     addGraph(pane, energy, { label: 'energy' }, panelCleanup.add);
+    // a healthy-looking status panel elsewhere (broken/damaged only) hides that a system is doing
+    // nothing this tick purely because the reactor ran dry — this makes the shortfall itself obvious
+    addThresholdTextBlade(
+        pane,
+        energy,
+        {
+            label: 'energy level',
+            format: (e: number) => Math.round(e).toString(),
+            // a starved reactor rarely sits at a literal 0 — it's fighting a constant tiny recharge
+            // against constant draw — so ERROR needs a "critically low" band, not an exact-zero check
+            warnBelow: energy.range[1] * 0.25,
+            errorAt: energy.range[1] * 0.05,
+        },
+        panelCleanup.add,
+    );
 
     const energyCells = readNumberProp(shipDriver, `/reactor/energyCells`);
     addTextBlade(
