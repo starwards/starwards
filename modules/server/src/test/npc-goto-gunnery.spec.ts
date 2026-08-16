@@ -58,11 +58,16 @@ describe('NPC given a go-to order past a hostile player ship', () => {
         let firingTicks = 0;
         let opportunityTicks = 0;
         let minDistance = Infinity;
+        // The order arrives a tick or two after the call and is cleared again on arrival, so the
+        // only honest way to see it is to watch for it. Reading `state.order` at the end accepts
+        // `NONE` — which is also its value when the order never landed at all.
+        let sawMoveOrder = false;
 
         // 150 sim-seconds is comfortably more than the transit needs, and far more than the ~1
         // sim-second a freshly-spawned NPC's systems take to ramp up to firing effectiveness.
         for (let i = 0; i < 150 * 20; i++) {
             gameDriver.gameManager.update(1 / 20);
+            sawMoveOrder ||= npc.state.order === Order.MOVE;
             const distance = XY.lengthOf(
                 XY.difference(gameDriver.getShip(PC_ID).spaceObject.position, npc.spaceObject.position),
             );
@@ -75,10 +80,20 @@ describe('NPC given a go-to order past a hostile player ship', () => {
             }
         }
 
-        const report = `order=${Order[npc.state.order]}, opportunityTicks=${opportunityTicks}, firingTicks=${firingTicks}, minDistance=${Math.round(minDistance)}m`;
+        const distanceToDestination = XY.lengthOf(XY.difference(DESTINATION, npc.spaceObject.position));
+        const report =
+            `sawMoveOrder=${sawMoveOrder}, order=${Order[npc.state.order]}, ` +
+            `distanceToDestination=${Math.round(distanceToDestination)}m, opportunityTicks=${opportunityTicks}, ` +
+            `firingTicks=${firingTicks}, minDistance=${Math.round(minDistance)}m`;
 
-        // The go-to order actually landed, and the route really did present shots...
-        expect(npc.state.order === Order.MOVE || npc.state.order === Order.NONE).toBe(true);
+        // The go-to order actually landed and was actually flown -- the NPC starts 20,000m from the
+        // destination -- and the route really did present shots...
+        expect(sawMoveOrder ? 'ordered' : `never took the order (${report})`).toEqual('ordered');
+        expect(
+            distanceToDestination < 2_000
+                ? 'arrived'
+                : `stopped ${Math.round(distanceToDestination)}m short (${report})`,
+        ).toEqual('arrived');
         expect(opportunityTicks).toBeGreaterThan(20);
         // ...so a roaming NPC should have taken at least one of them. Jest's `expect` carries no
         // message argument, so the diagnostic rides in the compared value.
