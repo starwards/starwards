@@ -6,7 +6,7 @@ import {
     SHADOW_TRACK_RANGE,
     doctrineWeights,
 } from './flight-doctrine';
-import { RTuple2, XY, getShellAimVelocityCompensation, toDegreesDelta } from '../logic';
+import { RTuple2, XY, getShellAimVelocityCompensation, solveShellIntercept, toDegreesDelta } from '../logic';
 import { ShipDirection, ShipDirections } from './ship-direction';
 
 import { ShipState, doctrineForOrder } from './ship-state';
@@ -86,12 +86,11 @@ class WeightedFlightProfile implements FlightProfile {
         if (guns.length === 0 || this.weights.aim === 0) {
             return null;
         }
-        // A bolted gun's own bearingCommand clamps to 0 — it never corrects for the shell's
-        // inherited hull velocity the way a traversing mount's aim point can, so the hull heading
-        // itself has to carry that compensation, the same lead trick `leadCompensation` already
-        // applies to the aim point during station-keeping.
+        // A bolted gun's own bearingCommand clamps to 0 — it never swings onto the firing solution
+        // the way a traversing mount does, so the hull heading itself has to carry it. That is the
+        // same aim point `aimAndFire` lays each mount's firing line on, so hull and mount agree.
         const mount = bestTraversableMount(this.state, guns, target) ?? guns[0];
-        const aimPoint = XY.add(target.position, getShellAimVelocityCompensation(this.state, mount));
+        const { aimPoint } = solveShellIntercept(this.state, mount, target);
         const shipToTarget = XY.difference(aimPoint, this.state.position);
         if (XY.isZero(shipToTarget)) {
             return null;

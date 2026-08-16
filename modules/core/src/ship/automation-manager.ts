@@ -7,15 +7,14 @@ import {
     RTuple2,
     SpaceManager,
     XY,
-    calcRangediff,
     capToRange,
-    getShellAimVelocityCompensation,
     isInRange,
     isTargetInKillZone,
     matchGlobalSpeed,
     moveToTarget,
-    predictHitLocation,
+    rotateToAngle,
     rotateToTarget,
+    solveShellIntercept,
     toDegreesDelta,
 } from '../logic';
 
@@ -49,6 +48,8 @@ export class AutomationManager implements Updateable {
      */
     private flightProfile: FlightProfile | null = null;
     private flightProfileDoctrine: FlightDoctrine | null = null;
+    /** Heading `commandHeading` last aimed at, to measure how fast that reference is sweeping. */
+    private lastCommandedHeading: number | null = null;
 
     constructor(
         private state: ShipState,
@@ -140,26 +141,33 @@ export class AutomationManager implements Updateable {
         }
         const headingOffset = this.transitHeadingConcession(destination, gunneryTarget);
         this.positionNearTarget(XY.zero, destination, XY.zero, headingOffset, trackRange, id);
-        if (gunneryTarget && !this.anyMountCanBearOn(gunneryTarget)) {
-            this.commitRotationTo(XY.angleOf(XY.difference(destination, this.state.position)) + headingOffset);
+        if (headingOffset === 0) {
+            this.lastCommandedHeading = null;
+        } else {
+            // The concession's reference sweeps as the target passes; `positionNearTarget`'s
+            // `rotateToTarget` damps against absolute turn rate and lags it the whole pass.
+            this.commandHeading(
+                XY.angleOf(XY.difference(destination, this.state.position)) + headingOffset,
+                id.deltaSecondsAvg,
+            );
         }
         return false;
     }
 
     /**
-     * `rotateToTarget`'s stop-at-target profile is tuned for a heading that holds still; a
-     * gunnery concession is recomputed fresh every tick, so during a fast beam pass it's a
-     * receding reference the smooth profile is chronically behind on. Commit full rotational
-     * authority toward it instead of easing in — there's no "stop" to protect against overshooting
-     * since the reference itself keeps moving, and a bolted gun's exact-bearing gate needs every
-     * degree of catch-up it can get. Below a token couple degrees the sign would just chatter with
-     * no benefit, so leave the smooth profile's own result in place there.
+     * Points the hull at `absoluteAngle`, measuring how fast that heading is itself sweeping so
+     * {@link rotateToAngle} can damp against the rate *relative* to it. Reset
+     * {@link lastCommandedHeading} on any tick that doesn't command a heading, or the next
+     * measurement spans a gap and reads as a spurious sweep.
      */
-    private commitRotationTo(absoluteAngle: number) {
-        const remaining = toDegreesDelta(absoluteAngle - this.state.angle);
-        if (Math.abs(remaining) > 0.5) {
-            this.state.smartPilot.rotation = Math.sign(remaining);
-        }
+    private commandHeading(absoluteAngle: number, deltaSecondsAvg: number) {
+        const referenceTurnSpeed =
+            this.lastCommandedHeading === null || deltaSecondsAvg <= 0
+                ? 0
+                : toDegreesDelta(absoluteAngle - this.lastCommandedHeading) / deltaSecondsAvg;
+        this.lastCommandedHeading = absoluteAngle;
+        this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
+        this.state.smartPilot.rotation = rotateToAngle(deltaSecondsAvg, this.state, absoluteAngle, referenceTurnSpeed);
     }
 
     /**
@@ -215,9 +223,8 @@ export class AutomationManager implements Updateable {
      * Ship-level fire at `target`, mounts self-select — the same model already shipped for the
      * player's fire key (`writeAllProp`-broadcast `isFiring`, #2089/#2097) and for
      * `fireTubesCommand`/`consumeFireTubesCommand`: one decision for the whole ship, every mount
-     * points at the target's velocity-and-lead-compensated aim point (`getShellAimVelocityCompensation`
-     * cancels the shell's inherited hull velocity; `predictHitLocation` handles the target's own
-     * motion), no can't-bear handling — `bearingCommand`'s own clamp is what stops a mount from
+     * points at `solveShellIntercept`'s aim point (which carries both the target's own motion and
+     * the shell's inherited hull velocity), no can't-bear handling — `bearingCommand`'s own clamp is what stops a mount from
      * swinging past the hull it's bolted to — and each mount's own `isTargetInKillZone`
      * independently decides whether *that* mount actually reports firing — a mount that can't
      * bear on the target simply doesn't. Still exactly one target for the whole ship per tick;
@@ -231,18 +238,28 @@ export class AutomationManager implements Updateable {
     private aimAndFire(target: SpaceObject) {
         for (const chainGun of this.state.chainGuns) {
             switchToAvailableAmmo(chainGun, this.state.magazine);
-            const destination = predictHitLocation(this.state, chainGun, target);
-            const aimPoint = XY.add(destination, getShellAimVelocityCompensation(this.state, chainGun));
-            const hullBearing = toDegreesDelta(
-                XY.angleOf(XY.difference(aimPoint, this.state.position)) - this.state.angle,
-            );
+            const { aimPoint, secondsToLive } = solveShellIntercept(this.state, chainGun, target);
+            const shipToAimPoint = XY.difference(aimPoint, this.state.position);
+            const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
             chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
             const aimRange = (chainGun.design.maxShellRange - chainGun.design.minShellRange) / 2;
-            const rangeDiff = calcRangediff(this.state, target, destination);
+            // The fuze has to detonate the shell where the firing line meets the target, which is
+            // the *aim point's* distance in the ship's own frame — not the target's, and not the
+            // envelope midpoint DIRECT mode bases itself on.
+            const desiredRange = capToRange(
+                chainGun.design.minShellRange,
+                chainGun.design.maxShellRange,
+                secondsToLive * chainGun.design.bulletSpeed,
+            );
             if (chainGun.shellRangeMode === SmartPilotMode.TARGET) {
-                // ChainGunManager's fuze bases TARGET mode on actual distance to weaponsTarget
-                // already — shellRange only carries rangeDiff's small target-motion lead correction.
-                chainGun.shellRange = capToRange(-1, 1, rangeDiff / aimRange);
+                // ChainGunManager bases TARGET mode on the actual distance to weaponsTarget already,
+                // so shellRange only carries the difference the intercept adds on top of it.
+                const baseRange = capToRange(
+                    chainGun.design.minShellRange,
+                    chainGun.design.maxShellRange,
+                    XY.lengthOf(XY.difference(target.position, this.state.position)),
+                );
+                chainGun.shellRange = capToRange(-1, 1, (desiredRange - baseRange) / aimRange);
             } else {
                 // DIRECT mode's own base range is a fixed midpoint of the gun's envelope, blind to
                 // the real attack-order target's distance — weaponsTarget/shellRangeMode resolve off
@@ -250,12 +267,6 @@ export class AutomationManager implements Updateable {
                 // gunnery. Reconstruct the intended absolute range ourselves so a target the ship
                 // isn't weapons-locked onto (yet, or ever) still gets an accurate fuze.
                 const midRange = chainGun.design.minShellRange + aimRange;
-                const actualDistance = XY.lengthOf(XY.difference(target.position, this.state.position));
-                const desiredRange = capToRange(
-                    chainGun.design.minShellRange,
-                    chainGun.design.maxShellRange,
-                    actualDistance + rangeDiff,
-                );
                 chainGun.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
             }
             chainGun.isFiring = isTargetInKillZone(this.state, chainGun, target);
@@ -420,10 +431,7 @@ export class AutomationManager implements Updateable {
         if (desiredAngle === null) {
             return;
         }
-        const headingOffset = toDegreesDelta(desiredAngle - XY.angleOf(shipToTarget));
-        this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        this.state.smartPilot.rotation = rotateToTarget(deltaSecondsAvg, this.state, target.position, headingOffset);
-        this.commitRotationTo(desiredAngle);
+        this.commandHeading(desiredAngle, deltaSecondsAvg);
     }
 
     /**

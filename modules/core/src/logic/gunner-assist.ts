@@ -1,82 +1,68 @@
 import { ChainGun, ShipState } from '../ship';
-import { RTuple2, addScale } from './formulas';
+import { RTuple2, addScale, degToRad } from './formulas';
 import { SpaceObject, ammoDesigns, blastRadius } from '../space';
 
 import { XY } from './xy';
 
-/*
-GPT suggester this:
-export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject, targetAccel: XY): XY {
-    const fireAngle = ship.angle + chainGun.direction;
-    const bulletSpeed = chainGun.design.bulletSpeed;
-    const bulletVelocity = XY.add(ship.velocity, XY.rotate({ x: bulletSpeed, y: 0 }, fireAngle));
+const MAX_INTERCEPT_SECONDS = 100;
+/** Below this the quadratic below is linear — the shell and the closing rate cancel out. */
+const INTERCEPT_DEGENERATE_EPSILON = 1e-6;
 
-    // Relative acceleration between target and bullet
-    const relativeAccel = targetAccel; // Assuming bullet has no acceleration in this model
+/** Where a mount must point, and for how long its shell must live, to hit a target. */
+export type ShellIntercept = {
+    /** Time of flight, and therefore the fuze setting that detonates the shell on the target. */
+    secondsToLive: number;
+    /**
+     * Point to lay the mount's firing line on. It carries both corrections at once: the target's
+     * own motion over the time of flight, and the shell's inherited hull velocity, which a bolted
+     * mount cannot correct for itself.
+     */
+    aimPoint: XY;
+};
 
-    // Initial relative position and velocity (target relative to ship + bullet initial velocity)
-    const initialRelativePos = XY.difference(target.position, ship.position);
-    const initialRelativeVel = XY.difference(target.velocity, bulletVelocity);
-
-    // Solve quadratic equation Ax^2 + Bx + C = 0 for time t
-    const A = 0.5 * XY.dot(relativeAccel, relativeAccel);
-    const B = XY.dot(initialRelativeVel, relativeAccel);
-    const C = XY.dot(initialRelativePos, initialRelativePos);
-
-    // Discriminant
-    const D = B*B - 4*A*C;
-
-    if (D < 0) {
-        // No real solution; use fallback or heuristic
-        return target.position;
+/**
+ * Solves the shell intercept for `chainGun` against `target`.
+ *
+ * A shell leaves at `ship.velocity + bulletSpeed · û`, so after `t` it sits at
+ * `ship.position + ship.velocity · t + bulletSpeed · t · û`. Putting that on the target's predicted
+ * position leaves the aim point at `target.position + w · t`, where `w` is the target's velocity
+ * *relative to the firing ship* — and `|aimPoint − ship.position| = bulletSpeed · t`. Note the speed
+ * here is the *muzzle* speed: in the ship's own frame that is all the shell has, which is what keeps
+ * the fuze, the aim point and {@link getKillZoneRadiusRange} consistent with each other.
+ *
+ * Squaring that range condition gives a quadratic in `t`, solved in closed form — an iterative
+ * refinement diverges once `|w|` approaches the muzzle speed, exactly the fast-transit case that
+ * needs the answer most. When no positive root exists the shot is unreachable (the target outruns
+ * the shell); the mount is then aimed at the target itself and the kill-zone gate refuses the shot.
+ */
+export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target: SpaceObject): ShellIntercept {
+    const bulletSpeed = Math.max(chainGun.design.bulletSpeed, 1);
+    const shipToTarget = XY.difference(target.position, ship.position);
+    const relativeVelocity = XY.difference(target.velocity, ship.velocity);
+    // |shipToTarget + w·t| = bulletSpeed·t  =>  a·t² + b·t + c = 0
+    const a = XY.dot(relativeVelocity, relativeVelocity) - bulletSpeed * bulletSpeed;
+    const b = 2 * XY.dot(shipToTarget, relativeVelocity);
+    const c = XY.dot(shipToTarget, shipToTarget);
+    const secondsToLive = smallestPositiveRoot(a, b, c);
+    if (secondsToLive === null || secondsToLive > MAX_INTERCEPT_SECONDS) {
+        return { secondsToLive: XY.lengthOf(shipToTarget) / bulletSpeed, aimPoint: target.position };
     }
-
-    // Quadratic formula to find time; only considering positive root
-    const t = (-B + Math.sqrt(D)) / (2 * A);
-
-    // Predicted position of target at time t
-    const predictedPosition = XY.equasionOfMotion(target.position, target.velocity, targetAccel, t);
-
-    return predictedPosition;
+    const aimPoint = addScale(target.position, relativeVelocity, secondsToLive);
+    return XY.isFinite(aimPoint) ? { secondsToLive, aimPoint } : { secondsToLive, aimPoint: target.position };
 }
 
-*/
-export function predictHitLocation(ship: ShipState, chainGun: ChainGun, target: SpaceObject) {
-    const maxIterations = 20;
-    const maxSeconds = 100;
-    const fireAngle = chainGun.getGlobalBearing(ship);
-    const fireVelocity = Math.max(
-        XY.lengthOf(XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle))),
-        1,
-    );
-    let time = 0;
-    let predictedPosition: XY = target.position;
-    // this loop refines the time it will take for a bullet to reach the target
-    // and from that it estimates when the target will be at the time of impact
-    for (let i = 0; i < maxIterations; i++) {
-        const distance = Math.max(XY.lengthOf(XY.difference(predictedPosition, ship.position)), 1);
-        if (!isFinite(distance) || !Number.isSafeInteger(Math.trunc(distance))) {
-            break;
-        }
-        time = distance / fireVelocity;
-        if (time > maxSeconds) {
-            break;
-        }
-        const newTargetPos = XY.equasionOfMotion(target.position, target.velocity, XY.zero, time);
-        if (!XY.isFinite(newTargetPos)) {
-            break;
-        }
-        predictedPosition = newTargetPos;
+function smallestPositiveRoot(a: number, b: number, c: number): number | null {
+    if (Math.abs(a) < INTERCEPT_DEGENERATE_EPSILON) {
+        const linear = -c / b;
+        return isFinite(linear) && linear > 0 ? linear : null;
     }
-    return predictedPosition;
-}
-
-export function calcRangediff(ship: ShipState, target: SpaceObject, predictedPosition: XY) {
-    // calc projection of position delta on axis from ship to target
-    const direction = ship.directionAxis;
-    const posDelta = XY.difference(predictedPosition, target.position);
-    const posDeltaOnDirection = XY.projection(posDelta, direction);
-    return XY.div(posDeltaOnDirection, direction);
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return null;
+    }
+    const sqrt = Math.sqrt(discriminant);
+    const roots = [(-b - sqrt) / (2 * a), (-b + sqrt) / (2 * a)].filter((r) => isFinite(r) && r > 0);
+    return roots.length ? Math.min(...roots) : null;
 }
 
 export function getKillZoneRadiusRange(chainGun: ChainGun): RTuple2 {
@@ -96,10 +82,15 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
     return aimingDistanceToTarget < shellDangerZoneRadius;
 }
 
-export function calcShellSecondsToLive(ship: ShipState, chainGun: ChainGun, distance: number) {
-    const fireAngle = chainGun.getGlobalBearing(ship);
-    const fireVelocity = XY.add(ship.velocity, XY.rotate({ x: chainGun.design.bulletSpeed, y: 0 }, fireAngle));
-    return distance / XY.lengthOf(fireVelocity);
+/**
+ * Fuze setting that detonates a shell after it has covered `distance` — measured, like every other
+ * range in the gunnery chain, in the firing ship's own frame, where the shell only ever travels at
+ * muzzle speed. Dialling a range therefore gets that range, both at the detonation
+ * ({@link getShellExplosionLocation}) and on the ring the range is drawn as
+ * ({@link getKillZoneRadiusRange}).
+ */
+export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
+    return distance / Math.max(chainGun.design.bulletSpeed, 1);
 }
 
 export function getShellAimVelocityCompensation(ship: ShipState, chainGun: ChainGun): XY {
@@ -121,7 +112,7 @@ function getShellDangerZoneRadius(chainGun: ChainGun): number {
     const explosionRadius = blastRadius(ammoDesigns[chainGun.projectile]);
     const shellExplosionDistance = chainGun.shellSecondsToLive * chainGun.design.bulletSpeed;
     const spreadDegrees = 3.0 * chainGun.design.bulletDegreesDeviation;
-    const spread = Math.sin(spreadDegrees) * shellExplosionDistance;
+    const spread = Math.sin(degToRad * spreadDegrees) * shellExplosionDistance;
     return spread + explosionRadius;
 }
 

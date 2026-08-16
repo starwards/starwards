@@ -50,19 +50,23 @@ export enum Order {
 
 /**
  * A ship's doctrine when it hasn't been given an explicit `flightDoctrine` override. FOLLOW's own
- * heading is `follow()`'s station-keeping (`FlightProfile.headingOffset`); ATTACK/MOVE/NONE share
- * STANDOFF, which for MOVE/NONE only ever surfaces as a gunnery heading claim (`goto()`'s transit
- * concession, the idle path's `aimIdleHullAtGunneryTarget`) — those orders have no station-keeping
- * of their own to weigh against it.
+ * heading is `follow()`'s station-keeping (`FlightProfile.headingOffset`). ATTACK/NONE use STANDOFF,
+ * weighing gunnery against propulsion efficiency.
+ *
+ * MOVE uses INTERCEPT: its only use of the profile is `goto()`'s transit concession, a heading claim
+ * that exists precisely to trade route efficiency for a firing solution and is already bounded by
+ * `MAX_TRANSIT_HEADING_CONCESSION`. Under STANDOFF's weights the concession is inert — a mount
+ * that cannot bear costs at most `aim` 0.4 (`aimCost` is normalized to [0, 1]) against a `thrust`
+ * term worth up to 1, so the arbitration always returns the route heading.
  */
 export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
     switch (order) {
         case Order.FOLLOW:
             return FlightDoctrine.SHADOW;
-        case Order.ATTACK:
         case Order.MOVE:
+            return FlightDoctrine.INTERCEPT;
+        case Order.ATTACK:
         case Order.NONE:
-        default:
             return FlightDoctrine.STANDOFF;
     }
 }
