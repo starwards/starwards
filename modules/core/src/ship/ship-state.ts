@@ -55,9 +55,9 @@ export enum Order {
  *
  * MOVE uses INTERCEPT: its only use of the profile is `goto()`'s transit concession, a heading claim
  * that exists precisely to trade route efficiency for a firing solution and is already bounded by
- * `MAX_TRANSIT_HEADING_CONCESSION`. Under STANDOFF's weights the concession is inert — a mount
- * that cannot bear costs at most `aim` 0.4 (`aimCost` is normalized to [0, 1]) against a `thrust`
- * term worth up to 1, so the arbitration always returns the route heading.
+ * `MAX_TRANSIT_HEADING_CONCESSION`. STANDOFF's weights are too weak to serve it — a mount that
+ * cannot bear contributes at most `aim` 0.4, so it wins only where the route heading's own thrust
+ * penalty exceeds that, which on a transit that is already flying its best axis it never does.
  */
 export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
     switch (order) {

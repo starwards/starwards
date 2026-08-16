@@ -422,7 +422,10 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(shipMgr.state.order).to.equal(Order.NONE);
     });
 
-    it('a hostile outside the mount bearing arc is not fired upon and the hull does not rotate to compensate', () => {
+    // A hull with no rotation capacity has no give-way available, so this isolates the gunnery
+    // decision itself: out of arc means out of arc, and the mount holds fire. The give-way turn a
+    // rotation-capable hull *would* make is covered separately, above.
+    it('a hostile outside the mount bearing arc is not fired upon', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
         shipObj.faction = Faction.Raiders;
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
@@ -438,6 +441,7 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         }
 
         expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+        // The fixture's own premise: no rotation capacity, so nothing here can move the hull.
         expect(shipObj.angle).to.be.closeTo(angleBefore, 0.001);
     });
 

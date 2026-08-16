@@ -40,8 +40,9 @@ const GUNNED_MODELS = ['dragonfly-MK1', 'demo-ship'] as const satisfies readonly
 /**
  * The same hull, with its chain gun given a full-traverse turret mount instead of the bolted one
  * (`bearingLimit: 0, turnSpeed: 0`) both stock configs ship. Used by the control tests to separate
- * "the mount cannot bear because the hull is pointed at the MOVE destination" (`canBearOn`) from
- * "the mount can bear but the shot never converges" (`isTargetInKillZone`).
+ * the two gates a shot has to pass: whether any mount can be brought onto the target at all
+ * (`canBearOn`), and whether the shot then converges on it (`isTargetInKillZone`). A full-traverse
+ * mount clears the first on its own, so a control that still fails is failing the second.
  */
 function fullTraverseVariant(model: (typeof GUNNED_MODELS)[number]): ShipDesign {
     const config = shipConfigurations[model];
@@ -312,11 +313,11 @@ describe('NPC on a go-to order engaging hostiles of opportunity', function () {
         });
 
         /**
-         * The reproduction, on the stock bolted mount (`bearingLimit: 0, turnSpeed: 0`). Expect
-         * `bearableTicks=0`: `goto()` points the hull at the destination and nothing ever turns it
-         * toward the hostile, so `canBearOn` rejects the target for the whole pass.
+         * The stock bolted mount (`bearingLimit: 0, turnSpeed: 0`), which can only be aimed by
+         * aiming the hull. `goto()` flies the route, so the shot exists only if the transit heading
+         * concession gives way far enough to put the mount on the target and holds it there.
          */
-        it('the same NPC under a MOVE order does not open fire', () => {
+        it('the same NPC under a MOVE order opens fire', () => {
             const scenario = createScenario(model, heading, pathLength, interceptFraction, lateralOffset);
             orderMoveTo(scenario.spaceMgr, scenario.npcObj.id, scenario.destination);
             const report = runEngagement(scenario, SIM_SECONDS, iterationsPerSecond);
@@ -326,16 +327,13 @@ describe('NPC on a go-to order engaging hostiles of opportunity', function () {
         });
 
         /**
-         * The same MOVE order with the bearing constraint lifted, which isolates a *second*,
-         * independent blocker: the mount now bears on the target for the whole pass
-         * (`bearableTicks` == `opportunityTicks`, shortfall 0) and the gun is loaded and healthy,
-         * yet `killZoneTicks` stays 0. `aimMountsAtTarget` points mounts at the raw line of sight
-         * with no compensation for the *firing ship's own* velocity, and the shell inherits that
-         * velocity — so an NPC transiting at speed misses by the whole velocity vector.
-         * `getShellAimVelocityCompensation` already computes this correction, but only
-         * `FlightProfile.leadCompensation` uses it, and only for hull heading.
+         * The same MOVE order with the bearing constraint lifted, isolating the second gate. The
+         * mount bears for the whole pass, so anything that fails here is the shot itself failing to
+         * converge: an NPC transiting at speed launches shells carrying its own velocity, and
+         * `solveShellIntercept` has to solve aim point and time of flight together for the round to
+         * arrive where the target will be.
          */
-        it('under a MOVE order with a full-traverse mount: opens fire (bears, but never converges)', () => {
+        it('under a MOVE order with a full-traverse mount: opens fire', () => {
             const scenario = createScenario(
                 model,
                 heading,

@@ -29,9 +29,15 @@ export type DoctrineWeights = {
 export const SHADOW_TRACK_RANGE: RTuple2 = [1000, 3000];
 
 /**
- * Aim shortfall is normalized to [0, 1] before weighting; this scale is what keeps a mount that
- * cannot bear at all decisive against the thrust term, whose contribution is bounded by 1. Without
- * it a doctrine with `aim` below `thrust` would fly a bolted gun permanently off the firing line.
+ * How steeply aim shortfall climbs before it saturates. `aimCost` measures shortfall as a fraction
+ * of a half-circle and clamps the result to 1, so without a scale a mount 36° outside its arc would
+ * score 0.2 — barely distinguishable from one 18° out, when both are equally unable to fire. This
+ * saturates at 36° instead, so anything past a modest miss reads as "cannot bear" outright.
+ *
+ * It does not decide the arbitration. Saturated aim contributes `weights.aim`, which only outweighs
+ * a rival heading's thrust penalty where `doctrineWeights` says it should: decisive under INTERCEPT
+ * (`aim` 1 against `thrust` 0.2), a genuine trade under STANDOFF (0.4 against 1), ignored under
+ * SHADOW.
  */
 export const AIM_COST_SCALE = 5;
 
