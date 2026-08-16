@@ -49,6 +49,10 @@ async function getPackage(modulePath) {
             '@starwards/server': 'file:../' + serverPackage,
         };
 
+        // dist/ installs without a lockfile, so it needs the root's dependency overrides to
+        // resolve the same versions npm ci does. Read them rather than restating them.
+        const { overrides } = require(path.resolve(rootPath || '.', 'package.json'));
+
         await writeFile(
             path.join(distPath, 'package.json'),
             JSON.stringify(
@@ -63,6 +67,7 @@ async function getPackage(modulePath) {
                         targets: ['node18-win-x64'], // , 'node18-linux-x64', 'node18-osx-x64'
                     },
                     dependencies,
+                    overrides,
                 },
                 null,
                 2,
