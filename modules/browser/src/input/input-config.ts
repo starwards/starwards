@@ -70,7 +70,9 @@ export const shipInputConfig = {
     antiDrift: new GamepadButtonConfig(0, 7),
     breaks: new GamepadButtonConfig(0, 5),
     rotationMode: new GamepadButtonConfig(0, 10),
+    rotationModeKey: 'n',
     maneuveringMode: new GamepadButtonConfig(0, 11),
+    maneuveringModeKey: 'm',
     // ranges
     rotationCommand: {
         axis: new GamepadAxisConfig(0, 0, [-0.1, 0.1]),
@@ -87,6 +89,7 @@ export const shipInputConfig = {
     shellRange: {
         axis: new GamepadAxisConfig(0, 1, [-0.1, 0.1], true, 0.33),
         buttons: { center: new GamepadButtonConfig(0, 14) },
+        offsetKeys: new KeysRangeConfig('.', ',', '/', 0.05),
     },
     resetRotatioTargetOffset: new GamepadButtonConfig(0, 14),
     // direction and arc are absolute settings, so they are stepped from wherever they currently

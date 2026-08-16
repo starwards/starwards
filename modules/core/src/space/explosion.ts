@@ -26,6 +26,13 @@ export class Explosion extends SpaceObjectBase {
     @gameField('float32')
     public blastFactor = 1;
 
+    /**
+     * Set once this blast lands a hit on an armor section that was already fully broken —
+     * drives the distinct hull-penetration render on the client.
+     */
+    @gameField('boolean')
+    public breachHit = false;
+
     @gameField('string')
     public readonly type = 'Explosion';
 

@@ -14,7 +14,7 @@ import {
     TargetedStatus,
     ammoTypes,
     applyRadarSectors,
-    malfunctionAreaFactor,
+    sampleRadarAreaFactor,
     toPositiveDegreesDelta,
 } from '..';
 import { ChainGunManager, resetChainGun } from './chain-gun-manager';
@@ -38,9 +38,9 @@ import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
+
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
-import { sinWave } from '../logic';
 
 const { error: logError } = createLogger('ship-manager');
 
@@ -334,14 +334,14 @@ export abstract class ShipManager implements Updateable {
      * each radar its energy, refresh its malfunction easing, and mirror the resulting geometry
      * onto the space object so both the server and every client see the same union.
      */
-    protected updateRadarSectors({ totalSeconds, deltaSeconds }: IterationData) {
+    protected updateRadarSectors({ deltaSeconds }: IterationData) {
         const sectors: RadarSectorValues[] = [];
         for (const [index, radar] of this.state.radars.entries()) {
             radar.powered = this.internalProxy.trySpendEnergy(
                 radar.design.range * radar.effectiveness * (radar.design.energyCost / 1000) * deltaSeconds,
                 radar,
             );
-            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index, totalSeconds) : 0;
+            radar.areaFactor = radar.powered ? this.calcRadarAreaFactor(radar, index) : 0;
             sectors.push({
                 direction: toPositiveDegreesDelta(radar.getGlobalBearing(this.state)),
                 arc: radar.arc,
@@ -351,18 +351,19 @@ export abstract class ShipManager implements Updateable {
         this.spaceManager.changeShipRadarSectors(this.spaceObject.id, sectors);
     }
 
-    private calcRadarAreaFactor(radar: Radar, index: number, totalSeconds: number) {
-        if (!radar.malfunctionRangeFactor || !radar.effectiveness) {
-            return 1;
-        }
-        const frequency = this.die.getDriftInRange(
-            `updateRadarRangeFrequency:${this.spaceObject.id}:${index}`,
-            0.2,
-            1,
-            0.15,
+    /**
+     * `areaFactor` for a malfunctioning radar wanders via smooth, non-periodic value noise
+     * rather than a fixed sine — a struggling radar should not pulse on a predictable beat. See
+     * `sampleRadarAreaFactor` for the noise construction; the key carries ship id + radar index so
+     * radars never fluctuate in lockstep, on one hull or across ships.
+     */
+    private calcRadarAreaFactor(radar: Radar, index: number) {
+        return sampleRadarAreaFactor(
+            this.die,
+            `radarMalfunction:${this.spaceObject.id}:${index}`,
+            radar.malfunctionRangeFactor,
+            radar.design.rangeEaseFactor,
         );
-        const wave = sinWave(totalSeconds, frequency, 0.5, 0, 0.5);
-        return malfunctionAreaFactor(radar.malfunctionRangeFactor, radar.design.rangeEaseFactor, wave);
     }
 
     protected calcTargetedStatus() {
