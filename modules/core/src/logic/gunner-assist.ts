@@ -5,7 +5,11 @@ import { SpaceObject, ammoDesigns, blastRadius } from '../space';
 import { XY } from './xy';
 
 const MAX_INTERCEPT_SECONDS = 100;
-/** Below this the quadratic below is linear — the shell and the closing rate cancel out. */
+/**
+ * Below this the quadratic below is linear — the shell and the closing rate cancel out. Relative
+ * to `bulletSpeed²`, because that is the scale `a` is measured on: an absolute bound never fires,
+ * leaving the near-degenerate case to a quadratic whose roots it cannot condition.
+ */
 const INTERCEPT_DEGENERATE_EPSILON = 1e-6;
 
 /** Where a mount must point, and for how long its shell must live, to hit a target. */
@@ -53,7 +57,7 @@ export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target:
     const a = XY.dot(relativeVelocity, relativeVelocity) - bulletSpeed * bulletSpeed;
     const b = 2 * XY.dot(shipToTarget, relativeVelocity) - 2 * ship.radius * bulletSpeed;
     const c = XY.dot(shipToTarget, shipToTarget) - ship.radius * ship.radius;
-    const secondsToLive = smallestPositiveRoot(a, b, c);
+    const secondsToLive = smallestPositiveRoot(a, b, c, INTERCEPT_DEGENERATE_EPSILON * bulletSpeed * bulletSpeed);
     if (secondsToLive === null || secondsToLive > MAX_INTERCEPT_SECONDS) {
         return {
             secondsToLive: Math.max(0, XY.lengthOf(shipToTarget) - ship.radius) / bulletSpeed,
@@ -67,8 +71,8 @@ export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target:
         : { secondsToLive, aimPoint: target.position, reachable: false };
 }
 
-function smallestPositiveRoot(a: number, b: number, c: number): number | null {
-    if (Math.abs(a) < INTERCEPT_DEGENERATE_EPSILON) {
+function smallestPositiveRoot(a: number, b: number, c: number, degenerateBound: number): number | null {
+    if (Math.abs(a) < degenerateBound) {
         const linear = -c / b;
         return isFinite(linear) && linear > 0 ? linear : null;
     }

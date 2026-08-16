@@ -75,6 +75,8 @@ export class AutomationManager implements Updateable {
      * slowly. Holding it costs nothing: `rotateToAngle` commands ~0 on a heading already held.
      */
     private idleGiveWayEngaged = false;
+    /** Whether {@link updateIdleGiveWay} ran this tick. Owned by {@link update}'s tick housekeeping. */
+    private idleGiveWayThisTick = false;
 
     constructor(
         private state: ShipState,
@@ -374,6 +376,7 @@ export class AutomationManager implements Updateable {
 
     update(id: IterationData): void {
         this.commandedHeadingThisTick = false;
+        this.idleGiveWayThisTick = false;
         if (this.getAndApplyOrder()) {
             this.shipManager.cancelAllTasks();
         }
@@ -403,6 +406,14 @@ export class AutomationManager implements Updateable {
         // how the reference rate came to be measured across an arbitrarily long gap.
         if (!this.commandedHeadingThisTick) {
             this.lastCommandedHeading = null;
+        }
+        // An order (MOVE, ATTACK, docking) takes the ship off the idle path without ever passing
+        // through `updateIdleGiveWay`, so the latch has to drop here or it resumes a turn decided
+        // against a situation that has since been re-evaluated. Only the flag drops: that order
+        // owns `smartPilot.rotation` this tick, so the zeroing `disengageIdleGiveWay` does would
+        // clobber its steering.
+        if (!this.idleGiveWayThisTick) {
+            this.idleGiveWayEngaged = false;
         }
     }
 
@@ -482,6 +493,7 @@ export class AutomationManager implements Updateable {
      * ceasing to write it, since nothing else on the idle path owns that field.
      */
     private updateIdleGiveWay(gunneryTarget: SpaceObject | null, deltaSecondsAvg: number) {
+        this.idleGiveWayThisTick = true;
         if (!gunneryTarget) {
             this.disengageIdleGiveWay();
             return;
