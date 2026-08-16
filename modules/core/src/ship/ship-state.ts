@@ -53,11 +53,10 @@ export enum Order {
  * heading is `follow()`'s station-keeping (`FlightProfile.headingOffset`). ATTACK/NONE use STANDOFF,
  * weighing gunnery against propulsion efficiency.
  *
- * MOVE uses INTERCEPT: its only use of the profile is `goto()`'s transit concession, a heading claim
- * that exists precisely to trade route efficiency for a firing solution and is already bounded by
- * `MAX_TRANSIT_HEADING_CONCESSION`. STANDOFF's weights are too weak to serve it — a mount that
- * cannot bear contributes at most `aim` 0.4, so it wins only where the route heading's own thrust
- * penalty exceeds that, which on a transit that is already flying its best axis it never does.
+ * MOVE uses INTERCEPT: its only use of the profile is `goto()`'s transit concession, which exists
+ * precisely to trade route efficiency for a firing solution and is already bounded by
+ * `MAX_TRANSIT_HEADING_CONCESSION`. STANDOFF is too weak there — its `aim` 0.4 wins only where the
+ * route heading's own thrust penalty exceeds it, which on a transit flying its best axis never happens.
  */
 export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
     switch (order) {
@@ -101,9 +100,8 @@ export class ShipState extends Schema {
     isPlayerShip = true;
 
     /**
-     * The fallback behind `order`: consulted only while `order === Order.NONE`, otherwise the
-     * order governs and this is ignored. Default left as `PLAY_DEAD` (hold fire) pending a
-     * ruling on flipping it — a map whose NPCs never receive an order (e.g. wave-defence's
+     * The fallback behind `order`: consulted only while `order === Order.NONE`. Defaults to
+     * `PLAY_DEAD` (hold fire), so a map whose NPCs never receive an order (e.g. wave-defence's
      * stations) must set this explicitly to have them fire back.
      */
     @tweakable({ type: 'enum', enum: IdleStrategy })
@@ -117,8 +115,8 @@ export class ShipState extends Schema {
     /**
      * How this ship weighs gunnery aim against propulsion efficiency when choosing hull heading
      * and standoff distance while following an order. `AUTO` (the default) defers to `order` via
-     * {@link doctrineForOrder}; any other value overrides it — set from a scenario or the GM tweak
-     * panel for a hull whose armament doesn't fit its order's default doctrine.
+     * {@link doctrineForOrder}; override from a scenario or the GM tweak panel for a hull whose
+     * armament doesn't fit its order's default doctrine.
      */
     @tweakable({ type: 'enum', enum: FlightDoctrine })
     @gameField('int8')

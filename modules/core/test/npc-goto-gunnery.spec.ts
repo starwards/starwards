@@ -29,7 +29,7 @@ import fc from 'fast-check';
  * factions (one PC, one NPC), the NPC set to `IdleStrategy.ROAM` and given a *go-to* (MOVE) order
  * along a path that hands it excellent shots at the PC ship. It never opens fire.
  *
- * The behaviour under test is `AutomationManager.runGunnery`'s documented contract -- "gunnery is
+ * The behaviour under test is `AutomationManager.resolveGunneryTarget`'s documented contract -- "gunnery is
  * on by default for every NPC, independent of `state.order`; orders govern movement only". Under
  * `Order.MOVE`, `firingAllowed` is true regardless of `idleStrategy`, so on paper the NPC engages
  * hostiles of opportunity as it flies its route.

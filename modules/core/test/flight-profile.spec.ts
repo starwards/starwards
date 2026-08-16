@@ -109,38 +109,30 @@ describe('flight-profile', () => {
             // FWD turret) reaches to 20,000 — this is the exact regression that motivated the redesign.
             const state = makeShipState('1', boltedAndTurretConfig());
             const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
-            const target = makeTarget({ x: 15_000, y: 0 });
-
-            expect(profile.isReachable(target, 15_000)).to.equal(true);
+            expect(profile.isReachable(15_000)).to.equal(true);
         });
 
         it('rejects a target beyond every mount’s max range', () => {
             const state = makeShipState('1', boltedAndTurretConfig());
             const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
-            const target = makeTarget({ x: 25_000, y: 0 });
-
-            expect(profile.isReachable(target, 25_000)).to.equal(false);
+            expect(profile.isReachable(25_000)).to.equal(false);
         });
 
         it('rejects a distance that falls in the gap between two mounts’ envelopes', () => {
             const state = makeShipState('1', gappedEnvelopeConfig());
             const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
-            const target = makeTarget({ x: 9_000, y: 0 });
-
             // Past the short mount's 6,000 and short of the long mount's 12,000: no gun on the hull
             // can put a shell here, though the union of their mins and maxes says otherwise.
-            expect(profile.isReachable(target, 9_000)).to.equal(false);
+            expect(profile.isReachable(9_000)).to.equal(false);
             // Both mounts' own bands are still reachable.
-            expect(profile.isReachable(makeTarget({ x: 5_000, y: 0 }), 5_000)).to.equal(true);
-            expect(profile.isReachable(makeTarget({ x: 15_000, y: 0 }), 15_000)).to.equal(true);
+            expect(profile.isReachable(5_000)).to.equal(true);
+            expect(profile.isReachable(15_000)).to.equal(true);
         });
 
         it('is always false with no chain guns', () => {
             const state = makeShipState('1', { ...stationConfig, chainGuns: [] });
             const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
-            const target = makeTarget({ x: 1000, y: 0 });
-
-            expect(profile.isReachable(target, 100)).to.equal(false);
+            expect(profile.isReachable(100)).to.equal(false);
         });
     });
 

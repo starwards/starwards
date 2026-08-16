@@ -102,6 +102,28 @@ the range the gunner sets, the range the shell flies and the kill-zone ring draw
 now describe the same distance. On a large hull this was previously an overshoot of the ship's whole
 radius, which is why a big station could miss a target sitting squarely in its envelope.
 
+### Shell intercept and fuze geometry
+
+`solveShellIntercept()` in `modules/core/src/logic/gunner-assist.ts` answers, for one mount against
+one target, where to point and how long the shell must live.
+
+A shell leaves the muzzle — `ship.radius` along the firing line `û`, not the hull centre — at
+`ship.velocity + bulletSpeed · û`, so after `T` it sits at
+`ship.position + (ship.radius + bulletSpeed · T) · û + ship.velocity · T`. Putting that on the
+target's predicted position leaves the aim point at `target.position + w · T`, where `w` is the
+target's velocity *relative to the firing ship*, under the range condition
+`|aimPoint − ship.position| = ship.radius + bulletSpeed · T`.
+
+The speed here is the *muzzle* speed: in the ship's own frame that is all the shell has, which is
+what keeps the fuze, the aim point and `getKillZoneRadiusRange()` describing the same distance. `T`
+is therefore the fuze setting directly — the shell's own time of flight, measured from the muzzle.
+
+Squaring the range condition gives a quadratic in `T`, solved in closed form. Iterative refinement
+(what this replaced) diverges once `|w|` approaches muzzle speed — exactly the fast-transit case
+that needs the answer most. When no positive root exists the target outruns the shell: the result is
+marked unreachable and degrades to tracking the target's present position, so the hull may still
+turn toward it but no caller commits the shot.
+
 ### Orders (priority: high → low)
 
 | Order | Args | Behavior |

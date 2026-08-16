@@ -35,7 +35,7 @@ function makeMap(): GameMap {
             const npc = new Spaceship().init(NPC_ID, Vec2.make(NPC_START), 'dragonfly-MK1', Faction.Raiders);
             const npcApi = game.addNpcSpaceship(npc);
             // The engine-wide default is PLAY_DEAD (hold fire); the manual test set roaming, which
-            // is what `runGunnery` needs to engage without an order. Set the same way
+            // is what gunnery needs to engage without an order. Set the same way
             // wave-defence.ts sets STAND_GROUND on its stations.
             npcApi.state.idleStrategy = IdleStrategy.ROAM;
         },

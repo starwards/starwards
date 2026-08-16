@@ -31,11 +31,9 @@ import { switchToAvailableAmmo } from './chain-gun-manager';
 const GUNNERY_RESCAN_INTERVAL_SECONDS = 1;
 
 /**
- * How long a commanded heading must be able to keep sweeping at a measured rate for that rate to be
- * worth damping against. `rotationCapacity * REFERENCE_SWEEP_HORIZON_SECONDS` is the turn rate the
- * hull itself could build up over that horizon; a measured reference rate beyond it describes a step
- * in the heading (a `bestOffset` hysteresis flip, a mount switch, a target reacquire), not a sweep
- * the hull could ever track — see {@link AutomationManager.commandHeading}.
+ * Horizon over which a swept heading must stay trackable: `rotationCapacity * this` is the turn
+ * rate the hull could build up over it, and a measured reference rate beyond that is a step in the
+ * heading, not a sweep. See {@link AutomationManager.commandHeading}.
  */
 const REFERENCE_SWEEP_HORIZON_SECONDS = 1;
 
@@ -43,36 +41,25 @@ export class AutomationManager implements Updateable {
     private gunneryTargetId: string | null = null;
     private gunneryRescanCooldown = 0;
     /**
-     * Whether gunnery itself last drove `chainGuns[0].isFiring` (via `aimAndFire`). Only then does
-     * disengaging reset it to `false` — a hull whose order/idleStrategy have never allowed gunnery
-     * to engage (e.g. still `PLAY_DEAD`) is one gunnery has never touched, so it doesn't clobber
-     * `isFiring` managed by anything else for such a hull (ammo/heat tests drive it directly).
+     * Whether gunnery itself last drove `isFiring` (via `aimAndFire`). Only then does disengaging
+     * reset it — a hull gunnery has never engaged on (still `PLAY_DEAD`) may have its `isFiring`
+     * driven by something else (ammo/heat tests do).
      */
     private gunneryEngaged = false;
 
-    /**
-     * Cached so `headingOffset`'s hysteresis (avoiding heading chatter between two similarly-costed
-     * candidates) survives across ticks — rebuilt only when the resolved doctrine itself changes,
-     * never per tick.
-     */
+    /** Cached across ticks so `headingOffset`'s anti-chatter hysteresis survives; rebuilt on doctrine change. */
     private flightProfile: FlightProfile | null = null;
     private flightProfileDoctrine: FlightDoctrine | null = null;
-    /**
-     * Heading `commandHeading` last aimed at, to measure how fast that reference is sweeping.
-     * `null` whenever the previous tick commanded no heading at all, so a measurement never spans a
-     * gap — {@link update} clears it, no caller has to.
-     */
+    /** Heading {@link commandHeading} last aimed at. `null` if the previous tick commanded none, so no measurement spans a gap. */
     private lastCommandedHeading: number | null = null;
     /** Whether {@link commandHeading} ran this tick. Owned by {@link update}'s tick housekeeping. */
     private commandedHeadingThisTick = false;
     /**
-     * Whether the idle give-way turn is under way. Latched until the target itself is gone, because
-     * "no mount can bear" is the condition that *starts* the turn and never the one that ends it:
-     * the hull is still carrying turn speed at the moment a mount first comes to bear, so a
-     * controller that stops commanding there leaves that speed in `smartPilot.rotation` with
-     * nothing to arrest it — the hull sails back out of the window and the gate re-arms, once per
-     * revolution. Releasing the heading once merely *settled* hunts for the same reason, more
-     * slowly. Holding it costs nothing: `rotateToAngle` commands ~0 on a heading already held.
+     * Whether the idle give-way turn is under way. Latched until the target is gone: "no mount can
+     * bear" starts the turn but can't end it — the hull still carries turn speed when a mount first
+     * comes to bear, so releasing there leaves that speed in `smartPilot.rotation` unarrested and
+     * the gate re-arms once per revolution. Holding costs nothing; `rotateToAngle` commands ~0 on a
+     * heading already held.
      */
     private idleGiveWayEngaged = false;
     /** Whether {@link updateIdleGiveWay} ran this tick. Owned by {@link update}'s tick housekeeping. */
@@ -109,11 +96,6 @@ export class AutomationManager implements Updateable {
         this.shipManager.state.orderPosition.setValue(XY.zero);
     }
 
-    /**
-     * Rebuilt only when the resolved doctrine changes, so `headingOffset`'s hysteresis (its
-     * anti-chatter memory of the last heading chosen) survives across ticks instead of resetting
-     * every update.
-     */
     private getFlightProfile(): FlightProfile {
         const doctrine = this.state.effectiveFlightDoctrine;
         if (!this.flightProfile || this.flightProfileDoctrine !== doctrine) {
@@ -136,9 +118,8 @@ export class AutomationManager implements Updateable {
         const distanceToTarget = XY.lengthOf(shipToTarget);
         const inRange = isInRange(trackRange[0], trackRange[1], distanceToTarget);
         let maneuvering: ManeuveringCommand;
-        // The vector the ship is being accelerated along this tick is decided by the same branch
-        // that issues the thrust command, and handed to the heading arbitration from there — a
-        // caller cannot supply one that disagrees with the maneuver actually being flown.
+        // Decided by the same branch that issues the thrust command, so heading arbitration can
+        // never be handed a vector that disagrees with the maneuver actually being flown.
         let requiredAcceleration: XY;
         if (inRange) {
             maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, targetVelocity);
@@ -175,8 +156,8 @@ export class AutomationManager implements Updateable {
             return true;
         }
         const headingOffset = this.transitHeadingConcession(destination, gunneryTarget);
-        // The transit concession is a capped constant for this tick, decided against the route
-        // rather than against thrust cost, so it ignores the vector offered to it.
+        // Capped constant for this tick, decided against the route rather than thrust cost, so it
+        // ignores the vector offered to it.
         this.positionNearTarget(XY.zero, destination, XY.zero, () => headingOffset, trackRange, id);
         if (headingOffset !== 0) {
             // The concession's reference sweeps as the target passes; `positionNearTarget`'s
@@ -191,39 +172,31 @@ export class AutomationManager implements Updateable {
 
     /**
      * Points the hull at `absoluteAngle`, measuring how fast that heading is itself sweeping so
-     * {@link rotateToAngle} can damp against the rate *relative* to it. {@link update} handles
-     * clearing {@link lastCommandedHeading} on ticks that command no heading, so no caller has to.
+     * {@link rotateToAngle} damps against the rate *relative* to it.
      *
-     * The measurement is a one-tick finite difference, so a *step* in the commanded heading — the
-     * heading arbitration flipping between two similarly-costed candidates, a different mount being
-     * picked, a target reacquired — enters it as an enormous rate that no sweep could produce. Such
-     * a sample is rejected outright and the reference re-anchored (rate 0, the already-exercised
-     * first-tick path), leaving the next tick to measure cleanly: clamping would assert the
-     * reference really is sweeping that fast, and smoothing would add lag to the very term that
-     * exists to remove it. See {@link REFERENCE_SWEEP_HORIZON_SECONDS} for the bound.
+     * The measurement is a one-tick finite difference, so a *step* in the commanded heading (a
+     * hysteresis flip, a mount switch, a target reacquire) enters it as a rate no sweep could
+     * produce. Such a sample is rejected and the reference re-anchored at rate 0 — clamping would
+     * assert the reference really sweeps that fast, smoothing would add lag to the very term that
+     * exists to remove it. Bound: {@link REFERENCE_SWEEP_HORIZON_SECONDS}.
      */
     private commandHeading(absoluteAngle: number, deltaSecondsAvg: number) {
-        const referenceTurnSpeed = this.measureReferenceTurnSpeed(absoluteAngle, deltaSecondsAvg);
+        let referenceTurnSpeed = 0;
+        if (this.lastCommandedHeading !== null && deltaSecondsAvg > 0) {
+            const rate = toDegreesDelta(absoluteAngle - this.lastCommandedHeading) / deltaSecondsAvg;
+            const maxTrackableRate = this.state.rotationCapacity * REFERENCE_SWEEP_HORIZON_SECONDS;
+            referenceTurnSpeed = Math.abs(rate) > maxTrackableRate ? 0 : rate;
+        }
         this.lastCommandedHeading = absoluteAngle;
         this.commandedHeadingThisTick = true;
         this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         this.state.smartPilot.rotation = rotateToAngle(deltaSecondsAvg, this.state, absoluteAngle, referenceTurnSpeed);
     }
 
-    private measureReferenceTurnSpeed(absoluteAngle: number, deltaSecondsAvg: number): number {
-        if (this.lastCommandedHeading === null || deltaSecondsAvg <= 0) {
-            return 0;
-        }
-        const rate = toDegreesDelta(absoluteAngle - this.lastCommandedHeading) / deltaSecondsAvg;
-        const maxTrackableRate = this.state.rotationCapacity * REFERENCE_SWEEP_HORIZON_SECONDS;
-        return Math.abs(rate) > maxTrackableRate ? 0 : rate;
-    }
-
     /**
-     * How far a MOVE order's heading should give way to bring a mount to bear on `gunneryTarget`,
-     * capped at {@link MAX_TRANSIT_HEADING_CONCESSION} so a bolted-gun NPC takes beam shots but
-     * never flies backwards to shoot at something behind it. `0` once some mount can already bear
-     * — the concession is released the instant it's no longer needed.
+     * How far a MOVE order's heading gives way to bring a mount to bear on `gunneryTarget`, capped
+     * at {@link MAX_TRANSIT_HEADING_CONCESSION} so a bolted-gun NPC takes beam shots but never flies
+     * backwards to shoot at something behind it. `0` once some mount can already bear.
      */
     private transitHeadingConcession(destination: XY, gunneryTarget: SpaceObject | null): number {
         if (!gunneryTarget || this.anyMountCanBearOn(gunneryTarget)) {
@@ -252,8 +225,8 @@ export class AutomationManager implements Updateable {
         }
         this.state.currentTask = fire ? `Attack ${targetId}` : `Follow ${targetId}`;
         if (fire) {
-            // Marks the UI-facing weapons-target slot for this explicit order; actual gunnery
-            // (aiming/firing) is handled uniformly for every NPC by runGunnery(), not here.
+            // Only marks the UI-facing weapons-target slot; aiming and firing are `aimAndFire`'s,
+            // uniformly for every NPC.
             this.shipManager.setTarget(targetId);
         }
         const profile = this.getFlightProfile();
@@ -269,20 +242,12 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Ship-level fire at `target`, mounts self-select — the same model already shipped for the
-     * player's fire key (`writeAllProp`-broadcast `isFiring`, #2089/#2097) and for
-     * `fireTubesCommand`/`consumeFireTubesCommand`: one decision for the whole ship, every mount
-     * points at `solveShellIntercept`'s aim point (which carries both the target's own motion and
-     * the shell's inherited hull velocity), no can't-bear handling — `bearingCommand`'s own clamp is what stops a mount from
-     * swinging past the hull it's bolted to — and each mount's own `isTargetInKillZone`
-     * independently decides whether *that* mount actually reports firing — a mount that can't
-     * bear on the target simply doesn't. Still exactly one target for the whole ship per tick;
-     * mounts never split fire across different targets (per-mount target selection is parked,
-     * card 5.5c).
-     *
-     * A future per-mount ceasefire/heat latch (#2178) needs to gate this same per-mount
-     * `isFiring` assignment — the loop below — to stay consistent with `canBearOn`/
-     * `anyMountCanBearOn`, which already reason per-mount rather than about `chainGuns[0]`.
+     * Ship-level fire at `target`, mounts self-select — the same model as the player's fire key
+     * (#2089/#2097) and `fireTubesCommand`: one target for the whole ship per tick, every mount
+     * aimed at `solveShellIntercept`'s aim point, and each mount's own `isTargetInKillZone`
+     * deciding whether *that* mount reports firing. No can't-bear handling here; `bearingCommand`'s
+     * own clamp stops a mount swinging past the hull it's bolted to. Per-mount target selection is
+     * parked (card 5.5c); a per-mount ceasefire/heat latch (#2178) would gate the loop below.
      */
     private aimAndFire(target: SpaceObject) {
         for (const chainGun of this.state.chainGuns) {
@@ -292,11 +257,9 @@ export class AutomationManager implements Updateable {
             const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
             chainGun.bearingCommand = chainGun.bearingCommandFor(hullBearing);
             const aimRange = (chainGun.design.maxShellRange - chainGun.design.minShellRange) / 2;
-            // The fuze has to detonate the shell where the firing line meets the target, which is
-            // the *aim point's* distance in the ship's own frame — not the target's, and not the
-            // envelope midpoint DIRECT mode bases itself on. `secondsToLive` already counts from
-            // the muzzle, the same origin `getShellExplosionLocation` flies the shell from, so the
-            // range it dials is the shell's own travel with no frame conversion in between.
+            // The fuze detonates where the firing line meets the target: the *aim point's*
+            // distance, not the target's. `secondsToLive` already counts from the muzzle, the
+            // origin `getShellExplosionLocation` flies the shell from.
             const desiredRange = capToRange(
                 chainGun.design.minShellRange,
                 chainGun.design.maxShellRange,
@@ -320,10 +283,9 @@ export class AutomationManager implements Updateable {
                 const midRange = chainGun.design.minShellRange + aimRange;
                 chainGun.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
             }
-            // A target with no firing solution needs no separate gate here: unreachable means it
-            // outruns the shell, so over the fuze it displaces at least as far as the shell travels
-            // from the muzzle, while the kill zone is a few percent of that travel. `canBearOn` is
-            // where reachability changes a decision — which target the ship commits its swing to.
+            // An unreachable target needs no gate here: it outruns the shell, so over the fuze it
+            // displaces further than the shell flies, and the kill zone is a few percent of that.
+            // Reachability changes a decision in `canBearOn` — which target gets the swing.
             chainGun.isFiring = isTargetInKillZone(this.state, chainGun, target);
         }
     }
@@ -396,22 +358,21 @@ export class AutomationManager implements Updateable {
         // Runs last so gunnery's isFiring/aim decision for this tick is never clobbered by a
         // cancelAllTasks() above (order changes, completed tasks).
         if (gunneryTarget) {
-            this.engageGunnery(gunneryTarget);
+            this.gunneryEngaged = true;
+            this.aimAndFire(gunneryTarget);
         } else {
             this.disengageGunnery();
         }
-        // Tick housekeeping for `commandHeading`'s sweep measurement, enforced here rather than at
-        // each site that stops commanding a heading: those are early returns scattered across
-        // `goto()`, the idle path and their callees, and one of them missing the reset is exactly
-        // how the reference rate came to be measured across an arbitrarily long gap.
+        // Centralized rather than at each site that stops commanding a heading: those are early
+        // returns scattered across `goto()`, the idle path and their callees, and one of them
+        // missing the reset measures the reference rate across an arbitrarily long gap.
         if (!this.commandedHeadingThisTick) {
             this.lastCommandedHeading = null;
         }
-        // An order (MOVE, ATTACK, docking) takes the ship off the idle path without ever passing
-        // through `updateIdleGiveWay`, so the latch has to drop here or it resumes a turn decided
-        // against a situation that has since been re-evaluated. Only the flag drops: that order
-        // owns `smartPilot.rotation` this tick, so the zeroing `disengageIdleGiveWay` does would
-        // clobber its steering.
+        // An order (MOVE, ATTACK, docking) leaves the idle path without passing through
+        // `updateIdleGiveWay`, so the latch drops here or it resumes a turn decided against a
+        // situation since re-evaluated. Only the flag drops — that order owns `smartPilot.rotation`
+        // this tick, so zeroing it would clobber its steering.
         if (!this.idleGiveWayThisTick) {
             this.idleGiveWayEngaged = false;
         }
@@ -487,84 +448,61 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Runs the idle give-way turn, holding the heading until the target itself is gone rather than
-     * until a mount comes to bear — see {@link idleGiveWayEngaged} for why the start condition is
-     * not usable as the end condition. Disengaging zeroes `smartPilot.rotation` rather than simply
-     * ceasing to write it, since nothing else on the idle path owns that field.
+     * The idle give-way turn: an idle NPC (`ROAM`/`STAND_GROUND`) holding a gunnery target no mount
+     * can bear on turns to face it — doctrine-weighted, uncapped since no route is being given up,
+     * and never touching `smartPilot.maneuvering`, so `STAND_GROUND` still never translates. The
+     * heading is held until the target is gone, not until a mount bears (see
+     * {@link idleGiveWayEngaged}). Disengaging zeroes `smartPilot.rotation` rather than just ceasing
+     * to write it, since nothing else on the idle path owns that field.
      */
     private updateIdleGiveWay(gunneryTarget: SpaceObject | null, deltaSecondsAvg: number) {
         this.idleGiveWayThisTick = true;
         if (!gunneryTarget) {
-            this.disengageIdleGiveWay();
+            if (this.idleGiveWayEngaged) {
+                this.idleGiveWayEngaged = false;
+                this.state.smartPilot.rotation = 0;
+            }
             return;
         }
         if (!this.anyMountCanBearOn(gunneryTarget)) {
             this.idleGiveWayEngaged = true;
         }
-        if (this.idleGiveWayEngaged) {
-            this.aimIdleHullAtGunneryTarget(gunneryTarget, deltaSecondsAvg);
+        if (!this.idleGiveWayEngaged) {
+            return;
         }
-    }
-
-    private disengageIdleGiveWay() {
-        if (this.idleGiveWayEngaged) {
-            this.idleGiveWayEngaged = false;
-            this.state.smartPilot.rotation = 0;
-        }
-    }
-
-    /**
-     * With no order to give way for, an idle NPC (`ROAM`/`STAND_GROUND`) that's holding a gunnery
-     * target no mount can bear on just turns to face it — doctrine-weighted like every other hull
-     * claim, uncapped since no route is being given up, and never touching
-     * `smartPilot.maneuvering` so `STAND_GROUND` still never translates.
-     */
-    private aimIdleHullAtGunneryTarget(target: SpaceObject, deltaSecondsAvg: number) {
-        const shipToTarget = XY.difference(target.position, this.state.position);
+        const shipToTarget = XY.difference(gunneryTarget.position, this.state.position);
         if (XY.isZero(shipToTarget)) {
             return;
         }
-        const desiredAngle = this.getFlightProfile().gunneryHullAngle(target, shipToTarget);
-        if (desiredAngle === null) {
-            return;
+        const desiredAngle = this.getFlightProfile().gunneryHullAngle(gunneryTarget, shipToTarget);
+        if (desiredAngle !== null) {
+            this.commandHeading(desiredAngle, deltaSecondsAvg);
         }
-        this.commandHeading(desiredAngle, deltaSecondsAvg);
     }
 
     /**
-     * Gunnery is on by default for every NPC, independent of `state.order` — orders govern
-     * movement only (MOVE/FOLLOW/ATTACK/docking, including while docking/undocking — a docking
-     * NPC still defends itself; nothing about docking suppresses gunnery). While `order ===
-     * Order.NONE`, `idleStrategy` is the fallback: `PLAY_DEAD` holds fire, `ROAM`/`STAND_GROUND`
-     * don't. Any explicit order fires regardless of `idleStrategy`.
+     * Gunnery is on by default for every NPC, independent of `state.order` — orders govern movement
+     * only, docking included (a docking NPC still defends itself). While `order === Order.NONE`,
+     * `idleStrategy` is the fallback: only `PLAY_DEAD` holds fire.
      *
-     * An `Order.ATTACK` target has absolute priority: whenever it's still structurally reachable
-     * (in range and within some mount's bearing coverage — `canBearOn`, independent of the
-     * mount's current in-flight bearing, so a target that's merely mid-swing-to is never treated
-     * as unreachable and shoved aside), the mount commits to it every tick and only it, so the
-     * swing can actually converge instead of being re-aimed at something else before it gets
-     * there. Only while the ordered target is genuinely unreachable does a free opportunity shot
-     * at the nearest other *reachable* hostile happen instead (`resolveOpportunityTarget` —
-     * reachability-filtered so a nearer unbearable hostile never starves a bearable one further
-     * out, and rescanned at most once every {@link GUNNERY_RESCAN_INTERVAL_SECONDS} on this
-     * branch too, not per-tick) — never in preference to a reachable primary, never causing a
-     * delay once the primary becomes reachable again. With no ATTACK order, the nearest reachable
-     * hostile is engaged autonomously the same way, through the same cache.
+     * An `Order.ATTACK` target has absolute priority whenever `canBearOn` says it is structurally
+     * reachable, so the mount's swing can converge instead of being re-aimed at something else
+     * before it gets there. Only while that primary is unreachable does a free opportunity shot at
+     * the nearest other *reachable* hostile happen instead — so a nearer unbearable hostile never
+     * starves a bearable one further out, and the primary is resumed with no delay. With no ATTACK
+     * order, the nearest reachable hostile is engaged the same way through the same cache.
      *
-     * Resolved once per tick, before `chooseAndRunTask`, so `goto()` and the idle path can turn
-     * the hull toward the held target this same tick when no mount can bear on it — doctrine-
-     * weighted and, under a MOVE order, capped (see `transitHeadingConcession`); ATTACK/FOLLOW
-     * steering is untouched, since `follow()` already owns heading via `FlightProfile`.
+     * Resolved once per tick before `chooseAndRunTask`, so `goto()` and the idle path can turn the
+     * hull toward the held target this same tick; ATTACK/FOLLOW steering is untouched, `follow()`
+     * already owning heading via `FlightProfile`.
      *
-     * Never touches `state.order`, `orderTargetId`, or `setTarget()` — `setTarget()` is reserved
-     * for the explicit-order path in `follow()`, so gunnery — ordered or opportunistic — never
-     * hijacks the ship's weapons-target UI slot.
+     * Never touches `state.order`, `orderTargetId`, or `setTarget()` — the last is reserved for
+     * `follow()`, so gunnery never hijacks the ship's weapons-target UI slot.
      */
     private resolveGunneryTarget(id: IterationData): SpaceObject | null {
-        // Ticked here rather than inside `resolveOpportunityTarget`, which the reachable-primary
-        // branch below returns without ever reaching: the cooldown is elapsed time since the last
-        // scan, so freezing it while a primary is being engaged would throttle re-acquisition for a
-        // further full interval at the moment that primary dies — exactly when it is needed.
+        // Ticked here, not in `resolveOpportunityTarget`, which the reachable-primary branch below
+        // never reaches: freezing elapsed time while a primary is engaged would throttle
+        // re-acquisition for a full interval the moment that primary dies.
         this.gunneryRescanCooldown -= id.deltaSecondsAvg;
         if (this.state.isPlayerShip || this.state.chainGuns.length === 0) {
             return null;
@@ -580,9 +518,8 @@ export class AutomationManager implements Updateable {
                     this.gunneryTargetId = null;
                     return orderedTarget;
                 }
-                // Primary unreachable right now: a free opportunity shot at some other reachable
-                // hostile, or — with none available — keep the primary's fuze/aim dialed in
-                // (ready for when it's reachable again) without ever reporting it as firing.
+                // Primary unreachable: take a free opportunity shot, or with none available keep
+                // the primary's fuze/aim dialed in without ever reporting it as firing.
                 const opportunityTarget = this.resolveOpportunityTarget(orderedTarget.id);
                 return opportunityTarget ?? orderedTarget;
             }
@@ -591,20 +528,18 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * The ship's currently held (or freshly re-scanned) autonomous/opportunistic target: reused
-     * verbatim by both the plain no-ATTACK-order path and the ATTACK-target-unreachable path, so
-     * both share one cache and one {@link GUNNERY_RESCAN_INTERVAL_SECONDS} rescan cooldown. The
-     * cached target is dropped on destruction or on leaving the ship's own gun-range envelope
-     * (`FlightProfile.isReachable`) — *not* the instant no mount can bear, since a target the hull
-     * hasn't yet turned to bring into arc is exactly what `goto()`/the idle path need to keep
-     * steering toward; `anyMountCanBearOn` still separately gates whether a mount actually fires.
+     * The ship's currently held (or freshly re-scanned) opportunistic target — one cache and one
+     * {@link GUNNERY_RESCAN_INTERVAL_SECONDS} cooldown shared by both callers. Dropped on
+     * destruction or on leaving the ship's gun-range envelope, but *not* the instant no mount can
+     * bear: a target the hull hasn't turned to yet is exactly what `goto()`/the idle path steer
+     * toward. `anyMountCanBearOn` separately gates whether a mount actually fires.
      */
     private resolveOpportunityTarget(excludeId?: string): SpaceObject | null {
         const profile = this.getFlightProfile();
         let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
         if (target) {
             const distance = XY.lengthOf(XY.difference(target.position, this.state.position));
-            if (target.destroyed || target.id === excludeId || !profile.isReachable(target, distance)) {
+            if (target.destroyed || target.id === excludeId || !profile.isReachable(distance)) {
                 target = null;
             }
         }
@@ -615,11 +550,6 @@ export class AutomationManager implements Updateable {
             this.gunneryRescanCooldown = GUNNERY_RESCAN_INTERVAL_SECONDS;
         }
         return target;
-    }
-
-    private engageGunnery(target: SpaceObject) {
-        this.gunneryEngaged = true;
-        this.aimAndFire(target);
     }
 
     private disengageGunnery() {
@@ -633,22 +563,15 @@ export class AutomationManager implements Updateable {
     }
 
     /**
-     * Whether `chainGun` could ever be pointed at `target` right now — within its own shell-range
-     * envelope (including its minimum — a target inside minShellRange is as unreachable as one
-     * beyond maxShellRange), and within the traverse `Turret.canBearAt` allows off the mount's rest
-     * bearing — where it was fitted *plus* however far damage has skewed it, since a skewed mount's
-     * reachable window travels with the skew. Deliberately ignores the mount's actual in-flight
-     * bearing (which lags `bearingCommand` at `turnSpeed`): this answers "is it worth committing
-     * the swing to this target", not "has the swing finished yet" — the latter is what
-     * `isTargetInKillZone` (via `aimAndFire`) still separately governs for the fire decision.
+     * Whether `chainGun` could be pointed at `target` at all: inside its shell-range envelope (its
+     * minimum too) and within the traverse `Turret.canBearAt` allows off its rest bearing. Ignores
+     * the mount's actual in-flight bearing — this answers "is the swing worth committing", not "has
+     * the swing finished", which stays `isTargetInKillZone`'s call in `aimAndFire`.
      *
-     * Both tests are made against this mount's own intercept aim point rather than the raw line of
-     * sight, because that aim point is where `aimAndFire` and `gunneryHullAngle` actually point the
-     * mount — tens of degrees away at high closing speed. Keying the gate on the line of sight
-     * answers "does the target lie in the arc", when what every caller of it needs to know is
-     * "can this mount take the shot". A target that outruns the shell has no aim point to test at
-     * all, so it fails first: the ship is then free to turn or to pick an opportunity target it can
-     * actually hit, instead of committing a swing to a shot that can never land.
+     * Both tests use this mount's own intercept aim point, not the line of sight: that aim point,
+     * tens of degrees off at high closing speed, is where `aimAndFire` and `gunneryHullAngle`
+     * actually point the mount. A target that outruns the shell has no aim point and fails first,
+     * leaving the ship free to turn or to pick a target it can actually hit.
      */
     private canBearOn(chainGun: ChainGun, target: SpaceObject): boolean {
         const { aimPoint, reachable } = solveShellIntercept(this.state, chainGun, target);
@@ -664,28 +587,18 @@ export class AutomationManager implements Updateable {
         return chainGun.canBearAt(hullBearing);
     }
 
-    /**
-     * A target is reachable for gunnery purposes if *any* mount can bear on it — mirroring the
-     * ship-level fire model in `aimAndFire`'s doc comment: the ship makes one targeting decision,
-     * individual mounts self-select. On a single-mount hull this is just `canBearOn` on that one
-     * mount.
-     */
+    /** Reachable for gunnery if *any* mount can bear — the ship-level fire model of {@link aimAndFire}. */
     private anyMountCanBearOn(target: SpaceObject): boolean {
         return this.state.chainGuns.some((chainGun) => this.canBearOn(chainGun, target));
     }
 
     /**
-     * Picks the nearest non-destroyed hostile-faction Spaceship reachable via the *ship's* max
-     * range — the highest `maxShellRange` across every mount, via the flight profile's
-     * `isReachable`, not just one mount's bearing. A target merely unbearable *right now*
-     * (mid-swing, or requiring the hull to turn) is still a legitimate pick: both callers —
-     * gunnery's own opportunistic search and an NPC's ATTACK order re-acquiring after its target
-     * dies — need the hull free to turn toward it, which `goto()`/the idle path do once it's held
-     * (see `resolveGunneryTarget`); `anyMountCanBearOn` still separately gates whether a mount
-     * actually fires.
+     * Nearest live hostile-faction Spaceship inside the *ship's* range envelope
+     * (`FlightProfile.isReachable`), not one mount's bearing: a target merely unbearable right now
+     * is a legitimate pick, since both callers need the hull free to turn toward it.
      *
-     * `excludeId` keeps it from picking an unreachable ATTACK-ordered primary right back out as
-     * its own "opportunity".
+     * `excludeId` keeps an unreachable ATTACK-ordered primary from being picked back out as its own
+     * "opportunity".
      */
     private findNearestHostileTarget(excludeId?: string): string | null {
         if (this.state.chainGuns.length === 0) {
@@ -705,7 +618,7 @@ export class AutomationManager implements Updateable {
                 continue;
             }
             const distance = XY.lengthOf(XY.difference(candidate.position, this.state.position));
-            const reachable = profile.isReachable(candidate, distance);
+            const reachable = profile.isReachable(distance);
             if (reachable && distance < nearestDistance) {
                 nearestDistance = distance;
                 nearestId = candidate.id;
