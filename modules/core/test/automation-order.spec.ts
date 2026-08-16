@@ -882,6 +882,31 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
     });
 
+    it('treats a fast crosser inside the arc but outside the firing solution as unbearable, and gives way', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, rotatingNarrowArcPlatformConfig(20));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        // 10 degrees off the FWD mount's bearing -- squarely inside its 20-degree arc on the raw
+        // line of sight. But the target crosses at 800 m/s against a 2,500 m/s shell, so the point
+        // the mount must actually point at leads it by ~18 degrees, out past the arc entirely.
+        const hostile = createHostile('crosser', Faction.Gravitas, XY.byLengthAndDirection(5000, 10));
+        hostile.velocity.setValue(XY.byLengthAndDirection(800, 100));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        for (const id of makeIterationsData(0.5, 10)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        // Gating on the line of sight calls this bearable, so the hull never gives way and the mount
+        // sits clamped at its limit, aiming at a solution it cannot reach.
+        expect(Math.abs(toDegreesDelta(shipObj.angle)), 'hull gave way toward the firing solution').to.be.greaterThan(
+            1,
+        );
+    });
+
     it('does not carry a stale rescan cooldown across an engagement, delaying pickup when the primary dies', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
         shipObj.faction = Faction.Raiders;

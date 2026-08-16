@@ -12,6 +12,7 @@ import {
     Spaceship,
     Vec2,
     XY,
+    solveShellIntercept,
     isTargetInKillZone,
     makeShipState,
     shipConfigurations,
@@ -141,9 +142,12 @@ type EngagementReport = {
 
 /**
  * Runs the engagement and reports what the NPC saw and did. `minBearingShortfall` mirrors
- * `AutomationManager.canBearOn`'s own arithmetic (desired hull-relative bearing minus the mount's
- * fitted bearing, against its `bearingLimit`) so a failure names *why* no mount could bear rather
- * than only reporting silence.
+ * `AutomationManager.canBearOn`'s own arithmetic — the traverse each mount needs to lay its firing
+ * line on that mount's intercept aim point, measured off its rest bearing (fitted plus damage skew)
+ * against its `bearingLimit` — so a failure names *why* no mount could bear rather than only
+ * reporting silence. Scoring it off `fittedBearing` against the raw line of sight instead reads 0 on
+ * a pass where the mount never came close to a shot, which is how the original #2145 failure
+ * misdirected.
  */
 function runEngagement(scenario: Scenario, simSeconds: number, iterationsPerSecond: number): EngagementReport {
     const { spaceMgr, npcObj, npcMgr, pcMgr } = scenario;
@@ -177,13 +181,13 @@ function runEngagement(scenario: Scenario, simSeconds: number, iterationsPerSeco
         }
         if (distance >= minRange && distance <= maxRange) {
             report.opportunityTicks++;
-            const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - npcMgr.state.angle);
             let anyBearable = false;
             for (const gun of guns) {
-                const shortfall = Math.max(
-                    0,
-                    Math.abs(toDegreesDelta(hullBearing - gun.fittedBearing)) - gun.bearingLimit,
+                const { aimPoint } = solveShellIntercept(npcMgr.state, gun, scenario.pcObj);
+                const hullBearing = toDegreesDelta(
+                    XY.angleOf(XY.difference(aimPoint, npcObj.position)) - npcMgr.state.angle,
                 );
+                const shortfall = Math.max(0, Math.abs(gun.bearingCommandFor(hullBearing)) - gun.bearingLimit);
                 report.minBearingShortfall = Math.min(report.minBearingShortfall, shortfall);
                 anyBearable ||= shortfall === 0;
             }

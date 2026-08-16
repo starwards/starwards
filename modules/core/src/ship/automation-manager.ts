@@ -626,14 +626,21 @@ export class AutomationManager implements Updateable {
      * bearing (which lags `bearingCommand` at `turnSpeed`): this answers "is it worth committing
      * the swing to this target", not "has the swing finished yet" — the latter is what
      * `isTargetInKillZone` (via `aimAndFire`) still separately governs for the fire decision.
+     *
+     * Both tests are made against this mount's own intercept aim point rather than the raw line of
+     * sight, because that aim point is where `aimAndFire` and `gunneryHullAngle` actually point the
+     * mount — tens of degrees away at high closing speed. Keying the gate on the line of sight
+     * answers "does the target lie in the arc", when what every caller of it needs to know is
+     * "can this mount take the shot".
      */
     private canBearOn(chainGun: ChainGun, target: SpaceObject): boolean {
-        const shipToTarget = XY.difference(target.position, this.state.position);
-        const distance = XY.lengthOf(shipToTarget);
+        const { aimPoint } = solveShellIntercept(this.state, chainGun, target);
+        const shipToAimPoint = XY.difference(aimPoint, this.state.position);
+        const distance = XY.lengthOf(shipToAimPoint);
         if (distance > chainGun.design.maxShellRange || distance < chainGun.design.minShellRange) {
             return false;
         }
-        const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - this.state.angle);
+        const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
         return chainGun.canBearAt(hullBearing);
     }
 
