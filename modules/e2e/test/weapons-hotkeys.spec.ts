@@ -42,11 +42,12 @@ test.describe('Weapons hotkeys', () => {
         );
     });
 
-    test('o key: weaponsTarget.enemyOnly toggles to true', async ({ page }) => {
+    // enemyOnly defaults to true (spawn should never present friendlies as targets), so pressing once → false.
+    test('o key: weaponsTarget.enemyOnly toggles to false', async ({ page }) => {
         await page.keyboard.press('o');
         await waitForShipCondition(
             () => gameDriver.getShip(shipId),
-            (ship) => ship.state.weaponsTarget.enemyOnly === true,
+            (ship) => ship.state.weaponsTarget.enemyOnly === false,
             3000,
         );
     });

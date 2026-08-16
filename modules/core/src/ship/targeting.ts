@@ -27,7 +27,7 @@ export class Targeting extends Schema {
 
     @tweakable('boolean')
     @gameField('boolean')
-    public enemyOnly = false;
+    public enemyOnly = true;
 
     @tweakable('boolean')
     @gameField('boolean')

@@ -59,6 +59,12 @@ describe('ShipManager weapons target lifecycle', () => {
         jest.restoreAllMocks();
     });
 
+    it('a fresh ship spawns with enemyOnly targeting so cycling never lands on friendlies by default', () => {
+        const { makeShipMgr } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        expect(mgr.state.weaponsTarget.enemyOnly).to.equal(true);
+    });
+
     it('setTarget accepts a target within radar range', () => {
         const { makeShipMgr, flush } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
@@ -171,6 +177,7 @@ describe('ShipManager weapons target lifecycle', () => {
         makeShipMgr('c', Faction.Gravitas, 1000, 0);
         flush();
         mgr.state.weaponsTarget.shipOnly = true;
+        mgr.state.weaponsTarget.enemyOnly = false;
         mgr.state.weaponsTarget.prevTargetCommand = true;
         mgr.handleTargetCommands();
         expect(mgr.state.weaponsTarget.targetId).to.equal('c');
