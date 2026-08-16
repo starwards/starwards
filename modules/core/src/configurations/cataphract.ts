@@ -75,7 +75,7 @@ export const cataphractChaingun = {
     use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
-    energyCost: 1,
+    energyCost: 0.09,
     turnSpeed: 30,
     maxBearingSkew: 90,
     bearingLimit: 135,

@@ -71,7 +71,7 @@ export const dragonflyMK1Chaingun = {
     use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
-    energyCost: 1,
+    energyCost: 0.2,
     // bolted to the hull, facing forward: the ship is aimed by turning the ship
     turnSpeed: 0,
     bearingLimit: 0,

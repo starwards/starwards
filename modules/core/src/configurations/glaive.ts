@@ -72,7 +72,7 @@ export const glaiveChaingun = {
     use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
-    energyCost: 1,
+    energyCost: 0.11,
     turnSpeed: 30,
     maxBearingSkew: 90,
     bearingLimit: 90,

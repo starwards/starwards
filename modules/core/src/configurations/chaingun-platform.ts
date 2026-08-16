@@ -66,7 +66,7 @@ export const chaingunPlatformChaingun = {
     use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
-    energyCost: 1,
+    energyCost: 0.16,
     // arc 360°, unrestricted: the whole platform slews to track its target
     turnSpeed: 45,
     bearingLimit: 180,
