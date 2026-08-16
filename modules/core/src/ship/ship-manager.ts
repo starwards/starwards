@@ -83,8 +83,8 @@ export class ShipManagerPc extends ShipManager implements PcShipApi {
         this.energyManager.update(id);
     }
 
-    protected validateWeaponsTargetId() {
-        super.validateWeaponsTargetId();
+    protected validateWeaponsTargetId(deltaSeconds = 0) {
+        super.validateWeaponsTargetId(deltaSeconds);
         this.smartPilotManeuveringMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
         this.smartPilotRotationMode.setLegalState(SmartPilotMode.TARGET, !!this.weaponsTarget);
     }

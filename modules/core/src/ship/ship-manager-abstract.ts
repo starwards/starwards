@@ -44,6 +44,14 @@ import { revertOperationSideEffects } from './repair-manager';
 
 const { error: logError } = createLogger('ship-manager');
 
+/**
+ * A locked target that becomes briefly shadowed (e.g. by a missed shot's explosion) keeps its
+ * lock until the occlusion has lasted this long, instead of dropping on the very first blocked
+ * tick — a target that stays hidden past this window (out of range, behind a lasting obstacle)
+ * still loses the lock.
+ */
+export const TARGET_OCCLUSION_GRACE_SECONDS = 1;
+
 function fixArmor(armor: Armor) {
     for (const plate of armor.armorPlates) {
         for (const layer of plate.layers) {
@@ -133,6 +141,9 @@ export abstract class ShipManager implements Updateable {
         addHeat: (_: number, _2: ShipSystem) => undefined as void,
     };
     public weaponsTarget: SpaceObject | null = null;
+    /** Consecutive seconds the current `weaponsTarget` has been occluded; see `TARGET_OCCLUSION_GRACE_SECONDS`. */
+    private targetOccludedSeconds = 0;
+    private lastValidatedTargetId: string | null = null;
 
     protected tubeManagers = new Array<ChainGunManager>();
     protected chainGunManagers = new Array<ChainGunManager>();
@@ -271,7 +282,7 @@ export abstract class ShipManager implements Updateable {
         this.updateTurrets(id);
         // vision first: the target and signal gates below all read this tick's radar sectors
         this.updateRadarSectors(id);
-        this.validateWeaponsTargetId();
+        this.validateWeaponsTargetId(id.deltaSeconds);
         const firingTubes = this.consumeFireTubesCommand();
         for (const chainGunManager of this.chainGunManagers) {
             chainGunManager.update(id);
@@ -384,24 +395,44 @@ export abstract class ShipManager implements Updateable {
         this.state.targeted = status;
     }
 
-    protected validateWeaponsTargetId() {
-        if (typeof this.state.weaponsTarget.targetId === 'string') {
-            this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
+    protected validateWeaponsTargetId(deltaSeconds = 0) {
+        const targetId = this.state.weaponsTarget.targetId;
+        const isNewTarget = targetId !== this.lastValidatedTargetId;
+        this.lastValidatedTargetId = targetId;
+        if (isNewTarget) {
+            this.targetOccludedSeconds = 0;
+        }
+        if (typeof targetId === 'string') {
+            this.weaponsTarget = this.spaceManager.state.get(targetId) || null;
             if (this.weaponsTarget && !this.weaponsTarget.isCorporal) {
                 this.weaponsTarget = null;
             }
             if (!this.weaponsTarget) {
-                this.state.weaponsTarget.targetId = null;
+                this.clearWeaponsTarget();
+            } else if (this.spaceManager.isVisible(this.spaceObject.id, targetId)) {
+                this.targetOccludedSeconds = 0;
+            } else if (isNewTarget) {
+                // a target must be visible at the moment it's acquired -- no grace on first sight
+                this.clearWeaponsTarget();
             } else {
-                if (!this.spaceManager.isVisible(this.spaceObject.id, this.state.weaponsTarget.targetId)) {
-                    this.weaponsTarget = null;
-                    this.state.weaponsTarget.targetId = null;
+                // an already-locked target survives a brief occlusion (e.g. a nearby explosion)
+                // rather than dropping on the first shadowed tick -- see TARGET_OCCLUSION_GRACE_SECONDS
+                this.targetOccludedSeconds += deltaSeconds;
+                if (this.targetOccludedSeconds > TARGET_OCCLUSION_GRACE_SECONDS) {
+                    this.clearWeaponsTarget();
                 }
             }
         } else {
             this.weaponsTarget = null;
         }
         this.setShellRangeMode(this.weaponsTarget ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
+    }
+
+    private clearWeaponsTarget() {
+        this.weaponsTarget = null;
+        this.state.weaponsTarget.targetId = null;
+        this.lastValidatedTargetId = null;
+        this.targetOccludedSeconds = 0;
     }
 
     protected syncShipProperties() {

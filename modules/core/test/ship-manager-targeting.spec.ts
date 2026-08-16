@@ -1,5 +1,6 @@
 import {
     Asteroid,
+    Explosion,
     Faction,
     PowerLevel,
     ShipManagerPc,
@@ -187,6 +188,60 @@ describe('ShipManager weapons target lifecycle', () => {
         mgr.handleTargetCommands();
         expect(mgr.state.weaponsTarget.targetId).to.equal(null);
         expect(mgr.state.weaponsTarget.clearTargetCommand).to.equal(false);
+    });
+
+    it('a locked target survives a brief occlusion (e.g. a missed shot exploding in the line of sight) (issue #2188)', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.setTarget('c');
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+
+        // a blast sits directly on the line of sight between 'a' and 'c', shadowing the target
+        const blast = new Explosion().init('blast', Vec2.make({ x: 500, y: 0 }), 20);
+        blast.radius = 100;
+        blast.expansionSpeed = 0;
+        blast.secondsToLive = 5;
+        spaceMgr.insert(blast);
+        flush();
+
+        // this tick's field-of-view is computed before the blast is folded in; the ship manager
+        // still sees last tick's clear line of sight here, and marks the FOV dirty for the next read
+        let t = 0;
+        const tick = (dt: number) => ({ deltaSeconds: dt, deltaSecondsAvg: dt, totalSeconds: (t += dt) });
+        mgr.update(tick(0.05));
+        spaceMgr.update(tick(0.05));
+
+        // now the ship manager reads the freshly-recomputed FOV and finds 'c' shadowed by the blast
+        mgr.update(tick(0.2));
+        spaceMgr.update(tick(0.2));
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+        expect(mgr.weaponsTarget?.id).to.equal('c');
+    });
+
+    it('a locked target is dropped once occlusion outlasts the grace window', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.setTarget('c');
+
+        const blast = new Explosion().init('blast', Vec2.make({ x: 500, y: 0 }), 20);
+        blast.radius = 100;
+        blast.expansionSpeed = 0;
+        blast.secondsToLive = 100; // stays put well past the grace window
+        spaceMgr.insert(blast);
+        flush();
+
+        let t = 0;
+        const tick = (dt: number) => ({ deltaSeconds: dt, deltaSecondsAvg: dt, totalSeconds: (t += dt) });
+        for (let i = 0; i < 10; i++) {
+            mgr.update(tick(0.5));
+            spaceMgr.update(tick(0.5));
+        }
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+        expect(mgr.weaponsTarget).to.equal(null);
     });
 });
 
