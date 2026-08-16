@@ -1,14 +1,9 @@
 import { InputManager, numberAction } from '../input/input-manager';
-import {
-    readWriteAllNumberProp,
-    readWriteNumberProp,
-    readWriteProp,
-    writeAllProp,
-    writeProp,
-} from '../property-wrappers';
+import { readWriteAllNumberProp, readWriteNumberProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import { ShipDriver } from '@starwards/core';
 import { shipInputConfig } from '../input/input-config';
+import { wireTubeActions } from '../input/wire-tube-actions';
 
 export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
     const input = new InputManager();
@@ -44,13 +39,7 @@ export function wireSinglePilotInput(shipDriver: ShipDriver): InputManager {
         shipInputConfig.tubeIsFiring,
         'Fire Tubes',
     );
-    for (const tube of shipDriver.state.tubes) {
-        input.addToggleClickAction(
-            readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
-            shipInputConfig.tubeSafety[tube.index],
-            `Tube ${tube.index} Safety`,
-        );
-    }
+    wireTubeActions(input, shipDriver);
 
     // pilot
     input.addRangeAction(

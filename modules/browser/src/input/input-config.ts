@@ -55,11 +55,31 @@ export interface RangeConfig {
     /** the range wraps around instead of stopping at its edges — for bearings and other angles */
     circular?: boolean;
 }
+
+/**
+ * A keyboard binding addressed by the key's physical position (`KeyboardEvent.code`) plus exact
+ * modifier state, rather than by the character it produces — so e.g. Shift+1 keeps working
+ * regardless of what symbol the active keyboard layout assigns to that shifted key.
+ */
+export class KeyChordConfig {
+    constructor(
+        public code: string,
+        public shift = false,
+        public alt = false,
+    ) {}
+}
+
+const tubeDigitCodes = ['Digit1', 'Digit2', 'Digit3', 'Digit4'];
+
 export const shipInputConfig = {
     // buttons
     tubeIsFiring: 'x',
     // one dedicated hotkey per tube index — toggles that tube's safety only
     tubeSafety: ['1', '2', '3', '4'],
+    // Shift + that same digit — toggles that tube's load/unload only
+    tubeLoadUnload: tubeDigitCodes.map((code) => new KeyChordConfig(code, true, false)),
+    // Alt + that same digit — cycles that tube's ammo only
+    tubeChangeAmmo: tubeDigitCodes.map((code) => new KeyChordConfig(code, false, true)),
     warpUp: 'r',
     warpDown: 'f',
     dock: 'z',

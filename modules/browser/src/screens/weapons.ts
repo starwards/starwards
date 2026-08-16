@@ -17,6 +17,7 @@ import { drawTubesStatus } from '../widgets/tubes-status';
 import { isWeaponsSystem } from './station-system-filters';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
+import { wireTubeActions } from '../input/wire-tube-actions';
 
 const { error: logError } = createLogger('screen:weapons');
 
@@ -68,22 +69,7 @@ function wireInput(shipDriver: ShipDriver): ScreenTeardown {
     input.addToggleClickAction(readWriteProp(shipDriver, '/weaponsTarget/shortRangeOnly'), 'i', 'Short Range Only');
 
     input.addMomentaryClickAction(writeProp(shipDriver, '/fireTubesCommand'), 'x', 'Fire Tubes');
-    input.addToggleClickAction(readWriteProp(shipDriver, '/tubes/0/loadAmmo'), 'c', 'Load Tube');
-    input.addMomentaryClickAction(
-        writeAllProp(
-            shipDriver,
-            shipDriver.state.tubes.map((tube) => `/tubes/${tube.index}/changeProjectileCommand`),
-        ),
-        'v',
-        'Change Tube Ammo',
-    );
-    for (const tube of shipDriver.state.tubes) {
-        input.addToggleClickAction(
-            readWriteProp(shipDriver, `/tubes/${tube.index}/safetyLocked`),
-            shipInputConfig.tubeSafety[tube.index],
-            `Tube ${tube.index} Safety`,
-        );
-    }
+    wireTubeActions(input, shipDriver);
 
     input.addMomentaryClickAction(
         writeAllProp(

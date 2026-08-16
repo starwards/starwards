@@ -3,6 +3,7 @@ import '@maulingmonkey/gamepad';
 import {
     GamepadAxisConfig,
     GamepadButtonConfig,
+    KeyChordConfig,
     KeysStepsConfig,
     RangeConfig,
     isGamepadButtonsRangeConfig,
@@ -15,6 +16,18 @@ import hotkeys from 'hotkeys-js';
 type AxisListener = { axis: GamepadAxisConfig; range: RTuple2; setValue: (v: number) => unknown };
 type ButtonListener = { button: GamepadButtonConfig; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
 type KeyListener = { key: string; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
+type ChordListener = { chord: KeyChordConfig; setValue?: (v: boolean) => unknown; onClick?: () => unknown };
+type ClickConfig = GamepadButtonConfig | KeyChordConfig | string | undefined;
+
+function chordDisplayName(chord: KeyChordConfig): string {
+    const base = chord.code.replace(/^Digit/, '').replace(/^Key/, '');
+    const mods = [chord.shift && 'Shift', chord.alt && 'Alt'].filter(Boolean);
+    return [...mods, base].join('+');
+}
+
+function matchesChord(e: KeyboardEvent, chord: KeyChordConfig): boolean {
+    return e.code === chord.code && e.shiftKey === chord.shift && e.altKey === chord.alt && !e.ctrlKey && !e.metaKey;
+}
 
 export type InputDescription = {
     input: string;
@@ -83,8 +96,25 @@ export class InputManager {
     private axes: AxisListener[] = [];
     private buttons: ButtonListener[] = [];
     private keys: KeyListener[] = [];
+    private codeKeys: ChordListener[] = [];
     private descriptions: InputDescription[] = [];
     private loop = new EmitterLoop(1000 / 10);
+    private readonly onCodeKey = (e: KeyboardEvent): void => {
+        if (e.repeat || !hotkeys.filter(e)) {
+            return;
+        }
+        for (const listener of this.codeKeys) {
+            if (matchesChord(e, listener.chord)) {
+                const value = e.type === 'keydown';
+                if (value && listener.onClick) {
+                    listener.onClick();
+                }
+                if (listener.setValue) {
+                    listener.setValue(value);
+                }
+            }
+        }
+    };
     private readonly onButton = (e: mmk.gamepad.GamepadButtonEvent & CustomEvent<undefined>): void => {
         for (const listener of this.buttons) {
             if (e.buttonIndex === listener.button.buttonIndex && e.gamepadIndex === listener.button.gamepadIndex) {
@@ -118,6 +148,8 @@ export class InputManager {
         if (!this.loop.isStarted()) {
             addEventListener('mmk-gamepad-button-value', this.onButton);
             addEventListener('mmk-gamepad-axis-value', this.onAxis);
+            addEventListener('keydown', this.onCodeKey);
+            addEventListener('keyup', this.onCodeKey);
             for (const key of this.keys) {
                 hotkeys(key.key, { keyup: true }, (e) => {
                     const value = e.type === 'keydown';
@@ -138,6 +170,8 @@ export class InputManager {
             this.loop.stop();
             removeEventListener('mmk-gamepad-axis-value', this.onAxis);
             removeEventListener('mmk-gamepad-button-value', this.onButton);
+            removeEventListener('keydown', this.onCodeKey);
+            removeEventListener('keyup', this.onCodeKey);
             for (const key of this.keys) {
                 hotkeys.unbind(key.key);
             }
@@ -217,33 +251,26 @@ export class InputManager {
         }
     }
 
-    addMomentaryClickAction(property: TriggerAction, config: GamepadButtonConfig | string | undefined, label?: string) {
-        const { setValue } = property;
-        if (typeof config === 'object') {
-            this.buttons.push({ button: config, setValue });
-            if (label) {
-                this.descriptions.push({
-                    input: gamepadButtonName(config.buttonIndex),
-                    label,
-                    inputType: 'gamepad-button',
-                });
-            }
-        } else if (typeof config === 'string') {
-            this.keys.push({ key: config, setValue });
-            if (label) {
-                this.descriptions.push({ input: config.toUpperCase(), label, inputType: 'keyboard' });
-            }
-        }
+    addMomentaryClickAction(property: TriggerAction, config: ClickConfig, label?: string) {
+        this.addBinding(config, { setValue: property.setValue }, label);
     }
 
-    addToggleClickAction(property: ToggleAction, config: GamepadButtonConfig | string | undefined, label?: string) {
+    addToggleClickAction(property: ToggleAction, config: ClickConfig, label?: string) {
         const onClick = () => property.setValue(!property.getValue());
         this.addClickAction(onClick, config, label);
     }
 
-    addClickAction(onClick: () => unknown, config: GamepadButtonConfig | string | undefined, label?: string) {
-        if (typeof config === 'object') {
-            this.buttons.push({ button: config, onClick });
+    addClickAction(onClick: () => unknown, config: ClickConfig, label?: string) {
+        this.addBinding(config, { onClick }, label);
+    }
+
+    private addBinding(
+        config: ClickConfig,
+        listener: { setValue?: (v: boolean) => unknown; onClick?: () => unknown },
+        label?: string,
+    ) {
+        if (config instanceof GamepadButtonConfig) {
+            this.buttons.push({ button: config, ...listener });
             if (label) {
                 this.descriptions.push({
                     input: gamepadButtonName(config.buttonIndex),
@@ -251,8 +278,13 @@ export class InputManager {
                     inputType: 'gamepad-button',
                 });
             }
+        } else if (config instanceof KeyChordConfig) {
+            this.codeKeys.push({ chord: config, ...listener });
+            if (label) {
+                this.descriptions.push({ input: chordDisplayName(config), label, inputType: 'keyboard' });
+            }
         } else if (typeof config === 'string') {
-            this.keys.push({ key: config, onClick });
+            this.keys.push({ key: config, ...listener });
             if (label) {
                 this.descriptions.push({ input: config.toUpperCase(), label, inputType: 'keyboard' });
             }
