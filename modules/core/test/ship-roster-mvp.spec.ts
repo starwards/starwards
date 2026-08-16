@@ -37,7 +37,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'dragonfly-MK1',
         coolant: 6,
-        systemKillRatio: 0.5,
+        systemKillRatio: 0.45,
         plates: 8,
         layers: [{ type: 'composite', health: 50 }],
         speed: 600,
@@ -60,7 +60,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'dragonfly-MK2',
         coolant: 6,
-        systemKillRatio: 0.5,
+        systemKillRatio: 0.4,
         plates: 8,
         layers: [{ type: 'composite', health: 75 }],
         speed: 400,
@@ -83,7 +83,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'gravitas',
         coolant: 10,
-        systemKillRatio: 0.5,
+        systemKillRatio: 0.45,
         plates: 16,
         layers: [
             { type: 'whipple', health: 50 },
@@ -116,7 +116,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'predator',
         coolant: 10,
-        systemKillRatio: 0.5,
+        systemKillRatio: 0.45,
         plates: 16,
         layers: [
             { type: 'whipple', health: 50 },
@@ -198,7 +198,7 @@ const hulls: HullExpectation[] = [
     {
         key: 'freighter',
         coolant: 10,
-        systemKillRatio: 0.5,
+        systemKillRatio: 0.45,
         plates: 24,
         layers: [{ type: 'composite', health: 65 }],
         speed: 200,

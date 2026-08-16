@@ -94,7 +94,10 @@ export const demoShipReactor = {
 export const demoShipProperties = {
     modelName: 'Demo Ship Frame',
     totalCoolant: 10,
-    systemKillRatio: 0.5,
+    // 0.5 required breaking every rear-arc system (9/9) to die -- unreachable with any margin
+    // from a single held firing bearing (issue #2192). 0.45 leaves 1 system of slack, matching
+    // the margin stations already have (issue #2107).
+    systemKillRatio: 0.45,
 };
 export const demoShipMagazine = {
     modelName: 'Hornet Mk-II Magazine',

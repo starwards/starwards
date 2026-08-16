@@ -121,15 +121,18 @@ describe('station kill window (issue #2107)', () => {
         });
     }
 
-    it('non-station hulls keep their systemKillRatio byte-identical to master (issue #2107 A2)', () => {
-        expect(shipConfigurations['dragonfly-MK1'].properties.systemKillRatio).to.equal(0.5);
-        expect(shipConfigurations['dragonfly-MK2'].properties.systemKillRatio).to.equal(0.5);
-        expect(shipConfigurations['predator'].properties.systemKillRatio).to.equal(0.5);
+    it('non-station hulls hold their tuned systemKillRatio (issue #2107 A2, retuned by issue #2192)', () => {
+        // dragonfly-MK1, dragonfly-MK2, gravitas, predator, freighter, and demo-ship were lowered by
+        // issue #2192 to restore a 1-system kill-threshold margin within their larger arc -- see
+        // ship-kill-window.spec.ts and the comments on each config's systemKillRatio.
+        expect(shipConfigurations['dragonfly-MK1'].properties.systemKillRatio).to.equal(0.45);
+        expect(shipConfigurations['dragonfly-MK2'].properties.systemKillRatio).to.equal(0.4);
+        expect(shipConfigurations['predator'].properties.systemKillRatio).to.equal(0.45);
         expect(shipConfigurations['glaive'].properties.systemKillRatio).to.equal(0.5);
         expect(shipConfigurations['cataphract'].properties.systemKillRatio).to.equal(0.5);
-        expect(shipConfigurations['freighter'].properties.systemKillRatio).to.equal(0.5);
-        expect(shipConfigurations['gravitas'].properties.systemKillRatio).to.equal(0.5);
-        expect(shipConfigurations['demo-ship'].properties.systemKillRatio).to.equal(0.5);
+        expect(shipConfigurations['freighter'].properties.systemKillRatio).to.equal(0.45);
+        expect(shipConfigurations['gravitas'].properties.systemKillRatio).to.equal(0.45);
+        expect(shipConfigurations['demo-ship'].properties.systemKillRatio).to.equal(0.45);
     });
 
     it('the three station hulls share the new, measured-safe systemKillRatio (issue #2107)', () => {

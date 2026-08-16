@@ -49,7 +49,10 @@ export const freighterReactor = {
 export const freighterProperties = {
     modelName: 'Freighter',
     totalCoolant: 10,
-    systemKillRatio: 0.5,
+    // 0.5 required breaking every rear-arc system (8/8) to die -- unreachable with any margin
+    // from a single held firing bearing (issue #2192). 0.45 leaves 1 system of slack, matching
+    // the margin stations already have (issue #2107).
+    systemKillRatio: 0.45,
 };
 
 export const freighterMagazine = {
