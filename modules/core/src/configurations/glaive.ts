@@ -82,7 +82,7 @@ export const glaiveReactor = {
     modelName: 'Helios-2000 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
-    energyPerSecond: 8,
+    energyPerSecond: 80,
     maxEnergy: 2_000,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,

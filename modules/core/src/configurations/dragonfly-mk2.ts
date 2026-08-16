@@ -65,7 +65,7 @@ export const dragonflyMK2Reactor = {
     modelName: 'Helios-500 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
-    energyPerSecond: 3,
+    energyPerSecond: 30,
     maxEnergy: 500,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,

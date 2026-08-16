@@ -85,7 +85,7 @@ export const gravitasReactor = {
     modelName: 'Helios-1000 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
-    energyPerSecond: 5,
+    energyPerSecond: 50,
     maxEnergy: 1_000,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,

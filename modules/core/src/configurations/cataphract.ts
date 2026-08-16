@@ -91,7 +91,7 @@ export const cataphractReactor = {
     modelName: 'Helios-3000 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
-    energyPerSecond: 10,
+    energyPerSecond: 100,
     maxEnergy: 3_000,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,

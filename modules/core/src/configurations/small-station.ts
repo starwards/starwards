@@ -46,7 +46,7 @@ export const smallStationReactor = {
     modelName: 'Helios-4000 Fusion Reactor',
     isInternal: true,
     isElectronics: true,
-    energyPerSecond: 12,
+    energyPerSecond: 120,
     maxEnergy: 4_000,
     energyHeatEPMThreshold: 20,
     energyHeat: 0.5,
