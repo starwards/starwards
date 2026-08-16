@@ -35,6 +35,7 @@ function setUpShip(id: string) {
 function frontExplosionDamage(id: string, amount: number): AttackDamage {
     return {
         id,
+        shipId: '',
         amount,
         damageSurfaceArc: [...FRONT_ARC],
         damageDurationSeconds: 1,

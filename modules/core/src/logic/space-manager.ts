@@ -56,6 +56,8 @@ export type Damage = {
     // impact: one event from a physical hit. explosion: one event of a blast-overlap stream.
     // solid collisions are tagged impact (inert — the Collision type routes past weapon logic).
     delivery: DamageDelivery;
+    // id of the ship whose weapon caused this damage; empty for non-weapon damage (plain collisions)
+    shipId: string;
 };
 
 type NoOrder = {
@@ -154,6 +156,20 @@ export class SpaceManager implements Updateable {
         const [object] = this.getObjectPtr(id);
         if (object && Explosion.isInstance(object)) {
             object.breachHit = true;
+        }
+    }
+    /**
+     * Credits a weapon hit to the shooter regardless of damage dealt — a shot that only
+     * scratches armor still counts. Called once per resolved weapon-damage event, independent
+     * of whether any system actually took a defect.
+     */
+    public registerHit(shooterId: string) {
+        if (!shooterId) {
+            return;
+        }
+        const [object] = this.getObjectPtr(shooterId);
+        if (object && Spaceship.isInstance(object)) {
+            object.hitsLanded++;
         }
     }
     public setVelocity(id: string, velocity: XY) {
@@ -650,6 +666,7 @@ export class SpaceManager implements Updateable {
         projectile.destroyed = true;
         const explosion = projectile.makeExplosion();
         explosion.init(uniqueId('explosion'), projectile.position.clone(), explosion.damageFactor);
+        explosion.shipId = projectile.shipId;
         explosion.velocity = projectile.velocity.clone();
         this.clampToAbsoluteMaxSpeed(explosion);
         this.insert(explosion);
@@ -677,6 +694,7 @@ export class SpaceManager implements Updateable {
                 damageDurationSeconds: deltaSeconds,
                 damageType: projectile.damageType,
                 delivery: 'impact',
+                shipId: projectile.shipId,
             };
             const objectDamage = this.objectDamage.get(hit.id);
             if (objectDamage === undefined) {
@@ -832,6 +850,7 @@ export class SpaceManager implements Updateable {
                 damageDurationSeconds: deltaSeconds,
                 damageType: object.damageType,
                 delivery: Explosion.isInstance(object) ? 'explosion' : 'impact',
+                shipId: Explosion.isInstance(object) ? object.shipId : '',
             };
             const objectDamage = this.objectDamage.get(subject.id);
             if (objectDamage === undefined) {

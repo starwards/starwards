@@ -63,6 +63,7 @@ export class DamageManager {
     }
 
     public takeWeaponDamage(damage: AttackDamage): boolean {
+        this.spaceManager.registerHit(damage.shipId);
         const { hits, damagedExternals, breachHit } = this.attackResolution.resolveWeaponAttack(damage);
         this.applyResolvedHits(hits);
         if (breachHit) {

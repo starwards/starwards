@@ -33,6 +33,14 @@ export class Explosion extends SpaceObjectBase {
     @gameField('boolean')
     public breachHit = false;
 
+    /**
+     * Id of the ship whose projectile detonated into this explosion. Empty for
+     * GM-spawned/test explosions. Carried onto blast-overlap Damage events so a hit can be
+     * credited to the shooter regardless of delivery type — see SpaceManager.registerHit.
+     */
+    @gameField('string')
+    public shipId = '';
+
     @gameField('string')
     public readonly type = 'Explosion';
 
