@@ -119,7 +119,7 @@ describe('flight-profile', () => {
 
             // The mount is fitted PORT (fittedBearing 90); parking it on the target needs
             // headingOffset -90 regardless of where the target actually is.
-            expect(profile.headingOffset(target)).to.equal(-90);
+            expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
         });
 
         it('matches today’s single-mount behavior on a symmetric hull (regression guard)', () => {
@@ -139,7 +139,7 @@ describe('flight-profile', () => {
             const profile = makeFlightProfile(state, FlightDoctrine.INTERCEPT);
             const target = makeTarget({ x: 0, y: -10_000 }); // dead abeam, STBD side
 
-            expect(profile.headingOffset(target)).to.equal(-90);
+            expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
         });
 
         it('prefers the strong thrust axis over a turret’s incidental bearing under STANDOFF', () => {
@@ -152,7 +152,7 @@ describe('flight-profile', () => {
             // constrains heading. Rotating 90° puts the FWD/AFT axis along the closing velocity.
             const target = makeTarget({ x: 0, y: 1 }, { x: -5000, y: 0 });
 
-            expect(profile.headingOffset(target)).to.equal(90);
+            expect(profile.headingOffset(target, target.velocity)).to.equal(90);
         });
 
         it('is aim-only when the ship has no thrusters at all (stations)', () => {
@@ -164,7 +164,7 @@ describe('flight-profile', () => {
             // Only the bolted PORT mount constrains heading; the FWD turret never does.
             // thrustCost is 0 everywhere (no thrusters), so the bolted mount's own offset must
             // still win, independent of the target's actual position.
-            expect(profile.headingOffset(target)).to.equal(-90);
+            expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
         });
 
         it('does not chatter when the target bearing sits right on a tie between two candidates', () => {
@@ -187,7 +187,7 @@ describe('flight-profile', () => {
             const offsets = bearings.map((bearing) => {
                 const radians = (bearing * Math.PI) / 180;
                 const target = makeTarget({ x: 10_000 * Math.cos(radians), y: 10_000 * Math.sin(radians) });
-                return profile.headingOffset(target);
+                return profile.headingOffset(target, target.velocity);
             });
 
             const distinctValues = new Set(offsets);

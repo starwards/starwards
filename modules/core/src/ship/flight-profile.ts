@@ -29,8 +29,14 @@ export interface FlightProfile {
      * fixed in issue #2083.
      */
     leadCompensation(target: SpaceObject): XY;
-    /** Hull-relative bearing (degrees) to park on the target, passed as `rotateToTarget`'s offset. */
-    headingOffset(target: SpaceObject): number;
+    /**
+     * Hull-relative bearing (degrees) to park on the target, passed as `rotateToTarget`'s offset.
+     * `requiredAcceleration` is the vector the caller is *actually* commanding thrust along this
+     * tick — closing on the target, backing off it, or matching its velocity are three different
+     * vectors, and arbitrating aim against thrust for one while thrusting along another optimizes
+     * a maneuver the ship is not flying.
+     */
+    headingOffset(target: SpaceObject, requiredAcceleration: XY): number;
     /** Whether `candidate`, at `distance`, is a legitimate re-acquisition target for this ship. */
     isReachable(candidate: SpaceObject, distance: number): boolean;
     /**
@@ -71,14 +77,13 @@ class WeightedFlightProfile implements FlightProfile {
         return getShellAimVelocityCompensation(this.state, mount);
     }
 
-    headingOffset(target: SpaceObject): number {
+    headingOffset(target: SpaceObject, requiredAcceleration: XY): number {
         const guns = this.state.chainGuns;
         if (guns.length === 0) {
             return this.lastOffset ?? 0;
         }
         const shipToTarget = XY.difference(target.position, this.state.position);
-        const targetVelocity = XY.difference(target.velocity, this.state.velocity);
-        return this.bestOffset(shipToTarget, targetVelocity);
+        return this.bestOffset(shipToTarget, requiredAcceleration);
     }
 
     gunneryHullAngle(target: SpaceObject, requiredAcceleration: XY): number | null {

@@ -12,9 +12,11 @@ import {
     SmartPilotMode,
     SpaceManager,
     Spaceship,
+    ThrusterDesign,
     Vec2,
     XY,
     chaingunPlatformChaingun,
+    demoShipThruster,
     makeShipState,
     shellAmmoTypes,
     shipConfigurations,
@@ -111,6 +113,22 @@ function shortAndLongRangeThrustedConfig() {
         ['FWD', { ...chaingunPlatformChaingun, maxShellRange: 20_000 }],
     ];
     return { ...shipConfigurations['demo-ship'], chainGuns };
+}
+
+/**
+ * A full-traverse turret (so the mount never constrains heading and thrust cost decides it alone)
+ * on a hull whose FWD axis is twice as strong as any other — the layout that makes the heading
+ * arbitration's chosen thrust axis observable.
+ */
+function turretOnlyAsymmetricThrustConfig() {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [['FWD', chaingunPlatformChaingun]];
+    const thrusters: [ShipDirectionConfig, ThrusterDesign][] = [
+        ['FWD', demoShipThruster],
+        ['FWD', demoShipThruster],
+        ['PORT', demoShipThruster],
+        ['STBD', demoShipThruster],
+    ];
+    return { ...demoShipConfig, chainGuns, thrusters };
 }
 
 function runOneTick(shipMgr: ShipManagerPc | ShipManagerNpc, spaceMgr: SpaceManager) {
@@ -732,6 +750,32 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
             expect(gun.isFiring, `still firing at tick ${i}`).to.equal(true);
         }
         expect(toDegreesDelta(shipObj.angle - settled)).to.be.closeTo(0, 1);
+    });
+
+    it('points the strong thrust axis along the closing vector, not along the target’s own velocity', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, turretOnlyAsymmetricThrustConfig());
+        shipObj.faction = Faction.Raiders;
+
+        // Beyond the guns' 12,000m envelope, so the ship is closing: this tick's thrust command is
+        // `moveToTarget`, straight at the target. The target's own 5 km/s crossing velocity is a
+        // vector the ship is not being accelerated along at all, and arbitrating heading against it
+        // would swing the hull 90 degrees off the approach it is actually flying.
+        const target = createHostile('target', Faction.Gravitas, XY.byLengthAndDirection(30_000, 0));
+        target.velocity.setValue({ x: 0, y: 5000 });
+        spaceMgr.insert(target);
+        spaceMgr.forceFlushEntities();
+
+        shipMgr.state.order = Order.ATTACK;
+        shipMgr.state.orderTargetId = target.id;
+
+        for (const id of makeIterationsData(0.05, 1)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        // The hull already points at the target, and the offset that puts its strongest (FWD) axis
+        // on the closing vector is 0 -- so there is nothing to turn.
+        expect(shipMgr.state.smartPilot.rotation, 'rotation command while closing').to.be.closeTo(0, 0.05);
     });
 
     it('does not damp against a step in the commanded heading as if it were a sweep', () => {

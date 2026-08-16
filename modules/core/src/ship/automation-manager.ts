@@ -125,7 +125,7 @@ export class AutomationManager implements Updateable {
         targetVelocity: XY,
         targetPosition: XY,
         leadCompensation: XY,
-        headingOffset: number,
+        resolveHeadingOffset: (requiredAcceleration: XY) => number,
         trackRange: RTuple2,
         { deltaSecondsAvg }: IterationData,
     ) {
@@ -134,15 +134,23 @@ export class AutomationManager implements Updateable {
         const distanceToTarget = XY.lengthOf(shipToTarget);
         const inRange = isInRange(trackRange[0], trackRange[1], distanceToTarget);
         let maneuvering: ManeuveringCommand;
+        // The vector the ship is being accelerated along this tick is decided by the same branch
+        // that issues the thrust command, and handed to the heading arbitration from there — a
+        // caller cannot supply one that disagrees with the maneuver actually being flown.
+        let requiredAcceleration: XY;
         if (inRange) {
             maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, targetVelocity);
+            requiredAcceleration = XY.difference(targetVelocity, ship.velocity);
         } else {
             maneuvering = moveToTarget(deltaSecondsAvg, ship, targetPosition);
+            requiredAcceleration = shipToTarget;
             if (distanceToTarget < trackRange[0]) {
                 maneuvering.boost = -maneuvering.boost;
                 maneuvering.strafe = -maneuvering.strafe;
+                requiredAcceleration = XY.negate(shipToTarget);
             }
         }
+        const headingOffset = resolveHeadingOffset(requiredAcceleration);
         // Shell-aim lead compensation grows with the ship's own closing speed. Applying it to hull
         // facing while still closing distance couples heading to velocity: a fast approach turns the
         // hull away from the target, which (via local-frame boost) accelerates it further off course —
@@ -165,7 +173,9 @@ export class AutomationManager implements Updateable {
             return true;
         }
         const headingOffset = this.transitHeadingConcession(destination, gunneryTarget);
-        this.positionNearTarget(XY.zero, destination, XY.zero, headingOffset, trackRange, id);
+        // The transit concession is a capped constant for this tick, decided against the route
+        // rather than against thrust cost, so it ignores the vector offered to it.
+        this.positionNearTarget(XY.zero, destination, XY.zero, () => headingOffset, trackRange, id);
         if (headingOffset !== 0) {
             // The concession's reference sweeps as the target passes; `positionNearTarget`'s
             // `rotateToTarget` damps against absolute turn rate and lags it the whole pass.
@@ -249,7 +259,7 @@ export class AutomationManager implements Updateable {
             target.velocity,
             target.position,
             profile.leadCompensation(target),
-            profile.headingOffset(target),
+            (required) => profile.headingOffset(target, required),
             profile.trackRange(),
             id,
         );
