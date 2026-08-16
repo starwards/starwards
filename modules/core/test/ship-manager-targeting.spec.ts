@@ -59,6 +59,26 @@ describe('ShipManager weapons target lifecycle', () => {
         jest.restoreAllMocks();
     });
 
+    it('weaponsTarget defaults to enemyOnly=true at spawn', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        flush();
+        expect(mgr.state.weaponsTarget.enemyOnly).to.equal(true);
+    });
+
+    it('nextTargetCommand with default enemyOnly skips friendly ships', () => {
+        const { makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('friend', Faction.Gravitas, 1000, 0);
+        makeShipMgr('enemy', Faction.Raiders, 2000, 0);
+        flush();
+        mgr.state.weaponsTarget.shipOnly = true;
+        // Don't set enemyOnly - use the default
+        mgr.state.weaponsTarget.nextTargetCommand = true;
+        mgr.handleTargetCommands();
+        expect(mgr.state.weaponsTarget.targetId).to.equal('enemy');
+    });
+
     it('setTarget accepts a target within radar range', () => {
         const { makeShipMgr, flush } = setup();
         const { mgr } = makeShipMgr('a', Faction.Gravitas);
