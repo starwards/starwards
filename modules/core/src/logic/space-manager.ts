@@ -16,6 +16,7 @@ import {
     circlesIntersection,
     limitPercision,
     moveToTarget,
+    predictInterceptPoint,
     rotateToTarget,
     toDegreesDelta,
     toPositiveDegreesDelta,
@@ -467,21 +468,34 @@ export class SpaceManager implements Updateable {
             if (!projectile.freeze && projectile.design.homing && projectile.targetId) {
                 const [target] = this.getObjectPtr(projectile.targetId);
                 if (target) {
-                    const destination = target.position;
-                    const relativeDestination = XY.difference(destination, projectile.position);
-                    const distanceToTarget = XY.lengthOf(relativeDestination) - target.radius;
+                    const distanceToTarget =
+                        XY.lengthOf(XY.difference(target.position, projectile.position)) - target.radius;
                     const fuze = projectile.fuze;
                     if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
                         this.explodeProjectile(projectile);
                     } else {
                         const homing = projectile.design.homing;
-                        // terminal sprint: dramatic acceleration burst once inside the sprint range,
-                        // so a target can't idly out-maneuver a missile it's already spotted
-                        const sprintMultiplier =
-                            homing.sprint && distanceToTarget < homing.sprint.range ? homing.sprint.speedMultiplier : 1;
+                        // steer at the target's projected position, not its current one -- aiming
+                        // at "now" against a moving target turns the chase into an ever-curving
+                        // pursuit that can circle the target instead of ever closing on it. The lead
+                        // is computed against cruise speed (not sprint) since sprint only actually
+                        // engages once the missile is on-course -- see sprintMultiplier below.
+                        const destination = predictInterceptPoint(projectile.position, homing.maxSpeed, target);
+                        const relativeDestination = XY.difference(destination, projectile.position);
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
+                        // terminal sprint: dramatic acceleration burst once inside the sprint range --
+                        // but only once the missile is actually tracking the lead point. At sprint
+                        // speed the missile's own turn radius exceeds a short-range engagement, so
+                        // sprinting while still badly misaligned overshoots into a wide loop instead
+                        // of a clean intercept (the orbiting bug). Gating sprint on alignment keeps
+                        // the correction phase at cruise speed's much tighter turn radius.
+                        const onCourse = Math.abs(velocityDestinationDiff) < 45;
+                        const sprintMultiplier =
+                            homing.sprint && onCourse && distanceToTarget < homing.sprint.range
+                                ? homing.sprint.speedMultiplier
+                                : 1;
 
                         let rotation = 0;
                         let boost = 0;

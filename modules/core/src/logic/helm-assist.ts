@@ -1,5 +1,5 @@
+import { EPSILON, capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
 import { ShipDirection, vector2ShipDirections } from '../ship/ship-direction';
-import { capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
 
 import { ShipState } from '../ship';
 import { XY } from './xy';
@@ -40,6 +40,45 @@ export function moveToTarget(deltaSeconds: number, ship: Craft, targetPos: XY): 
         strafe: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.y), velocity.y, posDiff.y),
         boost: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.x), velocity.x, posDiff.x),
     };
+}
+
+/**
+ * Classic pursuit-intercept solution: given a target moving at (approximately) constant
+ * velocity and an interceptor capable of `interceptorSpeed`, returns the point where a
+ * straight-line course at that speed meets the target's projected path -- so a guidance
+ * loop can steer at where the target will be instead of chasing where it is now. Falls
+ * back to the target's current position when no real solution exists (interceptor too
+ * slow to ever catch up).
+ */
+export function predictInterceptPoint(
+    interceptorPosition: XY,
+    interceptorSpeed: number,
+    target: { position: XY; velocity: XY },
+): XY {
+    const toTarget = XY.difference(target.position, interceptorPosition);
+    const a = XY.dot(target.velocity, target.velocity) - interceptorSpeed * interceptorSpeed;
+    const b = 2 * XY.dot(toTarget, target.velocity);
+    const c = XY.dot(toTarget, toTarget);
+
+    let t: number | null = null;
+    if (Math.abs(a) < EPSILON) {
+        if (Math.abs(b) > EPSILON) {
+            const candidate = -c / b;
+            if (candidate > 0) {
+                t = candidate;
+            }
+        }
+    } else {
+        const discriminant = b * b - 4 * a * c;
+        if (discriminant >= 0) {
+            const sqrtD = Math.sqrt(discriminant);
+            const candidates = [(-b + sqrtD) / (2 * a), (-b - sqrtD) / (2 * a)].filter((x) => x > 0);
+            if (candidates.length) {
+                t = Math.min(...candidates);
+            }
+        }
+    }
+    return t === null ? target.position : XY.equasionOfMotion(target.position, target.velocity, XY.zero, t);
 }
 
 export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY, offset: number): number {
