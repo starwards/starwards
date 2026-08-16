@@ -1,8 +1,10 @@
 import {
+    GM_SET_VALUE,
     SpaceManager,
     SpaceState,
     cmdReceivers,
     createLogger,
+    handleGmSetValueCommand,
     handleJsonPointerCommand,
     isJsonPointer,
     isSetValueCommand,
@@ -31,6 +33,14 @@ export class SpaceRoom extends Room<SpaceState> {
         for (const [cmdName, handler] of cmdReceivers(lockCommands, manager)) {
             this.onMessage(cmdName, handler);
         }
+        // GM tweak panel's write channel — its own message name keeps it off the '*' catch-all
+        // below, and routes through handleGmSetValueCommand so it bypasses the property lock
+        // (invariant I10: the GM outranks the lock).
+        this.onMessage(GM_SET_VALUE, (_, message: unknown) => {
+            if (!handleGmSetValueCommand(message, manager.state)) {
+                logError(`GM onMessage for message="${JSON.stringify(message)}" not registered.`);
+            }
+        });
         this.onMessage('*', (_, type, message: unknown) => {
             if (isSetValueCommand(message)) {
                 if (!isJsonPointer(type)) {

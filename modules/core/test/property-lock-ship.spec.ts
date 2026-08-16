@@ -2,6 +2,7 @@ import { ShipTestHarness } from './ship-test-harness';
 import { SmartPilotMode } from '../src';
 
 import { expect } from 'chai';
+import { handleGmSetValueCommand } from '../src/commands';
 
 // Concrete regression from bridge testplay: `maneuveringMode` set by the GM kept
 // reverting to the pilot's own choice because pilot input (`maneuveringModeCommand`)
@@ -52,5 +53,26 @@ describe('GM property lock — ship state', () => {
 
         harness.shipState.id = 'renamed';
         expect(harness.shipState.id).to.equal('renamed');
+    });
+
+    it('lets a GM write through a locked field, and the GM value survives further pilot input', () => {
+        const harness = new ShipTestHarness();
+
+        harness.shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+        harness.shipState.lockCommands.push({ path: '/smartPilot/maneuveringMode', locked: true });
+        tick(harness);
+
+        // GM overrides the lock via the GM channel
+        const handled = handleGmSetValueCommand(
+            { path: '/smartPilot/maneuveringMode', value: SmartPilotMode.DIRECT },
+            harness.shipState,
+        );
+        expect(handled).to.equal(true);
+        expect(harness.shipState.smartPilot.maneuveringMode).to.equal(SmartPilotMode.DIRECT);
+
+        // pilot hits the maneuvering-mode hotkey — still blocked, GM's value holds
+        harness.shipState.maneuveringModeCommand = true;
+        tick(harness);
+        expect(harness.shipState.smartPilot.maneuveringMode).to.equal(SmartPilotMode.DIRECT);
     });
 });

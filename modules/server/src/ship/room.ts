@@ -1,8 +1,10 @@
 import {
+    GM_SET_VALUE,
     ShipManager,
     ShipState,
     cmdReceivers,
     createLogger,
+    handleGmSetValueCommand,
     handleJsonPointerCommand,
     lockCommands,
     repairCommands,
@@ -42,6 +44,15 @@ export class ShipRoom extends Room<ShipState> {
         for (const [cmdName, handler] of cmdReceivers(lockCommands, manager)) {
             this.onMessage(cmdName, handler);
         }
+        // GM tweak panel's write channel — must be registered under its own message name so it
+        // never reaches the '*' catch-all below, and routed through handleGmSetValueCommand so
+        // it bypasses the property lock (invariant I10: the GM outranks the lock).
+        this.onMessage(GM_SET_VALUE, (_, message: unknown) => {
+            if (viewingReplay()) return;
+            if (!handleGmSetValueCommand(message, manager.state)) {
+                logError(`GM onMessage for message="${JSON.stringify(message)}" not registered.`);
+            }
+        });
         this.onMessage('*', (_, type, message: unknown) => {
             if (viewingReplay()) return;
             if (!handleJsonPointerCommand(message, type, manager.state)) {

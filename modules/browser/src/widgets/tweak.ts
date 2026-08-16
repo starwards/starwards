@@ -74,6 +74,25 @@ const selectionTitle = (selected: Iterable<SpaceObject>) => {
 type LockableDriver = ShipDriver | SpaceDriver;
 
 /**
+ * Views `driver` with its `sendJsonCmd` replaced by `sendGmJsonCmd` — the GM tweak panel's write
+ * channel, which bypasses the property lock (see `lock-registry.ts`'s `withLockBypass` and
+ * `commands.ts`'s `handleGmSetValueCommand`). Every value write in this widget goes through a
+ * GM-view driver so a locked property still responds to the GM's own edits (invariant I10: the
+ * GM outranks the lock); every other writer (crew stations, bots, MCP, node-red) keeps using the
+ * plain `sendJsonCmd` and stays blocked.
+ *
+ * `Object.create` (not object spread) so the `state`/`events` accessors stay live bindings to the
+ * underlying room rather than a one-time snapshot; only `sendJsonCmd` is overridden as an own
+ * property. `command()` (the lock-toggle channel) is untouched — locking/unlocking was never
+ * subject to the lock it manipulates.
+ */
+function asGmDriver<D extends { sendJsonCmd: unknown; sendGmJsonCmd: D['sendJsonCmd'] }>(driver: D): D {
+    return Object.create(driver, {
+        sendJsonCmd: { value: driver.sendGmJsonCmd, enumerable: true },
+    }) as D;
+}
+
+/**
  * A field's GM-lock state as a `Model<boolean>`, ready for `addLockCellToRow`/`addLockBlade`.
  * Takes multiple JSON Pointer paths (rather than one) because a single tweakable *row* can back
  * onto more than one lockable field — a `vec2` is stored as two independently `@commandable`
@@ -130,10 +149,14 @@ function addTweakableRow(
 const singleSelectionDetails = async (
     subject: SpaceObject,
     driver: Driver,
-    spaceDriver: SpaceDriver,
+    rawSpaceDriver: SpaceDriver,
     guiFolder: FolderApi,
     cleanup: (d: Destructor) => void,
 ) => {
+    // This whole widget is the GM tweak panel — every value write it issues must bypass the
+    // property lock (invariant I10). `lockedRowProp`/`lockCommands` (the lock toggle itself) are
+    // unaffected either way, so the raw driver is still fine there.
+    const spaceDriver = asGmDriver(rawSpaceDriver);
     guiFolder.addBinding(subject, 'id', { readonly: true });
     // For ships, velocity is rendered separately below (see `Spaceship.isInstance`) so the
     // GM edit can also disengage the smart pilot's velocity hold — otherwise it thrusts the
@@ -176,7 +199,7 @@ const singleSelectionDetails = async (
     }
 
     if (Spaceship.isInstance(subject)) {
-        const shipDriver = await driver.getShipDriver(subject.id);
+        const shipDriver = asGmDriver(await driver.getShipDriver(subject.id));
         const velocityPointer = `/${subject.type}/${subject.id}/velocity`;
         const velocityProp = readWriteVec2Prop(spaceDriver, velocityPointer);
         addInputBlade(
@@ -535,6 +558,8 @@ export function tweakWidget(driver: Driver, selectionContainer: SelectionContain
             });
             selectionContainer.events.addListener('changed', this.handleSelectionChange);
 
+            // AdminState carries no lock (only ShipState/SpaceState implement Lockable, and the
+            // admin room has no GM_SET_VALUE handler), so the plain channel is correct here.
             const speedProp = readWriteNumberProp(adminDriver, `/speed`);
             addSliderBlade(this.pane, speedProp, { label: 'Game Speed' }, this.panelCleanup.add);
 

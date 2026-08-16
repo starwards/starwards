@@ -1,6 +1,7 @@
 import { PowerLevel, Radar } from '../src';
 import { commandable, gameField } from '../src/game-field';
-import { isFieldLocked, setFieldLocked } from '../src/lock-registry';
+import { handleGmSetValueCommand, handleJsonPointerCommand } from '../src/commands';
+import { isFieldLocked, setFieldLocked, withLockBypass } from '../src/lock-registry';
 
 import { JsonPointer } from '../src/json-ptr';
 import { Schema } from '@colyseus/schema';
@@ -112,5 +113,88 @@ describe('property lock', () => {
         setFieldLocked(radar, 'bearingCommand', true);
         radar.bearingCommand = 45;
         expect(radar.bearingCommand).to.be.closeTo(10, 0.001);
+    });
+});
+
+// The GM tweak panel outranks the lock: the lock exists to silence every OTHER writer (sim
+// tick, bots, crew stations, MCP, node-red), not the GM's own hand-adjustment. See
+// governance/invariants.md I10 in starwards-design.
+describe('withLockBypass / GM lock override', () => {
+    class Lockable extends Schema {
+        @commandable()
+        @gameField('float32')
+        value = 0;
+    }
+
+    it('lets a write through a locked field while the bypass is active', () => {
+        const t = new Lockable();
+        setFieldLocked(t, 'value', true);
+        withLockBypass(() => {
+            t.value = 42;
+        });
+        expect(t.value).to.equal(42);
+    });
+
+    it('re-locks the field once the bypass scope exits', () => {
+        const t = new Lockable();
+        setFieldLocked(t, 'value', true);
+        withLockBypass(() => {
+            t.value = 42;
+        });
+        t.value = 99;
+        expect(t.value).to.equal(42);
+    });
+
+    it('restores the lock even when the bypassed callback throws', () => {
+        const t = new Lockable();
+        setFieldLocked(t, 'value', true);
+        expect(() =>
+            withLockBypass(() => {
+                throw new Error('boom');
+            }),
+        ).to.throw('boom');
+        t.value = 99;
+        expect(t.value).to.equal(0);
+    });
+
+    it('does not let an inner bypass exiting re-lock an outer bypass still in flight', () => {
+        const t = new Lockable();
+        setFieldLocked(t, 'value', true);
+        withLockBypass(() => {
+            withLockBypass(() => {
+                t.value = 1;
+            });
+            // inner bypass has exited; outer is still active
+            t.value = 2;
+            expect(t.value).to.equal(2);
+        });
+    });
+
+    it('handleGmSetValueCommand writes through a locked field', () => {
+        const t = new Lockable();
+        t.value = 5;
+        setFieldLocked(t, 'value', true);
+        const handled = handleGmSetValueCommand({ path: '/value', value: 99 }, t);
+        expect(handled).to.equal(true);
+        expect(t.value).to.equal(99);
+    });
+
+    it('a plain JSON-pointer write to the same locked field is still ignored', () => {
+        const t = new Lockable();
+        t.value = 5;
+        setFieldLocked(t, 'value', true);
+        handleJsonPointerCommand({ value: 99 }, '/value', t);
+        expect(t.value).to.equal(5);
+    });
+
+    it('a GM write to a non-@commandable path is still refused', () => {
+        class NotCommandable extends Schema {
+            @gameField('float32')
+            secret = 0;
+        }
+        const t = new NotCommandable();
+        const handled = handleGmSetValueCommand({ path: '/secret', value: 99 }, t);
+        expect(handled).to.equal(false);
+        expect(t.secret).to.equal(0);
     });
 });

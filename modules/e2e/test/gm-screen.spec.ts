@@ -417,11 +417,15 @@ test.describe('GM Screen', () => {
         expect(ship.radius).toBeCloseTo(120, 0);
     });
 
-    test('locking a @tweakable field via the GM tweak panel blocks further writes until unlocked', async ({ page }) => {
+    test('locking a @tweakable field via the GM tweak panel still lets the GM edit it (invariant I10)', async ({
+        page,
+    }) => {
         // Regression from bridge testplay: a GM-set value (smartPilot.maneuveringMode) kept
         // reverting because something else kept writing it. The lock cell next to every
-        // tweakable field's own row makes the GM's value win — every write is silently ignored
-        // while locked, including the GM's own subsequent edits through this very panel.
+        // tweakable field's own row makes the GM's value win — every OTHER writer is silently
+        // ignored while locked (see the @defectible test below), but the GM's own edits through
+        // this very panel always land: the lock exists to silence the competing noise, not the
+        // GM (governance/invariants.md I10 in starwards-design).
         const shipId = single_ship.testShipId;
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
@@ -462,12 +466,19 @@ test.describe('GM Screen', () => {
             expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(true);
         }).toPass({ timeout: 2000 });
 
-        // locked: the GM's own next edit through the same control is silently ignored
+        // locked: the GM's own next edit through the same control still lands
         await modeSelect.selectOption({ label: 'DIRECT' });
-        await page.waitForTimeout(500);
-        expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.DIRECT);
+        }).toPass({ timeout: 2000 });
 
-        // unlocking restores normal write behavior
+        // still locked and still GM-editable: flip it back
+        await modeSelect.selectOption({ label: 'VELOCITY' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
+        }).toPass({ timeout: 2000 });
+
+        // unlocking doesn't change GM write behavior — it only re-admits every other writer
         await modeLockCell.click();
         await expect(() => {
             expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(false);

@@ -1,5 +1,6 @@
 import {
     BladeApi,
+    ButtonApi,
     FolderApi,
     ListBladeApi,
     ListBladeParams,
@@ -361,62 +362,56 @@ export function addListCellToRow<T>(
 }
 
 /**
- * Wires a plain `text`-blade instance (already added to either a folder or a table row) as a
- * clickable 🔒/🔓 lock indicator for `lockedProp`. A `text` blade rather than a checkbox
- * binding — see `addLockCellToRow` for why a checkbox can't be used for the row-cell case;
- * `addLockBlade` reuses the same rendering for consistency (and, incidentally, the same
- * always-hit-testable click target) even where a checkbox binding would have been possible.
+ * Wires an already-added `button` blade as a clickable 🔒/🔓 lock indicator for `lockedProp`. A
+ * real button rather than the earlier `text`-blade approach: a `text` blade is an editable input,
+ * so clicking it (to toggle the lock) also drops a text caret into the field — there is no
+ * legitimate typing to do there, only noise. A button has no such caret and no keyboard-editable
+ * value to round-trip, so unlike the old `text` version this needs no `wireBlade`/`parse` path at
+ * all — `button.title` is simply the glyph.
  *
- * Deliberately NOT `disabled: true`: Tweakpane's base CSS sets `pointer-events: none` on any
- * blade carrying the `tp-v-disabled` class (`.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled
- * {pointer-events:none}`), which made the click listener below completely unreachable by real
- * pointer input — a synthetic `dispatchEvent('click')` still invoked it directly (bypassing
- * hit-testing/CSS entirely), which is exactly why an earlier e2e version of this control passed
- * while being dead in a real browser. Nothing here wires keyboard input back to `lockedProp` (no
- * `wireBlade`/`parse`-to-value round trip is set up), so leaving the cell technically editable
- * has no functional effect — a stray keystroke never reaches the lock state, and the next
- * `lockedProp.onChange` refresh overwrites the displayed glyph regardless.
+ * Note for history: an earlier `text`-blade version tried `disabled: true` to suppress editing,
+ * but Tweakpane's base CSS sets `pointer-events: none` on any blade carrying the `tp-v-disabled`
+ * class (`.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled {pointer-events:none}`), which made the
+ * control unclickable by real pointer input while a synthetic `dispatchEvent('click')` still
+ * invoked it directly (bypassing hit-testing/CSS entirely) — that's why an earlier e2e version
+ * passed while being dead in a real browser. A button has no `disabled`-CSS trap to fall into.
  */
-function wireLockGlyph(blade: BladeGuiApi<string>, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+function wireLockButton(button: ButtonApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
     const glyph = () => (lockedProp.getValue() ? '🔒' : '🔓');
-    blade.element.classList.add('sw-lock-cell');
-    blade.element.addEventListener('click', () => {
+    button.element.classList.add('sw-lock-cell');
+    button.title = glyph();
+    button.on('click', () => {
         void lockedProp.setValue?.(!lockedProp.getValue());
     });
     cleanup(
         lockedProp.onChange(() => {
-            blade.value = glyph();
+            button.title = glyph();
         }),
     );
-    cleanup(() => blade.dispose());
-    return blade;
+    cleanup(() => button.dispose());
+    return button;
 }
 
 /**
- * Add a clickable lock-indicator cell to a table row: a compact 🔒/🔓 readout that toggles
- * `lockedProp` on click. A plain `text` cell rather than a checkbox binding — `RowApi.addCell`
- * only resolves *blade*-view plugins (text/slider/list/separator), not the binding-based
- * `checkbox` input Tweakpane normally renders for a bound boolean, so a checkbox cannot be
- * placed in a table row at all.
+ * Add a clickable lock-indicator cell to a table row: a compact 🔒/🔓 button that toggles
+ * `lockedProp` on click. Tweakpane's built-in `button` view is itself a blade plugin (the same
+ * kind `RowApi.addCell` resolves for text/slider/list), so it can sit in a row cell — unlike a
+ * bound `checkbox` input, which `addCell` can't place at all.
  */
 export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
-    const blade = row.addCell(
-        configTextBlade({ width: '28px' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
-    ) as BladeGuiApi<string>;
-    return wireLockGlyph(blade, lockedProp, cleanup);
+    const button = row.addCell({ view: 'button', title: '', width: '28px' }) as ButtonApi;
+    return wireLockButton(button, lockedProp, cleanup);
 }
 
 /**
- * Add a clickable 🔒/🔓 lock indicator as its own folder-level blade — for the handful of
- * tweakable widgets that can't be expressed as a `tweakpane-table` cell at all (camera-ring
- * dials, the velocity point2d drag pad): those are Tweakpane *binding* plugins (`addBinding`),
- * and `RowApi.addCell` only resolves blade-view plugins, the same restriction `addLockCellToRow`
+ * Add a clickable 🔒/🔓 lock button as its own folder-level blade — for the handful of tweakable
+ * widgets that can't be expressed as a `tweakpane-table` cell at all (camera-ring dials, the
+ * velocity point2d drag pad): those are Tweakpane *binding* plugins (`addBinding`), and
+ * `RowApi.addCell` only resolves blade-view plugins, the same restriction `addLockCellToRow`
  * works around for text/slider/list. Kept as a sibling blade next to the widget it locks rather
  * than a `tweakpane-table` row.
  */
 export function addLockBlade(guiFolder: FolderApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
-    const blade = guiFolder.addBlade(
-        configTextBlade({ label: 'lock' }, () => (lockedProp.getValue() ? '🔒' : '🔓')),
-    ) as BladeGuiApi<string>;
-    return wireLockGlyph(blade, lockedProp, cleanup);
+    const button = guiFolder.addButton({ label: 'lock', title: '' });
+    return wireLockButton(button, lockedProp, cleanup);
 }
