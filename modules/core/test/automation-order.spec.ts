@@ -50,6 +50,15 @@ function narrowArcPlatformConfig(bearingLimit: number) {
     return { ...shipConfigurations['chaingun-platform'], chainGuns, maneuvering };
 }
 
+/**
+ * A single narrow-arc FWD mount on a hull that *can* rotate — the give-way behavior itself, rather
+ * than the mount's own aiming decision, is what these scenarios assert.
+ */
+function rotatingNarrowArcPlatformConfig(bearingLimit: number) {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [['FWD', { ...chaingunPlatformChaingun, bearingLimit }]];
+    return { ...shipConfigurations['chaingun-platform'], chainGuns };
+}
+
 /** Three narrow-arc mounts covering distinct, non-overlapping sectors (FWD/STBD/AFT). */
 function threeMountNarrowArcConfig(bearingLimit: number) {
     const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
@@ -659,6 +668,56 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         runOneTick(shipMgr, spaceMgr);
 
         expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+    });
+
+    it('aims a skewed mount off its skewed rest bearing, not off where it was fitted', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(30));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+        const gun = shipMgr.state.chainGuns[0];
+        expect(gun).to.not.equal(undefined);
+        // Damage has skewed the mount 30 degrees off where it was fitted, still inside the design's
+        // 45-degree maxBearingSkew so the mount isn't `broken`.
+        gun.bearingSkew = 30;
+
+        spaceMgr.insert(createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0)));
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        // Dead ahead is 30 degrees back from the mount's rest bearing — a traverse it has, and one
+        // it must actually be commanded to make. Measuring off `fittedBearing` would command 0.
+        expect(gun.bearingCommand).to.be.closeTo(-30, 1);
+
+        // Once the swing completes the firing line is on the target and the mount opens up.
+        for (let i = 0; i < 30; i++) {
+            runOneTick(shipMgr, spaceMgr);
+        }
+        expect(gun.hullBearing).to.be.closeTo(0, 1);
+        expect(gun.isFiring).to.equal(true);
+    });
+
+    it('gives way with the hull for a mount whose skew has pushed the target out of its traverse', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, rotatingNarrowArcPlatformConfig(20));
+        shipObj.faction = Faction.Raiders;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+        const gun = shipMgr.state.chainGuns[0];
+        expect(gun).to.not.equal(undefined);
+        // 40 degrees of skew against 20 degrees of traverse: dead ahead is now out of reach, even
+        // though it sits squarely inside the arc the mount was fitted with.
+        gun.bearingSkew = 40;
+
+        spaceMgr.insert(createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0)));
+        spaceMgr.forceFlushEntities();
+
+        const angleBefore = shipObj.angle;
+        for (let i = 0; i < 30; i++) {
+            runOneTick(shipMgr, spaceMgr);
+        }
+
+        // Reading the window off `fittedBearing` alone calls the target bearable and the hull never
+        // gives way; the mount then sits at its clamped limit, 20 degrees off, forever.
+        expect(Math.abs(toDegreesDelta(shipObj.angle - angleBefore))).to.be.greaterThan(1);
     });
 
     it('drops a cached target that closes inside minShellRange, consistent with canBearOn', () => {

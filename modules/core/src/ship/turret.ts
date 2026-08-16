@@ -156,11 +156,37 @@ export abstract class Turret extends SystemState {
     }
 
     /**
-     * this mount's bearing in relation to the ship (in degrees, 0 is front): where it's fitted,
-     * plus how far damage has skewed it, plus how far it has swung from there.
+     * where this mount points with no traverse applied, in relation to the ship (in degrees, 0 is
+     * front): where it's fitted, plus how far damage has skewed it. `bearing` and `bearingCommand`
+     * are both measured from here, so the hull-relative bearings this mount can be brought to are
+     * `restBearing ± bearingLimit`.
+     */
+    get restBearing() {
+        return this.fittedBearing + this.bearingSkew;
+    }
+
+    /**
+     * whether this mount can be brought to `targetHullBearing` (hull-relative degrees, 0 is front)
+     * — i.e. whether the traverse that would get it there is one `bearingCommand` will accept.
+     */
+    canBearAt(targetHullBearing: number): boolean {
+        return Math.abs(this.bearingCommandFor(targetHullBearing)) <= this.bearingLimit;
+    }
+
+    /**
+     * the `bearingCommand` that lays this mount's firing line on `targetHullBearing`. Past the
+     * mount's traverse the setter clamps it, so check {@link canBearAt} first where that matters.
+     */
+    bearingCommandFor(targetHullBearing: number): number {
+        return toDegreesDelta(targetHullBearing - this.restBearing);
+    }
+
+    /**
+     * this mount's bearing in relation to the ship (in degrees, 0 is front): where it rests, plus
+     * how far it has swung from there.
      */
     get hullBearing() {
-        return this.fittedBearing + this.bearingSkew + this.bearing;
+        return this.restBearing + this.bearing;
     }
 
     /**
@@ -177,7 +203,7 @@ export abstract class Turret extends SystemState {
      * here" overlays ahead of the mount's swing.
      */
     getGlobalCommandedBearing(parent: ShipState): number {
-        return parent.angle + this.fittedBearing + this.bearingSkew + this.bearingCommand;
+        return parent.angle + this.restBearing + this.bearingCommand;
     }
 
     /**

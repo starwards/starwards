@@ -67,7 +67,10 @@ class WeightedFlightProfile implements FlightProfile {
         if (guns.length === 0 || this.weights.aim === 0) {
             return XY.zero;
         }
-        const mount = bestTraversableMount(this.state, guns, target) ?? guns[0];
+        const mount = bestTraversableMount(this.state, guns, target);
+        if (!mount) {
+            return XY.zero;
+        }
         return getShellAimVelocityCompensation(this.state, mount);
     }
 
@@ -89,7 +92,10 @@ class WeightedFlightProfile implements FlightProfile {
         // A bolted gun's own bearingCommand clamps to 0 — it never swings onto the firing solution
         // the way a traversing mount does, so the hull heading itself has to carry it. That is the
         // same aim point `aimAndFire` lays each mount's firing line on, so hull and mount agree.
-        const mount = bestTraversableMount(this.state, guns, target) ?? guns[0];
+        const mount = bestTraversableMount(this.state, guns, target);
+        if (!mount) {
+            return null;
+        }
         const { aimPoint } = solveShellIntercept(this.state, mount, target);
         const shipToTarget = XY.difference(aimPoint, this.state.position);
         if (XY.isZero(shipToTarget)) {
@@ -142,14 +148,12 @@ class WeightedFlightProfile implements FlightProfile {
 function bestTraversableMount(state: ShipState, guns: ChainGun[], target: SpaceObject): ChainGun | null {
     const shipToTarget = XY.difference(target.position, state.position);
     const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - state.angle);
-    return (
-        guns.find((g) => Math.abs(toDegreesDelta(hullBearing - g.fittedBearing)) <= g.bearingLimit) ?? guns[0] ?? null
-    );
+    return guns.find((g) => g.canBearAt(hullBearing)) ?? guns[0] ?? null;
 }
 
 /**
  * Candidate hull-relative headings: one per mount (parks that mount's fixed bearing on the firing
- * line, independent of the target — see the `offset = -fittedBearing` derivation in the module
+ * line, independent of the target — see the `offset = -restBearing` derivation in the module
  * doc), one per thrust direction (the offset that puts *that* direction's local bearing on the
  * required-acceleration vector — see {@link thrustCost}'s matching derivation), plus dead-ahead.
  */
@@ -157,7 +161,7 @@ function headingCandidates(guns: ChainGun[], shipToTarget: XY, targetVelocity: X
     const required = XY.lengthOf(targetVelocity) > 0.01 ? targetVelocity : shipToTarget;
     const requiredAngle = XY.angleOf(required);
     const targetAngle = XY.angleOf(shipToTarget);
-    const fromMounts = guns.map((g) => -g.fittedBearing);
+    const fromMounts = guns.map((g) => -g.restBearing);
     const fromDirections = ShipDirections.map((d) => requiredAngle - targetAngle - d);
     const all = [0, ...fromMounts, ...fromDirections];
     const deduped: number[] = [];
@@ -173,12 +177,14 @@ function headingCandidates(guns: ChainGun[], shipToTarget: XY, targetVelocity: X
 /**
  * Normalized [0, 1] shortfall for holding heading `offset`: how far past its bearing limit each
  * mount would be, summed and scaled so a mount that can't bear at all dominates {@link thrustCost},
- * whose contribution never exceeds 1 (see {@link AIM_COST_SCALE}).
+ * whose contribution never exceeds 1 (see {@link AIM_COST_SCALE}). Holding `offset` puts the target
+ * at hull-relative `-offset`, and the traverse each mount needs to reach it is measured off its
+ * rest bearing — fitted plus damage skew — so a skewed mount is scored on the window it really has.
  */
 function aimCost(guns: ChainGun[], offset: number): number {
     let shortfall = 0;
     for (const gun of guns) {
-        const desiredBearing = toDegreesDelta(-offset - gun.fittedBearing);
+        const desiredBearing = gun.bearingCommandFor(-offset);
         shortfall += Math.max(0, Math.abs(desiredBearing) - gun.bearingLimit) / 180;
     }
     return Math.min(1, (shortfall * AIM_COST_SCALE) / guns.length);

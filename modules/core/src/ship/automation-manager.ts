@@ -241,7 +241,7 @@ export class AutomationManager implements Updateable {
             const { aimPoint, secondsToLive } = solveShellIntercept(this.state, chainGun, target);
             const shipToAimPoint = XY.difference(aimPoint, this.state.position);
             const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
-            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
+            chainGun.bearingCommand = chainGun.bearingCommandFor(hullBearing);
             const aimRange = (chainGun.design.maxShellRange - chainGun.design.minShellRange) / 2;
             // The fuze has to detonate the shell where the firing line meets the target, which is
             // the *aim point's* distance in the ship's own frame — not the target's, and not the
@@ -537,8 +537,10 @@ export class AutomationManager implements Updateable {
     /**
      * Whether `chainGun` could ever be pointed at `target` right now — within its own shell-range
      * envelope (including its minimum — a target inside minShellRange is as unreachable as one
-     * beyond maxShellRange), and within its own bearing envelope relative to the hull's *current*
-     * angle. Deliberately ignores the mount's actual in-flight bearing (which lags
+     * beyond maxShellRange), and within the traverse `Turret.canBearAt` allows off the mount's rest
+     * bearing — where it was fitted *plus* however far damage has skewed it, since a skewed mount's
+     * reachable window travels with the skew. Deliberately ignores the mount's actual in-flight
+     * bearing (which lags
      * `bearingCommand` at `turnSpeed`): this answers "is it worth committing the swing to this
      * target", not "has the swing finished yet" — the latter is what `isTargetInKillZone` (via
      * `aimAndFire`) still separately governs for the fire decision itself.
@@ -550,8 +552,7 @@ export class AutomationManager implements Updateable {
             return false;
         }
         const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - this.state.angle);
-        const desiredBearing = toDegreesDelta(hullBearing - chainGun.fittedBearing);
-        return Math.abs(desiredBearing) <= chainGun.bearingLimit;
+        return chainGun.canBearAt(hullBearing);
     }
 
     /**
