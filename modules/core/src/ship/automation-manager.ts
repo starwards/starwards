@@ -245,11 +245,14 @@ export class AutomationManager implements Updateable {
             const aimRange = (chainGun.design.maxShellRange - chainGun.design.minShellRange) / 2;
             // The fuze has to detonate the shell where the firing line meets the target, which is
             // the *aim point's* distance in the ship's own frame — not the target's, and not the
-            // envelope midpoint DIRECT mode bases itself on.
+            // envelope midpoint DIRECT mode bases itself on. `secondsToLive` is solved from
+            // `ship.position` (the hull center), but the shell's own flight (getShellExplosionLocation)
+            // starts `ship.radius` further along the same firing line, at the muzzle — subtract it so
+            // the dialed range still lands the shell on the aim point instead of overshooting by `radius`.
             const desiredRange = capToRange(
                 chainGun.design.minShellRange,
                 chainGun.design.maxShellRange,
-                secondsToLive * chainGun.design.bulletSpeed,
+                secondsToLive * chainGun.design.bulletSpeed - this.state.radius,
             );
             if (chainGun.shellRangeMode === SmartPilotMode.TARGET) {
                 // ChainGunManager bases TARGET mode on the actual distance to weaponsTarget already,

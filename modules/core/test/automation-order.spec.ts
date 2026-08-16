@@ -837,6 +837,27 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         const uniqueBearings = new Set(globalBearings.map((b) => Math.round(b)));
         expect(uniqueBearings.size, `expected one shared bearing, got ${[...uniqueBearings].join(',')}`).to.equal(1);
     });
+
+    it('dials the shell range from the muzzle, not the hull center, on a large-radius hull', () => {
+        const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
+        shipObj.faction = Faction.Raiders;
+        // createShipSetup's bare `new Spaceship()` skips the `radius` a real spawn (`Spaceship.init`)
+        // assigns from the ship model -- set it explicitly so this hull's real 800m radius (the
+        // muzzle's offset ahead of `ship.position`) is actually exercised.
+        shipObj.radius = shipConfigurations['chaingun-platform'].radius;
+        shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+
+        const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        spaceMgr.insert(hostile);
+        spaceMgr.forceFlushEntities();
+
+        runOneTick(shipMgr, spaceMgr);
+
+        expect(
+            shipMgr.state.chainGuns[0]?.isFiring,
+            'a stationary target dead ahead, well inside the envelope, should still be hit -- the muzzle sits `radius` ahead of `ship.position` on the same firing line, so the shell must travel `radius` less than the ship-center-to-target distance to land on target',
+        ).to.equal(true);
+    });
 });
 
 describe('NPC ATTACK order with a bolted (non-traversing) chain gun', () => {
