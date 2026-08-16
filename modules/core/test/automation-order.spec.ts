@@ -698,7 +698,7 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(10, 1);
     });
 
-    it('drops a cached target the instant it stops being bearable, instead of starving a bearable one', () => {
+    it('stops firing on a cached target that swings out of the arc, while still holding and aiming at it', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, narrowArcPlatformConfig(10));
         shipObj.faction = Faction.Raiders;
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
@@ -716,6 +716,10 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         runOneTick(shipMgr, spaceMgr);
 
         expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
+        // Unbearable is not a reason to let a hostile go — the target stays cached and the mount
+        // stays commanded toward it, pinned at the arc limit it cannot traverse past, which is what
+        // leaves the hull free to turn and bring it back into the arc.
+        expect(Math.abs(shipMgr.state.chainGuns[0]?.bearingCommand ?? 0)).to.be.closeTo(10, 1);
     });
 
     it('aims a skewed mount off its skewed rest bearing, not off where it was fitted', () => {
@@ -846,17 +850,25 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
 
         const minShellRange = shipMgr.state.chainGuns[0]?.design.minShellRange ?? 0;
         const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 0));
+        // A second hostile, farther out and abeam, so where the mount points says which one the
+        // ship is holding — the drop itself is otherwise invisible on a single-hostile hull.
+        const farHostile = createHostile('far-hostile', Faction.Gravitas, XY.byLengthAndDirection(6000, 90));
         spaceMgr.insert(hostile);
+        spaceMgr.insert(farHostile);
         spaceMgr.forceFlushEntities();
 
         runOneTick(shipMgr, spaceMgr);
         expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(true);
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(0, 1);
 
         // Closes inside the gun's own dead zone.
         hostile.position.setValue(XY.byLengthAndDirection(minShellRange - 500, 0));
         spaceMgr.forceFlushEntities();
         runOneTick(shipMgr, spaceMgr);
 
+        // Dropped, and the farther hostile picked up in its place — the mount is now swinging onto
+        // that one, and reports no fire until it gets there.
+        expect(shipMgr.state.chainGuns[0]?.bearingCommand).to.be.closeTo(90, 1);
         expect(shipMgr.state.chainGuns[0]?.isFiring).to.equal(false);
     });
 

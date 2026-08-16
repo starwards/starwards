@@ -259,7 +259,7 @@ describe('NPC on a go-to order engaging hostiles of opportunity', function () {
     });
 
     /**
-     * Fixed-geometry controls that turn the property failure above into a diagnosis. All three use
+     * Fixed-geometry controls that turn the property failure above into a diagnosis. Every one uses
      * the same hull, the same hostile, and the same head-on-then-past geometry; only the ordered
      * state and the mount's traverse differ.
      */
@@ -288,16 +288,24 @@ describe('NPC on a go-to order engaging hostiles of opportunity', function () {
         });
 
         /**
-         * Baseline plus one change: the target sits off the bow. A bolted mount (`bearingLimit: 0`)
-         * cannot be brought to bear on it and no order is rotating the hull, so the NPC is silent.
-         * This is the *bearing* half of the failure, visible even without any movement order.
+         * Baseline plus one change: the target sits off the bow, where a bolted mount
+         * (`bearingLimit: 0`) cannot be brought to bear on it. Nothing about the *order* rotates an
+         * idle hull, so the shot exists only because gunnery itself asks for the turn — the idle
+         * give-way holds a heading that brings the mount round, and the NPC opens fire once it
+         * arrives. This is the *bearing* half of the engagement, isolated from any movement order.
          */
-        it('idle, stationary, target off the bow: still opens fire (bolted mount cannot bear)', () => {
+        it('idle, stationary, target off the bow: turns the hull until the bolted mount bears, then fires', () => {
             const scenario = createScenario(model, heading, pathLength, 0.1, lateralOffset);
+            const angleBefore = scenario.npcObj.angle;
             const report = runEngagement(scenario, SIM_SECONDS, iterationsPerSecond);
 
             expect(scenario.npcMgr.state.order).to.equal(Order.NONE);
             expect(report.opportunityTicks, describeReport(report)).to.be.greaterThan(MIN_OPPORTUNITY_TICKS);
+            // The hull came round to the target on gunnery's account alone — no order asked for it.
+            expect(
+                Math.abs(toDegreesDelta(scenario.npcObj.angle - angleBefore)),
+                describeReport(report),
+            ).to.be.at.least(10);
             expect(report.firingTicks, describeReport(report)).to.be.greaterThan(0);
         });
 
