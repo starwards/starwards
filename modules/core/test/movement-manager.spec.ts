@@ -202,4 +202,57 @@ describe('MovementManager', () => {
         }
         expect(shipMgr.state.warp!.jammed).to.equal(false);
     });
+
+    it('maneuvering mode stays set when smart pilot effectiveness is 0 (issue #2186)', () => {
+        // Set to VELOCITY mode
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+        expect(shipMgr.state.smartPilot.maneuveringMode).to.equal(SmartPilotMode.VELOCITY);
+
+        // Break the smart pilot system
+        shipMgr.state.smartPilot.health = 0;
+        expect(shipMgr.state.smartPilot.effectiveness).to.equal(0);
+
+        // Run several ticks - mode should not reset to DIRECT
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipMgr.state.smartPilot.maneuveringMode).to.equal(SmartPilotMode.VELOCITY);
+    });
+
+    it('rotation mode stays set when smart pilot effectiveness is 0 (issue #2186)', () => {
+        // Set to VELOCITY mode
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
+        expect(shipMgr.state.smartPilot.rotationMode).to.equal(SmartPilotMode.VELOCITY);
+
+        // Break the smart pilot system
+        shipMgr.state.smartPilot.health = 0;
+        expect(shipMgr.state.smartPilot.effectiveness).to.equal(0);
+
+        // Run several ticks - mode should not reset to DIRECT
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipMgr.state.smartPilot.rotationMode).to.equal(SmartPilotMode.VELOCITY);
+    });
+
+    it('GM can set maneuvering mode directly and it persists even with zero effectiveness (issue #2186)', () => {
+        // Break the smart pilot system first
+        shipMgr.state.smartPilot.health = 0;
+        expect(shipMgr.state.smartPilot.effectiveness).to.equal(0);
+
+        // GM sets mode directly via state (simulating JSON pointer command)
+        shipMgr.state.smartPilot.maneuveringMode = SmartPilotMode.VELOCITY;
+
+        // Run several ticks - mode should stay as set
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipMgr.state.smartPilot.maneuveringMode).to.equal(SmartPilotMode.VELOCITY);
+    });
 });

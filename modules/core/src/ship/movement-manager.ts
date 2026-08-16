@@ -288,10 +288,9 @@ export class MovementManager implements Updateable {
     }
 
     private calcSmartPilotModes() {
-        if (!this.state.smartPilot.effectiveness) {
-            this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-            this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        }
+        // Modes control input interpretation, not system capability — a broken smart pilot still
+        // honors whatever mode the pilot/GM explicitly set (velocity-hold, target-relative, etc).
+        // Effectiveness gates rotation power and noise magnitude, handled elsewhere.
     }
 
     private calcStrafeAndBoost(deltaSeconds: number) {
