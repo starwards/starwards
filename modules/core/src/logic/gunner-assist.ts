@@ -23,14 +23,17 @@ export type ShellIntercept = {
 /**
  * Solves the shell intercept for `chainGun` against `target`.
  *
- * A shell leaves at `ship.velocity + bulletSpeed · û`, so after `t` it sits at
- * `ship.position + ship.velocity · t + bulletSpeed · t · û`. Putting that on the target's predicted
- * position leaves the aim point at `target.position + w · t`, where `w` is the target's velocity
- * *relative to the firing ship* — and `|aimPoint − ship.position| = bulletSpeed · t`. Note the speed
- * here is the *muzzle* speed: in the ship's own frame that is all the shell has, which is what keeps
- * the fuze, the aim point and {@link getKillZoneRadiusRange} consistent with each other.
+ * A shell is launched from the muzzle — `ship.radius` along the firing line `û`, not from the hull
+ * centre — at `ship.velocity + bulletSpeed · û`, so after `T` it sits at
+ * `ship.position + (ship.radius + bulletSpeed · T) · û + ship.velocity · T`. Putting that on the
+ * target's predicted position leaves the aim point at `target.position + w · T`, where `w` is the
+ * target's velocity *relative to the firing ship*, and the range condition
+ * `|aimPoint − ship.position| = ship.radius + bulletSpeed · T`. Note the speed here is the *muzzle*
+ * speed: in the ship's own frame that is all the shell has, which is what keeps the fuze, the aim
+ * point and {@link getKillZoneRadiusRange} consistent with each other. `T` is therefore the fuze
+ * setting directly — the shell's own time of flight, measured from the muzzle.
  *
- * Squaring that range condition gives a quadratic in `t`, solved in closed form — an iterative
+ * Squaring that range condition gives a quadratic in `T`, solved in closed form — an iterative
  * refinement diverges once `|w|` approaches the muzzle speed, exactly the fast-transit case that
  * needs the answer most. When no positive root exists the shot is unreachable (the target outruns
  * the shell); the mount is then aimed at the target itself and the kill-zone gate refuses the shot.
@@ -39,13 +42,16 @@ export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target:
     const bulletSpeed = Math.max(chainGun.design.bulletSpeed, 1);
     const shipToTarget = XY.difference(target.position, ship.position);
     const relativeVelocity = XY.difference(target.velocity, ship.velocity);
-    // |shipToTarget + w·t| = bulletSpeed·t  =>  a·t² + b·t + c = 0
+    // |shipToTarget + w·T| = radius + bulletSpeed·T  =>  a·T² + b·T + c = 0
     const a = XY.dot(relativeVelocity, relativeVelocity) - bulletSpeed * bulletSpeed;
-    const b = 2 * XY.dot(shipToTarget, relativeVelocity);
-    const c = XY.dot(shipToTarget, shipToTarget);
+    const b = 2 * XY.dot(shipToTarget, relativeVelocity) - 2 * ship.radius * bulletSpeed;
+    const c = XY.dot(shipToTarget, shipToTarget) - ship.radius * ship.radius;
     const secondsToLive = smallestPositiveRoot(a, b, c);
     if (secondsToLive === null || secondsToLive > MAX_INTERCEPT_SECONDS) {
-        return { secondsToLive: XY.lengthOf(shipToTarget) / bulletSpeed, aimPoint: target.position };
+        return {
+            secondsToLive: Math.max(0, XY.lengthOf(shipToTarget) - ship.radius) / bulletSpeed,
+            aimPoint: target.position,
+        };
     }
     const aimPoint = addScale(target.position, relativeVelocity, secondsToLive);
     return XY.isFinite(aimPoint) ? { secondsToLive, aimPoint } : { secondsToLive, aimPoint: target.position };
@@ -87,9 +93,8 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
  * range in the gunnery chain, in the firing ship's own frame, where the shell only ever travels at
  * muzzle speed. Dialling a range therefore gets that range, measured from the muzzle — the shell
  * starts its flight at `ship.radius` along the firing line, so {@link getShellExplosionLocation}
- * puts the detonation `radius + distance` from the hull centre, and {@link getKillZoneRadiusRange}
- * draws the ring the same way. Callers converting a hull-centre distance into a fuze setting
- * subtract `ship.radius` first.
+ * puts the detonation `radius + distance` from the hull centre, {@link getKillZoneRadiusRange}
+ * draws the ring the same way, and {@link solveShellIntercept} solves for the same quantity.
  */
 export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
     return distance / Math.max(chainGun.design.bulletSpeed, 1);
