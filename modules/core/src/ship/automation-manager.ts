@@ -27,6 +27,26 @@ import { assertUnreachable } from '../utils';
 import { switchToAvailableAmmo } from './chain-gun-manager';
 
 /**
+ * Time constant for `AutomationManager`'s per-mount bearing-skew belief (see
+ * `updateTrackedBearingSkew`). Not a delay on known truth — the automation never reads
+ * `bearingSkew` — but a filter constant on noisy per-tick observations: each fresh observed
+ * error is blended into the running belief at a rate of `1 - exp(-dt/τ)`, so it takes several
+ * seconds of continued engagement for the belief to settle (~63% converged after 3s, ~95% after
+ * 9s) — the same way a real gunner needs a few seconds of fire to be confident their aim is off,
+ * not one glance.
+ */
+const BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS = 3;
+
+/**
+ * How close a mount's mechanical `bearing` must sit to its last `bearingCommand` before an
+ * observation is trusted (see `updateTrackedBearingSkew`). Tight enough to exclude any real
+ * mid-swing transient (tens of degrees) while tolerating float32 round-trip noise on a mount
+ * that has genuinely caught up (which, per `updateTurret`, snaps to the commanded bearing
+ * exactly once within a tick's reach).
+ */
+const MOUNT_SETTLED_EPSILON_DEGREES = 0.05;
+
+/**
  * Cheap lateral weave overlaid on attack-order steering (issue #2146): a slow sinusoid in the
  * *steering goal* (a position offset for the closing/`moveToTarget` phase, the matching velocity
  * offset for the in-range/`matchGlobalSpeed` holding phase) -- not a full evade-while-tracking
@@ -40,6 +60,17 @@ const COMBAT_WEAVE_AMPLITUDE_METERS = 400;
 const COMBAT_WEAVE_FREQUENCY_HZ = 0.08;
 
 export class AutomationManager implements Updateable {
+    /**
+     * Per-mount belief about this mount's own bearing skew, inferred purely from observation —
+     * comparing where a mount was last commanded to point against where it is actually observed
+     * pointing (`ChainGun.hullBearing`). Automation-local, not ship state: an NPC brain's belief
+     * about a defect it hasn't confirmed is not a property of the hardware. Keeping it off
+     * `ShipState` means it costs nothing on the wire (a synced field here would dirty every tick
+     * for every turret on every ship, including player ships, which never run this aiming code)
+     * and it moves cleanly if automation is ever extracted client-side (see `synthetic-roster`).
+     */
+    private trackedBearingSkew = new Map<ChainGun, number>();
+
     constructor(
         private state: ShipState,
         private shipManager: ShipManager, // TODO: use ShipApi
@@ -201,7 +232,7 @@ export class AutomationManager implements Updateable {
                 controlWeapon.shellRange = capToRange(-1, 1, (desiredRange - midRange) / aimRange);
             }
             controlWeapon.isFiring = isTargetInKillZone(this.state, controlWeapon, target);
-            this.aimMountsAtTarget(target);
+            this.aimMountsAtTarget(id.deltaSecondsAvg, target);
             weave = this.combatWeave(id, target.position);
         } else {
             trackRange = [1000, 3000];
@@ -214,16 +245,46 @@ export class AutomationManager implements Updateable {
     /**
      * Points every chain-gun mount at the current target, hull-relative bearing only — no lead, no
      * can't-bear handling, no per-mount fire discipline (that belongs to the deferred NPC-aiming
-     * design). `bearingCommand`'s own clamp is what stops a mount from swinging past the hull it
-     * is bolted to; this only ever asks.
+     * design). Compensates each mount's own observed bearing-skew belief (see
+     * `updateTrackedBearingSkew`), never the true `bearingSkew` — a fresh defect is felt
+     * immediately and only "dialed out" as the automation accumulates evidence that its last few
+     * commands landed off-target. `bearingCommand`'s own clamp is what stops a mount from
+     * swinging past the hull it is bolted to; this only ever asks.
      */
-    private aimMountsAtTarget(target: SpaceObject) {
+    private aimMountsAtTarget(deltaSecondsAvg: number, target: SpaceObject) {
         const hullBearing = toDegreesDelta(
             XY.angleOf(XY.difference(target.position, this.state.position)) - this.state.angle,
         );
         for (const chainGun of this.state.chainGuns) {
-            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing);
+            const estimate = this.updateTrackedBearingSkew(chainGun, deltaSecondsAvg);
+            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing - estimate);
         }
+    }
+
+    /**
+     * Infers `chainGun`'s bearing skew from observation — never reads `bearingSkew` — ahead of
+     * overwriting `bearingCommand` with this tick's fresh command. Compares the mount-relative
+     * bearing last commanded (`bearingCommand`, still holding last tick's value at this point)
+     * against where the mount is actually observed pointing (`hullBearing`, which bakes in the
+     * real skew). That comparison is only meaningful once the mount has physically caught up to
+     * its last command — mid-swing, `bearing` hasn't reached `bearingCommand` yet, so the same
+     * residual would read as a mechanical turn-lag artifact indistinguishable from skew (a fast
+     * traverse across the hull, or simply tracking a moving target, would otherwise get
+     * misread as damage). Settled observations blend into the running belief through the
+     * exponential filter; an unsettled tick contributes nothing and leaves the belief unchanged.
+     */
+    private updateTrackedBearingSkew(chainGun: ChainGun, deltaSecondsAvg: number): number {
+        const priorEstimate = this.trackedBearingSkew.get(chainGun) ?? 0;
+        const swingLag = toDegreesDelta(chainGun.bearing - chainGun.bearingCommand);
+        if (Math.abs(swingLag) > MOUNT_SETTLED_EPSILON_DEGREES) {
+            return priorEstimate;
+        }
+        const expectedHullBearing = chainGun.fittedBearing + chainGun.bearingCommand;
+        const observedError = toDegreesDelta(chainGun.hullBearing - expectedHullBearing);
+        const trackingFraction = 1 - Math.exp(-deltaSecondsAvg / BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS);
+        const estimate = priorEstimate + (observedError - priorEstimate) * trackingFraction;
+        this.trackedBearingSkew.set(chainGun, estimate);
+        return estimate;
     }
 
     /**
