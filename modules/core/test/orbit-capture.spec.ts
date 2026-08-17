@@ -151,14 +151,26 @@ describe('ATTACK-ordered NPC orbit capture against a real large-station target (
 
             let closestApproach = Infinity;
             let finalDistance = Infinity;
+            let engagementSeconds = 0;
             for (const id of makeIterationsData(10 * 60, 10 * 60 * 5)) {
                 raiderMgr.update(id);
                 targetMgr.update(id);
                 spaceMgr.update(id);
+                // The band is only a band while there is something to hold station on: once the
+                // raider destroys the station its ATTACK order clears and it coasts, so sampling
+                // past that point measures an idle drift rather than this suite's subject.
+                if (target.destroyed) {
+                    break;
+                }
+                engagementSeconds += id.deltaSeconds;
                 finalDistance = XY.lengthOf(XY.difference(target.position, raiderObj.position));
                 closestApproach = Math.min(closestApproach, finalDistance);
             }
 
+            expect(
+                engagementSeconds,
+                'raider never held the target long enough to be flying an orbit',
+            ).to.be.greaterThan(60);
             expect(closestApproach, 'raider never got within its track band').to.be.lessThan(4_500);
             expect(finalDistance, 'raider was not holding within its track band at the end of the engagement')
                 .to.be.lessThan(4_500)

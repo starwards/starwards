@@ -52,6 +52,21 @@ export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY,
     );
 }
 
+/**
+ * Rotation command that holds `absoluteAngle` — {@link rotateToTarget} against a heading rather than
+ * a point, plus the term that tracks a *moving* one. `referenceTurnSpeed` is how fast that heading
+ * itself sweeps (deg/s); damping against absolute turn rate instead leaves a standing lag
+ * proportional to the sweep — the whole pass long, for a target crossing abeam.
+ */
+export function rotateToAngle(deltaSeconds: number, ship: Craft, absoluteAngle: number, referenceTurnSpeed = 0) {
+    return accelerateToPosition(
+        deltaSeconds,
+        ship.rotationCapacity,
+        ship.turnSpeed - referenceTurnSpeed,
+        toDegreesDelta(absoluteAngle - ship.angle),
+    );
+}
+
 function calcTargetAngleDiff(_deltaSeconds: number, ship: Craft, targetPos: XY) {
     const estimatedLocation = ship.position;
     const estimatedAngle = ship.angle;
