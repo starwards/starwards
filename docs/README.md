@@ -23,13 +23,14 @@ purpose; do not read as current.
 |---|---|---|
 | [`design/`](design/README.md) | Product & design KB — vision, stations, mechanics, metrics, decisions, infrastructure. Strategic planning (roadmap/status/backlog) lives in [starwards-design](https://github.com/starwards/starwards-design). | Live |
 | [`bridge-playtest/`](bridge-playtest/README.md) | Current playtest cycle: session notes, bridge dynamics, per-station findings, and the `decisions.md` / `proposals.md` inflow. | Live |
-| [`specs/`](specs/) | As-built code-structure contracts (state, commands, widgets, ship systems, naming, file organization). | Live |
+| [`specs/`](specs/README.md) | As-built code-structure contracts (state, commands, widgets, ship systems, naming, file organization). | Live |
 | [`standards/`](standards/) | Code structure, style, and naming contracts — read before writing core/config code. | Live |
 | [`testing/`](testing/README.md) | Testing guide, strategy, harness utilities, UI-testing insights. | Live |
 | [`guides/`](guides/FLIGHT_MECHANICS.md) | Player-facing gameplay guides. | Live |
 | [`reference/`](reference/README.md) | External/vendor reference dumps (ARWES, Open Stage Control, PixiJS). | Reference |
 | [`MS3/`](MS3/README.md) | Milestone 3 design & planning corpus (Nov 2025), superseded strategically by decision 004. | Historical |
-| [`retrospectives/`](retrospectives/) | Dated post-implementation retrospectives. | Historical |
+| [`retrospectives/`](retrospectives/README.md) | Dated post-implementation retrospectives. | Historical |
+| [`superpowers/`](superpowers/specs/2026-08-08-recording-replay-ux-design.md) | Dated UX design specs produced through the superpowers workflow. | Historical |
 
 ## Root documents
 
@@ -39,6 +40,7 @@ purpose; do not read as current.
 |---|---|
 | [`LLM_CONTEXT.md`](LLM_CONTEXT.md) | Quick reference: patterns, gotchas, task → docs routing. |
 | [`AUTHORING.md`](AUTHORING.md) | Rules for writing drift-resistant docs. Read before editing docs. |
+| [`GLOSSARY.md`](GLOSSARY.md) | Glossary of domain and codebase terms, each linked to its owning doc/source. |
 
 **Core**
 
@@ -62,6 +64,7 @@ purpose; do not read as current.
 | [`INTEGRATION.md`](INTEGRATION.md) | Node-RED and external integrations. |
 | [`DEPENDENCIES.md`](DEPENDENCIES.md) | Version pins and upgrade guide — the only doc that states versions. |
 | [`UI_SPECIFICATION.md`](UI_SPECIFICATION.md) | UI specification. |
+| [`DEPLOYMENT.md`](DEPLOYMENT.md) | Deployment: CI jobs, container image, and the preview environments under `dev.starwards.space`. |
 
 **Project**
 
