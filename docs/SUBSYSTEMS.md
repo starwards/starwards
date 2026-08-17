@@ -229,6 +229,14 @@ Consulted only while `order === Order.NONE`.
 
 **Task tracking:** `@gameField('string') currentTask` (human-readable status set by the automation manager, e.g., `"Go to 100,200"`, `"Attack <targetId>"`, `"Follow <targetId>"`, `"Dock at  <targetId>"`, `"Undock from  <targetId>"`; empty string `""` when idle)
 
+### Heat Self-Management (NPC only)
+
+Every NPC tick (`AutomationManager.manageHeat`, gated on `!isPlayerShip` and `deltaSeconds > 0`; player ships are never touched):
+
+- **Coolant:** every system's `coolantFactor` is set to `heat / MAX_SYSTEM_HEAT`, so hotter systems draw a larger share of `HeatManager`'s coolant budget. Runs on a 500ms game-time cadence (not every tick), phase-staggered per ship off the ship's own die so a fleet doesn't all reallocate — and sync their `coolantFactor` — on the same tick.
+- **Power backoff:** each chain gun's `power` is hysteresis-latched between `PowerLevel.NORMAL` and `PowerLevel.LOW` — steps down to `LOW` once `heat` reaches 60% of `MAX_SYSTEM_HEAT`, steps back up to `NORMAL` only once it cools below 40%. A duty-cycle throttle between two named `PowerLevel`s (never a raw float — `power`'s declared type is the enum the status UI renders by name), and only ever written for a mount automation has itself latched — a GM- or scenario-set level on a mount that never got hot enough to trigger backoff is left untouched.
+- **Ceasefire backstop:** a rare, hysteresis-latched hard stop on `isFiring`, evaluated per mount. Engages at 95% heat, releases only once the mount cools back below 70% — well above where power backoff already engages, so it rarely fires in practice.
+
 ## System Interactions
 
 ### Power Distribution
