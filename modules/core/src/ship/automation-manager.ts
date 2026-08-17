@@ -390,7 +390,7 @@ export class AutomationManager implements Updateable {
      * exponential filter; an unsettled tick contributes nothing and leaves the belief unchanged.
      */
     private updateTrackedBearingSkew(chainGun: ChainGun, deltaSecondsAvg: number): number {
-        const priorEstimate = this.trackedBearingSkew.get(chainGun) ?? 0;
+        const priorEstimate = this.believedBearingSkew(chainGun);
         const swingLag = toDegreesDelta(chainGun.bearing - chainGun.bearingCommand);
         if (Math.abs(swingLag) > MOUNT_SETTLED_EPSILON_DEGREES) {
             return priorEstimate;
@@ -401,6 +401,15 @@ export class AutomationManager implements Updateable {
         const estimate = priorEstimate + (observedError - priorEstimate) * trackingFraction;
         this.trackedBearingSkew.set(chainGun, estimate);
         return estimate;
+    }
+
+    /**
+     * The current belief about `chainGun`'s skew, without advancing it. Read by the decision paths
+     * ({@link canBearOn}) that run many times per tick and before `aimAndFire`, which is the single
+     * site allowed to fold a fresh observation in.
+     */
+    private believedBearingSkew(chainGun: ChainGun): number {
+        return this.trackedBearingSkew.get(chainGun) ?? 0;
     }
 
     private undock(dockingTargetId: string, dockingTarget: SpaceObject, deltaSecondsAvg: number) {
@@ -697,7 +706,16 @@ export class AutomationManager implements Updateable {
             return false;
         }
         const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
-        return chainGun.canBearAt(hullBearing);
+        // Deliberately not `canBearAt`, which measures the traverse off the mount's *true*
+        // `restBearing`. The automation has no access to the real defect (#2176/#2177), so it must
+        // judge reachability by the command it would actually issue — the same expression
+        // `aimAndFire` uses — against its own belief. An undiagnosed skew therefore first shows up
+        // as shots that miss, and only once the belief has converged does it start ruling targets
+        // out of the mount's traverse.
+        const believedCommand = toDegreesDelta(
+            hullBearing - chainGun.fittedBearing - this.believedBearingSkew(chainGun),
+        );
+        return Math.abs(believedCommand) <= chainGun.bearingLimit;
     }
 
     /** Reachable for gunnery if *any* mount can bear — the ship-level fire model of {@link aimAndFire}. */
