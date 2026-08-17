@@ -15,19 +15,14 @@ import { ChainGun } from './chain-gun';
 import { SpaceObject } from '../space';
 
 /**
- * What an NPC brain believes a mount's `bearingSkew` to be. Automation infers this from watching
- * where its own commands land (`AutomationManager.updateTrackedBearingSkew`) — it never reads the
- * real defect (#2176/#2177), so every bearing decision downstream of it must be expressed in these
- * terms rather than through `Turret.restBearing`/`canBearAt`/`bearingCommandFor`, all of which
- * measure off the true skew.
+ * What an NPC brain believes a mount's `bearingSkew` to be. Never `Turret.restBearing` or
+ * `Turret.bearingCommandFor`, which measure off the true skew.
+ * @see docs/SUBSYSTEMS.md#believed-bearing-skew
  */
 export type BelievedSkew = (gun: ChainGun) => number;
 
-/** {@link BelievedSkew} for a caller with no observations — an undamaged mount's own geometry. */
-export const NO_SKEW_BELIEF: BelievedSkew = () => 0;
-
 /** `Turret.restBearing` as the automation believes it to be. */
-export function believedRestBearing(gun: ChainGun, believedSkew: BelievedSkew): number {
+function believedRestBearing(gun: ChainGun, believedSkew: BelievedSkew): number {
     return gun.fittedBearing + believedSkew(gun);
 }
 
@@ -40,15 +35,15 @@ export function believedBearingCommandFor(
     return toDegreesDelta(targetHullBearing - believedRestBearing(gun, believedSkew));
 }
 
-/** `Turret.canBearAt` as the automation believes it. */
+/** Whether the automation believes this mount can be brought to `targetHullBearing`. */
 export function believedCanBearAt(gun: ChainGun, targetHullBearing: number, believedSkew: BelievedSkew): boolean {
     return Math.abs(believedBearingCommandFor(gun, targetHullBearing, believedSkew)) <= gun.bearingLimit;
 }
 
 /**
  * Everything `automation-manager`'s `follow()` needs to fly and shoot at an ordered target: the
- * standoff band, the lead point and which way to point the hull, all from the doctrine's weighting
- * of every mount rather than pinned to `chainGuns[0]`.
+ * standoff band, the lead point and which way to point the hull, weighted across every mount.
+ * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
  */
 export class FlightProfile {
     private lastOffset: number | null = null;
@@ -60,9 +55,8 @@ export class FlightProfile {
     ) {}
 
     /**
-     * The distance band `positionNearTarget` holds — the widest *single* mount's envelope, not the
-     * union of every mount's. A union spans the gap between two non-overlapping envelopes, and a
-     * ship holding station in that gap has nothing that can fire.
+     * The distance band `positionNearTarget` holds — the widest *single* mount's envelope. A union
+     * of every mount's spans the gap between two non-overlapping ones, where nothing can fire.
      */
     trackRange(): RTuple2 {
         const guns = this.state.chainGuns;
@@ -79,9 +73,8 @@ export class FlightProfile {
     }
 
     /**
-     * Shell-lead offset added to the target's position while in range. Velocity-dependent, so
-     * callers must keep gating it on `inRange`: applying it while still closing distance re-creates
-     * the runaway feedback loop fixed in issue #2083.
+     * Shell-lead offset added to the target's position. Velocity-dependent, so callers must keep
+     * gating it on `inRange`: applying it while closing re-creates issue #2083's runaway loop.
      */
     leadCompensation(target: SpaceObject): XY {
         const mount = this.bestMount(target);
@@ -93,9 +86,8 @@ export class FlightProfile {
 
     /**
      * Hull-relative bearing (degrees) to park on the target, passed as `rotateToTarget`'s offset.
-     * `requiredAcceleration` is the vector the caller is *actually* commanding thrust along this
-     * tick — closing, backing off and velocity-matching are three different vectors, and arbitrating
-     * aim against thrust for one while thrusting along another optimizes a maneuver nobody is flying.
+     * `requiredAcceleration` must be the vector the caller is *actually* thrusting along this tick.
+     * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
      */
     headingOffset(target: SpaceObject, requiredAcceleration: XY): number {
         if (this.state.chainGuns.length === 0) {
@@ -108,8 +100,8 @@ export class FlightProfile {
     /**
      * Absolute hull angle (degrees) that best serves gunnery on `target` while the ship accelerates
      * along `requiredAcceleration`; `null` when there is no mount to serve. Aimed at the same
-     * intercept point `aimAndFire` lays each mount's firing line on, so hull and mount agree — a
-     * bolted gun clamps its own `bearingCommand` to 0, so the hull heading has to carry the solution.
+     * intercept point `aimAndFire` uses — a bolted gun clamps `bearingCommand` to 0, so the hull
+     * heading has to carry the solution.
      */
     gunneryHullAngle(target: SpaceObject, requiredAcceleration: XY): number | null {
         const mount = this.bestMount(target);
@@ -139,16 +131,14 @@ export class FlightProfile {
      * Cost-minimizing hull-relative offset shared by {@link headingOffset} and
      * {@link gunneryHullAngle}, along with the `lastOffset` hysteresis state — genuinely "the
      * heading currently held", whichever caller is asking.
+     * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
      */
     private bestOffset(shipToTarget: XY, requiredAcceleration: XY): number {
         const guns = this.state.chainGuns;
         const maxCapacity = Math.max(0, ...ShipDirections.map((d) => this.state.velocityCapacity(d)));
         const required = XY.lengthOf(requiredAcceleration) > 0.01 ? requiredAcceleration : shipToTarget;
         const candidates = headingCandidates(guns, shipToTarget, required, this.believedSkew);
-        // The heading held last tick is rarely reproduced bit-for-bit — every candidate derived from
-        // the target's bearing moves with the target. Matching the nearest one within
-        // `HEADING_MATCH_TOLERANCE_DEGREES`, and only one so two rivals can't both take the
-        // discount, is what makes the margin reach the candidates that do chatter.
+        // Nearest match, and only one, so two rivals can't both take the hysteresis discount.
         const incumbent = this.lastOffset === null ? null : nearestHeading(candidates, this.lastOffset);
 
         let best = candidates[0];
@@ -168,10 +158,8 @@ export class FlightProfile {
     }
 
     /**
-     * Whether a candidate at `distance` is a legitimate target for this ship: *some one* mount's own
-     * envelope covers it. Testing the union of every mount's min and max instead would accept a
-     * distance falling in the gap between two mounts' bands — a target `resolveOpportunityTarget`
-     * caches and `anyMountCanBearOn` then refuses, starving a hostile the ship really could engage.
+     * Whether *some one* mount's own envelope covers `distance`. The union of every mount's min and
+     * max would also accept the gap between two bands, where nothing can actually fire.
      */
     isReachable(distance: number): boolean {
         return this.state.chainGuns.some((g) => isInRange(g.design.minShellRange, g.design.maxShellRange, distance));
@@ -179,9 +167,8 @@ export class FlightProfile {
 }
 
 /**
- * Candidate hull-relative headings: one per mount (parks that mount's fixed bearing on the firing
- * line, independent of the target), one per thrust direction (puts *that* direction's local bearing
- * on `required` — see {@link thrustCost}'s matching derivation), plus dead-ahead.
+ * Candidate hull-relative headings: one per mount, one per thrust direction, plus dead-ahead.
+ * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
  */
 function headingCandidates(guns: ChainGun[], shipToTarget: XY, required: XY, believedSkew: BelievedSkew): number[] {
     const requiredAngle = XY.angleOf(required);
@@ -201,8 +188,8 @@ function headingCandidates(guns: ChainGun[], shipToTarget: XY, required: XY, bel
 
 /**
  * Whether two headings are the same one for arbitration — one definition for both
- * {@link headingCandidates}' dedup and {@link FlightProfile.bestOffset}'s incumbent match, so a
- * candidate list can never split two headings the hysteresis treats as one, or the reverse.
+ * {@link headingCandidates}' dedup and `bestOffset`'s incumbent match, so a candidate list can
+ * never split two headings the hysteresis treats as one, or the reverse.
  */
 function isSameHeading(a: number, b: number): boolean {
     return Math.abs(toDegreesDelta(a - b)) <= HEADING_MATCH_TOLERANCE_DEGREES;
@@ -223,11 +210,9 @@ function nearestHeading(candidates: number[], heading: number): number | null {
 }
 
 /**
- * Normalized [0, 1] shortfall for holding heading `offset`: how far past its bearing limit each
- * mount would be, summed and scaled (see {@link AIM_COST_SCALE}). Holding `offset` puts the target
- * at hull-relative `-offset`; each mount's traverse to reach it is measured off the rest bearing the
- * automation *believes* it has, so a skewed mount is scored on the window its own observations say
- * it has — not on the one the real defect gives it.
+ * Normalized [0, 1] shortfall for holding heading `offset` — which puts the target at hull-relative
+ * `-offset` — measured off each mount's *believed* rest bearing.
+ * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
  */
 function aimCost(guns: ChainGun[], offset: number, believedSkew: BelievedSkew): number {
     let shortfall = 0;
@@ -240,10 +225,8 @@ function aimCost(guns: ChainGun[], offset: number, believedSkew: BelievedSkew): 
 
 /**
  * Normalized [0, 1] cost of holding heading `offset`: 0 when the strongest thrust axis at that
- * heading matches `required`, 1 when it is the weakest. A ship with no thrust at all (a station)
- * scores 0 everywhere, leaving the whole decision to {@link aimCost}. The predicted hull angle at
- * `offset` is `angleOf(shipToTarget) + offset` (`rotateToTarget`'s steady state) — using the ship's
- * *current* angle would close the #2083-class loop this arbitration exists to avoid.
+ * heading matches `required`, 1 when it is the weakest.
+ * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
  */
 function thrustCost(state: ShipState, maxCapacity: number, offset: number, shipToTarget: XY, required: XY): number {
     if (maxCapacity <= 0) {
@@ -262,14 +245,13 @@ function thrustCost(state: ShipState, maxCapacity: number, offset: number, shipT
 }
 
 /**
- * `believedSkew` defaults to {@link NO_SKEW_BELIEF} — correct for a caller that has observed
- * nothing, which is also every profile built for an undamaged ship. `AutomationManager` passes its
- * own running belief so the hull heading it steers to agrees with the mount commands it issues.
+ * `believedSkew` defaults to an undamaged mount's own geometry; `AutomationManager` passes its own
+ * running belief so the hull heading it steers to agrees with the mount commands it issues.
  */
 export function makeFlightProfile(
     state: ShipState,
     doctrine: FlightDoctrine,
-    believedSkew: BelievedSkew = NO_SKEW_BELIEF,
+    believedSkew: BelievedSkew = () => 0,
 ): FlightProfile {
     const resolved: Exclude<FlightDoctrine, FlightDoctrine.AUTO> =
         doctrine === FlightDoctrine.AUTO ? doctrineForOrder(state.order) : doctrine;

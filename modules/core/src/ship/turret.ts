@@ -166,16 +166,9 @@ export abstract class Turret extends SystemState {
     }
 
     /**
-     * whether this mount can be brought to `targetHullBearing` (hull-relative degrees, 0 is front)
-     * — i.e. whether the traverse that would get it there is one `bearingCommand` will accept.
-     */
-    canBearAt(targetHullBearing: number): boolean {
-        return Math.abs(this.bearingCommandFor(targetHullBearing)) <= this.bearingLimit;
-    }
-
-    /**
-     * the `bearingCommand` that lays this mount's firing line on `targetHullBearing`. Past the
-     * mount's traverse the setter clamps it, so check {@link canBearAt} first where that matters.
+     * the `bearingCommand` that lays this mount's firing line on `targetHullBearing` (hull-relative
+     * degrees, 0 is front). Past `±bearingLimit` the setter clamps it, so compare against that
+     * where it matters.
      */
     bearingCommandFor(targetHullBearing: number): number {
         return toDegreesDelta(targetHullBearing - this.restBearing);

@@ -53,13 +53,10 @@ export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY,
 }
 
 /**
- * Rotation command that holds `absoluteAngle` — {@link rotateToTarget} expressed against a heading
- * rather than a point, plus the term that makes it track a *moving* one.
- *
- * `referenceTurnSpeed` is how fast that heading is itself sweeping, in degrees per second. The
- * damping term is then the hull's turn rate *relative to* the reference: braking against absolute
- * turn rate treats a heading that keeps moving as one the hull must stop on, which leaves a standing
- * lag proportional to the sweep — the whole pass long, for a target crossing abeam.
+ * Rotation command that holds `absoluteAngle` — {@link rotateToTarget} against a heading rather than
+ * a point, plus the term that tracks a *moving* one. `referenceTurnSpeed` is how fast that heading
+ * itself sweeps (deg/s); damping against absolute turn rate instead leaves a standing lag
+ * proportional to the sweep — the whole pass long, for a target crossing abeam.
  */
 export function rotateToAngle(deltaSeconds: number, ship: Craft, absoluteAngle: number, referenceTurnSpeed = 0) {
     return accelerateToPosition(

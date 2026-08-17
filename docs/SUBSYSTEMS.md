@@ -6,7 +6,7 @@ source_of_truth:
 related:
   - PHYSICS.md
   - API_REFERENCE.md
-last_verified: 2026-08-01
+last_verified: 2026-08-17
 ---
 
 # Ship Subsystems
@@ -74,7 +74,9 @@ last_verified: 2026-08-01
 
 ## Bot AI
 
-### Gunnery (issue #2145) — independent of `order`, but not of hull heading
+### Gunnery
+
+Independent of `order`, but not of hull heading (issue #2145).
 
 Every NPC fires on the nearest hostile in its own chain-gun's weapons range by default; whether
 the gun *works* never depends on `order`. An `Order.ATTACK` target has priority whenever it's
@@ -123,6 +125,88 @@ Squaring the range condition gives a quadratic in `T`, solved in closed form. It
 that needs the answer most. When no positive root exists the target outruns the shell: the result is
 marked unreachable and degrades to tracking the target's present position, so the hull may still
 turn toward it but no caller commits the shot.
+
+### Flight doctrine
+
+`FlightDoctrine` (`modules/core/src/ship/flight-doctrine.ts`) is how a ship weighs gunnery aim
+against propulsion efficiency when choosing hull heading and standoff distance.
+
+Each doctrine is a set of `DoctrineWeights` — `aim`, `thrust`, `useGunEnvelope`. The weights
+themselves live in `doctrineWeights` in that file; what they buy:
+
+| Doctrine | Behavior |
+|----------|----------|
+| INTERCEPT | Aim dominates: turns readily to bring a mount to bear, accepting a weak thrust axis to do it |
+| STANDOFF | Thrust dominates: mostly holds the efficient heading, giving way only where its thrust cost is already high |
+| SHADOW | Ignores gunnery entirely — never turns to shoot, and holds `SHADOW_TRACK_RANGE` instead of a gun envelope |
+
+`ShipState.flightDoctrine` defaults to `AUTO`, which defers to `order` through `doctrineForOrder()`
+in `ship-state.ts`:
+
+| Order | Doctrine | Why |
+|-------|----------|-----|
+| FOLLOW | SHADOW | Station-keeping, not gunnery |
+| MOVE | INTERCEPT | Its only use of the profile is `goto()`'s transit concession, already capped at `MAX_TRANSIT_HEADING_CONCESSION`; STANDOFF is too weak there — its aim never outweighs the route heading's own thrust cost on a transit flying its best axis |
+| ATTACK, NONE | STANDOFF | Weighs gunnery against propulsion efficiency |
+
+Set `flightDoctrine` explicitly from a scenario or the GM tweak panel for a hull whose armament
+doesn't fit its order's default.
+
+### Hull heading arbitration
+
+`FlightProfile` in `modules/core/src/ship/flight-profile.ts` picks the hull-relative heading offset
+an NPC holds, scoring a small candidate set: one per mount (parks that mount's fixed bearing on the
+firing line), one per thrust direction (puts that direction's local bearing on the vector being
+thrust along), plus dead-ahead. Cost is `weights.aim · aimCost + weights.thrust · thrustCost`, both
+normalized to [0, 1] and weighted by `doctrineWeights`.
+
+`aimCost` sums how far past its bearing limit each mount would be, as a fraction of a half-circle.
+Unscaled, a mount 36° outside its arc scores 0.2 — barely distinguishable from one 18° out, when
+both are equally unable to fire; `AIM_COST_SCALE` saturates it at 36° so anything past a modest miss
+reads as "cannot bear" outright. `thrustCost` is `1 - velocityCapacity(dir) / maxCapacity` for the
+axis nearest the required acceleration, evaluated at the *predicted* hull angle
+(`angleOf(shipToTarget) + offset`, `rotateToTarget`'s steady state) — using the current angle closes
+the #2083-class feedback loop this arbitration exists to avoid. A ship with no thrust (a station)
+scores 0 everywhere, leaving the decision to `aimCost`.
+
+The required-acceleration vector is decided by the same branch of `positionNearTarget` that issues
+the thrust command: closing, backing off and velocity-matching are three different vectors, and
+arbitrating aim against one while thrusting along another optimizes a maneuver nobody is flying.
+
+Hysteresis keeps the choice from chattering. The heading held last tick is rarely reproduced
+bit-for-bit — every candidate derived from the target's bearing moves with the target — so the
+incumbent is matched by nearest candidate within `HEADING_MATCH_TOLERANCE_DEGREES`, and only one, so
+two rivals can't both take the `HEADING_HYSTERESIS_MARGIN` discount. The same tolerance defines
+candidate dedup, so a candidate list can never split two headings the hysteresis treats as one.
+
+`commandHeading()` in `automation-manager.ts` measures how fast the commanded heading is itself
+sweeping and hands that to `rotateToAngle` as the reference rate to damp against; braking against
+absolute turn rate leaves a standing lag the whole pass long for a target crossing abeam. The
+measurement is a one-tick finite difference, so a *step* in the command (hysteresis flip, mount
+switch, target reacquire) enters it as a rate no sweep could produce. Such a sample is rejected and
+the reference re-anchored at rate 0 — clamping would assert the reference really sweeps that fast,
+smoothing would add lag to the very term that exists to remove it.
+
+### Believed bearing skew
+
+Issues #2176/#2177. NPC automation never reads `Turret.bearingSkew`. It infers a per-mount belief by comparing where it
+last commanded a mount to point against where the mount is observed pointing (`hullBearing`, which
+bakes in the real skew), and every bearing decision downstream is expressed in those terms —
+`believedRestBearing` / `believedBearingCommandFor` / `believedCanBearAt` in `flight-profile.ts`,
+never `Turret.restBearing` / `Turret.bearingCommandFor`, which measure off the true skew. So a fresh
+defect first shows up as shots that miss; only once the belief converges does it start ruling
+targets out of a mount's traverse.
+
+The comparison is only meaningful once the mount has physically caught up to its last command —
+mid-swing the same residual is turn lag, indistinguishable from skew. `AutomationManager` therefore
+discards any tick where `bearing` differs from `bearingCommand` by more than
+`MOUNT_SETTLED_EPSILON_DEGREES`, and blends the rest into the running belief through an exponential
+filter with `BEARING_SKEW_TRACKING_TIME_CONSTANT_SECONDS` (~63% converged after 3s, ~95% after 9s) —
+the way a real gunner needs a few seconds of fire to be confident their aim is off, not one glance.
+
+The belief lives in `AutomationManager`, not `ShipState`: it is a brain's guess about an unconfirmed
+defect, not a property of the hardware, and a synced field would dirty every tick for every turret on
+every ship including player ships, which never run this code.
 
 ### Orders (priority: high → low)
 

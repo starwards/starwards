@@ -50,14 +50,12 @@ export enum Order {
 }
 
 /**
- * A ship's doctrine when it hasn't been given an explicit `flightDoctrine` override. FOLLOW's own
- * heading is `follow()`'s station-keeping (`FlightProfile.headingOffset`). ATTACK/NONE use STANDOFF,
- * weighing gunnery against propulsion efficiency.
+ * A ship's doctrine when it hasn't been given an explicit `flightDoctrine` override.
  *
- * MOVE uses INTERCEPT: its only use of the profile is `goto()`'s transit concession, which exists
- * precisely to trade route efficiency for a firing solution and is already bounded by
- * `MAX_TRANSIT_HEADING_CONCESSION`. STANDOFF is too weak there — its `aim` 0.4 wins only where the
- * route heading's own thrust penalty exceeds it, which on a transit flying its best axis never happens.
+ * MOVE uses INTERCEPT because its only use of the profile is `goto()`'s transit concession, which
+ * exists to trade route efficiency for a firing solution and is already bounded by
+ * `MAX_TRANSIT_HEADING_CONCESSION`. STANDOFF's `aim` 0.4 wins there only where the route heading's
+ * own thrust penalty exceeds it — never, on a transit flying its best axis.
  */
 export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
     switch (order) {
@@ -114,10 +112,9 @@ export class ShipState extends Schema implements Lockable {
     order = Order.NONE;
 
     /**
-     * How this ship weighs gunnery aim against propulsion efficiency when choosing hull heading
-     * and standoff distance while following an order. `AUTO` (the default) defers to `order` via
-     * {@link doctrineForOrder}; override from a scenario or the GM tweak panel for a hull whose
-     * armament doesn't fit its order's default doctrine.
+     * How this ship weighs gunnery aim against propulsion efficiency when choosing hull heading and
+     * standoff distance. `AUTO` (the default) defers to `order` via {@link doctrineForOrder};
+     * override for a hull whose armament doesn't fit its order's default doctrine.
      */
     @tweakable({ type: 'enum', enum: FlightDoctrine })
     @gameField('int8')

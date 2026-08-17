@@ -29,11 +29,8 @@ export type DoctrineWeights = {
 export const SHADOW_TRACK_RANGE: RTuple2 = [1000, 3000];
 
 /**
- * How steeply aim shortfall climbs before it saturates. `aimCost` measures shortfall as a fraction
- * of a half-circle clamped to 1, so unscaled a mount 36° outside its arc scores 0.2 — barely
- * distinguishable from one 18° out, when both are equally unable to fire. This saturates at 36°, so
- * anything past a modest miss reads as "cannot bear" outright. Saturated aim then contributes
- * `weights.aim`, and `doctrineWeights` decides whether that outweighs a rival heading's thrust cost.
+ * How steeply aim shortfall climbs before it saturates — at 36° outside a mount's arc.
+ * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
  */
 export const AIM_COST_SCALE = 5;
 
@@ -42,11 +39,9 @@ export const HEADING_HYSTERESIS_MARGIN = 0.05;
 
 /**
  * How far a candidate heading may sit from the one held last tick and still be the *same* heading.
- *
- * Only the mount candidates are fixed numbers; the rest drift with the target, so an exact match
- * would recognize the incumbent only for the headings that never chatter. The tolerance clears a
- * tick's worth of drift — a target crossing at 300 m/s a kilometre out sweeps ~17°/s, ~0.9° per tick
- * at 20 Hz — while staying far below the tens of degrees separating genuinely distinct candidates.
+ * Clears a tick's worth of target drift (~0.9° at 20 Hz for a 300 m/s crosser a kilometre out),
+ * far below the separation between distinct candidates.
+ * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
  */
 export const HEADING_MATCH_TOLERANCE_DEGREES = 2;
 
