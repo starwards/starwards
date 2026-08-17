@@ -815,10 +815,8 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, rotatingNarrowArcPlatformConfig(20));
         shipObj.faction = Faction.Raiders;
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
-        const gun = shipMgr.state.chainGuns[0];
-        gun.bearingSkew = 40;
-
-        // Out of the skewed mount's reach, so the idle give-way turn engages and commands a heading.
+        // Well out of the 20-degree mount's reach, so the idle give-way turn engages and commands a
+        // heading. The give-way latch then keeps it commanding one for the rest of the test.
         const hostile = createHostile('hostile', Faction.Gravitas, XY.byLengthAndDirection(5000, 82));
         spaceMgr.insert(hostile);
         spaceMgr.forceFlushEntities();
@@ -833,10 +831,11 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         // The hostile jumps 40 degrees, stepping the commanded heading by the same 40 across one
         // 0.05s tick -- 800 deg/s, more than an order of magnitude past what this hull's own
         // 60 deg/s^2 could build up in a second, so it is a step and not a sweep. The hull is pinned
-        // where it started so the *only* thing this second tick measures is that reference rate.
+        // 2 degrees short of the newly commanded heading, at rest, so the *only* thing this second
+        // tick measures is that reference rate.
         hostile.position.setValue(XY.byLengthAndDirection(5000, 42));
         spaceMgr.forceFlushEntities();
-        shipObj.angle = 0;
+        shipObj.angle = 40;
         shipObj.turnSpeed = 0;
         oneTick();
 

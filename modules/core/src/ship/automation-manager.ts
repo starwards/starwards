@@ -1,5 +1,5 @@
 import { FlightDoctrine, MAX_TRANSIT_HEADING_CONCESSION } from './flight-doctrine';
-import { FlightProfile, makeFlightProfile } from './flight-profile';
+import { FlightProfile, believedBearingCommandFor, believedCanBearAt, makeFlightProfile } from './flight-profile';
 import { IdleStrategy, Order, ShipState } from './ship-state';
 import { IterationData, Updateable } from '../updateable';
 import {
@@ -142,7 +142,7 @@ export class AutomationManager implements Updateable {
     private getFlightProfile(): FlightProfile {
         const doctrine = this.state.effectiveFlightDoctrine;
         if (!this.flightProfile || this.flightProfileDoctrine !== doctrine) {
-            this.flightProfile = makeFlightProfile(this.state, doctrine);
+            this.flightProfile = makeFlightProfile(this.state, doctrine, (gun) => this.believedBearingSkew(gun));
             this.flightProfileDoctrine = doctrine;
         }
         return this.flightProfile;
@@ -342,7 +342,7 @@ export class AutomationManager implements Updateable {
             const shipToAimPoint = XY.difference(aimPoint, this.state.position);
             const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
             const skewEstimate = this.updateTrackedBearingSkew(chainGun, deltaSecondsAvg);
-            chainGun.bearingCommand = toDegreesDelta(hullBearing - chainGun.fittedBearing - skewEstimate);
+            chainGun.bearingCommand = believedBearingCommandFor(chainGun, hullBearing, () => skewEstimate);
             const aimRange = (chainGun.design.maxShellRange - chainGun.design.minShellRange) / 2;
             // The fuze detonates where the firing line meets the target: the *aim point's*
             // distance, not the target's. `secondsToLive` already counts from the muzzle, the
@@ -706,16 +706,12 @@ export class AutomationManager implements Updateable {
             return false;
         }
         const hullBearing = toDegreesDelta(XY.angleOf(shipToAimPoint) - this.state.angle);
-        // Deliberately not `canBearAt`, which measures the traverse off the mount's *true*
-        // `restBearing`. The automation has no access to the real defect (#2176/#2177), so it must
-        // judge reachability by the command it would actually issue — the same expression
-        // `aimAndFire` uses — against its own belief. An undiagnosed skew therefore first shows up
-        // as shots that miss, and only once the belief has converged does it start ruling targets
-        // out of the mount's traverse.
-        const believedCommand = toDegreesDelta(
-            hullBearing - chainGun.fittedBearing - this.believedBearingSkew(chainGun),
-        );
-        return Math.abs(believedCommand) <= chainGun.bearingLimit;
+        // Deliberately not `Turret.canBearAt`, which measures the traverse off the mount's *true*
+        // `restBearing`. The automation has no access to the real defect (#2176/#2177), so it judges
+        // reachability by the command it would actually issue against its own belief. An undiagnosed
+        // skew therefore first shows up as shots that miss, and only once the belief has converged
+        // does it start ruling targets out of the mount's traverse.
+        return believedCanBearAt(chainGun, hullBearing, (gun) => this.believedBearingSkew(gun));
     }
 
     /** Reachable for gunnery if *any* mount can bear — the ship-level fire model of {@link aimAndFire}. */

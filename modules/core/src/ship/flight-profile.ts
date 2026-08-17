@@ -15,6 +15,37 @@ import { ChainGun } from './chain-gun';
 import { SpaceObject } from '../space';
 
 /**
+ * What an NPC brain believes a mount's `bearingSkew` to be. Automation infers this from watching
+ * where its own commands land (`AutomationManager.updateTrackedBearingSkew`) — it never reads the
+ * real defect (#2176/#2177), so every bearing decision downstream of it must be expressed in these
+ * terms rather than through `Turret.restBearing`/`canBearAt`/`bearingCommandFor`, all of which
+ * measure off the true skew.
+ */
+export type BelievedSkew = (gun: ChainGun) => number;
+
+/** {@link BelievedSkew} for a caller with no observations — an undamaged mount's own geometry. */
+export const NO_SKEW_BELIEF: BelievedSkew = () => 0;
+
+/** `Turret.restBearing` as the automation believes it to be. */
+export function believedRestBearing(gun: ChainGun, believedSkew: BelievedSkew): number {
+    return gun.fittedBearing + believedSkew(gun);
+}
+
+/** `Turret.bearingCommandFor` as the automation believes it — the command it would actually issue. */
+export function believedBearingCommandFor(
+    gun: ChainGun,
+    targetHullBearing: number,
+    believedSkew: BelievedSkew,
+): number {
+    return toDegreesDelta(targetHullBearing - believedRestBearing(gun, believedSkew));
+}
+
+/** `Turret.canBearAt` as the automation believes it. */
+export function believedCanBearAt(gun: ChainGun, targetHullBearing: number, believedSkew: BelievedSkew): boolean {
+    return Math.abs(believedBearingCommandFor(gun, targetHullBearing, believedSkew)) <= gun.bearingLimit;
+}
+
+/**
  * Everything `automation-manager`'s `follow()` needs to fly and shoot at an ordered target: the
  * standoff band, the lead point and which way to point the hull, all from the doctrine's weighting
  * of every mount rather than pinned to `chainGuns[0]`.
@@ -25,6 +56,7 @@ export class FlightProfile {
     constructor(
         private readonly state: ShipState,
         private readonly weights: DoctrineWeights,
+        private readonly believedSkew: BelievedSkew,
     ) {}
 
     /**
@@ -100,7 +132,7 @@ export class FlightProfile {
         const shipToTarget = XY.difference(target.position, this.state.position);
         const hullBearing = toDegreesDelta(XY.angleOf(shipToTarget) - this.state.angle);
         const guns = this.state.chainGuns;
-        return guns.find((g) => g.canBearAt(hullBearing)) ?? guns[0] ?? null;
+        return guns.find((g) => believedCanBearAt(g, hullBearing, this.believedSkew)) ?? guns[0] ?? null;
     }
 
     /**
@@ -112,7 +144,7 @@ export class FlightProfile {
         const guns = this.state.chainGuns;
         const maxCapacity = Math.max(0, ...ShipDirections.map((d) => this.state.velocityCapacity(d)));
         const required = XY.lengthOf(requiredAcceleration) > 0.01 ? requiredAcceleration : shipToTarget;
-        const candidates = headingCandidates(guns, shipToTarget, required);
+        const candidates = headingCandidates(guns, shipToTarget, required, this.believedSkew);
         // The heading held last tick is rarely reproduced bit-for-bit — every candidate derived from
         // the target's bearing moves with the target. Matching the nearest one within
         // `HEADING_MATCH_TOLERANCE_DEGREES`, and only one so two rivals can't both take the
@@ -123,7 +155,7 @@ export class FlightProfile {
         let bestCost = Infinity;
         for (const candidate of candidates) {
             const cost =
-                this.weights.aim * aimCost(guns, candidate) +
+                this.weights.aim * aimCost(guns, candidate, this.believedSkew) +
                 this.weights.thrust * thrustCost(this.state, maxCapacity, candidate, shipToTarget, required);
             const adjustedCost = candidate === incumbent ? cost - HEADING_HYSTERESIS_MARGIN : cost;
             if (adjustedCost < bestCost) {
@@ -151,10 +183,10 @@ export class FlightProfile {
  * line, independent of the target), one per thrust direction (puts *that* direction's local bearing
  * on `required` — see {@link thrustCost}'s matching derivation), plus dead-ahead.
  */
-function headingCandidates(guns: ChainGun[], shipToTarget: XY, required: XY): number[] {
+function headingCandidates(guns: ChainGun[], shipToTarget: XY, required: XY, believedSkew: BelievedSkew): number[] {
     const requiredAngle = XY.angleOf(required);
     const targetAngle = XY.angleOf(shipToTarget);
-    const fromMounts = guns.map((g) => -g.restBearing);
+    const fromMounts = guns.map((g) => -believedRestBearing(g, believedSkew));
     const fromDirections = ShipDirections.map((d) => requiredAngle - targetAngle - d);
     const all = [0, ...fromMounts, ...fromDirections];
     const deduped: number[] = [];
@@ -193,13 +225,14 @@ function nearestHeading(candidates: number[], heading: number): number | null {
 /**
  * Normalized [0, 1] shortfall for holding heading `offset`: how far past its bearing limit each
  * mount would be, summed and scaled (see {@link AIM_COST_SCALE}). Holding `offset` puts the target
- * at hull-relative `-offset`; each mount's traverse to reach it is measured off its rest bearing,
- * so a damage-skewed mount is scored on the window it really has.
+ * at hull-relative `-offset`; each mount's traverse to reach it is measured off the rest bearing the
+ * automation *believes* it has, so a skewed mount is scored on the window its own observations say
+ * it has — not on the one the real defect gives it.
  */
-function aimCost(guns: ChainGun[], offset: number): number {
+function aimCost(guns: ChainGun[], offset: number, believedSkew: BelievedSkew): number {
     let shortfall = 0;
     for (const gun of guns) {
-        const desiredBearing = gun.bearingCommandFor(-offset);
+        const desiredBearing = believedBearingCommandFor(gun, -offset, believedSkew);
         shortfall += Math.max(0, Math.abs(desiredBearing) - gun.bearingLimit) / 180;
     }
     return Math.min(1, (shortfall * AIM_COST_SCALE) / guns.length);
@@ -228,8 +261,17 @@ function thrustCost(state: ShipState, maxCapacity: number, offset: number, shipT
     return 1 - state.velocityCapacity(direction) / maxCapacity;
 }
 
-export function makeFlightProfile(state: ShipState, doctrine: FlightDoctrine): FlightProfile {
+/**
+ * `believedSkew` defaults to {@link NO_SKEW_BELIEF} — correct for a caller that has observed
+ * nothing, which is also every profile built for an undamaged ship. `AutomationManager` passes its
+ * own running belief so the hull heading it steers to agrees with the mount commands it issues.
+ */
+export function makeFlightProfile(
+    state: ShipState,
+    doctrine: FlightDoctrine,
+    believedSkew: BelievedSkew = NO_SKEW_BELIEF,
+): FlightProfile {
     const resolved: Exclude<FlightDoctrine, FlightDoctrine.AUTO> =
         doctrine === FlightDoctrine.AUTO ? doctrineForOrder(state.order) : doctrine;
-    return new FlightProfile(state, doctrineWeights[resolved]);
+    return new FlightProfile(state, doctrineWeights[resolved], believedSkew);
 }
