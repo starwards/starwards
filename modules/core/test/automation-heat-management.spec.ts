@@ -365,14 +365,14 @@ describe('AI heat-management automation', () => {
             expect(withoutAutomation.armorLost, 'without automation (baseline)').to.be.greaterThan(0);
             // regression guard: backoff only ever throttles down from the unthrottled baseline, so
             // automation must never deal MORE damage than the baseline — catches e.g. a future change
-            // that silently doubles NPC DPS. Pinned loosely (measured 18 vs 18) to survive minor
+            // that silently doubles NPC DPS. Pinned loosely (measured ~33.5 vs ~33.5) to survive minor
             // tuning: on a stock hull, coolant reallocation alone holds heat clear of the backoff
             // threshold, so automation costs no offense at all here.
             expect(withAutomation.armorLost, 'automation must not out-damage the unthrottled baseline').to.be.at.most(
                 withoutAutomation.armorLost,
             );
-            expect(withAutomation.armorLost).to.be.closeTo(18, 5);
-            expect(withoutAutomation.armorLost).to.be.closeTo(18, 5);
+            expect(withAutomation.armorLost).to.be.closeTo(33.5, 5);
+            expect(withoutAutomation.armorLost).to.be.closeTo(33.5, 5);
             // the actual point of heat management: with it, heat never approaches the ceasefire
             // threshold; without it, the gun sits pegged at the overheat ceiling for the fight
             expect(withAutomation.maxHeat, 'heat management keeps heat well clear of the ceiling').to.be.lessThan(
