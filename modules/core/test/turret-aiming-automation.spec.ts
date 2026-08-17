@@ -11,6 +11,7 @@ import {
     ammoTypes,
     makeShipState,
     shipConfigurations,
+    solveShellIntercept,
     toDegreesDelta,
 } from '../src';
 import { MockDie, makeIterationsData } from './ship-test-harness';
@@ -25,15 +26,17 @@ const demoShipConfig = shipConfigurations['demo-ship'];
 const turretedChaingun = { ...demoShipChaingun, turnSpeed: 90, bearingLimit: 180 };
 
 /**
- * Degrees between where `mount` actually points and where it would need to point to be exactly
- * on `target` right now. Computed fresh from current ship/target geometry rather than assuming a
- * fixed bearing — the attacking ship's own combat-weave lateral drift (issue #2146) means "true
- * bearing to target" legitimately moves tick to tick, so a test can't just assert `hullBearing`
- * against a constant.
+ * Degrees between where `mount` actually points and where it would need to point to put its shell
+ * on `target` — measured against this mount's own firing solution (`solveShellIntercept`), which is
+ * what the automation aims at, not the raw line of sight: at any closing speed the lead is tens of
+ * degrees off it. Computed fresh from current geometry rather than assuming a fixed bearing — the
+ * attacker's own combat-weave lateral drift (issue #2146) means the true aim bearing legitimately
+ * moves tick to tick, so a test can't just assert `hullBearing` against a constant.
  */
 function aimOffsetDegrees(ship: ShipState, target: SpaceObject, mount: ChainGun): number {
+    const { aimPoint } = solveShellIntercept(ship, mount, target);
     const desiredHullBearing = toDegreesDelta(
-        XY.angleOf(XY.difference(target.position, ship.position)) - ship.angle - mount.fittedBearing,
+        XY.angleOf(XY.difference(aimPoint, ship.position)) - ship.angle - mount.fittedBearing,
     );
     return Math.abs(toDegreesDelta(mount.hullBearing - desiredHullBearing));
 }
@@ -182,7 +185,7 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
             shipMgr.update(id);
             spaceMgr.update(id);
         }
-        // engagement opens exactly as blind as a fresh defect would — 30 idle seconds with the
+        // engagement opens as blind as a fresh defect would — 30 idle seconds with the
         // defect already present bought the AI no head start, because it was never observing
         expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.greaterThan(15);
 
@@ -190,6 +193,9 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
             shipMgr.update(id);
             spaceMgr.update(id);
         }
-        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(2);
+        // Looser than the fresh-defect case above: this ship spent 30 idle seconds drifting first,
+        // so it engages from a geometry where the intercept aim point is still sweeping, and the
+        // mount tracks it with a tick of mechanical lag on top of the settled belief.
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(3);
     });
 });

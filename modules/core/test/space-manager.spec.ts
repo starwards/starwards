@@ -238,7 +238,6 @@ describe('SpaceManager', () => {
 
                 // stop simulation when first bullet reaches its range
                 const shellSecondsToLive = calcShellSecondsToLive(
-                    shipMgr.state,
                     shipMgr.state.chainGuns[0],
                     shipMgr.state.chainGuns[0].design.maxShellRange,
                 );
