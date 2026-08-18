@@ -272,17 +272,6 @@ cleanup.add(() => stopSomething());
 
 ## Glossary
 
-- **Blip**: Visual representation of space object on radar
-- **Colyseus**: Multiplayer game server framework
-- **Defectible**: Individual component within a system that can be damaged
-- **Driver**: Client-side wrapper for server state (ShipDriver, SpaceDriver)
-- **FOV**: Field of View (radar visibility area)
-- **GM**: Game Master
-- **JSON Pointer**: Path syntax for addressing nested properties (e.g., `/thrusters/0/power`)
-- **PropertyPanel**: Legacy panel system (deprecated in favor of Tweakpane blades)
-- **SBS**: Space Bridge Simulator
-- **Schema**: Colyseus data structure with automatic synchronization
-- **Spatial Index**: Acceleration structure for fast object queries
-- **Tweakpane**: UI library for control panels
-- **Widget**: Self-contained UI component (panel, radar, display)
-- **@gameField**: Decorator marking properties for network sync
+Terms used here are defined once in [`../GLOSSARY.md`](../GLOSSARY.md) — bridge stations, state
+classes, perception, ship systems, code mechanisms and UI terms, each linked to its owning source
+file.

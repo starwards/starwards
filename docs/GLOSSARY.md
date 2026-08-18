@@ -72,3 +72,16 @@ explains a mechanic itself, so a mechanic never drifts out of sync between two p
 | `@defectible` | Decorator tagging a `SystemState` field as damage-report/GM-tweak-panel visible | [`modules/core/src/ship/system.ts`](../modules/core/src/ship/system.ts) |
 | Colyseus Monitor | `@colyseus/monitor` dashboard mounted at `/colyseus-monitor` for room inspection | [`modules/server/src/server.ts`](../modules/server/src/server.ts) |
 | Dashboard vs fixed station layout | `Dashboard` (golden-layout, customizable screens) vs `wrapRootWidgetContainer`/`subContainer` (fixed-grid stations) — the two layout systems don't mix | [`modules/browser/src/widgets/dashboard.ts`](../modules/browser/src/widgets/dashboard.ts), [`modules/browser/src/container.ts`](../modules/browser/src/container.ts) |
+
+## UI terms
+
+| Term | Meaning | Where it lives |
+|---|---|---|
+| Blip | Rendered mark for one space object on a radar | [`modules/browser/src/radar/blips/blip-renderer.ts`](../modules/browser/src/radar/blips/blip-renderer.ts) |
+| Widget | Self-contained UI component (panel, radar, display) mounted into a container | [`modules/browser/src/widgets/`](../modules/browser/src/widgets/) |
+| Driver | Client-side wrapper over synced room state (`ShipDriver`, `SpaceDriver`) | [`modules/core/src/client/driver.ts`](../modules/core/src/client/driver.ts) |
+| Tweakpane pane | Control panel built with `createWidgetPane`, the standard property surface | [`modules/browser/src/panel/widget-pane.ts`](../modules/browser/src/panel/widget-pane.ts) |
+| `PropertyPanel` | Panel API predating Tweakpane blades, still used by `design-state` and `gun` widgets | [`modules/browser/src/panel/property-panel.ts`](../modules/browser/src/panel/property-panel.ts) |
+| Spatial index | Acceleration structure for fast positional object queries | [`modules/core/src/client/spatial-index.ts`](../modules/core/src/client/spatial-index.ts) |
+| Defectible | A field of a `SystemState` that damage can degrade and the damage report shows | [`modules/core/src/ship/system.ts`](../modules/core/src/ship/system.ts) |
+| SBS | Space Bridge Simulator — the station-screen product this UI serves | [`UI_SPECIFICATION.md`](UI_SPECIFICATION.md) |

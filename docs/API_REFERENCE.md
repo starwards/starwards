@@ -15,66 +15,16 @@ last_verified: 2026-07-20
 
 ## Decorators
 
-### @gameField
-**Location:** `modules/core/src/game-field.ts`
+Defined once in [`specs/DECORATORS_SPEC.md`](specs/DECORATORS_SPEC.md) — syntax, stacking order,
+retrieval helpers and worked examples.
 
-**Marks properties for Colyseus schema synchronization**
-
-```typescript
-@gameField('float32') speed = 0;                    // Primitives
-@gameField(Signals) signals!: Signals;              // Nested
-@gameField([Thruster]) thrusters = new ArraySchema<Thruster>();  // Array
-@gameField({ map: Spaceship }) ships = new MapSchema<Spaceship>(); // Map
-```
-
-**Types:** `'int8'|'int16'|'int32'|'float32'|'float64'|'boolean'|'string'` | Schema | `[Schema]` | `{map:Schema}`
-
-**Note:** float32 rounds to 2 decimals, triggers auto-sync
-
-### @tweakable
-**Location:** `modules/core/src/tweakable.ts`
-
-**Marks properties for GM/debug UI adjustment**
-
-```typescript
-@tweakable('boolean') enabled = true;
-@tweakable('number') power = 1.0;
-@tweakable({ type: 'enum', enum: Faction }) faction = Faction.NONE;
-@tweakable({ type: 'number', number: { min: 0, max: 100 } }) health = 100;
-```
-
-**Retrieval:** `getTweakables(state) → TweakableValue[]`
-
-### @range
-**Location:** `modules/core/src/range.ts`
-
-**Defines value constraints**
-
-```typescript
-@range([0, 1]) power = 1.0;                         // Static
-@range((t: Reactor) => [0, t.design.maxEnergy]) energy = 1000;  // Dynamic
-@range({ '/property': [0, 100] }) nested;           // Nested
-
-// Class-level
-@rangeSchema({'/turnSpeed': [-90, 90], '/angle': [0, 360]})
-class ShipState { }
-```
-
-**Retrieval:** `getRange(root, pointer)` | `tryGetRange(root, pointer)`
-
-### @defectible
-**Location:** `modules/core/src/ship/system.ts`
-
-**Marks damageable system properties**
-
-```typescript
-@range([0, 1])
-@defectible({ normal: 1, name: 'efficiency' })
-@gameField('float32')
-efficiency = 1;
-```
-
-**Retrieval:** `getSystems(shipState) → System[]`
+| Decorator | Purpose | Retrieval |
+|---|---|---|
+| `@gameField` | Colyseus schema sync (innermost, must be last) | — |
+| `@commandable` | JSON Pointer remote-write surface | — |
+| `@tweakable` | GM/debug UI control | `getTweakables(state)` |
+| `@range` | Value constraints, static or dynamic | `getRange(root, pointer)` / `tryGetRange` |
+| `@defectible` | Damageable system property | `getSystems(shipState)` |
 
 ## State Classes
 

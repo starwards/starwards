@@ -4,7 +4,7 @@
 **Date:** 2026-08-18
 **Purpose:** Index of the implementation inventory for all UI screens and components (mounted widgets, source files, data bindings, workflows, pain points). For design intent and build status per station, see [`docs/design/stations/`](design/stations/README.md).
 
-This document was split by screen for maintainability — each screen's full spec now lives in its own file under [`docs/ui/`](ui/):
+Each screen's full spec lives in its own file under [`docs/ui/`](ui/):
 
 - [`ui/pilot-screen.md`](ui/pilot-screen.md) — Pilot screen (flight controls, navigation)
 - [`ui/engineer-screen.md`](ui/engineer-screen.md) — Engineer screen (power, coolant, damage control)
