@@ -58,7 +58,7 @@ mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 
 - [pilot.md](pilot.md)
 - [weapons.md](weapons.md)
-- [bridge-eng.md](bridge-eng.md) — `screens/engineer.ts`, the merged engineer station
+- [bridge-eng.md](bridge-eng.md) — Engineering current state: `screens/engineer.ts`, the merged engineer station
 - [bridge-eng-design.md](bridge-eng-design.md) — user-stated design intent for adding **damage management** to the engineer station; compared to current code (`@defectible` reflection, existing damage-report widget) and to #547 repair-station (location conflict flagged)
 - [signals.md](signals.md) — minimal first cut (PR #1848); compares to full #1208 spec
 - [signals-design.md](signals-design.md) — user-stated design intent for the signals station, compared to current code and to `SIGNALS_JOBS_DESIGN.md` (flags mini-game vs queued-jobs conflict)

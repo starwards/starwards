@@ -97,9 +97,9 @@
     - Prevents client-side cheating
 
 16. **Client-Side Spatial Index Mirror**
-    - [`SpatialIndex`](../modules/browser/src/radar/spatial-index.ts) mirrors server collision system
-    - [`WeakMap`](../modules/browser/src/radar/spatial-index.ts) singleton per driver
-    - Event-driven updates via [`on('$add')`](../modules/browser/src/radar/spatial-index.ts)
+    - [`SpatialIndex`](../modules/core/src/client/spatial-index.ts) mirrors server collision system
+    - [`WeakMap`](../modules/core/src/client/spatial-index.ts) singleton per driver
+    - Event-driven updates via [`on('$add')`](../modules/core/src/client/spatial-index.ts)
     - Efficient client-side queries
 
 ### Damage & Combat Systems

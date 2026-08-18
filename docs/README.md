@@ -61,9 +61,22 @@ purpose; do not read as current.
 | [`SUBSYSTEMS.md`](SUBSYSTEMS.md) | Ship systems, formulas, bot AI. |
 | [`PHYSICS.md`](PHYSICS.md) | Physics engine, collision, damage. |
 | [`HELM_ASSIST_ALGORITHM.md`](HELM_ASSIST_ALGORITHM.md) | Helm-assist manoeuvring algorithm. |
-| [`INTEGRATION.md`](INTEGRATION.md) | Node-RED and external integrations. |
+| [`INTEGRATION.md`](INTEGRATION.md) | Index of integration surfaces: Node-RED, MCP server, Docker, Open Stage Control, MQTT, extending. |
+| [`integration/node-red.md`](integration/node-red.md) | Node-RED nodes, example flows, connection lifecycle. |
+| [`integration/mcp-server.md`](integration/mcp-server.md) | MCP server seating an LLM at a sandboxed station. |
+| [`integration/docker.md`](integration/docker.md) | Docker Compose services for MQTT/Node-RED. |
+| [`integration/open-stage-control.md`](integration/open-stage-control.md) | Touchscreen/MIDI control surfaces bridged via Node-RED. |
+| [`integration/mqtt.md`](integration/mqtt.md) | Pub/sub bridging for external systems. |
+| [`integration/extending.md`](integration/extending.md) | Adding custom widgets, ship systems, space objects. |
 | [`DEPENDENCIES.md`](DEPENDENCIES.md) | Version pins and upgrade guide — the only doc that states versions. |
-| [`UI_SPECIFICATION.md`](UI_SPECIFICATION.md) | UI specification. |
+| [`UI_SPECIFICATION.md`](UI_SPECIFICATION.md) | Index of the UI implementation inventory, split per screen under `ui/`. |
+| [`ui/pilot-screen.md`](ui/pilot-screen.md) | Pilot screen: widgets, data sources, workflows, pain points. |
+| [`ui/engineer-screen.md`](ui/engineer-screen.md) | Engineer screen: widgets, data sources, workflows, pain points. |
+| [`ui/weapons-screen.md`](ui/weapons-screen.md) | Weapons screen: widgets, data sources, workflows, pain points. |
+| [`ui/gm-screen.md`](ui/gm-screen.md) | GM screen: widgets, data sources, workflows, pain points. |
+| [`ui/ship-screen.md`](ui/ship-screen.md) | Ship screen: widgets, data sources, workflows, pain points. |
+| [`ui/input-screen.md`](ui/input-screen.md) | Input screen: gamepad testing/debugging widgets. |
+| [`ui/common-ui-patterns.md`](ui/common-ui-patterns.md) | Shared UI architecture, Tweakpane/PixiJS/input code patterns, cross-screen technical constraints, glossary. |
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | Deployment: CI jobs, container image, and the preview environments under `dev.starwards.space`. |
 
 **Project**
