@@ -195,7 +195,9 @@ describe('an NPC turreted mount with skew damage under attack orders (#2176)', (
         }
         // Looser than the fresh-defect case above: this ship spent 30 idle seconds drifting first,
         // so it engages from a geometry where the intercept aim point is still sweeping, and the
-        // mount tracks it with a tick of mechanical lag on top of the settled belief.
-        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(3);
+        // mount tracks it with a tick of mechanical lag on top of the settled belief. Loosened
+        // further from 3: the hull's own rotationCapacity now factors in maneuvering effectiveness
+        // (issue #2208), so at default (NORMAL) power the hull settles onto the target slower.
+        expect(aimOffsetDegrees(shipMgr.state, targetObj, mount)).to.be.lessThan(3.5);
     });
 });
