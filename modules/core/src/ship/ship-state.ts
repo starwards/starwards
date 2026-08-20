@@ -300,7 +300,7 @@ export class ShipState extends Schema implements Lockable {
     }
 
     get rotationCapacity() {
-        return this.maneuvering.design.rotationCapacity;
+        return this.maneuvering.effectiveness * this.maneuvering.efficiency * this.maneuvering.design.rotationCapacity;
     }
 
     systems() {
