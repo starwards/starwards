@@ -5,6 +5,7 @@ import {
     FlightDoctrine,
     IdleStrategy,
     Order,
+    PowerLevel,
     ShipDesign,
     ShipDirectionConfig,
     ShipManagerNpc,
@@ -1027,6 +1028,10 @@ describe('default-fire gunnery, gated by idleStrategy (issue #2145)', () => {
         const { spaceMgr, shipObj, shipMgr } = createShipSetup(ShipManagerNpc, shipConfigurations['chaingun-platform']);
         shipObj.faction = Faction.Raiders;
         shipMgr.state.idleStrategy = IdleStrategy.STAND_GROUND;
+        // This test is about gunnery surviving docking, not about hull agility -- pin power to MAX
+        // so the hull's rotationCapacity (now scaled by maneuvering effectiveness, issue #2208)
+        // still swings onto the shared bearing within the single simulated second below.
+        shipMgr.state.maneuvering.power = PowerLevel.MAX;
 
         const dockTarget = createHostile('dock-target', Faction.Raiders, XY.byLengthAndDirection(1000, 45));
         spaceMgr.insert(dockTarget);

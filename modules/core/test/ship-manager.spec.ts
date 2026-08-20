@@ -2,6 +2,7 @@ import {
     Asteroid,
     EPSILON,
     Explosion,
+    HackLevel,
     PowerLevel,
     RTuple2,
     ShipManagerNpc,
@@ -418,5 +419,51 @@ describe.each([ShipManagerPc, ShipManagerNpc])('%p', (shipManagerCtor) => {
                 expect(shipMgr.state.docking.mode).to.eql(DockingMode.DOCKED);
             }),
         );
+    });
+});
+
+describe('ShipManagerNpc maneuvering (issue #2208)', () => {
+    function makeNpc() {
+        const spaceMgr = new SpaceManager();
+        const shipObj = new Spaceship();
+        shipObj.id = 'npc';
+        const shipMgr = new ShipManagerNpc(shipObj, makeShipState(shipObj.id, demoShipConfig), spaceMgr, new MockDie());
+        spaceMgr.insert(shipObj);
+        spaceMgr.forceFlushEntities();
+        return { spaceMgr, shipObj, shipMgr };
+    }
+
+    const deltaSeconds = 1 / 20;
+    const iterationData = { deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds };
+
+    it('turns slower when the maneuvering system is damaged, underpowered or hacked', () => {
+        const healthy = makeNpc();
+        healthy.shipMgr.state.maneuvering.power = PowerLevel.MAX;
+        healthy.shipMgr.state.smartPilot.rotation = 1;
+        healthy.shipMgr.update(iterationData);
+
+        const crippled = makeNpc();
+        crippled.shipMgr.state.maneuvering.power = PowerLevel.MAX;
+        crippled.shipMgr.state.maneuvering.hacked = HackLevel.COMPROMISED;
+        crippled.shipMgr.state.maneuvering.efficiency = 0.5;
+        crippled.shipMgr.state.smartPilot.rotation = 1;
+        crippled.shipMgr.update(iterationData);
+
+        expect(healthy.shipObj.turnSpeed, 'healthy turnSpeed').to.be.greaterThan(0);
+        expect(Math.abs(crippled.shipObj.turnSpeed), 'crippled turnSpeed').to.be.lessThan(
+            Math.abs(healthy.shipObj.turnSpeed) * 0.5,
+        );
+    });
+
+    it('is immobilized, not merely slowed, once the maneuvering system is fully broken', () => {
+        const { shipObj, shipMgr } = makeNpc();
+        shipMgr.state.maneuvering.power = PowerLevel.MAX;
+        shipMgr.state.maneuvering.efficiency = 0; // efficiency <= 0.2 makes Maneuvering.broken true
+        shipMgr.state.smartPilot.rotation = 1;
+
+        shipMgr.update(iterationData);
+
+        expect(shipMgr.state.maneuvering.broken, 'maneuvering.broken').to.equal(true);
+        expect(shipObj.turnSpeed, 'turnSpeed').to.equal(0);
     });
 });

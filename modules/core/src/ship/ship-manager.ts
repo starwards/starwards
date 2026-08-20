@@ -101,6 +101,17 @@ export class ShipManagerNpc extends ShipManager implements NpcShipApi {
     ) {
         super(spaceObject, state, spaceManager, die, ships);
         this.state.isPlayerShip = false;
+        /**
+         * NPCs have no power-allocation UI to keep a reactor budget solvent under sustained combat,
+         * so every system -- weapons, radar, maneuvering alike -- draws free energy here; wiring a
+         * real per-tick energy cost into maneuvering was tried for #2208 and made NPCs strand
+         * themselves mid-engagement (orbit-capture and heat-management sims never closed distance
+         * again once the reactor ran dry, since nothing manages their power the way a player does).
+         * Damage still bites without it: `rotationCapacity` and `velocityCapacity` factor in
+         * `effectiveness`/`efficiency`, so a maneuvering system shot to pieces or hacked really does
+         * turn and thrust slower, same as a player ship's -- there is just no finite joule budget
+         * underneath that degradation for a bot that cannot manage one.
+         */
         this.internalProxy.trySpendEnergy = () => true;
     }
 
