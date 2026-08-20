@@ -27,6 +27,7 @@ purpose; do not read as current.
 | [`standards/`](standards/) | Code structure, style, and naming contracts — read before writing core/config code. | Live |
 | [`testing/`](testing/README.md) | Testing guide, strategy, harness utilities, UI-testing insights. | Live |
 | [`guides/`](guides/FLIGHT_MECHANICS.md) | Player-facing gameplay guides. | Live |
+| [`approaches/`](approaches/README.md) | Catalogue of techniques used across the codebase, grouped by area. | Live |
 | [`reference/`](reference/README.md) | External/vendor reference dumps (ARWES, Open Stage Control, PixiJS). | Reference |
 | [`MS3/`](MS3/README.md) | Milestone 3 design & planning corpus (Nov 2025), superseded strategically by decision 004. | Historical |
 | [`retrospectives/`](retrospectives/README.md) | Dated post-implementation retrospectives. | Historical |
@@ -67,7 +68,9 @@ purpose; do not read as current.
 | [`integration/docker.md`](integration/docker.md) | Docker Compose services for MQTT/Node-RED. |
 | [`integration/open-stage-control.md`](integration/open-stage-control.md) | Touchscreen/MIDI control surfaces bridged via Node-RED. |
 | [`integration/mqtt.md`](integration/mqtt.md) | Pub/sub bridging for external systems. |
-| [`integration/extending.md`](integration/extending.md) | Adding custom widgets, ship systems, space objects. |
+| [`integration/extending-widgets.md`](integration/extending-widgets.md) | Adding a custom dashboard widget. |
+| [`integration/extending-ship-systems.md`](integration/extending-ship-systems.md) | Adding a new ship subsystem. |
+| [`integration/extending-space-objects.md`](integration/extending-space-objects.md) | Adding a new space object type. |
 | [`DEPENDENCIES.md`](DEPENDENCIES.md) | Version pins and upgrade guide — the only doc that states versions. |
 | [`UI_SPECIFICATION.md`](UI_SPECIFICATION.md) | Index of the UI implementation inventory, split per screen under `ui/`. |
 | [`ui/pilot-screen.md`](ui/pilot-screen.md) | Pilot screen: widgets, data sources, workflows, pain points. |
@@ -84,5 +87,5 @@ purpose; do not read as current.
 | Doc | What |
 |---|---|
 | [`maintainers.md`](maintainers.md) | Maintainer roster — consumed by `.github/labeler.yml`. |
-| [`PROJECT_ANALYSIS.md`](PROJECT_ANALYSIS.md) | Whole-repo structural analysis. |
-| [`list-of-approaches.md`](list-of-approaches.md) | Catalogue of techniques used across the codebase. |
+| [`testing/coverage-strategy.md`](testing/coverage-strategy.md) | Where test coverage is thin, and how the coverage gate moves. |
+| [`technical-debt.md`](technical-debt.md) | Known technical debt and documentation gaps. |

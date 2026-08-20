@@ -9,7 +9,9 @@ This page is an index. Each integration surface has its own audience and now its
 - [`integration/docker.md`](integration/docker.md) - Docker Compose setup for the MQTT and Node-RED services, service URLs, and volume backup/restore.
 - [`integration/open-stage-control.md`](integration/open-stage-control.md) - Touchscreen/MIDI control surfaces (O-S-C) bridged to ship state through Node-RED.
 - [`integration/mqtt.md`](integration/mqtt.md) - Pub/sub bridging for external systems (lights, sound) via Node-RED.
-- [`integration/extending.md`](integration/extending.md) - Adding a custom widget, a new ship system, or a new space object type.
+- [`integration/extending-widgets.md`](integration/extending-widgets.md) - Adding a custom dashboard widget.
+- [`integration/extending-ship-systems.md`](integration/extending-ship-systems.md) - Adding a new ship subsystem.
+- [`integration/extending-space-objects.md`](integration/extending-space-objects.md) - Adding a new space object type.
 
 ## Related Documentation
 

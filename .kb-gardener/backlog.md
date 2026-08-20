@@ -54,7 +54,7 @@ Rules that are noise against this KB and are discarded wholesale at triage, not 
 
 - [stale-doc] docs/standards/standards-naming.md — the body is a verbatim quote of Google's filename style guide. It tracks an upstream document, not this codebase, so elapsed time since the last edit carries no drift signal. Its `Live` tier in `docs/README.md` is what is wrong, and re-tiering the whole `standards/` row is not this item. (kb-gardener)
 
-- [stale-doc] docs/DEVELOPMENT.md — the `shield.ts` / `shield-manager.ts` / `widgets/shield.ts` paths are inside the "Add New Ship System" walkthrough, which invents a shield system as its worked example. Nothing claims those files exist. (kb-gardener)
+- [stale-doc] docs/integration/extending-ship-systems.md — the `shield.ts` / `shield-manager.ts` / `widgets/shield.ts` paths are inside the "Add a ship system" walkthrough, which invents a shield system as its worked example. Nothing claims those files exist. (kb-gardener)
 - [broken-reference] docs/design/ui-specs/VISUAL_TOKEN_INTEGRATION.md — `modules/browser/src/fonts.ts` is prefixed **Proposed:**; a proposal naming a file it would create is not a dead reference. (kb-gardener)
 - [broken-reference] docs/testing/TESTING_STRATEGY.md — `modules/core/test/test-factories.ts` is introduced as "new file:"; same as above. (kb-gardener)
 - [broken-reference] docs/superpowers/specs/2026-08-08-recording-replay-ux-design.md — the spec shipped: `game-transport.ts` became `modules/browser/src/widgets/game-controls.ts`, exactly as written. The old name appears only as the subject of the rename in a dated spec. (kb-gardener)
