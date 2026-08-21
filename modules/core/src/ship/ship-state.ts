@@ -1,5 +1,6 @@
 import { ArraySchema, Schema } from '@colyseus/schema';
 import { Faction, Spaceship, Vec2 } from '../space';
+import { LockPropertyArg, Lockable } from '../lock-commands';
 import { ShipArea, XY, notNull, toDegreesDelta } from '..';
 import { commandable, gameField } from '../game-field';
 import { range, rangeSchema } from '../range';
@@ -8,6 +9,7 @@ import { Armor } from './armor';
 import { ChainGun } from './chain-gun';
 import { DesignState } from './system';
 import { Docking } from './docking';
+import { FlightDoctrine } from './flight-doctrine';
 import { Magazine } from './magazine';
 import { Maneuvering } from './maneuvering';
 import { Radar } from './radar';
@@ -29,8 +31,14 @@ export enum TargetedStatus {
 }
 
 export enum IdleStrategy {
+    /** Hold fire — the only idle strategy that suppresses default NPC gunnery. */
     PLAY_DEAD,
+    /**
+     * Fires on hostiles like every other idle strategy. Wandering movement is not yet
+     * implemented, so this currently behaves exactly like {@link STAND_GROUND}.
+     */
     ROAM,
+    /** Fires on hostiles; never moves (no movement order is ever attached to this strategy). */
     STAND_GROUND,
 }
 
@@ -39,6 +47,26 @@ export enum Order {
     MOVE,
     ATTACK,
     FOLLOW,
+}
+
+/**
+ * A ship's doctrine when it hasn't been given an explicit `flightDoctrine` override.
+ *
+ * MOVE uses INTERCEPT because its only use of the profile is `goto()`'s transit concession, which
+ * exists to trade route efficiency for a firing solution and is already bounded by
+ * `MAX_TRANSIT_HEADING_CONCESSION`. STANDOFF's `aim` 0.4 wins there only where the route heading's
+ * own thrust penalty exceeds it — never, on a transit flying its best axis.
+ */
+export function doctrineForOrder(order: Order): Exclude<FlightDoctrine, FlightDoctrine.AUTO> {
+    switch (order) {
+        case Order.FOLLOW:
+            return FlightDoctrine.SHADOW;
+        case Order.MOVE:
+            return FlightDoctrine.INTERCEPT;
+        case Order.ATTACK:
+        case Order.NONE:
+            return FlightDoctrine.STANDOFF;
+    }
 }
 
 export type ShipPropertiesDesign = {
@@ -52,7 +80,7 @@ export class ShipPropertiesDesignState extends DesignState implements ShipProper
     @gameField('float32') systemKillRatio = 0;
 }
 @rangeSchema({ '/spaceship/turnSpeed': [-90, 90] })
-export class ShipState extends Schema {
+export class ShipState extends Schema implements Lockable {
     /**
      * Composed space object - a mirror of the authoritative Spaceship in SpaceState,
      * updated every game tick by syncShipProperties(). This is NOT the source of truth
@@ -70,6 +98,11 @@ export class ShipState extends Schema {
     @gameField('boolean')
     isPlayerShip = true;
 
+    /**
+     * The fallback behind `order`: consulted only while `order === Order.NONE`. Defaults to
+     * `PLAY_DEAD` (hold fire), so a map whose NPCs never receive an order (e.g. wave-defence's
+     * stations) must set this explicitly to have them fire back.
+     */
     @tweakable({ type: 'enum', enum: IdleStrategy })
     @gameField('int8')
     idleStrategy = IdleStrategy.PLAY_DEAD;
@@ -77,6 +110,20 @@ export class ShipState extends Schema {
     @tweakable({ type: 'enum', enum: Order })
     @gameField('int8')
     order = Order.NONE;
+
+    /**
+     * How this ship weighs gunnery aim against propulsion efficiency when choosing hull heading and
+     * standoff distance. `AUTO` (the default) defers to `order` via {@link doctrineForOrder};
+     * override for a hull whose armament doesn't fit its order's default doctrine.
+     */
+    @tweakable({ type: 'enum', enum: FlightDoctrine })
+    @gameField('int8')
+    flightDoctrine = FlightDoctrine.AUTO;
+
+    /** The doctrine actually flown: the explicit override if set, otherwise the one `order` implies. */
+    get effectiveFlightDoctrine(): FlightDoctrine {
+        return this.flightDoctrine === FlightDoctrine.AUTO ? doctrineForOrder(this.order) : this.flightDoctrine;
+    }
 
     @tweakable('string')
     @gameField('string')
@@ -130,6 +177,15 @@ export class ShipState extends Schema {
     @gameField(RepairQueue)
     repairQueue = new RepairQueue();
 
+    /**
+     * JSON Pointer paths (relative to this ship's state root) whose GM lock is
+     * currently active — see `lock-commands.ts`. Synced so the GM tweak
+     * panel's lock toggle reflects current state across reconnects/other GM
+     * clients; the write guard itself lives in `lock-registry.ts`.
+     */
+    @gameField(['string'])
+    lockedPaths = new ArraySchema<string>();
+
     @range([-1, 1])
     @gameField('float32')
     rotation = 0;
@@ -177,6 +233,9 @@ export class ShipState extends Schema {
     public maneuveringModeCommand = false;
     @commandable()
     public fireTubesCommand = false;
+
+    /** Drained by `applyLockCommands` (`lock-commands.ts`) each tick. */
+    public lockCommands = Array.of<LockPropertyArg>();
 
     // Read-only delegates to the composed spaceship. These satisfy the Craft
     // interface used by helm-assist / gunner-assist without @gameField, so they
@@ -241,7 +300,7 @@ export class ShipState extends Schema {
     }
 
     get rotationCapacity() {
-        return this.maneuvering.design.rotationCapacity;
+        return this.maneuvering.effectiveness * this.maneuvering.efficiency * this.maneuvering.design.rotationCapacity;
     }
 
     systems() {

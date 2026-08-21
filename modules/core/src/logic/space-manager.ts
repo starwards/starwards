@@ -29,6 +29,7 @@ import { DamageDelivery } from '../space/projectile';
 import { FactionIntelManager } from './faction-intel-manager';
 import { SWResponse } from './collisions-utils';
 import { SpaceDamageType } from '../space/damage-profile';
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -257,6 +258,8 @@ export class SpaceManager implements Updateable {
     }
 
     update({ deltaSeconds, totalSeconds }: IterationData) {
+        // apply GM lock/unlock commands before anything else can write a locked field this tick
+        applyLockCommands(this.state);
         this.calcAttachmentCliques();
         for (const cmd of this.state.createAsteroidCommands) {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);
