@@ -22,7 +22,7 @@ export type ShellIntercept = {
 
 /**
  * Solves the shell intercept for `chainGun` against `target`, in the firing ship's own frame.
- * @see docs/SUBSYSTEMS.md#shell-intercept-and-fuze-geometry
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
  */
 export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target: SpaceObject): ShellIntercept {
     const bulletSpeed = Math.max(chainGun.design.bulletSpeed, 1);
@@ -56,13 +56,13 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
     const shellHitLocation = getShellExplosionLocation(ship, chainGun);
     const targetLocationAtShellExplosion = getTargetLocationAtShellExplosion(chainGun, target);
     const shellDangerZoneRadius = getShellDangerZoneRadius(chainGun);
-    const aimingDistanceToTarget = XY.lengthOf(XY.difference(shellHitLocation, targetLocationAtShellExplosion));
+    const aimingDistanceToTarget = XY.distance(shellHitLocation, targetLocationAtShellExplosion);
     return aimingDistanceToTarget < shellDangerZoneRadius;
 }
 
 /**
  * Fuze setting that detonates a shell after it has covered `distance` from the muzzle.
- * @see docs/SUBSYSTEMS.md#shell-intercept-and-fuze-geometry
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
  */
 export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
     return distance / Math.max(chainGun.design.bulletSpeed, 1);

@@ -242,7 +242,7 @@ describe('SpaceManager attachments', () => {
         spaceMgr.attach('rider', 'anchor');
         tick(spaceMgr);
         // rider stays at distance 100 but rotated a quarter turn around the anchor
-        const distance = XY.lengthOf(XY.difference(rider.position, anchor.position));
+        const distance = XY.distance(rider.position, anchor.position);
         expect(distance).to.be.closeTo(100, 1);
         expect(Math.abs(rider.position.y)).to.be.closeTo(100, 1);
         expect(rider.position.x).to.be.closeTo(anchor.position.x, 1);

@@ -141,7 +141,7 @@ type Circle = {
  */
 export function circlesIntersection(subject: Circle, object: Circle): [XY, XY] | undefined {
     let objPosition = object.position;
-    if (XY.lengthOf(XY.difference(object.position, subject.position)) < subject.radius) {
+    if (XY.distance(object.position, subject.position) < subject.radius) {
         // move object to diameter of subject
         objPosition = XY.add(
             subject.position,

@@ -68,7 +68,7 @@ function runSimMinutes(
         spaceMgr.update(id);
         target.position.setValue(stationaryPosition);
         target.velocity.setValue(XY.zero);
-        const distance = XY.lengthOf(XY.difference(target.position, raiderObj.position));
+        const distance = XY.distance(target.position, raiderObj.position);
         closestApproach = Math.min(closestApproach, distance);
         if (closestApproach < 15_000) {
             captured = true;
@@ -163,7 +163,7 @@ describe('ATTACK-ordered NPC orbit capture against a real large-station target (
                     break;
                 }
                 engagementSeconds += id.deltaSeconds;
-                finalDistance = XY.lengthOf(XY.difference(target.position, raiderObj.position));
+                finalDistance = XY.distance(target.position, raiderObj.position);
                 closestApproach = Math.min(closestApproach, finalDistance);
             }
 

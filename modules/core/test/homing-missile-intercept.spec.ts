@@ -2,6 +2,7 @@ import { Asteroid, Projectile, SpaceManager, Vec2, XY, ammoDesigns } from '../sr
 
 import { expect } from 'chai';
 import fc from 'fast-check';
+import { tick } from './tick';
 
 // issue #2189: at short range a homing missile's guidance chased the target's current
 // position instead of leading it, so against a moving target the chase kept curving and
@@ -11,10 +12,6 @@ import fc from 'fast-check';
 const TARGET_RADIUS = 50;
 const LAUNCH_RANGE = 2000; // the short-range case from the bridge testplay recording
 const missileDesign = ammoDesigns.HiExpMissile;
-
-function tick(spaceMgr: SpaceManager, deltaSeconds: number) {
-    spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
-}
 
 describe('homing missile intercept (issue #2189)', () => {
     it('flies a clean intercept course against a moving target at short range, across headings and approach geometries', () => {
@@ -62,7 +59,7 @@ describe('homing missile intercept (issue #2189)', () => {
                             hit = true;
                             break;
                         }
-                        totalDistanceTravelled += XY.lengthOf(XY.difference(liveMissile.position, lastPosition));
+                        totalDistanceTravelled += XY.distance(liveMissile.position, lastPosition);
                         lastPosition = liveMissile.position.clone();
                     }
 

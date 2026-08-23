@@ -57,7 +57,7 @@ describe('solveShellIntercept', () => {
         const detonation = detonationPoint(state.position, shipVelocity, radius, aimPoint, secondsToLive);
         const targetAtDetonation = XY.add(target.position, XY.scale(target.velocity, secondsToLive));
 
-        expect(XY.lengthOf(XY.difference(detonation, targetAtDetonation))).to.be.lessThan(1);
+        expect(XY.distance(detonation, targetAtDetonation)).to.be.lessThan(1);
     });
 
     it('reports a target receding faster than the shell as unreachable, still tracking it', () => {
@@ -110,7 +110,7 @@ describe('solveShellIntercept', () => {
 
                     // A metre, against a mount whose shells reach 12km — and against the ~100m
                     // error a hull-centre solution carries at these closing speeds.
-                    expect(XY.lengthOf(XY.difference(detonation, targetAtDetonation))).to.be.lessThan(1);
+                    expect(XY.distance(detonation, targetAtDetonation)).to.be.lessThan(1);
                 },
             ),
         );

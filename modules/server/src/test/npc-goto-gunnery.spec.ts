@@ -80,7 +80,7 @@ describe('NPC given a go-to order past a hostile player ship', () => {
             }
         }
 
-        const distanceToDestination = XY.lengthOf(XY.difference(DESTINATION, npc.spaceObject.position));
+        const distanceToDestination = XY.distance(DESTINATION, npc.spaceObject.position);
         const report =
             `sawMoveOrder=${sawMoveOrder}, order=${Order[npc.state.order]}, ` +
             `distanceToDestination=${Math.round(distanceToDestination)}m, opportunityTicks=${opportunityTicks}, ` +

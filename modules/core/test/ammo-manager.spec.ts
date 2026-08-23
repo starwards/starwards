@@ -9,14 +9,11 @@ import { ammoTypes } from '../src/space/projectile';
 import { expect } from 'chai';
 import { isRestockingAmmo } from '../src/ship/ammo-manager';
 import { makeIterationsData } from './ship-test-harness';
+import { tick } from './tick';
 
 function setUpShip() {
     const state = makeShipState('test-ship', demoShip);
     return { state };
-}
-
-function tickOnce(ammoManager: AmmoManager, deltaSeconds: number) {
-    ammoManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 }
 
 function runTicks(ammoManager: AmmoManager, durationSeconds: number, ticksPerSecond: number) {
@@ -47,7 +44,7 @@ describe('AmmoManager', () => {
         const ammoManager = new AmmoManager(state);
 
         for (let i = 0; i < 50; i++) {
-            tickOnce(ammoManager, 0);
+            tick(ammoManager, 0);
         }
 
         expect(state.magazine.getCount('HiExpMissile')).to.equal(0);

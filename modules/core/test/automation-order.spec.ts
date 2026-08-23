@@ -1491,7 +1491,7 @@ describe('NPC to PC conversion', () => {
         }
 
         const velocityAfter = shipObj.velocity;
-        expect(XY.lengthOf(XY.difference(velocityAfter, velocityBefore))).to.be.greaterThan(0);
+        expect(XY.distance(velocityAfter, velocityBefore)).to.be.greaterThan(0);
     });
 
     it('PC ship after conversion does not drain all energy at idle', () => {

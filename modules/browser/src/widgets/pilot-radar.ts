@@ -127,7 +127,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) => XY.lengthOf(XY.difference(w.position, camera)) <= p.range,
+        (w) => XY.distance(w.position, camera) <= p.range,
     );
     contentElements.addChild(waypointsInRange.renderRoot);
 
@@ -138,7 +138,7 @@ export async function drawPilotRadar(spaceDriver: SpaceDriver, shipDriver: ShipD
         (w) => w.color,
         tacticalDrawWaypoints,
         undefined,
-        (w) => isOwnWaypoint(w, shipDriver.id) && XY.lengthOf(XY.difference(w.position, camera)) > p.range,
+        (w) => isOwnWaypoint(w, shipDriver.id) && XY.distance(w.position, camera) > p.range,
         (w) =>
             root.worldToScreen(
                 XY.add(camera, XY.byLengthAndDirection(p.range, XY.angleOf(XY.difference(w.position, camera)))),

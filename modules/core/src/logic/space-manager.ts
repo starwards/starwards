@@ -471,8 +471,7 @@ export class SpaceManager implements Updateable {
             if (!projectile.freeze && projectile.design.homing && projectile.targetId) {
                 const [target] = this.getObjectPtr(projectile.targetId);
                 if (target) {
-                    const distanceToTarget =
-                        XY.lengthOf(XY.difference(target.position, projectile.position)) - target.radius;
+                    const distanceToTarget = XY.distance(target.position, projectile.position) - target.radius;
                     const fuze = projectile.fuze;
                     if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
                         this.explodeProjectile(projectile);
@@ -521,9 +520,9 @@ export class SpaceManager implements Updateable {
 
                         projectile.turnSpeed += rotation * deltaSeconds * projectile.rotationCapacity;
                         if (boost > 0) {
-                            const desiredSpeed = XY.scale(
-                                XY.rotate(XY.one, projectile.angle),
+                            const desiredSpeed = XY.byLengthAndDirection(
                                 boost * deltaSeconds * homing.velocityCapacity * sprintMultiplier,
+                                projectile.angle,
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
@@ -930,5 +929,5 @@ function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: 
         object.position,
     )}(${JSON.stringify(response.b.pos)}) radius: ${JSON.stringify(object.radius)}. state distance: ${XY.lengthOf(
         XY.difference(subject.position, object.position),
-    )}. collision distance: ${XY.lengthOf(XY.difference(response.a.pos, response.b.pos))}`;
+    )}. collision distance: ${XY.distance(response.a.pos, response.b.pos)}`;
 }

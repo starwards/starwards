@@ -70,7 +70,7 @@ export function furthestStationId(
     let bestId = aliveStationIds[0];
     let bestDistance = -Infinity;
     for (const id of aliveStationIds) {
-        const distance = XY.lengthOf(XY.difference(stationPositions[id], fromPosition));
+        const distance = XY.distance(stationPositions[id], fromPosition);
         if (distance > bestDistance) {
             bestDistance = distance;
             bestId = id;
@@ -116,7 +116,7 @@ export function sampleWaveSpawnCenter(
         const bearing = radialDegrees + (rng() * 2 - 1) * SPAWN_BEARING_SPREAD_DEGREES;
         const candidate = XY.add(targetStationPosition, XY.byLengthAndDirection(WAVE_SPAWN_DISTANCE, bearing));
         const farEnoughFromEveryStation = allStationPositions.every(
-            (station) => XY.lengthOf(XY.difference(candidate, station)) >= MIN_SPAWN_DISTANCE_FROM_ANY_STATION,
+            (station) => XY.distance(candidate, station) >= MIN_SPAWN_DISTANCE_FROM_ANY_STATION,
         );
         if (farEnoughFromEveryStation) {
             return Vec2.make(candidate);

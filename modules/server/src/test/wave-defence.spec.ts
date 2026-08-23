@@ -85,7 +85,7 @@ describe('sampleWaveSpawnCenter', () => {
             for (let seed = 0; seed < 50; seed++) {
                 const center = sampleWaveSpawnCenter(station.position, allStationPositions, () => (seed + 0.5) / 50);
                 for (const other of STATIONS) {
-                    expect(XY.lengthOf(XY.difference(center, other.position))).toBeGreaterThanOrEqual(120_000);
+                    expect(XY.distance(center, other.position)).toBeGreaterThanOrEqual(120_000);
                 }
             }
         }
@@ -93,7 +93,7 @@ describe('sampleWaveSpawnCenter', () => {
 
     it('is exactly 140,000m from the targeted station', () => {
         const center = sampleWaveSpawnCenter(STATIONS[0].position, allStationPositions, () => 0.5);
-        expect(XY.lengthOf(XY.difference(center, STATIONS[0].position))).toBeCloseTo(140_000, 0);
+        expect(XY.distance(center, STATIONS[0].position)).toBeCloseTo(140_000, 0);
     });
 });
 
