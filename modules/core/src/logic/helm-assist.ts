@@ -52,9 +52,8 @@ export function moveToTarget(deltaSeconds: number, ship: Craft, targetPos: XY): 
 }
 
 /**
- * Where a straight-line course at `interceptorSpeed` meets a target drifting at constant velocity —
- * so a guidance loop can steer at where the target will be instead of where it is now. Falls back to
- * the target's current position when the interceptor is too slow to ever catch up.
+ * Point to steer at: where a straight-line course at `interceptorSpeed` meets a target drifting at
+ * constant velocity. Degrades to the target's current position when it can never be caught.
  * @see docs/SUBSYSTEMS.md#intercept-solutions
  */
 export function predictInterceptPoint(

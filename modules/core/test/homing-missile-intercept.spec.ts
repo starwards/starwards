@@ -4,10 +4,8 @@ import { expect } from 'chai';
 import fc from 'fast-check';
 import { tick } from './tick';
 
-// issue #2189: at short range a homing missile's guidance chased the target's current
-// position instead of leading it, so against a moving target the chase kept curving and
-// the missile circled the target -- sometimes for the rest of its flight -- instead of
-// flying a clean intercept course.
+// issue #2189: guidance chased the target's current position instead of leading it, so at short
+// range the missile circled the target. see: docs/SUBSYSTEMS.md#homing-missile-guidance
 
 const TARGET_RADIUS = 50;
 const LAUNCH_RANGE = 2000; // the short-range case from the bridge testplay recording
@@ -72,16 +70,8 @@ describe('homing missile intercept (issue #2189)', () => {
                     expect(totalDistanceTravelled).to.be.lessThan(LAUNCH_RANGE * 6);
                 },
             ),
-            // Seed pinned deliberately, not just for reproducibility: the guidance in
-            // calcHomingProjectiles() is a legacy bang-bang controller (alignment-threshold
-            // branch selection, not true proportional navigation), and it has a narrow residual
-            // resonance -- specific (relative heading, target speed) combinations, roughly
-            // 0.3-0.5% of a fine sweep of this input space, where the missile still grazes
-            // within ~3% of the proximity fuze radius on every pass without ever quite
-            // triggering it. A free-running seed would make this suite flaky on exactly those
-            // rare inputs. Fully eliminating that resonance needs a different guidance
-            // architecture (e.g. true proportional navigation) -- out of scope for this fix;
-            // see issue #2189's PR for the measured improvement and this known limitation.
+            // Seed pinned: the guidance retains a narrow residual resonance that a free-running
+            // seed would trip on rarely. see: docs/SUBSYSTEMS.md#homing-missile-guidance
             { numRuns: 100, seed: 2189 },
         );
     });

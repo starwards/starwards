@@ -477,11 +477,8 @@ export class SpaceManager implements Updateable {
                         this.explodeProjectile(projectile);
                     } else {
                         const homing = projectile.design.homing;
-                        // steer at the target's projected position, not its current one -- aiming
-                        // at "now" against a moving target turns the chase into an ever-curving
-                        // pursuit that can circle the target instead of ever closing on it. The lead
-                        // assumes the missile can reach full sprint speed, since that's the speed
-                        // it'll actually be closing at once it's on-course (see sprintMultiplier).
+                        // lead at sprint speed: that's what it closes at once on-course.
+                        // see: docs/SUBSYSTEMS.md#homing-missile-guidance
                         const leadSpeed = homing.sprint
                             ? homing.maxSpeed * homing.sprint.speedMultiplier
                             : homing.maxSpeed;
@@ -490,12 +487,8 @@ export class SpaceManager implements Updateable {
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
-                        // terminal sprint: dramatic acceleration burst once inside the sprint range --
-                        // but only once the missile is actually tracking the lead point. At sprint
-                        // speed the missile's own turn radius exceeds a short-range engagement, so
-                        // sprinting while still badly misaligned overshoots into a wide loop instead
-                        // of a clean intercept (the orbiting bug). Gating sprint on alignment keeps
-                        // the correction phase at cruise speed's much tighter turn radius.
+                        // sprint only once tracking the lead point: sprint turn radius exceeds a
+                        // short-range engagement. see: docs/SUBSYSTEMS.md#homing-missile-guidance
                         const onCourse = Math.abs(velocityDestinationDiff) < 35;
                         const sprintMultiplier =
                             homing.sprint && onCourse && distanceToTarget < homing.sprint.range

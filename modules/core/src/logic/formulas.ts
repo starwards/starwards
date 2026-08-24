@@ -274,32 +274,15 @@ export function safeDiv(a: number, b: number) {
 
 export const degToRad = Math.PI / 180;
 
-/** Below this |a| a quadratic is treated as linear. Relative to `speed²`, the scale `a` is measured on. */
+/** Below this |a|, relative to `expansionSpeed²`, the quadratic is solved as a linear equasion. */
 const DEGENERATE_QUADRATIC_EPSILON = 1e-6;
-
-/**
- * Smallest strictly positive real root of `a·t² + b·t + c = 0`, or `null` when there is none.
- * `degenerateBound` is the |a| below which the equasion is solved as the linear `b·t + c = 0`.
- */
-export function smallestPositiveRoot(a: number, b: number, c: number, degenerateBound = 0): number | null {
-    if (Math.abs(a) < degenerateBound) {
-        const linear = -c / b;
-        return isFinite(linear) && linear > 0 ? linear : null;
-    }
-    const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) {
-        return null;
-    }
-    const sqrt = Math.sqrt(discriminant);
-    const roots = [(-b - sqrt) / (2 * a), (-b + sqrt) / (2 * a)].filter((r) => isFinite(r) && r > 0);
-    return roots.length ? Math.min(...roots) : null;
-}
 
 /**
  * Time at which a point that starts at `relativePosition` and drifts at constant `relativeVelocity`
  * first comes within `separation` of a front expanding from the origin at `expansionSpeed`:
  * the smallest positive `t` solving `|relativePosition + relativeVelocity·t| = separation + expansionSpeed·t`.
  * `null` when no such `t` exists — the point outruns the front and is never reached.
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
  */
 export function timeToIntercept(
     relativePosition: XY,
@@ -310,5 +293,15 @@ export function timeToIntercept(
     const a = XY.dot(relativeVelocity, relativeVelocity) - expansionSpeed * expansionSpeed;
     const b = 2 * XY.dot(relativePosition, relativeVelocity) - 2 * separation * expansionSpeed;
     const c = XY.dot(relativePosition, relativePosition) - separation * separation;
-    return smallestPositiveRoot(a, b, c, DEGENERATE_QUADRATIC_EPSILON * expansionSpeed * expansionSpeed);
+    if (Math.abs(a) < DEGENERATE_QUADRATIC_EPSILON * expansionSpeed * expansionSpeed) {
+        const linear = -c / b;
+        return isFinite(linear) && linear > 0 ? linear : null;
+    }
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return null;
+    }
+    const sqrt = Math.sqrt(discriminant);
+    const roots = [(-b - sqrt) / (2 * a), (-b + sqrt) / (2 * a)].filter((r) => isFinite(r) && r > 0);
+    return roots.length ? Math.min(...roots) : null;
 }
