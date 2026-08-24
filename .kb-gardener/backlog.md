@@ -52,6 +52,15 @@ Rules that are noise against this KB and are discarded wholesale at triage, not 
 
 ## won't do
 
+- [broken-reference] docs/AUTHORING.md — `modules/core/src/game-field.ts:261` appears only as the ❌ counter-example in the rule that forbids line-number links. The file exists; the `:261` suffix is the point. Tool cannot see the ❌ framing. (kb-gardener)
+- [stale-doc] docs/MS3/SIGNALS_JOBS_DESIGN.md — `MS3/` is tiered **Historical** in `docs/README.md` (Nov 2025 corpus, superseded by decision 004). Elapsed time is expected, not drift. (kb-gardener)
+- [stale-doc] docs/MS3/WARP_FREQUENCY_TOPOLOGY_IMPLEMENTATION.md — same: Historical tier. (kb-gardener)
+- [stale-doc] docs/reference/ARWES_COMPONENTS_RESOURCES.md — `reference/` is tiered **Reference**: vendor dumps tracking upstream, not this codebase. (kb-gardener)
+- [stale-doc] docs/reference/ARWES_VERSION_MIGRATION_GUIDE.md — same: Reference tier. (kb-gardener)
+- [stale-doc] docs/reference/BLOG_SUMMARY07-11-2025.md — a dated summary of the dev blog; it is a snapshot, and snapshots do not go stale. (kb-gardener)
+- [broken-reference] docs/bridge-playtest/ee-reference/bridge-game-design-2-Mini-Games-and-Per-Station-Interactions.md — anchor `#relay--operations-station` resolves correctly against the `## Relay / Operations Station` heading under GitHub slug rules. Tool's slugifier drops the doubled dash. (kb-gardener)
+- [duplication] docs/design/CLAUDE.md — shares the title "CLAUDE.md" with the root guide by design; folder-scoped agent guides are named for the tool that loads them. (kb-gardener)
+
 - [stale-doc] docs/standards/standards-naming.md — the body is a verbatim quote of Google's filename style guide. It tracks an upstream document, not this codebase, so elapsed time since the last edit carries no drift signal. Its `Live` tier in `docs/README.md` is what is wrong, and re-tiering the whole `standards/` row is not this item. (kb-gardener)
 
 - [stale-doc] docs/integration/extending-ship-systems.md — the `shield.ts` / `shield-manager.ts` / `widgets/shield.ts` paths are inside the "Add a ship system" walkthrough, which invents a shield system as its worked example. Nothing claims those files exist. (kb-gardener)
