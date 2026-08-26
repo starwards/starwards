@@ -9,8 +9,7 @@ Nothing here describes Starwards' own behaviour; for that, see the [docs index](
 | Doc | Covers |
 |---|---|
 | [`open-stage-control-reference.md`](open-stage-control-reference.md) | Open Stage Control — widgets, custom modules, OSC routing. Used by the `osc-controllers` skill. |
-| [`arwes-framework-guide.md`](arwes-framework-guide.md) | ARWES sci-fi UI framework overview. |
-| [`ARWES_INTEGRATION_GUIDE.md`](ARWES_INTEGRATION_GUIDE.md) | Integrating ARWES into this codebase. |
+| [`arwes-framework-guide.md`](arwes-framework-guide.md) | ARWES sci-fi UI framework overview and integration into this codebase. |
 | [`ARWES_VERSION_MIGRATION_GUIDE.md`](ARWES_VERSION_MIGRATION_GUIDE.md) | ARWES version migration notes. |
 | [`ARWES_COMPONENTS_RESOURCES.md`](ARWES_COMPONENTS_RESOURCES.md) | ARWES component/library research notes. |
 | [`BLOG_SUMMARY07-11-2025.md`](BLOG_SUMMARY07-11-2025.md) | Summary of the dev blog as of 2025-11-07. |

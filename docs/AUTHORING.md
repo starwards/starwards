@@ -45,7 +45,7 @@ Dependency versions live in `package.json`. [`DEPENDENCIES.md`](DEPENDENCIES.md)
 to the dependency by name and links there — no version number:
 
 - ✅ "Colyseus (see [DEPENDENCIES.md](DEPENDENCIES.md))"
-- ❌ "Colyseus v0.16" / "pixi.js ^8.14.0" sprinkled across PROJECT_ANALYSIS, LLM_CONTEXT, specs…
+- ❌ "Colyseus v0.16" / "pixi.js ^8.14.0" sprinkled across LLM_CONTEXT, ARCHITECTURE, specs…
 
 A bare major-version label is acceptable only where it is the *subject* of the sentence and
 cannot be expressed otherwise; prefer the pointer.
@@ -92,12 +92,27 @@ Much of the KB predates this rule and uses `SCREAMING_SNAKE.md`. **Do not mass-r
 inbound links from code comments, skills, and CI config would break for no functional gain.
 Legacy names are tolerated; only new files must conform.
 
+### Rule 7 — one concern per note
+
+A note covers one subject a reader would go looking for by name. If its `##` sections would sit
+happily in separate files, split it and link the parts from the owning hub. A doc that mixes four
+topics can only carry one `last_verified` date, one `depth`, and one `source_of_truth` list — so
+drift in one section hides behind the freshness of the others.
+
+Two exceptions:
+
+- **Reference manuals** that apply one template across many sub-items (`specs/*_SPEC.md`,
+  `standards/*`) are a single concern however long they get.
+- **Anchor targets cited from source comments** — [`SUBSYSTEMS.md`](SUBSYSTEMS.md) (`@see
+  docs/SUBSYSTEMS.md#...` across `modules/core/src/ship/`) and [`json-ptr.md`](json-ptr.md)
+  (ESLint config, core source, tests) — are frozen. Extend them; don't restructure them.
+
 ## Frontmatter
 
 Entry-point and deep, code-mapped docs carry YAML frontmatter so agents and the staleness
 sweep can route deterministically. Add it to: the agent entry points, `ARCHITECTURE.md`,
 `API_REFERENCE.md`, `SUBSYSTEMS.md`, `PATTERNS.md`, `TECHNICAL_REFERENCE.md`, `PHYSICS.md`,
-`DEPENDENCIES.md`, `PROJECT_ANALYSIS.md`, `specs/*.md`, and `testing/UTILITIES.md`.
+`DEPENDENCIES.md`, `specs/*.md`, and `testing/UTILITIES.md`.
 
 Do **not** add frontmatter to design/PM docs, playtest notes, decision records, or the vendor
 dumps under `reference/` — they are "light" and over-tagging just creates more to keep current.
@@ -140,4 +155,7 @@ grep -nE 'v0\.[0-9]|pixi.*v[0-9]|React [0-9]' docs/THE_FILE.md
 
 # Rule 5 — no machine-specific absolute paths
 grep -nE '/data/Workspace|[A-Z]:\\\\Workspace' docs/THE_FILE.md
+
+# Rule 7 — a long list of top-level sections is a smell, not a verdict
+grep -c '^## ' docs/THE_FILE.md
 ```

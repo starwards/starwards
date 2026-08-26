@@ -1,6 +1,6 @@
 import { Add, Event, Primitive, Remove, Replace, wireEvents } from 'colyseus-events';
 import { EventEmitter, RoomEventEmitter } from '..';
-import { StateCommand, sendJsonCmd } from '../commands';
+import { StateCommand, sendGmJsonCmd, sendJsonCmd } from '../commands';
 
 import EventEmitter2 from 'eventemitter2';
 import { Room } from 'colyseus.js';
@@ -47,6 +47,10 @@ export async function SpaceDriver(spaceRoom: Room<SpaceState>) {
             return spaceRoom.state;
         },
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(spaceRoom, pointerStr, value),
+        // GM tweak panel's write channel: bypasses the property lock (see lock-registry.ts
+        // withLockBypass) so the GM's operational decision always overrides it. Every other
+        // writer must keep using sendJsonCmd.
+        sendGmJsonCmd: (pointerStr: string, value: Primitive) => sendGmJsonCmd(spaceRoom, pointerStr, value),
         command: <T>(cmd: StateCommand<T, SpaceState, void>, value: T) => {
             spaceRoom.send(cmd.cmdName, { value, path: undefined });
         },

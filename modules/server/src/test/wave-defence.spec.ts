@@ -384,3 +384,34 @@ describe('station radar power (issue #2084 design redirect)', () => {
         expect(player.state.radars.every((radar) => radar.power === PowerLevel.NORMAL)).toBe(true);
     });
 });
+
+describe('weapon platforms always auto-engage (issue #2145)', () => {
+    const gameDriver = makeDriver();
+    const stationPlatformPosition = Vec2.make(stationPositionsById['station-platform']);
+
+    it('station-platform opens fire on a raider inside its weapon envelope with no orderAttack given', async () => {
+        const map = createWaveDefenceMap(() => 0);
+        await gameDriver.gameManager.startGame(map);
+
+        gameDriver.gameManager.scriptApi.addNpcSpaceship(
+            new Spaceship().init(
+                makeId(),
+                Vec2.make(XY.add(stationPlatformPosition, XY.byLengthAndDirection(5_000, 0))),
+                'dragonfly-MK1',
+                Faction.Raiders,
+            ),
+        );
+
+        // A freshly-spawned NPC's systems ramp up to full effectiveness over ~1 sim-second before
+        // the chain gun can actually fire; give it comfortably more than that.
+        for (let i = 0; i < 40; i++) {
+            gameDriver.gameManager.update(1 / 20);
+        }
+
+        const platform = gameDriver.getShip('station-platform');
+        // Stations never receive an order; idleStrategy STAND_GROUND (set explicitly in
+        // wave-defence's init) is what makes gunnery fire without one.
+        expect(platform.state.order).toEqual(Order.NONE);
+        expect(platform.state.chainGuns[0]?.isFiring).toBe(true);
+    });
+});
