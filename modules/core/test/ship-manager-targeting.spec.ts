@@ -243,6 +243,46 @@ describe('ShipManager weapons target lifecycle', () => {
         expect(mgr.state.weaponsTarget.targetId).to.equal(null);
         expect(mgr.weaponsTarget).to.equal(null);
     });
+
+    it('the occlusion grace timer resets once the target is visible again', () => {
+        const { spaceMgr, makeShipMgr, flush } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.setTarget('c');
+
+        let t = 0;
+        const tick = (dt: number) => ({ deltaSeconds: dt, deltaSecondsAvg: dt, totalSeconds: (t += dt) });
+        const run = (ticks: number) => {
+            for (let i = 0; i < ticks; i++) {
+                mgr.update(tick(0.3));
+                spaceMgr.update(tick(0.3));
+            }
+        };
+        const occlude = (id: string) => {
+            const blast = new Explosion().init(id, Vec2.make({ x: 500, y: 0 }), 20);
+            blast.radius = 100;
+            blast.expansionSpeed = 0;
+            blast.secondsToLive = 100;
+            spaceMgr.insert(blast);
+            flush();
+        };
+
+        // two occlusions of 0.6s each: under the grace window separately, over it if the timer
+        // were to carry across the clear stretch between them
+        occlude('blast');
+        run(3);
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+
+        spaceMgr.destroyObject('blast');
+        spaceMgr.forceFlushDestroyed();
+        run(2); // line of sight restored -- the accumulated occlusion must be forgotten
+
+        occlude('blast2');
+        run(3);
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+        expect(mgr.weaponsTarget?.id).to.equal('c');
+    });
 });
 
 describe('ShipManager targeted status', () => {
