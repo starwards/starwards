@@ -201,7 +201,7 @@ describe('proximity-fuzed warheads (issue #1976)', () => {
         );
         const explosions = [...spaceMgr.state.getAll('Explosion')];
         expect(explosions).to.have.lengthOf(1);
-        const distanceFromHull = XY.lengthOf(XY.difference(explosions[0].position, ship.position)) - ship.radius;
+        const distanceFromHull = XY.distance(explosions[0].position, ship.position) - ship.radius;
         expect(distanceFromHull).to.be.greaterThan(shell.radius); // never actually touched the hull
     });
 

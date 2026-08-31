@@ -59,46 +59,7 @@ now, maintainers must enforce manually and respect the label.)
 the GitHub org and add maintainers to it. Until then, replace the team
 with explicit `@username` entries so reviews are actually requested.
 
-## Follow-up work
+## Related
 
-These items are independent of each other and can be tackled in any order.
-
-### 1. Core kernel test backfill
-
-The highest-risk source files have thin or no dedicated test coverage:
-
-| File                   | LOC | Tests today        | What to cover                                                                                 |
-| ---------------------- | --- | ------------------ | --------------------------------------------------------------------------------------------- |
-| `space-manager.ts`     | 798 | 2 files (46 tests) | `setPosition`/`updateAABB` ordering; MapSchema delete semantics                               |
-| `movement-manager.ts`  | 431 | 4                  | Dock alignment, additional thrust-vector edge cases (thrust/strafe/brake/afterburner covered) |
-| `chain-gun-manager.ts` | 200 | 1 file (5 tests)   | Cooldown, jam, reload state machine (ammo decrement/switching covered)                        |
-
-E2E gaps: a Playwright equivalent of the two-clients-on-same-ship scenario (one writes a `@commandable` property, the other observes). This scenario already has server-side coverage in `modules/server/src/test/multi-client-sync.spec.ts`; only a browser-level E2E remains outstanding.
-
-### 2. Coverage ratchet
-
-The `coverage-core` CI job is currently at 69% lines / 58% functions /
-51% branches / 69% statements. Bump the thresholds by +5 points per
-release until diminishing returns. The thresholds live in the
-`test:coverage:core` script in the root `package.json`.
-
-## Non-goal: malicious-player isolation
-
-The `@commandable()` whitelist is **accidental-exposure protection**, not
-adversarial-player containment.
-
-Today's `ShipRoom` (`modules/server/src/ship/room.ts`) has no
-connection-level GM-vs-player identity: GM and players join the same room
-and send through the same `onMessage('*')` handler. The whitelist's
-GM-side admissions (`@tweakable` + `DesignState`) are therefore reachable
-from any client — a determined attacker can abuse the GM tweak surface
-from a player seat.
-
-This is an **accepted limitation** of the current architecture. The value
-of the whitelist is that a contributor who adds a bare `@gameField` for
-sync purposes does NOT get an accidental wire-write handle for free.
-Closing the adversarial gap would require a connection-level role split
-(`ShipRoom.onAuth`, distinct message channels, or session tokens) — a
-scope that touches server, lobby, and every station screen. Starwards is
-a LARP prop used among trusted players; that cost is not justified by the
-threat model.
+- Test-coverage backfill targets and the coverage ratchet: [testing/coverage-strategy.md](testing/coverage-strategy.md)
+- Why the `@commandable()` whitelist is not adversarial containment: [design/decisions/014-commandable-is-not-containment.md](design/decisions/014-commandable-is-not-containment.md)

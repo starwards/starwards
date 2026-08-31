@@ -1,15 +1,12 @@
 import { Derelict, Faction, SpaceManager, Spaceship, Vec2 } from '../src';
 
 import { expect } from 'chai';
+import { tick } from './tick';
 
 // Behavior tests for issue #2111: an NPC ship's systems-broken death converts it into a
 // Derelict at the same position instead of vanishing.
 
 const GENERIC_SHIP_RADIUS = 50;
-
-function tick(spaceMgr: SpaceManager, deltaSeconds = 1) {
-    spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
-}
 
 function makeShip(id: string, x = 0, y = 0, faction = Faction.Raiders) {
     const ship = new Spaceship();

@@ -6,7 +6,6 @@ source_of_truth:
   - modules/core/package.json
   - modules/browser/package.json
 related:
-  - PROJECT_ANALYSIS.md
 last_verified: 2026-07-04
 ---
 

@@ -17,16 +17,20 @@ Internal coherence over convenience. No energy shields - armor plates absorb dam
 ## LARP-Specific Needs
 
 ### TPK Control
+
 Game rules never auto-destroy player ships. Total Party Kill is a GM decision, not a dice roll. Ship destruction ends games prematurely in LARP contexts.
 
 ### Malfunction Over Destruction
+
 Damage causes malfunctions that handicap but don't eliminate:
+
 - **Soft problems:** Increase malfunction probability, don't hinder performance
 - **Hard problems:** Directly reduce system effectiveness
 
 Players diagnose and mitigate problems, creating gameplay opportunities.
 
 ### Platform Flexibility
+
 Modular widget-based screens. Organizers drag-and-drop components for custom stations. Different LARP scales need different interfaces.
 
 ## UI Philosophy
@@ -38,6 +42,7 @@ Screens display information with minimal interactive elements. Physical controls
 ## Three Engagement Circles
 
 Weapons belong to effectiveness ranges:
+
 1. **Close:** CIWS chaingun, high rate of fire, airburst rounds
 2. **Intermediate:** Railguns, charge time limits close use, dodgeable at long range
 3. **Long:** Self-propelled torpedoes with guidance
@@ -55,6 +60,7 @@ Simple formula, deep tactics. Energy allocation, heat management, and cyber warf
 **Lean Milestones:** Achieve MVP, then advance. Avoid tunnel vision on single features.
 
 **Milestone Selection Criteria:**
+
 1. Primary game mechanic (repeated player activity)
 2. Team has solid grasp of desired feel
 3. Independent of undesigned mechanisms
@@ -62,3 +68,5 @@ Simple formula, deep tactics. Energy allocation, heat management, and cyber warf
 5. Packageable as testable experience
 
 **Example:** Dogfight milestone drove steering, maneuvering, aiming, ballistics - branching later to complex combat, larger ships, GM tools.
+
+**Example:** the dogfight milestone drove steering, manoeuvring, aiming and ballistics — branching later into complex combat, larger ships and GM tools.

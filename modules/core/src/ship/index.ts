@@ -6,6 +6,8 @@ export * from './attack-resolution-manager';
 export * from './chain-gun';
 export * from './damage-manager';
 export * from './docking';
+export * from './flight-doctrine';
+export * from './flight-profile';
 export * from './make-ship-state';
 export * from './radar';
 export * from './reactor';
