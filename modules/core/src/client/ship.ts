@@ -57,6 +57,12 @@ export async function ShipDriver(shipRoom: Room<ShipState>) {
                 events.emit(`${system.pointer}/bearingCommand`, e);
             });
         }
+        // `ShipState.healthRatio` (issue #2191) is derived from every system's `broken` getter, so
+        // it must re-fire whenever any one of them does -- same bridging as the two synthetic
+        // events above, needed because colyseus change tracking only fires for real schema fields.
+        events.on(`${system.pointer}/broken`, (e) => {
+            events.emit(`/healthRatio`, e);
+        });
     }
     return {
         events,
