@@ -104,27 +104,59 @@ the range the gunner sets, the range the shell flies and the kill-zone ring draw
 now describe the same distance. On a large hull this was previously an overshoot of the ship's whole
 radius, which is why a big station could miss a target sitting squarely in its envelope.
 
-### Shell intercept and fuze geometry
+### Intercept solutions
 
-`solveShellIntercept()` in `modules/core/src/logic/gunner-assist.ts` answers, for one mount against
-one target, where to point and how long the shell must live.
+Both a chain-gun shell and a homing missile have to answer the same question: where will a moving
+target be when I get there? `timeToIntercept()` in `modules/core/src/logic/formulas.ts` is that
+answer, and it is the only place the math lives.
 
-A shell leaves the muzzle — `ship.radius` along the firing line `û`, not the hull centre — at
-`ship.velocity + bulletSpeed · û`, so after `T` it sits at
-`ship.position + (ship.radius + bulletSpeed · T) · û + ship.velocity · T`. Putting that on the
-target's predicted position leaves the aim point at `target.position + w · T`, where `w` is the
-target's velocity *relative to the firing ship*, under the range condition
-`|aimPoint − ship.position| = ship.radius + bulletSpeed · T`.
+It solves, for the smallest positive `t`,
+`|relativePosition + relativeVelocity · t| = separation + expansionSpeed · t` — a point drifting at
+constant velocity meeting a front expanding from the origin. Squaring gives a quadratic in `t`,
+solved in closed form for its smallest positive root. Iterative refinement (what this replaced)
+diverges once the target's relative speed approaches the interceptor's — exactly the fast-transit
+case that needs the answer most. `null` means no positive root: the target outruns the front and is
+never reached.
 
-The speed here is the *muzzle* speed: in the ship's own frame that is all the shell has, which is
-what keeps the fuze, the aim point and `getKillZoneRadiusRange()` describing the same distance. `T`
-is therefore the fuze setting directly — the shell's own time of flight, measured from the muzzle.
+Two callers, each a thin wrapper:
 
-Squaring the range condition gives a quadratic in `T`, solved in closed form. Iterative refinement
-(what this replaced) diverges once `|w|` approaches muzzle speed — exactly the fast-transit case
-that needs the answer most. When no positive root exists the target outruns the shell: the result is
-marked unreachable and degrades to tracking the target's present position, so the hull may still
-turn toward it but no caller commits the shot.
+**`solveShellIntercept()`** (`gunner-assist.ts`) answers, for one mount against one target, where to
+point and how long the shell must live. A shell leaves the muzzle — `ship.radius` along the firing
+line `û`, not the hull centre — at `ship.velocity + bulletSpeed · û`, so after `T` it sits at
+`ship.position + (ship.radius + bulletSpeed · T) · û + ship.velocity · T`. Hence `separation` is
+`ship.radius` and the velocity is the target's _relative to the firing ship_; the speed is the
+_muzzle_ speed, which in the ship's own frame is all the shell has. That is what keeps the fuze, the
+aim point and `getKillZoneRadiusRange()` describing the same distance, and makes `T` the fuze setting
+directly — the shell's own time of flight, measured from the muzzle. When there is no solution the
+result is marked unreachable and degrades to tracking the target's present position, so the hull may
+still turn toward it but no caller commits the shot.
+
+**`predictInterceptPoint()`** (`helm-assist.ts`) gives a guidance loop the point to steer at. The
+missile's own velocity is not a free parameter here — it flies where it is pointed — so it passes the
+target's absolute velocity, zero separation, and its own sprint speed, which is what it will actually
+be closing at once on-course. No solution degrades to the target's current position. Steering at
+"now" instead of the lead point is what made short-range missiles orbit their target (issue #2189).
+
+### Homing missile guidance
+
+`calcHomingProjectiles()` in `modules/core/src/logic/space-manager.ts` flies every homing projectile.
+
+It steers at `predictInterceptPoint()`'s lead point rather than the target's current position. Aiming
+at "now" against a moving target turns the chase into an ever-curving pursuit that can circle the
+target instead of ever closing on it — the orbiting bug of issue #2189. The lead is computed at full
+sprint speed, since that is what the missile actually closes at once it is on-course.
+
+The terminal sprint is gated on that alignment, not on range alone. At sprint speed the missile's own
+turn radius exceeds a short-range engagement, so sprinting while still badly misaligned overshoots
+into a wide loop instead of a clean intercept. Gating on alignment keeps the correction phase at
+cruise speed's much tighter turn radius.
+
+The controller itself is legacy bang-bang — alignment-threshold branch selection, not true
+proportional navigation — and it retains a narrow residual resonance: specific combinations of
+relative heading and target speed, roughly 0.3-0.5% of a fine sweep of that input space, where the
+missile grazes within ~3% of the proximity fuze radius on every pass without triggering it.
+`homing-missile-intercept.spec.ts` pins its fast-check seed for that reason, and eliminating the
+resonance needs a different guidance architecture.
 
 ### Flight doctrine
 

@@ -375,7 +375,7 @@ export class AutomationManager implements Updateable {
                 const baseRange = capToRange(
                     chainGun.design.minShellRange,
                     chainGun.design.maxShellRange,
-                    XY.lengthOf(XY.difference(target.position, this.state.position)),
+                    XY.distance(target.position, this.state.position),
                 );
                 chainGun.shellRange = capToRange(-1, 1, (desiredRange - baseRange) / aimRange);
             } else {
@@ -767,7 +767,7 @@ export class AutomationManager implements Updateable {
         const profile = this.getFlightProfile();
         let target = this.gunneryTargetId ? this.spaceManager.state.get(this.gunneryTargetId) || null : null;
         if (target) {
-            const distance = XY.lengthOf(XY.difference(target.position, this.state.position));
+            const distance = XY.distance(target.position, this.state.position);
             if (target.destroyed || target.id === excludeId || !profile.isReachable(distance)) {
                 target = null;
             }
@@ -843,7 +843,7 @@ export class AutomationManager implements Updateable {
             ) {
                 continue;
             }
-            const distance = XY.lengthOf(XY.difference(candidate.position, this.state.position));
+            const distance = XY.distance(candidate.position, this.state.position);
             const reachable = profile.isReachable(distance);
             if (reachable && distance < nearestDistance) {
                 nearestDistance = distance;

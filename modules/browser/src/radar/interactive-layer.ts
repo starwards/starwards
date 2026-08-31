@@ -108,7 +108,7 @@ export class InteractiveLayer {
         // is nearly impossible to click, since the grace margin below is sized for small objects.
         const graceDistance = InteractiveLayer.selectPointGrace / this.parent.camera.zoom;
         for (const spaceObject of objects) {
-            const distance = XY.lengthOf(XY.difference(pointInWorld, spaceObject.position));
+            const distance = XY.distance(pointInWorld, spaceObject.position);
             if (distance <= spaceObject.radius + graceDistance) {
                 return spaceObject;
             }

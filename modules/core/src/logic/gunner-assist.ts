@@ -1,12 +1,10 @@
 import { ChainGun, ShipState } from '../ship';
-import { RTuple2, addScale, degToRad } from './formulas';
+import { RTuple2, addScale, degToRad, timeToIntercept } from './formulas';
 import { SpaceObject, ammoDesigns, blastRadius } from '../space';
 
 import { XY } from './xy';
 
 const MAX_INTERCEPT_SECONDS = 100;
-/** Below this `a` the quadratic is linear. Relative to `bulletSpeed²`, the scale `a` is measured on. */
-const INTERCEPT_DEGENERATE_EPSILON = 1e-6;
 
 /** Where a mount must point, and for how long its shell must live, to hit a target. */
 export type ShellIntercept = {
@@ -24,17 +22,14 @@ export type ShellIntercept = {
 
 /**
  * Solves the shell intercept for `chainGun` against `target`, in the firing ship's own frame.
- * @see docs/SUBSYSTEMS.md#shell-intercept-and-fuze-geometry
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
  */
 export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target: SpaceObject): ShellIntercept {
     const bulletSpeed = Math.max(chainGun.design.bulletSpeed, 1);
     const shipToTarget = XY.difference(target.position, ship.position);
     const relativeVelocity = XY.difference(target.velocity, ship.velocity);
-    // |shipToTarget + w·T| = radius + bulletSpeed·T  =>  a·T² + b·T + c = 0
-    const a = XY.dot(relativeVelocity, relativeVelocity) - bulletSpeed * bulletSpeed;
-    const b = 2 * XY.dot(shipToTarget, relativeVelocity) - 2 * ship.radius * bulletSpeed;
-    const c = XY.dot(shipToTarget, shipToTarget) - ship.radius * ship.radius;
-    const secondsToLive = smallestPositiveRoot(a, b, c, INTERCEPT_DEGENERATE_EPSILON * bulletSpeed * bulletSpeed);
+    // the shell leaves the hull, so the firing line expands from `ship.radius` outward
+    const secondsToLive = timeToIntercept(shipToTarget, relativeVelocity, bulletSpeed, ship.radius);
     if (secondsToLive === null || secondsToLive > MAX_INTERCEPT_SECONDS) {
         return {
             secondsToLive: Math.max(0, XY.lengthOf(shipToTarget) - ship.radius) / bulletSpeed,
@@ -46,20 +41,6 @@ export function solveShellIntercept(ship: ShipState, chainGun: ChainGun, target:
     return XY.isFinite(aimPoint)
         ? { secondsToLive, aimPoint, reachable: true }
         : { secondsToLive, aimPoint: target.position, reachable: false };
-}
-
-function smallestPositiveRoot(a: number, b: number, c: number, degenerateBound: number): number | null {
-    if (Math.abs(a) < degenerateBound) {
-        const linear = -c / b;
-        return isFinite(linear) && linear > 0 ? linear : null;
-    }
-    const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) {
-        return null;
-    }
-    const sqrt = Math.sqrt(discriminant);
-    const roots = [(-b - sqrt) / (2 * a), (-b + sqrt) / (2 * a)].filter((r) => isFinite(r) && r > 0);
-    return roots.length ? Math.min(...roots) : null;
 }
 
 export function getKillZoneRadiusRange(chainGun: ChainGun): RTuple2 {
@@ -75,13 +56,13 @@ export function isTargetInKillZone(ship: ShipState, chainGun: ChainGun, target: 
     const shellHitLocation = getShellExplosionLocation(ship, chainGun);
     const targetLocationAtShellExplosion = getTargetLocationAtShellExplosion(chainGun, target);
     const shellDangerZoneRadius = getShellDangerZoneRadius(chainGun);
-    const aimingDistanceToTarget = XY.lengthOf(XY.difference(shellHitLocation, targetLocationAtShellExplosion));
+    const aimingDistanceToTarget = XY.distance(shellHitLocation, targetLocationAtShellExplosion);
     return aimingDistanceToTarget < shellDangerZoneRadius;
 }
 
 /**
  * Fuze setting that detonates a shell after it has covered `distance` from the muzzle.
- * @see docs/SUBSYSTEMS.md#shell-intercept-and-fuze-geometry
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
  */
 export function calcShellSecondsToLive(chainGun: ChainGun, distance: number) {
     return distance / Math.max(chainGun.design.bulletSpeed, 1);

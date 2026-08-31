@@ -1,5 +1,14 @@
 import { ShipDirection, vector2ShipDirections } from '../ship/ship-direction';
-import { capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
+import {
+    addScale,
+    capToRange,
+    equasionOfMotion,
+    lerp,
+    sign,
+    timeToIntercept,
+    toDegreesDelta,
+    whereWillItStop,
+} from './formulas';
 
 import { ShipState } from '../ship';
 import { XY } from './xy';
@@ -40,6 +49,25 @@ export function moveToTarget(deltaSeconds: number, ship: Craft, targetPos: XY): 
         strafe: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.y), velocity.y, posDiff.y),
         boost: accelerateToPosition(deltaSeconds, ship.velocityCapacity(velocityDirection.x), velocity.x, posDiff.x),
     };
+}
+
+/**
+ * Point to steer at: where a straight-line course at `interceptorSpeed` meets a target drifting at
+ * constant velocity. Degrades to the target's current position when it can never be caught.
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
+ */
+export function predictInterceptPoint(
+    interceptorPosition: XY,
+    interceptorSpeed: number,
+    target: { position: XY; velocity: XY },
+): XY {
+    const time = timeToIntercept(
+        XY.difference(target.position, interceptorPosition),
+        target.velocity,
+        interceptorSpeed,
+    );
+    const aimPoint = time === null ? target.position : addScale(target.position, target.velocity, time);
+    return XY.isFinite(aimPoint) ? aimPoint : target.position;
 }
 
 export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY, offset: number): number {
