@@ -62,6 +62,7 @@ function frontDamage(
 ): AttackDamage {
     return {
         id: 'd-1',
+        shipId: '',
         amount,
         damageSurfaceArc: [...FRONT_ARC],
         damageDurationSeconds: 1,
@@ -254,6 +255,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             }
             damageManager.takeWeaponDamage({
                 id: 'd-1',
+                shipId: '',
                 amount: 1000,
                 damageSurfaceArc: [-45, 135],
                 damageDurationSeconds: 1,
@@ -420,6 +422,7 @@ describe('damage-manager × armor design stats (issue #1929)', () => {
             const before = state.armor.armorPlates[0].layers[0].health;
             const collision: Damage = {
                 id: 'collision-1',
+                shipId: '',
                 amount: 100,
                 damageSurfaceArc: [...FRONT_ARC],
                 damageDurationSeconds: 1,
