@@ -1,5 +1,6 @@
 import {
     Asteroid,
+    Explosion,
     Faction,
     PowerLevel,
     ShipManagerPc,
@@ -194,6 +195,78 @@ describe('ShipManager weapons target lifecycle', () => {
         mgr.handleTargetCommands();
         expect(mgr.state.weaponsTarget.targetId).to.equal(null);
         expect(mgr.state.weaponsTarget.clearTargetCommand).to.equal(false);
+    });
+});
+
+describe('ShipManager weapons target survives momentary occlusion', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it('a brief occlusion (e.g. an explosion) does not drop the lock', () => {
+        const { spaceMgr, makeShipMgr, flush, runTick } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.setTarget('c');
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+
+        // a blast on the direct bearing to 'c', close enough and wide enough to occlude it
+        const blast = new Explosion().init('blast', Vec2.make({ x: 500, y: 0 }), 1);
+        blast.radius = 100;
+        spaceMgr.insert(blast);
+        flush();
+
+        runTick(mgr); // 1 simulated second under occlusion — still short of the grace window
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+        expect(mgr.weaponsTarget).to.not.equal(null);
+    });
+
+    it('sustained occlusion still drops the lock', () => {
+        const { spaceMgr, makeShipMgr, flush, runTick } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.setTarget('c');
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+
+        // a permanent obstruction (not a transient blast) on the direct bearing to 'c'
+        const rock = new Asteroid().init('rock', Vec2.make({ x: 500, y: 0 }), 100);
+        spaceMgr.insert(rock);
+        flush();
+
+        for (let i = 0; i < 5; i++) {
+            runTick(mgr); // 5 simulated seconds under occlusion — well past the grace window
+        }
+        expect(mgr.state.weaponsTarget.targetId).to.equal(null);
+        expect(mgr.weaponsTarget).to.equal(null);
+    });
+
+    it('the occlusion grace timer resets once the target is visible again', () => {
+        const { spaceMgr, makeShipMgr, flush, runTick } = setup();
+        const { mgr } = makeShipMgr('a', Faction.Gravitas);
+        makeShipMgr('c', Faction.Gravitas, 1000, 0);
+        flush();
+        mgr.setTarget('c');
+
+        const blast = new Explosion().init('blast', Vec2.make({ x: 500, y: 0 }), 1);
+        blast.radius = 100;
+        spaceMgr.insert(blast);
+        flush();
+        runTick(mgr); // occluded for 1s
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
+
+        spaceMgr.destroyObject('blast');
+        spaceMgr.update({ deltaSeconds: 6, deltaSecondsAvg: 6, totalSeconds: 6 }); // trigger GC
+        flush();
+        runTick(mgr); // visible again — should reset the occlusion timer, not carry it over
+
+        const blast2 = new Explosion().init('blast2', Vec2.make({ x: 500, y: 0 }), 1);
+        blast2.radius = 100;
+        spaceMgr.insert(blast2);
+        flush();
+        runTick(mgr); // occluded again for 1s — still under the grace window from a fresh start
+        expect(mgr.state.weaponsTarget.targetId).to.equal('c');
     });
 });
 

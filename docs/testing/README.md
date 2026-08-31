@@ -13,6 +13,8 @@
 
 **CI/CD:** Automated on every push, parallel execution (4 workers)
 
+Where coverage is thin and how the coverage gate moves: [coverage-strategy.md](coverage-strategy.md).
+
 ## Running Tests
 
 ```bash
@@ -153,7 +155,7 @@ await waitForPropertyFloatValue(page, 'rotationCommand', 0.05); // ✓ Determini
 
 Server-observable state is not client-observable state. A test that presses a key as soon as a
 server-side object or job exists can act before the client has received it — the input lands on
-nothing and the assertion sees a cleared selection. Wait on something the *client* exposes, or
+nothing and the assertion sees a cleared selection. Wait on something the _client_ exposes, or
 retry the whole act-and-assert block. If you retry, make sure the action is idempotent: a `.toPass()`
 wrapping a `keyboard.press` that advances a cycle presses again on every attempt.
 

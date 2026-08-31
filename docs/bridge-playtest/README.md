@@ -58,10 +58,24 @@ mini-game (LAN-party) + dedicated IoT repair station #547 (LARP).
 
 - [pilot.md](pilot.md)
 - [weapons.md](weapons.md)
-- [bridge-eng.md](bridge-eng.md) — `screens/engineer.ts`, the merged engineer station
+- [bridge-eng.md](bridge-eng.md) — Engineering current state: `screens/engineer.ts`, the merged engineer station
 - [bridge-eng-design.md](bridge-eng-design.md) — user-stated design intent for adding **damage management** to the engineer station; compared to current code (`@defectible` reflection, existing damage-report widget) and to #547 repair-station (location conflict flagged)
 - [signals.md](signals.md) — minimal first cut (PR #1848); compares to full #1208 spec
 - [signals-design.md](signals-design.md) — user-stated design intent for the signals station, compared to current code and to `SIGNALS_JOBS_DESIGN.md` (flags mini-game vs queued-jobs conflict)
+
+## EmptyEpsilon comparison material
+
+Research on how EmptyEpsilon's bridge is built, used as the baseline the Starwards
+metrics are scored against.
+
+- [EmptyEpsilon bridge dynamics — visual reference](ee-reference/ee-bridge-dynamics.md), and the
+  [second dynamics pass](ee-reference/ee-bridge-dynamics-2.md) and
+  [dynamics table for the 5-role layout](ee-reference/ee-bridge-dynamics-table.md)
+- [4–5 person bridge game design guide](ee-reference/bridge-game-design-1.md) — EmptyEpsilon-inspired
+- [Per-station mini-games and active interactions](ee-reference/bridge-game-design-2-Mini-Games-and-Per-Station-Interactions.md)
+- [Comms-forcing pattern catalog](ee-reference/bridge-game-design-2-comms-forcing-pattern-catalog.md)
+- [Roles, mechanics, information asymmetry and communication design](ee-reference/bridge-game-design-Station-Roles-Dependencies-Communication.md)
+- [Operational trigger catalog](ee-reference/emptyepsilon-trigger-catalog.md)
 
 ## Reference docs in this repo
 

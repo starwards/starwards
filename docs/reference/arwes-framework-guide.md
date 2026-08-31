@@ -10,6 +10,8 @@
 - **Flexibility**: Intended to be used alongside other animation libraries (GSAP, Framer Motion, Anime.js) and styling solutions (Emotion, Tailwind, MUI)
 - **Performance**: Uses Motion One for animations (lightweight and performant)
 
+**Note:** This project depends on `@arwes/react`, pinned to the `1.0.0-next.25020502` pre-release (see `modules/browser/package.json`). This pinned version peer-depends on React 18 (`peerDependencies: { "react": "18" }`), matching the project's `react@^18.3.1`; React 19 support is a separate, still-incomplete effort (the `@arwes-amir/react` fork). See [ARWES_VERSION_MIGRATION_GUIDE.md](./ARWES_VERSION_MIGRATION_GUIDE.md) and [CHANGES_SINCE_BLOG.md](./CHANGES_SINCE_BLOG.md) for fork details, or the fork repo https://github.com/amir-arad/arwes.
+
 ---
 
 ## Installation & Setup
@@ -24,9 +26,20 @@ npm install @arwes/react@1.0.0-next.25020502
 npm install @emotion/react
 ```
 
+Or install individual packages instead of the main bundle:
+
+```bash
+npm install @arwes/react-animator
+npm install @arwes/react-animated
+npm install @arwes/react-frames
+npm install @arwes/react-bleeps
+npm install @arwes/react-text
+npm install @arwes/react-bgs
+```
+
 ### Next.js Configuration
 
-**Critical**: Disable React strict mode in `next.config.js`:
+**Critical**: Disable React strict mode in `next.config.js`, and use client-side rendering only (`'use client'`) — Arwes does not support React Server Components:
 
 ```javascript
 // next.config.js
@@ -34,6 +47,11 @@ module.exports = {
   reactStrictMode: false
 };
 ```
+
+### Important Limitations
+- **No React Strict Mode** - Arwes does not work with React strict mode
+- **No React Server Components (RSC)** - Use client-side rendering only (`'use client'`)
+- **React 18 Required** - This pinned version supports React 18 (see the project note above for the React 19 fork status)
 
 ### Legacy Version Notes
 - **v1.0.0-alpha.5** (Feb 2018): Deprecated, documentation at version1-breakpoint1.arwes.dev
@@ -73,6 +91,7 @@ ARWES is organized into **vanilla** (framework-agnostic) and **implementation** 
 | `@arwes/react-frames` | Polishing | Vector graphics components |
 | `@arwes/react-bgs` | Polishing | Background effects |
 | `@arwes/react-core` | Specification | Core UI components |
+| `@arwes/react-effects` | Polishing | Special effects |
 | `@arwes/react` | Polishing | All packages bundle |
 
 **Note**: `@arwes/react` re-exports all vanilla and React-specific packages.
@@ -183,12 +202,33 @@ const App = (): ReactElement => {
   - `'parallel'` (default): All children at once
   - `'sequence'`: One after another
   - `'stagger'`: Offset by stagger duration
+  - `'switch'`: Only one child animates at a time
 - `combine`: Merge all children into single animator
 - `merge`: Merge with parent animator
 - `duration`: Override global duration settings
   ```typescript
   duration={{ enter: 2, exit: 1 }}
   ```
+  A duration can also be set with an explicit `delay`, e.g. `duration={{ enter: 0.7, exit: 0.3, delay: 0.25 }}`.
+
+### Advanced Animation Functions
+
+Both `Animated`'s tuple/array syntax and its `animated={{ transitions: {...} }}` object syntax accept a custom function per transition, so animations can be driven by external libraries like Motion One or GSAP instead of Arwes's built-in animator:
+
+```typescript
+import { animate } from 'motion';
+
+<Animated
+  animated={{
+    transitions: {
+      entering: ({ element, duration }) =>
+        animate(element, { opacity: [0, 1] }, { duration }),
+      exiting: ({ element, duration }) =>
+        animate(element, { opacity: [1, 0] }, { duration })
+    }
+  }}
+/>
+```
 
 ### Nested Animators
 
@@ -314,6 +354,59 @@ const MyComponent = () => {
 };
 ```
 
+### Type-Safe Bleep Names
+
+`useBleeps` and `BleepsProviderSettings` accept a generic parameter for the set of valid bleep names, so unknown names are caught at compile time:
+
+```tsx
+// types.ts
+export type BleepsNames = 'hover' | 'click' | 'type' | 'error'
+```
+
+```tsx
+const bleeps = useBleeps<BleepsNames>()
+```
+
+### Bleep Categories
+
+Bleeps can be grouped into categories with independent volume, and the whole provider can be globally disabled via `common.disabled`:
+
+```tsx
+const bleepsSettings: BleepsProviderSettings<BleepsNames> = {
+  master: {
+    volume: 0.5  // 50% of OS volume
+  },
+  common: {
+    disabled: false
+  },
+  categories: {
+    background: { volume: 0.25 },
+    transition: { volume: 0.5 },
+    interaction: { volume: 0.75 },
+    notification: { volume: 1 }
+  },
+  bleeps: {
+    hover: {
+      category: 'interaction',
+      sources: [
+        { src: '/sounds/hover.webm', type: 'audio/webm' },
+        { src: '/sounds/hover.mp3', type: 'audio/mpeg' }  // Fallback
+      ]
+    },
+    type: {
+      category: 'transition',
+      sources: [
+        { src: '/sounds/type.webm', type: 'audio/webm' },
+        { src: '/sounds/type.mp3', type: 'audio/mpeg' }
+      ],
+      loop: true
+    }
+  }
+}
+```
+
+Bleeps are lazy-loaded by default; provide multiple source formats (e.g. `webm` + `mp3`) for browser compatibility.
+
 ### BleepsOnAnimator
 
 Automatically play bleeps on animator state transitions:
@@ -432,6 +525,51 @@ import { Animator, FrameSVGCorners } from '@arwes/react';
 </Animator>
 ```
 
+### Available Frame Components
+
+```tsx
+import {
+  FrameCorners,
+  FrameLines,
+  FrameOctagon,
+  FrameUnderline,
+  FrameNero,
+  FrameNefrex,
+  FrameKranox,
+  FrameHeader,
+  FrameCircle
+} from '@arwes/react'
+```
+
+All frames support these props: `positioned={false}` (remove absolute positioning), `styled={false}` (remove default styles), and `animated={false}` (disable animations, useful for static frames).
+
+Frame colors and effects can also be set via CSS custom properties instead of the `[data-name]` selector approach shown above:
+
+```css
+/* Line elements */
+--arwes-frames-line-color: color;
+--arwes-frames-line-filter: filter;
+
+/* Background elements */
+--arwes-frames-bg-color: color;
+--arwes-frames-bg-stroke: color;
+--arwes-frames-bg-filter: filter;
+
+/* Decorative elements */
+--arwes-frames-deco-color: color;
+--arwes-frames-deco-filter: filter;
+```
+
+```tsx
+<FrameOctagon
+  style={{
+    '--arwes-frames-line-color': 'hsl(180deg 75% 50%)',
+    '--arwes-frames-bg-color': 'hsl(180deg 75% 50% / 10%)'
+  }}
+  animated={false}
+/>
+```
+
 ### Frame Path Syntax
 
 Frames use a custom path definition system:
@@ -509,10 +647,12 @@ const customFrame = [
 
 ARWES provides passive animated background effects.
 
+All backgrounds use `position: absolute` by default to fill the parent container.
+
 ### Available Effects
 
 ```typescript
-import { GridLines, Dots, MovingLines } from '@arwes/react';
+import { GridLines, Dots, MovingLines, Puffs } from '@arwes/react';
 
 const Background = (): ReactElement => {
   return (
@@ -527,6 +667,24 @@ const Background = (): ReactElement => {
     </div>
   );
 };
+```
+
+### Puffs (Particles)
+
+```tsx
+<Animator duration={{ enter: 1 }}>
+  <Puffs
+    color="hsl(60, 75%, 50%, 0.5)"
+    quantity={100}
+    padding={0}
+    xOffset={[10, 50]}
+    yOffset={[-20, -80]}
+    radiusOffset={[4, 20]}
+  />
+  <div style={{ position: 'relative' }}>
+    Content
+  </div>
+</Animator>
 ```
 
 ### Background Integration
@@ -691,6 +849,79 @@ const App = (): ReactElement => {
 };
 
 export default App;
+```
+
+### Complete Example: Spaceship Panel
+
+A staggered multi-panel layout using the current `Frame*` component names (see Available Frame Components above) instead of the legacy `FrameSVGCorners`:
+
+```tsx
+'use client'
+
+import {
+  Animator,
+  Animated,
+  FrameCorners,
+  GridLines,
+  Text,
+  AnimatorGeneralProvider
+} from '@arwes/react'
+
+function SpaceshipPanel() {
+  return (
+    <AnimatorGeneralProvider duration={{ enter: 0.6, exit: 0.4 }}>
+      <Animator manager="stagger" duration={{ stagger: 0.1 }}>
+        {/* Navigation Panel */}
+        <Animator>
+          <Animated
+            as="div"
+            animated={['fade', ['y', -20, 0]]}
+            style={{ position: 'relative', width: 300, height: 200 }}
+          >
+            <FrameCorners
+              style={{
+                '--arwes-frames-line-color': 'cyan',
+                '--arwes-frames-bg-color': 'rgba(0, 255, 255, 0.1)'
+              }}
+            />
+            <GridLines lineColor="rgba(0, 255, 255, 0.2)" />
+            <div style={{ position: 'relative', padding: '1rem' }}>
+              <Animator>
+                <Text as="h3">NAVIGATION</Text>
+              </Animator>
+              <p>Coordinates: 47.12, -122.35</p>
+            </div>
+          </Animated>
+        </Animator>
+
+        {/* Power Panel */}
+        <Animator>
+          <Animated
+            as="div"
+            animated={['fade', ['x', 20, 0]]}
+            style={{ position: 'relative', width: 300, height: 200 }}
+          >
+            <FrameCorners
+              style={{
+                '--arwes-frames-line-color': 'lime',
+                '--arwes-frames-bg-color': 'rgba(0, 255, 0, 0.1)'
+              }}
+            />
+            <div style={{ position: 'relative', padding: '1rem' }}>
+              <Animator>
+                <Text as="h3">POWER SYSTEMS</Text>
+              </Animator>
+              <p>Core Temperature: 2,847K</p>
+              <p>Output: 847 MW</p>
+            </div>
+          </Animated>
+        </Animator>
+      </Animator>
+    </AnimatorGeneralProvider>
+  )
+}
+
+export default SpaceshipPanel
 ```
 
 ---
@@ -976,6 +1207,82 @@ const Button = ({
 };
 ```
 
+### Staggered List Items
+
+```tsx
+<Animator manager="stagger" duration={{ stagger: 0.08 }}>
+  {items.map((item) => (
+    <Animator key={item.id}>
+      <Animated
+        as="div"
+        animated={['fade', ['x', 20, 0]]}
+      >
+        {item.content}
+      </Animated>
+    </Animator>
+  ))}
+</Animator>
+```
+
+### Alert with Sound
+
+```tsx
+<Animator>
+  <BleepsOnAnimator<BleepsNames>
+    transitions={{ entering: 'error' }}
+  />
+  <Animated
+    as="div"
+    animated={['flicker']}
+    style={{
+      border: '2px solid red',
+      background: 'rgba(255, 0, 0, 0.1)'
+    }}
+  >
+    <Text manager="decipher" fixed>
+      CRITICAL ALERT
+    </Text>
+  </Animated>
+</Animator>
+```
+
+## Styling Tips
+
+### Color Schemes
+
+Use HSL colors for easy theming (a lighter-weight alternative to the theme system above, when a full `createAppTheme()` isn't warranted):
+
+```tsx
+const colors = {
+  primary: 'hsl(180deg 75% 50%)',      // Cyan
+  secondary: 'hsl(60deg 75% 50%)',     // Yellow
+  accent: 'hsl(120deg 75% 50%)',       // Green
+  danger: 'hsl(0deg 75% 50%)',         // Red
+}
+
+<FrameCorners
+  style={{
+    '--arwes-frames-line-color': colors.primary,
+    '--arwes-frames-bg-color': `${colors.primary} / 10%`
+  }}
+/>
+```
+
+### Layering
+
+Stack multiple background/frame effects using z-index:
+
+```tsx
+<div style={{ position: 'relative' }}>
+  <GridLines style={{ zIndex: 1 }} />
+  <MovingLines style={{ zIndex: 2 }} />
+  <FrameCorners style={{ zIndex: 3 }} />
+  <div style={{ position: 'relative', zIndex: 4 }}>
+    Content on top
+  </div>
+</div>
+```
+
 ---
 
 ## Troubleshooting
@@ -1001,6 +1308,15 @@ const Button = ({
 - Check parent has `position: relative`
 - Verify theme colors are defined
 - Ensure `Animator` wraps `FrameSVG` component
+- For the current `Frame*` components (not `FrameSVG*`), also check the frame has explicit dimensions and default positioning (or `positioned={true}`)
+
+**React Strict Mode errors**
+- Remove `<React.StrictMode>` wrapper, or exclude Arwes components from strict mode
+
+**Next.js hydration errors**
+- Add `'use client'` directive to components using Arwes
+- Don't use Arwes in React Server Components
+- Ensure SSR compatibility by checking for browser APIs
 
 ---
 
@@ -1012,6 +1328,9 @@ const Button = ({
 - **Playground**: https://playground.arwes.dev
 - **GitHub**: https://github.com/arwes/arwes
 - **NPM**: https://www.npmjs.com/package/@arwes/react
+- **This Fork (React 19)**: https://github.com/amir-arad/arwes
+- **npm Package (this project)**: `@arwes/react`, pinned to `1.0.0-next.25020502`
+- **Discord Community**: https://discord.gg/s5sbTkw
 
 ### Community Examples
 - CodeSandbox examples: https://codesandbox.io/examples/package/arwes

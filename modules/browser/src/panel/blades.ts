@@ -1,5 +1,6 @@
 import {
     BladeApi,
+    ButtonApi,
     FolderApi,
     ListBladeApi,
     ListBladeParams,
@@ -353,4 +354,89 @@ export function addBarCellToRow(
     blade.element.classList.add('sw-bar');
     wireBlade(blade, model, cleanup);
     return blade;
+}
+
+/**
+ * Add an interactive slider cell to a table row (tweakpane-table v0.4+) — the row-cell
+ * counterpart of `addSliderBlade`.
+ */
+export function addSliderCellToRow(
+    row: RowApi,
+    model: NumericModel,
+    params: Partial<SliderBladeParams>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(configSliderBlade(params, model.range, model.getValue)) as BladeGuiApi<number>;
+    wireBlade(blade, model, cleanup);
+    return blade;
+}
+
+/**
+ * Add a list (dropdown) cell to a table row (tweakpane-table v0.4+) — the row-cell counterpart
+ * of `addListBlade`.
+ */
+export function addListCellToRow<T>(
+    row: RowApi,
+    model: Model<T>,
+    params: Partial<ListBladeParams<T>>,
+    cleanup: (d: Destructor) => void,
+) {
+    const blade = row.addCell(configListBlade<T>(params, model.getValue)) as ListBladeApi<T>;
+    wireBlade(blade, model, cleanup);
+    return blade;
+}
+
+/**
+ * Wires an already-added `button` blade as a clickable 🔒/🔓 lock indicator for `lockedProp`. A
+ * real button rather than the earlier `text`-blade approach: a `text` blade is an editable input,
+ * so clicking it (to toggle the lock) also drops a text caret into the field — there is no
+ * legitimate typing to do there, only noise. A button has no such caret and no keyboard-editable
+ * value to round-trip, so unlike the old `text` version this needs no `wireBlade`/`parse` path at
+ * all — `button.title` is simply the glyph.
+ *
+ * Note for history: an earlier `text`-blade version tried `disabled: true` to suppress editing,
+ * but Tweakpane's base CSS sets `pointer-events: none` on any blade carrying the `tp-v-disabled`
+ * class (`.tp-rotv.tp-v-disabled,.tp-rotv .tp-v-disabled {pointer-events:none}`), which made the
+ * control unclickable by real pointer input while a synthetic `dispatchEvent('click')` still
+ * invoked it directly (bypassing hit-testing/CSS entirely) — that's why an earlier e2e version
+ * passed while being dead in a real browser. A button has no `disabled`-CSS trap to fall into.
+ */
+function wireLockButton(button: ButtonApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+    const glyph = () => (lockedProp.getValue() ? '🔒' : '🔓');
+    button.element.classList.add('sw-lock-cell');
+    button.title = glyph();
+    button.on('click', () => {
+        void lockedProp.setValue?.(!lockedProp.getValue());
+    });
+    cleanup(
+        lockedProp.onChange(() => {
+            button.title = glyph();
+        }),
+    );
+    cleanup(() => button.dispose());
+    return button;
+}
+
+/**
+ * Add a clickable lock-indicator cell to a table row: a compact 🔒/🔓 button that toggles
+ * `lockedProp` on click. Tweakpane's built-in `button` view is itself a blade plugin (the same
+ * kind `RowApi.addCell` resolves for text/slider/list), so it can sit in a row cell — unlike a
+ * bound `checkbox` input, which `addCell` can't place at all.
+ */
+export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+    const button = row.addCell({ view: 'button', title: '', width: '28px' }) as ButtonApi;
+    return wireLockButton(button, lockedProp, cleanup);
+}
+
+/**
+ * Add a clickable 🔒/🔓 lock button as its own folder-level blade — for the handful of tweakable
+ * widgets that can't be expressed as a `tweakpane-table` cell at all (camera-ring dials, the
+ * velocity point2d drag pad): those are Tweakpane *binding* plugins (`addBinding`), and
+ * `RowApi.addCell` only resolves blade-view plugins, the same restriction `addLockCellToRow`
+ * works around for text/slider/list. Kept as a sibling blade next to the widget it locks rather
+ * than a `tweakpane-table` row.
+ */
+export function addLockBlade(guiFolder: FolderApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+    const button = guiFolder.addButton({ label: 'lock', title: '' });
+    return wireLockButton(button, lockedProp, cleanup);
 }

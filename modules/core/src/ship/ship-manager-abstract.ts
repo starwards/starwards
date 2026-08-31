@@ -38,11 +38,20 @@ import { SpaceManager } from '../logic/space-manager';
 import { Thruster } from './thruster';
 import { Tube } from './tube';
 import { Warp } from './warp';
-
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 import { revertOperationSideEffects } from './repair-manager';
 
 const { error: logError } = createLogger('ship-manager');
+
+/**
+ * How long a weapons lock may go unconfirmed by line-of-sight (a missed shot's explosion
+ * drifting across the bearing, any other momentary occluder) before it's treated as a genuine
+ * loss and dropped. Chosen to comfortably outlast a single blast's `secondsToLive` while still
+ * dropping promptly once the target is actually gone — not validated against real playtest
+ * numbers, same caveat as `ENERGY_STARVATION_GRACE_SECONDS` in `repair-manager.ts`.
+ */
+export const TARGET_OCCLUSION_GRACE_SECONDS = 1.5;
 
 function fixArmor(armor: Armor) {
     for (const plate of armor.armorPlates) {
@@ -91,6 +100,7 @@ export function resetShipState(state: ShipState) {
     state.repairQueue.enqueueCommands = [];
     state.repairQueue.cancelCommands = [];
     state.repairQueue.reorderCommands = [];
+    state.lockCommands = [];
     // Clear automation orders and task (prevents stale state after NPC→PC conversion)
     state.order = Order.NONE;
     state.orderTargetId = null;
@@ -133,11 +143,17 @@ export abstract class ShipManager implements Updateable {
         addHeat: (_: number, _2: ShipSystem) => undefined as void,
     };
     public weaponsTarget: SpaceObject | null = null;
+    /** Seconds the current weapons target has been continuously out of line-of-sight. */
+    private targetOccludedSeconds = 0;
 
     protected tubeManagers = new Array<ChainGunManager>();
     protected chainGunManagers = new Array<ChainGunManager>();
     protected dockingManager: DockingManager;
-    protected automationManager: AutomationManager;
+    /**
+     * Public so tests can reach heat-management hooks (`setHeatManagementEnabled`, `isCeasefireLatched`)
+     * — a test-only hatch, not a supported API. Non-test code should not depend on this being public.
+     */
+    public automationManager: AutomationManager;
     protected damageManager: DamageManager;
     protected heatManager: HeatManager;
     protected ammoManager: AmmoManager;
@@ -230,7 +246,14 @@ export abstract class ShipManager implements Updateable {
 
     public setTarget(id: string | null) {
         this.state.weaponsTarget.targetId = id;
+        this.targetOccludedSeconds = 0;
         this.validateWeaponsTargetId();
+        if (this.weaponsTarget && !this.spaceManager.isVisible(this.spaceObject.id, this.weaponsTarget.id)) {
+            // a freshly assigned target must be visible right now — the occlusion grace period
+            // only covers a lock already held, not initial acquisition
+            this.state.weaponsTarget.targetId = null;
+            this.validateWeaponsTargetId();
+        }
     }
 
     public handleTargetCommands() {
@@ -261,6 +284,8 @@ export abstract class ShipManager implements Updateable {
     }
 
     update(id: IterationData) {
+        // apply GM lock/unlock commands before anything else can write a locked field this tick
+        applyLockCommands(this.state);
         // sync relevant ship props, before any other calculation
         this.syncShipProperties();
         this.damageManager.update();
@@ -271,7 +296,7 @@ export abstract class ShipManager implements Updateable {
         this.updateTurrets(id);
         // vision first: the target and signal gates below all read this tick's radar sectors
         this.updateRadarSectors(id);
-        this.validateWeaponsTargetId();
+        this.validateWeaponsTargetId(id.deltaSeconds);
         const firingTubes = this.consumeFireTubesCommand();
         for (const chainGunManager of this.chainGunManagers) {
             chainGunManager.update(id);
@@ -384,7 +409,7 @@ export abstract class ShipManager implements Updateable {
         this.state.targeted = status;
     }
 
-    protected validateWeaponsTargetId() {
+    protected validateWeaponsTargetId(deltaSeconds = 0) {
         if (typeof this.state.weaponsTarget.targetId === 'string') {
             this.weaponsTarget = this.spaceManager.state.get(this.state.weaponsTarget.targetId) || null;
             if (this.weaponsTarget && !this.weaponsTarget.isCorporal) {
@@ -392,14 +417,22 @@ export abstract class ShipManager implements Updateable {
             }
             if (!this.weaponsTarget) {
                 this.state.weaponsTarget.targetId = null;
+                this.targetOccludedSeconds = 0;
+            } else if (this.spaceManager.isVisible(this.spaceObject.id, this.state.weaponsTarget.targetId)) {
+                this.targetOccludedSeconds = 0;
             } else {
-                if (!this.spaceManager.isVisible(this.spaceObject.id, this.state.weaponsTarget.targetId)) {
+                // brief occlusion (an explosion, another hull drifting across the bearing) doesn't
+                // drop the lock outright — only a sustained loss past the grace window does
+                this.targetOccludedSeconds += deltaSeconds;
+                if (this.targetOccludedSeconds > TARGET_OCCLUSION_GRACE_SECONDS) {
                     this.weaponsTarget = null;
                     this.state.weaponsTarget.targetId = null;
+                    this.targetOccludedSeconds = 0;
                 }
             }
         } else {
             this.weaponsTarget = null;
+            this.targetOccludedSeconds = 0;
         }
         this.setShellRangeMode(this.weaponsTarget ? SmartPilotMode.TARGET : SmartPilotMode.DIRECT);
     }
