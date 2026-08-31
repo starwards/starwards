@@ -30,7 +30,6 @@ const FRONTMATTER_REQUIRED = [
     'docs/TECHNICAL_REFERENCE.md',
     'docs/PHYSICS.md',
     'docs/DEPENDENCIES.md',
-    'docs/PROJECT_ANALYSIS.md',
     'docs/testing/UTILITIES.md',
 ];
 const AUDIENCE = ['agent', 'human', 'both'];

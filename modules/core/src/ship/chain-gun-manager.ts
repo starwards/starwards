@@ -96,7 +96,7 @@ export class ChainGunManager implements Updateable {
                         this.chainGun.design.minShellRange,
                         this.chainGun.design.maxShellRange,
 
-                        XY.lengthOf(XY.difference(this.shipManager.weaponsTarget!.position, this.state.position)),
+                        XY.distance(this.shipManager.weaponsTarget!.position, this.state.position),
                     );
                     break;
                 default:
@@ -111,7 +111,7 @@ export class ChainGunManager implements Updateable {
                 this.chainGun.design.maxShellRange,
                 baseRange + lerp([-1, 1], [-aimRange, aimRange], this.chainGun.shellRange),
             );
-            this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.state, this.chainGun, range);
+            this.chainGun.shellSecondsToLive = calcShellSecondsToLive(this.chainGun, range);
         }
     }
 

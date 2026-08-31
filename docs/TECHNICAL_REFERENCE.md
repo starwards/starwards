@@ -12,25 +12,13 @@ last_verified: 2026-06-13
 # Technical Reference
 
 ## @gameField Decorator
-**Location:** `modules/core/src/game-field.ts`
 
-**Marks properties for Colyseus schema serialization + auto-sync**
+Syntax, accepted types and stacking order: [`specs/DECORATORS_SPEC.md`](specs/DECORATORS_SPEC.md).
+What it costs on the wire:
 
-```typescript
-@gameField('float32') speed = 0;                    // Primitives
-@gameField(Radar) radar!: Radar;                    // Nested schema
-@gameField([Thruster]) thrusters = new ArraySchema<Thruster>();  // Array
-@gameField({ map: Spaceship }) ships = new MapSchema<Spaceship>(); // Map
-```
-
-**Types:** `int8|int16|int32|float32|float64|boolean|string` | Schema | `[Schema]` | `{map:Schema}`
-
-**Behavior:**
-- float32 rounds to 2 decimals
-- Triggers network sync on change
-- Must be last decorator in stack
-
-**Network:** Delta compression (only changed props), batched updates, 90-98% bandwidth reduction
+- `float32` values round to 2 decimals
+- Any change triggers a network sync; updates are batched per patch
+- Delta compression sends only changed properties — 90-98% bandwidth reduction
 
 ## JSON Pointer Commands
 **RFC 6901** - Dynamic state updates

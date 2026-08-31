@@ -56,7 +56,7 @@ export class MovementAnchorLayer {
         for (let worldY = gridlineHorizTop; worldY <= max.y; worldY += this.spacing) {
             for (let worldX = gridlineVertLeft; worldX <= max.x; worldX += this.spacing) {
                 const candidate = { x: worldX, y: worldY };
-                if (XY.lengthOf(XY.difference(candidate, center)) <= this.range) {
+                if (XY.distance(candidate, center) <= this.range) {
                     yield this.parent.worldToScreen(candidate);
                 }
             }

@@ -9,6 +9,7 @@ import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
 import { enqueueRepair } from '../src/ship/repair-commands';
 import { expect } from 'chai';
+import { tick } from './tick';
 
 function setUpShip() {
     const shipId = 'test-ship';
@@ -30,10 +31,6 @@ type TestShipState = ReturnType<typeof setUpShip>['state'];
 
 function enqueue(state: TestShipState, protocolId: string) {
     enqueueRepair.setValue(state, { protocolId });
-}
-
-function tickOnce(repairManager: RepairManager, deltaSeconds: number) {
-    repairManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 }
 
 function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPerSecond: number) {
@@ -79,11 +76,11 @@ describe('armorPlateRenewal (docked-tier repair-queue protocol)', () => {
         expect(renewedPlate, 'one plate should be fully renewed').to.not.equal(undefined);
 
         enqueue(state, 'armorPlateRenewal');
-        tickOnce(repairManager, 0.1); // promotes 2nd op to ACTIVE
+        tick(repairManager, 0.1); // promotes 2nd op to ACTIVE
         expect(state.repairQueue.operations).to.have.lengthOf(1);
 
         state.docking.mode = DockingMode.UNDOCKED;
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
         expect(renewedPlate!.healthRatio).to.equal(1);
@@ -124,7 +121,7 @@ describe('armorPlateRenewal (docked-tier repair-queue protocol)', () => {
 
         state.armor.armorPlates[0].layers[0].health = 0;
         enqueue(state, 'armorPlateRenewal');
-        tickOnce(repairManager, 0.1); // promotes to active
+        tick(repairManager, 0.1); // promotes to active
         const progressBefore = state.repairQueue.operations[0].progress;
 
         repairManager.update({ deltaSeconds: 0, deltaSecondsAvg: 0, totalSeconds: 0 });
@@ -162,7 +159,7 @@ describe('armorPlateRenewal (docked-tier repair-queue protocol)', () => {
         state.armor.armorPlates[0].layers[0].health = 0;
 
         enqueue(state, 'armorPlateRenewal');
-        tickOnce(repairManager, 0.5); // op active, partway through
+        tick(repairManager, 0.5); // op active, partway through
 
         // combat damage lands on a different, previously-undamaged plate mid-repair
         state.armor.armorPlates[1].layers[0].health = 0;
