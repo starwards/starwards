@@ -35,6 +35,13 @@ export class Spaceship extends SpaceObjectBase {
     @gameField('string')
     public callsign = '';
 
+    /**
+     * Count of weapon hits this ship has landed on any target, independent of the damage
+     * rolled — a shot that only scratches intact armor still counts. See SpaceManager.registerHit.
+     */
+    @gameField('uint16')
+    public hitsLanded = 0;
+
     init(id: string, position: Vec2, shipModel: ShipModel, faction: Faction): this {
         this.id = id;
         this.position = position;

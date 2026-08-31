@@ -38,6 +38,7 @@ function setUpLayeredShip(layers: ArmorLayerDesign[]): Fixture {
 function frontDamage(amount: number, damageType: WeaponDamageType, delivery: 'impact' | 'explosion'): AttackDamage {
     return {
         id: 'd-1',
+        shipId: '',
         amount,
         damageSurfaceArc: FRONT_HIT_ARC,
         damageDurationSeconds: 1,
@@ -165,6 +166,7 @@ describe('layered armor resolution walk', () => {
         function collision(amount: number): Damage {
             return {
                 id: 'collision-1',
+                shipId: '',
                 amount,
                 damageSurfaceArc: FRONT_HIT_ARC,
                 damageDurationSeconds: 1,
