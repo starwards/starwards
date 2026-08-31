@@ -29,9 +29,9 @@ their tracer fire even past sensor range).
 | Toggle Enemy Only | `o` |
 | Toggle Short Range Only | `i` |
 | Fire Tubes (ship-level: every loaded, unlocked tube) | `x` |
-| Toggle Load Tube | `c` |
-| Change Tube Ammo | `v` |
 | Toggle Tube 0/1/2/3 Safety (one dedicated key per tube index) | `1` `2` `3` `4` |
+| Toggle Tube 0/1/2/3 Load/Unload (one dedicated key per tube index) | `Shift+1` `Shift+2` `Shift+3` `Shift+4` |
+| Change Tube 0/1/2/3 Ammo (one dedicated key per tube index) | `Alt+1` `Alt+2` `Alt+3` `Alt+4` |
 | Fire Chain Gun (every mount) | `f` |
 | Toggle Load Chain Gun | `g` |
 | Change Gun Ammo | `b` |
@@ -60,6 +60,15 @@ their tracer fire even past sensor range).
   re-locks its own `safetyLocked` immediately. Chain-gun fire (`f`)
   generalizes the same way to every mount. Unlocking is per-tube via a
   dedicated hotkey (`1`-`4`) or the `tubesStatus` widget.
+- closes #2182 — every per-tube action (safety, load/unload, change ammo)
+  now has its own dedicated hotkey addressed by tube index: digit `n+1`
+  (safety), `Shift`+digit (load/unload), `Alt`+digit (change ammo). Firing
+  stays the single ship-level `x` key. The bindings are wired once in
+  `modules/browser/src/input/tube-hotkeys.ts` and shared by both the
+  Weapons station and the single-player combined screen
+  (`modules/browser/src/input/wiring.ts`) so they can't drift apart. A hull
+  with no tubes wires no tube bindings and the screen stays fully
+  functional.
 
 ## Open tickets that could touch the weapons station
 
