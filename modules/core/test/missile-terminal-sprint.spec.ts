@@ -1,15 +1,12 @@
 import { Projectile, SpaceManager, Spaceship, Vec2, XY, ammoDesigns } from '../src';
 
 import { expect } from 'chai';
+import { tick } from './tick';
 
 // issue #2151: missiles get a terminal sprint — inside ~3km of their target they
 // accelerate dramatically, so evasion/point-defense can't be left to the last second.
 
 const GENERIC_SHIP_RADIUS = 50;
-
-function tick(spaceMgr: SpaceManager, deltaSeconds: number) {
-    spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
-}
 
 function makeShip(id: string, x = 0, y = 0) {
     const ship = new Spaceship();
@@ -45,7 +42,7 @@ describe('missile terminal sprint (issue #2151)', () => {
         let cruiseSpeed = 0;
         for (let i = 0; i < 200; i++) {
             tick(spaceMgr, 0.05);
-            const distance = XY.lengthOf(XY.difference(target.position, missile.position)) - target.radius;
+            const distance = XY.distance(target.position, missile.position) - target.radius;
             if (distance <= ammoDesigns.ArmPenMissile.homing.sprint.range + 5) {
                 break;
             }

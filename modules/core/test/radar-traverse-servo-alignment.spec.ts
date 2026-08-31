@@ -10,6 +10,7 @@ import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
 import { enqueueRepair } from '../src/ship/repair-commands';
 import { expect } from 'chai';
+import { tick } from './tick';
 
 function setUpShip() {
     const shipId = 'test-ship';
@@ -31,10 +32,6 @@ type TestShipState = ReturnType<typeof setUpShip>['state'];
 
 function enqueue(state: TestShipState, protocolId: string) {
     enqueueRepair.setValue(state, { protocolId });
-}
-
-function tickOnce(repairManager: RepairManager, deltaSeconds: number) {
-    repairManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 }
 
 function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPerSecond: number) {
@@ -68,7 +65,7 @@ describe('radarTraverseServoAlignment (field-tier repair-queue protocol, #2109)'
         const { state, repairManager } = setUpShip();
         const priorPower = state.radars[1].power;
         enqueue(state, 'radarTraverseServoAlignment');
-        tickOnce(repairManager, 0.1); // promotes to active, applies side effect
+        tick(repairManager, 0.1); // promotes to active, applies side effect
 
         expect(state.radars[1].power).to.equal(PowerLevel.SHUTDOWN);
 
@@ -79,7 +76,7 @@ describe('radarTraverseServoAlignment (field-tier repair-queue protocol, #2109)'
     it('A3: turnSpeedFactor damage landing after the operation is already active is still cleared at completion — standard defectible-reset mechanism, nothing bespoke', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'radarTraverseServoAlignment');
-        tickOnce(repairManager, 0.1); // promotes to active while turnSpeedFactor is still at its normal value
+        tick(repairManager, 0.1); // promotes to active while turnSpeedFactor is still at its normal value
 
         state.radars[1].turnSpeedFactor = 0.4; // fresh damage lands after the op is already running
         runTicks(repairManager, repairProtocols.radarTraverseServoAlignment.duration, 20); // op completes
