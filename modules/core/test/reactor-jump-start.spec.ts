@@ -8,6 +8,7 @@ import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
 import { enqueueRepair } from '../src/ship/repair-commands';
 import { expect } from 'chai';
+import { tick } from './tick';
 
 function setUpShip() {
     const shipId = 'test-ship';
@@ -28,10 +29,6 @@ type TestShipState = ReturnType<typeof setUpShip>['state'];
 
 function enqueue(state: TestShipState, protocolId: string) {
     enqueueRepair.setValue(state, { protocolId });
-}
-
-function tickOnce(repairManager: RepairManager, deltaSeconds: number) {
-    repairManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
 }
 
 function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPerSecond: number) {
@@ -84,7 +81,7 @@ describe('reactorJumpStart (field-tier repair-queue protocol, issue #2137)', () 
 
         enqueue(state, 'reactorJumpStart');
         enqueue(state, 'reactorJumpStart');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(1);
         expect(state.repairQueue.refusalReason).to.not.equal('');

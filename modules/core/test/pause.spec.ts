@@ -1,6 +1,7 @@
 import { Projectile, SpaceManager, Spaceship, Vec2, XY, ammoDesigns } from '../src';
 
 import { expect } from 'chai';
+import { tick } from './tick';
 
 // Regression coverage for issue #2022: pause must freeze physics (deltaSeconds === 0),
 // not skip the tick entirely. A deltaSeconds-0 tick must not divide by zero on solid
@@ -9,10 +10,6 @@ import { expect } from 'chai';
 
 // Generic hull-sized radius for physics fixtures unrelated to any specific ship configuration.
 const GENERIC_SHIP_RADIUS = 50;
-
-function tick(spaceMgr: SpaceManager, deltaSeconds: number) {
-    spaceMgr.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: 0 });
-}
 
 function makeShip(id: string, x = 0, y = 0) {
     const ship = new Spaceship();
@@ -39,7 +36,7 @@ describe('SpaceManager frozen at deltaSeconds=0 (paused)', () => {
         spaceMgr.forceFlushEntities();
         // one non-zero tick to settle field-of-view/collision bookkeeping before snapshotting,
         // then drain whatever damage that warm-up tick queued so the baseline starts empty
-        tick(spaceMgr, 0.001);
+        tick(spaceMgr, 0.001, 0);
         void [...spaceMgr.resolveObjectDamage(shipA.id)];
         void [...spaceMgr.resolveObjectDamage(shipB.id)];
 
@@ -54,7 +51,7 @@ describe('SpaceManager frozen at deltaSeconds=0 (paused)', () => {
         const before = snapshot();
 
         for (let i = 0; i < 50; i++) {
-            tick(spaceMgr, 0);
+            tick(spaceMgr, 0, 0);
         }
 
         expect(snapshot()).to.deep.equal(before);

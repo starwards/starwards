@@ -17,11 +17,11 @@ This folder holds **code-grounded design reference**. Strategic planning (roadma
 - Local: [EE Gap Analysis](ee-gap-analysis.md) — parity with EmptyEpsilon
 
 **Going deeper?** Browse by area:
-- [Stations](stations/) — crew position specs and status
-- [Mechanics](mechanics/) — game systems and physics
-- [Metrics](metrics/) — framework for quantifying bridge dynamics and comparing against EmptyEpsilon
-- [Infrastructure](infrastructure/) — deployment, networking, scenarios
-- [Decisions](decisions/) — key product decisions and their rationale
+- [Stations](stations/README.md) — crew position specs and status
+- [Mechanics](mechanics/README.md) — game systems and physics
+- [Metrics](metrics/README.md) — framework for quantifying bridge dynamics and comparing against EmptyEpsilon
+- [Infrastructure](infrastructure/README.md) — deployment, networking, scenarios
+- [Decisions](decisions/README.md) — key product decisions and their rationale
 - [UI specs](ui-specs/PANEL_SPECIFICATIONS.md) — lobby screen, panel, and visual-token specifications
 - [Bridge playtest](../bridge-playtest/README.md) — current playtest cycle: session notes, findings, and the decisions/proposals inflow
 

@@ -1,5 +1,6 @@
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { expect, test } from '@playwright/test';
+import { SmartPilotMode } from '@starwards/core';
 import { makeDriver } from './driver';
 
 import { maps } from '@starwards/server';
@@ -432,5 +433,130 @@ test.describe('GM Screen', () => {
         // radius has no ongoing physics correcting it, unlike velocity — confirm it holds.
         await page.waitForTimeout(1000);
         expect(ship.radius).toBeCloseTo(120, 0);
+    });
+
+    test('locking a @tweakable field via the GM tweak panel still lets the GM edit it (invariant I10)', async ({
+        page,
+    }) => {
+        // Regression from bridge testplay: a GM-set value (smartPilot.maneuveringMode) kept
+        // reverting because something else kept writing it. The lock cell next to every
+        // tweakable field's own row makes the GM's value win — every OTHER writer is silently
+        // ignored while locked (see the @defectible test below), but the GM's own edits through
+        // this very panel always land: the lock exists to silence the competing noise, not the
+        // GM (governance/invariants.md I10 in starwards-design).
+        const shipId = single_ship.testShipId;
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await expect(tweakPanel.getByText('velocity', { exact: true })).toBeVisible({ timeout: 5000 });
+
+        // Smart pilot system folder — starts collapsed like every per-system folder.
+        const smartPilotFolder = tweakPanel
+            .locator('.tp-fldv', { has: page.getByText('Smart pilot', { exact: false }) })
+            .last();
+        await expect(smartPilotFolder).toBeVisible({ timeout: 5000 });
+        await smartPilotFolder.getByText('Smart pilot', { exact: false }).first().click();
+
+        // Each tweakable is one tweakpane-table row: label · value cell(s) · lock cell (the
+        // `.sw-lock-cell` class tags the lock cell specifically — see wireLockGlyph in blades.ts).
+        const modeRow = smartPilotFolder.locator('.tp-lblv', { hasText: 'maneuveringMode' });
+        await expect(modeRow).toBeVisible({ timeout: 5000 });
+        const modeSelect = modeRow.locator('select');
+        await expect(modeSelect).toBeVisible({ timeout: 5000 });
+        const modeLockCell = modeRow.locator('.sw-lock-cell');
+        await expect(modeLockCell).toBeVisible({ timeout: 5000 });
+
+        const ship = gameDriver.getShip(shipId);
+
+        // unlocked: a GM write round-trips normally
+        await modeSelect.selectOption({ label: 'VELOCITY' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
+        }).toPass({ timeout: 2000 });
+
+        await modeLockCell.click();
+        await expect(() => {
+            expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(true);
+        }).toPass({ timeout: 2000 });
+
+        // locked: the GM's own next edit through the same control still lands
+        await modeSelect.selectOption({ label: 'DIRECT' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.DIRECT);
+        }).toPass({ timeout: 2000 });
+
+        // still locked and still GM-editable: flip it back
+        await modeSelect.selectOption({ label: 'VELOCITY' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.VELOCITY);
+        }).toPass({ timeout: 2000 });
+
+        // unlocking doesn't change GM write behavior — it only re-admits every other writer
+        await modeLockCell.click();
+        await expect(() => {
+            expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(false);
+        }).toPass({ timeout: 2000 });
+        await modeSelect.selectOption({ label: 'DIRECT' });
+        await expect(() => {
+            expect(ship.state.smartPilot.maneuveringMode).toBe(SmartPilotMode.DIRECT);
+        }).toPass({ timeout: 2000 });
+    });
+
+    test('locking a @defectible field via the GM tweak panel blocks a server-side write', async ({ page }) => {
+        // The lock guard sits on the @gameField setter itself (see game-field.ts), not on the
+        // JSON Pointer command surface — so it must also stop writes that never go through a
+        // command at all, e.g. damage/hacking code assigning a defectible factor directly. A
+        // real server-side write (rather than driving the slider, which has no reliable
+        // keyboard/click affordance to automate) stands in for exactly that kind of writer.
+        const shipId = single_ship.testShipId;
+        const radarCanvas = page.locator('[data-id="GM Radar"]');
+        await expect(radarCanvas).toBeVisible({ timeout: 15000 });
+
+        const box = await radarCanvas.boundingBox();
+        if (!box) throw new Error('GM Radar canvas has no bounding box');
+        await radarCanvas.click({ position: { x: box.width / 2, y: box.height / 2 } });
+
+        const tweakPanel = page.locator('[data-id="Tweaks"]');
+        await expect(tweakPanel.getByText('velocity', { exact: true })).toBeVisible({ timeout: 5000 });
+
+        const smartPilotFolder = tweakPanel
+            .locator('.tp-fldv', { has: page.getByText('Smart pilot', { exact: false }) })
+            .last();
+        await expect(smartPilotFolder).toBeVisible({ timeout: 5000 });
+        await smartPilotFolder.getByText('Smart pilot', { exact: false }).first().click();
+
+        const offsetFactorRow = smartPilotFolder.locator('.tp-lblv', { hasText: 'offsetFactor' });
+        await expect(offsetFactorRow).toBeVisible({ timeout: 5000 });
+        const lockCell = offsetFactorRow.locator('.sw-lock-cell');
+        await expect(lockCell).toBeVisible({ timeout: 5000 });
+
+        const ship = gameDriver.getShip(shipId);
+        ship.state.smartPilot.offsetFactor = 0.4;
+
+        await lockCell.click();
+        await expect(() => {
+            expect(ship.state.lockedPaths.includes('/smartPilot/offsetFactor')).toBe(true);
+        }).toPass({ timeout: 2000 });
+
+        // locked: a direct server-side write (standing in for damage/hacking/any other writer)
+        // is silently ignored
+        ship.state.smartPilot.offsetFactor = 0.9;
+        await page.waitForTimeout(200);
+        expect(ship.state.smartPilot.offsetFactor).toBeCloseTo(0.4, 5);
+
+        // unlocking restores normal write behavior
+        await lockCell.click();
+        await expect(() => {
+            expect(ship.state.lockedPaths.includes('/smartPilot/offsetFactor')).toBe(false);
+        }).toPass({ timeout: 2000 });
+        ship.state.smartPilot.offsetFactor = 0.9;
+        await expect(() => {
+            expect(ship.state.smartPilot.offsetFactor).toBeCloseTo(0.9, 5);
+        }).toPass({ timeout: 2000 });
     });
 });

@@ -95,6 +95,10 @@ export namespace XY {
     export function lengthOf(vector: XY): number {
         return limitPercision(Math.hypot(vector.x, vector.y));
     }
+    /** Distance between two points. */
+    export function distance(point: XY, point2: XY): number {
+        return XY.lengthOf(XY.difference(point, point2));
+    }
 
     export function isZero(vector: XY, threshold = 0.00001): boolean {
         if (vector.x == 0 && vector.y == 0) return true;
