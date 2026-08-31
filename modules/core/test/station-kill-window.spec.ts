@@ -72,6 +72,7 @@ function breakSystem(damageManager: DamageManager, system: ShipSystem) {
 function runDeathCheck(spaceManager: SpaceManager, shipId: string, damageManager: DamageManager) {
     const trigger: Damage = {
         id: 'trigger',
+        shipId: '',
         amount: 0,
         damageSurfaceArc: [0, 1],
         damageDurationSeconds: 0.05,

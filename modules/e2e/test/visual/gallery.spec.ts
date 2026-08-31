@@ -47,6 +47,7 @@ const scenes = [
     'targeting-no-target',
     'targeting-ship-target',
     'targeting-filters-active',
+    'targeting-hits-landed',
     // Tubes Status
     'tubes-status-empty',
     'tubes-status-loaded',

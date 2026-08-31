@@ -56,4 +56,22 @@ export const targetingScenes: Record<string, Scene> = {
             drawTargetingStatus(mockContainer, mockShipDriver as never);
         },
     },
+
+    'targeting-hits-landed': {
+        name: 'targeting-hits-landed',
+        description: 'Targeting panel after several shots have landed on a target (issue #2190)',
+        setup(container: HTMLElement) {
+            const ship = makeShipState('player', demoShip);
+            ship.weaponsTarget.targetId = 'enemy-ship-001';
+            ship.weaponsTarget.shipOnly = true;
+            ship.weaponsTarget.enemyOnly = true;
+            ship.weaponsTarget.shortRangeOnly = false;
+            ship.spaceship.hitsLanded = 7;
+
+            const mockContainer = createMockContainer(container, 250, 180);
+            const mockShipDriver = createMockShipDriver(ship);
+
+            drawTargetingStatus(mockContainer, mockShipDriver as never);
+        },
+    },
 };

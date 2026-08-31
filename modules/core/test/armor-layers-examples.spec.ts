@@ -58,6 +58,7 @@ function frontDamage(
 ): AttackDamage {
     return {
         id,
+        shipId: '',
         amount,
         damageSurfaceArc: FRONT_HIT_ARC,
         damageDurationSeconds: 1,

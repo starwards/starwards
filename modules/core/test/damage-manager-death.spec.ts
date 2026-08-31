@@ -18,6 +18,7 @@ function fragHit(): Damage {
         damageDurationSeconds: 1,
         damageType: 'Frag',
         delivery: 'explosion',
+        shipId: 'shooter-npc',
     };
 }
 
@@ -36,6 +37,9 @@ function fakeSpaceManager(damage: Damage | null): { spaceManager: SpaceManager; 
         },
         convertToDerelict: (id: string) => calls.convertToDerelict.push(id),
         destroyObject: (id: string) => calls.destroyObject.push(id),
+        registerHit: () => {
+            /* not under test here */
+        },
     } as unknown as SpaceManager;
     return { spaceManager, calls };
 }
