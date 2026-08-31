@@ -16,7 +16,7 @@ export function compareSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): num
 }
 
 export function distanceSpaceObjects(a: SpaceObjectBase, b: SpaceObjectBase): number {
-    return XY.lengthOf(XY.difference(a.position, b.position)) - a.radius - b.radius;
+    return XY.distance(a.position, b.position) - a.radius - b.radius;
 }
 
 export enum TypeFilter {

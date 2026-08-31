@@ -84,6 +84,16 @@ export const weapons_multi_tube = {
     },
 };
 
+const noTubesShipId = 'GVTS-0TUBE';
+export const weapons_no_tubes = {
+    name: 'weapons_no_tubes',
+    testShipId: noTubesShipId,
+    init: (game: GameApi) => {
+        const spaceObject = new Spaceship().init(noTubesShipId, new Vec2(0, 0), 'chaingun-platform', Faction.Gravitas);
+        game.addPlayerSpaceship(spaceObject);
+    },
+};
+
 const multiGunShipId = 'GVTS-3GUN';
 export const weapons_multi_gun = {
     name: 'weapons_multi_gun',

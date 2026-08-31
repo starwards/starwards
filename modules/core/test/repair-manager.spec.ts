@@ -13,6 +13,7 @@ import { SpaceManager } from '../src/logic/space-manager';
 import { Spaceship } from '../src/space';
 import { expect } from 'chai';
 import { resetShipState } from '../src/ship/ship-manager-abstract';
+import { tick } from './tick';
 
 const testCatalog: Record<string, RepairProtocolStats> = {
     fixThrusters: {
@@ -92,10 +93,6 @@ function reorder(state: TestShipState, operationId: string, index: number) {
     reorderRepair.setValue(state, { operationId, index });
 }
 
-function tickOnce(repairManager: RepairManager, deltaSeconds: number) {
-    repairManager.update({ deltaSeconds, deltaSecondsAvg: deltaSeconds, totalSeconds: deltaSeconds });
-}
-
 function runTicks(repairManager: RepairManager, durationSeconds: number, ticksPerSecond: number) {
     for (const id of makeIterationsData(durationSeconds, Math.round(durationSeconds * ticksPerSecond))) {
         repairManager.update(id);
@@ -107,7 +104,7 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixThrusters');
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(2);
         expect(state.repairQueue.operations[0].protocolId).to.equal('fixThrusters');
@@ -139,7 +136,7 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip();
         state.magazine.capacity = 0.5; // already damaged before the operation is even enqueued
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1); // promote to active (still 0.5 — not the normal value)
+        tick(repairManager, 0.1); // promote to active (still 0.5 — not the normal value)
 
         state.magazine.capacity = 0.3; // a second, different defect arrives mid-operation
         runTicks(repairManager, 2, 20);
@@ -152,7 +149,7 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip();
         const before = state.reactor.energy;
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 1);
+        tick(repairManager, 1);
 
         expect(before - state.reactor.energy).to.be.closeTo(10, 0.01);
     });
@@ -163,11 +160,11 @@ describe('RepairManager', () => {
             thruster.bearingSkew = 5;
         }
         enqueue(state, 'fixThrusters');
-        tickOnce(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
+        tick(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
         expect(state.thrusters[0].power).to.equal(0);
 
         state.reactor.energy = 0; // a momentary dip — well under ENERGY_STARVATION_GRACE_SECONDS
-        tickOnce(repairManager, 0.5);
+        tick(repairManager, 0.5);
         state.reactor.energy = state.reactor.design.maxEnergy; // recovers
 
         expect(state.repairQueue.operations).to.have.lengthOf(1);
@@ -182,7 +179,7 @@ describe('RepairManager', () => {
         }
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
-        tickOnce(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
+        tick(repairManager, 0.1); // promote + apply side effect (thrusters power -> 0)
         expect(state.thrusters[0].power).to.equal(0);
 
         state.reactor.energy = 0; // sustained shortfall — longer than the grace window
@@ -197,7 +194,7 @@ describe('RepairManager', () => {
     it('surfaces a visible reason when a sustained energy shortfall aborts the active operation', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1); // promote to active
+        tick(repairManager, 0.1); // promote to active
 
         state.reactor.energy = 0; // sustained shortfall — longer than the grace window
         runTicks(repairManager, 3, 20);
@@ -210,11 +207,11 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixThrusters');
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         const queuedOp = state.repairQueue.operations[1];
         cancel(state, queuedOp.id);
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations.map((o) => o.protocolId)).to.deep.equal(['fixThrusters']);
     });
@@ -226,11 +223,11 @@ describe('RepairManager', () => {
         }
         enqueue(state, 'fixThrusters');
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         const activeOp = state.repairQueue.operations[0];
         cancel(state, activeOp.id);
-        tickOnce(repairManager, 0.1); // abort moves it to recentlyFinished and promotes the next op, same tick
+        tick(repairManager, 0.1); // abort moves it to recentlyFinished and promotes the next op, same tick
 
         // aborted: target not restored
         expect(state.thrusters[0].bearingSkew).to.equal(5);
@@ -244,7 +241,7 @@ describe('RepairManager', () => {
         enqueue(state, 'fixThrusters');
         enqueue(state, 'fixMagazine');
         enqueue(state, 'heatDocking');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         const activeOp = state.repairQueue.operations[0];
         const lastQueued = state.repairQueue.operations[2];
@@ -252,7 +249,7 @@ describe('RepairManager', () => {
         reorder(state, activeOp.id, 2);
         // move the last queued op to the front of the queued subset
         reorder(state, lastQueued.id, 1);
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations[0].id).to.equal(activeOp.id);
         expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
@@ -263,13 +260,13 @@ describe('RepairManager', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixThrusters');
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         const queuedOp = state.repairQueue.operations[1];
         // this is exactly what the repair-queue widget's "Move up" button sends for the row at
         // index 1: {index: 0} — the active operation must not be displaced from index 0
         reorder(state, queuedOp.id, 0);
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
         expect(state.repairQueue.operations[0].protocolId).to.equal('fixThrusters');
@@ -281,7 +278,7 @@ describe('RepairManager', () => {
             enqueue(state, protocolId);
         }
 
-        expect(() => tickOnce(repairManager, 0.1)).to.not.throw();
+        expect(() => tick(repairManager, 0.1)).to.not.throw();
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
@@ -294,7 +291,7 @@ describe('RepairManager', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (state.repairQueue.reorderCommands as any[]).push(null, 'garbage', {}, { operationId: 'x' });
 
-        expect(() => tickOnce(repairManager, 0.1)).to.not.throw();
+        expect(() => tick(repairManager, 0.1)).to.not.throw();
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
 
@@ -304,7 +301,7 @@ describe('RepairManager', () => {
             thruster.bearingSkew = 5;
         }
         enqueue(state, 'fixThrusters');
-        tickOnce(repairManager, 0.1); // promotes to active, side effect: thrusters power -> 0
+        tick(repairManager, 0.1); // promotes to active, side effect: thrusters power -> 0
         expect(state.thrusters[0].power).to.equal(0);
 
         state.thrusters[0].power = PowerLevel.MAX; // the pilot commands power back up mid-repair
@@ -319,7 +316,7 @@ describe('RepairManager', () => {
         for (let i = 0; i < 20; i++) {
             enqueue(state, 'fixMagazine');
         }
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations.length).to.be.at.most(16);
     });
@@ -331,7 +328,7 @@ describe('RepairManager', () => {
         }
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
         expect(state.thrusters[0].power).to.equal(0);
 
         runTicks(repairManager, 2, 20);
@@ -341,7 +338,7 @@ describe('RepairManager', () => {
     it('heat from an active operation lands on its target systems', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'heatDocking');
-        tickOnce(repairManager, 1); // 1s tick, protocol.heat=100 over duration=5s -> +20 heat this tick
+        tick(repairManager, 1); // 1s tick, protocol.heat=100 over duration=5s -> +20 heat this tick
 
         expect(state.docking.heat).to.be.closeTo(20, 0.01);
     });
@@ -349,7 +346,7 @@ describe('RepairManager', () => {
     it('declared heat is a fixed total budget, not multiplied by the target system instance count', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'heatThrusters');
-        tickOnce(repairManager, 1); // 1s tick, protocol.heat=24 over duration=4s -> +6 total this tick
+        tick(repairManager, 1); // 1s tick, protocol.heat=24 over duration=4s -> +6 total this tick
 
         const totalHeat = state.thrusters.reduce((sum, t) => sum + t.heat, 0);
         expect(totalHeat).to.be.closeTo(6, 0.01);
@@ -360,7 +357,7 @@ describe('RepairManager', () => {
         state.docking.heat = 90;
         const before = state.docking.rangesFactor;
         enqueue(state, 'heatDocking');
-        tickOnce(repairManager, 1); // +20 heat: 90 -> clamped 100, 10 excess -> overheat damage
+        tick(repairManager, 1); // +20 heat: 90 -> clamped 100, 10 excess -> overheat damage
 
         expect(state.docking.heat).to.equal(100);
         expect(state.docking.rangesFactor).to.be.lessThan(before);
@@ -369,7 +366,7 @@ describe('RepairManager', () => {
     it('refuses to enqueue a protocol above the ship current repair tier, with a tier-specific message', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'dockedOnly');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
         expect(state.repairQueue.refusalReason).to.match(/higher repair tier/);
@@ -392,12 +389,12 @@ describe('RepairManager', () => {
         state.docking.mode = DockingMode.DOCKED;
         state.reactor.effeciencyFactor = 0.5;
         enqueue(state, 'dockedOnly');
-        tickOnce(repairManager, 0.1); // promotes to ACTIVE while docked
+        tick(repairManager, 0.1); // promotes to ACTIVE while docked
 
         expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
 
         state.docking.mode = DockingMode.UNDOCKED;
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
         expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
@@ -410,7 +407,7 @@ describe('RepairManager', () => {
     it('refuses to enqueue an unknown protocol id', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'not-a-real-protocol');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
     });
@@ -430,7 +427,7 @@ describe('RepairManager', () => {
         state.chainGuns.splice(0); // simulate a ship design without a chain gun
 
         enqueue(state, 'needsChainGun');
-        expect(() => tickOnce(repairManager, 0.1)).to.not.throw();
+        expect(() => tick(repairManager, 0.1)).to.not.throw();
 
         expect(state.repairQueue.operations).to.have.lengthOf(0);
         expect(state.repairQueue.refusalReason).to.not.equal('');
@@ -441,10 +438,10 @@ describe('RepairManager', () => {
         for (let i = 0; i < 16; i++) {
             enqueue(state, 'fixMagazine');
         }
-        tickOnce(repairManager, 0.1); // fills the queue to the cap
+        tick(repairManager, 0.1); // fills the queue to the cap
 
         enqueue(state, 'fixMagazine'); // refused: queue full
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.refusalReason).to.not.equal('');
         expect(state.repairQueue.refusalSecondsRemaining).to.be.greaterThan(0);
@@ -472,11 +469,11 @@ describe('RepairManager', () => {
     it('keeps a cancelled operation visible in recentlyFinished as CANCELLED, distinct from DONE', () => {
         const { state, repairManager } = setUpShip();
         enqueue(state, 'fixMagazine');
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         const activeOp = state.repairQueue.operations[0];
         cancel(state, activeOp.id);
-        tickOnce(repairManager, 0.1);
+        tick(repairManager, 0.1);
 
         expect(state.repairQueue.recentlyFinished).to.have.lengthOf(1);
         expect(state.repairQueue.recentlyFinished[0].status).to.equal(RepairOperationStatus.CANCELLED);
@@ -486,7 +483,7 @@ describe('RepairManager', () => {
         const { state, repairManager, energyManager, heatManager } = setUpShip();
         const priorPower = state.thrusters[0].power;
         enqueue(state, 'fixThrusters');
-        tickOnce(repairManager, 0.1); // promotes to active, applies the side effect: thrusters power -> 0
+        tick(repairManager, 0.1); // promotes to active, applies the side effect: thrusters power -> 0
         expect(state.thrusters[0].power).to.equal(0);
 
         const cloned = state.clone();
@@ -498,6 +495,6 @@ describe('RepairManager', () => {
         expect(cloned.repairQueue.operations).to.have.lengthOf(0);
 
         const clonedManager = new RepairManager(cloned, energyManager, heatManager);
-        expect(() => tickOnce(clonedManager, 0.1)).to.not.throw();
+        expect(() => tick(clonedManager, 0.1)).to.not.throw();
     });
 });

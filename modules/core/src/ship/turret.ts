@@ -72,9 +72,9 @@ export abstract class Turret extends SystemState {
     fittedBearing = 0;
 
     /**
-     * where the mount is pointing right now, relative to `fittedBearing` (0 = pointing exactly
-     * where it's fitted). Owned by the ship manager — command it through `bearingCommand` instead
-     * of writing it.
+     * where the mount is pointing right now, relative to `restBearing` (0 = pointing exactly where
+     * it rests). Owned by the ship manager — command it through `bearingCommand` instead of
+     * writing it.
      */
     @range(shipDirectionRange)
     @tweakable('number')
@@ -138,7 +138,7 @@ export abstract class Turret extends SystemState {
     bearingCommandRaw = 0;
 
     /**
-     * the bearing the mount is swinging toward, relative to `fittedBearing`. Clamped to
+     * the bearing the mount is swinging toward, relative to `restBearing`. Clamped to
      * `±bearingLimit` on every write — bot, player command, GM tweak panel, future script alike —
      * so nothing can point a mount through the hull it is bolted to.
      */
@@ -156,11 +156,30 @@ export abstract class Turret extends SystemState {
     }
 
     /**
-     * this mount's bearing in relation to the ship (in degrees, 0 is front): where it's fitted,
-     * plus how far damage has skewed it, plus how far it has swung from there.
+     * where this mount points with no traverse applied, in relation to the ship (in degrees, 0 is
+     * front): where it's fitted, plus how far damage has skewed it. `bearing` and `bearingCommand`
+     * are both measured from here, so the hull-relative bearings this mount can be brought to are
+     * `restBearing ± bearingLimit`.
+     */
+    get restBearing() {
+        return this.fittedBearing + this.bearingSkew;
+    }
+
+    /**
+     * the `bearingCommand` that lays this mount's firing line on `targetHullBearing` (hull-relative
+     * degrees, 0 is front). Past `±bearingLimit` the setter clamps it, so compare against that
+     * where it matters.
+     */
+    bearingCommandFor(targetHullBearing: number): number {
+        return toDegreesDelta(targetHullBearing - this.restBearing);
+    }
+
+    /**
+     * this mount's bearing in relation to the ship (in degrees, 0 is front): where it rests, plus
+     * how far it has swung from there.
      */
     get hullBearing() {
-        return this.fittedBearing + this.bearingSkew + this.bearing;
+        return this.restBearing + this.bearing;
     }
 
     /**
@@ -177,7 +196,7 @@ export abstract class Turret extends SystemState {
      * here" overlays ahead of the mount's swing.
      */
     getGlobalCommandedBearing(parent: ShipState): number {
-        return parent.angle + this.fittedBearing + this.bearingSkew + this.bearingCommand;
+        return parent.angle + this.restBearing + this.bearingCommand;
     }
 
     /**
