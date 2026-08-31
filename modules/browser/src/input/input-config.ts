@@ -60,6 +60,10 @@ export const shipInputConfig = {
     tubeIsFiring: 'x',
     // one dedicated hotkey per tube index — toggles that tube's safety only
     tubeSafety: ['1', '2', '3', '4'],
+    // Shift+digit — toggles that tube's load/unload only
+    tubeLoad: ['shift+1', 'shift+2', 'shift+3', 'shift+4'],
+    // Alt+digit — cycles that tube's projectile only
+    tubeChangeAmmo: ['alt+1', 'alt+2', 'alt+3', 'alt+4'],
     warpUp: 'r',
     warpDown: 'f',
     dock: 'z',

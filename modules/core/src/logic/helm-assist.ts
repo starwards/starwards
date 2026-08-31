@@ -1,5 +1,14 @@
 import { ShipDirection, vector2ShipDirections } from '../ship/ship-direction';
-import { capToRange, equasionOfMotion, lerp, sign, toDegreesDelta, whereWillItStop } from './formulas';
+import {
+    addScale,
+    capToRange,
+    equasionOfMotion,
+    lerp,
+    sign,
+    timeToIntercept,
+    toDegreesDelta,
+    whereWillItStop,
+} from './formulas';
 
 import { ShipState } from '../ship';
 import { XY } from './xy';
@@ -42,6 +51,25 @@ export function moveToTarget(deltaSeconds: number, ship: Craft, targetPos: XY): 
     };
 }
 
+/**
+ * Point to steer at: where a straight-line course at `interceptorSpeed` meets a target drifting at
+ * constant velocity. Degrades to the target's current position when it can never be caught.
+ * @see docs/SUBSYSTEMS.md#intercept-solutions
+ */
+export function predictInterceptPoint(
+    interceptorPosition: XY,
+    interceptorSpeed: number,
+    target: { position: XY; velocity: XY },
+): XY {
+    const time = timeToIntercept(
+        XY.difference(target.position, interceptorPosition),
+        target.velocity,
+        interceptorSpeed,
+    );
+    const aimPoint = time === null ? target.position : addScale(target.position, target.velocity, time);
+    return XY.isFinite(aimPoint) ? aimPoint : target.position;
+}
+
 export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY, offset: number): number {
     const angleDiff = calcTargetAngleDiff(deltaSeconds, ship, targetPos);
     return accelerateToPosition(
@@ -49,6 +77,21 @@ export function rotateToTarget(deltaSeconds: number, ship: Craft, targetPos: XY,
         ship.rotationCapacity,
         ship.turnSpeed,
         toDegreesDelta(angleDiff + offset),
+    );
+}
+
+/**
+ * Rotation command that holds `absoluteAngle` — {@link rotateToTarget} against a heading rather than
+ * a point, plus the term that tracks a *moving* one. `referenceTurnSpeed` is how fast that heading
+ * itself sweeps (deg/s); damping against absolute turn rate instead leaves a standing lag
+ * proportional to the sweep — the whole pass long, for a target crossing abeam.
+ */
+export function rotateToAngle(deltaSeconds: number, ship: Craft, absoluteAngle: number, referenceTurnSpeed = 0) {
+    return accelerateToPosition(
+        deltaSeconds,
+        ship.rotationCapacity,
+        ship.turnSpeed - referenceTurnSpeed,
+        toDegreesDelta(absoluteAngle - ship.angle),
     );
 }
 

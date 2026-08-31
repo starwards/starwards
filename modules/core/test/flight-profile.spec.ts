@@ -1,0 +1,226 @@
+import {
+    ChaingunDesign,
+    FlightDoctrine,
+    ShipDesign,
+    ShipDirectionConfig,
+    Spaceship,
+    ThrusterDesign,
+    XY,
+    chaingunPlatformChaingun,
+    demoShipThruster,
+    makeFlightProfile,
+    makeShipState,
+    shipConfigurations,
+} from '../src';
+
+import { expect } from 'chai';
+
+const demoShipConfig = shipConfigurations['demo-ship'];
+const stationConfig = shipConfigurations['chaingun-platform'];
+
+/** A hull with two chain-guns: a PORT-fitted bolted mount and a FWD-fitted full-traverse turret. */
+function boltedAndTurretConfig(): ShipDesign {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['PORT', { ...chaingunPlatformChaingun, bearingLimit: 0, turnSpeed: 0 }],
+        ['FWD', { ...chaingunPlatformChaingun, maxShellRange: 20_000 }],
+    ];
+    return { ...stationConfig, chainGuns, thrusters: [] };
+}
+
+/** A single PORT-fitted bolted mount, and an asymmetric thruster layout: 2 FWD, 1 PORT, 1 STBD. */
+function boltedGunAsymmetricThrustConfig(): ShipDesign {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['PORT', { ...chaingunPlatformChaingun, bearingLimit: 0, turnSpeed: 0 }],
+    ];
+    const thrusters: [ShipDirectionConfig, ThrusterDesign][] = [
+        ['FWD', demoShipThruster],
+        ['FWD', demoShipThruster],
+        ['PORT', demoShipThruster],
+        ['STBD', demoShipThruster],
+    ];
+    return { ...demoShipConfig, chainGuns, thrusters };
+}
+
+/** A full-traverse turret only, with an asymmetric thruster layout: 2 FWD, 1 PORT, 1 STBD. */
+function turretOnlyAsymmetricThrustConfig(): ShipDesign {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [['FWD', chaingunPlatformChaingun]];
+    const thrusters: [ShipDirectionConfig, ThrusterDesign][] = [
+        ['FWD', demoShipThruster],
+        ['FWD', demoShipThruster],
+        ['PORT', demoShipThruster],
+        ['STBD', demoShipThruster],
+    ];
+    return { ...demoShipConfig, chainGuns, thrusters };
+}
+
+/**
+ * Two mounts whose shell envelopes leave a deliberate hole: a short mount reaching 2,400-6,000m and
+ * a long one reaching 12,000-20,000m, with nothing at all covering 6,000-12,000m. No shipped design
+ * is heterogeneous like this (every one reuses a single gun design across its mounts), so the
+ * envelope-union arithmetic is only observable against a config built for it.
+ */
+function gappedEnvelopeConfig(): ShipDesign {
+    const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+        ['FWD', { ...chaingunPlatformChaingun, minShellRange: 2_400, maxShellRange: 6_000 }],
+        ['FWD', { ...chaingunPlatformChaingun, minShellRange: 12_000, maxShellRange: 20_000 }],
+    ];
+    return { ...stationConfig, chainGuns };
+}
+
+function makeTarget(position: XY, velocity: XY = XY.zero) {
+    const target = new Spaceship();
+    target.position.setValue(position);
+    target.velocity.setValue(velocity);
+    return target;
+}
+
+describe('flight-profile', () => {
+    describe('trackRange', () => {
+        it('spans the min/max shell range across every mount, not just the first', () => {
+            const state = makeShipState('1', boltedAndTurretConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.INTERCEPT);
+
+            const [min, max] = profile.trackRange();
+
+            expect(min).to.equal(chaingunPlatformChaingun.minShellRange);
+            expect(max).to.equal(20_000); // the second (FWD turret) mount's longer range
+        });
+
+        it('holds one mount’s own band rather than a union spanning a gap between two', () => {
+            const state = makeShipState('1', gappedEnvelopeConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.INTERCEPT);
+
+            // The long mount's 8,000m-wide band, not [2,400, 20,000] -- a ship holding station
+            // anywhere in the 6,000-12,000m hole that union describes has nothing that can fire.
+            expect(profile.trackRange()).to.deep.equal([12_000, 20_000]);
+        });
+
+        it('ignores the gun envelope entirely under SHADOW', () => {
+            const state = makeShipState('1', boltedAndTurretConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.SHADOW);
+
+            expect(profile.trackRange()).to.deep.equal([1000, 3000]);
+        });
+    });
+
+    describe('isReachable', () => {
+        it('uses the ship-wide max shell range, not chainGuns[0]', () => {
+            // chainGuns[0] (PORT, bolted) only reaches to the platform default; chainGuns[1] (the
+            // FWD turret) reaches to 20,000 — this is the exact regression that motivated the redesign.
+            const state = makeShipState('1', boltedAndTurretConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            expect(profile.isReachable(15_000)).to.equal(true);
+        });
+
+        it('rejects a target beyond every mount’s max range', () => {
+            const state = makeShipState('1', boltedAndTurretConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            expect(profile.isReachable(25_000)).to.equal(false);
+        });
+
+        it('rejects a distance that falls in the gap between two mounts’ envelopes', () => {
+            const state = makeShipState('1', gappedEnvelopeConfig());
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            // Past the short mount's 6,000 and short of the long mount's 12,000: no gun on the hull
+            // can put a shell here, though the union of their mins and maxes says otherwise.
+            expect(profile.isReachable(9_000)).to.equal(false);
+            // Both mounts' own bands are still reachable.
+            expect(profile.isReachable(5_000)).to.equal(true);
+            expect(profile.isReachable(15_000)).to.equal(true);
+        });
+
+        it('is always false with no chain guns', () => {
+            const state = makeShipState('1', { ...stationConfig, chainGuns: [] });
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            expect(profile.isReachable(100)).to.equal(false);
+        });
+    });
+
+    describe('headingOffset', () => {
+        it('parks a bolted mount on the firing line (-fittedBearing) under INTERCEPT, independent of the target', () => {
+            const state = makeShipState('1', boltedGunAsymmetricThrustConfig());
+            state.spaceship.angle = 0;
+            const profile = makeFlightProfile(state, FlightDoctrine.INTERCEPT);
+            // Dead ahead — nowhere near the mount's own PORT bearing, so this only passes if
+            // heading is driven by the mount's fitting, not the target's position.
+            const target = makeTarget({ x: 10_000, y: 0 });
+
+            // The mount is fitted PORT (fittedBearing 90); parking it on the target needs
+            // headingOffset -90 regardless of where the target actually is.
+            expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
+        });
+
+        it('matches today’s single-mount behavior on a symmetric hull (regression guard)', () => {
+            // dragonfly-style: one bolted mount, symmetric thrust in every direction. INTERCEPT
+            // must still park the gun on the firing line the same way pre-redesign did.
+            const chainGuns: [ShipDirectionConfig, ChaingunDesign][] = [
+                ['PORT', { ...chaingunPlatformChaingun, bearingLimit: 0, turnSpeed: 0 }],
+            ];
+            const thrusters: [ShipDirectionConfig, ThrusterDesign][] = [
+                ['FWD', demoShipThruster],
+                ['AFT', demoShipThruster],
+                ['PORT', demoShipThruster],
+                ['STBD', demoShipThruster],
+            ];
+            const state = makeShipState('1', { ...demoShipConfig, chainGuns, thrusters });
+            state.spaceship.angle = 0;
+            const profile = makeFlightProfile(state, FlightDoctrine.INTERCEPT);
+            const target = makeTarget({ x: 0, y: -10_000 }); // dead abeam, STBD side
+
+            expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
+        });
+
+        it('prefers the strong thrust axis over a turret’s incidental bearing under STANDOFF', () => {
+            const state = makeShipState('1', turretOnlyAsymmetricThrustConfig());
+            state.spaceship.angle = 0;
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            // Target dead abeam (PORT) and closing fast along the ship's own -x (global) axis:
+            // the ship's own 2x-capacity FWD/AFT axis should win over pointing the nose straight
+            // at the target, since the lone mount is a full-traverse turret that never
+            // constrains heading. Rotating 90° puts the FWD/AFT axis along the closing velocity.
+            const target = makeTarget({ x: 0, y: 1 }, { x: -5000, y: 0 });
+
+            expect(profile.headingOffset(target, target.velocity)).to.equal(90);
+        });
+
+        it('is aim-only when the ship has no thrusters at all (stations)', () => {
+            const state = makeShipState('1', boltedAndTurretConfig());
+            state.spaceship.angle = 0;
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            const target = makeTarget({ x: 10_000, y: 0 });
+
+            // Only the bolted PORT mount constrains heading; the FWD turret never does.
+            // thrustCost is 0 everywhere (no thrusters), so the bolted mount's own offset must
+            // still win, independent of the target's actual position.
+            expect(profile.headingOffset(target, target.velocity)).to.equal(-90);
+        });
+
+        it('holds the heading it is already flying while the required acceleration jitters across a tie', () => {
+            // A lone full-traverse turret costs nothing to aim, so thrust alone decides, and the
+            // hull's strongest axis is FWD. Two candidates then compete: dead ahead, whose thrust
+            // cost depends on where the required acceleration falls relative to the hull's axes,
+            // and the candidate that lays FWD *on* that acceleration, which always costs 0. They
+            // tie exactly while the acceleration sits within 45° of the target's bearing, and dead
+            // ahead loses the moment it passes that. Jitter across the boundary is what the
+            // hysteresis exists for — and the candidate being held drifts with the acceleration
+            // every tick, so recognizing it as the incumbent cannot mean reproducing its value.
+            const state = makeShipState('1', turretOnlyAsymmetricThrustConfig());
+            state.spaceship.angle = 0;
+            const profile = makeFlightProfile(state, FlightDoctrine.STANDOFF);
+            const target = makeTarget({ x: 10_000, y: 0 });
+
+            const requiredBearings = [46, 45.2, 44.4, 45.3, 44.2, 45.4, 44.3, 45.5, 44.1, 45.2];
+            const offsets = requiredBearings.map((bearing) =>
+                profile.headingOffset(target, XY.byLengthAndDirection(100, bearing)),
+            );
+
+            // The first tick has nothing to hold, and picks the only zero-cost candidate.
+            expect(offsets[0]).to.be.closeTo(46, 0.001);
+            // Every later tick keeps flying that same heading, tracking it as it drifts, instead of
+            // handing the hull back to dead ahead each time the tie comes back.
+            for (const [tick, offset] of offsets.entries()) {
+                expect(offset, `tick ${tick}`).to.be.closeTo(requiredBearings[tick], 0.001);
+            }
+        });
+    });
+});

@@ -37,10 +37,7 @@ test.describe('Wave-defence scenario', () => {
         }).toPass({ timeout: 10000 });
 
         const initialDistances = new Map(
-            wave1Ids.map((id) => [
-                id,
-                XY.lengthOf(XY.difference(gameDriver.getShip(id).spaceObject.position, stationLarge.position)),
-            ]),
+            wave1Ids.map((id) => [id, XY.distance(gameDriver.getShip(id).spaceObject.position, stationLarge.position)]),
         );
 
         await expect(() => {

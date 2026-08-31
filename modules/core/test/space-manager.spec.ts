@@ -80,7 +80,7 @@ describe('SpaceManager', () => {
                         .simulateUntilCondition(() => explosionInit.mock.calls.length > 0, timeInSeconds);
 
                     const explosionCenter = explosionInit.mock.calls[0][1];
-                    const distance = XY.lengthOf(XY.difference(explosionCenter, target.position));
+                    const distance = XY.distance(explosionCenter, target.position);
                     expect(distance).to.be.closeTo(target.radius, bulletSpeed * iterationTimeInSeconds * 2);
                     expect(distance).to.be.gte(target.radius);
                 },
@@ -118,7 +118,7 @@ describe('SpaceManager', () => {
         sim.simulateUntilTime(1.5, (spaceMgr) => {
             const liveShell = spaceMgr.state.get('shell');
             if (liveShell && !liveShell.destroyed) {
-                const distanceToExplosion = XY.lengthOf(XY.difference(liveShell.position, blockingExplosion.position));
+                const distanceToExplosion = XY.distance(liveShell.position, blockingExplosion.position);
                 if (distanceToExplosion < blockingExplosion.radius) {
                     sawShellInsideExplosionAlive = true;
                 }
@@ -238,7 +238,6 @@ describe('SpaceManager', () => {
 
                 // stop simulation when first bullet reaches its range
                 const shellSecondsToLive = calcShellSecondsToLive(
-                    shipMgr.state,
                     shipMgr.state.chainGuns[0],
                     shipMgr.state.chainGuns[0].design.maxShellRange,
                 );

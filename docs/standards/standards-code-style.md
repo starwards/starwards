@@ -1,3 +1,16 @@
+---
+audience: agent
+depth: light
+source_of_truth:
+  - eslint.config.mjs
+  - .prettierrc.json
+  - tsconfig.json
+related:
+  - standards-code-structure.md
+  - standards-naming.md
+last_verified: 2026-08-18
+---
+
 ## TypeScript Best Practices
 - Use strict mode
 - Prefer type inference for return types; avoid explicit declarations

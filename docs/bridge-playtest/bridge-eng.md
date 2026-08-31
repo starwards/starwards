@@ -1,9 +1,8 @@
 # Engineering — current state
 
 **Code:** `modules/browser/src/screens/engineer.ts`. One station, one screen:
-`engineer.html`. The former ECR/Bridge-Engineer split and its `/ecrControl`
-toggle were removed (#2133) — the engineer station always holds full control
-of power, coolant and warp frequency.
+`engineer.html`. The engineer station holds full control of power, coolant and
+warp frequency.
 
 ## Widgets on screen
 

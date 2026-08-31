@@ -33,6 +33,10 @@ export type { RoomEventEmitter } from './events';
 export { getJsonPointer } from './json-ptr';
 export type { JsonStringPointer } from './json-ptr';
 
+// --- lock-commands ---
+export { lockCommands } from './lock-commands';
+export type { LockPropertyArg } from './lock-commands';
+
 // --- logic ---
 export {
     XY,

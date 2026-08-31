@@ -16,6 +16,7 @@ import {
     circlesIntersection,
     limitPercision,
     moveToTarget,
+    predictInterceptPoint,
     rotateToTarget,
     toDegreesDelta,
     toPositiveDegreesDelta,
@@ -28,6 +29,7 @@ import { DamageDelivery } from '../space/projectile';
 import { FactionIntelManager } from './faction-intel-manager';
 import { SWResponse } from './collisions-utils';
 import { SpaceDamageType } from '../space/damage-profile';
+import { applyLockCommands } from '../lock-commands';
 import { createLogger } from '../logger';
 
 const { warn: logWarn, error: logError } = createLogger('space-manager');
@@ -272,6 +274,8 @@ export class SpaceManager implements Updateable {
     }
 
     update({ deltaSeconds, totalSeconds }: IterationData) {
+        // apply GM lock/unlock commands before anything else can write a locked field this tick
+        applyLockCommands(this.state);
         this.calcAttachmentCliques();
         for (const cmd of this.state.createAsteroidCommands) {
             const asteroid = new Asteroid().init(makeId(), Vec2.make(cmd.position), cmd.radius);
@@ -483,21 +487,29 @@ export class SpaceManager implements Updateable {
             if (!projectile.freeze && projectile.design.homing && projectile.targetId) {
                 const [target] = this.getObjectPtr(projectile.targetId);
                 if (target) {
-                    const destination = target.position;
-                    const relativeDestination = XY.difference(destination, projectile.position);
-                    const distanceToTarget = XY.lengthOf(relativeDestination) - target.radius;
+                    const distanceToTarget = XY.distance(target.position, projectile.position) - target.radius;
                     const fuze = projectile.fuze;
                     if (fuze.type === 'proximity' && distanceToTarget < fuze.range) {
                         this.explodeProjectile(projectile);
                     } else {
                         const homing = projectile.design.homing;
-                        // terminal sprint: dramatic acceleration burst once inside the sprint range,
-                        // so a target can't idly out-maneuver a missile it's already spotted
-                        const sprintMultiplier =
-                            homing.sprint && distanceToTarget < homing.sprint.range ? homing.sprint.speedMultiplier : 1;
+                        // lead at sprint speed: that's what it closes at once on-course.
+                        // see: docs/SUBSYSTEMS.md#homing-missile-guidance
+                        const leadSpeed = homing.sprint
+                            ? homing.maxSpeed * homing.sprint.speedMultiplier
+                            : homing.maxSpeed;
+                        const destination = predictInterceptPoint(projectile.position, leadSpeed, target);
+                        const relativeDestination = XY.difference(destination, projectile.position);
                         const velocityDestinationDiff = toDegreesDelta(
                             XY.angleOf(relativeDestination) - XY.angleOf(projectile.velocity),
                         );
+                        // sprint only once tracking the lead point: sprint turn radius exceeds a
+                        // short-range engagement. see: docs/SUBSYSTEMS.md#homing-missile-guidance
+                        const onCourse = Math.abs(velocityDestinationDiff) < 35;
+                        const sprintMultiplier =
+                            homing.sprint && onCourse && distanceToTarget < homing.sprint.range
+                                ? homing.sprint.speedMultiplier
+                                : 1;
 
                         let rotation = 0;
                         let boost = 0;
@@ -517,9 +529,9 @@ export class SpaceManager implements Updateable {
 
                         projectile.turnSpeed += rotation * deltaSeconds * projectile.rotationCapacity;
                         if (boost > 0) {
-                            const desiredSpeed = XY.scale(
-                                XY.rotate(XY.one, projectile.angle),
+                            const desiredSpeed = XY.byLengthAndDirection(
                                 boost * deltaSeconds * homing.velocityCapacity * sprintMultiplier,
+                                projectile.angle,
                             );
                             projectile.velocity.add(desiredSpeed);
                         }
@@ -929,5 +941,5 @@ function collisionErrorMsg(object: SpaceObject, subject: SpaceObject, response: 
         object.position,
     )}(${JSON.stringify(response.b.pos)}) radius: ${JSON.stringify(object.radius)}. state distance: ${XY.lengthOf(
         XY.difference(subject.position, object.position),
-    )}. collision distance: ${XY.lengthOf(XY.difference(response.a.pos, response.b.pos))}`;
+    )}. collision distance: ${XY.distance(response.a.pos, response.b.pos)}`;
 }
