@@ -91,6 +91,7 @@ function createFixture(model: ArmorModelName): Fixture {
                 damageType,
                 delivery,
                 profile,
+                shipId: '',
             });
             const surfaceCount = profile.surfaceEffect ? surfaceEligibleCount : 0;
             const surface = hits.slice(0, surfaceCount);
