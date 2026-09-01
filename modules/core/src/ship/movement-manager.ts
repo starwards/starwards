@@ -25,8 +25,6 @@ const { error: logError, warn: logWarn } = createLogger('movement');
 
 type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
-    setSmartPilotManeuveringMode(value: SmartPilotMode): void;
-    setSmartPilotRotationMode(value: SmartPilotMode): void;
 };
 
 const CHECK_JAM_INTERVAL_SECONDS = 5;
@@ -51,7 +49,6 @@ export class MovementManager implements Updateable {
         this.handleWarpLevel(deltaSeconds);
         this.handleWarpMovement(deltaSeconds);
         this.handleAfterburnerCommand();
-        this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
         this.calcRotation(deltaSeconds);
         // maneuvering.energyStarved is written by two independently-gated draws below (rotation,
@@ -284,13 +281,6 @@ export class MovementManager implements Updateable {
             this.spaceManager.changeTurnSpeed(this.spaceObject.id, speedToChange);
             // Immediate sync so code later in the same tick reads the updated turnSpeed
             this.state.spaceship.turnSpeed = this.spaceObject.turnSpeed;
-        }
-    }
-
-    private calcSmartPilotModes() {
-        if (!this.state.smartPilot.effectiveness) {
-            this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-            this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
         }
     }
 

@@ -189,6 +189,23 @@ describe('MovementManager', () => {
         expect(shipMgr.state.warp!.jammed).to.equal(true);
     });
 
+    it('an explicitly-set maneuvering/rotation mode stays set once the smart pilot has zero effectiveness (issue #2186)', () => {
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
+
+        // No power to the smart pilot: effectiveness drops to 0, same as a GM-forced or hacked system
+        shipMgr.state.smartPilot.power = 0;
+        expect(shipMgr.state.smartPilot.effectiveness).to.equal(0);
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipMgr.state.smartPilot.maneuveringMode).to.equal(SmartPilotMode.VELOCITY);
+        expect(shipMgr.state.smartPilot.rotationMode).to.equal(SmartPilotMode.VELOCITY);
+    });
+
     it('a nebula within warp proximity does not jam warp — it is optical only (issue #2123)', () => {
         const fog = new Nebula();
         fog.init('fog', Vec2.make({ x: 2000, y: 0 }), 500);
