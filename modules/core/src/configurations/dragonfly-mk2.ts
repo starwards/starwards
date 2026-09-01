@@ -76,7 +76,10 @@ export const dragonflyMK2Reactor = {
 export const dragonflyMK2Properties = {
     modelName: 'Dragonfly MK II "Heavy Interceptor"',
     totalCoolant: 6,
-    systemKillRatio: 0.5,
+    // 0.5 needed 8 broken systems but neither arc (7 front, 7 rear) has that many -- mathematically
+    // unkillable from any single held firing bearing (issue #2192). 0.4 leaves 1 system of slack
+    // in each arc, matching the margin stations already have (issue #2107).
+    systemKillRatio: 0.4,
 };
 
 export const dragonflyMK2Magazine = {

@@ -96,7 +96,10 @@ export const predatorReactor = {
 export const predatorProperties = {
     modelName: 'Predator',
     totalCoolant: 10,
-    systemKillRatio: 0.5,
+    // 0.5 required breaking every rear-arc system (10/10) to die -- unreachable with any margin
+    // from a single held firing bearing (issue #2192). 0.45 leaves 1 system of slack, matching
+    // the margin stations already have (issue #2107).
+    systemKillRatio: 0.45,
 };
 
 export const predatorMagazine = {
