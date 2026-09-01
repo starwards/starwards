@@ -66,7 +66,7 @@ export const chaingunPlatformChaingun = {
     use_TandemMissile: false,
     use_ElecMissile: false,
     damage50: 20,
-    energyCost: 1,
+    energyCost: 0.16,
     // bearingLimit 180 covers the full 360°: the mount alone tracks its target, the hull never turns.
     turnSpeed: 45,
     bearingLimit: 180,
