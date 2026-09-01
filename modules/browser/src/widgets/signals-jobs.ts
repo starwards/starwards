@@ -1,19 +1,12 @@
-import {
-    Destructors,
-    JobStatus,
-    ShipDriver,
-    SignalsJob,
-    SpaceDriver,
-    objectDisplayName,
-    playerScanLevel,
-} from '@starwards/core';
+import { Destructors, JobStatus, ShipDriver, SpaceDriver, objectDisplayName, playerScanLevel } from '@starwards/core';
+import { JobView, visibleJobRows } from './signals-jobs-rows';
 import { addBarBlade, addButton, addInputBlade, addTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp, readWriteProp, writeProp } from '../property-wrappers';
 
 import { SelectionContainer } from '../radar/selection-container';
 import { WidgetContainer } from '../container';
 
-function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: SignalsJob) {
+function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Pick<JobView, 'targetId'>) {
     // scan jobs target every kind of space object, not just ships
     const target = spaceDriver.state.get(job.targetId);
     const scanLevel = target && playerScanLevel(target, shipDriver.state.faction);
@@ -21,10 +14,15 @@ function jobLabel(spaceDriver: SpaceDriver, shipDriver: ShipDriver, job: Signals
     return `SCAN ${targetName}`;
 }
 
+function staticTextModel(value: string) {
+    return { getValue: () => value, onChange: () => () => undefined };
+}
+
 /**
- * The signals station's view of its job queue: only the job the station is working on right now
- * is shown (dormant jobs stay hidden), with a pause-all toggle and a button that prioritizes the
- * radar-selected target's job to the top of the queue.
+ * The signals station's view of its job queue: the in-progress job first (with progress and a
+ * cancel button), then every queued job as a row in queue order (dormant jobs are never listed,
+ * only counted), plus a pause-all toggle and a button that prioritizes the radar-selected
+ * target's job to the top of the queue.
  */
 export function drawSignalsJobs(
     container: WidgetContainer,
@@ -35,7 +33,6 @@ export function drawSignalsJobs(
     const { pane, cleanup: panelCleanup } = createWidgetPane(container, 'Signals Jobs');
 
     const jobs = () => shipDriver.state.signals.jobs;
-    const activeJobIndex = () => jobs().findIndex((job) => job.status === JobStatus.IN_PROGRESS);
 
     addInputBlade<boolean>(
         pane,
@@ -64,37 +61,62 @@ export function drawSignalsJobs(
     function render() {
         session.destroy();
         session = new Destructors();
-        const index = activeJobIndex();
-        if (index < 0) {
-            return;
+        const { active, queued, moreCount, dormantCount } = visibleJobRows(jobs());
+
+        if (active) {
+            const { index, job } = active;
+            addTextBlade(
+                pane,
+                readProp<number>(shipDriver, `/signals/jobs/${index}/status`),
+                { label: jobLabel(spaceDriver, shipDriver, job), format: (s: number) => JobStatus[s] },
+                session.add,
+            );
+            addBarBlade(
+                pane,
+                readNumberProp(shipDriver, `/signals/jobs/${index}/progress`),
+                { label: 'progress', format: (p: number) => `${Math.round(p * 100)}%` },
+                session.add,
+            );
+            // this button (and every row's button below) is destroyed and rebuilt together with
+            // its row whenever the job list changes, so the captured job is always the one on display
+            addButton(
+                pane,
+                () => writeProp(shipDriver, '/signals/cancelJobId').setValue(job.id),
+                { label: '', title: 'Cancel' },
+                session.add,
+            );
         }
-        const job = jobs()[index];
-        addTextBlade(
-            pane,
-            readProp<number>(shipDriver, `/signals/jobs/${index}/status`),
-            { label: jobLabel(spaceDriver, shipDriver, job), format: (s: number) => JobStatus[s] },
-            session.add,
-        );
-        addBarBlade(
-            pane,
-            readNumberProp(shipDriver, `/signals/jobs/${index}/progress`),
-            { label: 'progress', format: (p: number) => `${Math.round(p * 100)}%` },
-            session.add,
-        );
-        // this button is destroyed and rebuilt whenever the active job changes, so the captured
-        // job is always the one on display
-        addButton(
-            pane,
-            () => writeProp(shipDriver, '/signals/cancelJobId').setValue(job.id),
-            { label: '', title: 'Cancel' },
-            session.add,
-        );
+
+        for (const { index, job, position } of queued) {
+            addTextBlade(
+                pane,
+                readProp<number>(shipDriver, `/signals/jobs/${index}/status`),
+                {
+                    label: jobLabel(spaceDriver, shipDriver, job),
+                    format: (s: number) => `${JobStatus[s]} #${position}`,
+                },
+                session.add,
+            );
+            addButton(
+                pane,
+                () => writeProp(shipDriver, '/signals/cancelJobId').setValue(job.id),
+                { label: '', title: 'Cancel' },
+                session.add,
+            );
+        }
+
+        if (moreCount > 0) {
+            addTextBlade(pane, staticTextModel(`+${moreCount} more`), { label: '' }, session.add);
+        }
+        if (dormantCount > 0) {
+            addTextBlade(pane, staticTextModel(`dormant: ${dormantCount}`), { label: '' }, session.add);
+        }
     }
 
-    const signature = () => {
-        const index = activeJobIndex();
-        return index < 0 ? '' : `${index}:${jobs()[index].id}`;
-    };
+    const signature = () =>
+        jobs()
+            .map((job) => `${job.id}:${job.status}`)
+            .join(',');
     let lastSignature = '';
     const onJobsChange = () => {
         const current = signature();
