@@ -10,7 +10,22 @@ import {
 import { addBarBlade, addButton, addTextBlade, createWidgetPane } from '../panel';
 import { readNumberProp, readProp } from '../property-wrappers';
 
+import { DashboardWidget } from './dashboard';
 import { WidgetContainer } from '../container';
+
+export function repairQueueWidget(shipDriver: ShipDriver): DashboardWidget {
+    class RepairQueueComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            drawRepairQueue(container, shipDriver);
+        }
+    }
+    return {
+        name: 'repair queue',
+        type: 'component',
+        component: RepairQueueComponent,
+        defaultProps: {},
+    };
+}
 
 /**
  * Engineer screen is the only bearer of engineering hotkeys and already exhausts the alphanumeric
@@ -113,12 +128,14 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
                 ? `, cells: ${shipDriver.state.reactor.energyCells}/${shipDriver.state.reactor.design.maxEnergyCells}`
                 : '';
             const summary = `${hotkey ?? '—'} · ${duration}s · ${protocol.tier}${darkSystems}${cells}`;
-            // display-only readout (issue: catalog is not mouse-interactive) — enqueueing happens
-            // via the hotkey wired in engineer.ts's wireInput, on the same InputManager as power/coolant
-            addTextBlade(
+            // clicking sends the same enqueueRepair command as the hotkey path in engineer.ts's
+            // wireInput — the GM screen has no engineer hotkeys, so this is its only way to enqueue.
+            // The hotkey stays visible in the button caption (summary) so the Engineer screen loses
+            // nothing (issue #2212).
+            addButton(
                 catalogFolder,
-                { getValue: () => summary, onChange: () => () => undefined },
-                { label: protocol.name },
+                () => shipDriver.command(repairCommands.enqueueRepair, { protocolId }),
+                { label: protocol.name, title: summary },
                 catalogSession.add,
             );
         }

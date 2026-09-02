@@ -48,35 +48,35 @@ test.describe('Engineer Screen', () => {
         await expectNonInteractiveBar(warpPanel.locator('.sw-bar').first());
     });
 
-    test('catalog entries render as a readout (name, hotkey, duration, tier, dark systems) — no enqueue buttons', async ({
+    test('catalog entries render as buttons (protocol name as row label, hotkey/duration/tier/dark summary as the clickable caption) (issue #2212)', async ({
         page,
     }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
 
-        // A1: the catalog is display-only — no clickable button anywhere in it enqueues.
-        await expect(repairQueuePanel.locator('button.tp-btnv_b', { hasText: 'Sensor-array degauss' })).toHaveCount(0);
-
-        const readout = await getPropertyValue(page, 'Sensor-array degauss', 'Repair Queue');
-        expect(readout).toContain('ALT+4');
-        expect(readout).toContain('30s');
-        expect(readout).toContain('field');
+        const catalogRow = repairQueuePanel.locator('.tp-lblv', { hasText: 'Sensor-array degauss' });
+        await expect(catalogRow).toBeVisible();
+        const catalogButton = catalogRow.locator('button.tp-btnv_b');
+        await expect(catalogButton).toBeVisible();
+        await expect(catalogButton).toContainText('ALT+4');
+        await expect(catalogButton).toContainText('30s');
+        await expect(catalogButton).toContainText('field');
 
         const ship = gameDriver.getShip(shipId);
         expect(ship.state.repairQueue.operations.length).toBe(0);
     });
 
-    test('clicking a catalog readout has no effect (A1)', async ({ page }) => {
+    test('clicking a catalog entry enqueues that protocol (A2), same as the hotkey path', async ({ page }) => {
         const repairQueuePanel = page.locator('[data-id="Repair Queue"]');
         await expect(repairQueuePanel).toBeVisible({ timeout: 10000 });
 
-        const label = repairQueuePanel.getByText('Sensor-array degauss', { exact: true });
-        await expect(label).toBeVisible();
-        await label.click({ force: true });
-        await page.waitForTimeout(300);
+        const catalogRow = repairQueuePanel.locator('.tp-lblv', { hasText: 'Sensor-array degauss' });
+        await catalogRow.locator('button.tp-btnv_b').click();
 
         const ship = gameDriver.getShip(shipId);
-        expect(ship.state.repairQueue.operations.length).toBe(0);
+        await expect
+            .poll(() => ship.state.repairQueue.operations.map((o) => o.protocolId), { timeout: 5000 })
+            .toEqual(['sensorArrayDegauss']);
     });
 
     test('damage report shows a defect, and enqueueing/cancelling a repair via hotkey drives the queue', async ({
