@@ -2,6 +2,7 @@ import { Page, expect, test } from '@playwright/test';
 import { cleanupPageState, navigateToScreen, setupPageErrorHandlers } from './test-infrastructure';
 import { getPropertyValue, makeDriver, waitForShipCondition } from './driver';
 
+import { JobStatus } from '@starwards/core';
 import { maps } from '@starwards/server';
 
 const { single_ship } = maps;
@@ -131,6 +132,72 @@ test.describe('Signals Screen', () => {
         }).toPass({ timeout: 10_000 });
         // …and landing on it must not classify it — the rock is still UFO
         expect(await getPropertyValue(page, 'Type', 'Target')).toEqual('UFO');
+    });
+
+    test('lists every queued job as a row, not only the in-progress job', async ({ page }) => {
+        const panel = page.locator('[data-id="Signals Jobs"]');
+        await expect(panel).toBeVisible({ timeout: 10000 });
+
+        // three contacts in range: one gets the working slot, the other two queue behind it
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push(
+            { position: { x: 1000, y: 0 }, radius: 50 },
+            { position: { x: 0, y: 1000 }, radius: 50 },
+            { position: { x: -1000, y: 0 }, radius: 50 },
+        );
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length >= 3,
+            5000,
+        );
+        const jobs = gameDriver.getShip(shipId).state.signals.jobs;
+        const active = jobs.find((j) => j.status === JobStatus.IN_PROGRESS);
+        const queued = jobs.filter((j) => j.status === JobStatus.QUEUED);
+        expect(active).toBeTruthy();
+        expect(queued).toHaveLength(2);
+
+        await expect(panel.getByText(`SCAN ${active!.targetId}`)).toBeVisible({ timeout: 10000 });
+        await expect(panel.getByText('progress')).toBeVisible();
+        for (const [i, job] of queued.entries()) {
+            const row = panel.getByText(`SCAN ${job.targetId}`);
+            await expect(row).toBeVisible({ timeout: 10000 });
+            const value = row.locator('..').locator('input');
+            await expect(value).toHaveValue(new RegExp(`QUEUED #${i + 1}`));
+        }
+
+        await page.screenshot({ path: 'test-results/screenshots/signals-jobs-queue.png' });
+    });
+
+    test('cancel on a queued row removes that job without disturbing the in-progress job', async ({ page }) => {
+        const panel = page.locator('[data-id="Signals Jobs"]');
+        await expect(panel).toBeVisible({ timeout: 10000 });
+
+        gameDriver.gameManager.spaceManager.state.createAsteroidCommands.push(
+            { position: { x: 1000, y: 0 }, radius: 50 },
+            { position: { x: 0, y: 1000 }, radius: 50 },
+        );
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => ship.state.signals.jobs.length >= 2,
+            5000,
+        );
+        const jobsBefore = gameDriver.getShip(shipId).state.signals.jobs;
+        const active = jobsBefore.find((j) => j.status === JobStatus.IN_PROGRESS)!;
+        const queuedJob = jobsBefore.find((j) => j.status === JobStatus.QUEUED)!;
+
+        await expect(panel.getByText(`SCAN ${queuedJob.targetId}`)).toBeVisible({ timeout: 10000 });
+        // render order is always active row first, then queued rows: with one of each, the
+        // second Cancel button belongs to the queued row
+        await panel.getByRole('button', { name: 'Cancel' }).nth(1).click();
+
+        // the target stays visible, so a fresh job for it re-queues at the end (by design — see
+        // signals-job-manager's updateScanJobs) — assert the cancelled job's own id is gone,
+        // not that its target vanishes
+        await waitForShipCondition(
+            () => gameDriver.getShip(shipId),
+            (ship) => !ship.state.signals.jobs.some((j) => j.id === queuedJob.id),
+            5000,
+        );
+        expect(gameDriver.getShip(shipId).state.signals.jobs.some((j) => j.id === active.id)).toBe(true);
     });
 
     test('paused toggle halts job progress via /signals/jobsPaused', async ({ page }) => {

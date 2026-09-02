@@ -40,6 +40,14 @@ test.describe('GM Screen', () => {
         await expect(menuContainer).toBeVisible({ timeout: 10000 });
     });
 
+    test('registers a per-ship repair queue widget in the dashboard menu (issue #2212, A1)', async ({ page }) => {
+        const shipId = single_ship.testShipId;
+        const menuContainer = page.locator('#menuContainer');
+        await expect(menuContainer.locator(`[data-id="menu-${shipId} repair queue"]`)).toBeVisible({
+            timeout: 15000,
+        });
+    });
+
     test('does not reset radar view when a new ship is created via GM UI', async ({ page }) => {
         const radarCanvas = page.locator('[data-id="GM Radar"]');
         await expect(radarCanvas).toBeVisible({ timeout: 15000 });
