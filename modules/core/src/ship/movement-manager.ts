@@ -25,8 +25,6 @@ const { error: logError, warn: logWarn } = createLogger('movement');
 
 type ShipManager = {
     readonly weaponsTarget: SpaceObject | null;
-    setSmartPilotManeuveringMode(value: SmartPilotMode): void;
-    setSmartPilotRotationMode(value: SmartPilotMode): void;
 };
 
 const CHECK_JAM_INTERVAL_SECONDS = 5;
@@ -51,7 +49,6 @@ export class MovementManager implements Updateable {
         this.handleWarpLevel(deltaSeconds);
         this.handleWarpMovement(deltaSeconds);
         this.handleAfterburnerCommand();
-        this.calcSmartPilotModes();
         this.calcStrafeAndBoost(deltaSeconds);
         this.calcRotation(deltaSeconds);
         // maneuvering.energyStarved is written by two independently-gated draws below (rotation,
@@ -226,6 +223,12 @@ export class MovementManager implements Updateable {
     }
 
     private calcRotation(deltaSeconds: number) {
+        if (this.state.smartPilot.rotationMode !== SmartPilotMode.DIRECT && !this.state.smartPilot.effectiveness) {
+            // no smart pilot power to compute a turn-rate hold or target lock — steering does
+            // nothing until DIRECT (which needs no computer) is engaged
+            this.state.rotation = 0;
+            return;
+        }
         let rotationCommand: number | undefined = undefined;
         switch (this.state.smartPilot.rotationMode) {
             case SmartPilotMode.DIRECT:
@@ -287,15 +290,16 @@ export class MovementManager implements Updateable {
         }
     }
 
-    private calcSmartPilotModes() {
-        if (!this.state.smartPilot.effectiveness) {
-            this.shipManager.setSmartPilotManeuveringMode(SmartPilotMode.DIRECT);
-            this.shipManager.setSmartPilotRotationMode(SmartPilotMode.DIRECT);
-        }
-    }
-
     private calcStrafeAndBoost(deltaSeconds: number) {
         if (this.isWarpActive()) {
+            this.state.boost = 0;
+            this.state.strafe = 0;
+        } else if (
+            this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT &&
+            !this.state.smartPilot.effectiveness
+        ) {
+            // no smart pilot power to compute a velocity hold or target lock — steering does
+            // nothing until DIRECT (which needs no computer) is engaged
             this.state.boost = 0;
             this.state.strafe = 0;
         } else {
