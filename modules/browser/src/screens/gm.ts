@@ -22,6 +22,7 @@ import { monitorWidget } from '../widgets/monitor';
 import { pilotRadarWidget } from '../widgets/pilot-radar';
 import { pilotWidget } from '../widgets/pilot';
 import { radarWidget } from '../widgets/radar';
+import { repairQueueWidget } from '../widgets/repair-queue';
 
 import { setupHotkeyHelp } from '../input/hotkey-help';
 import { systemsStatusWidget } from '../widgets/system-status';
@@ -153,6 +154,7 @@ async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardow
             dashboard.registerWidget(targetRadarWidget(spaceDriver, shipDriver), {}, shipId + ' target radar');
             dashboard.registerWidget(monitorWidget(shipDriver), {}, shipId + ' monitor');
             dashboard.registerWidget(damageReportWidget(shipDriver), {}, shipId + ' damage report');
+            dashboard.registerWidget(repairQueueWidget(shipDriver), {}, shipId + ' repair queue');
             dashboard.registerWidget(armorWidget(shipDriver), {}, shipId + ' armor');
             dashboard.registerWidget(ammoWidget(shipDriver), {}, shipId + ' ammo');
             dashboard.registerWidget(tubesStatusWidget(shipDriver), {}, shipId + ' tubes');
