@@ -206,6 +206,38 @@ describe('MovementManager', () => {
         expect(shipMgr.state.smartPilot.rotationMode).to.equal(SmartPilotMode.VELOCITY);
     });
 
+    it('steering does nothing in VELOCITY mode while the smart pilot has zero effectiveness (issue #2186 follow-up)', () => {
+        shipMgr.setSmartPilotManeuveringMode(SmartPilotMode.VELOCITY);
+        shipMgr.setSmartPilotRotationMode(SmartPilotMode.VELOCITY);
+        shipMgr.state.smartPilot.power = 0;
+        expect(shipMgr.state.smartPilot.effectiveness).to.equal(0);
+
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+        shipMgr.state.smartPilot.rotation = 1;
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(XY.isZero(shipObj.velocity, 0.01)).to.equal(true);
+        expect(shipObj.turnSpeed).to.equal(0);
+    });
+
+    it('steering still works in DIRECT mode even while the smart pilot has zero effectiveness (issue #2186 follow-up)', () => {
+        shipMgr.state.smartPilot.power = 0;
+        expect(shipMgr.state.smartPilot.effectiveness).to.equal(0);
+
+        shipMgr.state.smartPilot.maneuvering.x = 1;
+
+        for (const id of makeIterationsData(1, 20)) {
+            shipMgr.update(id);
+            spaceMgr.update(id);
+        }
+
+        expect(shipObj.velocity.x).to.be.greaterThan(0);
+    });
+
     it('a nebula within warp proximity does not jam warp — it is optical only (issue #2123)', () => {
         const fog = new Nebula();
         fog.init('fog', Vec2.make({ x: 2000, y: 0 }), 500);

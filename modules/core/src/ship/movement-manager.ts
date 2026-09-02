@@ -223,6 +223,12 @@ export class MovementManager implements Updateable {
     }
 
     private calcRotation(deltaSeconds: number) {
+        if (this.state.smartPilot.rotationMode !== SmartPilotMode.DIRECT && !this.state.smartPilot.effectiveness) {
+            // no smart pilot power to compute a turn-rate hold or target lock — steering does
+            // nothing until DIRECT (which needs no computer) is engaged
+            this.state.rotation = 0;
+            return;
+        }
         let rotationCommand: number | undefined = undefined;
         switch (this.state.smartPilot.rotationMode) {
             case SmartPilotMode.DIRECT:
@@ -286,6 +292,14 @@ export class MovementManager implements Updateable {
 
     private calcStrafeAndBoost(deltaSeconds: number) {
         if (this.isWarpActive()) {
+            this.state.boost = 0;
+            this.state.strafe = 0;
+        } else if (
+            this.state.smartPilot.maneuveringMode !== SmartPilotMode.DIRECT &&
+            !this.state.smartPilot.effectiveness
+        ) {
+            // no smart pilot power to compute a velocity hold or target lock — steering does
+            // nothing until DIRECT (which needs no computer) is engaged
             this.state.boost = 0;
             this.state.strafe = 0;
         } else {
