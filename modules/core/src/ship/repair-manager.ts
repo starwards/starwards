@@ -344,13 +344,15 @@ export class RepairManager implements Updateable {
             // brief dip: no progress/heat this tick, but the operation survives until the shortfall
             // is sustained past the grace window (R3) — then it's still all-or-nothing
             active.starvedSeconds += deltaSeconds;
+            active.energyStarved = true;
             if (active.starvedSeconds >= ENERGY_STARVATION_GRACE_SECONDS) {
                 this.abort(active);
-                this.notifyRefusal(`${protocol.name} was cancelled: insufficient energy`);
+                this.notifyRefusal(`${protocol.name} was cancelled: insufficient reactor energy`);
             }
             return;
         }
         active.starvedSeconds = 0;
+        active.energyStarved = false;
         this.applyHeat(protocol, deltaSeconds);
         active.progress = Math.min(1, active.progress + deltaSeconds / this.getDuration(protocol));
         if (active.progress >= 1) {
@@ -380,6 +382,7 @@ export class RepairManager implements Updateable {
     private finish(op: RepairOperation, status: RepairOperationStatus) {
         op.status = status;
         op.starvedSeconds = 0;
+        op.energyStarved = false;
         op.terminalSecondsRemaining = TERMINAL_DISPLAY_SECONDS;
         const index = this.operations.indexOf(op);
         if (index >= 0) {

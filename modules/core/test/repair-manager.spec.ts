@@ -172,6 +172,33 @@ describe('RepairManager', () => {
         expect(state.thrusters[0].power).to.equal(0); // side effect still applied, op still running
     });
 
+    it('flags the active operation energyStarved as soon as it stalls, before the grace window aborts it', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine');
+        tick(repairManager, 0.1); // promote to active
+        expect(state.repairQueue.operations[0].energyStarved).to.equal(false);
+
+        state.reactor.energy = 0; // within the grace window — not yet aborted
+        tick(repairManager, 0.5);
+
+        expect(state.repairQueue.operations[0].status).to.equal(RepairOperationStatus.ACTIVE);
+        expect(state.repairQueue.operations[0].energyStarved).to.equal(true);
+    });
+
+    it('clears the active operation energyStarved once it can draw energy again', () => {
+        const { state, repairManager } = setUpShip();
+        enqueue(state, 'fixMagazine');
+        tick(repairManager, 0.1);
+        state.reactor.energy = 0;
+        tick(repairManager, 0.5);
+        expect(state.repairQueue.operations[0].energyStarved).to.equal(true);
+
+        state.reactor.energy = state.reactor.design.maxEnergy;
+        tick(repairManager, 0.1);
+
+        expect(state.repairQueue.operations[0].energyStarved).to.equal(false);
+    });
+
     it('aborts the active operation all-or-nothing on a SUSTAINED energy shortfall: no restoration, side effects reverted', () => {
         const { state, repairManager } = setUpShip();
         for (const thruster of state.thrusters) {

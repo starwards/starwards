@@ -63,6 +63,10 @@ export class EnergyManager implements EnergySource, Updateable {
             this.state.reactor.energy +
                 this.state.reactor.energyPerSecond * this.state.reactor.effectiveness * deltaSeconds,
         );
+        // `trySpendEnergy` only flags the *drawing* system — a reactor sitting at zero with
+        // nothing currently trying to draw from it would otherwise never get flagged itself, and
+        // read as fully healthy on the Full Systems Status panel.
+        this.state.reactor.energyStarved = this.state.reactor.energy <= 0;
         for (const [system, entry] of this.epm.entries()) {
             system.energyPerMinute = system.energyPerMinute * (1 - deltaSeconds) + entry.total;
             if (entry.total < system.energyPerMinute) {

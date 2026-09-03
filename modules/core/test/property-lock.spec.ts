@@ -1,10 +1,10 @@
 import { PowerLevel, Radar } from '../src';
+import { Schema, type } from '@colyseus/schema';
 import { commandable, gameField } from '../src/game-field';
 import { handleGmSetValueCommand, handleJsonPointerCommand } from '../src/commands';
 import { isFieldLocked, setFieldLocked, withLockBypass } from '../src/lock-registry';
 
 import { JsonPointer } from '../src/json-ptr';
-import { Schema } from '@colyseus/schema';
 import { expect } from 'chai';
 
 // A locked field must reject writes regardless of *how* the write is attempted:
@@ -113,6 +113,53 @@ describe('property lock', () => {
         setFieldLocked(radar, 'bearingCommand', true);
         radar.bearingCommand = 45;
         expect(radar.bearingCommand).to.be.closeTo(10, 0.001);
+    });
+});
+
+// `withLockGuard` (game-field.ts) reaches into @colyseus/schema's undocumented
+// `Symbol.for('Symbol.metadata')` → `'~descriptors'` storage to wrap a @gameField's setter. If a
+// future @colyseus/schema upgrade moves that storage, `withLockGuard` degrades to a silent no-op
+// (its own early `if (!descriptor?.set) return;`) rather than throwing — every functional lock
+// test above happens to still exercise the same mechanism, so this asserts the wrap actually
+// landed on the class metadata itself, independent of whether a write is later blocked.
+describe('game-field lock-guard installation (Colyseus internals contract)', () => {
+    const SCHEMA_METADATA_KEY = Symbol.for('Symbol.metadata');
+    const SCHEMA_DESCRIPTORS_KEY = '~descriptors';
+
+    function getInstalledSetter(ctor: unknown, field: string): unknown {
+        const metadata = (ctor as Record<symbol, unknown>)[SCHEMA_METADATA_KEY] as
+            Record<string, Record<string, PropertyDescriptor>> | undefined;
+        // compares the function reference for identity below — never calls it
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        return metadata?.[SCHEMA_DESCRIPTORS_KEY]?.[field]?.set;
+    }
+
+    // 'boolean' (not 'float32'): float32 gameFields go through `number2Digits`, an unrelated
+    // setter wrapper for rounding, which would also make the descriptors differ and defeat the
+    // point of this check.
+    class PlainField extends Schema {
+        @type('boolean')
+        value = false;
+    }
+    class GuardedField extends Schema {
+        @gameField('boolean')
+        value = false;
+    }
+
+    it('installs a distinct wrapped setter on the class metadata for a @gameField', () => {
+        const plainSetter = getInstalledSetter(PlainField, 'value');
+        const guardedSetter = getInstalledSetter(GuardedField, 'value');
+        expect(plainSetter).to.be.a('function');
+        expect(guardedSetter).to.be.a('function');
+        expect(guardedSetter).to.not.equal(plainSetter);
+    });
+
+    it('the installed wrapper actually enforces the lock (not just present, but wired)', () => {
+        const t = new GuardedField();
+        t.value = true;
+        setFieldLocked(t, 'value', true);
+        t.value = false;
+        expect(t.value).to.equal(true);
     });
 });
 

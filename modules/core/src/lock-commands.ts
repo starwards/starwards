@@ -41,7 +41,7 @@ export const lockCommands = { lockProperty };
  * `setFieldLocked`/`isFieldLocked` key on. Mirrors the parent-segment
  * traversal `JsonPointer.set` already does for its own ancestor walk.
  */
-function resolveLockTarget(root: Schema, pointer: string): { parent: Schema; field: string } | null {
+export function resolveLockTarget(root: Schema, pointer: string): { parent: Schema; field: string } | null {
     const jsonPointer = getJsonPointer(pointer);
     if (!jsonPointer || jsonPointer.path.length === 0) {
         return null;
@@ -84,4 +84,30 @@ export function applyLockCommands(state: Schema & Lockable) {
         }
     }
     state.lockCommands.length = 0;
+}
+
+/**
+ * Re-seeds the fast (WeakMap-based) write guard from `state.lockedPaths` — the synced mirror
+ * `applyLockCommands` writes to, but never reads back from. The WeakMap is keyed by Schema
+ * *instance*, so it carries nothing forward across `Schema.clone()`: an NPC↔PC conversion clones
+ * the whole `ShipState` tree into fresh instances (`game-manager.ts`'s `shipState.clone()`), and
+ * `lockedPaths` (plain synced strings) survives that clone while the enforcement registry does
+ * not. Call this once the clone's fields are otherwise reset (see `resetShipState`) so the synced
+ * "GM panel shows this locked" state and the actual "writes to it are blocked" state agree again.
+ *
+ * Entries that no longer resolve to a commandable field (a stale path, or one that lost its
+ * `@commandable`/`@tweakable`/`@defectible` admission) are pruned from `lockedPaths` itself —
+ * the same admission check `applyLockCommands` uses — so the mirror never claims a lock nothing
+ * enforces.
+ */
+export function rehydrateLockRegistry(state: Schema & Lockable): void {
+    for (let i = state.lockedPaths.length - 1; i >= 0; i--) {
+        const path = state.lockedPaths[i];
+        const target = resolveLockTarget(state, path);
+        if (target && isCommandable(target.parent, target.field)) {
+            setFieldLocked(target.parent, target.field, true);
+        } else {
+            state.lockedPaths.splice(i, 1);
+        }
+    }
 }
