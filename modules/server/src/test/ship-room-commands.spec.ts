@@ -110,6 +110,25 @@ describe('ShipRoom JSON pointer commands', () => {
         expect(shipManager.state.radars[0].power).toBeCloseTo(0.5, 2);
     });
 
+    it('applies a lockProperty command over the wire and blocks a subsequent write, until unlocked', async () => {
+        const { client, room, shipId } = await connectShip('locker');
+        const shipManager = driver.serverDriver.getShip(shipId);
+
+        await client.sendCommand(room, 'lockProperty', { value: { path: '/radars/0/power', locked: true } });
+        await waitForServer(() => shipManager.state.lockedPaths.includes('/radars/0/power'));
+
+        await client.sendCommand(room, '/radars/0/power', { value: 0.9 });
+        await sleep(200); // give a would-be-accepted write a chance to land
+        expect(shipManager.state.radars[0].power).not.toBeCloseTo(0.9, 2);
+
+        await client.sendCommand(room, 'lockProperty', { value: { path: '/radars/0/power', locked: false } });
+        await waitForServer(() => !shipManager.state.lockedPaths.includes('/radars/0/power'));
+
+        await client.sendCommand(room, '/radars/0/power', { value: 0.9 });
+        await waitForServer(() => Math.abs(shipManager.state.radars[0].power - 0.9) < 0.01);
+        expect(shipManager.state.radars[0].power).toBeCloseTo(0.9, 2);
+    });
+
     it('applies a GM write to warp.jammed (GM override lever, issue #2033)', async () => {
         const { client, room, shipId } = await connectShip('jam-toggle');
         const shipManager = driver.serverDriver.getShip(shipId);

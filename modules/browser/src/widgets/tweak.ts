@@ -143,7 +143,7 @@ function addTweakableRow(
     cleanup(() => row.dispose());
     addValueCells(row);
     if (driver && fieldPointers.length) {
-        addLockCellToRow(row, lockedRowProp(driver, fieldPointers), cleanup);
+        addLockCellToRow(row, lockedRowProp(driver, fieldPointers), label, cleanup);
     }
     return row;
 }
@@ -248,7 +248,12 @@ const singleSelectionDetails = async (
         // disengage side-effect commands above target different fields (smartPilot.*,
         // antiDrift, breaks) and are unaffected by a velocity lock — each has its own,
         // independent lock, exactly like any other field.
-        addLockBlade(guiFolder, lockedRowProp(spaceDriver, [`${velocityPointer}/x`, `${velocityPointer}/y`]), cleanup);
+        addLockBlade(
+            guiFolder,
+            lockedRowProp(spaceDriver, [`${velocityPointer}/x`, `${velocityPointer}/y`]),
+            'velocity',
+            cleanup,
+        );
 
         const adminDriver = await driver.getAdminDriver();
         const isPlayerShip = adminDriver.state.playerShipIds.includes(subject.id);
@@ -443,7 +448,12 @@ function addTweakables(
             // which the schema setter then rejects.
             const prop = readWriteVec2Prop(driver, fieldPointer);
             addInputBlade(guiFolder, prop, { label: tweakable.field }, cleanup);
-            addLockBlade(guiFolder, lockedRowProp(driver, [`${fieldPointer}/x`, `${fieldPointer}/y`]), cleanup);
+            addLockBlade(
+                guiFolder,
+                lockedRowProp(driver, [`${fieldPointer}/x`, `${fieldPointer}/y`]),
+                tweakable.field,
+                cleanup,
+            );
         } else if (tweakable.config === 'shipId') {
             const rootState = driver.state;
             if (rootState instanceof SpaceState) {
@@ -482,7 +492,7 @@ function addTweakables(
             const prop = readWriteProp<number>(driver, fieldPointer);
             const config = tweakable.config.number || {};
             addCameraRingBlade(guiFolder, prop, { label: tweakable.field, ...config }, cleanup);
-            addLockBlade(guiFolder, lockedRowProp(driver, [fieldPointer]), cleanup);
+            addLockBlade(guiFolder, lockedRowProp(driver, [fieldPointer]), tweakable.field, cleanup);
         } else if (tweakable.config.type === 'enum') {
             const prop = readWriteProp<number>(driver, fieldPointer);
             const enumObj = tweakable.config.enum;
@@ -543,7 +553,7 @@ function addDesignFolder(
         // branch in addTweakables for the same constraint (no tweakpane-table cell equivalent,
         // and DesignState constants carry no @range metadata to fall back to a slider cell).
         addCameraRingBlade(designFolder, prop, { label: designParam }, cleanup);
-        addLockBlade(designFolder, lockedRowProp(shipDriver, [fieldPointer]), cleanup);
+        addLockBlade(designFolder, lockedRowProp(shipDriver, [fieldPointer]), designParam, cleanup);
     }
 }
 

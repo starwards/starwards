@@ -172,6 +172,20 @@ export function drawRepairQueue(container: WidgetContainer, shipDriver: ShipDriv
                 { label: 'progress', format: (p: number) => `${Math.round(p * 100)}%` },
                 session.add,
             );
+            // during the grace window before a sustained shortfall aborts the operation
+            // (RepairQueue.refusalReason only appears *after* that), this is the only visible
+            // explanation for a progress bar that has stalled — see RepairOperation.energyStarved.
+            // Labeled "repair energy" (not the bare "energy" the reactor's own readout already
+            // uses on Engineering Status) so the two rows stay unambiguous to text-based lookups.
+            addTextBlade(
+                row,
+                readProp<boolean>(shipDriver, `/repairQueue/operations/${index}/energyStarved`),
+                {
+                    label: 'repair energy',
+                    format: (starved: boolean) => (starved ? 'insufficient reactor energy' : ''),
+                },
+                session.add,
+            );
             addButton(
                 row,
                 () => shipDriver.command(repairCommands.cancelRepair, { operationId: op.id }),

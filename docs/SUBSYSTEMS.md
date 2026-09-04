@@ -6,7 +6,7 @@ source_of_truth:
 related:
   - PHYSICS.md
   - API_REFERENCE.md
-last_verified: 2026-08-17
+last_verified: 2026-09-03
 ---
 
 # Ship Subsystems
@@ -14,7 +14,7 @@ last_verified: 2026-08-17
 ## Base: SystemState
 **Location:** `modules/core/src/ship/system.ts`
 
-**Properties:** `name|design|broken|energyPerMinute|heat:[0,100]|coolantFactor:[0,1]|power:PowerLevel|hacked:HackLevel`
+**Properties:** `name|design|broken|energyPerMinute|energyStarved|heat:[0,100]|coolantFactor:[0,1]|power:PowerLevel|hacked:HackLevel`
 
 **Computed:** `effectiveness = broken ? 0 : power × hacked` (where HackLevel.OK=1, COMPROMISED=0.5, DISABLED=0; coolantFactor does not affect effectiveness)
 
@@ -31,6 +31,7 @@ last_verified: 2026-08-17
 | coolantFactor | [0,1] | Cooling allocation | Increases heat dissipation |
 | hacked | [0,1] | Cyber warfare | Reduces effectiveness |
 | broken | boolean | Offline status | Zero effectiveness |
+| energyStarved | boolean | Reactor couldn't cover this system's last energy draw | No effectiveness change by itself — `getStatus()` (`system.ts`) reports `STARVED`/`DAMAGED_STARVED` so the crew sees *why* the system did nothing, even when it's otherwise intact |
 
 **Effectiveness:** Output = maxOutput × effectiveness, where `effectiveness = broken ? 0 : power × hacked` (see `SystemState.effectiveness` in modules/core/src/ship/system.ts). `hacked` is a HackLevel multiplier (OK=1, COMPROMISED=0.5, DISABLED=0), so it scales output directly — not as (1-hacked). coolantFactor does not affect output; it only governs heat dissipation in heat-manager.ts.
 
@@ -38,6 +39,10 @@ last_verified: 2026-08-17
 - Accumulation: `heat += usageHeat * dt`
 - Dissipation: `heat -= (coolantFactor × coolantPerFactor) * dt`
 - Overheat: If `heat > 100` → damage → broken
+
+**`energyStarved`:** set by `EnergyManager.trySpendEnergy` (`energy-manager.ts`) on whichever system's draw the reactor couldn't cover, cleared the moment that same draw succeeds again. The `Reactor` itself is the one exception: `EnergyManager.update()` sets `reactor.energyStarved` directly whenever `reactor.energy` reaches zero, since a reactor with nothing left to give may have nothing currently *drawing* from it either — without this it would read as fully healthy on the Full Systems Status panel.
+
+`RepairOperation.energyStarved` (`repair-queue.ts`) is a distinct field on the same concept for the repair queue specifically: true for every tick an ACTIVE operation's declared energy draw fails, from the very first shortfall tick — not only once the sustained shortfall exceeds `ENERGY_STARVATION_GRACE_SECONDS` and the operation actually aborts (see `RepairManager.tickActive`). It's what lets the repair-queue widget show *why* a stalled progress bar isn't moving during that grace window, before `RepairQueue.refusalReason` has anything to say.
 
 ## Subsystems Catalog
 

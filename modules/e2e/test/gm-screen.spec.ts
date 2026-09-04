@@ -478,6 +478,12 @@ test.describe('GM Screen', () => {
         await expect(modeSelect).toBeVisible({ timeout: 5000 });
         const modeLockCell = modeRow.locator('.sw-lock-cell');
         await expect(modeLockCell).toBeVisible({ timeout: 5000 });
+        // every lock cell's caption is the same bare 🔒/🔓 glyph — findable by accessible text
+        // (native `title` attribute, not Tweakpane's own caption-as-`.title` naming) requires the
+        // field name to be in there too, or every row's toggle reads identically to a screen
+        // reader / Playwright's getByTitle
+        await expect(modeLockCell).toHaveAttribute('title', /maneuveringMode unlocked/);
+        await expect(page.getByTitle('maneuveringMode unlocked 🔓')).toHaveCount(1);
 
         const ship = gameDriver.getShip(shipId);
 
@@ -491,6 +497,7 @@ test.describe('GM Screen', () => {
         await expect(() => {
             expect(ship.state.lockedPaths.includes('/smartPilot/maneuveringMode')).toBe(true);
         }).toPass({ timeout: 2000 });
+        await expect(modeLockCell).toHaveAttribute('title', /maneuveringMode locked/);
 
         // locked: the GM's own next edit through the same control still lands
         await modeSelect.selectOption({ label: 'DIRECT' });

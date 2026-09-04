@@ -42,6 +42,15 @@ export class RepairOperation extends Schema {
     @gameField('float32') starvedSeconds = 0;
 
     /**
+     * True for every tick the operation's energy draw could not be covered, from the very first
+     * shortfall tick — not only once `starvedSeconds` crosses `ENERGY_STARVATION_GRACE_SECONDS`
+     * and the operation actually aborts. Lets the repair-queue widget show *why* an ACTIVE
+     * operation's progress bar has stalled during the grace window, instead of only explaining it
+     * after the fact via `RepairQueue.refusalReason` once the operation is already gone.
+     */
+    @gameField('boolean') energyStarved = false;
+
+    /**
      * Seconds left before a DONE/CANCELLED operation is removed from `RepairQueue.recentlyFinished`
      * (real time, not ticks — a quantity measured in "one manager tick" silently changes meaning
      * with the tick rate and is invisible whenever the tick is shorter than the network patch

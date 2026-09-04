@@ -13,6 +13,7 @@ import { Destructor, RTuple2 } from '@starwards/core';
 
 import { RingInputParams } from '@tweakpane/plugin-camerakit/dist/types/util';
 import { RowApi } from 'tweakpane-table';
+import { lockButtonTitle } from './lock-button-label';
 
 export type NumericModel = {
     getValue: () => number | undefined;
@@ -392,7 +393,14 @@ export function addListCellToRow<T>(
  * so clicking it (to toggle the lock) also drops a text caret into the field — there is no
  * legitimate typing to do there, only noise. A button has no such caret and no keyboard-editable
  * value to round-trip, so unlike the old `text` version this needs no `wireBlade`/`parse` path at
- * all — `button.title` is simply the glyph.
+ * all — `button.title` (Tweakpane's `ButtonApi.title`, the button's *visible caption* — despite
+ * the name, nothing to do with the native HTML `title` attribute) is simply the glyph, kept short
+ * so a 28px table cell doesn't overflow.
+ *
+ * The native HTML `title` attribute (`button.element`'s own `title` attribute — a real tooltip,
+ * and what `page.getByTitle`/accessible-name lookups actually read) is set separately, below, to
+ * `${field} locked`/`unlocked`: every lock button's *caption* is the same bare glyph, so without
+ * this every row's toggle would be indistinguishable by accessible text.
  *
  * Note for history: an earlier `text`-blade version tried `disabled: true` to suppress editing,
  * but Tweakpane's base CSS sets `pointer-events: none` on any blade carrying the `tp-v-disabled`
@@ -401,16 +409,24 @@ export function addListCellToRow<T>(
  * invoked it directly (bypassing hit-testing/CSS entirely) — that's why an earlier e2e version
  * passed while being dead in a real browser. A button has no `disabled`-CSS trap to fall into.
  */
-function wireLockButton(button: ButtonApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+function wireLockButton(
+    button: ButtonApi,
+    lockedProp: Model<boolean>,
+    field: string,
+    cleanup: (d: Destructor) => void,
+) {
     const glyph = () => (lockedProp.getValue() ? '🔒' : '🔓');
+    const accessibleTitle = () => lockButtonTitle(field, !!lockedProp.getValue());
     button.element.classList.add('sw-lock-cell');
     button.title = glyph();
+    button.element.setAttribute('title', accessibleTitle());
     button.on('click', () => {
         void lockedProp.setValue?.(!lockedProp.getValue());
     });
     cleanup(
         lockedProp.onChange(() => {
             button.title = glyph();
+            button.element.setAttribute('title', accessibleTitle());
         }),
     );
     cleanup(() => button.dispose());
@@ -421,11 +437,17 @@ function wireLockButton(button: ButtonApi, lockedProp: Model<boolean>, cleanup: 
  * Add a clickable lock-indicator cell to a table row: a compact 🔒/🔓 button that toggles
  * `lockedProp` on click. Tweakpane's built-in `button` view is itself a blade plugin (the same
  * kind `RowApi.addCell` resolves for text/slider/list), so it can sit in a row cell — unlike a
- * bound `checkbox` input, which `addCell` can't place at all.
+ * bound `checkbox` input, which `addCell` can't place at all. `field` names the row's own
+ * tweakable for the button's title — see `wireLockButton`.
  */
-export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+export function addLockCellToRow(
+    row: RowApi,
+    lockedProp: Model<boolean>,
+    field: string,
+    cleanup: (d: Destructor) => void,
+) {
     const button = row.addCell({ view: 'button', title: '', width: '28px' }) as ButtonApi;
-    return wireLockButton(button, lockedProp, cleanup);
+    return wireLockButton(button, lockedProp, field, cleanup);
 }
 
 /**
@@ -434,9 +456,15 @@ export function addLockCellToRow(row: RowApi, lockedProp: Model<boolean>, cleanu
  * velocity point2d drag pad): those are Tweakpane *binding* plugins (`addBinding`), and
  * `RowApi.addCell` only resolves blade-view plugins, the same restriction `addLockCellToRow`
  * works around for text/slider/list. Kept as a sibling blade next to the widget it locks rather
- * than a `tweakpane-table` row.
+ * than a `tweakpane-table` row. `field` names the widget being locked for the button's title —
+ * see `wireLockButton`.
  */
-export function addLockBlade(guiFolder: FolderApi, lockedProp: Model<boolean>, cleanup: (d: Destructor) => void) {
+export function addLockBlade(
+    guiFolder: FolderApi,
+    lockedProp: Model<boolean>,
+    field: string,
+    cleanup: (d: Destructor) => void,
+) {
     const button = guiFolder.addButton({ label: 'lock', title: '' });
-    return wireLockButton(button, lockedProp, cleanup);
+    return wireLockButton(button, lockedProp, field, cleanup);
 }
