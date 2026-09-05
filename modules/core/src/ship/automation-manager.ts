@@ -193,15 +193,24 @@ export class AutomationManager implements Updateable {
         const distanceToTarget = XY.lengthOf(shipToTarget);
         const inRange = isInRange(trackRange[0], trackRange[1], distanceToTarget);
         let maneuvering: ManeuveringCommand;
-        // Decided by the same branch that issues the thrust command, so heading arbitration can
-        // never be handed a vector that disagrees with the maneuver actually being flown.
+        // Decided by the same branch that issues the thrust command, so heading arbitration is
+        // never handed a vector that disagrees with the maneuver actually being flown -- `XY.zero`
+        // is the explicit "no thrust-direction claim" signal (see `headingOffset`'s doc), not an
+        // implicit stand-in for "thrusting toward the target".
         let requiredAcceleration: XY;
         if (inRange) {
             // matchGlobalSpeed only tracks a velocity, so the weave rides along as an addend to the
             // velocity it holds rather than a disturbance it fights.
             const heldVelocity = XY.add(targetVelocity, weave.velocity);
             maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, heldVelocity);
-            requiredAcceleration = XY.difference(heldVelocity, ship.velocity);
+            // In range, thrust is velocity-holding only -- along the match error above, not toward
+            // the target -- so it makes no heading claim. That error is also not a stable direction
+            // to arbitrate on even if it were one: it swings through every heading as the match
+            // overshoots and the combat weave's own velocity term (#2146) cycles, and a cost function
+            // that weighs thrust efficiency above aim (STANDOFF) chased it through full revolutions
+            // of the hull (issue #2181). `XY.zero` falls back to line-of-sight via `bestOffset`'s own
+            // zero-vector rule, the same "no claim" path a doctrine with no mounts already takes.
+            requiredAcceleration = XY.zero;
         } else {
             const wovenPosition = XY.add(targetPosition, weave.offset);
             maneuvering = moveToTarget(deltaSecondsAvg, ship, wovenPosition);

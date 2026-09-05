@@ -63,8 +63,14 @@ async function getPackage(modulePath) {
                         start: 'node node_modules/@starwards/server/cjs/prod.js',
                     },
                     pkg: {
-                        assets: 'static/**/*',
-                        targets: ['node18-win-x64'], // , 'node18-linux-x64', 'node18-osx-x64'
+                        // @msgpackr-extract prebuilds its native addon per-platform, but `npm
+                        // install` in scripts/pkg.js only installs the prebuild matching the
+                        // build host's os/cpu — so only one platform's .node lands in
+                        // dist/node_modules and gets packed. The other target's exe has no
+                        // matching prebuild and falls back to msgpackr's pure-JS path at
+                        // runtime; that's a perf cost, not a crash.
+                        assets: ['static/**/*', 'node_modules/@msgpackr-extract/**/*.node'],
+                        targets: ['node24-win-x64', 'node24-linux-x64'],
                     },
                     dependencies,
                     overrides,

@@ -17,6 +17,11 @@ jobs:
               with:
                   node-version-file: '.nvmrc'
                   cache: 'npm'
+            - name: Cache pkg-fetch node binaries
+              uses: actions/cache@v4
+              with:
+                  path: ~/.pkg-cache
+                  key: pkg-cache-${{ hashFiles('package-lock.json') }}
             - run: npm ci
             - run: npm run build
             - run: npm run pkg
@@ -37,5 +42,5 @@ jobs:
                           ...context.repo,
                           release_id: release.id,
                           name: 'starwards.exe',
-                          data: fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, 'dist', 'exec', 'starwards.exe')),
+                          data: fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, 'dist', 'exec', 'starwards-win.exe')),
                       });
