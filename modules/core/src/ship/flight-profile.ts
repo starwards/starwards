@@ -86,7 +86,10 @@ export class FlightProfile {
 
     /**
      * Hull-relative bearing (degrees) to park on the target, passed as `rotateToTarget`'s offset.
-     * `requiredAcceleration` must be the vector the caller is *actually* thrusting along this tick.
+     * `requiredAcceleration` must be the vector the caller is *actually* thrusting along this tick,
+     * or `XY.zero` when the maneuver in flight makes no heading claim (e.g. a velocity-hold in
+     * range) -- `bestOffset` falls back to line-of-sight for a zero vector rather than reading it
+     * as "thrusting toward the target".
      * @see docs/SUBSYSTEMS.md#hull-heading-arbitration
      */
     headingOffset(target: SpaceObject, requiredAcceleration: XY): number {
