@@ -10,6 +10,10 @@ import { waitForEvents } from '../async-utils';
 
 export type ShipDriverRead = Pick<ShipDriver, 'state' | 'events'>;
 
+/** One LAN URL other devices on the same network can browse to. */
+export type NetworkAddress = { address: string; url: string };
+export type NetworkInfo = { port: number; addresses: NetworkAddress[] };
+
 export function getColyseusEndpoint(location: { protocol: string; host: string }) {
     return (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/colyseus';
 }
@@ -244,5 +248,11 @@ export class Driver {
     async getAdminDriver(): Promise<AdminDriver> {
         await this.connectionManager.waitForConnected();
         return await this.getAdminDriverWhenConnected();
+    }
+
+    /** LAN addresses a phone on the same Wi-Fi can use to reach this server — for the lobby's QR panel. */
+    async getNetworkInfo(): Promise<NetworkInfo> {
+        const response = await fetch(this.httpEndpoint + '/network-info');
+        return (await response.json()) as NetworkInfo;
     }
 }

@@ -20,6 +20,7 @@ import { WebSocketTransport } from '@colyseus/ws-transport';
 import asyncHandler from 'express-async-handler';
 import basicAuth from 'express-basic-auth';
 import express from 'express';
+import { getNetworkInfo } from './network-info';
 import { getStationsManifest } from './stations-manifest';
 import { monitor } from '@colyseus/monitor';
 
@@ -52,6 +53,8 @@ export async function server(
 ) {
     const gameRecorder = new GameRecorder(manager, recordingsDir);
     const replayPlayer = new ReplayPlayer(manager, mapsMap);
+    // reassigned once gameServer.listen() resolves the actual bound port (the caller may pass 0)
+    let boundPort = port;
     const app = express();
     app.use(express.json() as express.RequestHandler);
     const httpServer = http.createServer(app);
@@ -76,6 +79,11 @@ export async function server(
 
     app.get('/health', (_, res) => {
         res.json({ status: 'ok' });
+    });
+
+    // what a phone on the same Wi-Fi should type into its browser — the lobby renders these as QR codes
+    app.get('/network-info', (_, res) => {
+        res.json(getNetworkInfo(boundPort));
     });
 
     // the bridge a ship offers: which stations exist and what each may see and do. Headless clients
@@ -229,6 +237,7 @@ export async function server(
 
     await gameServer.listen(port);
     const addressInfo = httpServer.address() as AddressInfo;
+    boundPort = addressInfo.port;
     // console.log(`Listening on port ${addressInfo.port}`);
 
     await matchMaker.createRoom('admin', { manager }); // create a room

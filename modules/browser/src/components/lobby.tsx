@@ -19,6 +19,7 @@ import {
 
 import { AnimatorGeneralProvider } from './arwes-compat';
 import { BleepsProvider } from './arwes-compat';
+import { NetworkInfoPanel } from './network-info-panel';
 import React from 'react';
 import { ReplayMenu } from './replay-menu';
 import WebFont from 'webfontloader';
@@ -287,6 +288,7 @@ export const Lobby = (p: Props) => {
                                 <ReplayMenu adminDriver={adminDriver} />
                             </pre>
                         )}
+                        <NetworkInfoPanel driver={p.driver} />
                         <pre key="Utilities">
                             <h2>Utilities</h2>
                             <Button
