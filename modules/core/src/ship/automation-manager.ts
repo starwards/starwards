@@ -201,7 +201,13 @@ export class AutomationManager implements Updateable {
             // velocity it holds rather than a disturbance it fights.
             const heldVelocity = XY.add(targetVelocity, weave.velocity);
             maneuvering = matchGlobalSpeed(deltaSecondsAvg, ship, heldVelocity);
-            requiredAcceleration = XY.difference(heldVelocity, ship.velocity);
+            // Heading arbitration must not chase this: in range it is a velocity-match error, which
+            // swings through every direction as the match overshoots and the combat weave's own
+            // velocity term (#2146) cycles -- feeding a spinning vector into a cost function that
+            // weighs thrust efficiency above aim (STANDOFF) spins the hull through full revolutions
+            // chasing it (issue #2181). Anchor thrust-cost evaluation to the stable line-of-sight
+            // direction instead; there's no closing maneuver in range for it to describe anyway.
+            requiredAcceleration = shipToTarget;
         } else {
             const wovenPosition = XY.add(targetPosition, weave.offset);
             maneuvering = moveToTarget(deltaSecondsAvg, ship, wovenPosition);
