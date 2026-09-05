@@ -1,7 +1,8 @@
+import { type RegisterStationArg, registerStation } from '../stations';
+
 import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
 import { Primitive } from 'colyseus-events';
-import { RegisterStationArg, registerStation } from '../stations';
 import { Room } from 'colyseus.js';
 import { RoomEventEmitter } from '..';
 import { sendJsonCmd } from '../commands';

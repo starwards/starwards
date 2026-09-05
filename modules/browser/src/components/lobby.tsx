@@ -1,9 +1,11 @@
+import { AdminDriver, Driver, VERSION } from '@starwards/core';
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
-import { Driver, VERSION } from '@starwards/core';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
+import { getOrCreateStationId, isValidStationId, setStationId } from '../station-identity';
 import {
     useAdminDriver,
     useCanStartGame,
+    useConnectedStationIds,
     useIsGameRunning,
     useIsRecording,
     useIsReplaying,
@@ -15,6 +17,69 @@ import { BleepsProvider } from './arwes-compat';
 import React from 'react';
 import { ReplayMenu } from './replay-menu';
 import WebFont from 'webfontloader';
+
+/**
+ * Shows this device's persistent station registry id and lets a technician rename it. Registers
+ * on the admin room with no station type/ship — the lobby is where a device sits before it picks
+ * a bridge seat, not a seat itself (issue #2131). Renaming is the only local mutation: the server
+ * never rejects an id, so the collision check here (against ids currently `connected`) is purely
+ * a courtesy to the technician, not an enforced uniqueness guarantee.
+ */
+const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: AdminDriver | null }) => {
+    const [stationId, setStationIdState] = React.useState(getOrCreateStationId);
+    const [draft, setDraft] = React.useState(stationId);
+    const [error, setError] = React.useState('');
+    const connectedIds = useConnectedStationIds(adminDriver);
+
+    React.useEffect(() => {
+        if (!adminDriver) {
+            return;
+        }
+        const register = () => adminDriver.registerStation({ stationId, stationType: '', shipId: '' });
+        register();
+        driver.connectionStatus.on('connected', register);
+        return () => void driver.connectionStatus.off('connected', register);
+    }, [driver, adminDriver, stationId]);
+
+    const submitRename = () => {
+        const normalized = draft.toUpperCase();
+        if (!isValidStationId(normalized)) {
+            setError('1-16 characters: A-Z, 0-9, -');
+            return;
+        }
+        if (normalized !== stationId && connectedIds.has(normalized)) {
+            setError(`"${normalized}" is already connected`);
+            return;
+        }
+        setError('');
+        setStationId(normalized);
+        setStationIdState(normalized);
+    };
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <div data-id="station-id" style={{ fontSize: 32, letterSpacing: 6, fontWeight: 'bold' }}>
+                {stationId}
+            </div>
+            <input
+                data-id="station-id-input"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submitRename()}
+                style={{ textTransform: 'uppercase', textAlign: 'center' }}
+                maxLength={16}
+            />
+            <Button key="rename-station" onClick={submitRename}>
+                Rename
+            </Button>
+            {error && (
+                <div data-id="station-id-error" style={{ color: 'red' }}>
+                    {error}
+                </div>
+            )}
+        </div>
+    );
+};
 
 WebFont.load({
     custom: {
@@ -175,6 +240,7 @@ export const Lobby = (p: Props) => {
             >
                 <AnimatorGeneralProvider animator={generalAnimator}>
                     <div style={{ padding: 20, textAlign: 'center' }}>
+                        <StationIdBadge driver={p.driver} adminDriver={adminDriver} />
                         <h1 data-id="title">Starwards</h1>
                         {isGameRunning && adminDriver && <InGameMenu driver={p.driver}></InGameMenu>}
                         {isReplaying && adminDriver && (

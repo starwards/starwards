@@ -1,9 +1,9 @@
 import {
+    StationIdStorage,
     generateStationId,
     getOrCreateStationId,
     isValidStationId,
     setStationId,
-    StationIdStorage,
 } from '../src/station-identity';
 
 function makeMemoryStorage(initial: Record<string, string> = {}): StationIdStorage {

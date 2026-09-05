@@ -1,19 +1,17 @@
 import * as PIXI from 'pixi.js';
 
 import {
-    ClientStatus,
     Driver,
     Iterator,
     PowerLevelStep,
     ShipDriver,
     Status,
     WarpFrequency,
-    createLogger,
     repairCommands,
     repairProtocols,
 } from '@starwards/core';
 import { HPos, VPos } from '../container';
-import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, registerStationClient, runStationScreen } from './station-lifecycle';
 import { drawRepairQueue, getRepairProtocolHotkey } from '../widgets/repair-queue';
 import { radarFogOfWar, toCss } from '../colors';
 import { readWriteNumberProp, readWriteProp, writeProp } from '../property-wrappers';
@@ -28,8 +26,6 @@ import { drawFullSystemsStatus } from '../widgets/full-system-status';
 import { drawStationObservationMode } from '../widgets/observation-mode';
 import { drawWarpStatus } from '../widgets/warp';
 import { setupHotkeyHelp } from '../input/hotkey-help';
-
-const { error: logError } = createLogger('screen:engineer');
 
 ElementQueries.listen();
 
@@ -50,19 +46,14 @@ window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.r
 // `;
 // document.head.appendChild(style);
 
-const urlParams = new URLSearchParams(window.location.search);
-const shipUrlParam = urlParams.get('ship');
-if (shipUrlParam) {
-    const driver = new Driver(window.location).connect();
-    const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
-        initScreen(driver, shipUrlParam, container),
-    );
-} else {
-    logError('missing "ship" url query param');
-}
+const requestedShipId = new URLSearchParams(window.location.search).get('ship') ?? '';
+const driver = new Driver(window.location).connect();
+const { statusTracker, getAssignedShipId } = registerStationClient(driver, 'engineer', requestedShipId);
+runStationScreen(driver, statusTracker, Status.SHIP_FOUND, async (container) =>
+    initScreen(await getAssignedShipId(), container),
+);
 
-async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
+async function initScreen(shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     container.getElement().css('background-color', toCss(radarFogOfWar));
     const shipDriver = await driver.getShipDriver(shipId);
     const teardownInput = wireInput(shipDriver);

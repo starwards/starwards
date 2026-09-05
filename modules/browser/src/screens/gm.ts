@@ -1,6 +1,6 @@
 // import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status, createLogger, spaceCommands } from '@starwards/core';
+import { ClientStatus, Driver, Status, beginStationRegistration, createLogger, spaceCommands } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { ScreenTeardown, runScreenLifecycle } from './station-lifecycle';
 
@@ -12,9 +12,11 @@ import { damageReportWidget } from '../widgets/damage-report';
 import { designStateWidget } from '../widgets/design-state';
 import { dockingWidget } from '../widgets/docking';
 import { drawGmStatusChip } from '../widgets/observation-mode';
+import { drawStationRoster } from '../widgets/station-roster';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gameControlsWidget } from '../widgets/game-controls';
+import { getOrCreateStationId } from '../station-identity';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
@@ -40,6 +42,12 @@ const { error: logError } = createLogger('screen:gm');
 // window.PIXI = PIXI;
 const driver = new Driver(window.location).connect();
 const statusTracker = new ClientStatus(driver);
+
+beginStationRegistration(driver, getOrCreateStationId(), 'gm', '');
+// The roster must render while the game is STOPPED (stations connect before start), so it's
+// attached directly to the page rather than gated behind runScreenLifecycle's GAME_RUNNING
+// threshold below.
+void driver.getAdminDriver().then((adminDriver) => drawStationRoster(adminDriver));
 
 runScreenLifecycle(driver, statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
 

@@ -4,6 +4,7 @@ import {
     SpaceDriver,
     StationCommand,
     StationsManifest,
+    beginStationRegistration,
     stationCommands,
     stationWidgets,
 } from '@starwards/core/internal';
@@ -167,10 +168,14 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
             inputSchema: {
                 shipId: z.string().describe('ship id, from list_ships'),
                 station: z.string().describe('station name, from list_stations'),
+                stationId: z
+                    .string()
+                    .optional()
+                    .describe('this seat\'s registry id, for the GM roster. Defaults to "mcp-<station>".'),
             },
             annotations: { openWorldHint: true },
         },
-        async ({ shipId, station }) =>
+        async ({ shipId, station, stationId }) =>
             attempt(async () => {
                 manifest = await fetchStationsManifest(baseUrl, shipId);
                 const entry = manifest.stations[station];
@@ -194,6 +199,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
                 const shipDriver: ShipDriver = await driver.getShipDriver(shipId);
                 const spaceDriver: SpaceDriver = await driver.getSpaceDriver();
                 session = new StationSession(station, entry, shipDriver, spaceDriver);
+                beginStationRegistration(driver, stationId ?? `mcp-${station}`, station, shipId);
                 return {
                     station,
                     shipId,

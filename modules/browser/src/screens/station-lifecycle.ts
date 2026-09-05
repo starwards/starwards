@@ -1,11 +1,32 @@
-import { AdminDriver, ClientStatus, Driver, Status, createLogger } from '@starwards/core';
+import { AdminDriver, ClientStatus, Driver, Status, beginStationRegistration, createLogger } from '@starwards/core';
 
 import $ from 'jquery';
+import { getOrCreateStationId } from '../station-identity';
 import { hsl } from '../colors';
 import { shouldShowGameMessage } from './game-message-overlay';
 import { wrapRootWidgetContainer } from '../container';
 
 const { error: logError } = createLogger('screen:station-lifecycle');
+
+/**
+ * Registers this browser tab as a station of `stationType` in the server's registry
+ * (`AdminState.stations`), requesting `requestedShipId` (typically the page's own `?ship=` url
+ * param, or `''`) as its self-assignment. Returns a `ClientStatus` bound to whatever ship the
+ * registry currently resolves for this station — which can differ from `requestedShipId`
+ * (rejected, or filled in later by auto-assign / a GM reassignment) — so the caller never binds
+ * to the raw url param directly.
+ */
+export function registerStationClient(
+    driver: Driver,
+    stationType: string,
+    requestedShipId: string,
+): { statusTracker: ClientStatus; getAssignedShipId: () => Promise<string> } {
+    const registration = beginStationRegistration(driver, getOrCreateStationId(), stationType, requestedShipId);
+    return {
+        statusTracker: new ClientStatus(driver, registration.getAssignedShipId),
+        getAssignedShipId: registration.getAssignedShipId,
+    };
+}
 
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;

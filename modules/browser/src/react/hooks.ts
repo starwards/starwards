@@ -38,6 +38,28 @@ export function usePlayerShips(driver: Driver): string[] {
     return ships;
 }
 
+/** Ids of every station currently connected to the registry — for the lobby's rename collision check. */
+export function useConnectedStationIds(adminDriver: AdminDriver | null): Set<string> {
+    const [ids, setIds] = useState<Set<string>>(new Set());
+    useLoop(
+        () => {
+            if (!adminDriver) {
+                return;
+            }
+            const next = new Set<string>();
+            for (const entry of adminDriver.state.stations.values()) {
+                if (entry.connected) {
+                    next.add(entry.id);
+                }
+            }
+            setIds(next);
+        },
+        500,
+        [adminDriver],
+    );
+    return ids;
+}
+
 function useLoop(callback: () => unknown, intervalMs: number, deps: DependencyList) {
     useEffect(() => {
         const loop = new TaskLoop(callback, intervalMs);

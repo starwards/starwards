@@ -1,8 +1,8 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, ShipDriver, Status, createLogger } from '@starwards/core';
+import { Driver, ShipDriver, Status } from '@starwards/core';
 import { HPos, VPos } from '../container';
-import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, registerStationClient, runStationScreen } from './station-lifecycle';
 import { readWriteAllNumberProp, readWriteProp, writeAllProp, writeProp } from '../property-wrappers';
 
 import ElementQueries from 'css-element-queries/src/ElementQueries';
@@ -19,8 +19,6 @@ import { setupHotkeyHelp } from '../input/hotkey-help';
 import { shipInputConfig } from '../input/input-config';
 import { wireTubeHotkeys } from '../input/tube-hotkeys';
 
-const { error: logError } = createLogger('screen:weapons');
-
 ElementQueries.listen();
 
 // enable pixi dev-tools
@@ -29,19 +27,14 @@ ElementQueries.listen();
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
 
-const urlParams = new URLSearchParams(window.location.search);
-const shipUrlParam = urlParams.get('ship');
-if (shipUrlParam) {
-    const driver = new Driver(window.location).connect();
-    const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
-        initScreen(driver, shipUrlParam, container),
-    );
-} else {
-    logError('missing "ship" url query param');
-}
+const requestedShipId = new URLSearchParams(window.location.search).get('ship') ?? '';
+const driver = new Driver(window.location).connect();
+const { statusTracker, getAssignedShipId } = registerStationClient(driver, 'weapons', requestedShipId);
+runStationScreen(driver, statusTracker, Status.SHIP_FOUND, async (container) =>
+    initScreen(await getAssignedShipId(), container),
+);
 
-async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
+async function initScreen(shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
     await drawTacticalRadar(spaceDriver, shipDriver, container, { range: 5000 });
