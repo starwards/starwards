@@ -31,8 +31,13 @@ import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
 
+/** How long a disconnected, unassigned station stays in the registry before being pruned. */
+const STALE_STATION_GRACE_MS = 30_000;
+
 export class GameManager {
     public state = new AdminState();
+    /** Wall-clock timestamp (`Date.now()`) each currently-disconnected station went offline, for the stale-entry prune below. Cleared on reconnect. */
+    private disconnectedStationSince = new Map<string, number>();
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
@@ -142,11 +147,9 @@ export class GameManager {
      * reconciles auto-assignment.
      */
     private drainStationCommands() {
-        if (this.state.registerStationCommands.length === 0 && this.state.disconnectStationCommands.length === 0) {
-            return;
-        }
         for (const arg of this.state.registerStationCommands) {
             const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
+            this.disconnectedStationSince.delete(arg.stationId);
             if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
                 entry.shipId = arg.shipId;
             }
@@ -154,9 +157,32 @@ export class GameManager {
         this.state.registerStationCommands = [];
         for (const stationId of this.state.disconnectStationCommands) {
             markStationDisconnected(this.state.stations, stationId);
+            this.disconnectedStationSince.set(stationId, Date.now());
         }
         this.state.disconnectStationCommands = [];
         this.reconcileStationAssignments();
+        this.pruneStaleStations();
+    }
+
+    /**
+     * Removes a disconnected, unassigned station's entry once it has sat idle past
+     * {@link STALE_STATION_GRACE_MS} — a technician's abandoned/renamed-away id shouldn't
+     * clutter the roster forever. A disconnected entry that still holds a ship assignment is
+     * left alone: that's the reconnect-sticky assignment the registry exists for.
+     */
+    private pruneStaleStations() {
+        const now = Date.now();
+        for (const [stationId, disconnectedAt] of [...this.disconnectedStationSince]) {
+            const entry = this.state.stations.get(stationId);
+            if (!entry || entry.connected) {
+                this.disconnectedStationSince.delete(stationId);
+                continue;
+            }
+            if (!entry.shipId && now - disconnectedAt >= STALE_STATION_GRACE_MS) {
+                this.state.stations.delete(stationId);
+                this.disconnectedStationSince.delete(stationId);
+            }
+        }
     }
 
     /** A station slot is valid when its ship is a current player ship and its type is an enabled seat on that ship. */

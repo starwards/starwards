@@ -7,6 +7,7 @@ import { two_vs_one } from '@starwards/server/src/maps';
 describe('beginStationRegistration', () => {
     const gameDriver = makeDriver();
     const clientDriver = makeClient(gameDriver.url);
+    const otherClientDriver = makeClient(gameDriver.url);
 
     beforeEach(async () => {
         await gameDriver.gameManager.startGame(two_vs_one);
@@ -33,5 +34,18 @@ describe('beginStationRegistration', () => {
         await gameDriver.sockets.resume();
         await waitFor(() => expect(gameDriver.gameManager.state.stations.get('GHI')?.connected).toBe(true), 3_000);
         expect(gameDriver.gameManager.state.stations.get('GHI')?.shipId).toBe('GVTS2');
+    });
+
+    it('fires onRejected when the requested id is already connected under a different session', async () => {
+        beginStationRegistration(clientDriver.driver, 'DUP', 'pilot', '');
+        await waitFor(() => expect(gameDriver.gameManager.state.stations.get('DUP')?.connected).toBe(true), 3_000);
+
+        let rejected = false;
+        beginStationRegistration(otherClientDriver.driver, 'DUP', 'weapons', '', () => {
+            rejected = true;
+        });
+        await waitFor(() => expect(rejected).toBe(true), 3_000);
+        // the original owner's registration is untouched by the rejected request
+        expect(gameDriver.gameManager.state.stations.get('DUP')?.stationType).toBe('pilot');
     });
 });

@@ -64,6 +64,56 @@ test.describe('Station registry', () => {
         await otherContext.close();
     });
 
+    test('two tabs in the same browser context register as two distinct stations', async ({ page, context }) => {
+        // Same context as `page` (not `browser.newContext()`): shared localStorage, distinct
+        // sessionStorage per tab — the scenario the per-tab identity fix (issue #2131 review)
+        // targets. No `?ship=` on either: identity resolution alone is under test here.
+        const pageA = await context.newPage();
+        setupPageErrorHandlers(pageA);
+        await navigateToScreen(pageA, '/pilot.html', { baseURL: gameDriver.baseURL });
+
+        const pageB = await context.newPage();
+        setupPageErrorHandlers(pageB);
+        await navigateToScreen(pageB, '/pilot.html', { baseURL: gameDriver.baseURL });
+
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        const roster = page.locator('[data-id="Station Roster"]');
+        await expect(roster).toBeVisible({ timeout: 10000 });
+        await expect
+            .poll(() => roster.locator('[data-id^="Station Roster Row "]').count(), { timeout: 10000 })
+            .toBeGreaterThanOrEqual(2);
+
+        const rowTexts = await roster.locator('[data-id^="Station Roster Row "]').allTextContents();
+        const ids = rowTexts.map((text) => text.trim().split(' ')[1]);
+        expect(new Set(ids).size).toBe(ids.length);
+
+        await pageA.close();
+        await pageB.close();
+    });
+
+    test('a lobby rename retires the old station id from the GM roster', async ({ page }) => {
+        await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
+        const badge = page.locator('[data-id="station-id"]');
+        await expect(badge).toBeVisible({ timeout: 10000 });
+        const originalId = await badge.textContent();
+
+        await page.locator('[data-id="station-id-input"]').fill('RENAMED');
+        await page.getByRole('button', { name: 'Rename' }).click();
+        await expect(badge).toHaveText('RENAMED');
+
+        await navigateToScreen(page, '/gm.html', { baseURL: gameDriver.baseURL });
+        const roster = page.locator('[data-id="Station Roster"]');
+        await expect(roster).toBeVisible({ timeout: 10000 });
+        // The renamed id is the one now connected; the old id's row is retired (flips to
+        // disconnected — '○' — in the same drain as the rename) rather than disappearing
+        // outright, so a GM can still see it was here. It's only pruned from the roster
+        // entirely after the disconnected-and-unassigned grace period (~30s).
+        await expect(roster.locator('[data-id="Station Roster Row RENAMED"]')).toContainText('●', { timeout: 10000 });
+        if (originalId) {
+            await expect(roster.locator(`[data-id="Station Roster Row ${originalId}"]`)).toContainText('○');
+        }
+    });
+
     test('GM roster shows a station bound to its self-assigned ship', async ({ page, browser }) => {
         const pilotContext = await browser.newContext();
         const pilotPage = await pilotContext.newPage();

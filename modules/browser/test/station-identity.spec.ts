@@ -42,27 +42,49 @@ describe('station-identity', () => {
         });
     });
 
+    // Issue #2131 review: identity must be per-tab (sessionStorage), with a machine-sticky
+    // default (localStorage) and a `?station=` url override.
     describe('getOrCreateStationId', () => {
-        it('generates and persists an id on first use', () => {
-            const storage = makeMemoryStorage();
-            const id = getOrCreateStationId(storage);
+        it('generates a fresh id and persists it to both storages when neither has one', () => {
+            const session = makeMemoryStorage();
+            const local = makeMemoryStorage();
+            const id = getOrCreateStationId(session, local, new URLSearchParams());
             expect(id).toHaveLength(3);
-            expect(storage.getItem('starwards.stationId')).toBe(id);
+            expect(session.getItem('starwards.stationId')).toBe(id);
+            expect(local.getItem('starwards.stationId')).toBe(id);
         });
 
-        it('reuses the persisted id on subsequent calls', () => {
-            const storage = makeMemoryStorage({ 'starwards.stationId': 'XYZ' });
-            expect(getOrCreateStationId(storage)).toBe('XYZ');
-            expect(getOrCreateStationId(storage)).toBe('XYZ');
+        it("reuses this tab's sessionStorage id even when localStorage disagrees", () => {
+            const session = makeMemoryStorage({ 'starwards.stationId': 'TAB' });
+            const local = makeMemoryStorage({ 'starwards.stationId': 'OTHER' });
+            expect(getOrCreateStationId(session, local, new URLSearchParams())).toBe('TAB');
+        });
+
+        it('seeds a fresh tab (no sessionStorage entry) from localStorage, recovering the machine-sticky default', () => {
+            const session = makeMemoryStorage();
+            const local = makeMemoryStorage({ 'starwards.stationId': 'MACHINE' });
+            const id = getOrCreateStationId(session, local, new URLSearchParams());
+            expect(id).toBe('MACHINE');
+            expect(session.getItem('starwards.stationId')).toBe('MACHINE');
+        });
+
+        it('a `?station=` url param overrides both storages', () => {
+            const session = makeMemoryStorage({ 'starwards.stationId': 'TAB' });
+            const local = makeMemoryStorage({ 'starwards.stationId': 'MACHINE' });
+            const id = getOrCreateStationId(session, local, new URLSearchParams('station=PINNED'));
+            expect(id).toBe('PINNED');
+            expect(session.getItem('starwards.stationId')).toBe('PINNED');
+            expect(local.getItem('starwards.stationId')).toBe('PINNED');
         });
     });
 
     describe('setStationId', () => {
-        it('persists a normalized (upper-case) id', () => {
-            const storage = makeMemoryStorage();
-            setStationId('nav-2', storage);
-            expect(storage.getItem('starwards.stationId')).toBe('NAV-2');
-            expect(getOrCreateStationId(storage)).toBe('NAV-2');
+        it('persists a normalized (upper-case) id to both storages', () => {
+            const session = makeMemoryStorage();
+            const local = makeMemoryStorage();
+            setStationId('nav-2', session, local);
+            expect(session.getItem('starwards.stationId')).toBe('NAV-2');
+            expect(local.getItem('starwards.stationId')).toBe('NAV-2');
         });
     });
 });

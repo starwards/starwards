@@ -1,5 +1,6 @@
 import {
     AdminState,
+    REGISTER_STATION_REJECTED,
     RegisterStationArg,
     cmdReceiver,
     createLogger,
@@ -19,6 +20,8 @@ export class AdminRoom extends Room<AdminState> {
     public static id = 'admin';
     /** Tracks which station a connected client registered as, so `onLeave` can mark it disconnected without the client having said goodbye. */
     private sessionToStation = new Map<string, string>();
+    /** Reverse of `sessionToStation`: who currently owns each connected station id, for the collision check below. */
+    private stationToSession = new Map<string, string>();
     private manager!: GameManager;
 
     constructor() {
@@ -49,9 +52,29 @@ export class AdminRoom extends Room<AdminState> {
             registerStation.cmdName,
             (client: Client, message: { value: RegisterStationArg; path: void }) => {
                 const stationId = message?.value?.stationId;
-                if (stationId) {
-                    this.sessionToStation.set(client.sessionId, stationId);
+                if (!stationId) {
+                    return;
                 }
+                // Collision: `stationId` is already owned by a different, still-connected
+                // session (e.g. two tabs that seeded the same id from `localStorage` before
+                // either had picked its own). Reject rather than let this client silently take
+                // over the other station's registry entry — the client generates a fresh id
+                // and retries (see `beginStationRegistration`'s `onRejected`).
+                const currentOwner = this.stationToSession.get(stationId);
+                if (currentOwner && currentOwner !== client.sessionId) {
+                    client.send(REGISTER_STATION_REJECTED, { stationId });
+                    return;
+                }
+                // A rename: this session previously registered under a different id. That old
+                // id's client-side owner is gone now, but nothing else tells the registry so —
+                // retire it in the same drain, or it stays `connected: true` forever.
+                const previousStationId = this.sessionToStation.get(client.sessionId);
+                if (previousStationId && previousStationId !== stationId) {
+                    this.stationToSession.delete(previousStationId);
+                    manager.state.disconnectStationCommands.push(previousStationId);
+                }
+                this.sessionToStation.set(client.sessionId, stationId);
+                this.stationToSession.set(stationId, client.sessionId);
                 receiveRegistration(client, message);
             },
         );
@@ -61,6 +84,7 @@ export class AdminRoom extends Room<AdminState> {
         const stationId = this.sessionToStation.get(client.sessionId);
         if (stationId) {
             this.sessionToStation.delete(client.sessionId);
+            this.stationToSession.delete(stationId);
             this.manager.state.disconnectStationCommands.push(stationId);
         }
     }

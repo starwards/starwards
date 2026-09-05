@@ -30,3 +30,14 @@ export const registerStation: StateCommand<RegisterStationArg, Schema & StationR
 };
 
 export const stationRegistryCommands = { registerStation };
+
+/**
+ * Server->client message name for a rejected `registerStation` request: the requested
+ * `stationId` is currently `connected` under a different Colyseus session (a collision, e.g.
+ * two tabs that happened to share the same seeded id). Sent to the rejected client only —
+ * see `AdminRoom`'s collision check — so it can generate a fresh id and retry instead of
+ * silently overwriting the other station's connection.
+ */
+export const REGISTER_STATION_REJECTED = 'registerStationRejected';
+
+export type RegisterStationRejected = { stationId: string };

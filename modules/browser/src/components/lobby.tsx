@@ -1,7 +1,12 @@
 import { AdminDriver, Driver, VERSION } from '@starwards/core';
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
-import { getOrCreateStationId, isValidStationId, setStationId } from '../station-identity';
+import {
+    beginStationRegistrationWithRetry,
+    getOrCreateStationId,
+    isValidStationId,
+    setStationId,
+} from '../station-identity';
 import {
     useAdminDriver,
     useCanStartGame,
@@ -21,9 +26,11 @@ import WebFont from 'webfontloader';
 /**
  * Shows this device's persistent station registry id and lets a technician rename it. Registers
  * on the admin room with no station type/ship — the lobby is where a device sits before it picks
- * a bridge seat, not a seat itself (issue #2131). Renaming is the only local mutation: the server
- * never rejects an id, so the collision check here (against ids currently `connected`) is purely
- * a courtesy to the technician, not an enforced uniqueness guarantee.
+ * a bridge seat, not a seat itself (issue #2131). The collision check against ids currently
+ * `connected` is a pre-emptive courtesy so a technician gets an immediate error on an obvious
+ * collision; it isn't the enforcement — the server rejects any registration (initial or renamed)
+ * that collides with a different, still-connected session, and `registerAs` reacts to that by
+ * falling back to a fresh generated id (see `beginStationRegistrationWithRetry`).
  */
 const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: AdminDriver | null }) => {
     const [stationId, setStationIdState] = React.useState(getOrCreateStationId);
@@ -31,15 +38,20 @@ const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: 
     const [error, setError] = React.useState('');
     const connectedIds = useConnectedStationIds(adminDriver);
 
+    const registerAs = React.useCallback(() => {
+        beginStationRegistrationWithRetry(driver, '', '', (newId) => {
+            setStationIdState(newId);
+            setDraft(newId);
+            setError(`id collided with another connected station; reassigned to "${newId}"`);
+        });
+    }, [driver]);
+
     React.useEffect(() => {
         if (!adminDriver) {
             return;
         }
-        const register = () => adminDriver.registerStation({ stationId, stationType: '', shipId: '' });
-        register();
-        driver.connectionStatus.on('connected', register);
-        return () => void driver.connectionStatus.off('connected', register);
-    }, [driver, adminDriver, stationId]);
+        registerAs();
+    }, [adminDriver, registerAs]);
 
     const submitRename = () => {
         const normalized = draft.toUpperCase();
@@ -54,6 +66,7 @@ const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: 
         setError('');
         setStationId(normalized);
         setStationIdState(normalized);
+        registerAs();
     };
 
     return (

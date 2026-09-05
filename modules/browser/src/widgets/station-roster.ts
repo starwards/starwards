@@ -1,39 +1,43 @@
 import $ from 'jquery';
 import { AdminDriver } from '@starwards/core';
+import { DashboardWidget } from './dashboard';
+import { WidgetContainer } from '../container';
 import { hsl } from '../colors';
 
 /**
  * View-only roster of every registered station (`AdminState.stations`), for the GM to see who's
  * connected and what they're bound to. GM assignment UI lands in a follow-up issue (#2132); this
- * only renders the current registry. Attached directly to `document.body` — not to `#wrapper` —
- * so it survives `runScreenLifecycle`'s wrapper churn and renders even while the game is STOPPED,
- * when stations have already connected but no game (and no `#wrapper` content gated on
- * `Status.GAME_RUNNING`) exists yet.
+ * only renders the current registry. A regular `DashboardWidget` living in the golden-layout
+ * grid (see `gm.ts`) — never a floating overlay, which would sit on top of other widgets and eat
+ * their clicks. Accepted consequence: like every other widget here, it only renders once the
+ * screen passes `Status.GAME_RUNNING` — a STOPPED-state view isn't required for #2131 (the lobby
+ * already shows a station's own identity; #2132 can revisit).
  */
-export function drawStationRoster(adminDriver: AdminDriver): () => void {
-    const panel = $('<div />')
-        .attr('data-id', 'Station Roster')
-        .css({
-            position: 'fixed',
-            top: '0.5em',
-            right: '0.5em',
-            zIndex: 2000,
-            minWidth: '16em',
-            maxWidth: '24em',
-            maxHeight: '40vh',
-            overflowY: 'auto',
-            padding: '0.5em 0.75em',
-            fontFamily: 'sans-serif',
-            fontSize: '0.8em',
-            color: hsl.primary.main(3),
-            backgroundColor: 'rgba(10, 10, 10, 0.85)',
-            // View-only: never intercept clicks meant for the dashboard underneath it.
-            pointerEvents: 'none',
-        });
-    panel.append($('<div />').text('Stations').css({ fontWeight: 'bold', marginBottom: '0.25em' }));
+export function stationRosterWidget(adminDriver: AdminDriver): DashboardWidget {
+    class StationRosterComponent {
+        constructor(container: WidgetContainer, _: unknown) {
+            drawStationRoster(container, adminDriver);
+        }
+    }
+    return {
+        name: 'station roster',
+        type: 'component',
+        component: StationRosterComponent,
+        defaultProps: {},
+    };
+}
+
+function drawStationRoster(container: WidgetContainer, adminDriver: AdminDriver): void {
+    const root = container.getElement();
+    root.attr('data-id', 'Station Roster').css({
+        overflowY: 'auto',
+        padding: '0.5em 0.75em',
+        fontFamily: 'sans-serif',
+        fontSize: '0.8em',
+        color: hsl.primary.main(3),
+    });
     const list = $('<div />').attr('data-id', 'Station Roster List');
-    panel.append(list);
-    $(document.body).append(panel);
+    root.append(list);
 
     const render = () => {
         list.empty();
@@ -52,9 +56,8 @@ export function drawStationRoster(adminDriver: AdminDriver): () => void {
     render();
     adminDriver.events.on('/stations', render);
     adminDriver.events.on('/stations/**', render);
-    return () => {
+    container.on('destroy', () => {
         adminDriver.events.off('/stations', render);
         adminDriver.events.off('/stations/**', render);
-        panel.remove();
-    };
+    });
 }

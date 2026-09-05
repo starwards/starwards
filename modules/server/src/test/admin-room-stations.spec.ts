@@ -88,6 +88,34 @@ describe('AdminRoom station registry', () => {
             await sleep(300);
             expect(stationEntry('DDD')?.shipId).toBe('');
         });
+
+        it('rejects a registerStation for an id already connected under a different session', async () => {
+            const owner = await connectAdmin('owner');
+            await registerStation(owner.client, owner.room, 'DUP', 'pilot');
+            await waitForServer(() => stationEntry('DUP')?.connected === true);
+
+            const impostor = await connectAdmin('impostor');
+            const rejections: string[] = [];
+            impostor.room.onMessage('registerStationRejected', (msg: { stationId: string }) =>
+                rejections.push(msg.stationId),
+            );
+            await registerStation(impostor.client, impostor.room, 'DUP', 'weapons');
+            await waitForServer(() => rejections.includes('DUP'));
+            // the original owner's registration is untouched by the rejected request
+            expect(stationEntry('DUP')).toMatchObject({ stationType: 'pilot', connected: true });
+        });
+
+        it('retires the old station id when the same session registers under a new one (rename)', async () => {
+            const renamer = await connectAdmin('renamer');
+            await registerStation(renamer.client, renamer.room, 'OLD', 'pilot', 'GVTS');
+            await waitForServer(() => stationEntry('OLD')?.shipId === 'GVTS');
+
+            await registerStation(renamer.client, renamer.room, 'NEW', 'pilot', 'GVTS');
+            await waitForServer(() => stationEntry('NEW')?.connected === true);
+            await waitForServer(() => stationEntry('OLD')?.connected === false);
+            // the retired entry's sticky assignment is untouched — only `connected` flips
+            expect(stationEntry('OLD')?.shipId).toBe('GVTS');
+        });
     });
 
     it('auto-assigns the sole open slot for a station type', async () => {

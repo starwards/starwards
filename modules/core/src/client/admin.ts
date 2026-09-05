@@ -1,4 +1,4 @@
-import { type RegisterStationArg, registerStation } from '../stations';
+import { REGISTER_STATION_REJECTED, type RegisterStationArg, type RegisterStationRejected, registerStation } from '../stations';
 
 import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
@@ -42,6 +42,10 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
             resolve();
         });
     });
+    const rejectedListeners = new Set<(stationId: string) => void>();
+    adminRoom.onMessage(REGISTER_STATION_REJECTED, (message: RegisterStationRejected) => {
+        for (const cb of rejectedListeners) cb(message.stationId);
+    });
     return {
         events,
         get state() {
@@ -49,6 +53,11 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
         },
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(adminRoom, pointerStr, value),
         registerStation: (arg: RegisterStationArg) => adminRoom.send(registerStation.cmdName, { value: arg }),
+        /** Fires when the server rejects a `registerStation` request for `stationId` (see `AdminRoom`'s collision check). */
+        onRegisterStationRejected: (cb: (stationId: string) => void): (() => void) => {
+            rejectedListeners.add(cb);
+            return () => rejectedListeners.delete(cb);
+        },
         stopGame: (): undefined => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
         startGame: (mapName: string): undefined =>
             void fetch(endpoint + '/start-game', { ...requestInfo, body: JSON.stringify({ mapName }) }),

@@ -1,7 +1,7 @@
-import { AdminDriver, ClientStatus, Driver, Status, beginStationRegistration, createLogger } from '@starwards/core';
+import { AdminDriver, ClientStatus, Driver, Status, createLogger } from '@starwards/core';
 
 import $ from 'jquery';
-import { getOrCreateStationId } from '../station-identity';
+import { beginStationRegistrationWithRetry } from '../station-identity';
 import { hsl } from '../colors';
 import { shouldShowGameMessage } from './game-message-overlay';
 import { wrapRootWidgetContainer } from '../container';
@@ -21,7 +21,7 @@ export function registerStationClient(
     stationType: string,
     requestedShipId: string,
 ): { statusTracker: ClientStatus; getAssignedShipId: () => Promise<string> } {
-    const registration = beginStationRegistration(driver, getOrCreateStationId(), stationType, requestedShipId);
+    const registration = beginStationRegistrationWithRetry(driver, stationType, requestedShipId);
     return {
         statusTracker: new ClientStatus(driver, registration.getAssignedShipId),
         getAssignedShipId: registration.getAssignedShipId,
