@@ -305,6 +305,15 @@ jobs:
                       const { data: commit } = await github.rest.git.getCommit({ ...context.repo, commit_sha: sha });
                       const commitSubject = commit.message.split('\n')[0];
 
+                      // concurrency: only serializes, it doesn't order — a slower older
+                      // push could still reach this point after a faster newer one. Bail
+                      // if master has since moved past this run's commit.
+                      const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'master' });
+                      if (branch.commit.sha !== sha) {
+                          core.notice(`master has moved to ${branch.commit.sha} since this run started (${sha}); skipping, a newer run will publish`);
+                          return;
+                      }
+
                       // Delete any existing release under this tag first, so a stale
                       // release object never blocks force-moving the tag below.
                       try {
