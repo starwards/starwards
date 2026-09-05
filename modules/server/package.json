@@ -25,7 +25,8 @@
         "@colyseus/ws-transport": "^0.16.5",
         "express": "^5.2.1",
         "express-async-handler": "^1.2.0",
-        "express-basic-auth": "^1.2.1"
+        "express-basic-auth": "^1.2.1",
+        "qrcode": "^1.5.4"
     },
     "devDependencies": {
         "colyseus.js": "^0.16.22",

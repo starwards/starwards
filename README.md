@@ -29,8 +29,8 @@ Starwards is a space and starship simulator designed specifically for LARPs (Liv
 Latest development build (may be unstable): [starwards.exe](https://github.com/starwards/starwards/releases/download/master-latest/starwards.exe)
 
 1. Go to the [Releases page](https://github.com/starwards/starwards/releases) and download `starwards.exe` from the latest release (Windows only).
-2. Run `starwards.exe` - it starts the game server on port 8080.
-3. Open [http://localhost:8080](http://localhost:8080) in your browser.
+2. Run `starwards.exe` - it starts the game server on port 8080 and opens the lobby in your default browser (set `STARWARDS_NO_OPEN=1` to skip this).
+3. If it didn't open automatically, go to [http://localhost:8080](http://localhost:8080) yourself. The lobby's "Connect other devices" panel shows a QR code for each address on your network — scan one from a phone on the same Wi-Fi to open a station screen there.
 
 If you'd rather build from source, see [developing](#developing) below - `npm run build && npm run pkg` produces the same executable at `dist/exec/starwards-win.exe` (plus a Linux build at `dist/exec/starwards-linux`).
 

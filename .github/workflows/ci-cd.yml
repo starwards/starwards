@@ -217,7 +217,9 @@ jobs:
               run: |
                   set -e
                   chmod +x dist/exec/starwards-linux
-                  ./dist/exec/starwards-linux > /tmp/starwards-smoke.log 2>&1 &
+                  # headless CI has no browser/display; auto-open would fail harmlessly, but
+                  # STARWARDS_NO_OPEN=1 keeps the smoke test from depending on that being true.
+                  STARWARDS_NO_OPEN=1 ./dist/exec/starwards-linux > /tmp/starwards-smoke.log 2>&1 &
                   PID=$!
                   trap 'kill "$PID" 2>/dev/null || true' EXIT
 
