@@ -207,8 +207,14 @@ the #2083-class feedback loop this arbitration exists to avoid. A ship with no t
 scores 0 everywhere, leaving the decision to `aimCost`.
 
 The required-acceleration vector is decided by the same branch of `positionNearTarget` that issues
-the thrust command: closing, backing off and velocity-matching are three different vectors, and
-arbitrating aim against one while thrusting along another optimizes a maneuver nobody is flying.
+the thrust command: closing and backing off are direction-of-travel vectors, and arbitrating aim
+against one while thrusting along another optimizes a maneuver nobody is flying. In range,
+`matchGlobalSpeed` holds a velocity rather than travelling toward anything, so that branch passes
+`XY.zero` instead of the velocity-match error (issue #2181): the error swings through every heading
+as the match overshoots and the combat weave's own velocity term (#2146) cycles, and arbitrating on
+it — rather than declining to make a heading claim — chased the hull through full revolutions.
+`bestOffset` reads a zero vector as "no claim" and falls back to line-of-sight, the same path a
+doctrine with no mounts already takes.
 
 Hysteresis keeps the choice from chattering. The heading held last tick is rarely reproduced
 bit-for-bit — every candidate derived from the target's bearing moves with the target — so the
