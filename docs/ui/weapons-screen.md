@@ -15,7 +15,7 @@ last_verified: 2026-08-18
 Implementation inventory for the Weapons screen: mounted widgets, source files, data bindings, and known pain points. For design intent and build status, see [`../design/stations/weapons.md`](../design/stations/weapons.md). For shared widget/panel patterns, see [`common-ui-patterns.md`](common-ui-patterns.md).
 
 **File**: `modules/browser/src/screens/weapons.ts`
-**URL**: `/weapons.html?ship={shipId}`
+**URL**: `/weapons.html?ship={shipId}` (optional `?station=ID` to pin this tab's registry id). `?ship=` is a self-assignment *request* the server validates against the station registry (issue #2131) — the screen binds to whatever ship its own registry entry resolves to, which may differ (auto-assigned, or standby if rejected). See [`../testing/README.md`](../testing/README.md) and `modules/core/src/stations/`.
 **Role**: Weapons officer - targeting and weapons control
 
 ## Overview

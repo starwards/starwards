@@ -89,6 +89,8 @@ test('helm displays heading', async ({ page }) => {
 
 **Tweakpane Testing:** Use `getPropertyValue()`, `waitForPropertyValue()`, and `waitForPropertyFloatValue()` helpers to test PropertyPanel displays. See [E2E Tweakpane Testing](UTILITIES.md#e2e-tweakpane-testing) for details.
 
+**Station registry (issue #2131):** `?ship=` on a station screen is a self-assignment *request*, not a direct binding — the server validates it against the station registry (`AdminState.stations`) and the screen renders whatever ship its own registry entry resolves to (which the tests above rely on succeeding for a single, unambiguous player ship). Each browser tab persists its own registry id (`?station=ID` pins it); see `modules/core/src/stations/` and `modules/e2e/test/station-registry.spec.ts` for the registration/self-assignment/auto-assign test patterns themselves.
+
 #### UI Testing Best Practices
 
 **✓ Use semantic selectors (data-id)**

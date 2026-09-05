@@ -3,6 +3,7 @@ import {
     ShipDriver,
     SpaceDriver,
     StationCommand,
+    StationRegistration,
     StationsManifest,
     beginStationRegistration,
     stationCommands,
@@ -97,6 +98,7 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
 
     let session: StationSession | undefined;
     let manifest: StationsManifest | undefined;
+    let stationRegistration: StationRegistration | undefined;
 
     function requireSession(): StationSession {
         if (!session) {
@@ -199,7 +201,8 @@ export function buildMcpServer(driver: Driver, baseUrl: URL, options: McpServerO
                 const shipDriver: ShipDriver = await driver.getShipDriver(shipId);
                 const spaceDriver: SpaceDriver = await driver.getSpaceDriver();
                 session = new StationSession(station, entry, shipDriver, spaceDriver);
-                beginStationRegistration(driver, stationId ?? `mcp-${station}`, station, shipId);
+                stationRegistration?.dispose();
+                stationRegistration = beginStationRegistration(driver, stationId ?? `mcp-${station}`, station, shipId);
                 return {
                     station,
                     shipId,

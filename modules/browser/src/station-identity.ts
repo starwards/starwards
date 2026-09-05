@@ -1,4 +1,6 @@
-import { Driver, StationRegistration, beginStationRegistration } from '@starwards/core';
+import { Driver, StationRegistration, beginStationRegistration, isValidStationId } from '@starwards/core';
+
+export { isValidStationId };
 
 /**
  * A station's persistent identity, per tab with a machine-sticky default: the id lives in
@@ -33,11 +35,6 @@ export function generateStationId(length = 3): string {
         id += ID_ALPHABET[Math.floor(Math.random() * ID_ALPHABET.length)];
     }
     return id;
-}
-
-/** A rename must be 1-16 chars of `[A-Z0-9-]`, matched case-insensitively. */
-export function isValidStationId(id: string): boolean {
-    return /^[A-Z0-9-]{1,16}$/.test(id.toUpperCase());
 }
 
 export function getOrCreateStationId(
@@ -83,6 +80,7 @@ export function beginStationRegistrationWithRetry(
     let registration!: StationRegistration;
     const attempt = () => {
         registration = beginStationRegistration(driver, stationId, stationType, requestedShipId, () => {
+            registration.dispose();
             stationId = generateStationId();
             setStationId(stationId);
             onIdChanged?.(stationId);
@@ -95,5 +93,6 @@ export function beginStationRegistrationWithRetry(
             return registration.stationId;
         },
         getAssignedShipId: () => registration.getAssignedShipId(),
+        dispose: () => registration.dispose(),
     };
 }

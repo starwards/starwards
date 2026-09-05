@@ -1,4 +1,4 @@
-import { beginStationRegistration, waitFor } from '../src';
+import { beginStationRegistration, sleep, waitFor } from '../src';
 
 import { makeClient } from './driver';
 import { makeDriver } from '@starwards/server/src/test/driver';
@@ -47,5 +47,19 @@ describe('beginStationRegistration', () => {
         await waitFor(() => expect(rejected).toBe(true), 3_000);
         // the original owner's registration is untouched by the rejected request
         expect(gameDriver.gameManager.state.stations.get('DUP')?.stationType).toBe('pilot');
+    });
+
+    it('dispose() stops re-registering this station on a future reconnect', async () => {
+        const registration = beginStationRegistration(clientDriver.driver, 'MNO', 'signals', '');
+        await waitFor(() => expect(gameDriver.gameManager.state.stations.get('MNO')?.connected).toBe(true), 3_000);
+
+        registration.dispose();
+        await gameDriver.sockets.stop();
+        await waitFor(() => expect(gameDriver.gameManager.state.stations.get('MNO')?.connected).toBe(false), 3_000);
+
+        await gameDriver.sockets.resume();
+        // give a still-listening (disposed-but-leaked) handler a chance to misfire
+        await sleep(300);
+        expect(gameDriver.gameManager.state.stations.get('MNO')?.connected).toBe(false);
     });
 });

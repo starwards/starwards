@@ -7,6 +7,7 @@ import {
     handleJsonPointerCommand,
     isJsonPointer,
     isSetValueCommand,
+    isValidStationId,
     registerStation,
 } from '@starwards/core/internal';
 
@@ -51,10 +52,15 @@ export class AdminRoom extends Room<AdminState> {
         this.onMessage(
             registerStation.cmdName,
             (client: Client, message: { value: RegisterStationArg; path: void }) => {
-                const stationId = message?.value?.stationId;
-                if (!stationId) {
+                const rawStationId = message?.value?.stationId;
+                if (!rawStationId || !isValidStationId(rawStationId)) {
+                    logError(`registerStation: rejecting malformed stationId="${String(rawStationId)}"`);
                     return;
                 }
+                // Uppercase server-side so a browser id ("MY-TABLET") and an MCP-supplied one
+                // ("my-tablet") key the same registry entry instead of silently coexisting as
+                // two distinct, never-reconciled stations.
+                const stationId = rawStationId.toUpperCase();
                 // Collision: `stationId` is already owned by a different, still-connected
                 // session (e.g. two tabs that seeded the same id from `localStorage` before
                 // either had picked its own). Reject rather than let this client silently take
@@ -75,7 +81,7 @@ export class AdminRoom extends Room<AdminState> {
                 }
                 this.sessionToStation.set(client.sessionId, stationId);
                 this.stationToSession.set(stationId, client.sessionId);
-                receiveRegistration(client, message);
+                receiveRegistration(client, { ...message, value: { ...message.value, stationId } });
             },
         );
     }

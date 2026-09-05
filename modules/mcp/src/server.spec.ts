@@ -78,7 +78,9 @@ describe('starwards mcp server', () => {
     it('registers the seat in the station registry on login, as mcp-<station>', async () => {
         payload(await call('login', { shipId: test_map_1.testShipId, station: 'pilot' }));
         await waitFor(() => {
-            expect(gameDriver.gameManager.state.stations.get('mcp-pilot')).toMatchObject({
+            // the server normalizes every station id to upper-case (issue #2131 review), so a
+            // browser id ("MY-TABLET") and an MCP one ("mcp-pilot") key the same entry space.
+            expect(gameDriver.gameManager.state.stations.get('MCP-PILOT')).toMatchObject({
                 connected: true,
                 stationType: 'pilot',
                 shipId: test_map_1.testShipId,
@@ -89,7 +91,7 @@ describe('starwards mcp server', () => {
     it('registers under a caller-supplied stationId instead, when given one', async () => {
         payload(await call('login', { shipId: test_map_1.testShipId, station: 'pilot', stationId: 'my-tablet' }));
         await waitFor(() => {
-            expect(gameDriver.gameManager.state.stations.get('my-tablet')).toMatchObject({
+            expect(gameDriver.gameManager.state.stations.get('MY-TABLET')).toMatchObject({
                 connected: true,
                 stationType: 'pilot',
                 shipId: test_map_1.testShipId,

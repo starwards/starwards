@@ -83,7 +83,7 @@ export {
 export type { DefectibleValue, RepairOperation, System } from './ship';
 
 // --- stations ---
-export { StationRegistryEntry } from './stations';
+export { StationRegistryEntry, isValidStationId } from './stations';
 export type { RegisterStationArg } from './stations';
 
 // --- stations-manifest ---

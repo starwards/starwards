@@ -72,6 +72,22 @@ describe('AdminRoom station registry', () => {
             });
         });
 
+        it('normalizes a lower-case station id to upper-case', async () => {
+            const a = await connectAdmin('lowercase-id');
+            await registerStation(a.client, a.room, 'lower-case', 'engineer', 'GVTS');
+            await waitForServer(() => stationEntry('LOWER-CASE')?.connected === true);
+        });
+
+        it('drops a malformed station id (invalid charset or too long)', async () => {
+            const a = await connectAdmin('malformed-id');
+            await registerStation(a.client, a.room, 'not a valid id!', 'engineer', 'GVTS');
+            await registerStation(a.client, a.room, 'A'.repeat(17), 'engineer', 'GVTS');
+            // give the server a few ticks to (not) create either entry
+            await sleep(300);
+            expect(stationEntry('not a valid id!')).toBeUndefined();
+            expect(stationEntry('A'.repeat(17))).toBeUndefined();
+        });
+
         it('rejects a self-assignment to a ship that is not a player ship', async () => {
             const a = await connectAdmin('bad-ship-request');
             await registerStation(a.client, a.room, 'CCC', 'signals', 'NOT-A-SHIP-XYZ');

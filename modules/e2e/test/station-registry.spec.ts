@@ -53,12 +53,13 @@ test.describe('Station registry', () => {
             .toBe(true);
 
         await navigateToScreen(page, '/', { baseURL: gameDriver.baseURL });
-        // The lobby's collision set is polled every 500ms (useConnectedStationIds) — give it a
-        // beat to pick up 'DUP' before relying on it for the rename attempt below.
-        await page.waitForTimeout(700);
-        await page.locator('[data-id="station-id-input"]').fill('DUP');
-        await page.getByRole('button', { name: 'Rename' }).click();
-        await expect(page.locator('[data-id="station-id-error"]')).toBeVisible();
+        // `useConnectedStationIds` is event-driven, not polled, but the state still has to sync
+        // from the server over the wire — retry the rename attempt instead of a blind wait.
+        await expect(async () => {
+            await page.locator('[data-id="station-id-input"]').fill('DUP');
+            await page.getByRole('button', { name: 'Rename' }).click();
+            await expect(page.locator('[data-id="station-id-error"]')).toBeVisible({ timeout: 500 });
+        }).toPass({ timeout: 5000 });
         await expect(page.locator('[data-id="station-id"]')).not.toHaveText('DUP');
 
         await otherContext.close();

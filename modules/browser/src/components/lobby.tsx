@@ -1,4 +1,4 @@
-import { AdminDriver, Driver, VERSION } from '@starwards/core';
+import { AdminDriver, Driver, StationRegistration, VERSION } from '@starwards/core';
 import { ArwesThemeProvider, Button, Card, StylesBaseline, Text } from './arwes-compat';
 import { LoadGame, useSaveGameHandler } from './save-load-game';
 import {
@@ -37,9 +37,13 @@ const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: 
     const [draft, setDraft] = React.useState(stationId);
     const [error, setError] = React.useState('');
     const connectedIds = useConnectedStationIds(adminDriver);
+    const registrationRef = React.useRef<StationRegistration | null>(null);
 
     const registerAs = React.useCallback(() => {
-        beginStationRegistrationWithRetry(driver, '', '', (newId) => {
+        // A rename calls this again for the new id — dispose the previous registration first, or
+        // its listeners keep firing (re-sending the old, now-abandoned id on every reconnect).
+        registrationRef.current?.dispose();
+        registrationRef.current = beginStationRegistrationWithRetry(driver, '', '', (newId) => {
             setStationIdState(newId);
             setDraft(newId);
             setError(`id collided with another connected station; reassigned to "${newId}"`);
@@ -51,6 +55,7 @@ const StationIdBadge = ({ driver, adminDriver }: { driver: Driver; adminDriver: 
             return;
         }
         registerAs();
+        return () => registrationRef.current?.dispose();
     }, [adminDriver, registerAs]);
 
     const submitRename = () => {

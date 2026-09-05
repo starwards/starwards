@@ -29,8 +29,6 @@ export const registerStation: StateCommand<RegisterStationArg, Schema & StationR
     },
 };
 
-export const stationRegistryCommands = { registerStation };
-
 /**
  * Server->client message name for a rejected `registerStation` request: the requested
  * `stationId` is currently `connected` under a different Colyseus session (a collision, e.g.

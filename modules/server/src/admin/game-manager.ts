@@ -15,6 +15,7 @@ import {
     Vec2,
     XY,
     createLogger,
+    isAssignableSeat,
     isSlotTaken,
     makeId,
     makeShipState,
@@ -188,7 +189,8 @@ export class GameManager {
     /** A station slot is valid when its ship is a current player ship and its type is an enabled seat on that ship. */
     private isValidStationSlot(shipId: string, stationType: string): boolean {
         return (
-            this.state.playerShipIds.includes(shipId) && !!getStationsManifest(shipId).stations[stationType]?.enabled
+            this.state.playerShipIds.includes(shipId) &&
+            isAssignableSeat(getStationsManifest(shipId).stations[stationType])
         );
     }
 
