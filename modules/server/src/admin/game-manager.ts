@@ -15,14 +15,18 @@ import {
     Vec2,
     XY,
     createLogger,
+    isSlotTaken,
     makeId,
     makeShipState,
+    markStationDisconnected,
     shipConfigurations,
+    upsertStationRegistration,
     waitFor,
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
 import { deepAssignSchema } from '../serialization/deep-assign-schema';
+import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
@@ -86,6 +90,7 @@ export class GameManager {
     }
 
     update(currDeltaSeconds: number) {
+        this.drainStationCommands();
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
         this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
@@ -129,6 +134,65 @@ export class GameManager {
         }
     }
 
+    /**
+     * Drains `state.registerStationCommands`/`disconnectStationCommands` (see `stations/` in
+     * core): applies registration/disconnect bookkeeping generically, validates any requested
+     * ship self-assignment against `playerShipIds` + the stations manifest — the one
+     * Starwards-specific piece the generic registry module can't do itself — and then
+     * reconciles auto-assignment.
+     */
+    private drainStationCommands() {
+        if (this.state.registerStationCommands.length === 0 && this.state.disconnectStationCommands.length === 0) {
+            return;
+        }
+        for (const arg of this.state.registerStationCommands) {
+            const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
+            if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
+                entry.shipId = arg.shipId;
+            }
+        }
+        this.state.registerStationCommands = [];
+        for (const stationId of this.state.disconnectStationCommands) {
+            markStationDisconnected(this.state.stations, stationId);
+        }
+        this.state.disconnectStationCommands = [];
+        this.reconcileStationAssignments();
+    }
+
+    /** A station slot is valid when its ship is a current player ship and its type is an enabled seat on that ship. */
+    private isValidStationSlot(shipId: string, stationType: string): boolean {
+        return (
+            this.state.playerShipIds.includes(shipId) && !!getStationsManifest(shipId).stations[stationType]?.enabled
+        );
+    }
+
+    /**
+     * Clears assignments whose slot is no longer valid (e.g. after a map switch), then
+     * auto-assigns any now-unassigned station that has exactly one open slot for its type
+     * across every current player ship. Called after every register/disconnect batch, and
+     * after `startGame`/`loadGame` change `playerShipIds`.
+     */
+    private reconcileStationAssignments() {
+        for (const entry of this.state.stations.values()) {
+            if (entry.shipId && !this.isValidStationSlot(entry.shipId, entry.stationType)) {
+                entry.shipId = '';
+            }
+        }
+        for (const entry of this.state.stations.values()) {
+            if (entry.shipId || !entry.stationType) {
+                continue;
+            }
+            const openShips = this.state.playerShipIds.filter(
+                (shipId) =>
+                    this.isValidStationSlot(shipId, entry.stationType) &&
+                    !isSlotTaken(this.state.stations, shipId, entry.stationType, entry.id),
+            );
+            if (openShips.length === 1) {
+                entry.shipId = openShips[0];
+            }
+        }
+    }
+
     public async stopGame() {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING || this.state.gameStatus === GameStatus.REPLAY) {
@@ -167,6 +231,7 @@ export class GameManager {
             await matchMaker.createRoom('space', { manager: this.spaceManager });
             await this.waitForRoom({ name: 'space' });
             this.state.gameStatus = GameStatus.RUNNING;
+            this.reconcileStationAssignments();
         }
     }
 
@@ -219,6 +284,7 @@ export class GameManager {
         }
         await this.waitForAllShipRoomsInit();
         this.state.gameStatus = GameStatus.RUNNING;
+        this.reconcileStationAssignments();
     }
 
     /**

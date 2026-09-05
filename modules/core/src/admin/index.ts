@@ -1,4 +1,5 @@
-import { ArraySchema, Schema } from '@colyseus/schema';
+import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
+import { RegisterStationArg, StationRegistrable, StationRegistryEntry } from '../stations';
 
 import { commandable, gameField } from '../game-field';
 import { range } from '../range';
@@ -11,9 +12,20 @@ export enum GameStatus {
     STOPPING,
     REPLAY,
 }
-export class AdminState extends Schema {
+export class AdminState extends Schema implements StationRegistrable {
     @gameField('int8')
     gameStatus = GameStatus.STOPPED;
+
+    /**
+     * The station registry: every connected browser/MCP station, keyed by its persistent
+     * station id. Survives game stop/start/load — `GameManager` never resets this field, only
+     * re-validates entries' assignments (see `stations/` for the generic registry logic).
+     */
+    @gameField({ map: StationRegistryEntry })
+    stations = new MapSchema<StationRegistryEntry>();
+
+    public registerStationCommands = Array.of<RegisterStationArg>();
+    public disconnectStationCommands = Array.of<string>();
 
     /** True while the running game is being recorded to disk for later replay. */
     @gameField('boolean')
