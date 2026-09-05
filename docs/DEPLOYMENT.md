@@ -47,6 +47,12 @@ Runs on push/PR to `master`. Jobs:
   packaged `dist/exec/starwards-linux` with no env vars and asserts `/health` and `/`
   respond before continuing), `npm run build:unity` (uploads `modules/core/unity-schema`
   as "Unity Schemas").
+- **Publish-Master-Prerelease** — push-to-`master` only, `needs` all of the above so a
+  red build never runs it. Downloads the `Build` job's "Windows executable" artifact and
+  publishes it to a rolling `master-latest` pre-release (`starwards.exe`), force-moving
+  that tag to the built commit. Re-checks `master`'s tip against its own commit before
+  publishing, so a slower run for an older push can't clobber a newer one that finished
+  first. Stable download: `https://github.com/starwards/starwards/releases/download/master-latest/starwards.exe`.
 
 None of these jobs push a container image or deploy anywhere — that's
 [`deploy.yml`](../.github/workflows/deploy.yml).

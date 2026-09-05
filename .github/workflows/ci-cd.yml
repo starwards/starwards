@@ -273,3 +273,76 @@ jobs:
                   name: Unity Schemas
                   path: modules/core/unity-schema
                   if-no-files-found: error
+
+    Publish-Master-Prerelease:
+        # Rolling pre-release so reviewers can grab the current master exe
+        # without a GitHub login or a version tag. Gated on every other job
+        # so a red build never updates it (see #2221).
+        needs: [Test-Static, Test-Units, Test-E2e, Test-Visual, coverage-core, Build]
+        runs-on: ubuntu-latest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        permissions:
+            contents: write
+        concurrency:
+            group: release-master
+            cancel-in-progress: true
+        steps:
+            - name: Download Windows executable
+              uses: actions/download-artifact@v4
+              with:
+                  name: Windows executable
+                  path: dist/exec
+            - name: Publish rolling master pre-release
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const fs = require('fs');
+                      const path = require('path');
+
+                      const tagName = 'master-latest';
+                      const sha = context.sha;
+                      const shortSha = sha.substring(0, 7);
+                      const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+                      const { data: commit } = await github.rest.git.getCommit({ ...context.repo, commit_sha: sha });
+                      const commitSubject = commit.message.split('\n')[0];
+
+                      // concurrency: only serializes, it doesn't order — a slower older
+                      // push could still reach this point after a faster newer one. Bail
+                      // if master has since moved past this run's commit.
+                      const { data: branch } = await github.rest.repos.getBranch({ ...context.repo, branch: 'master' });
+                      if (branch.commit.sha !== sha) {
+                          core.notice(`master has moved to ${branch.commit.sha} since this run started (${sha}); skipping, a newer run will publish`);
+                          return;
+                      }
+
+                      // Delete any existing release under this tag first, so a stale
+                      // release object never blocks force-moving the tag below.
+                      try {
+                          const { data: existing } = await github.rest.repos.getReleaseByTag({ ...context.repo, tag: tagName });
+                          await github.rest.repos.deleteRelease({ ...context.repo, release_id: existing.id });
+                      } catch (error) {
+                          if (error.status !== 404) throw error;
+                      }
+
+                      try {
+                          await github.rest.git.updateRef({ ...context.repo, ref: `tags/${tagName}`, sha, force: true });
+                      } catch (error) {
+                          if (error.status !== 422) throw error;
+                          await github.rest.git.createRef({ ...context.repo, ref: `refs/tags/${tagName}`, sha });
+                      }
+
+                      const { data: release } = await github.rest.repos.createRelease({
+                          ...context.repo,
+                          tag_name: tagName,
+                          name: `master @ ${shortSha}`,
+                          prerelease: true,
+                          body: `${commitSubject}\n\nCommit: ${sha}\nCI run: ${runUrl}`,
+                      });
+
+                      await github.rest.repos.uploadReleaseAsset({
+                          ...context.repo,
+                          release_id: release.id,
+                          name: 'starwards.exe',
+                          data: fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, 'dist', 'exec', 'starwards-win.exe')),
+                      });
