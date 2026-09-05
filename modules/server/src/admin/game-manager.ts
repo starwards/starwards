@@ -15,20 +15,30 @@ import {
     Vec2,
     XY,
     createLogger,
+    isAssignableSeat,
+    isSlotTaken,
     makeId,
     makeShipState,
+    markStationDisconnected,
     shipConfigurations,
+    upsertStationRegistration,
     waitFor,
 } from '@starwards/core/internal';
 
 import { SavedGame } from '../serialization/game-state-protocol';
 import { deepAssignSchema } from '../serialization/deep-assign-schema';
+import { getStationsManifest } from '../stations-manifest';
 import { matchMaker } from '@colyseus/core';
 
 const { error: logError } = createLogger('game-manager');
 
+/** How long a disconnected, unassigned station stays in the registry before being pruned. */
+const STALE_STATION_GRACE_MS = 30_000;
+
 export class GameManager {
     public state = new AdminState();
+    /** Wall-clock timestamp (`Date.now()`) each currently-disconnected station went offline, for the stale-entry prune below. Cleared on reconnect. */
+    private disconnectedStationSince = new Map<string, number>();
     private shipCleanups = new Map<string, () => unknown>();
     private convertingShips = new Set<string>();
     private shipManagers = new Map<string, ShipManager>();
@@ -86,6 +96,7 @@ export class GameManager {
     }
 
     update(currDeltaSeconds: number) {
+        this.drainStationCommands();
         this.deltaSecondsAvg = this.deltaSecondsAvg * 0.8 + currDeltaSeconds * 0.2;
         const adjustedDeltaSeconds = currDeltaSeconds * this.state.speed;
         this._totalSeconds = this._totalSeconds + adjustedDeltaSeconds;
@@ -129,6 +140,87 @@ export class GameManager {
         }
     }
 
+    /**
+     * Drains `state.registerStationCommands`/`disconnectStationCommands` (see `stations/` in
+     * core): applies registration/disconnect bookkeeping generically, validates any requested
+     * ship self-assignment against `playerShipIds` + the stations manifest — the one
+     * Starwards-specific piece the generic registry module can't do itself — and then
+     * reconciles auto-assignment.
+     */
+    private drainStationCommands() {
+        for (const arg of this.state.registerStationCommands) {
+            const entry = upsertStationRegistration(this.state.stations, arg.stationId, arg.stationType);
+            this.disconnectedStationSince.delete(arg.stationId);
+            if (arg.shipId && !entry.shipId && this.isValidStationSlot(arg.shipId, entry.stationType)) {
+                entry.shipId = arg.shipId;
+            }
+        }
+        this.state.registerStationCommands = [];
+        for (const stationId of this.state.disconnectStationCommands) {
+            markStationDisconnected(this.state.stations, stationId);
+            this.disconnectedStationSince.set(stationId, Date.now());
+        }
+        this.state.disconnectStationCommands = [];
+        this.reconcileStationAssignments();
+        this.pruneStaleStations();
+    }
+
+    /**
+     * Removes a disconnected, unassigned station's entry once it has sat idle past
+     * {@link STALE_STATION_GRACE_MS} — a technician's abandoned/renamed-away id shouldn't
+     * clutter the roster forever. A disconnected entry that still holds a ship assignment is
+     * left alone: that's the reconnect-sticky assignment the registry exists for.
+     */
+    private pruneStaleStations() {
+        const now = Date.now();
+        for (const [stationId, disconnectedAt] of [...this.disconnectedStationSince]) {
+            const entry = this.state.stations.get(stationId);
+            if (!entry || entry.connected) {
+                this.disconnectedStationSince.delete(stationId);
+                continue;
+            }
+            if (!entry.shipId && now - disconnectedAt >= STALE_STATION_GRACE_MS) {
+                this.state.stations.delete(stationId);
+                this.disconnectedStationSince.delete(stationId);
+            }
+        }
+    }
+
+    /** A station slot is valid when its ship is a current player ship and its type is an enabled seat on that ship. */
+    private isValidStationSlot(shipId: string, stationType: string): boolean {
+        return (
+            this.state.playerShipIds.includes(shipId) &&
+            isAssignableSeat(getStationsManifest(shipId).stations[stationType])
+        );
+    }
+
+    /**
+     * Clears assignments whose slot is no longer valid (e.g. after a map switch), then
+     * auto-assigns any now-unassigned station that has exactly one open slot for its type
+     * across every current player ship. Called after every register/disconnect batch, and
+     * after `startGame`/`loadGame` change `playerShipIds`.
+     */
+    private reconcileStationAssignments() {
+        for (const entry of this.state.stations.values()) {
+            if (entry.shipId && !this.isValidStationSlot(entry.shipId, entry.stationType)) {
+                entry.shipId = '';
+            }
+        }
+        for (const entry of this.state.stations.values()) {
+            if (entry.shipId || !entry.stationType) {
+                continue;
+            }
+            const openShips = this.state.playerShipIds.filter(
+                (shipId) =>
+                    this.isValidStationSlot(shipId, entry.stationType) &&
+                    !isSlotTaken(this.state.stations, shipId, entry.stationType, entry.id),
+            );
+            if (openShips.length === 1) {
+                entry.shipId = openShips[0];
+            }
+        }
+    }
+
     public async stopGame() {
         this.map = null;
         if (this.state.gameStatus === GameStatus.RUNNING || this.state.gameStatus === GameStatus.REPLAY) {
@@ -167,6 +259,7 @@ export class GameManager {
             await matchMaker.createRoom('space', { manager: this.spaceManager });
             await this.waitForRoom({ name: 'space' });
             this.state.gameStatus = GameStatus.RUNNING;
+            this.reconcileStationAssignments();
         }
     }
 
@@ -219,6 +312,7 @@ export class GameManager {
         }
         await this.waitForAllShipRoomsInit();
         this.state.gameStatus = GameStatus.RUNNING;
+        this.reconcileStationAssignments();
     }
 
     /**

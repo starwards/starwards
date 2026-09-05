@@ -34,6 +34,7 @@ export * from './range';
 export * from './scripts-api';
 export * from './ship';
 export * from './space';
+export * from './stations';
 export * from './stations-manifest';
 export * from './task-loop';
 export * from './tweakable';

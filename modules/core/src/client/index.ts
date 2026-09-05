@@ -5,3 +5,4 @@ export * from './client-status';
 export * from './driver';
 export * from './space-object-intel';
 export * from './spatial-index';
+export * from './station-registration';

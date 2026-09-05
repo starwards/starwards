@@ -1,9 +1,9 @@
 import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status, Waypoint, XY, createLogger } from '@starwards/core';
+import { Driver, Status, Waypoint, XY } from '@starwards/core';
 import { FollowController, drawRelayRadar } from '../widgets/relay-radar';
 import { HPos, VPos } from '../container';
-import { ScreenContainer, ScreenTeardown, runStationScreen } from './station-lifecycle';
+import { ScreenContainer, ScreenTeardown, registerStationClient, runStationScreen } from './station-lifecycle';
 
 import { CameraView } from '../radar/camera-view';
 import ElementQueries from 'css-element-queries/src/ElementQueries';
@@ -21,8 +21,6 @@ import { drawWaypointEdit } from '../widgets/waypoint-edit';
 import { drawWaypointGroups } from '../widgets/waypoint-groups';
 import { setupHotkeyHelp } from '../input/hotkey-help';
 
-const { error: logError } = createLogger('screen:relay');
-
 ElementQueries.listen();
 
 // enable pixi dev-tools
@@ -31,21 +29,16 @@ ElementQueries.listen();
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
 window.__PIXI_INSPECTOR_GLOBAL_HOOK__ && window.__PIXI_INSPECTOR_GLOBAL_HOOK__.register({ PIXI: PIXI });
 
-const urlParams = new URLSearchParams(window.location.search);
-const shipUrlParam = urlParams.get('ship');
-if (shipUrlParam) {
-    const driver = new Driver(window.location).connect();
-    const statusTracker = new ClientStatus(driver, shipUrlParam);
-    runStationScreen(driver, statusTracker, Status.SHIP_FOUND, (container) =>
-        initScreen(driver, shipUrlParam, container),
-    );
-} else {
-    logError('missing "ship" url query param');
-}
+const requestedShipId = new URLSearchParams(window.location.search).get('ship') ?? '';
+const driver = new Driver(window.location).connect();
+const { statusTracker, getAssignedShipId } = registerStationClient(driver, 'relay', requestedShipId);
+runStationScreen(driver, statusTracker, Status.SHIP_FOUND, async (container) =>
+    initScreen(await getAssignedShipId(), container),
+);
 
 type ZoomEvent = 'zoomIn' | 'zoomOut';
 
-async function initScreen(driver: Driver, shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
+async function initScreen(shipId: string, container: ScreenContainer): Promise<ScreenTeardown> {
     const shipDriver = await driver.getShipDriver(shipId);
     const spaceDriver = await driver.getSpaceDriver();
 

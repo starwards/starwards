@@ -13,11 +13,19 @@ export type StatusInfo = {
     text: string;
 };
 
+/** A fixed ship id, or a (possibly async) resolver re-evaluated on every status check — for a station bound to whatever ship its registry entry currently names, see `station-registration.ts` in the browser module. */
+export type ShipIdSource = string | (() => string | Promise<string>);
+
 export class ClientStatus {
     constructor(
         private driver: Driver,
-        private shipId?: string,
+        private shipId?: ShipIdSource,
     ) {}
+
+    private resolveShipId = async (): Promise<string | undefined> => {
+        const source = typeof this.shipId === 'function' ? await this.shipId() : this.shipId;
+        return source || undefined;
+    };
 
     onStatusChange = (cb: (s: StatusInfo) => unknown): (() => void) => {
         let lastStatus: StatusInfo = { status: -1 as Status, text: '-1' };
@@ -52,10 +60,11 @@ export class ClientStatus {
         if ((await this.driver.getGameStatus()) === GameStatus.STOPPING) {
             return { status: Status.CONNECTED, text: text || 'game stopping' };
         }
-        if (!this.shipId) {
+        const shipId = await this.resolveShipId();
+        if (!shipId) {
             return { status: Status.GAME_RUNNING, text: '' };
         }
-        if (!(await this.driver.doesShipExist(this.shipId))) {
+        if (!(await this.driver.doesShipExist(shipId))) {
             return { status: Status.GAME_RUNNING, text: 'ship not found' };
         }
         return { status: Status.SHIP_FOUND, text: '' };

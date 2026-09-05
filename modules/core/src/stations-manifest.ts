@@ -127,3 +127,13 @@ export type StationEntry = {
 export type StationsManifest = {
     stations: Record<string, StationEntry>;
 };
+
+/**
+ * True for a manifest entry that is a real, ship-bound crew seat: enabled, and not the `gm`
+ * meta-seat. The station registry's auto-assign and self-assignment validation (`GameManager`)
+ * key off this — the GM seat has no ship of its own, so it must never compete for one, even if
+ * a future manifest change enables it (today it doesn't, but that's the wrong thing to rely on).
+ */
+export function isAssignableSeat(entry: StationEntry | undefined): boolean {
+    return !!entry?.enabled && !entry.gm;
+}

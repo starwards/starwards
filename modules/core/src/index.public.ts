@@ -15,12 +15,21 @@ export {
     ShipDriver,
     SpaceDriver,
     Status,
+    beginStationRegistration,
     getSpatialIndex,
     objectDisplayName,
     playerScanLevel,
     scanCycleTargets,
 } from './client';
-export type { NetworkAddress, NetworkInfo, RecordingInfo, ShipDriverRead, SpaceEventEmitter } from './client';
+export type {
+    NetworkAddress,
+    NetworkInfo,
+    RecordingInfo,
+    ShipDriverRead,
+    ShipIdSource,
+    SpaceEventEmitter,
+    StationRegistration,
+} from './client';
 
 // --- configurations ---
 export { demoShip, getAvailableRepairProtocols, repairProtocols, shipModels } from './configurations';
@@ -80,6 +89,10 @@ export {
     repairCommands,
 } from './ship';
 export type { DefectibleValue, RepairOperation, System } from './ship';
+
+// --- stations ---
+export { StationRegistryEntry, isValidStationId } from './stations';
+export type { RegisterStationArg } from './stations';
 
 // --- stations-manifest ---
 export { isRadarWidget, stationCommands, stationRadarWidgets, stationWidgets } from './stations-manifest';

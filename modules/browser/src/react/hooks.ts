@@ -38,6 +38,39 @@ export function usePlayerShips(driver: Driver): string[] {
     return ships;
 }
 
+/**
+ * Ids of every station currently connected to the registry — for the lobby's rename collision
+ * check. Subscribed to `AdminState.stations`'s own change events rather than polled, so a
+ * rename's collision check sees a just-connected station immediately instead of up to 500ms
+ * late.
+ */
+export function useConnectedStationIds(adminDriver: AdminDriver | null): Set<string> {
+    const [ids, setIds] = useState<Set<string>>(new Set());
+    useEffect(() => {
+        if (!adminDriver) {
+            setIds(new Set());
+            return;
+        }
+        const recompute = () => {
+            const next = new Set<string>();
+            for (const entry of adminDriver.state.stations.values()) {
+                if (entry.connected) {
+                    next.add(entry.id);
+                }
+            }
+            setIds(next);
+        };
+        recompute();
+        adminDriver.events.on('/stations', recompute);
+        adminDriver.events.on('/stations/**', recompute);
+        return () => {
+            adminDriver.events.off('/stations', recompute);
+            adminDriver.events.off('/stations/**', recompute);
+        };
+    }, [adminDriver]);
+    return ids;
+}
+
 function useLoop(callback: () => unknown, intervalMs: number, deps: DependencyList) {
     useEffect(() => {
         const loop = new TaskLoop(callback, intervalMs);
