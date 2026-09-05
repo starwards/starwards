@@ -55,6 +55,24 @@ describe('client status', () => {
                 await waitForStatus(status.getStatus, shipFound);
             });
         });
+        describe('with a dynamic shipId resolver', () => {
+            beforeEach(async () => {
+                await gameDriver.gameManager.startGame(test_map_1);
+            });
+            it('re-resolves the function on every check, instead of a value fixed at construction', async () => {
+                let assigned = '';
+                const status = new ClientStatus(clientDriver.driver, () => assigned);
+                await waitForStatus(status.getStatus, { status: Status.GAME_RUNNING, text: '' });
+                assigned = test_map_1.testShipId;
+                await waitForStatus(status.getStatus, shipFound);
+                assigned = 'wrong_ship_id';
+                await waitForStatus(status.getStatus, { status: Status.GAME_RUNNING, text: 'ship not found' });
+            });
+            it('supports an async resolver', async () => {
+                const status = new ClientStatus(clientDriver.driver, () => Promise.resolve(test_map_1.testShipId));
+                await waitForStatus(status.getStatus, shipFound);
+            });
+        });
         it('onStatusChange() emits current status', async () => {
             await waitFor(() => expect(clientDriver.driver.isConnected).toBeTruthy(), 3_000);
             const statuses: StatusInfo[] = [];

@@ -1,6 +1,7 @@
 import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
 import { Primitive } from 'colyseus-events';
+import { RegisterStationArg, registerStation } from '../stations';
 import { Room } from 'colyseus.js';
 import { RoomEventEmitter } from '..';
 import { sendJsonCmd } from '../commands';
@@ -46,6 +47,7 @@ export const AdminDriver = (endpoint: string) => async (adminRoom: Room<AdminSta
             return adminRoom.state;
         },
         sendJsonCmd: (pointerStr: string, value: Primitive) => sendJsonCmd(adminRoom, pointerStr, value),
+        registerStation: (arg: RegisterStationArg) => adminRoom.send(registerStation.cmdName, { value: arg }),
         stopGame: (): undefined => void fetch(endpoint + '/stop-game', { ...requestInfo, body: '{}' }),
         startGame: (mapName: string): undefined =>
             void fetch(endpoint + '/start-game', { ...requestInfo, body: JSON.stringify({ mapName }) }),
