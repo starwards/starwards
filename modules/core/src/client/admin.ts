@@ -1,4 +1,9 @@
-import { REGISTER_STATION_REJECTED, type RegisterStationArg, type RegisterStationRejected, registerStation } from '../stations';
+import {
+    REGISTER_STATION_REJECTED,
+    type RegisterStationArg,
+    type RegisterStationRejected,
+    registerStation,
+} from '../stations';
 
 import { AdminState } from '../admin';
 import EventEmitter2 from 'eventemitter2';
