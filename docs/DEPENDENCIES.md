@@ -71,7 +71,8 @@ that had been fine moments earlier. Any module that adds zod must land on the sa
 unresolved pnpm workspace specifier in its manifest — `"@colyseus/greeting-banner": "workspace:^"` —
 which npm cannot resolve. Root `npm ci` is unaffected because the lockfile pins the resolution, but
 every lockfile-free install fails with `EUNSUPPORTEDPROTOCOL`: `scripts/pkg.js` (the `npm run pkg`
-step that produces `starwards.exe`) and the Dockerfile's `cd dist && npm install --omit=dev`. Lift
+step that produces `dist/exec/starwards-win.exe` and `dist/exec/starwards-linux`) and the
+Dockerfile's `cd dist && npm install --omit=dev`. Lift
 the pin once upstream republishes a fixed manifest.
 
 Note that npm will keep reinstalling a nested copy while `package-lock.json` still has an entry for

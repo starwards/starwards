@@ -197,6 +197,11 @@ jobs:
               with:
                   node-version-file: '.nvmrc'
                   cache: 'npm'
+            - name: Cache pkg-fetch node binaries
+              uses: actions/cache@v4
+              with:
+                  path: ~/.pkg-cache
+                  key: pkg-cache-${{ hashFiles('package-lock.json') }}
             - run: node --version
             - run: npm --version
             - run: npm ci
@@ -206,8 +211,59 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: Windows executable
-                  path: dist/exec/starwards.exe
+                  path: dist/exec/starwards-win.exe
                   if-no-files-found: error
+            - name: Smoke test packaged Linux server
+              run: |
+                  set -e
+                  chmod +x dist/exec/starwards-linux
+                  ./dist/exec/starwards-linux > /tmp/starwards-smoke.log 2>&1 &
+                  PID=$!
+                  trap 'kill "$PID" 2>/dev/null || true' EXIT
+
+                  READY=""
+                  for _ in $(seq 1 30); do
+                      STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health || true)
+                      if [ "$STATUS" = "200" ]; then
+                          READY=1
+                          break
+                      fi
+                      sleep 1
+                  done
+                  if [ -z "$READY" ]; then
+                      echo "Server did not respond to /health within 30s"
+                      cat /tmp/starwards-smoke.log
+                      exit 1
+                  fi
+
+                  STATUS=$(curl -s -o /tmp/starwards-body.html -w '%{http_code}' http://localhost:8080/)
+                  if [ "$STATUS" != "200" ]; then
+                      echo "GET / returned $STATUS, expected 200"
+                      exit 1
+                  fi
+                  grep -qi '<html' /tmp/starwards-body.html || {
+                      echo "GET / body did not contain <html"
+                      cat /tmp/starwards-body.html
+                      exit 1
+                  }
+
+                  grep -q 'node v24\.' /tmp/starwards-smoke.log || {
+                      echo "startup banner did not report node v24.x"
+                      cat /tmp/starwards-smoke.log
+                      exit 1
+                  }
+
+                  kill "$PID"
+                  trap - EXIT
+            - name: Check embedded Node version in Windows executable
+              run: |
+                  set -e
+                  VERSION=$(strings dist/exec/starwards-win.exe | grep -m1 -E '^v24\.[0-9]+\.[0-9]+$')
+                  if [ -z "$VERSION" ]; then
+                      echo "Could not find an embedded v24.x.x node version string in starwards-win.exe"
+                      exit 1
+                  fi
+                  echo "Embedded node version: $VERSION"
             - run: npm run build:unity
             - name: Store Unity Schemas
               uses: actions/upload-artifact@v4
