@@ -27,6 +27,8 @@ export function drawStationRoster(adminDriver: AdminDriver): () => void {
             fontSize: '0.8em',
             color: hsl.primary.main(3),
             backgroundColor: 'rgba(10, 10, 10, 0.85)',
+            // View-only: never intercept clicks meant for the dashboard underneath it.
+            pointerEvents: 'none',
         });
     panel.append($('<div />').text('Stations').css({ fontWeight: 'bold', marginBottom: '0.25em' }));
     const list = $('<div />').attr('data-id', 'Station Roster List');
