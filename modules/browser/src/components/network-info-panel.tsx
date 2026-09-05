@@ -1,7 +1,9 @@
-import { Driver, NetworkAddress } from '@starwards/core';
+import { Driver, NetworkAddress, createLogger } from '@starwards/core';
 import React, { useEffect, useState } from 'react';
 
 import QRCode from 'qrcode';
+
+const { error: logError } = createLogger('network-info-panel');
 
 type QrAddress = NetworkAddress & { qrDataUrl: string };
 
@@ -21,7 +23,8 @@ export function NetworkInfoPanel({ driver }: { driver: Driver }) {
             .then((info) => toQrAddresses(info.addresses))
             .then((qrAddresses) => {
                 if (!cancelled) setAddresses(qrAddresses);
-            });
+            })
+            .catch((e: unknown) => logError('failed loading network info', e));
         return () => {
             cancelled = true;
         };

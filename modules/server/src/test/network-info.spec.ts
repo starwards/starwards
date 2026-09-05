@@ -49,6 +49,20 @@ describe('getNetworkAddresses', () => {
         );
         expect(addresses.map((a) => a.address)).toEqual(['172.16.0.1', '172.40.0.1']);
     });
+
+    it('demotes virtual-adapter interfaces even when their address ranks higher', () => {
+        const addresses = getNetworkAddresses(
+            {
+                'VirtualBox Host-Only Network': [{ address: '192.168.56.1', family: 'IPv4', internal: false } as never],
+                'Ethernet adapter vEthernet (WSL)': [
+                    { address: '172.20.0.1', family: 'IPv4', internal: false } as never,
+                ],
+                wlan0: [{ address: '10.0.0.5', family: 'IPv4', internal: false } as never],
+            },
+            8080,
+        );
+        expect(addresses.map((a) => a.address)).toEqual(['10.0.0.5', '192.168.56.1', '172.20.0.1']);
+    });
 });
 
 describe('getNetworkInfo', () => {

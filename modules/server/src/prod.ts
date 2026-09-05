@@ -85,7 +85,11 @@ async function fatalExit(err: unknown, isPackaged: boolean): Promise<never> {
 
 async function printLanQrCode(url: string): Promise<void> {
     try {
-        logInfo(await QRCode.toString(url, { type: 'terminal', small: true }));
+        const qr = await QRCode.toString(url, { type: 'terminal', small: true });
+        // logInfo is a `debug` instance — it prepends a namespace prefix to only the QR's
+        // first line, shifting it out of alignment with the rest and breaking the scan.
+        // eslint-disable-next-line no-console
+        console.log(qr);
     } catch (e) {
         logError('could not render QR code for', url, e);
     }
@@ -108,7 +112,9 @@ async function main() {
             logInfo(line);
         }
         if (isPackaged) {
-            logInfo("If Windows asks about network access, click Allow — other devices can't connect otherwise.");
+            if (process.platform === 'win32') {
+                logInfo("If Windows asks about network access, click Allow — other devices can't connect otherwise.");
+            }
             const [lanAddress] = getNetworkAddresses(os.networkInterfaces(), addressInfo.port);
             if (lanAddress) {
                 await printLanQrCode(lanAddress.url);

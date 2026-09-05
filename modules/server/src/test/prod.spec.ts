@@ -82,5 +82,8 @@ describe('waitForKeypress', () => {
         process.stdin.emit('data', Buffer.from('x'));
         await promise;
         expect(settled).toHaveBeenCalled();
+        // waitForKeypress() resumes stdin (via `.resume()`/`setRawMode`) and never pauses it back —
+        // undo that here so this test doesn't leave stdin open for the rest of the suite.
+        process.stdin.pause();
     });
 });
