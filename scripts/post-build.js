@@ -63,8 +63,10 @@ async function getPackage(modulePath) {
                         start: 'node node_modules/@starwards/server/cjs/prod.js',
                     },
                     pkg: {
-                        assets: 'static/**/*',
-                        targets: ['node18-win-x64'], // , 'node18-linux-x64', 'node18-osx-x64'
+                        // @msgpackr-extract prebuilds its native addon per-platform; both
+                        // land in dist/node_modules after `npm install` and must be packed.
+                        assets: ['static/**/*', 'node_modules/@msgpackr-extract/**/*.node'],
+                        targets: ['node24-win-x64', 'node24-linux-x64'],
                     },
                     dependencies,
                     overrides,
