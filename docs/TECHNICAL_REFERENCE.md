@@ -87,9 +87,15 @@ room.State.OnChange += (changes) => { /* handle */ };
 
 **Command:** `npm run pkg`
 
-**Output:** `./dist/exec/` → only `starwards-win.exe` is produced with the current config (`targets: ['node18-win-x64']` in scripts/post-build.js, with linux/osx targets commented out). Uncomment `node18-linux-x64` and `node18-osx-x64` to also build the Linux and macOS binaries.
+**Output:** `./dist/exec/` → `starwards-win.exe` and `starwards-linux`, per the two targets in
+`scripts/post-build.js` (`targets: ['node24-win-x64', 'node24-linux-x64']`). pkg names outputs
+by the target axes that actually differ across the list — both targets share the same node
+range and arch, so only the platform suffix is appended; adding a third target with a
+different arch would also start appending `-x64`/etc.
 
-**Includes:** Game server + all deps + static assets + embedded Node.js runtime
+**Includes:** Game server + all deps + static assets + `@msgpackr-extract`'s native addon (for
+whichever platform's prebuild the build host installed — the other platform falls back to
+msgpackr's pure-JS implementation) + embedded Node.js runtime
 
 **Process:**
 1. Build all modules (`npm run build`)
@@ -102,8 +108,8 @@ room.State.OnChange += (changes) => { /* handle */ };
 ```json
 {
   "pkg": {
-    "assets": "static/**/*",
-    "targets": ["node18-win-x64"]
+    "assets": ["static/**/*", "node_modules/@msgpackr-extract/**/*.node"],
+    "targets": ["node24-win-x64", "node24-linux-x64"]
   }
 }
 ```

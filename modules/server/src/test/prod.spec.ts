@@ -1,4 +1,5 @@
 import { formatBanner, resolvePort } from '../prod';
+import { VERSION } from '@starwards/core';
 
 describe('resolvePort', () => {
     it('defaults to 80 when not packaged and PORT is unset', () => {
@@ -19,6 +20,7 @@ describe('formatBanner', () => {
     it('announces the listening address, core version and node version', () => {
         const [firstLine] = formatBanner(8080, false, {});
         expect(firstLine).toContain('http://localhost:8080');
+        expect(firstLine).toContain(VERSION);
         expect(firstLine).toMatch(/node v?\d+\.\d+\.\d+/);
     });
 
