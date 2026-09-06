@@ -1,5 +1,5 @@
 import { ArraySchema, MapSchema, Schema } from '@colyseus/schema';
-import { RegisterStationArg, StationRegistrable, StationRegistryEntry } from '../stations';
+import { AssignStationArg, RegisterStationArg, StationRegistrable, StationRegistryEntry } from '../stations';
 
 import { commandable, gameField } from '../game-field';
 import { range } from '../range';
@@ -26,6 +26,7 @@ export class AdminState extends Schema implements StationRegistrable {
 
     public registerStationCommands = Array.of<RegisterStationArg>();
     public disconnectStationCommands = Array.of<string>();
+    public assignStationCommands = Array.of<AssignStationArg>();
 
     /** True while the running game is being recorded to disk for later replay. */
     @gameField('boolean')

@@ -31,7 +31,7 @@ export function registerStationClient(
 export type ScreenContainer = ReturnType<typeof wrapRootWidgetContainer>;
 export type ScreenTeardown = (() => void) | void;
 
-function renderStandby(element: JQuery<HTMLElement>, text: string) {
+export function renderStandby(element: JQuery<HTMLElement>, text: string) {
     element.attr('data-id', 'Standby').css({
         display: 'flex',
         width: '100%',
@@ -54,7 +54,7 @@ function renderStandby(element: JQuery<HTMLElement>, text: string) {
  * without blocking it, so a paused end-state radar stays visible — and legible as an intentional
  * paused state, not a glitch — behind the message.
  */
-function attachGameMessageOverlay(wrapperEl: JQuery<HTMLElement>, adminDriver: AdminDriver): () => void {
+export function attachGameMessageOverlay(wrapperEl: JQuery<HTMLElement>, adminDriver: AdminDriver): () => void {
     // The overlay's `position: absolute` needs a positioned ancestor to anchor to. #wrapper is
     // `position: relative` in static/styles/index.css today, but that's an assumption this
     // shared lifecycle shouldn't silently depend on — enforce it here instead.
@@ -96,22 +96,24 @@ function attachGameMessageOverlay(wrapperEl: JQuery<HTMLElement>, adminDriver: A
 }
 
 /**
- * Drives a single `#wrapper`-rooted screen between a standby view and the live UI, keyed off
- * `ClientStatus`. Every transition replaces `#wrapper` wholesale: a `WidgetContainer`'s 'destroy'
- * event (which radar/tweakpane widgets already hook to release PIXI apps and panes) fires exactly
- * as it would on page unload, just re-run every time instead of only once — so `init` never has
- * to reason about a wrapper that outlives its own screen.
+ * Shared plumbing for a `#wrapper`-rooted screen that swaps its whole content on demand. Each
+ * call to `show` replaces `#wrapper` wholesale — a `WidgetContainer`'s 'destroy' event (which
+ * radar/tweakpane widgets already hook to release PIXI apps and panes) fires exactly as it would
+ * on page unload, just re-run every time instead of only once, so `render` never has to reason
+ * about a wrapper that outlives its own screen.
+ *
+ * `render` gets an `addCleanup` alongside the fresh wrapper: two independent async setups (the
+ * screen itself, and the message overlay) share one teardown-on-supersession rule — whichever
+ * resolves after a newer `show` call started gets torn down immediately instead of being shown,
+ * rather than leaking into a screen that already moved on.
  */
-export function runScreenLifecycle(
-    driver: Driver,
-    statusTracker: ClientStatus,
-    threshold: Status,
-    init: (wrapperEl: JQuery<HTMLElement>) => Promise<ScreenTeardown>,
-): void {
+export function createWrapperRenderer(): {
+    show: (render: (wrapperEl: JQuery<HTMLElement>, addCleanup: (fn: ScreenTeardown) => void) => void) => void;
+} {
     let wrapperEl = $('#wrapper');
     const parent = wrapperEl.parent();
-    let teardown: ScreenTeardown;
     let generation = 0;
+    let cleanups: Array<() => void> = [];
 
     function replaceWrapper(): JQuery<HTMLElement> {
         // empty() first so each sub-container's own 'destroy' (watching #wrapper for its removal)
@@ -123,16 +125,11 @@ export function runScreenLifecycle(
         return next;
     }
 
-    statusTracker.onStatusChange(({ status, text }) => {
-        const myGeneration = ++generation;
-        teardown?.();
-        teardown = undefined;
-        const freshWrapper = replaceWrapper();
-        if (status >= threshold) {
-            // Two independent async setups (the screen itself, and the message overlay) share one
-            // teardown-on-supersession rule: whichever resolves after a newer generation started
-            // gets torn down immediately instead of being shown.
-            const cleanups: Array<() => void> = [];
+    return {
+        show(render) {
+            const myGeneration = ++generation;
+            cleanups.splice(0).forEach((fn) => fn());
+            const freshWrapper = replaceWrapper();
             const addCleanup = (fn: ScreenTeardown) => {
                 if (myGeneration === generation) {
                     if (fn) cleanups.push(fn);
@@ -140,21 +137,40 @@ export function runScreenLifecycle(
                     fn?.();
                 }
             };
-            teardown = () => cleanups.splice(0).forEach((fn) => fn());
-            void init(freshWrapper).then(addCleanup);
-            void driver
-                .getAdminDriver()
-                .then((adminDriver) => {
-                    addCleanup(attachGameMessageOverlay(freshWrapper, adminDriver));
-                })
-                .catch((err: unknown) => {
-                    // Missing the end-of-game banner is a far better failure than an unhandled
-                    // rejection on all seven station screens at once.
-                    logError('failed to attach game message overlay', err);
-                });
-        } else {
-            renderStandby(freshWrapper, text);
-        }
+            render(freshWrapper, addCleanup);
+        },
+    };
+}
+
+/**
+ * Drives a single `#wrapper`-rooted screen between a standby view and the live UI, keyed off
+ * `ClientStatus`.
+ */
+export function runScreenLifecycle(
+    driver: Driver,
+    statusTracker: ClientStatus,
+    threshold: Status,
+    init: (wrapperEl: JQuery<HTMLElement>) => Promise<ScreenTeardown>,
+): void {
+    const renderer = createWrapperRenderer();
+    statusTracker.onStatusChange(({ status, text }) => {
+        renderer.show((freshWrapper, addCleanup) => {
+            if (status >= threshold) {
+                void init(freshWrapper).then(addCleanup);
+                void driver
+                    .getAdminDriver()
+                    .then((adminDriver) => {
+                        addCleanup(attachGameMessageOverlay(freshWrapper, adminDriver));
+                    })
+                    .catch((err: unknown) => {
+                        // Missing the end-of-game banner is a far better failure than an
+                        // unhandled rejection on all seven station screens at once.
+                        logError('failed to attach game message overlay', err);
+                    });
+            } else {
+                renderStandby(freshWrapper, text);
+            }
+        });
     });
 }
 

@@ -182,4 +182,88 @@ describe('AdminRoom station registry', () => {
         await waitForServer(() => stationEntry('GGG')?.connected === true);
         expect(stationEntry('GGG')?.shipId).toBe('GVTS-3GUN');
     });
+
+    // GM-driven reassignment (issue #2132): unlike `registerStation`'s self-assignment (which
+    // only ever fills an *empty* slot), `assignStation` is the GM overriding the registry
+    // directly — it can move a station between ships/types and can steal a slot another
+    // station already holds.
+    describe('assignStation command', () => {
+        function assignStation(
+            client: Awaited<ReturnType<typeof driver.createClient>>,
+            room: Awaited<ReturnType<typeof client.connectAdmin>>,
+            stationId: string,
+            shipId: string,
+            stationType: string,
+        ) {
+            return client.sendCommand(room, 'assignStation', { value: { stationId, shipId, stationType } });
+        }
+
+        beforeEach(() => startGame('two_vs_one'));
+
+        it('assigns a bare (typeless, shipless) station to a ship + station type', async () => {
+            const gm = await connectAdmin('gm-assigner');
+            await registerStation(gm.client, gm.room, 'GENERIC1', '');
+            await waitForServer(() => stationEntry('GENERIC1')?.connected === true);
+
+            await assignStation(gm.client, gm.room, 'GENERIC1', 'GVTS', 'pilot');
+            await waitForServer(() => stationEntry('GENERIC1')?.shipId === 'GVTS');
+            expect(stationEntry('GENERIC1')).toMatchObject({ shipId: 'GVTS', stationType: 'pilot' });
+        });
+
+        it('moves an already-assigned station to a different ship and type', async () => {
+            const gm = await connectAdmin('gm-mover');
+            await registerStation(gm.client, gm.room, 'MOVER', 'pilot', 'GVTS');
+            await waitForServer(() => stationEntry('MOVER')?.shipId === 'GVTS');
+
+            await assignStation(gm.client, gm.room, 'MOVER', 'GVTS2', 'weapons');
+            await waitForServer(() => stationEntry('MOVER')?.shipId === 'GVTS2');
+            expect(stationEntry('MOVER')).toMatchObject({ shipId: 'GVTS2', stationType: 'weapons' });
+        });
+
+        it('unassigns a station when sent empty shipId and stationType', async () => {
+            const gm = await connectAdmin('gm-unassigner');
+            await registerStation(gm.client, gm.room, 'UNASSIGN', 'pilot', 'GVTS');
+            await waitForServer(() => stationEntry('UNASSIGN')?.shipId === 'GVTS');
+
+            await assignStation(gm.client, gm.room, 'UNASSIGN', '', '');
+            await waitForServer(() => stationEntry('UNASSIGN')?.shipId === '');
+            expect(stationEntry('UNASSIGN')).toMatchObject({ shipId: '', stationType: '' });
+        });
+
+        it('rejects an assignment to a ship that is not a player ship', async () => {
+            const gm = await connectAdmin('gm-bad-ship');
+            await registerStation(gm.client, gm.room, 'BADSHIP', '');
+            await waitForServer(() => stationEntry('BADSHIP')?.connected === true);
+
+            await assignStation(gm.client, gm.room, 'BADSHIP', 'NOT-A-SHIP-XYZ', 'pilot');
+            await sleep(300);
+            expect(stationEntry('BADSHIP')?.shipId).toBe('');
+        });
+
+        it('rejects an assignment to a station type disabled on the manifest', async () => {
+            const gm = await connectAdmin('gm-bad-type');
+            await registerStation(gm.client, gm.room, 'BADTYPE', '');
+            await waitForServer(() => stationEntry('BADTYPE')?.connected === true);
+
+            await assignStation(gm.client, gm.room, 'BADTYPE', 'GVTS', 'not-a-real-station-type');
+            await sleep(300);
+            expect(stationEntry('BADTYPE')?.shipId).toBe('');
+        });
+
+        it('evicts the current holder of a (ship, station type) slot when reassigned to another station', async () => {
+            // single-player-ship map: with no other open 'pilot' slot to auto-assign into, the
+            // evicted station stays unassigned instead of the reconcile pass immediately
+            // re-homing it elsewhere.
+            await startGame('weapons_no_tubes');
+            const gm = await connectAdmin('gm-evictor');
+            await registerStation(gm.client, gm.room, 'HOLDER', 'pilot', 'GVTS-0TUBE');
+            await waitForServer(() => stationEntry('HOLDER')?.shipId === 'GVTS-0TUBE');
+            await registerStation(gm.client, gm.room, 'CHALLENGER', '');
+            await waitForServer(() => stationEntry('CHALLENGER')?.connected === true);
+
+            await assignStation(gm.client, gm.room, 'CHALLENGER', 'GVTS-0TUBE', 'pilot');
+            await waitForServer(() => stationEntry('CHALLENGER')?.shipId === 'GVTS-0TUBE');
+            expect(stationEntry('HOLDER')?.shipId).toBe('');
+        });
+    });
 });
