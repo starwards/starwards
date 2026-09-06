@@ -1,4 +1,4 @@
-import { formatBanner, openCommand, resolvePort, waitForKeypress } from '../prod';
+import { formatBanner, installUncaughtExceptionHandler, openCommand, resolvePort, waitForKeypress } from '../prod';
 import { VERSION } from '@starwards/core';
 
 describe('resolvePort', () => {
@@ -85,5 +85,45 @@ describe('waitForKeypress', () => {
         // waitForKeypress() resumes stdin (via `.resume()`/`setRawMode`) and never pauses it back —
         // undo that here so this test doesn't leave stdin open for the rest of the suite.
         process.stdin.pause();
+    });
+});
+
+describe('installUncaughtExceptionHandler', () => {
+    let exitSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+        exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+    });
+
+    afterEach(() => {
+        process.removeAllListeners('uncaughtException');
+        exitSpy.mockRestore();
+    });
+
+    it('exits the process on a post-startup crash when not packaged', async () => {
+        installUncaughtExceptionHandler(false);
+        process.emit('uncaughtException', new Error('boom'));
+        // fatalExit is async; let its microtasks flush before asserting
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('waits for a keypress before exiting when packaged, so the console stays readable', async () => {
+        const logSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+        installUncaughtExceptionHandler(true);
+        process.emit('uncaughtException', new Error('boom'));
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(logSpy).toHaveBeenCalledWith('Press any key to exit...');
+        expect(exitSpy).not.toHaveBeenCalled();
+
+        process.stdin.emit('data', Buffer.from('x'));
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(exitSpy).toHaveBeenCalledWith(1);
+
+        process.stdin.pause();
+        logSpy.mockRestore();
     });
 });

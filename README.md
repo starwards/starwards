@@ -32,6 +32,8 @@ Latest development build (may be unstable): [starwards.exe](https://github.com/s
 2. Run `starwards.exe` - it starts the game server on port 8080 and opens the lobby in your default browser (set `STARWARDS_NO_OPEN=1` to skip this).
 3. If it didn't open automatically, go to [http://localhost:8080](http://localhost:8080) yourself. The lobby's "Connect other devices" panel shows a QR code for each address on your network — scan one from a phone on the same Wi-Fi to open a station screen there.
 
+Testing this build for us? See the [reviewer guide](docs/REVIEWING.md) for a suggested run script and how to send feedback.
+
 If you'd rather build from source, see [developing](#developing) below - `npm run build && npm run pkg` produces the same executable at `dist/exec/starwards-win.exe` (plus a Linux build at `dist/exec/starwards-linux`).
 
 # developing

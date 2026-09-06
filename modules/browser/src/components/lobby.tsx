@@ -20,6 +20,7 @@ import {
 import { AnimatorGeneralProvider } from './arwes-compat';
 import { BleepsProvider } from './arwes-compat';
 import { NetworkInfoPanel } from './network-info-panel';
+import { REVIEWER_GUIDE_URL } from '../lobby-links';
 import React from 'react';
 import { ReplayMenu } from './replay-menu';
 import WebFont from 'webfontloader';
@@ -315,10 +316,14 @@ export const Lobby = (p: Props) => {
                         </pre>
                     </div>
                     <div
-                        data-id="version"
+                        data-id="footer"
                         style={{ position: 'fixed', bottom: 4, right: 8, fontSize: 12, opacity: 0.6 }}
                     >
-                        v{VERSION}
+                        <a data-id="reviewer-guide-link" href={REVIEWER_GUIDE_URL} target="_blank" rel="noreferrer">
+                            Testing this build? Read the reviewer guide
+                        </a>
+                        {' — '}
+                        <span data-id="version">v{VERSION}</span>
                     </div>
                 </AnimatorGeneralProvider>
             </BleepsProvider>
