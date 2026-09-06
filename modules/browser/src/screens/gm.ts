@@ -1,6 +1,6 @@
 // import * as PIXI from 'pixi.js';
 
-import { ClientStatus, Driver, Status, createLogger, spaceCommands } from '@starwards/core';
+import { ClientStatus, Driver, GameStatus, Status, createLogger, spaceCommands } from '@starwards/core';
 import { Dashboard, getGoldenLayoutItemConfig } from '../widgets/dashboard';
 import { ScreenTeardown, runScreenLifecycle } from './station-lifecycle';
 
@@ -16,6 +16,7 @@ import { drawGmStatusChip } from '../widgets/observation-mode';
 import { engineeringStatusWidget } from '../widgets/enginering-status';
 import { fullSystemsStatusWidget } from '../widgets/full-system-status';
 import { gameControlsWidget } from '../widgets/game-controls';
+import { gameSetupWidget } from '../widgets/game-setup';
 import { gmInputConfig } from '../input/input-config';
 import { gunWidget } from '../widgets/gun';
 import { longRangeRadarWidget } from '../widgets/long-range-radar';
@@ -45,72 +46,87 @@ const statusTracker = new ClientStatus(driver);
 
 beginStationRegistrationWithRetry(driver, 'gm', '');
 
-runScreenLifecycle(driver, statusTracker, Status.GAME_RUNNING, (wrapperEl) => initScreen(wrapperEl));
+// GAME_RUNNING would hide the whole screen (roster included) until a game starts — but the GM
+// needs the roster and game setup controls precisely to get a game started (issue #2132), so the
+// gate drops to CONNECTED. Space-dependent widgets (radar, per-ship panels) already resolve
+// asynchronously once a game exists; they just render empty until then.
+runScreenLifecycle(driver, statusTracker, Status.CONNECTED, (wrapperEl) => initScreen(wrapperEl));
 
 async function initScreen(wrapperEl: JQuery<HTMLElement>): Promise<ScreenTeardown> {
     wrapperEl.append('<ul id="menuContainer"></ul><div id="layoutContainer"></div>');
-    const gmWidgets = new GmWidgets(driver);
     const adminDriver = await driver.getAdminDriver();
+    const gameSetup = gameSetupWidget(adminDriver);
     const gameControls = gameControlsWidget(adminDriver);
-    const stationRoster = stationRosterWidget(adminDriver);
+    const stationRoster = stationRosterWidget(driver, adminDriver);
+
+    // `GmWidgets`' radar/tweak/create ask for a space room right away — fine once a game is
+    // running, but while stopped there is no room to join, and `getSpaceDriver` treats that
+    // absence as a connection failure (see `Driver.getSpaceDriver`), which would hide this very
+    // screen. The roster and game setup controls the GM needs to *start* a game must render
+    // regardless (#2132), so they render unconditionally and `GmWidgets` only once a game is
+    // actually live; the status change to GAME_RUNNING re-runs this whole function anyway, at
+    // which point the space room exists.
+    const gameStatus = await driver.getGameStatus();
+    const gameIsLive = gameStatus === GameStatus.RUNNING || gameStatus === GameStatus.REPLAY;
+    const gmWidgets = gameIsLive ? new GmWidgets(driver) : null;
+
+    // Its own row rather than a third tab: the GM has to see what the game is doing without
+    // selecting anything, and a third tab in this column overflows into golden-layout's
+    // dropdown, taking tweak and create with it. Game setup and the station roster get the
+    // same treatment, for the same reason.
+    const controlColumnContent = [
+        { ...getGoldenLayoutItemConfig(gameSetup), height: 15, isClosable: false },
+        { ...getGoldenLayoutItemConfig(gameControls), height: 25, isClosable: false },
+        { ...getGoldenLayoutItemConfig(stationRoster), height: 20, isClosable: false },
+    ];
+    if (gmWidgets) {
+        controlColumnContent.unshift({
+            content: [
+                { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
+                { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
+            ],
+            height: 40,
+            isClosable: false,
+            title: '',
+            type: 'stack',
+        });
+    }
+    const controlColumn = { content: controlColumnContent, isClosable: false, title: '', type: 'column' as const };
     const dashboard = new Dashboard(
         {
             content: [
-                {
-                    content: [
-                        { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
-                        {
-                            content: [
-                                {
-                                    content: [
-                                        { ...getGoldenLayoutItemConfig(gmWidgets.tweak), isClosable: false },
-                                        { ...getGoldenLayoutItemConfig(gmWidgets.create), isClosable: false },
-                                    ],
-                                    height: 55,
-                                    isClosable: false,
-                                    title: '',
-                                    type: 'stack',
-                                },
-                                // Its own row rather than a third tab: the GM has to see what
-                                // the game is doing without selecting anything, and a third
-                                // tab in this column overflows into golden-layout's dropdown,
-                                // taking tweak and create with it. The station roster gets the
-                                // same treatment, for the same reason.
-                                {
-                                    ...getGoldenLayoutItemConfig(gameControls),
-                                    height: 25,
-                                    isClosable: false,
-                                },
-                                {
-                                    ...getGoldenLayoutItemConfig(stationRoster),
-                                    height: 20,
-                                    isClosable: false,
-                                },
-                            ],
-                            isClosable: false,
-                            title: '',
-                            type: 'column',
-                            width: 20,
-                        },
-                    ],
-                    isClosable: false,
-                    title: '',
-                    type: 'row',
-                },
+                gmWidgets
+                    ? {
+                          content: [
+                              { ...getGoldenLayoutItemConfig(gmWidgets.radar), width: 80, isClosable: false },
+                              { ...controlColumn, width: 20 },
+                          ],
+                          isClosable: false,
+                          title: '',
+                          type: 'row' as const,
+                      }
+                    : controlColumn,
             ],
         },
         wrapperEl.find('#layoutContainer'),
         wrapperEl.find('#menuContainer'),
     );
 
-    dashboard.registerWidget(gmWidgets.radar);
-    dashboard.registerWidget(gmWidgets.tweak);
-    dashboard.registerWidget(gmWidgets.create);
+    if (gmWidgets) {
+        dashboard.registerWidget(gmWidgets.radar);
+        dashboard.registerWidget(gmWidgets.tweak);
+        dashboard.registerWidget(gmWidgets.create);
+    }
+    dashboard.registerWidget(gameSetup);
     dashboard.registerWidget(gameControls);
     dashboard.registerWidget(stationRoster);
     drawGmStatusChip(adminDriver);
 
     dashboard.setup();
+    if (!gmWidgets) {
+        return () => dashboard.destroy();
+    }
+
     const spaceDriver = await driver.getSpaceDriver();
     const input = new InputManager();
     input.addStepsAction(

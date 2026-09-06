@@ -73,14 +73,26 @@ export function waitForKeypress(): Promise<void> {
     });
 }
 
-async function fatalExit(err: unknown, isPackaged: boolean): Promise<never> {
-    logError('Starwards failed to start:', err instanceof Error ? (err.stack ?? err.message) : String(err));
+async function fatalExit(err: unknown, isPackaged: boolean, prefix: string): Promise<never> {
+    logError(prefix, err instanceof Error ? (err.stack ?? err.message) : String(err));
     if (isPackaged) {
         // eslint-disable-next-line no-console
         console.log('Press any key to exit...');
         await waitForKeypress();
     }
     return process.exit(1);
+}
+
+/**
+ * A double-clicked exe that crashes mid-game (after startup) used to log the exception and keep
+ * running in a possibly-broken state, closing the console with nothing to read if the process
+ * happened to exit right after. Give it the same "print + wait for keypress" fatal treatment as
+ * a startup failure instead of swallowing it.
+ */
+export function installUncaughtExceptionHandler(isPackaged: boolean): void {
+    process.on('uncaughtException', (err) => {
+        void fatalExit(err, isPackaged, `${new Date().toUTCString()} uncaughtException:`);
+    });
 }
 
 async function printLanQrCode(url: string): Promise<void> {
@@ -99,11 +111,7 @@ async function main() {
     const isPackaged = !!(process as typeof process & PackagedProcess).pkg;
     const port = resolvePort(process.env, isPackaged);
 
-    process.on('uncaughtException', function (err) {
-        logError(new Date().toUTCString() + ' uncaughtException:', err.message);
-        logError(err.stack);
-        // process.exit(1);
-    });
+    installUncaughtExceptionHandler(isPackaged);
     const gameManager = new GameManager();
     try {
         // this path has to match the setup in scripts/post-build.js and scripts/pkg.js
@@ -124,7 +132,7 @@ async function main() {
             }
         }
     } catch (err) {
-        await fatalExit(err, isPackaged);
+        await fatalExit(err, isPackaged, 'Starwards failed to start:');
     }
 }
 

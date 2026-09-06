@@ -13,7 +13,30 @@ export interface StationRegistrable {
     registerStationCommands: RegisterStationArg[];
     /** Drained by `GameManager.update()`: station ids whose client just left the admin room. */
     disconnectStationCommands: string[];
+    /** Drained by `GameManager.update()`: GM-issued assignment overrides (see `assignStation`). */
+    assignStationCommands: AssignStationArg[];
 }
+
+/**
+ * A GM's assignment override for a registered station: bind `stationId` to `(shipId,
+ * stationType)`, or unassign it with both fields empty. Unlike `registerStation`'s
+ * self-assignment (which only ever fills an *empty* slot), this can move an already-assigned
+ * station and can steal a slot another station currently holds — the GM is the authority.
+ */
+export type AssignStationArg = { stationId: string; shipId: string; stationType: string };
+
+/**
+ * `assignStation` command: the GM (re)binds a registered station to a ship + station type, or
+ * clears its assignment (`shipId: ''`, `stationType: ''`). Generic, like every other command in
+ * this codebase — `setValue` only pushes onto the queue; validating the pair against
+ * `playerShipIds` and the stations manifest happens where the queue is drained (`GameManager`).
+ */
+export const assignStation: StateCommand<AssignStationArg, Schema & StationRegistrable, void> = {
+    cmdName: 'assignStation',
+    setValue: (state, value) => {
+        state.assignStationCommands.push(value);
+    },
+};
 
 /**
  * `registerStation` command: a station (re)registers itself and optionally requests a ship

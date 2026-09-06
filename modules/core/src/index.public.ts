@@ -92,10 +92,16 @@ export type { DefectibleValue, RepairOperation, System } from './ship';
 
 // --- stations ---
 export { StationRegistryEntry, isValidStationId } from './stations';
-export type { RegisterStationArg } from './stations';
+export type { AssignStationArg, RegisterStationArg } from './stations';
 
 // --- stations-manifest ---
-export { isRadarWidget, stationCommands, stationRadarWidgets, stationWidgets } from './stations-manifest';
+export {
+    isAssignableSeat,
+    isRadarWidget,
+    stationCommands,
+    stationRadarWidgets,
+    stationWidgets,
+} from './stations-manifest';
 export type {
     StationCommand,
     StationEntry,

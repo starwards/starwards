@@ -10,10 +10,42 @@ const shipId = single_ship.testShipId;
 const gameDriver = makeDriver(test);
 
 async function waitForRadarReady(page: Page) {
-    await expect(page.locator('[data-id="Long Range Radar"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-id="Long Range Radar"]'), 'phase: long range radar visible').toBeVisible({
+        timeout: 10000,
+    });
     // Scan Beam only renders once initScreen has awaited both drivers and wired input,
     // so its visibility is proof the page is ready for keypresses (not an arbitrary sleep).
-    await expect(page.locator('[data-id="Scan Beam"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-id="Scan Beam"]'), 'phase: scan beam visible').toBeVisible({ timeout: 10000 });
+}
+
+/**
+ * Dispatches `count` keydown+keyup pairs for `key` in a single round trip to the page, instead of
+ * `count` sequential `page.keyboard.press()` calls. Each `press()` is its own CDP round trip; under
+ * CI's parallel-worker CPU contention, 40 of those round trips can alone burn the whole test timeout
+ * (see #2229) even though the app processes the events instantly once they arrive. hotkeys-js (the
+ * library wiring these keys) reacts to any KeyboardEvent reaching `document`, trusted or not, so a
+ * same-process dispatch is equivalent to a real keypress here.
+ */
+async function pressKeyRepeatedly(page: Page, key: string, count: number) {
+    await page.evaluate(
+        ({ key: pressedKey, count: pressCount }) => {
+            const keyCode = pressedKey.toUpperCase().charCodeAt(0);
+            const dispatch = (type: string) => {
+                const event = new KeyboardEvent(type, { key: pressedKey, bubbles: true, cancelable: true });
+                // hotkeys-js (the library wiring these keys) reads the legacy `keyCode`/`which`
+                // properties to identify the key, which the KeyboardEvent constructor's init dict
+                // does not set — so they're patched on afterwards.
+                Object.defineProperty(event, 'keyCode', { get: () => keyCode });
+                Object.defineProperty(event, 'which', { get: () => keyCode });
+                document.dispatchEvent(event);
+            };
+            for (let i = 0; i < pressCount; i++) {
+                dispatch('keydown');
+                dispatch('keyup');
+            }
+        },
+        { key, count },
+    );
 }
 
 test.describe('Signals Screen', () => {
@@ -62,14 +94,21 @@ test.describe('Signals Screen', () => {
         // 40 steps of 5 degrees each takes the bearing 200 degrees anticlockwise from 0: past the
         // -180 end of the range, coming back around to +160. A range that stopped at its end would
         // be stuck at -180.
-        for (let i = 0; i < 40; i++) {
-            await page.keyboard.press('a');
+        await pressKeyRepeatedly(page, 'a', 40);
+        try {
+            await waitForShipCondition(
+                () => gameDriver.getShip(shipId),
+                (ship) => Math.abs(ship.state.radars[1].bearingCommand - 160) < 1,
+                3000,
+            );
+        } catch (e) {
+            // distinguishes "sweep never landed" from "sweep landed short/long" so a regression in
+            // the wrap-around math doesn't look identical to a dropped keypress
+            throw new Error(
+                `phase: bearingCommand condition — expected ~160, got ${gameDriver.getShip(shipId).state.radars[1].bearingCommand}`,
+                { cause: e },
+            );
         }
-        await waitForShipCondition(
-            () => gameDriver.getShip(shipId),
-            (ship) => Math.abs(ship.state.radars[1].bearingCommand - 160) < 1,
-            3000,
-        );
     });
 
     test('w key: radars[1].arc narrows by one step', async ({ page }) => {
