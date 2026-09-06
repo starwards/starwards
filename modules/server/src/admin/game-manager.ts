@@ -81,6 +81,9 @@ export class GameManager {
         orderNone: (shipId: string) => {
             this.spaceManager.state.botOrderCommands.push({ ids: [shipId], order: { type: 'none' } });
         },
+        convertToDerelict: (shipId: string) => {
+            this.spaceManager.convertToDerelict(shipId);
+        },
         getObject: (id: string) => this.spaceManager.state.get(id),
         getObjects: () => this.spaceManager.state,
         setSpeed: (speed: number) => {
