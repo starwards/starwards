@@ -1,0 +1,56 @@
+name: Playtest feedback
+description: Tell us what it was like to play a Starwards build — no dev experience needed
+title: '[playtest]: '
+labels: ['playtest-feedback']
+body:
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for trying Starwards! We want your impressions, not a bug report —
+              there's no need to reproduce or diagnose anything you ran into.
+    - type: input
+      id: build
+      attributes:
+          label: Build
+          description: The version shown bottom-right of the lobby page (e.g. "v0.4.2-7-gabc1234"), if you noticed it.
+      validations:
+          required: false
+    - type: input
+      id: stations
+      attributes:
+          label: Station(s) played
+          description: Which station(s) did you sit at? (e.g. Pilot, Weapons, Engineer, Signals, GM screen)
+      validations:
+          required: true
+    - type: input
+      id: group
+      attributes:
+          label: Solo or group?
+          description: Solo, or group — and how many people?
+      validations:
+          required: false
+    - type: textarea
+      id: confused
+      attributes:
+          label: What confused you?
+      validations:
+          required: true
+    - type: textarea
+      id: felt-good
+      attributes:
+          label: What felt good?
+      validations:
+          required: true
+    - type: textarea
+      id: broken
+      attributes:
+          label: Anything broken?
+          description: A screenshot helps if you have one. No need to reproduce or diagnose it — just tell us what you saw.
+      validations:
+          required: false
+    - type: textarea
+      id: anything-else
+      attributes:
+          label: Anything else?
+      validations:
+          required: false
